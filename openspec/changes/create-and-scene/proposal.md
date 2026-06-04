@@ -11,7 +11,7 @@ while still being small enough to reset and rerun from a spec-only branch.
 - Model presentations as one evolving diagrammatic scene, not as independent
   slides.
 - Add reusable React components, templates, and scripts that the skill can use
-  when creating a new talk.
+  when creating a new presentation.
 - Add a verification flow that invokes the skill on a silly topic and confirms
   the generated presentation builds and renders.
 - Keep the repository usable as an eval fixture by supporting a branch that
@@ -26,8 +26,8 @@ while still being small enough to reset and rerun from a spec-only branch.
 - `evolving-scene-presentations`: Defines the runtime presentation model: one
   scene moving through named states with stable entities, captions, navigation,
   and present/browse modes.
-- `presentation-verification`: Defines how generated talks are verified through
-  build checks, render checks, and a sample silly-topic output.
+- `presentation-verification`: Defines how generated presentations are verified
+  through build checks, render checks, and a sample silly-topic output.
 - `eval-fixture-branching`: Defines the repository state needed for repeatable
   Agent Runner evals, including a spec-only branch and a reference
   implementation branch.
@@ -40,7 +40,11 @@ while still being small enough to reset and rerun from a spec-only branch.
 
 And Scene will remain a small Vite, React, and TypeScript app. The implementation
 will add a reusable presentation kit and a local skill that can generate a new
-talk from a topic.
+presentation from a topic.
+
+Throughout this change, "presentation" is the canonical term for the generated
+artifact. "Talk" is treated as a synonym only in informal narrative and carries
+no separate meaning in the skill or scene contracts.
 
 ```text
 topic
@@ -48,7 +52,7 @@ topic
   v
 skill procedure
   |
-  +--> talk outline and narrative beats
+  +--> presentation outline and narrative beats
   |
   +--> typed scene-state data
   |
@@ -79,6 +83,11 @@ The eval workflow will clone the spec-only branch, run Agent Runner's OpenSpec
 implementation workflow for this change, then compare the resulting behavior and
 artifacts across candidate models or workflow versions.
 
+The Agent Runner-side Docker/smoke-test configuration that points the eval at this
+repository's spec-only branch lives in the Agent Runner codebase and is tracked
+separately (see Out of Scope); it is a consumer of this change, not a deliverable
+of it.
+
 ## Out of Scope
 
 - PowerPoint, Keynote, PDF, or image export.
@@ -86,6 +95,10 @@ artifacts across candidate models or workflow versions.
 - A production hosting or publishing workflow.
 - Subjective scoring of visual taste as the primary verification mechanism.
 - Recreating the full codagent.dev site.
+- Agent Runner's Docker smoke-test configuration. Updating Agent Runner so its
+  smoke project is cloned from this repository's spec-only branch is an external
+  dependency tracked in the Agent Runner codebase, not a deliverable of this
+  change.
 
 ## Impact
 
@@ -93,5 +106,7 @@ artifacts across candidate models or workflow versions.
 - Adds React presentation-kit code and generated presentation conventions.
 - Adds scripts or tests for build/render verification.
 - Adds OpenSpec artifacts that can be preserved on a spec-only branch for evals.
-- Requires Docker smoke-test updates in Agent Runner so the smoke project can be
-  cloned from this repository's spec-only branch instead of a generic starter.
+- External dependency (not delivered here): Agent Runner's Docker smoke test must
+  be updated separately so the smoke project is cloned from this repository's
+  spec-only branch instead of a generic starter. Tracked in the Agent Runner
+  codebase; see Out of Scope.

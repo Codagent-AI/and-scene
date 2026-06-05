@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #1b222c;
+  --color-cyan: #5ce0d8;
+  --color-amber: #f0a830;
+  --color-green: #4ade80;
+  --font-family-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-family-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: #c9d1d9;
+  font-family: var(--font-family-mono);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.btn-secondary {
+  @apply border border-cyan text-cyan px-6 py-2.5 text-xs uppercase tracking-[0.15em] font-bold hover:bg-cyan hover:text-bg;
+  transition: all 0.2s ease;
+}
+.btn-secondary:hover {
+  box-shadow: 0 0 16px rgba(92, 224, 216, 0.15);
+}
+.btn-neutral {
+  @apply border border-gray-600 text-gray-300 px-6 py-2.5 text-xs uppercase tracking-[0.15em] font-bold hover:border-gray-400 hover:text-gray-100;
+  transition: all 0.2s ease;
+}
+
+::selection {
+  background-color: rgba(92, 224, 216, 0.2);
+  color: #fff;
+}

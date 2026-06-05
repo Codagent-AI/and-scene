@@ -8,14 +8,15 @@ while still being small enough to reset and rerun from a spec-only branch.
 ## What Changes
 
 - Add a hybrid agent skill that creates browser-based presentations from a topic.
+- Make the skill self-bootstrapping: when the presentation scaffold (build setup,
+  scene kit, presentation index) is missing, it scaffolds what's needed before
+  creating a presentation.
 - Model presentations as one evolving diagrammatic scene, not as independent
   slides.
 - Add reusable React components, templates, and scripts that the skill can use
   when creating a new presentation.
 - Add a verification flow that invokes the skill on a silly topic and confirms
   the generated presentation builds and renders.
-- Keep the repository usable as an eval fixture by supporting a branch that
-  contains the starter scaffold and OpenSpec artifacts, but no implementation.
 
 ## Capabilities
 
@@ -28,9 +29,6 @@ while still being small enough to reset and rerun from a spec-only branch.
   and present/browse modes.
 - `presentation-verification`: Defines how generated presentations are verified
   through build checks, render checks, and a sample silly-topic output.
-- `eval-fixture-branching`: Defines the repository state needed for repeatable
-  Agent Runner evals, including a spec-only branch and a reference
-  implementation branch.
 
 ### Modified Capabilities
 
@@ -79,9 +77,13 @@ The skill should be hybrid rather than prompt-only. The skill document provides
 the agent procedure and quality bar; reusable templates/scripts/components keep
 the generated output consistent enough for evals.
 
-The eval workflow will clone the spec-only branch, run Agent Runner's OpenSpec
+The eval workflow will clone a spec-only branch, run Agent Runner's OpenSpec
 implementation workflow for this change, then compare the resulting behavior and
-artifacts across candidate models or workflow versions.
+artifacts across candidate models or workflow versions. Creating that spec-only
+branch (proposal + specs + design, without tasks or implementation) and a
+reference implementation branch is a one-time manual setup performed after this
+change is implemented; it is not itself a capability of this system (see Out of
+Scope).
 
 The Agent Runner-side Docker/smoke-test configuration that points the eval at this
 repository's spec-only branch lives in the Agent Runner codebase and is tracked
@@ -95,6 +97,10 @@ of it.
 - A production hosting or publishing workflow.
 - Subjective scoring of visual taste as the primary verification mechanism.
 - Recreating the full codagent.dev site.
+- Eval fixture branching. Creating the spec-only and reference-implementation
+  branches is a one-time manual operation done after this change ships, not a
+  capability the system implements (a spec for branch creation would otherwise
+  have to live on the very branch it creates, and only ever runs once).
 - Agent Runner's Docker smoke-test configuration. Updating Agent Runner so its
   smoke project is cloned from this repository's spec-only branch is an external
   dependency tracked in the Agent Runner codebase, not a deliverable of this

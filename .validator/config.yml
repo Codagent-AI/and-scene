@@ -25,7 +25,6 @@ entry_points:
       - all-reviewers:
           builtin: all-reviewers
           num_reviews: 1
-          model: gpt-5.3-codex
       - code-quality:
           builtin: code-quality
           num_reviews: 1

@@ -69,7 +69,7 @@ describe('isMonorepo', () => {
   })
 
   it('returns true when package.json has workspaces', () => {
-    expect(isMonorepo({ packageJson: { workspaces: ['packages/*'] } })).toBe(true)
+    expect(isMonorepo({ files: [], packageJson: { workspaces: ['packages/*'] } })).toBe(true)
   })
 
   it('returns true when pnpm-workspace.yaml exists', () => {

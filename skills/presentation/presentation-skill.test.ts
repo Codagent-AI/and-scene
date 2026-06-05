@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const SKILL_DIR = import.meta.dirname
+const SKILL_DIR = dirname(fileURLToPath(import.meta.url))
 
 function readSkillMd(): string {
   return readFileSync(join(SKILL_DIR, 'SKILL.md'), 'utf-8')
@@ -77,7 +78,7 @@ describe('presentation skill structure', () => {
     expect(existsSync(join(tmpl, 'entities.ts'))).toBe(true)
     expect(existsSync(join(tmpl, 'Talk.tsx'))).toBe(true)
     const steps = readdirSync(join(tmpl, 'steps'))
-    expect(steps.some((f) => f.endsWith('.tsx'))).toBe(true)
+    expect(steps.some((f: string) => f.endsWith('.tsx'))).toBe(true)
   })
 
   it('has single-step template', () => {

@@ -1,6 +1,6 @@
-import type { Step } from '../../presentation-kit'
-import { Box, SceneLayer } from '../../presentation-kit'
-import { ENTITIES } from '../presentation/entities'
+import type { Step } from '../../../presentation-kit'
+import { Box, SceneLayer } from '../../../presentation-kit'
+import { ENTITIES } from '../entities'
 
 /**
  * Single-step template — copy into steps/ and customize metadata + layout.

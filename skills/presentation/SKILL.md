@@ -1,10 +1,12 @@
 ---
 name: presentation
 description: >
-  Create and modify evolving-scene browser presentations. Gathers requirements
-  interactively, bootstraps missing scaffolding (monorepo-aware), generates or
-  edits presentations registered at their own routes, and self-verifies build +
-  render before reporting done.
+  Creates and modifies evolving-scene browser presentations. Use when the user
+  asks to "create a presentation", "build a talk", "add steps", "modify a
+  presentation", or scaffold presentation infrastructure. Gathers requirements
+  interactively, bootstraps missing scaffolding (monorepo-aware), registers
+  presentations at their own routes, and self-verifies build + render before
+  reporting done.
 ---
 
 # Presentation skill
@@ -133,6 +135,15 @@ Before reporting success:
 3. If either check fails, **fix the issues and re-check** — never report success
    on broken output
 
+### Output format
+
+Report completion in this structure:
+
+1. **Action** — created or modified, with presentation title and route (`/<slug>`)
+2. **Files changed** — list of paths written or edited
+3. **Verification** — commands run (`npm run build`, render check) and their result
+4. **Follow-ups** — any unresolved questions or partial details the user may want to iterate on (omit if none)
+
 ## Composing the scene kit
 
 Presentations import from `src/presentation-kit/`. Each presentation supplies
@@ -208,6 +219,17 @@ layout, then append to the `STEPS` array in `Talk.tsx`.
 The kit provides browse/present modes, captions per step, table of contents,
 progress dots, and prev/next controls. Users navigate with →/Space/PageDown (next),
 ←/PageUp (prev), P (toggle mode), or horizontal swipe.
+
+## Out of scope
+
+This skill does **not**:
+
+- Design or export non-browser slide decks (PowerPoint, Keynote, PDF, images)
+- Process or convert existing slide-deck files
+- Create unrelated React apps or generic frontend features outside presentations
+- Handle image generation, hosting, or publishing
+
+Redirect those requests to the appropriate skill or tool.
 
 ## Quality bar
 

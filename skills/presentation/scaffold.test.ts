@@ -44,6 +44,13 @@ describe('detectAnchors', () => {
     expect(detectAnchors(snapshot).presentationIndex).toBe(true)
   })
 
+  it('rejects presentation index file without valid registry content', () => {
+    const snapshot: ProjectSnapshot = {
+      files: ['src/presentations/index.ts'],
+    }
+    expect(detectAnchors(snapshot).presentationIndex).toBe(false)
+  })
+
   it('detects partial scaffold — only missing anchors are false', () => {
     const snapshot: ProjectSnapshot = {
       files: ['package.json', 'vite.config.ts', 'src/presentation-kit/types.ts'],

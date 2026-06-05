@@ -63,9 +63,11 @@ export function detectAnchors(snapshot: ProjectSnapshot): ContractAnchors {
 
   const sceneKit = SCENE_KIT_MARKERS.every((m) => hasFile(files, m))
 
+  const hasIndexFile = PRESENTATION_INDEX_MARKERS.some((m) => hasFile(files, m))
   const presentationIndex =
-    PRESENTATION_INDEX_MARKERS.some((m) => hasFile(files, m)) &&
-    (presentationIndexContent?.includes('presentations') ?? true)
+    hasIndexFile &&
+    typeof presentationIndexContent === 'string' &&
+    /export\s+const\s+presentations\b/.test(presentationIndexContent)
 
   return { buildSetup, sceneKit, presentationIndex }
 }

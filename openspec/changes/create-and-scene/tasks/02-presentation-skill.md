@@ -1,4 +1,77 @@
-## ADDED Requirements
+# Task: Presentation skill
+
+## Goal
+
+Author the local **presentation skill** that an agent uses to create and modify
+evolving-scene presentations: a hybrid skill made of a `SKILL.md` procedure plus
+`templates/`. The skill interactively gathers details, self-bootstraps missing
+scaffolding (monorepo-aware), generates or modifies presentations, registers them,
+and self-verifies build + render before reporting done.
+
+## Background
+
+This repo (`and-scene`) is a Vite + React 19 + TypeScript app whose reusable
+presentation engine — the "scene kit" — lives at `src/presentation-kit/`, with an
+explicit presentation registry at `src/presentations/index.ts` and a zero-dep
+pathname router in `src/main.tsx` (presentations live at `/<slug>`, each as its own
+folder under `src/presentations/<slug>/` rendering `<Presentation steps={…} />`).
+A presentation supplies only its own entities (a `layoutId` namespace) and its
+`steps/*` (Scenes composing the kit's generic node primitives: `Box`, `Label`,
+`Arrow`, `Frame`, `Emphasis`, `SymbolChip`, plus `Appear`/`SceneLayer`).
+
+You MUST read these files before starting:
+- `openspec/changes/create-and-scene/design.md` — full architecture; see the
+  "Skill" section (procedure, scaffold target resolution, required dependency set)
+  and the repository layout.
+- `openspec/changes/create-and-scene/specs/presentation-skill/spec.md` — the
+  behavioral contract (also copied verbatim below).
+- `src/presentation-kit/` (all files) — the engine the skill writes presentations
+  against; the SKILL.md must describe how to compose it.
+- `src/presentations/index.ts` and `src/main.tsx` — how presentations are
+  registered and routed.
+- `package.json`, `vite.config.ts` — the build setup and dependency baseline.
+
+**This is a hybrid skill** — the `SKILL.md` provides the agent procedure and
+quality bar; `templates/` keep generated output consistent. Place it at
+`skills/presentation/` with:
+- `skills/presentation/SKILL.md` — the procedure.
+- `skills/presentation/templates/` — a presentation template (folder with
+  `entities.ts`, a `steps/` example, and `Talk.tsx`), a single-step template, AND
+  a snapshot of the app + scene kit used ONLY to bootstrap a fresh/empty project.
+
+**Procedure the SKILL.md must encode (from the design):**
+1. **Gather** — ask one question at a time for topic, visual style, and each step's
+   content + visual description; optionally draw ASCII mockups for key/complex
+   steps. The human controls depth and may build from partial detail and iterate.
+2. **Resolve target + scaffold if needed** — detect the three contract anchors
+   (build setup; scene kit; presentation index) at the contract level (not a
+   byte-identical match). Resolve a target location, then scaffold whatever is
+   missing from `templates/`, installing the required dependencies. Never assume
+   deps are installed.
+   - Target resolution: empty/standalone → repo root; **monorepo** (workspaces in
+     `package.json`, `pnpm-workspace.yaml`, or a `packages/`|`apps/` layout) →
+     scaffold a self-contained app under `presentations/`; already-scaffolded →
+     use it, scaffold only missing anchors.
+   - Required dependency set the scaffold ensures: runtime `react`, `react-dom`,
+     `motion`, `lucide-react`; dev/build `vite`, `@vitejs/plugin-react`,
+     `typescript` + `@types/react` + `@types/react-dom` + `@types/node`,
+     `tailwindcss`, `@tailwindcss/vite`, the eslint stack, and `playwright` (for
+     the render check).
+   - In a non-empty project, state the resolved target location and confirm before
+     writing.
+3. **Generate / modify** — create writes a new `src/presentations/<slug>/`
+   (`entities.ts` + `steps/*` + `Talk.tsx`) and registers one line in
+   `src/presentations/index.ts`; modify identifies the target first (listing
+   existing presentations if ambiguous) and makes only the requested scoped edits.
+4. **Self-verify** — run the build and a render check; fix failures before
+   reporting done.
+
+**Constraint:** the SKILL.md is a procedure document, so it may reference the
+project's verification entry point (`npm run verify`) as the self-verify command
+even though the script itself is delivered alongside the reference sample. Keep the
+procedure tool-agnostic about how the agent asks questions.
+
+## Spec
 
 ### Requirement: Interactive requirement gathering
 The skill SHALL gather presentation details by asking the user clarifying questions one at a time — covering the topic, the visual style, and the content and visual description of each step. The user controls how much to specify; the skill SHALL NOT assume details the user can still provide, but SHALL allow the user to proceed with partial detail and iterate. The skill MAY, at its discretion, draw ASCII mockups to represent key or complex steps when doing so helps confirm the intended visual layout.
@@ -99,3 +172,13 @@ Every generated presentation SHALL build with no type errors, render its first s
 #### Scenario: Captions and navigation present
 - **WHEN** viewing a presentation
 - **THEN** each step shows a caption and the user can navigate to the next and previous steps
+
+## Done When
+
+`skills/presentation/SKILL.md` and `skills/presentation/templates/` exist and fully
+encode the procedure above: interactive one-at-a-time gathering, contract-anchor
+detection with monorepo-aware target resolution and the full dependency set,
+create/modify flows that register in the index, self-verify, and the quality bar.
+The templates are sufficient to bootstrap a fresh project and to stamp out a new
+presentation. (The procedure is exercised end-to-end when the skill is used to
+build a real presentation.)

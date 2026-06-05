@@ -7,8 +7,8 @@ Verification SHALL build the whole application — all presentations plus the in
 - **WHEN** verification runs
 - **THEN** it builds the whole app and fails if `npm run build` reports any type or build error
 
-### Requirement: Committed silly-topic sample
-A generated silly-topic presentation SHALL be committed in the repository as a known-good fixture, registered and reachable like any other presentation.
+### Requirement: Committed reference sample
+A generated sample presentation SHALL be committed in the repository as a known-good fixture, registered and reachable like any other presentation.
 
 The sample is the self-referential talk **"How to Use This Skill to Make a Presentation"** — a presentation, built by the skill, about building presentations with the skill. Its closing beat reveals that the viewer is looking at an example of the skill's own output. The sample SHALL implement the following steps (titles, captions, and scene intent are normative; the per-step visual design is deferred to design):
 
@@ -27,14 +27,14 @@ The sample is the self-referential talk **"How to Use This Skill to Make a Prese
 
 #### Scenario: Sample exists and matches the outline
 - **WHEN** verification runs
-- **THEN** it confirms the committed silly-topic sample presentation exists, is registered/reachable, and implements the eight steps above in order
+- **THEN** it confirms the committed reference sample presentation exists, is registered/reachable, and implements the eight steps above in order
 
 #### Scenario: Missing sample fails
-- **WHEN** the silly-topic sample is absent
+- **WHEN** the reference sample is absent
 - **THEN** verification fails
 
 ### Requirement: Render verification
-Verification SHALL render the silly-topic sample through all of its steps and fail if any step produces a runtime or console error. The render check runs the sample in a real browser against a production preview and steps through every step. (Mechanism settled in design: `vite preview` + a Playwright/Chromium driver that enumerates steps via the chrome's step-count hook.)
+Verification SHALL render the reference sample through all of its steps and fail if any step produces a runtime or console error. The render check runs the sample in a real browser against a production preview and steps through every step. (Mechanism settled in design: `vite preview` + a Playwright/Chromium driver that enumerates steps via the chrome's step-count hook.)
 
 #### Scenario: Every step renders cleanly
 - **WHEN** verification renders the sample

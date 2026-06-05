@@ -28,7 +28,7 @@ Current scaffold state: plain-CSS single-page `App.tsx`, no router, no Tailwind.
 - A **skill** that interactively gathers details, self-bootstraps missing
   scaffolding (monorepo-aware), generates/modifies presentations, registers them,
   and self-verifies build + render.
-- A committed **silly sample** ("How to Use This Skill to Make a Presentation").
+- A committed **sample** ("How to Use This Skill to Make a Presentation").
 - A **verification** entry point (`npm run verify`) that builds the whole app and
   renders the sample through every step in a real browser.
 - Behavioral and visual parity with the `codagent-dot-dev` harness where it
@@ -68,7 +68,7 @@ src/
       Appear.tsx, SceneLayer.tsx
   presentations/
     index.ts               # EXPLICIT registry: [{ slug, title, load: () => import('./<dir>/Talk') }]
-    how-to-make-a-presentation/        # the committed silly sample
+    how-to-make-a-presentation/        # the committed sample
       entities.ts          # this presentation's layoutId namespace (stable entity ids)
       steps/*.tsx          # 8 Step objects composing kit primitives
       Talk.tsx             # <Presentation steps={STEPS} title=… initialMode="browse" />
@@ -160,7 +160,7 @@ output consistent. Procedure:
 
 1. `npm run build` (`tsc -b && vite build`) over the whole app — any type/build
    error fails.
-2. Assert the silly sample is present in `presentations/index.ts`.
+2. Assert the sample is present in `presentations/index.ts`.
 3. `vite preview`, then Playwright (Chromium) opens the sample route. The driver
    reads the step count from a `data-step-count` hook on the chrome, then steps
    through every step (`ArrowRight`), checking the `data-step-index` advances.
@@ -226,7 +226,7 @@ reference with minimal change; the landing page is restyled to match.
   confirms before writing in any non-empty project, so a wrong guess is caught by
   the user, not silently applied.
 - **StrictMode double-invoke + `motion`** → The reference runs fine under
-  `StrictMode`; keep it. Watch for eff/ animation double-fire during
+  `StrictMode`; keep it. Watch for effect/animation double-fire during
   implementation.
 - **Self-verify cost inside the skill** → A full Playwright pass on every skill
   run is slow; the skill may run the lighter build + a single-route render first
@@ -241,7 +241,7 @@ Greenfield (no production users); the implementing change will, roughly:
 2. Build `src/presentation-kit/**` by generalizing the reference harness.
 3. Add the router (`main.tsx`), `Landing.tsx` (replacing `App.tsx`), and
    `presentations/index.ts`.
-4. Implement the silly sample under `presentations/how-to-make-a-presentation/`
+4. Implement the sample under `presentations/how-to-make-a-presentation/`
    and register it.
 5. Add `scripts/verify.mjs` and the `verify` npm script.
 6. Author `skills/presentation/SKILL.md` + `templates/`.

@@ -15,7 +15,7 @@ while still being small enough to reset and rerun from a spec-only branch.
   slides.
 - Add reusable React components, templates, and scripts that the skill can use
   when creating a new presentation.
-- Add a verification flow that invokes the skill on a silly topic and confirms
+- Add a verification flow that invokes the skill on a sample topic and confirms
   the generated presentation builds and renders.
 
 ## Capabilities
@@ -28,7 +28,7 @@ while still being small enough to reset and rerun from a spec-only branch.
   scene moving through named states with stable entities, captions, navigation,
   and present/browse modes.
 - `presentation-verification`: Defines how generated presentations are verified
-  through build checks, render checks, and a sample silly-topic output.
+  through build checks, render checks, and a sample output.
 
 ### Modified Capabilities
 
@@ -42,7 +42,9 @@ presentation from a topic.
 
 Throughout this change, "presentation" is the canonical term for the generated
 artifact. "Talk" is treated as a synonym only in informal narrative and carries
-no separate meaning in the skill or scene contracts.
+no separate meaning in the skill or scene contracts. The one exception is the
+per-presentation entry component, retained from the reference as `Talk.tsx`; the
+filename is incidental and does not denote a distinct concept.
 
 ```text
 topic
@@ -61,7 +63,7 @@ verification
   |
   +--> npm run build
   +--> render smoke check
-  +--> generated silly-topic presentation exists
+  +--> generated sample presentation exists
 ```
 
 The core representation should be stateful:

@@ -54,7 +54,7 @@ A presentation SHALL let the viewer move between steps via keyboard, touch, and 
 
 #### Scenario: Direct jump
 - **WHEN** the user activates a progress indicator or a table-of-contents entry
-- **THEN** the presentation jumps directly to that step or section
+- **THEN** the presentation jumps directly to that step, or to the first step of that section's era for a table-of-contents entry
 
 #### Scenario: Controls keep their keys
 - **WHEN** focus is on an interactive control

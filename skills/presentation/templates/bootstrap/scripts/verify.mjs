@@ -1,8 +1,7 @@
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
 
 /**
@@ -222,10 +221,7 @@ async function main() {
     console.log('VERIFY: PASS')
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    if (message.includes(' step ')) {
-      fail('render', message)
-    }
-    fail('verify', message)
+    fail(message.includes(' step ') ? 'render' : 'verify', message)
   }
 }
 

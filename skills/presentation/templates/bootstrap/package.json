@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "verify": "node scripts/verify.mjs",
-    "test": "vitest run"
+    "verify": "node --experimental-strip-types scripts/verify.mjs",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",

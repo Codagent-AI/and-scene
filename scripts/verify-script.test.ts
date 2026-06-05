@@ -7,7 +7,7 @@ const ROOT = join(import.meta.dirname, '..')
 describe('verify entry point', () => {
   it('package.json exposes npm run verify', () => {
     const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
-    expect(pkg.scripts?.verify).toBe('node scripts/verify.mjs')
+    expect(pkg.scripts?.verify).toBe('node --experimental-strip-types scripts/verify.mjs')
   })
 
   it('verify script exists', () => {

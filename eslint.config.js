@@ -26,4 +26,22 @@ export default defineConfig([
       },
     },
   },
+  {
+    files: ['src/presentations/**/steps/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    files: ['scripts/**/*.test.ts'],
+    languageOptions: {
+      globals: globals.node,
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: ['scripts/*.test.ts'],
+        },
+        tsconfigRootDir,
+      },
+    },
+  },
 ])

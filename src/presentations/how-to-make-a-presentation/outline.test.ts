@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { REFERENCE_STEP_OUTLINE } from './outline'
-import { STEPS } from './Talk'
+import { STEPS } from './steps'
 
 describe('reference sample outline', () => {
   it('Scenario: Sample exists and matches the outline — eight normative steps', () => {

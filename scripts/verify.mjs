@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
-import { REFERENCE_SLUG, isSampleRegistered } from './verify-lib.mjs'
+import { REFERENCE_SLUG } from './verify-lib.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const VITE_BIN = join(ROOT, 'node_modules', '.bin', 'vite')
@@ -20,10 +20,22 @@ function pass(msg) {
 
 function runBuild() {
   return new Promise((resolve, reject) => {
-    const child = spawn('npm', ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: true })
+    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+    const child = spawn(npm, ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: false })
     child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`build exited ${code}`))))
     child.on('error', reject)
   })
+}
+
+/** Read the project's presentation registry. Returns the list of { slug }. */
+async function readRegistry() {
+  const registryUrl = pathToFileURL(join(ROOT, 'src/presentations/index.ts')).href
+  const mod = await import(registryUrl)
+  const presentations = mod.presentations
+  if (!Array.isArray(presentations)) {
+    throw new Error('src/presentations/index.ts does not export a `presentations` array')
+  }
+  return presentations
 }
 
 function getFreePort() {
@@ -69,8 +81,7 @@ function stopPreview(child) {
       resolve()
       return
     }
-    const done = () => resolve()
-    child.once('close', done)
+    child.once('close', () => resolve())
     try {
       process.kill(-child.pid, 'SIGTERM')
     } catch {
@@ -92,11 +103,11 @@ function stopPreview(child) {
 /** @param {number} port */
 function startPreview(port) {
   return new Promise((resolve, reject) => {
-    const child = spawn(VITE_BIN, ['preview', '--port', String(port), '--strictPort', '--host', 'localhost'], {
-      cwd: ROOT,
-      stdio: 'ignore',
-      detached: true,
-    })
+    const child = spawn(
+      VITE_BIN,
+      ['preview', '--port', String(port), '--strictPort', '--host', 'localhost'],
+      { cwd: ROOT, stdio: 'ignore', detached: true },
+    )
     child.unref()
     child.on('error', reject)
 
@@ -109,41 +120,34 @@ function startPreview(port) {
   })
 }
 
-/** @param {number} port */
-async function renderCheck(port) {
-  const browser = await chromium.launch()
+/** Step a single presentation through every step, capturing render errors. */
+async function renderPresentation(page, port, slug) {
+  const errors = []
+  /** @type {number | null} */
+  let failingStep = null
+
+  const onConsole = (msg) => {
+    if (msg.type() === 'error') errors.push({ step: failingStep, msg: msg.text() })
+  }
+  const onPageError = (err) => errors.push({ step: failingStep, msg: err.message })
+  page.on('console', onConsole)
+  page.on('pageerror', onPageError)
+
   try {
-    const page = await browser.newPage()
-    const errors = []
-    /** @type {number | null} */
-    let failingStep = null
-
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') {
-        errors.push({ step: failingStep, msg: msg.text() })
-      }
-    })
-    page.on('pageerror', (err) => {
-      errors.push({ step: failingStep, msg: err.message })
-    })
-
-    const url = `http://localhost:${port}/${REFERENCE_SLUG}`
-    await page.goto(url, { waitUntil: 'load', timeout: 30_000 })
+    await page.goto(`http://localhost:${port}/${slug}`, { waitUntil: 'load', timeout: 30_000 })
 
     const progress = page.locator('[data-testid="step-progress"]')
     await progress.waitFor({ timeout: 10_000 })
 
     const stepCount = Number(await progress.getAttribute('data-step-count'))
     if (!Number.isFinite(stepCount) || stepCount < 1) {
-      throw new Error(`invalid data-step-count: ${stepCount}`)
+      throw new Error(`${slug}: invalid data-step-count: ${stepCount}`)
     }
 
     for (let i = 0; i < stepCount; i++) {
       failingStep = i
       const index = Number(await progress.getAttribute('data-step-index'))
-      if (index !== i) {
-        throw new Error(`expected step index ${i}, got ${index}`)
-      }
+      if (index !== i) throw new Error(`${slug} step ${i}: expected index ${i}, got ${index}`)
 
       if (i < stepCount - 1) {
         await page.keyboard.press('ArrowRight')
@@ -160,7 +164,21 @@ async function renderCheck(port) {
 
     if (errors.length > 0) {
       const first = errors[0]
-      throw new Error(`step ${first.step}: ${first.msg}`)
+      throw new Error(`${slug} step ${first.step}: ${first.msg}`)
+    }
+  } finally {
+    page.off('console', onConsole)
+    page.off('pageerror', onPageError)
+  }
+}
+
+/** @param {number} port @param {Array<{ slug: string }>} presentations */
+async function renderCheck(port, presentations) {
+  const browser = await chromium.launch()
+  try {
+    const page = await browser.newPage()
+    for (const { slug } of presentations) {
+      await renderPresentation(page, port, slug)
     }
   } finally {
     await browser.close()
@@ -172,15 +190,16 @@ async function main() {
     await runBuild()
     pass('build')
 
-    if (!(await isSampleRegistered(ROOT))) {
+    const presentations = await readRegistry()
+    if (!presentations.some((entry) => entry.slug === REFERENCE_SLUG)) {
       fail('registry', `reference sample "${REFERENCE_SLUG}" is not registered`)
     }
-    pass('registry')
+    pass(`registry (${presentations.length} presentation${presentations.length === 1 ? '' : 's'})`)
 
     const port = await getFreePort()
     const { child } = await startPreview(port)
     try {
-      await renderCheck(port)
+      await renderCheck(port, presentations)
       pass('render')
     } finally {
       await stopPreview(child)
@@ -189,10 +208,7 @@ async function main() {
     console.log('VERIFY: PASS')
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    if (message.includes('step ')) {
-      fail('render', message)
-    }
-    fail('verify', message)
+    fail(message.includes(' step ') ? 'render' : 'verify', message)
   }
 }
 

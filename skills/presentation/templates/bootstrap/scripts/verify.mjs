@@ -32,7 +32,8 @@ function pass(msg) {
 
 function runBuild() {
   return new Promise((resolve, reject) => {
-    const child = spawn('npm', ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: true })
+    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+    const child = spawn(npm, ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: false })
     child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`build exited ${code}`))))
     child.on('error', reject)
   })

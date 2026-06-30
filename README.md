@@ -21,8 +21,16 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-The landing page lists every registered presentation; each one lives at its own
-route (`/<slug>`). In a presentation:
+The dev server opens the **landing page** at `/` — an index that lists every
+registered presentation. It does *not* jump straight into a talk. Click a
+presentation, or go to its route directly, to open it. The bundled reference
+talk lives at:
+
+```
+http://localhost:5173/how-to-make-a-presentation
+```
+
+Each presentation lives at its own route (`/<slug>`). In a presentation:
 
 - **→ / Space / PageDown** — next step
 - **← / PageUp** — previous step

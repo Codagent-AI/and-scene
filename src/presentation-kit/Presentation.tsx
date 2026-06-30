@@ -28,7 +28,7 @@ export function Presentation({
     <div className="relative min-h-screen select-none overflow-hidden font-mono" data-presentation={title}>
       <div className="relative z-10 min-h-screen bg-bg">
         <Stage step={current} mode={mode} />
-        <Header marker={marker} title={current.title} mode={mode} />
+        <Header marker={marker} title={current.title} />
         {mode === 'browse' && <Toc steps={steps} step={step} onSelect={setStep} />}
         <Footer
           steps={steps}

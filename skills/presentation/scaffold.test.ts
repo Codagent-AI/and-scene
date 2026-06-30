@@ -86,12 +86,24 @@ describe('isMonorepo', () => {
 })
 
 describe('resolveScaffoldTarget', () => {
-  it('scaffolds at root for standalone project', () => {
-    expect(resolveScaffoldTarget({ isMonorepo: false })).toBe('.')
+  it('scaffolds at root for an empty project', () => {
+    expect(resolveScaffoldTarget({ files: [] })).toBe('.')
   })
 
-  it('scaffolds under presentations/ in monorepo', () => {
-    expect(resolveScaffoldTarget({ isMonorepo: true })).toBe('presentations')
+  it('scaffolds at root for an existing standalone JS app', () => {
+    expect(
+      resolveScaffoldTarget({ files: ['package.json', 'vite.config.ts'], packageJson: {} }),
+    ).toBe('.')
+  })
+
+  it('scaffolds under presentations/ in a monorepo', () => {
+    expect(resolveScaffoldTarget({ files: ['pnpm-workspace.yaml'] })).toBe('presentations')
+  })
+
+  it('scaffolds under presentation/ in a non-empty non-JS repo', () => {
+    expect(resolveScaffoldTarget({ files: ['main.py', 'requirements.txt', 'README.md'] })).toBe(
+      'presentation',
+    )
   })
 })
 

@@ -19,9 +19,11 @@ export function Footer({ steps, step, last, mode, onPrev, onNext, onSelect }: Fo
   return (
     <footer className="absolute inset-x-0 bottom-0 z-20 px-6 pb-6 md:px-10">
       <div className="mx-auto max-w-3xl">
-        <div className="flex min-h-[4.5rem] items-center justify-center">
-          <AnimatePresence mode="wait">
-            {browsing ? (
+        {/* Browse: the caption sits here, above the dots. Presenter: nothing —
+            the title is at the top now, so the band collapses away. */}
+        {browsing && (
+          <div className="flex min-h-[4.5rem] items-center justify-center">
+            <AnimatePresence mode="wait">
               <motion.p
                 key={`caption-${step}`}
                 initial={{ opacity: 0, y: 8 }}
@@ -32,23 +34,12 @@ export function Footer({ steps, step, last, mode, onPrev, onNext, onSelect }: Fo
               >
                 {current.caption}
               </motion.p>
-            ) : (
-              <motion.h1
-                key={`title-${step}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.35, ease: EASE }}
-                className="text-center text-2xl text-gray-100 md:text-3xl"
-              >
-                {current.title}
-              </motion.h1>
-            )}
-          </AnimatePresence>
-        </div>
+            </AnimatePresence>
+          </div>
+        )}
 
         <div
-          className={`mt-5 flex items-center ${browsing ? 'justify-between gap-3' : 'justify-center'}`}
+          className={`flex items-center ${browsing ? 'mt-5 justify-between gap-3' : 'justify-center'}`}
         >
           <div
             data-testid="step-progress"

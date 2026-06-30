@@ -10,6 +10,8 @@ describe('constants', () => {
   it('defines browse and present stage layout geometry', () => {
     expect(STAGE_LAYOUT.browse.fitW).toBe(DESIGN_W)
     expect(STAGE_LAYOUT.present.fitW).toBe(790)
-    expect(STAGE_LAYOUT.browse.top).toBeGreaterThan(STAGE_LAYOUT.present.top)
+    // The title sits at the top in both modes, but only browse carries the
+    // caption + nav band at the bottom, so present trims more bottom chrome.
+    expect(STAGE_LAYOUT.browse.bottom).toBeGreaterThan(STAGE_LAYOUT.present.bottom)
   })
 })

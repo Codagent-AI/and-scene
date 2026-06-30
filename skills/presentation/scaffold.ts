@@ -82,9 +82,31 @@ export function isMonorepo(snapshot: ProjectSnapshot): boolean {
   return false
 }
 
-/** Resolve where to scaffold: repo root for standalone, `presentations/` for monorepos. */
-export function resolveScaffoldTarget({ isMonorepo: monorepo }: { isMonorepo: boolean }): string {
-  return monorepo ? 'presentations' : '.'
+/** A repo is already a JS/Node project once it carries a `package.json`. */
+function hasPackageJson(snapshot: ProjectSnapshot): boolean {
+  return hasFile(snapshot.files, 'package.json')
+}
+
+/**
+ * Resolve where to scaffold the presentation app:
+ *
+ *  - **Monorepo** → a self-contained app under `presentations/`, a peer of the
+ *    other workspace packages.
+ *  - **Empty directory, or an existing standalone JS app** → the repo **root**
+ *    (`.`): the repo either becomes the app or already is a JS app the
+ *    presentation infra slots into (e.g. adding the scene kit to an app).
+ *  - **Any other non-empty repo** (a Python/Go/Rust/etc. project with no
+ *    `package.json`) → a self-contained app under `presentation/`, so the
+ *    scaffold never drops a JS app on top of an unrelated project at the root.
+ *
+ * In every non-root case the skill still states the resolved target and asks the
+ * user to confirm before writing (see SKILL.md).
+ */
+export function resolveScaffoldTarget(snapshot: ProjectSnapshot): string {
+  if (isMonorepo(snapshot)) return 'presentations'
+  const isEmpty = snapshot.files.length === 0
+  if (isEmpty || hasPackageJson(snapshot)) return '.'
+  return 'presentation'
 }
 
 /** Derive a URL slug from a presentation title. */

@@ -62,12 +62,19 @@ files). Cosmetic differences do not trigger re-scaffolding.
 
 | Context | Scaffold location |
 |---------|-------------------|
-| Empty directory or standalone (non-monorepo) project | Repository root (`.`) |
+| Empty directory, or an existing standalone JS app (a `package.json` at the root, non-monorepo) | Repository root (`.`) |
 | Monorepo (`workspaces` in `package.json`, `pnpm-workspace.yaml`, or `packages/` / `apps/` layout) | Self-contained app under `presentations/` |
+| Non-empty repo that is **not** a JS app (no root `package.json` — e.g. a Python/Go/Rust project) | Self-contained app under `presentation/` |
 | Anchors already present | Use existing app; scaffold only missing anchors |
 
 **Monorepo detection signals:** `package.json` `workspaces`, `pnpm-workspace.yaml`,
 or files under `packages/` or `apps/`.
+
+**Why non-JS repos nest:** the bootstrap is a full Vite + React app. Dropping its
+`package.json`, `vite.config.ts`, and `src/` at the root of a Python/Go/Rust repo
+would collide with the existing project, so the scaffold lands in a dedicated
+`presentation/` subfolder instead. Only a truly empty directory or a repo that is
+already a JS app gets scaffolded in place at the root.
 
 **Scaffolding steps:**
 

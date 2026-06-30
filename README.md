@@ -1,108 +1,97 @@
 # and-scene
 
-A browser app for building **evolving-scene presentations** — and an agent
-skill that generates them for you.
+A Claude Code **skill** that builds **evolving-scene presentations** into your own
+project — and a reusable scene kit it brings with it.
 
 An evolving-scene presentation is not a stack of unrelated slides. It is one
 shared diagrammatic canvas where a stable set of entities **morph** across named
 steps: boxes appear, move, connect, collapse, and re-label as the talk arc
 develops. The continuity between steps *is* the story.
 
-The app ships a reusable **scene kit** (`src/presentation-kit/`), a registry of
-presentations (`src/presentations/`), and a worked reference talk —
-[How to Use This Skill to Make a Presentation](src/presentations/how-to-make-a-presentation)
-at the `/how-to-make-a-presentation` route, which itself explains how the skill
-builds a talk.
+This repo also contains a worked **reference talk** you can run locally to see the
+format in action — see [Development](#development) at the bottom.
 
 ## Getting started
 
+You use and-scene by installing its **plugin** and running its skill inside
+**your** project. It does not require this repo at runtime, and **there is no npm
+package to install** — the scene kit is vendored into your project by the skill
+(see [How the kit reaches your project](#how-the-kit-reaches-your-project)).
+
+### 1. Install the plugin
+
 ```bash
-npm install
+claude plugin marketplace add Codagent-AI/and-scene
+claude plugin install and-scene
+```
+
+> Plugin packaging is being finalized.
+
+### 2. Create a presentation
+
+Invoke the skill in your project:
+
+```text
+/and-scene:presentation
+```
+
+…or just ask in natural language (e.g. "create a presentation about …"). The
+skill interviews you one question at a time, scaffolds any missing infrastructure
+(stating the target and asking before it writes), generates the presentation, and
+self-verifies that it builds and renders.
+
+### 3. Work on the result
+
+Scaffolding gives your project a Vite + React app with the usual scripts:
+
+```bash
 npm run dev        # http://localhost:5173
 ```
 
-The dev server opens the **landing page** at `/` — an index that lists every
-registered presentation. It does *not* jump straight into a talk. Click a
-presentation, or go to its route directly, to open it. The bundled reference
-talk lives at:
+The dev server opens a **landing page** at `/` listing every presentation; each
+lives at its own route (`/<slug>`).
 
+## Updating
+
+```bash
+claude plugin marketplace update and-scene
+claude plugin update and-scene@and-scene
 ```
-http://localhost:5173/how-to-make-a-presentation
-```
+
+## How the kit reaches your project
+
+There is **no `npm install and-scene`**. The reusable **scene kit**
+(`presentation-kit/`, ~650 lines) is **vendored** — the skill *copies* it into
+your project as source you own and can edit, like
+[shadcn/ui](https://ui.shadcn.com). You're meant to tweak its branding, colors,
+and node primitives.
+
+### Where the skill scaffolds
+
+When your project is missing the presentation infrastructure, the skill resolves
+*where* to put a self-contained app, then states the target and asks you to
+confirm before writing:
+
+| Your project | Scaffold location |
+|--------------|-------------------|
+| Empty directory, or an existing standalone JS app (root `package.json`) | Repository root (`.`) |
+| Monorepo (`workspaces`, `pnpm-workspace.yaml`, or `packages/` / `apps/`) | Self-contained app under `presentations/` |
+| Non-empty repo that is **not** a JS app (no root `package.json` — e.g. Python/Go/Rust) | Self-contained app under `presentation/` |
+| Already has the infrastructure | Uses it in place; scaffolds only what's missing |
+
+## Controls
 
 Each presentation lives at its own route (`/<slug>`). In a presentation:
 
 - **→ / Space / PageDown** — next step
 - **← / PageUp** — previous step
-- **P** — toggle present (titles) ↔ browse (captions + table of contents)
-
-## Repository layout
-
-```
-src/
-  presentation-kit/        Reusable scene kit: Presentation, Stage, chrome,
-                           node primitives (Box, Arrow, Frame, …), navigation
-  presentations/
-    index.ts               Registry — one entry per presentation (slug → loader)
-    <slug>/                A self-contained presentation
-      entities.ts          Stable layoutId namespace for morphing entities
-      steps/*.tsx          One file per step
-      Talk.tsx             Composes the steps into <Presentation />
-  Root.tsx, router.ts      Zero-dependency pathname router + landing page
-scripts/verify.mjs         Build + render verification (Playwright)
-skills/presentation/       The agent skill that generates presentations
-```
-
-## The presentation skill
-
-`skills/presentation/` is a Claude Code skill that builds and modifies these
-presentations end to end. Given a topic, it:
-
-1. **Gathers requirements** interactively — one question at a time (topic,
-   visual style, and the content + visual description of each step), and may
-   sketch ASCII mockups for complex steps.
-2. **Scaffolds if needed** — detects whether the build setup, scene kit, and
-   presentation registry are present, and bootstraps whatever is missing
-   (monorepo-aware: scaffolds into `presentations/` when appropriate).
-3. **Generates or modifies** a presentation as a self-contained folder under
-   `src/presentations/<slug>/`, registered at its own route.
-4. **Self-verifies** — builds and renders the result, fixing failures before
-   reporting done.
-
-See [`skills/presentation/SKILL.md`](skills/presentation/SKILL.md) for the full
-contract, node primitives, and step model.
-
-## Adding a presentation by hand
-
-If you'd rather not use the skill:
-
-1. Copy `skills/presentation/templates/presentation/` to
-   `src/presentations/<slug>/` and fill in `entities.ts`, `steps/*.tsx`, and
-   `Talk.tsx`.
-2. Add one entry to `src/presentations/index.ts`:
-
-   ```ts
-   {
-     slug: 'my-talk',
-     title: 'My Talk',
-     load: () => import('./my-talk/Talk'),
-   }
-   ```
-
-3. Run `npm run verify`.
-
-## Verification
-
-```bash
-npm run verify
-```
-
-`verify` builds the app, then launches a headless browser against a production
-preview and steps through **every** registered presentation, failing on any
-build error, console error, or uncaught page error. A presentation registered
-but broken will fail the check.
+- **P** — toggle **present** (title-only) ↔ **browse** (captions + table of
+  contents). The step **title shows at the top in both modes**; browse adds the
+  per-step caption and navigation along the bottom.
 
 ## Scripts
+
+Scaffolding adds these to your project:
 
 | Script | What it does |
 |--------|--------------|
@@ -113,7 +102,62 @@ but broken will fail the check.
 | `npm run test` | Vitest unit tests |
 | `npm run lint` | ESLint |
 
+`verify` builds the app, then launches a headless browser against a production
+preview and steps through **every** registered presentation, failing on any build
+error, console error, or uncaught page error. (It needs a Chromium browser — run
+`npx playwright install chromium` once.)
+
 ## Tech
 
 React 19 · TypeScript · Vite · Tailwind CSS v4 · [`motion`](https://motion.dev)
 for `layoutId` morph animations · `lucide-react` for glyphs.
+
+---
+
+## Development
+
+### Run the reference app
+
+```bash
+npm install
+npm run dev        # http://localhost:5173
+```
+
+The landing page at `/` lists every registered presentation. The bundled
+reference talk — which itself explains how the skill builds a talk — lives at:
+
+```
+http://localhost:5173/how-to-make-a-presentation
+```
+
+Run `npm run verify` to build and render-check every presentation, and
+`npm run test` for the unit tests.
+
+### Repository layout
+
+```
+src/                         The reference app
+  presentation-kit/          CANONICAL scene kit: Presentation, Stage, chrome,
+                             node primitives (Box, Arrow, Frame, …), navigation
+  presentations/
+    index.ts                 Registry — one entry per presentation (slug → loader)
+    <slug>/                  A self-contained presentation (entities/steps/Talk)
+  Root.tsx, router.ts        Zero-dependency pathname router + landing page
+scripts/verify.mjs           Build + render verification (Playwright)
+
+skills/presentation/         The agent skill
+  SKILL.md                   The skill contract + procedure
+  scaffold.ts                Anchor detection + scaffold-target resolution
+  templates/
+    bootstrap/               A full app shell, incl. a SNAPSHOT COPY of the kit,
+                             stamped into a fresh/empty project
+    presentation/            A single-presentation template
+    single-step/             A single-step template
+```
+
+### Two copies of the kit, on purpose
+
+`src/presentation-kit/` is the canonical kit the reference app runs.
+`skills/presentation/templates/bootstrap/src/presentation-kit/` is a snapshot the
+skill copies into your project. They are kept byte-identical (excluding tests) —
+when the canonical kit changes, the snapshot must change identically.

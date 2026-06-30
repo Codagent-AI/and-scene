@@ -9,8 +9,8 @@ export const DESIGN_H = 380
 export const MIN_SCALE = 0.35
 
 export const STAGE_LAYOUT = {
-  browse: { top: 108, bottom: 188, padX: 32, fitW: DESIGN_W, maxScale: 1.8 },
-  present: { top: 64, bottom: 140, padX: 20, fitW: 790, maxScale: 2.6 },
+  browse: { top: 96, bottom: 188, padX: 32, fitW: DESIGN_W, maxScale: 1.8 },
+  present: { top: 104, bottom: 76, padX: 20, fitW: 790, maxScale: 2.6 },
 } as const
 
 export type StageLayout = (typeof STAGE_LAYOUT)[keyof typeof STAGE_LAYOUT]

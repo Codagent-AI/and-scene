@@ -12,7 +12,9 @@ export function readRegistrySource(registryPath) {
 
 /** @param {string} source */
 export function checkPresentationsArray(source) {
-  const match = source.match(/export const presentations[\s\S]*?=\s*\[([\s\S]*?)\]\s*\n/)
+  // Tolerate an optional trailing semicolon and end-of-file (no final newline),
+  // so `]`, `];`, and an unterminated last line all parse.
+  const match = source.match(/export const presentations[\s\S]*?=\s*\[([\s\S]*?)\]\s*;?\s*(?:\n|$)/)
   if (!match) return false
   const slugPattern = new RegExp(`slug:\\s*['"]${REFERENCE_SLUG}['"]`)
   return slugPattern.test(match[1])

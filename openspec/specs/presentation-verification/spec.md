@@ -1,7 +1,8 @@
 # presentation-verification Specification
 
 ## Purpose
-TBD - created by archiving change create-and-scene. Update Purpose after archive.
+Define how a generated presentation project is automatically verified before the skill reports success: building the whole application and rendering every registered presentation through all of its steps, failing on any build error, console error, or uncaught page error. This guarantees the skill never reports done on output that does not build or render.
+
 ## Requirements
 ### Requirement: Build verification
 Verification SHALL build the whole application — all presentations plus the index — and fail if the build does not succeed.

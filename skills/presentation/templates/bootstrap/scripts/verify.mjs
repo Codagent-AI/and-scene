@@ -18,7 +18,7 @@ import { chromium } from 'playwright'
  */
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const VITE_BIN = join(ROOT, 'node_modules', '.bin', 'vite')
+const VITE_BIN = join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'vite.cmd' : 'vite')
 
 /** @param {string} check @param {string} detail */
 function fail(check, detail) {
@@ -135,8 +135,9 @@ function startPreview(port) {
 /** Step a single presentation through every step, capturing render errors. */
 async function renderPresentation(page, port, slug) {
   const errors = []
-  /** @type {number | null} */
-  let failingStep = null
+  // Start at 0 so errors during the initial page load (before the step loop
+  // runs) are attributed to step 0 rather than a confusing `step null`.
+  let failingStep = 0
 
   const onConsole = (msg) => {
     if (msg.type() === 'error') errors.push({ step: failingStep, msg: msg.text() })

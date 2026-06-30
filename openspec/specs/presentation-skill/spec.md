@@ -1,7 +1,7 @@
 # presentation-skill Specification
 
 ## Purpose
-TBD - created by archiving change create-and-scene. Update Purpose after archive.
+Define the behavior of the presentation skill: how it gathers presentation requirements interactively, bootstraps missing infrastructure (monorepo-aware target resolution and the scene kit), and creates or modifies evolving-scene presentations registered at their own routes — self-verifying build and render before reporting done.
 ## Requirements
 ### Requirement: Interactive requirement gathering
 The skill SHALL gather presentation details by asking the user clarifying questions one at a time — covering the topic, the visual style, and the content and visual description of each step. The user controls how much to specify; the skill SHALL NOT assume details the user can still provide, but SHALL allow the user to proceed with partial detail and iterate. The skill MAY, at its discretion, draw ASCII mockups to represent key or complex steps when doing so helps confirm the intended visual layout.

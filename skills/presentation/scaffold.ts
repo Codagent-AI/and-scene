@@ -54,7 +54,14 @@ function hasPathPrefix(files: string[], prefix: string): boolean {
 
 /** Detect the three contract anchors at the presence level (not byte-identical). */
 export function detectAnchors(snapshot: ProjectSnapshot): ContractAnchors {
-  const { files, packageJson, presentationIndexContent } = snapshot
+  const { packageJson, presentationIndexContent } = snapshot
+
+  // Ignore this skill's own bundled templates. Marker matching is suffix-based
+  // (so a nested app like `presentations/src/...` still resolves), which means a
+  // file list that includes the skill source — e.g. a whole-repo snapshot —
+  // would otherwise match markers against `templates/bootstrap/src/...` and
+  // report scaffolding that isn't actually installed in the project.
+  const files = snapshot.files.filter((f) => !f.includes('templates/bootstrap/'))
 
   const buildSetup =
     hasFile(files, 'vite.config.ts') &&

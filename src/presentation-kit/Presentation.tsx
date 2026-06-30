@@ -43,6 +43,18 @@ export function Presentation({
   marker?: (index: number, steps: Step[]) => string
 }) {
   const { step, setStep, next, prev, last, mode } = usePresentationNav(steps.length, initialMode)
+  // An empty deck has no current step; render a clear placeholder instead of
+  // crashing on `steps[step].title`. (Hooks above run unconditionally first.)
+  if (steps.length === 0) {
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center bg-bg font-mono text-gray-300"
+        data-presentation={title}
+      >
+        No steps to present.
+      </div>
+    )
+  }
   const current = steps[step]
   const markerText = (marker ?? ((i) => stepMarker(i)))(step, steps)
 

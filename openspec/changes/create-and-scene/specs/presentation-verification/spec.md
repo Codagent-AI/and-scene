@@ -54,3 +54,14 @@ Verification SHALL produce an unambiguous pass/fail outcome suitable for automat
 #### Scenario: Clear outcome
 - **WHEN** verification completes
 - **THEN** it reports a clear pass or fail (non-zero exit on failure) identifying which check failed
+
+### Requirement: Vendored kit snapshot parity
+The skill ships a snapshot copy of the scene kit that it vendors into target projects. Verification SHALL confirm this snapshot stays identical to the canonical kit — the same set of non-test source files, each byte-identical — and SHALL fail on any drift, because the render checks exercise only the canonical reference app and cannot detect a stale snapshot.
+
+#### Scenario: Snapshot matches canonical
+- **WHEN** verification runs
+- **THEN** it confirms the vendored kit snapshot and the canonical kit have the same set of non-test files and that each shared file is byte-identical
+
+#### Scenario: Drift fails verification
+- **WHEN** the snapshot diverges from the canonical kit — a non-test file is changed, added, or removed in one copy but not the other
+- **THEN** verification fails and identifies the drift

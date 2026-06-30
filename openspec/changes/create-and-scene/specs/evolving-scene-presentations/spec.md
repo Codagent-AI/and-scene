@@ -81,3 +81,37 @@ The diagram SHALL be composed in a fixed design canvas and scaled uniformly to f
 #### Scenario: Default canvas dimensions
 - **WHEN** a presentation does not override the design canvas
 - **THEN** it uses the reference dimensions of 880 × 380
+
+### Requirement: Host-configurable chrome
+The presentation chrome SHALL expose host overrides for branding, background, and step numbering without requiring the host to fork the scene kit. A presentation MAY supply: a brand node together with a home-link target and accessible label for the header; a full-bleed background layer rendered behind the diagram; and a step-marker function that overrides the default position-derived marker. Every override SHALL default to the kit's built-in behavior, so a presentation that supplies none renders unchanged.
+
+#### Scenario: Custom brand and home link
+- **WHEN** a presentation supplies a brand node and a home-link target
+- **THEN** the header renders that brand linking to that target, and the same target drives the last-step home control so the two cannot diverge
+
+#### Scenario: Default branding
+- **WHEN** a presentation supplies no branding overrides
+- **THEN** the header shows the kit's default brand, home target, and label
+
+#### Scenario: Custom background layer
+- **WHEN** a presentation supplies a background layer
+- **THEN** it renders full-bleed behind the diagram and the kit's opaque default background is suppressed
+
+#### Scenario: Relational step markers
+- **WHEN** a presentation supplies a step-marker function
+- **THEN** each step's marker is computed by that function, which receives the step index and the full step list, allowing chrome steps to be unnumbered or steps to be numbered relationally
+
+#### Scenario: Default step markers
+- **WHEN** a presentation supplies no step-marker override
+- **THEN** markers fall back to the default position-derived numbering
+
+### Requirement: Host theming contract
+The scene kit SHALL render against a documented set of theme tokens and utility classes that the host provides: surface and accent color tokens, mono and sans font-family tokens, and the footer navigation button classes. The skill's scaffold SHALL supply this contract so a scaffolded project renders correctly without further setup; a project that instead vendors the kit into an existing app SHALL provide the contract itself, and the contract SHALL be documented so adopters can do so.
+
+#### Scenario: Scaffold provides the contract
+- **WHEN** the skill scaffolds a project
+- **THEN** the generated styles define the color tokens, font tokens, and button classes the kit depends on
+
+#### Scenario: Contract documented for manual adopters
+- **WHEN** the kit is copied into an existing themed app rather than scaffolded
+- **THEN** the required tokens and classes are documented so the adopter supplies them instead of discovering a silently broken render

@@ -28,6 +28,12 @@ Before creating or modifying a presentation, the skill SHALL ensure the project 
 
 Detection is contract-level, keyed on the presence of these anchors rather than a byte-identical scaffold, so cosmetic differences (file naming, formatting, extra dependencies) do not trigger re-scaffolding. When scaffolding, the skill SHALL NOT assume the required dependencies are already installed.
 
+Target resolution SHALL distinguish three cases, using a root `package.json` as the signal that a directory already is a JS app:
+
+- A **monorepo** scaffolds into a `presentations/` directory as its own self-contained app.
+- An **empty directory or an existing standalone JS app** (a root `package.json`, non-monorepo) scaffolds at the repository root.
+- A **non-empty directory that is not a JS app** (no root `package.json` — e.g. a Python, Go, or Rust project) scaffolds into a `presentation/` subfolder, so the scaffold never drops a JS app on top of an unrelated project at the root.
+
 #### Scenario: Empty or fully unscaffolded directory
 - **WHEN** the skill runs in an empty directory or a project with none of the three anchors present
 - **THEN** it performs a full scaffold (build setup, scene kit, and presentation index) and installs the required dependencies before creating the presentation
@@ -44,9 +50,13 @@ Detection is contract-level, keyed on the presence of these anchors rather than 
 - **WHEN** the skill runs inside a monorepo
 - **THEN** it scaffolds the presentation app into a `presentations/` directory as its own self-contained app rather than at the repository root
 
-#### Scenario: Standalone project target
-- **WHEN** the skill scaffolds in an empty or standalone (non-monorepo) project
+#### Scenario: Empty or JS-app target
+- **WHEN** the skill scaffolds in an empty directory or an existing standalone JS app with a root `package.json` (non-monorepo)
 - **THEN** it scaffolds the presentation app at the repository root
+
+#### Scenario: Non-JS project target
+- **WHEN** the skill scaffolds in a non-empty directory that is not a JS app (no root `package.json`)
+- **THEN** it scaffolds the presentation app into a `presentation/` subfolder so it does not collide with the existing project at the root
 
 #### Scenario: Non-empty project missing scaffolding
 - **WHEN** the project is non-empty but lacks the scene kit or presentation index

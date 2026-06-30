@@ -7,11 +7,6 @@ import { stepMarker } from './stepMarker'
 import { usePresentationNav } from './usePresentationNav'
 import type { Mode, Step } from './types'
 
-export interface PresentationOptions {
-  initialMode?: Mode
-  title?: string
-}
-
 export function Presentation({
   steps,
   initialMode = 'browse',
@@ -20,6 +15,7 @@ export function Presentation({
   homeHref = '/',
   homeLabel,
   background,
+  overlay,
   marker,
 }: {
   steps: Step[]
@@ -33,6 +29,12 @@ export function Presentation({
   homeLabel?: string
   /** Full-bleed layer rendered behind the content; suppresses the opaque `bg-bg`. */
   background?: ReactNode
+  /**
+   * Full-bleed layer rendered *above* the content (e.g. a CRT/scanline overlay).
+   * Unlike `background`, it paints over the chrome. Pointer events pass through,
+   * so it never intercepts clicks. Use `background` for true backdrops.
+   */
+  overlay?: ReactNode
   /**
    * Override the per-step marker (top-right). Defaults to a zero-padded count.
    * A callback (not a per-step field) so hosts can number relationally — e.g.
@@ -68,6 +70,7 @@ export function Presentation({
           onSelect={setStep}
         />
       </div>
+      {overlay && <div className="pointer-events-none absolute inset-0 z-50">{overlay}</div>}
     </div>
   )
 }

@@ -72,7 +72,10 @@ or files under `packages/` or `apps/`.
 **Scaffolding steps:**
 
 1. Determine which anchors are missing (all, some, or none)
-2. Copy missing pieces from `templates/bootstrap/` in this skill directory
+2. Copy missing pieces from `templates/bootstrap/` in this skill directory.
+   The bootstrap `package.json` ships a neutral `presentation-app` name —
+   rename it to suit the target project (e.g. the repo or monorepo package
+   name) before installing.
 3. **Install dependencies** — never assume they are present. The scaffold must
    ensure this full set:
    - **Runtime:** `react`, `react-dom`, `motion`, `lucide-react`
@@ -89,8 +92,8 @@ confirms.
 
 **Already scaffolded:** skip scaffolding and go directly to generate/modify.
 
-Utility helpers in `skills/presentation/scaffold.ts` implement anchor detection,
-monorepo heuristics, and target resolution for automated checks.
+Utility helpers in `scaffold.ts` (alongside this file) implement anchor
+detection, monorepo heuristics, and target resolution for automated checks.
 
 ### 3. Generate or modify
 

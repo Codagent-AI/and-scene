@@ -7,8 +7,8 @@ import { chromium } from 'playwright'
 /**
  * Presentation-agnostic verifier for a scaffolded project.
  *
- * Unlike the and-scene reference verifier (which is pinned to one sample slug),
- * this reads the project's own registry and renders EVERY registered
+ * Rather than pinning to a single known slug, this reads the project's own
+ * registry and renders EVERY registered
  * presentation through all of its steps, failing on any build error, console
  * error, or uncaught page error. A project with no presentations yet still
  * passes (the scaffold builds; there is simply nothing to render).

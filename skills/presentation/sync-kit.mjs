@@ -22,7 +22,7 @@
  * update overwrote. Test files are ignored on both sides; the project copy is
  * never expected to carry them.
  */
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
@@ -32,7 +32,12 @@ const SNAPSHOT = join(here, 'templates/bootstrap/src/presentation-kit')
 
 const isTestFile = (path) => /\.test\./.test(path)
 
-/** Map<relPath, content> of every non-test file under `dir` (empty if absent). */
+/**
+ * Map<relPath, content> of every non-test file under `dir` (empty if absent).
+ * Symlinks are skipped, never followed — a vendored kit is plain source, so a
+ * link here is either a mistake or an attempt to make the tool read/write
+ * through it to a file outside the kit.
+ */
 export function readKit(dir) {
   const out = new Map()
   const walk = (current) => {
@@ -44,6 +49,7 @@ export function readKit(dir) {
     }
     for (const entry of entries) {
       const full = join(current, entry.name)
+      if (entry.isSymbolicLink()) continue
       if (entry.isDirectory()) walk(full)
       else if (!isTestFile(entry.name)) out.set(relative(dir, full), readFileSync(full, 'utf8'))
     }
@@ -75,6 +81,21 @@ export function diffKit(snapshot, target) {
   }
   const sort = (a) => a.sort()
   return { added: sort(added), changed: sort(changed), removed: sort(removed), identical: sort(identical) }
+}
+
+/**
+ * True if any path component of `rel`, walked under `base`, is a symlink.
+ * Checking only the leaf is not enough: writeFileSync/mkdirSync traverse a
+ * symlinked *parent* directory too, so a planted link anywhere along the path
+ * could redirect the write outside the kit.
+ */
+function hasSymlinkComponent(base, rel) {
+  let current = base
+  for (const part of rel.split(/[\\/]+/).filter(Boolean)) {
+    current = join(current, part)
+    if (lstatSync(current, { throwIfNoEntry: false })?.isSymbolicLink()) return true
+  }
+  return false
 }
 
 /** Best-effort unified diff (target → snapshot) via git; empty string if git is absent. */
@@ -147,7 +168,19 @@ export function main(argv) {
     return 1
   }
 
-  for (const rel of [...added, ...changed]) {
+  const writes = [...added, ...changed]
+  // Refuse to write through a symlink — writeFileSync/mkdirSync follow links, so
+  // a planted symlink anywhere along a kit path could redirect a write outside
+  // the project. Scan every path component first, before mutating anything, so
+  // we fail clean.
+  for (const rel of writes) {
+    if (hasSymlinkComponent(targetDir, rel)) {
+      console.error(`Refusing to write through symlink in path: ${join(targetDir, rel)}`)
+      console.error('A vendored kit path component is a symbolic link; aborting so files outside the project are not touched.')
+      return 2
+    }
+  }
+  for (const rel of writes) {
     const dest = join(targetDir, rel)
     mkdirSync(dirname(dest), { recursive: true })
     writeFileSync(dest, snapshot.get(rel))

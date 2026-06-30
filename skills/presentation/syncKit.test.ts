@@ -1,8 +1,10 @@
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 // @ts-expect-error - plain-JS CLI module, no type declarations
-import { diffKit, readKit } from './sync-kit.mjs'
+import { diffKit, main, readKit } from './sync-kit.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..', '..')
@@ -59,5 +61,67 @@ describe('snapshot ↔ canonical parity (agrees with the drift guard)', () => {
   it('shows no drift between the shipped snapshot and the canonical kit', () => {
     const { added, changed, removed } = diffKit(readKit(SNAPSHOT), readKit(CANONICAL))
     expect({ added, changed, removed }).toEqual({ added: [], changed: [], removed: [] })
+  })
+})
+
+describe('symlink safety on --apply', () => {
+  const tmpDirs: string[] = []
+  afterEach(() => {
+    vi.restoreAllMocks()
+    for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true })
+  })
+
+  it('refuses to write through a symlinked kit file and leaves its target intact', () => {
+    const work = mkdtempSync(join(tmpdir(), 'sync-kit-'))
+    tmpDirs.push(work)
+
+    // A sentinel file outside the kit that a planted symlink points at.
+    const secret = join(work, 'secret.txt')
+    writeFileSync(secret, 'do-not-overwrite')
+
+    // Vendored kit = copy of the snapshot, but with one file replaced by a
+    // symlink to the sentinel (the attack: --apply would clobber the target).
+    const kit = join(work, 'src/presentation-kit')
+    mkdirSync(dirname(kit), { recursive: true })
+    cpSync(SNAPSHOT, kit, { recursive: true })
+    const planted = join(kit, 'Presentation.tsx')
+    unlinkSync(planted)
+    symlinkSync(secret, planted)
+
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+
+    const code = main(['--apply', kit])
+
+    expect(code).toBe(2)
+    expect(readFileSync(secret, 'utf8')).toBe('do-not-overwrite')
+  })
+
+  it('refuses to write through a symlinked parent directory', () => {
+    const work = mkdtempSync(join(tmpdir(), 'sync-kit-'))
+    tmpDirs.push(work)
+
+    // A directory outside the kit with a sentinel that an escaped write would hit.
+    const outside = join(work, 'outside')
+    mkdirSync(outside, { recursive: true })
+    writeFileSync(join(outside, 'Footer.tsx'), 'do-not-overwrite')
+
+    // Vendored kit = copy of the snapshot, but with the `chrome/` subdir replaced
+    // by a symlink to `outside/`. --apply must not write through it.
+    const kit = join(work, 'src/presentation-kit')
+    mkdirSync(dirname(kit), { recursive: true })
+    cpSync(SNAPSHOT, kit, { recursive: true })
+    rmSync(join(kit, 'chrome'), { recursive: true, force: true })
+    symlinkSync(outside, join(kit, 'chrome'))
+
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+
+    const code = main(['--apply', kit])
+
+    expect(code).toBe(2)
+    expect(readFileSync(join(outside, 'Footer.tsx'), 'utf8')).toBe('do-not-overwrite')
   })
 })

@@ -14,17 +14,32 @@ export interface StepMeta {
   caption: string
   /**
    * AnimatePresence key override. Consecutive steps that share a groupKey are
-   * NOT remounted when navigating between them.
+   * NOT remounted when you navigate between them — the Scene instance persists
+   * and only its `step` prop changes, so elements already on screen never fade
+   * out and back in; they update in place (and a newly added element animates
+   * in on its own). Steps sharing a groupKey must also share the same `Scene`
+   * component. Defaults to `id`.
    */
   groupKey?: string
-  /** Per-step data handed to the Scene. */
+  /** Per-step data handed to the Scene (e.g. how many chips to show). */
   payload?: Record<string, unknown>
 }
 
+/**
+ * Props every Scene receives. Most scenes ignore them; a grouped scene reads
+ * `step.payload` to decide which sub-state of its diagram to render.
+ */
 export interface SceneProps {
   step: Step
 }
 
+/**
+ * A step = its narration + the diagram layer rendered while it is active.
+ *
+ * `Scene` composes the shared nodes (see ./nodes). Elements that should morph
+ * between steps share a layoutId — that's the only contract between one step
+ * and the next.
+ */
 export interface Step extends StepMeta {
   Scene: ComponentType<SceneProps>
 }

@@ -7,6 +7,13 @@ interface TocProps {
   onSelect: (i: number) => void
 }
 
+/**
+ * Table of contents down the left margin, built from each step's era label.
+ * The section containing the current step is highlighted; clicking an entry
+ * jumps to that section's first step. Shown only when the viewport is wide
+ * enough to hold it beside the centered stage (xl+); below that it's hidden and
+ * the era simply isn't displayed (its only other home was the header).
+ */
 export function Toc({ steps, step, onSelect }: TocProps) {
   const sections = toSections(steps)
   return (

@@ -13,6 +13,10 @@ interface FooterProps {
   onSelect: (i: number) => void
 }
 
+/**
+ * Bottom chrome: the per-step caption (browse mode only — the title now lives
+ * at the top in both modes), a row of progress dots, and prev/next.
+ */
 export function Footer({
   steps,
   step,
@@ -51,6 +55,9 @@ export function Footer({
         <div
           className={`flex items-center ${browsing ? 'mt-5 justify-between gap-3' : 'justify-center'}`}
         >
+          {/* progress dots — centered on their own in presenter mode. In browse
+              mode they share the row with the nav, so they take the leftover
+              space and wrap rather than shoving prev/next off a narrow screen. */}
           <div
             data-testid="step-progress"
             data-step-count={steps.length}
@@ -61,6 +68,10 @@ export function Footer({
               <button
                 key={s.id}
                 onClick={() => onSelect(i)}
+                // Consecutive steps in an era share that label, so era alone gives
+                // many dots the same name. The position + title make each dot
+                // distinct for screen readers; blank-title chrome cards fall back
+                // to era.
                 aria-label={`Go to step ${i + 1}: ${s.title || s.era}`}
                 className={`h-2 w-2 rounded-full transition-colors ${
                   i === step ? 'bg-cyan' : 'bg-gray-400/40 hover:bg-gray-400'
@@ -69,6 +80,7 @@ export function Footer({
             ))}
           </div>
 
+          {/* nav — hidden in presenter mode */}
           {browsing && (
             <div className="flex shrink-0 items-center gap-3">
               <button
@@ -78,6 +90,8 @@ export function Footer({
               >
                 &#x2190; prev
               </button>
+              {/* On the last step there's nowhere further to advance, so the
+                  next button becomes an exit back to the home route. */}
               {step === last ? (
                 <a href={homeHref} className="btn-secondary px-4 py-1.5">
                   home

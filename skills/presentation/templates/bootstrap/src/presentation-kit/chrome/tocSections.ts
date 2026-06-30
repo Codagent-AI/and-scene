@@ -2,7 +2,9 @@ import type { StepMeta } from '../types'
 
 export interface Section {
   era: string
+  /** First step in this era — where clicking the entry jumps. */
   start: number
+  /** Last step in this era — the active range is [start, end]. */
   end: number
 }
 

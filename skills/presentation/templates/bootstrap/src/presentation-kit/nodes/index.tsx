@@ -3,6 +3,16 @@ import { motion, type HTMLMotionProps } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
 import { ENTER_T, LAYOUT_T } from '../constants'
 
+/**
+ * Newcomer entrance. Wrap a *genuinely new* element (one that has no prior
+ * layoutId to morph from) in this, and it fades in after a short beat instead of
+ * appearing at full strength immediately. The point is sequencing: the pieces
+ * already on screen morph to their new positions first and lead the eye, then
+ * the new piece arrives — rather than everything happening at once, which reads
+ * as confusing. Continuing elements should NOT use this; they morph via layoutId
+ * and are the motion the newcomer waits on. Pass a `key` (e.g. the node id) when
+ * the same slot hosts a different newcomer each step, so it re-fades each time.
+ */
 export function Appear({
   children,
   delay,
@@ -25,6 +35,13 @@ export function Appear({
   )
 }
 
+/**
+ * One step's diagram layer: absolutely-positioned and self-centered inside the
+ * fixed design canvas. Because layers don't share normal flow, mounting one
+ * never reflows another — so shared layoutId elements morph between steps
+ * without a reflow jump. Defaults can be overridden per step (e.g. a custom
+ * exit) by passing the prop through.
+ */
 export function SceneLayer({ children, ...rest }: HTMLMotionProps<'div'>) {
   return (
     <motion.div

@@ -7,12 +7,22 @@ interface FooterProps {
   step: number
   last: number
   mode: Mode
+  homeHref?: string
   onPrev: () => void
   onNext: () => void
   onSelect: (i: number) => void
 }
 
-export function Footer({ steps, step, last, mode, onPrev, onNext, onSelect }: FooterProps) {
+export function Footer({
+  steps,
+  step,
+  last,
+  mode,
+  homeHref = '/',
+  onPrev,
+  onNext,
+  onSelect,
+}: FooterProps) {
   const current = steps[step]
   const browsing = mode === 'browse'
 
@@ -69,7 +79,7 @@ export function Footer({ steps, step, last, mode, onPrev, onNext, onSelect }: Fo
                 &#x2190; prev
               </button>
               {step === last ? (
-                <a href="/" className="btn-secondary px-4 py-1.5">
+                <a href={homeHref} className="btn-secondary px-4 py-1.5">
                   home
                 </a>
               ) : (

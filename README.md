@@ -79,6 +79,19 @@ confirm before writing:
 | Non-empty repo that is **not** a JS app (no root `package.json` — e.g. Python/Go/Rust) | Self-contained app under `presentation/` |
 | Already has the infrastructure | Uses it in place; scaffolds only what's missing |
 
+### Host requirements
+
+The kit renders against a small CSS contract. The skill's scaffold ships it in
+`src/index.css`, so a scaffolded project is covered. If you instead **copy the
+kit into an existing themed app**, define these yourself (Tailwind v4 `@theme`)
+or the render will silently lose its colors and buttons:
+
+| Contract | Used for |
+|----------|----------|
+| `--color-bg`, `--color-cyan`, `--color-amber`, `--color-green` | Surface + accent palette |
+| `--font-family-mono`, `--font-family-sans` | Diagram (mono) vs. caption (sans) type |
+| `.btn-secondary`, `.btn-neutral` | Footer navigation buttons |
+
 ## Controls
 
 Each presentation lives at its own route (`/<slug>`). In a presentation:

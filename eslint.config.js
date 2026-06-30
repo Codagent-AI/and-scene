@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const tsconfigRootDir = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig([
-  globalIgnores(['dist', 'skills/presentation/templates/**']),
+  globalIgnores(['dist', 'worktrees/**', 'skills/presentation/templates/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

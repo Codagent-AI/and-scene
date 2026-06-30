@@ -9,34 +9,22 @@ const meta = REFERENCE_STEP_OUTLINE[6]
 function Scene() {
   return (
     <SceneLayer>
-      <div className="relative flex h-52 w-[28rem] items-center justify-center">
-        <Box
-          layoutId={ENTITIES.presentationRoute}
-          Icon={Route}
-          label="/your-talk"
-          accent="green"
-          className="z-10"
-        />
-        <Emphasis
-          layoutId={ENTITIES.modifyLoop}
-          accent="amber"
-          className="absolute -right-2 top-8 rotate-12 font-sans text-xs normal-case tracking-normal"
-        >
-          <Pencil size={12} className="mr-1 inline" aria-hidden />
-          modify
-        </Emphasis>
-        <Arrow
-          layoutId={ENTITIES.questionLoop}
-          className="absolute -left-6 bottom-6 text-3xl text-amber"
-        >
+      <div className="flex items-center gap-8">
+        <Box layoutId={ENTITIES.stepCard2} label="gathering" accent="gray" className="px-6 py-4 text-xs opacity-80" />
+        <Arrow layoutId={ENTITIES.questionLoop} className="text-3xl text-amber">
           ↺
         </Arrow>
-        <Box
-          layoutId={ENTITIES.stepCard2}
-          label="gathering"
-          accent="gray"
-          className="absolute -left-4 top-4 scale-90 opacity-80"
-        />
+        <div className="relative">
+          <Box layoutId={ENTITIES.presentationRoute} Icon={Route} label="/your-talk" accent="green" />
+          <Emphasis
+            layoutId={ENTITIES.modifyLoop}
+            accent="amber"
+            className="absolute -right-4 -top-5 rotate-6 font-sans text-xs normal-case tracking-normal"
+          >
+            <Pencil size={12} className="mr-1 inline" aria-hidden />
+            modify
+          </Emphasis>
+        </div>
       </div>
     </SceneLayer>
   )

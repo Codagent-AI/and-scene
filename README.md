@@ -53,10 +53,30 @@ lives at its own route (`/<slug>`).
 
 ## Updating
 
+Updating happens in two steps, because the kit is vendored (see below): first
+update the **skill**, then resync the **kit copy** in each project.
+
+**1. Update the skill (plugin):**
+
 ```bash
 claude plugin marketplace update and-scene
 claude plugin update and-scene@and-scene
 ```
+
+**2. Resync your project's vendored kit.** Updating the plugin does *not* touch
+the `src/presentation-kit/` copy already in your project. To pull kit fixes into
+a project, ask the skill to "resync the scene kit", or run its sync script from
+the project root:
+
+```bash
+node <skill-dir>/sync-kit.mjs            # show what changed (exit 1 if drift)
+node <skill-dir>/sync-kit.mjs --apply    # rewrite the vendored copy to match
+```
+
+It diffs the skill's bundled snapshot against your copy and rewrites it on
+`--apply`. Local edits show up as drift (like `shadcn diff`); target-only files
+are never deleted, so local-only additions survive. Review with `git diff` and
+re-apply any theming the update overwrote, then rebuild.
 
 ## How the kit reaches your project
 

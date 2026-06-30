@@ -3,10 +3,11 @@ name: presentation
 description: >
   Creates and modifies evolving-scene browser presentations. Use when the user
   asks to "create a presentation", "build a talk", "add steps", "modify a
-  presentation", or scaffold presentation infrastructure. Gathers requirements
-  interactively, bootstraps missing scaffolding (monorepo-aware), registers
-  presentations at their own routes, and self-verifies build + render before
-  reporting done.
+  presentation", "update/resync the scene kit", or scaffold presentation
+  infrastructure. Gathers requirements interactively, bootstraps missing
+  scaffolding (monorepo-aware), registers presentations at their own routes,
+  resyncs a project's vendored scene kit with the latest snapshot, and
+  self-verifies build + render before reporting done.
 ---
 
 # Presentation skill
@@ -21,6 +22,9 @@ that composes the reusable **scene kit** at `src/presentation-kit/`.
 - User asks to create, build, or generate a presentation or talk
 - User asks to modify, update, or add steps to an existing presentation
 - Project lacks the scene kit or presentation infrastructure and needs bootstrapping
+- User asks to update, resync, or pull the latest scene kit into a project whose
+  vendored `src/presentation-kit/` has fallen behind the skill (see
+  [Updating the vendored kit](#updating-the-vendored-kit))
 
 ## Procedure
 
@@ -154,6 +158,53 @@ Report completion in this structure:
 3. **Verification** — commands run (`npm run build`, render check) and their result
 4. **Follow-ups** — any unresolved questions or partial details the user may want to iterate on (omit if none)
 
+## Updating the vendored kit
+
+The scene kit is **vendored** (shadcn-style): every project owns a copy at
+`src/presentation-kit/` rather than depending on a package. That copy does not
+update itself when the skill does — there is no version to bump. When the skill
+ships a kit fix (a new prop, a bug fix), a project's copy must be **resynced**.
+
+The source of truth is the snapshot this skill ships at
+`templates/bootstrap/src/presentation-kit/`, refreshed whenever the plugin is
+updated (`claude plugin update`). The `sync-kit.mjs` script (alongside this file)
+diffs that snapshot against a project's vendored copy and rewrites it on demand.
+
+**When to resync:** the user reports the kit is out of date, asks to pull kit
+updates, or a kit fix shipped in the skill needs to reach an existing project.
+
+**Steps** (run from the consuming project root):
+
+1. **Report drift** — diff the project's copy against the snapshot:
+
+   ```bash
+   node <skill-dir>/sync-kit.mjs
+   ```
+
+   Exit `0` = in sync; exit `1` = files differ (the diff is printed). Local edits
+   to the vendored copy show up as drift too — that is expected, like
+   `shadcn diff`.
+
+2. **Apply** — rewrite the project's copy to match the snapshot:
+
+   ```bash
+   node <skill-dir>/sync-kit.mjs --apply
+   ```
+
+   Added and changed files are written; **target-only files are left untouched**
+   (the script never deletes), so local-only additions survive. Pass an explicit
+   path as the last argument to target a non-default kit location.
+
+3. **Re-apply local theming, then verify** — if the project had local edits the
+   snapshot overwrote, review with `git diff` and re-apply them. Then run
+   `npm run build` and a render check (per [Self-verify](#4-self-verify)) before
+   reporting done.
+
+Resyncing the kit does **not** touch a project's presentations or its host
+config (the `<Presentation>` props it passes) — only the kit files. If a kit
+update adds a capability the host should opt into (e.g. a new slot), call that
+out so the user can wire it up in their `Talk.tsx`.
+
 ## Composing the scene kit
 
 Presentations import from `src/presentation-kit/`. Each presentation supplies
@@ -259,3 +310,9 @@ Every generated presentation must:
 | `templates/single-step/step.tsx` | Template for adding one step |
 
 Replace `{{PLACEHOLDER}}` tokens in templates with gathered content.
+
+## Scripts
+
+| Path | Purpose |
+|------|---------|
+| `sync-kit.mjs` | Diff/resync a project's vendored `src/presentation-kit/` against the shipped snapshot (see [Updating the vendored kit](#updating-the-vendored-kit)) |

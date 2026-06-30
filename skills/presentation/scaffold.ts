@@ -60,8 +60,11 @@ export function detectAnchors(snapshot: ProjectSnapshot): ContractAnchors {
   // (so a nested app like `presentations/src/...` still resolves), which means a
   // file list that includes the skill source — e.g. a whole-repo snapshot —
   // would otherwise match markers against `templates/bootstrap/src/...` and
-  // report scaffolding that isn't actually installed in the project.
-  const files = snapshot.files.filter((f) => !f.includes('templates/bootstrap/'))
+  // report scaffolding that isn't actually installed in the project. Normalize
+  // separators first so Windows backslash paths are filtered (and matched) too.
+  const files = snapshot.files
+    .map((f) => f.replaceAll('\\', '/'))
+    .filter((f) => !f.includes('templates/bootstrap/'))
 
   const buildSetup =
     hasFile(files, 'vite.config.ts') &&

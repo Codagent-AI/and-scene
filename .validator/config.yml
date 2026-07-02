@@ -1,0 +1,69 @@
+# Ordered list of CLI agents to try for reviews
+cli:
+  default_preference:
+    - codex
+  # Recommended settings (see docs/eval-results.md)
+  adapters:
+    codex:
+      allow_tool_use: false
+      thinking_budget: medium
+
+# entry_points configured by /validator-setup
+entry_points:
+  - path: .
+    checks:
+      - build:
+          command: npm run build
+      - lint:
+          command: npm run lint
+      - typecheck:
+          command: npx tsc -b --noEmit
+      - security-deps:
+          command: npm audit --audit-level=moderate
+          run_locally: false
+    reviews:
+      - all-reviewers:
+          builtin: all-reviewers
+          num_reviews: 1
+      - code-quality:
+          builtin: code-quality
+          num_reviews: 1
+      - skill-quality
+
+# -------------------------------------------------------------------
+# All settings below are optional. Uncomment and change as needed.
+# -------------------------------------------------------------------
+
+# Git ref for detecting local changes via git diff (default: origin/main)
+# base_branch: origin/main
+
+# Directory for per-job logs (default: validator_logs)
+# log_dir: validator_logs
+
+# Run gates in parallel when possible (default: true)
+# allow_parallel: true
+
+# Maximum retry attempts before declaring "Retry limit exceeded" (default: 3)
+# max_retries: 3
+
+# Archived session directories to keep during log rotation (default: 3, 0 = disable)
+# max_previous_logs: 3
+
+# Priority threshold for filtering new violations during reruns (default: medium)
+# Options: critical, high, medium, low
+# rerun_new_issue_threshold: medium
+
+# Debug log — persistent debug logging to .debug.log
+# debug_log:
+#   enabled: false
+#   max_size_mb: 10               # Max size before rotation to .debug.log.1
+
+# Structured logging via LogTape
+# logging:
+#   level: debug                  # Options: debug, info, warning, error
+#   console:
+#     enabled: true
+#     format: pretty              # Options: pretty, json
+#   file:
+#     enabled: true
+#     format: text                # Options: text, json

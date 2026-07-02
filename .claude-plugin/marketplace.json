@@ -1,0 +1,24 @@
+{
+  "name": "and-scene",
+  "owner": {
+    "name": "Codagent-AI"
+  },
+  "metadata": {
+    "description": "Builds evolving-scene presentations — a shared diagrammatic canvas that morphs across steps — into your project, with a reusable scene kit."
+  },
+  "plugins": [
+    {
+      "name": "and-scene",
+      "version": "0.1.0",
+      "source": "./",
+      "description": "Builds evolving-scene presentations — a shared diagrammatic canvas that morphs across steps — into your project, with a reusable scene kit.",
+      "keywords": [
+        "presentations",
+        "diagrams",
+        "react",
+        "scaffolding"
+      ],
+      "repository": "https://github.com/Codagent-AI/and-scene"
+    }
+  ]
+}

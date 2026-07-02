@@ -25,8 +25,6 @@ claude plugin marketplace add Codagent-AI/and-scene
 claude plugin install and-scene
 ```
 
-> Plugin packaging is being finalized.
-
 ### 2. Create a presentation
 
 Invoke the skill in your project:
@@ -194,3 +192,5 @@ skills/presentation/         The agent skill
 `skills/presentation/templates/bootstrap/src/presentation-kit/` is a snapshot the
 skill copies into your project. They are kept byte-identical (excluding tests) —
 when the canonical kit changes, the snapshot must change identically.
+`skills/presentation/kitSnapshot.test.ts` enforces this in `npm run test`; resync
+with `node skills/presentation/sync-kit.mjs --apply`.

@@ -254,6 +254,11 @@ kit code. Follow these rules when generating or modifying step scenes:
   `bottom-*`, `left-*`, and `z-*` without adding `absolute`; for true absolute
   placement, put the absolute positioning on a non-`layoutId` wrapper and verify
   the layout still matches the intended design.
+- When fixing a smooth-morph issue in an existing presentation, preserve the
+  intentional composition. If cards or callouts are meant to overlap, keep that
+  overlap and move only the unsafe positioning/opacity/transform utilities to a
+  wrapper. Do not flatten, spread out, or otherwise redesign the scene just to
+  satisfy the wrapper rule.
 - Use `Appear` only for newcomers. Continuing entities with a shared `layoutId`
   should persist and morph; they should not fade out and back in.
 

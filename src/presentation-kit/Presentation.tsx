@@ -27,7 +27,7 @@ export function Presentation({
   homeHref?: string
   /** Accessible label for the home link. */
   homeLabel?: string
-  /** Full-bleed layer rendered behind the content; suppresses the opaque `bg-bg`. */
+  /** Full-bleed layer rendered behind the content. */
   background?: ReactNode
   /**
    * Full-bleed layer rendered *above* the content (e.g. a CRT/scanline overlay).
@@ -48,8 +48,14 @@ export function Presentation({
   if (steps.length === 0) {
     return (
       <div
-        className="flex min-h-screen items-center justify-center bg-bg font-mono text-gray-300"
         data-presentation={title}
+        data-presentation-empty
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
         No steps to present.
       </div>
@@ -59,9 +65,24 @@ export function Presentation({
   const markerText = (marker ?? ((i) => stepMarker(i)))(step, steps)
 
   return (
-    <div className="relative min-h-screen select-none overflow-hidden font-mono" data-presentation={title}>
-      {background && <div className="absolute inset-0 z-0">{background}</div>}
-      <div className={`relative z-10 min-h-screen ${background ? '' : 'bg-bg'}`}>
+    <div
+      data-presentation={title}
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        userSelect: 'none',
+        overflow: 'hidden',
+      }}
+    >
+      {background && (
+        <div
+          data-presentation-background
+          style={{ position: 'absolute', inset: 0, zIndex: 0 }}
+        >
+          {background}
+        </div>
+      )}
+      <div data-presentation-content style={{ position: 'relative', zIndex: 10, minHeight: '100vh' }}>
         <Stage step={current} mode={mode} />
         <Header
           marker={markerText}
@@ -82,7 +103,14 @@ export function Presentation({
           onSelect={setStep}
         />
       </div>
-      {overlay && <div className="pointer-events-none absolute inset-0 z-50">{overlay}</div>}
+      {overlay && (
+        <div
+          data-presentation-overlay
+          style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 50 }}
+        >
+          {overlay}
+        </div>
+      )}
     </div>
   )
 }

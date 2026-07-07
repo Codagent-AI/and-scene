@@ -14,7 +14,7 @@ export function PresentationRouter({ slug }: { slug: string }) {
     {
       fallback: createElement(
         'div',
-        { className: 'flex min-h-screen items-center justify-center font-mono text-sm text-gray-400' },
+        null,
         'Loading presentation…',
       ),
     },

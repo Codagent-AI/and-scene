@@ -127,8 +127,6 @@ describe('REQUIRED_DEPENDENCIES', () => {
         'vite',
         '@vitejs/plugin-react',
         'typescript',
-        'tailwindcss',
-        '@tailwindcss/vite',
         'playwright',
       ]),
     )

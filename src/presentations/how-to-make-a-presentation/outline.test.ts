@@ -68,7 +68,7 @@ describe('reference sample outline', () => {
     expect(step).toBeDefined()
     const Scene = step!.Scene
     const { container } = render(createElement(Scene, { step: step! }))
-    const cards = Array.from(container.querySelectorAll('.border-2')).filter((el) =>
+    const cards = Array.from(container.querySelectorAll('.ref-step-stack-card')).filter((el) =>
       el.textContent?.includes('Step '),
     )
 
@@ -82,7 +82,7 @@ describe('reference sample outline', () => {
   it('renders content for every outline step and fails loudly for unknown ids', () => {
     for (const step of STEPS) {
       const { container, unmount } = render(createElement(ReferenceScene, { step }))
-      expect(container.querySelector('.border-2'), step.id).not.toBeNull()
+      expect(container.querySelector('.ref-box, .ref-frame'), step.id).not.toBeNull()
       unmount()
     }
 

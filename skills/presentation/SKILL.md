@@ -91,10 +91,10 @@ already a JS app gets scaffolded in place at the root.
    ensure this full set:
    - **Runtime:** `react`, `react-dom`, `motion`, `lucide-react`
    - **Dev/build:** `vite`, `@vitejs/plugin-react`, `typescript`,
-     `@types/react`, `@types/react-dom`, `@types/node`, `tailwindcss`,
-     `@tailwindcss/vite`, the eslint stack (`@eslint/js`, `eslint`,
-     `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`,
-     `typescript-eslint`), and `playwright` (for render checks)
+     `@types/react`, `@types/react-dom`, `@types/node`, the eslint stack
+     (`@eslint/js`, `eslint`, `eslint-plugin-react-hooks`,
+     `eslint-plugin-react-refresh`, `globals`, `typescript-eslint`), and
+     `playwright` (for render checks)
 4. Run `npm install` in the resolved target directory
 
 **Non-empty project without scaffolding:** state the resolved target location
@@ -115,7 +115,12 @@ detection, monorepo heuristics, and target resolution for automated checks.
    - `entities.ts` — stable `layoutId` namespace for every morphing entity
    - `steps/*.tsx` — one file per step; each exports a `Step` object
    - `Talk.tsx` — imports all steps, renders `<Presentation steps={STEPS} />`
-3. Register in `src/presentations/index.ts`:
+3. Add presentation-owned styling if the user wants a designed look. The kit is
+   BYO styles: no colors, fonts, borders, spacing scale, or framework defaults
+   are provided by the scaffold. Default to plain CSS in a presentation-local
+   stylesheet. Use Tailwind or another styling system only when the host project
+   already uses it or the user explicitly requests it.
+4. Register in `src/presentations/index.ts`:
 
 ```ts
 {
@@ -125,7 +130,7 @@ detection, monorepo heuristics, and target resolution for automated checks.
 },
 ```
 
-4. Preserve all existing registry entries — new presentations must not break others
+5. Preserve all existing registry entries — new presentations must not break others
 
 #### Modify an existing presentation
 
@@ -244,16 +249,17 @@ kit code. Follow these rules when generating or modifying step scenes:
   composition should intentionally remount.
 - Put stable `layoutId`s only on the entity that should morph. A new visual
   object gets a new id; the same conceptual object keeps the same id.
-- Do not put Tailwind transform or opacity utilities such as `scale-*`,
-  `rotate-*`, or `opacity-*` directly on an element with `layoutId`. Motion uses
-  transforms and opacity during layout projection; combine those on a child or
-  wrapper only when it is not the shared layout entity.
-- Do not put conflicting positioning utilities on one element, especially
-  `relative` plus `absolute`. Kit primitives such as `Box` are already
-  positioned for their internal labels and effects. For relative offsets, use
-  `bottom-*`, `left-*`, and `z-*` without adding `absolute`; for true absolute
-  placement, put the absolute positioning on a non-`layoutId` wrapper and verify
-  the layout still matches the intended design.
+- Do not put transform or opacity styling directly on an element with
+  `layoutId` (`scale`, `rotate`, `opacity`, or Tailwind equivalents such as
+  `scale-*`, `rotate-*`, `opacity-*`). Motion uses transforms and opacity during
+  layout projection; combine those on a child or wrapper only when it is not the
+  shared layout entity.
+- Do not put conflicting positioning styles on one element, especially
+  `position: relative` plus `position: absolute` through mixed classes. For
+  relative offsets, use relative positioning and offsets without adding
+  absolute positioning; for true absolute placement, put the absolute
+  positioning on a non-`layoutId` wrapper and verify the layout still matches
+  the intended design.
 - When fixing a smooth-morph issue in an existing presentation, preserve the
   intentional composition. If cards or callouts are meant to overlap, keep that
   overlap and move only the unsafe positioning/opacity/transform utilities to a
@@ -268,14 +274,20 @@ Compose steps from kit primitives (all accept `layoutId`):
 
 | Primitive | Use for |
 |-----------|---------|
-| `Box` | Bordered card with optional Lucide icon, label, subtitle |
-| `Label` | Small uppercase annotation |
-| `Arrow` | Directional connector (default `→`) |
-| `Frame` | Grouped region with optional frame label |
-| `Emphasis` | Highlighted callout |
-| `SymbolChip` | Icon-as-symbol or compact chip variant |
+| `Box` | Unstyled entity wrapper with optional Lucide icon, label, subtitle |
+| `Label` | Unstyled annotation |
+| `Arrow` | Unstyled connector (default `→`) |
+| `Frame` | Unstyled grouped region with optional frame label |
+| `Emphasis` | Unstyled callout wrapper |
+| `SymbolChip` | Unstyled icon+label entity with `symbol` or `chip` variant hooks |
 | `Appear` | Fade-in for newcomers after persisting entities settle |
 | `SceneLayer` | Absolutely-positioned diagram layer (prevents reflow between steps) |
+
+The kit is intentionally **unstyled**. It supplies motion behavior, stable DOM
+hooks (`data-node`, `data-node-part`, `data-accent`, `data-variant`, and
+`data-presentation-*` chrome hooks), and fixed-canvas layout plumbing. It must
+not impose a palette, font, border treatment, glow, card style, or Tailwind
+dependency. Every presentation owns its visual system.
 
 ### Layout pattern
 
@@ -286,7 +298,7 @@ import { ENTITIES } from '../entities'
 function MyScene() {
   return (
     <SceneLayer>
-      <div className="flex items-center gap-8">
+      <div className="flow">
         <Box layoutId={ENTITIES.hero} label="Idea" accent="cyan" />
         <Arrow layoutId={ENTITIES.flow} />
         <Box layoutId={ENTITIES.result} label="Outcome" accent="green" />
@@ -296,8 +308,41 @@ function MyScene() {
 }
 ```
 
-Position entities with Tailwind flex/grid/absolute classes inside `SceneLayer`.
-The kit scales a fixed design canvas (880×380) to fit between header and footer.
+Position entities with the presentation's own classes or styles inside
+`SceneLayer`. The kit scales a fixed design canvas (880×380) to fit between
+header and footer.
+
+Plain CSS example:
+
+```css
+.my-talk .flow {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.my-talk [data-node='box'] {
+  border: 2px solid currentColor;
+  padding: 1rem 1.5rem;
+}
+
+.my-talk [data-accent='cyan'] {
+  color: #0f766e;
+}
+```
+
+Optional Tailwind example (only after the project has chosen and installed
+Tailwind):
+
+```tsx
+<SceneLayer>
+  <div className="flex items-center gap-8">
+    <Box layoutId={ENTITIES.hero} label="Idea" accent="cyan" className="border-2 px-6 py-4" />
+    <Arrow layoutId={ENTITIES.flow} className="text-3xl" />
+    <Box layoutId={ENTITIES.result} label="Outcome" accent="green" className="border-2 px-6 py-4" />
+  </div>
+</SceneLayer>
+```
 
 ### Adding a step
 

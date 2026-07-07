@@ -17,21 +17,22 @@ import { ENTITIES } from './entities'
 
 function TopicBeat() {
   return (
-    <div className="flex items-center gap-10">
+    <div className="ref-row ref-row--wide">
       <Box
         layoutId={ENTITIES.you}
         Icon={User}
         label="You"
         subtitle="topic in hand"
         accent="amber"
+        className="ref-box"
       />
       <Appear delay={0.2}>
         <Emphasis
           layoutId={ENTITIES.prompt}
           accent="cyan"
-          className="max-w-[12rem] text-center font-sans text-sm normal-case tracking-normal"
+          className="ref-emphasis ref-emphasis--prompt"
         >
-          <MessageCircle className="mx-auto mb-2 text-cyan" size={20} aria-hidden />
+          <MessageCircle className="ref-message-icon" size={20} aria-hidden />
           &ldquo;I need a presentation about…&rdquo;
         </Emphasis>
       </Appear>
@@ -41,57 +42,58 @@ function TopicBeat() {
 
 function InterviewBeat() {
   return (
-    <div className="flex items-center gap-6">
+    <div className="ref-row ref-row--medium">
       <Box
         layoutId={ENTITIES.skill}
         Icon={Sparkles}
         label="Skill"
         subtitle="one question at a time"
         accent="cyan"
+        className="ref-box"
       />
-      <div className="flex flex-col items-center gap-2">
-        <Arrow layoutId={ENTITIES.questionLoop} className="text-2xl">
+      <div className="ref-column ref-column--tight">
+        <Arrow layoutId={ENTITIES.questionLoop} className="ref-arrow ref-arrow--large">
           ↔
         </Arrow>
         <Appear delay={0.15}>
           <Emphasis
             layoutId={ENTITIES.questionChip}
             accent="amber"
-            className="font-sans text-xs normal-case tracking-normal"
+            className="ref-emphasis ref-emphasis--small"
           >
             Topic? Style? Step 3?
           </Emphasis>
         </Appear>
       </div>
-      <Box layoutId={ENTITIES.you} Icon={User} label="You" accent="amber" />
+      <Box layoutId={ENTITIES.you} Icon={User} label="You" accent="amber" className="ref-box" />
     </div>
   )
 }
 
 function StepStackBeat() {
   return (
-    <div className="relative h-56 w-72">
+    <div className="ref-step-stack">
       <Box
         layoutId={ENTITIES.stepCard1}
         Icon={Layers}
         label="Step 1"
         subtitle="title + caption"
         accent="gray"
-        className="bottom-0 left-0"
+        className="ref-box ref-step-stack-card ref-step-stack-card--one"
       />
       <Box
         layoutId={ENTITIES.stepCard2}
         label="Step 2"
         subtitle="visual description"
         accent="gray"
-        className="bottom-6 left-16 z-10"
+        className="ref-box ref-step-stack-card ref-step-stack-card--two"
       />
       <Box
         layoutId={ENTITIES.stepCard3}
         label="Step 3"
         subtitle="era + scene"
         accent="cyan"
-        className="bottom-12 left-32 z-20"
+        className="ref-box ref-step-stack-card ref-step-stack-card--three"
       />
     </div>
   )
@@ -99,18 +101,18 @@ function StepStackBeat() {
 
 function DepthBeat() {
   return (
-    <div className="flex items-center gap-16">
-      <div className="flex flex-col gap-3">
-        <Box layoutId={ENTITIES.stepCard1} label="Step 1" accent="gray" className="px-6 py-3 text-xs" />
-        <Box layoutId={ENTITIES.stepCard2} label="Step 2" accent="gray" className="px-6 py-3 text-xs" />
-        <Box layoutId={ENTITIES.stepCard3} label="…" accent="gray" className="px-6 py-3 text-xs" />
+    <div className="ref-row ref-row--extra-wide">
+      <div className="ref-column ref-column--medium">
+        <Box layoutId={ENTITIES.stepCard1} label="Step 1" accent="gray" className="ref-box ref-box--compact" />
+        <Box layoutId={ENTITIES.stepCard2} label="Step 2" accent="gray" className="ref-box ref-box--compact" />
+        <Box layoutId={ENTITIES.stepCard3} label="…" accent="gray" className="ref-box ref-box--compact" />
       </div>
-      <div className="flex flex-col items-center gap-4">
-        <Box layoutId={ENTITIES.you} Icon={User} label="You" accent="amber" />
+      <div className="ref-column ref-column--center">
+        <Box layoutId={ENTITIES.you} Icon={User} label="You" accent="amber" className="ref-box" />
         <Emphasis
           layoutId={ENTITIES.depthControl}
           accent="amber"
-          className="flex items-center gap-2 font-sans text-xs normal-case tracking-normal"
+          className="ref-emphasis ref-emphasis--control"
         >
           <SlidersHorizontal size={14} aria-hidden />
           partial ↔ full
@@ -122,12 +124,12 @@ function DepthBeat() {
 
 function AssemblyBeat() {
   return (
-    <div className="flex items-center gap-5">
-      <div className="flex flex-col gap-2">
-        <Box layoutId={ENTITIES.stepCard2} label="steps" accent="gray" className="px-4 py-3 text-xs" />
-        <Box layoutId={ENTITIES.stepCard3} label="…" accent="gray" className="px-4 py-2 text-xs" />
+    <div className="ref-row ref-row--small">
+      <div className="ref-column ref-column--tight">
+        <Box layoutId={ENTITIES.stepCard2} label="steps" accent="gray" className="ref-box ref-box--tiny" />
+        <Box layoutId={ENTITIES.stepCard3} label="…" accent="gray" className="ref-box ref-box--tiny" />
       </div>
-      <Arrow layoutId={ENTITIES.questionLoop} />
+      <Arrow layoutId={ENTITIES.questionLoop} className="ref-arrow" />
       <SymbolChip
         layoutId={ENTITIES.sceneKit}
         Icon={Boxes}
@@ -135,13 +137,14 @@ function AssemblyBeat() {
         variant="chip"
         accent="cyan"
       />
-      <Arrow layoutId={ENTITIES.modifyLoop} />
+      <Arrow layoutId={ENTITIES.modifyLoop} className="ref-arrow" />
       <Box
         layoutId={ENTITIES.presentationRoute}
         Icon={Route}
         label="/your-talk"
         subtitle="one folder · one route"
         accent="green"
+        className="ref-box"
       />
     </div>
   )
@@ -149,20 +152,22 @@ function AssemblyBeat() {
 
 function ChecksBeat() {
   return (
-    <div className="flex items-center gap-6">
+    <div className="ref-row ref-row--medium">
       <Box
         layoutId={ENTITIES.presentationRoute}
         Icon={Route}
         label="/your-talk"
         accent="green"
+        className="ref-box"
       />
-      <Arrow layoutId={ENTITIES.questionLoop} />
+      <Arrow layoutId={ENTITIES.questionLoop} className="ref-arrow" />
       <Box
         layoutId={ENTITIES.verifyNode}
         Icon={ShieldCheck}
         label="verify"
         subtitle="build + render"
         accent="cyan"
+        className="ref-box"
       />
       <Appear delay={0.2}>
         <Box
@@ -170,7 +175,7 @@ function ChecksBeat() {
           Icon={CheckCircle2}
           label="pass"
           accent="green"
-          className="px-5 py-4"
+          className="ref-box ref-box--pass"
         />
       </Appear>
     </div>
@@ -179,19 +184,19 @@ function ChecksBeat() {
 
 function LoopBeat() {
   return (
-    <div className="flex items-center gap-8">
-      <Box layoutId={ENTITIES.stepCard2} label="gathering" accent="gray" className="px-6 py-4 text-xs" />
-      <Arrow layoutId={ENTITIES.questionLoop} className="text-3xl text-amber">
+    <div className="ref-row ref-row--large">
+      <Box layoutId={ENTITIES.stepCard2} label="gathering" accent="gray" className="ref-box ref-box--compact" />
+      <Arrow layoutId={ENTITIES.questionLoop} className="ref-arrow ref-arrow--loop">
         ↺
       </Arrow>
-      <div className="relative">
-        <Box layoutId={ENTITIES.presentationRoute} Icon={Route} label="/your-talk" accent="green" />
+      <div className="ref-relative">
+        <Box layoutId={ENTITIES.presentationRoute} Icon={Route} label="/your-talk" accent="green" className="ref-box" />
         <Emphasis
           layoutId={ENTITIES.modifyLoop}
           accent="amber"
-          className="absolute -right-4 -top-5 font-sans text-xs normal-case tracking-normal"
+          className="ref-emphasis ref-emphasis--modify"
         >
-          <Pencil size={12} className="mr-1 inline" aria-hidden />
+          <Pencil size={12} className="ref-inline-icon" aria-hidden />
           modify
         </Emphasis>
       </div>
@@ -201,20 +206,20 @@ function LoopBeat() {
 
 function RevealBeat() {
   return (
-    <Frame layoutId={ENTITIES.revealFrame} label="this presentation" className="px-8 py-6">
-      <div className="flex items-center justify-center gap-4">
-        <Box layoutId={ENTITIES.you} Icon={User} label="You" accent="amber" className="px-4 py-3 text-xs" />
-        <Box layoutId={ENTITIES.skill} Icon={Sparkles} label="Skill" accent="cyan" className="px-4 py-3 text-xs" />
-        <Box layoutId={ENTITIES.sceneKit} Icon={Boxes} label="Kit" accent="cyan" className="px-4 py-3 text-xs" />
+    <Frame layoutId={ENTITIES.revealFrame} label="this presentation" className="ref-frame">
+      <div className="ref-row ref-row--reveal">
+        <Box layoutId={ENTITIES.you} Icon={User} label="You" accent="amber" className="ref-box ref-box--tiny" />
+        <Box layoutId={ENTITIES.skill} Icon={Sparkles} label="Skill" accent="cyan" className="ref-box ref-box--tiny" />
+        <Box layoutId={ENTITIES.sceneKit} Icon={Boxes} label="Kit" accent="cyan" className="ref-box ref-box--tiny" />
         <Box
           layoutId={ENTITIES.presentationRoute}
           Icon={Route}
           label="/how-to…"
           accent="green"
-          className="px-4 py-3 text-xs"
+          className="ref-box ref-box--tiny"
         />
       </div>
-      <Label layoutId={ENTITIES.depthControl} className="mt-4 text-center text-amber">
+      <Label layoutId={ENTITIES.depthControl} className="ref-built-label">
         built exactly this way
       </Label>
     </Frame>

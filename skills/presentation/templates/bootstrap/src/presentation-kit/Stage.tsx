@@ -23,12 +23,27 @@ export function Stage({ step, mode }: { step: Step; mode: Mode }) {
 
   return (
     <div
-      className="absolute inset-x-0 flex items-center justify-center"
-      style={{ top: layout.top, bottom: layout.bottom }}
+      data-presentation-stage-shell
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: layout.top,
+        bottom: layout.bottom,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
       <div
-        className="relative shrink-0"
-        style={{ width: layout.fitW, height: DESIGN_H, transform: `scale(${scale})` }}
+        data-presentation-stage
+        style={{
+          position: 'relative',
+          flexShrink: 0,
+          width: layout.fitW,
+          height: DESIGN_H,
+          transform: `scale(${scale})`,
+        }}
       >
         <LayoutGroup>
           <AnimatePresence>

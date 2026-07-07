@@ -28,19 +28,26 @@ export function Header({
   homeLabel?: string
 }) {
   return (
-    <header className="absolute inset-x-0 top-0 z-20 px-6 pt-5 md:px-10 md:pt-6">
-      <div className="flex items-center justify-between gap-4">
-        <a href={homeHref} aria-label={homeLabel} className="shrink-0 text-sm uppercase tracking-[0.2em] text-gray-400 transition-colors hover:text-cyan">
+    <header
+      data-presentation-header
+      style={{ position: 'absolute', left: 0, right: 0, top: 0, zIndex: 20, padding: '24px 40px 0' }}
+    >
+      <div
+        data-presentation-header-row
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}
+      >
+        <a href={homeHref} aria-label={homeLabel} data-presentation-home>
           {brand}
         </a>
-        <span className="text-sm text-amber">{marker}</span>
+        <span data-presentation-marker>{marker}</span>
       </div>
       <motion.h1
         key={title}
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: EASE }}
-        className="mt-3 text-center text-xl text-gray-100 md:text-3xl"
+        data-presentation-title
+        style={{ margin: '12px 0 0', textAlign: 'center' }}
       >
         {title}
       </motion.h1>

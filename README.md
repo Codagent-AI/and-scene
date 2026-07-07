@@ -98,8 +98,8 @@ re-apply any theming the update overwrote, then rebuild.
 There is **no `npm install and-scene`**. The reusable **scene kit**
 (`presentation-kit/`, ~650 lines) is **vendored** — the skill *copies* it into
 your project as source you own and can edit, like
-[shadcn/ui](https://ui.shadcn.com). You're meant to tweak its branding, colors,
-and node primitives.
+[shadcn/ui](https://ui.shadcn.com). You're meant to own its styling in your
+presentation or app.
 
 ### Where the skill scaffolds
 
@@ -114,18 +114,13 @@ confirm before writing:
 | Non-empty repo that is **not** a JS app (no root `package.json` — e.g. Python/Go/Rust) | Self-contained app under `presentation/` |
 | Already has the infrastructure | Uses it in place; scaffolds only what's missing |
 
-### Host requirements
+### Styling
 
-The kit renders against a small CSS contract. The skill's scaffold ships it in
-`src/index.css`, so a scaffolded project is covered. If you instead **copy the
-kit into an existing themed app**, define these yourself (Tailwind v4 `@theme`)
-or the render will silently lose its colors and buttons:
-
-| Contract | Used for |
-|----------|----------|
-| `--color-bg`, `--color-cyan`, `--color-amber`, `--color-green` | Surface + accent palette |
-| `--font-family-mono`, `--font-family-sans` | Diagram (mono) vs. caption (sans) type |
-| `.btn-secondary`, `.btn-neutral` | Footer navigation buttons |
+The kit is BYO styles. It ships motion behavior, fixed-canvas layout plumbing,
+and stable DOM hooks such as `data-node`, `data-node-part`, `data-accent`,
+`data-variant`, and `data-presentation-*`; it does not ship a palette, font,
+card treatment, button style, or Tailwind dependency. Style each presentation
+with plain CSS, CSS modules, Tailwind, or whatever the host project chooses.
 
 ## Controls
 
@@ -157,8 +152,9 @@ error, console error, or uncaught page error. (It needs a Chromium browser — r
 
 ## Tech
 
-React 19 · TypeScript · Vite · Tailwind CSS v4 · [`motion`](https://motion.dev)
-for `layoutId` morph animations · `lucide-react` for glyphs.
+React 19 · TypeScript · Vite · [`motion`](https://motion.dev) for `layoutId`
+morph animations · `lucide-react` for glyphs. Styling is presentation-owned;
+Tailwind can be added by a host project, but it is not required by the kit.
 
 ---
 

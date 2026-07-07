@@ -11,6 +11,14 @@ develops. The continuity between steps *is* the story.
 This repo also contains a worked **reference talk** you can run locally to see the
 format in action — see [Development](#development) at the bottom.
 
+## Demo
+
+<video controls muted loop playsinline>
+  <source src="docs/assets/and-scene-demo.mp4" type="video/mp4" />
+</video>
+
+[Download the demo video](docs/assets/and-scene-demo.mp4)
+
 ## Getting started
 
 You use and-scene by installing its **plugin** and running its skill inside
@@ -19,6 +27,15 @@ package to install** — the scene kit is vendored into your project by the skil
 (see [How the kit reaches your project](#how-the-kit-reaches-your-project)).
 
 ### 1. Install the plugin
+
+For Codex:
+
+```bash
+codex plugin marketplace add Codagent-AI/and-scene
+codex plugin add and-scene@and-scene
+```
+
+For Claude Code:
 
 ```bash
 claude plugin marketplace add Codagent-AI/and-scene

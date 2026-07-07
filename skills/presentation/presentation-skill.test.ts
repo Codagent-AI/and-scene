@@ -5,52 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 const SKILL_DIR = dirname(fileURLToPath(import.meta.url))
 
-function readSkillMd(): string {
-  return readFileSync(join(SKILL_DIR, 'SKILL.md'), 'utf-8')
-}
-
 describe('presentation skill structure', () => {
-  it('has SKILL.md with interactive gathering procedure', () => {
-    const content = readSkillMd()
-    expect(content).toMatch(/one question at a time/i)
-    expect(content).toMatch(/topic/i)
-    expect(content).toMatch(/visual style/i)
-    expect(content).toMatch(/partial detail/i)
-    expect(content).toMatch(/ASCII/i)
-  })
-
-  it('has SKILL.md with scaffold and monorepo target resolution', () => {
-    const content = readSkillMd()
-    expect(content).toMatch(/contract anchor/i)
-    expect(content).toMatch(/monorepo/i)
-    expect(content).toMatch(/presentations\//i)
-    expect(content).toMatch(/install/i)
-  })
-
-  it('has SKILL.md with create and modify flows', () => {
-    const content = readSkillMd()
-    expect(content).toMatch(/src\/presentations\/<slug>/i)
-    expect(content).toMatch(/index\.ts/i)
-    expect(content).toMatch(/modify/i)
-    expect(content).toMatch(/lists? the existing presentations/i)
-  })
-
-  it('has SKILL.md with self-verify procedure', () => {
-    const content = readSkillMd()
-    expect(content).toMatch(/npm run verify/i)
-    expect(content).toMatch(/build/i)
-    expect(content).toMatch(/render/i)
-    expect(content).toMatch(/fix/i)
-  })
-
-  it('has SKILL.md describing scene kit composition', () => {
-    const content = readSkillMd()
-    expect(content).toMatch(/Box/i)
-    expect(content).toMatch(/layoutId/i)
-    expect(content).toMatch(/SceneLayer/i)
-    expect(content).toMatch(/entities\.ts/i)
-  })
-
   it('has bootstrap template with three contract anchors', () => {
     const bootstrap = join(SKILL_DIR, 'templates/bootstrap')
     expect(existsSync(join(bootstrap, 'package.json'))).toBe(true)

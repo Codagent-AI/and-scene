@@ -233,6 +233,35 @@ must use the same `layoutId`:
 export const ENTITIES = { hero: 'hero', flow: 'flow' } as const
 ```
 
+### Smooth morph authoring rules
+
+The original reference implementation relies on authoring discipline as much as
+kit code. Follow these rules when generating or modifying step scenes:
+
+- Use a **persistent scene** with shared `groupKey` and `step.payload` for
+  consecutive beats that represent one evolving diagram. Do not split a single
+  evolving picture into many unrelated `Scene` components unless the whole
+  composition should intentionally remount.
+- Put stable `layoutId`s only on the entity that should morph. A new visual
+  object gets a new id; the same conceptual object keeps the same id.
+- Do not put Tailwind transform or opacity utilities such as `scale-*`,
+  `rotate-*`, or `opacity-*` directly on an element with `layoutId`. Motion uses
+  transforms and opacity during layout projection; combine those on a child or
+  wrapper only when it is not the shared layout entity.
+- Do not put conflicting positioning utilities on one element, especially
+  `relative` plus `absolute`. Kit primitives such as `Box` are already
+  positioned for their internal labels and effects. For relative offsets, use
+  `bottom-*`, `left-*`, and `z-*` without adding `absolute`; for true absolute
+  placement, put the absolute positioning on a non-`layoutId` wrapper and verify
+  the layout still matches the intended design.
+- When fixing a smooth-morph issue in an existing presentation, preserve the
+  intentional composition. If cards or callouts are meant to overlap, keep that
+  overlap and move only the unsafe positioning/opacity/transform utilities to a
+  wrapper. Do not flatten, spread out, or otherwise redesign the scene just to
+  satisfy the wrapper rule.
+- Use `Appear` only for newcomers. Continuing entities with a shared `layoutId`
+  should persist and morph; they should not fade out and back in.
+
 ### Node primitives
 
 Compose steps from kit primitives (all accept `layoutId`):

@@ -156,8 +156,8 @@
 /* ---------------------------------------------------------------------------
  * The scene. One stable anatomy for all nine steps:
  *   - conversation row (You ↔ Skill) on top,
- *   - the tray of step cards below, later framed as the route,
- *   - the verify chain hanging off the route's right,
+ *   - the tray of step cards below, later framed as the route, with the
+ *     verify node chained after the cards inside that same frame,
  *   - overlays (modify loop, reveal outline) drawn around it, never through it.
  *
  * Nothing is pinned to a fixed width. The whole composition is content-sized
@@ -170,17 +170,13 @@
  * `align-self: stretch`, so it always spans exactly the core's width — which
  * the tray defines once the cards make it the widest thing. That is what keeps
  * You's left border and Skill's right border aligned to the route frame's
- * borders, by construction, at whatever width the scene has grown to. The
- * verify chain sits OUTSIDE .ref-core (so it never widens the row) and shifts
- * the core left as it fades in.
+ * borders, by construction, at whatever width the scene has grown to. When the
+ * verify node joins the route the tray becomes the widest thing, so the whole
+ * core widens and re-centers around it.
  * ------------------------------------------------------------------------- */
 
 .ref-stage {
   position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  gap: 0.9rem;
 }
 
 .ref-core {
@@ -213,12 +209,15 @@
   white-space: nowrap;
 }
 
-/* One grid cell hosts the bubble, then the question/arrow column. Stacking
- * them keeps the row width constant while one exits and the other enters. */
+/* One grid cell hosts the bubble, then the question/arrow column, stacked so a
+ * swap never transiently widens the row. Its width is fixed (rather than sized
+ * to whichever occupant is currently widest) so the You↔Skill gap is a stable
+ * conversational channel: only the deliberate re-alignments — Skill arriving,
+ * the route growing beneath — move the boxes, never the chip swapping width. */
 .ref-convo-link {
   display: grid;
-  flex: 1;
   place-items: center;
+  width: 7rem;
 }
 
 .ref-convo-link > * {
@@ -353,10 +352,17 @@
 
 /* Stretches to the core's width, exactly like the conversation row, so the
  * route frame's borders always line up with You's left and Skill's right —
- * whichever of the two is wider at a given step sets the shared width. */
+ * whichever of the two is wider at a given step sets the shared width. The
+ * cards and the verify node sit inside as a centered row: verification is part
+ * of the skill's own pipeline, so it lives within the route frame, not beside
+ * it. */
 .ref-tray {
   align-self: stretch;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
   border: 2px solid transparent;
   padding: 1.1rem 1.3rem;
 }
@@ -383,16 +389,14 @@
   letter-spacing: 0.05em;
 }
 
-/* Hugs the cards and centers itself in the (possibly wider) tray, so the cards
- * stay centered in the route and the ghost — anchored to this row's right edge
- * — still sits just past the last real card. */
+/* The row of step cards. Hugs its cards (a flex item in the tray), so the
+ * ghost — anchored to this row's right edge — still sits just past the last
+ * real card. */
 .ref-cards {
   position: relative;
   display: flex;
   align-items: stretch;
   gap: 0.8rem;
-  width: max-content;
-  margin-inline: auto;
 }
 
 .ref-card-slot {
@@ -452,17 +456,20 @@
 
 /* --- scene-kit socket ------------------------------------------------------ */
 
+/* Centering lives on this wrapper, not on .ref-socket: the socket is a layoutId
+ * element, so Motion owns its transform during tray morphs and would drop a CSS
+ * translateX (that is what made it drift right when verify widened the tray). */
 .ref-socket-slot {
   position: absolute;
   bottom: -1.05rem;
   left: 50%;
+  transform: translateX(-50%);
 }
 
 .ref-socket {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  transform: translateX(-50%);
   padding: 0.4rem 0.85rem;
   border-color: rgb(92 224 216 / 0.55);
   box-shadow: 0 0 20px rgb(92 224 216 / 0.2);
@@ -486,14 +493,11 @@
 
 /* --- verify chain ----------------------------------------------------------- */
 
-/* Hangs off the route's right edge. Stage aligns it flex-end (to the tray's
- * bottom); the padding lifts it up so the chain centers on the cards, not on
- * the tray's bottom padding. */
+/* The build+render check, chained after the cards inside the route frame. */
 .ref-verify {
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  padding-bottom: 1.1rem;
 }
 
 .ref-verify-slot {

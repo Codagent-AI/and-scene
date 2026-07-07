@@ -225,6 +225,7 @@ function Tray({ p }: { p: RefPayload }) {
           )}
         </AnimatePresence>
       </div>
+      <AnimatePresence>{p.verify && <VerifyChain key="verify" />}</AnimatePresence>
       <AnimatePresence>{p.route && <KitSocket key="socket" />}</AnimatePresence>
     </motion.div>
   )
@@ -315,7 +316,6 @@ export function ReferenceScene({ step }: SceneProps<RefPayload>) {
           <AnimatePresence>{(p.cards ?? 0) > 0 && <Tray key="tray" p={p} />}</AnimatePresence>
           <AnimatePresence>{p.loop && <LoopArc key="loop" />}</AnimatePresence>
         </div>
-        <AnimatePresence>{p.verify && <VerifyChain key="verify" />}</AnimatePresence>
         <AnimatePresence>{p.reveal && <RevealOutline key="reveal" />}</AnimatePresence>
       </div>
     </SceneLayer>

@@ -26,7 +26,7 @@ The sample is one continuously evolving scene: a conversation row (**you** ↔ *
 | 4 | the gathering | "The deck grows" | Same shapes, new beats. Every answer extends the story without redrawing it. | More step-cards land in the tray; everything already on screen stays put. |
 | 5 | the gathering | "You set the depth" | Spell out every step, or sketch a few and see how it looks. You hold the gate. | A dashed **ghost card** marks unspecified steps; a partial↔full control docks on **you**. |
 | 6 | the build | "It assembles the scene" | Your steps are wired into one evolving scene — one folder, one route, entities that morph. | A route frame draws around the tray in place; the **scene-kit** socket plugs into its edge. |
-| 7 | the build | "It checks its own work" | Before saying done, it builds and renders every step — and fixes what breaks. | A **verify** node chains onto the route; build + render checks resolve to a green pass check landing on it. |
+| 7 | the build | "It checks its own work" | Before saying done, it builds and renders every step — and fixes what breaks. | A **verify** node joins the route, chained after the step cards inside the same frame (verification is part of the skill's own pipeline); build + render checks resolve to a green pass check on it. |
 | 8 | the loop | "Changed your mind? Loop it." | Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch. | A **modify** arc reaches from the conversation down into the route; the edited card is flagged. |
 | 9 | the reveal | "You're looking at one" | This presentation was built exactly this way. Thanks for watching. | An outer frame draws around the whole diagram, labeled — self-reference reveal. |
 

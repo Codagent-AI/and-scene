@@ -13,8 +13,8 @@ format in action — see [Development](#development) at the bottom.
 
 ## Demo
 
-Both examples below were made using the and-scene skill in Claude Code with
-Opus 4.8.
+They were inspired by [the original](https://www.codagent.dev/what-is-a-harness)
+presentation.
 
 ### How to make a presentation
 
@@ -29,6 +29,8 @@ Opus 4.8.
 <video controls muted loop playsinline>
   <source src="docs/assets/evolution-of-the-bicycle-demo.mp4" type="video/mp4" />
 </video>
+
+Made by Claude Code with Opus 4.8.
 
 [Download the bicycle demo video](docs/assets/evolution-of-the-bicycle-demo.mp4)
 

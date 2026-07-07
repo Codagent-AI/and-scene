@@ -29,6 +29,33 @@ Entities that persist between steps SHALL keep a stable identity and animate the
 - **WHEN** an entity exists in a step but not in the next step
 - **THEN** it animates out on that transition
 
+### Requirement: Persistent grouped scenes
+Adjacent steps that represent successive states of the same evolving diagram SHALL be able to share a scene group so that the scene component persists while only the active step data changes. Shared groups prevent the whole scene from remounting between beats and preserve entity continuity for layout morphs.
+
+#### Scenario: Grouped steps update in place
+- **WHEN** adjacent steps share a scene group and the same scene component
+- **THEN** navigating between those steps updates the existing scene instance with the new step state rather than remounting separate scenes
+
+#### Scenario: Continuing entities are not faded as newcomers
+- **WHEN** an entity with the same stable identity continues across grouped steps
+- **THEN** it morphs through layout projection without being wrapped in newcomer fade-in behavior
+
+#### Scenario: Intentional composition is preserved
+- **WHEN** a grouped scene intentionally overlaps or stacks entities
+- **THEN** the implementation preserves that composition while maintaining clean morphs, rather than flattening or spreading entities only to satisfy an implementation pattern
+
+### Requirement: Style ownership boundary
+The scene kit SHALL be unstyled by default. It SHALL provide motion behavior, fixed-canvas layout plumbing, navigation/chrome behavior, and stable DOM hooks for authors to style, but it SHALL NOT impose a palette, font, border treatment, glow, card appearance, button style, CSS theme tokens, or styling-framework dependency.
+
+#### Scenario: Kit primitives expose style hooks
+- **WHEN** a presentation composes scene kit primitives or chrome
+- **THEN** the rendered markup exposes stable hooks that presentation-owned CSS can target
+- **AND** visual choices such as color, typography, spacing scale, borders, and shadows come from the presentation or host app
+
+#### Scenario: Optional styling frameworks remain optional
+- **WHEN** a presentation author wants to use Tailwind or another styling framework
+- **THEN** that framework is configured by the presentation or host app, not required by the reusable scene kit
+
 ### Requirement: Present and browse modes
 A presentation SHALL support a present mode for live delivery and a browse mode for self-guided reading, switchable at runtime, and MAY declare which mode it opens in.
 
@@ -84,4 +111,3 @@ The diagram SHALL be composed in a fixed design canvas and scaled uniformly to f
 #### Scenario: Default canvas dimensions
 - **WHEN** a presentation does not override the design canvas
 - **THEN** it uses the reference dimensions of 880 × 380
-

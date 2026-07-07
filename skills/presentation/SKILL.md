@@ -151,8 +151,22 @@ Before reporting success:
    must render without runtime or console errors. Use `npm run verify` when
    available (full multi-step check), or start `npm run preview` and open the
    route in a browser / Playwright
-3. If either check fails, **fix the issues and re-check** — never report success
+3. Run a **visual composition check** in a browser. Capture or inspect
+   screenshots of the first step, the last step, and any dense/key steps at a
+   normal desktop viewport; for responsive-sensitive presentations, also inspect
+   a narrow viewport. Prefer `npm run inspect -- <slug>` when available; it
+   writes project-local screenshots under `artifacts/presentation-inspection/`
+   so Playwright resolves from the project's installed dependencies. Check for
+   accidental overlap, clipped/off-canvas content, unreadable stacking, and
+   collisions with chrome such as captions, progress dots, table of contents, or
+   navigation buttons. `npm run verify` catches crashes and console errors; it
+   does not prove the scene is visually correct.
+4. If any check fails, **fix the issues and re-check** — never report success
    on broken output
+
+If Chromium is missing, run `npx playwright install chromium`. Do not run
+`--with-deps` unless the environment has OS package privileges and actually
+needs browser system dependencies.
 
 ### Output format
 
@@ -160,7 +174,8 @@ Report completion in this structure:
 
 1. **Action** — created or modified, with presentation title and route (`/<slug>`)
 2. **Files changed** — list of paths written or edited
-3. **Verification** — commands run (`npm run build`, render check) and their result
+3. **Verification** — commands run (`npm run build`, render check), visual
+   composition check performed, and their result
 4. **Follow-ups** — any unresolved questions or partial details the user may want to iterate on (omit if none)
 
 ## Updating the vendored kit
@@ -267,6 +282,11 @@ kit code. Follow these rules when generating or modifying step scenes:
   satisfy the wrapper rule.
 - Use `Appear` only for newcomers. Continuing entities with a shared `layoutId`
   should persist and morph; they should not fade out and back in.
+- Keep browse-mode chrome in mind while composing scenes. The table of contents
+  can occupy the left side on wide browse viewports, and captions/progress/nav
+  occupy the lower band. Avoid dense horizontal rows that only fit the raw
+  880px stage in isolation; prefer up to three primary boxes per row, compact
+  chips, grouped entities, or wrapping/stacking when a concept list grows.
 
 ### Node primitives
 
@@ -344,6 +364,11 @@ Tailwind):
 </SceneLayer>
 ```
 
+For ad hoc visual checks, put Playwright/screenshot helper scripts under the
+project root (for example `scripts/`) rather than a temp scratchpad outside the
+project, so imports such as `playwright` resolve from local dependencies. Prefer
+the scaffolded `npm run inspect -- <slug>` helper before writing a custom script.
+
 ### Adding a step
 
 Copy `templates/single-step/step.tsx` into `steps/`, customize metadata and
@@ -374,6 +399,9 @@ Every generated presentation must:
 - Render its first step without runtime or console errors
 - Show a caption per step (browse mode) and support next/previous navigation
 - Conform to the evolving-scene model (stable entities morph across steps)
+- Pass a browser visual composition check: important steps fit within the fixed
+  canvas, intentional overlaps remain readable, and scene content does not
+  collide with browse/present chrome
 
 ## Templates
 
@@ -390,3 +418,5 @@ Replace `{{PLACEHOLDER}}` tokens in templates with gathered content.
 | Path | Purpose |
 |------|---------|
 | `sync-kit.mjs` | Diff/resync a project's vendored `src/presentation-kit/` against the shipped snapshot (see [Updating the vendored kit](#updating-the-vendored-kit)) |
+| `templates/bootstrap/scripts/verify.mjs` | Build + render verifier used by scaffolded projects |
+| `templates/bootstrap/scripts/inspect-presentation.mjs` | Project-local screenshot helper for visual composition checks |

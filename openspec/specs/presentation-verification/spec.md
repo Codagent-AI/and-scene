@@ -38,11 +38,15 @@ The sample is the self-referential talk **"How to Use This Skill to Make a Prese
 - **THEN** verification fails
 
 ### Requirement: Render verification
-Verification SHALL render the reference sample through all of its steps and fail if any step produces a runtime or console error. The render check runs the sample in a real browser against a production preview and steps through every step. (Mechanism settled in design: `vite preview` + a Playwright/Chromium driver that enumerates steps via the chrome's step-count hook.)
+Verification SHALL render the reference sample through all of its steps and fail if any step produces a runtime or console error. The render check runs the sample in a real browser against a production preview and steps through every step. The preview server and browser navigation SHALL use a deterministic IPv4 loopback address (`127.0.0.1`) so verification does not depend on how `localhost` resolves in the runtime environment. (Mechanism settled in design: `vite preview` + a Playwright/Chromium driver that enumerates steps via the chrome's step-count hook.)
 
 #### Scenario: Every step renders cleanly
 - **WHEN** verification renders the sample
 - **THEN** it steps through every step and asserts each renders without runtime or console errors
+
+#### Scenario: Preview uses IPv4 loopback
+- **WHEN** verification starts the production preview and opens presentation routes
+- **THEN** the preview host, readiness probe, and browser URLs use `127.0.0.1` consistently
 
 #### Scenario: Console or page error fails verification
 - **WHEN** the sample emits a console error or an uncaught page error while stepping through it
@@ -59,3 +63,9 @@ Verification SHALL produce an unambiguous pass/fail outcome suitable for automat
 - **WHEN** verification completes
 - **THEN** it reports a clear pass or fail (non-zero exit on failure) identifying which check failed
 
+### Requirement: Visual inspection artifacts
+Scaffolded projects SHALL provide a project-local helper that captures per-step screenshots from a production preview for human visual review. The helper supports the skill's visual composition check, but its screenshots are inspection artifacts rather than automated pass/fail evidence.
+
+#### Scenario: Capture step screenshots
+- **WHEN** the screenshot helper runs for a registered presentation
+- **THEN** it captures each step at a standard desktop viewport and writes the images under a predictable project-local artifact directory

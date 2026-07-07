@@ -63,7 +63,7 @@ async function waitForPreview(port, child, deadlineMs = 30_000) {
       throw new Error(`vite preview exited before ready (code ${child.exitCode})`)
     }
     try {
-      const res = await fetch(`http://localhost:${port}/`)
+      const res = await fetch(`http://127.0.0.1:${port}/`)
       const html = await res.text()
       if (res.ok && html.includes('id="root"')) return
     } catch {
@@ -105,7 +105,7 @@ function startPreview(port) {
   return new Promise((resolve, reject) => {
     const child = spawn(
       VITE_BIN,
-      ['preview', '--port', String(port), '--strictPort', '--host', 'localhost'],
+      ['preview', '--port', String(port), '--strictPort', '--host', '127.0.0.1'],
       { cwd: ROOT, stdio: 'ignore', detached: true },
     )
     child.unref()
@@ -135,7 +135,7 @@ async function renderPresentation(page, port, slug) {
   page.on('pageerror', onPageError)
 
   try {
-    await page.goto(`http://localhost:${port}/${slug}`, { waitUntil: 'load', timeout: 30_000 })
+    await page.goto(`http://127.0.0.1:${port}/${slug}`, { waitUntil: 'load', timeout: 30_000 })
 
     const progress = page.locator('[data-testid="step-progress"]')
     await progress.waitFor({ timeout: 10_000 })

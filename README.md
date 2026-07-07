@@ -142,6 +142,7 @@ Scaffolding adds these to your project:
 | `npm run build` | Type-check (`tsc -b`) and production build |
 | `npm run preview` | Serve the production build |
 | `npm run verify` | Build + render-check every registered presentation |
+| `npm run inspect -- <slug>` | Capture screenshots for visual composition review |
 | `npm run test` | Vitest unit tests |
 | `npm run lint` | ESLint |
 
@@ -149,6 +150,10 @@ Scaffolding adds these to your project:
 preview and steps through **every** registered presentation, failing on any build
 error, console error, or uncaught page error. (It needs a Chromium browser — run
 `npx playwright install chromium` once.)
+
+`inspect` builds the app, launches a production preview, and writes step
+screenshots to `artifacts/presentation-inspection/<slug>/` so layouts can be
+checked for overflow, unintended overlap, and chrome collisions.
 
 ## Tech
 

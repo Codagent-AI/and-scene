@@ -17,11 +17,13 @@ export function Presentation({
   background,
   overlay,
   marker,
+  attribution = 'made by and-scene',
+  attributionHref = 'https://github.com/Codagent-AI/and-scene',
 }: {
   steps: Step[]
   initialMode?: Mode
   title?: string
-  /** Header brand: defaults to the text "and-scene". Pass a logo node to override. */
+  /** Optional header brand. Omitted by default; pass a logo or title node to add one. */
   brand?: ReactNode
   /** Home link target for the header brand and the last-step footer button. */
   homeHref?: string
@@ -41,6 +43,10 @@ export function Presentation({
    * skip chrome cards and count only body steps.
    */
   marker?: (index: number, steps: Step[]) => string
+  /** Small bottom-right attribution link. Pass `null` to hide it. */
+  attribution?: ReactNode
+  /** Attribution target; defaults to the and-scene GitHub repository. */
+  attributionHref?: string
 }) {
   const { step, setStep, next, prev, last, mode } = usePresentationNav(steps.length, initialMode)
   // An empty deck has no current step; render a clear placeholder instead of
@@ -110,6 +116,21 @@ export function Presentation({
         >
           {overlay}
         </div>
+      )}
+      {attribution && (
+        <a
+          href={attributionHref}
+          data-presentation-attribution
+          style={{
+            position: 'absolute',
+            right: 16,
+            bottom: 8,
+            zIndex: 60,
+            fontSize: 12,
+          }}
+        >
+          {attribution}
+        </a>
       )}
     </div>
   )

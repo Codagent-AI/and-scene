@@ -8,19 +8,24 @@ import { chromium } from 'playwright'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const VITE_BIN = join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'vite.cmd' : 'vite')
 const OUT_ROOT = join(ROOT, 'artifacts', 'presentation-inspection')
+const DEFAULT_SETTLE_MS = 950
 
 function parseArgs() {
   const args = process.argv.slice(2)
-  const opts = { slug: '', width: 1440, height: 900 }
+  const opts = { slug: '', width: 1440, height: 900, settleMs: DEFAULT_SETTLE_MS }
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     if (arg === '--width') opts.width = Number(args[++i])
     else if (arg === '--height') opts.height = Number(args[++i])
+    else if (arg === '--settle-ms') opts.settleMs = Number(args[++i])
     else if (arg === '--slug' || arg === '--route') opts.slug = normalizeSlug(args[++i] ?? '')
     else if (!arg.startsWith('--') && !opts.slug) opts.slug = normalizeSlug(arg)
   }
   if (!Number.isFinite(opts.width) || opts.width < 320) throw new Error(`invalid width: ${opts.width}`)
   if (!Number.isFinite(opts.height) || opts.height < 320) throw new Error(`invalid height: ${opts.height}`)
+  if (!Number.isFinite(opts.settleMs) || opts.settleMs < 0) {
+    throw new Error(`invalid --settle-ms: ${opts.settleMs}`)
+  }
   return opts
 }
 
@@ -121,7 +126,81 @@ function startPreview(port) {
   })
 }
 
-async function capturePresentation(page, port, slug, width, height) {
+async function findOverlapWarnings(page, slug, stepIndex) {
+  return page.evaluate(
+    ({ slug, stepIndex }) => {
+      const selectors = [
+        '[data-node-part="label"]',
+        '[data-node-part="subtitle"]',
+        '[data-node="label"]',
+        '[data-presentation-title]',
+        '[data-presentation-caption]',
+        '[data-presentation-toc-item]',
+        '[data-presentation-button]',
+      ]
+
+      const rectFor = (el) => {
+        const rect = el.getBoundingClientRect()
+        if (rect.width < 1 || rect.height < 1) return null
+        const style = window.getComputedStyle(el)
+        if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) < 0.2) {
+          return null
+        }
+        return {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        }
+      }
+
+      const labelFor = (el) => {
+        const hook = Array.from(el.attributes)
+          .find((attr) => attr.name.startsWith('data-node') || attr.name.startsWith('data-presentation'))
+        const text = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40)
+        return `${hook ? hook.name : el.tagName.toLowerCase()}${text ? ` "${text}"` : ''}`
+      }
+
+      const items = selectors.flatMap((selector) =>
+        Array.from(document.querySelectorAll(selector)),
+      )
+        .filter((el) => !el.closest('[data-allow-overlap]'))
+        .map((el) => ({ el, rect: rectFor(el), label: labelFor(el) }))
+        .filter((item) => item.rect)
+
+      const warnings = []
+      for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+          const a = items[i]
+          const b = items[j]
+          if (a.el.contains(b.el) || b.el.contains(a.el)) continue
+          const left = Math.max(a.rect.left, b.rect.left)
+          const right = Math.min(a.rect.right, b.rect.right)
+          const top = Math.max(a.rect.top, b.rect.top)
+          const bottom = Math.min(a.rect.bottom, b.rect.bottom)
+          const width = right - left
+          const height = bottom - top
+          if (width <= 0 || height <= 0) continue
+
+          const area = width * height
+          const smaller = Math.min(a.rect.width * a.rect.height, b.rect.width * b.rect.height)
+          if (area < 24 || area / smaller < 0.08) continue
+
+          warnings.push(
+            `${slug} step ${stepIndex + 1}: ${a.label} overlaps ${b.label} (${Math.round(area)}px^2)`,
+          )
+          if (warnings.length >= 10) return warnings
+        }
+      }
+      return warnings
+    },
+    { slug, stepIndex },
+  )
+}
+
+async function capturePresentation(page, port, slug, width, height, settleMs) {
   const outDir = join(OUT_ROOT, slug)
   await mkdir(outDir, { recursive: true })
   await page.setViewportSize({ width, height })
@@ -135,9 +214,13 @@ async function capturePresentation(page, port, slug, width, height) {
   }
 
   const written = []
+  const warnings = []
   for (let i = 0; i < stepCount; i++) {
     const expectedIndex = Number(await progress.getAttribute('data-step-index'))
     if (expectedIndex !== i) throw new Error(`${slug} step ${i}: expected index ${i}, got ${expectedIndex}`)
+
+    await page.waitForTimeout(settleMs)
+    warnings.push(...await findOverlapWarnings(page, slug, i))
 
     const path = join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
     await page.screenshot({ path, fullPage: false })
@@ -155,7 +238,7 @@ async function capturePresentation(page, port, slug, width, height) {
       )
     }
   }
-  return written
+  return { written, warnings }
 }
 
 async function main() {
@@ -175,9 +258,17 @@ async function main() {
     browser = await chromium.launch()
     const page = await browser.newPage()
     for (const { slug } of selected) {
-      const written = await capturePresentation(page, port, slug, opts.width, opts.height)
+      const { written, warnings } = await capturePresentation(
+        page,
+        port,
+        slug,
+        opts.width,
+        opts.height,
+        opts.settleMs,
+      )
       console.log(`INSPECT: ${slug} (${written.length} screenshot${written.length === 1 ? '' : 's'})`)
       for (const path of written) console.log(path)
+      for (const warning of warnings) console.warn(`WARN [inspect-overlap]: ${warning}`)
     }
   } finally {
     await browser?.close()

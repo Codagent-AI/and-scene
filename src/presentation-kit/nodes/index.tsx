@@ -71,6 +71,7 @@ export function Box({
   subtitle,
   accent = 'gray',
   className = '',
+  style,
 }: {
   layoutId: string
   Icon?: LucideIcon
@@ -78,12 +79,14 @@ export function Box({
   subtitle?: string
   accent?: Accent
   className?: string
+  style?: CSSProperties
 }) {
   return (
     <motion.div
       layoutId={layoutId}
       transition={LAYOUT_T}
       className={className}
+      style={style}
       data-node="box"
       data-accent={accent}
     >
@@ -108,16 +111,19 @@ export function Label({
   layoutId,
   children,
   className = '',
+  style,
 }: {
   layoutId: string
   children: ReactNode
   className?: string
+  style?: CSSProperties
 }) {
   return (
     <motion.div
       layoutId={layoutId}
       transition={LAYOUT_T}
       className={className}
+      style={style}
       data-node="label"
     >
       {children}
@@ -129,16 +135,19 @@ export function Arrow({
   layoutId,
   children,
   className = '',
+  style,
 }: {
   layoutId: string
   children?: ReactNode
   className?: string
+  style?: CSSProperties
 }) {
   return (
     <motion.div
       layoutId={layoutId}
       transition={LAYOUT_T}
       className={className}
+      style={style}
       data-node="arrow"
     >
       {children ?? '→'}
@@ -151,17 +160,20 @@ export function Frame({
   label,
   children,
   className = '',
+  style,
 }: {
   layoutId: string
   label?: string
   children: ReactNode
   className?: string
+  style?: CSSProperties
 }) {
   return (
     <motion.div
       layoutId={layoutId}
       transition={LAYOUT_T}
       className={className}
+      style={style}
       data-node="frame"
     >
       {label && <span data-node-part="frame-label">{label}</span>}
@@ -175,17 +187,20 @@ export function Emphasis({
   children,
   accent = 'cyan',
   className = '',
+  style,
 }: {
   layoutId: string
   children: ReactNode
   accent?: Accent
   className?: string
+  style?: CSSProperties
 }) {
   return (
     <motion.div
       layoutId={layoutId}
       transition={LAYOUT_T}
       className={className}
+      style={style}
       data-node="emphasis"
       data-accent={accent}
     >
@@ -201,6 +216,8 @@ export function SymbolChip({
   subtitle,
   accent = 'cyan',
   variant,
+  className = '',
+  style,
 }: {
   layoutId: string
   Icon: LucideIcon
@@ -208,6 +225,8 @@ export function SymbolChip({
   subtitle?: string
   accent?: Accent
   variant: 'symbol' | 'chip'
+  className?: string
+  style?: CSSProperties
 }) {
   const isSymbol = variant === 'symbol'
 
@@ -215,6 +234,8 @@ export function SymbolChip({
     <motion.div
       layoutId={layoutId}
       transition={LAYOUT_T}
+      className={className}
+      style={style}
       data-node="symbol-chip"
       data-accent={accent}
       data-variant={variant}

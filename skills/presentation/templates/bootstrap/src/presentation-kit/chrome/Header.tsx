@@ -3,21 +3,21 @@ import type { ReactNode } from 'react'
 import { EASE } from '../constants'
 
 /**
- * Top chrome: a thin row carrying the home link (top-left) and the step marker
- * (top-right), with the step title centered just below it — in **both** modes.
+ * Top chrome: a thin row carrying optional host branding (top-left) and the
+ * step marker (top-right), with the step title centered just below it — in
+ * **both** modes.
  * The title is keyed so it remounts and fades in on each step change.
  *
  * The era label is no longer shown here — it drives the table of contents down
  * the left margin instead (see Toc).
  *
- * Branding is configurable so adopters can drop in their own logo and home link:
- * `brand` defaults to the text "and-scene", `homeHref`/`homeLabel` to the site
- * root. The host passes these via `<Presentation brand=… homeHref=… />`.
+ * Branding is configurable so adopters can drop in their own logo and home
+ * link. If `brand` is omitted, the top-left slot is empty.
  */
 export function Header({
   marker,
   title,
-  brand = 'and-scene',
+  brand,
   homeHref = '/',
   homeLabel = 'And Scene home',
 }: {
@@ -36,9 +36,13 @@ export function Header({
         data-presentation-header-row
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}
       >
-        <a href={homeHref} aria-label={homeLabel} data-presentation-home>
-          {brand}
-        </a>
+        {brand ? (
+          <a href={homeHref} aria-label={homeLabel} data-presentation-home>
+            {brand}
+          </a>
+        ) : (
+          <span aria-hidden="true" data-presentation-home-spacer />
+        )}
         <span data-presentation-marker>{marker}</span>
       </div>
       <motion.h1

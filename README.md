@@ -13,11 +13,24 @@ format in action — see [Development](#development) at the bottom.
 
 ## Demo
 
+Both examples below were made using the and-scene skill in Claude Code with
+Opus 4.8.
+
+### How to make a presentation
+
 <video controls muted loop playsinline>
   <source src="docs/assets/and-scene-demo.mp4" type="video/mp4" />
 </video>
 
 [Download the demo video](docs/assets/and-scene-demo.mp4)
+
+### Evolution of the bicycle
+
+<video controls muted loop playsinline>
+  <source src="docs/assets/evolution-of-the-bicycle-demo.mp4" type="video/mp4" />
+</video>
+
+[Download the bicycle demo video](docs/assets/evolution-of-the-bicycle-demo.mp4)
 
 ## Getting started
 

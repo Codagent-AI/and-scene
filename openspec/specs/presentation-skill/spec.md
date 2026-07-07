@@ -90,7 +90,7 @@ The skill SHALL support modifying an existing presentation, identifying the targ
 - **THEN** the skill asks only about the requested changes (steps, entities, or style) and edits that presentation without re-walking the full create flow
 
 ### Requirement: Self-verify before reporting completion
-Before reporting success, the skill SHALL confirm that the generated or modified presentation builds, renders without errors, and is visually coherent in a browser, fixing any failures itself. The render check SHALL at minimum render the presentation's first step without runtime or console errors; the full multi-step render check across every step is defined by the `presentation-verification` capability. The visual composition check SHALL inspect screenshots or an equivalent browser view of the first step, the last step, and any dense/key steps; responsive-sensitive presentations SHALL also be checked at a narrow viewport. When a project-local screenshot helper is available, the skill SHALL prefer it over ad hoc scripts outside the project tree so browser tooling resolves from local dependencies.
+Before reporting success, the skill SHALL confirm that the generated or modified presentation builds, renders without errors, and is visually coherent in a browser, fixing any failures itself. The render check SHALL at minimum render the presentation's first step without runtime or console errors; the full multi-step render check across every step is defined by the `presentation-verification` capability. The visual composition check SHALL inspect screenshots or an equivalent browser view of the first step, the last step, and any dense/key steps; responsive-sensitive presentations SHALL also be checked at a narrow viewport. When a project-local screenshot helper is available, the skill SHALL prefer it over ad hoc scripts outside the project tree so browser tooling resolves from local dependencies, settled screenshots are captured after animations complete, and advisory overlap warnings can be reviewed.
 
 #### Scenario: Checks run before done
 - **WHEN** the skill finishes generating or modifying a presentation
@@ -122,3 +122,7 @@ Every generated presentation SHALL build with no type errors, render its first s
 #### Scenario: Screenshot helper is project-local
 - **WHEN** the skill captures screenshots for visual inspection
 - **THEN** it uses the scaffolded project-local helper when available, or otherwise writes any temporary Playwright helper under the project root
+
+#### Scenario: Visual warnings are reviewed
+- **WHEN** the screenshot helper emits overlap warnings
+- **THEN** the skill reviews the referenced steps, fixes accidental collisions, and marks only intentional readable overlaps as allowed

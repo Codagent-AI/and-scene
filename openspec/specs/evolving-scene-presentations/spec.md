@@ -60,6 +60,21 @@ The scene kit SHALL have zero styling defaults. It SHALL provide motion behavior
 - **WHEN** a presentation author wants to use Tailwind or another styling framework
 - **THEN** that framework is configured by the presentation or host app, not required by the reusable scene kit
 
+#### Scenario: Coordinate-heavy diagrams are supported
+- **WHEN** a presentation needs literal per-step coordinates for diagram entities
+- **THEN** kit primitives expose class/style hooks, and authors MAY use raw motion elements with stable `layoutId`s when a primitive is not the right shape
+
+### Requirement: Kit attribution
+The scene kit SHALL include a small default attribution link reading "made by and-scene" in the bottom-right corner, linking to the and-scene GitHub repository. The attribution is toolkit disclosure, not a presentation style system. The kit SHALL NOT add a default top-left "and-scene" brand link; host applications MAY provide their own header brand explicitly.
+
+#### Scenario: Default attribution is shown
+- **WHEN** a presentation renders without overriding attribution options
+- **THEN** it shows a bottom-right link labeled "made by and-scene" pointing to the and-scene GitHub repository
+
+#### Scenario: Top-left brand is opt-in
+- **WHEN** a presentation renders without host-provided branding
+- **THEN** the top-left header slot does not contain a default and-scene brand link
+
 ### Requirement: Present and browse modes
 A presentation SHALL support a present mode for live delivery and a browse mode for self-guided reading, switchable at runtime, and MAY declare which mode it opens in.
 

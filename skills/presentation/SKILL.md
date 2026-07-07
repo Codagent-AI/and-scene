@@ -156,11 +156,13 @@ Before reporting success:
    normal desktop viewport; for responsive-sensitive presentations, also inspect
    a narrow viewport. Prefer `npm run inspect -- <slug>` when available; it
    writes project-local screenshots under `artifacts/presentation-inspection/`
-   so Playwright resolves from the project's installed dependencies. Check for
-   accidental overlap, clipped/off-canvas content, unreadable stacking, and
-   collisions with chrome such as captions, progress dots, table of contents, or
-   navigation buttons. `npm run verify` catches crashes and console errors; it
-   does not prove the scene is visually correct.
+   so Playwright resolves from the project's installed dependencies. The helper
+   waits for morph/fade animations to settle before each screenshot and prints
+   advisory overlap warnings for text/chrome collisions. Check the screenshots
+   and warnings for accidental overlap, clipped/off-canvas content, unreadable
+   stacking, and collisions with chrome such as captions, progress dots, table
+   of contents, or navigation buttons. `npm run verify` catches crashes and
+   console errors; it does not prove the scene is visually correct.
 4. If any check fails, **fix the issues and re-check** — never report success
    on broken output
 
@@ -233,16 +235,19 @@ only its own entities and step scenes.
 ### Step contract
 
 ```ts
-interface Step {
+interface Step<P extends Record<string, unknown> = Record<string, unknown>> {
   id: string          // stable key for AnimatePresence
   era: string         // table-of-contents section label
   title: string      // presenter-mode one-liner
   caption: string    // browse-mode paragraph
   groupKey?: string  // consecutive steps with same groupKey are not remounted
-  payload?: Record<string, unknown>
-  Scene: ComponentType<{ step: Step }>
+  payload?: P
+  Scene: ComponentType<{ step: Step<P> }>
 }
 ```
+
+For strongly typed grouped scenes, define a payload type and use `Step<Payload>`
+for the steps and scene props instead of casting each `payload`.
 
 ### Entity continuity (`layoutId`)
 
@@ -287,6 +292,9 @@ kit code. Follow these rules when generating or modifying step scenes:
   occupy the lower band. Avoid dense horizontal rows that only fit the raw
   880px stage in isolation; prefer up to three primary boxes per row, compact
   chips, grouped entities, or wrapping/stacking when a concept list grows.
+- Intentional overlap is allowed and often useful. When an overlap is part of
+  the design and should not be treated as a suspicious visual collision, wrap
+  that region in an element with `data-allow-overlap`.
 
 ### Node primitives
 
@@ -305,9 +313,15 @@ Compose steps from kit primitives (all accept `layoutId`):
 
 The kit is intentionally **unstyled**. It supplies motion behavior, stable DOM
 hooks (`data-node`, `data-node-part`, `data-accent`, `data-variant`, and
-`data-presentation-*` chrome hooks), and fixed-canvas layout plumbing. It must
-not impose a palette, font, border treatment, glow, card style, or Tailwind
+`data-presentation-*` chrome hooks), fixed-canvas layout plumbing, and a small
+bottom-right attribution link (`made by and-scene`) to the GitHub repository. It
+must not impose a palette, font, border treatment, glow, card style, or Tailwind
 dependency. Every presentation owns its visual system.
+
+Kit primitives accept `className` and `style` so presentations can use either
+CSS classes or explicit coordinates. For complex diagrams with literal per-step
+pixel coordinates, use primitive `style` props or raw `motion.div` elements with
+the same `layoutId` discipline.
 
 ### Layout pattern
 
@@ -368,6 +382,8 @@ For ad hoc visual checks, put Playwright/screenshot helper scripts under the
 project root (for example `scripts/`) rather than a temp scratchpad outside the
 project, so imports such as `playwright` resolve from local dependencies. Prefer
 the scaffolded `npm run inspect -- <slug>` helper before writing a custom script.
+Use `--settle-ms <ms>` only when a presentation deliberately uses longer custom
+animations than the default settle wait.
 
 ### Adding a step
 

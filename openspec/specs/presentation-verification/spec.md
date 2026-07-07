@@ -64,8 +64,20 @@ Verification SHALL produce an unambiguous pass/fail outcome suitable for automat
 - **THEN** it reports a clear pass or fail (non-zero exit on failure) identifying which check failed
 
 ### Requirement: Visual inspection artifacts
-Scaffolded projects SHALL provide a project-local helper that captures per-step screenshots from a production preview for human visual review. The helper supports the skill's visual composition check, but its screenshots are inspection artifacts rather than automated pass/fail evidence.
+Scaffolded projects SHALL provide a project-local helper that captures per-step screenshots from a production preview for human visual review. The helper SHALL wait for step transition animations to settle before each screenshot and SHALL surface advisory overlap warnings for suspicious text/chrome collisions. The helper supports the skill's visual composition check, but its screenshots and overlap warnings are inspection artifacts rather than automated pass/fail evidence.
 
 #### Scenario: Capture step screenshots
 - **WHEN** the screenshot helper runs for a registered presentation
 - **THEN** it captures each step at a standard desktop viewport and writes the images under a predictable project-local artifact directory
+
+#### Scenario: Screenshots are settled
+- **WHEN** the helper advances from one step to the next
+- **THEN** it waits for the configured settle interval before capturing the next screenshot
+
+#### Scenario: Suspicious overlap is reported
+- **WHEN** visible text or presentation chrome overlaps another visible text/chrome element without an explicit allow-overlap marker
+- **THEN** the helper prints an advisory warning identifying the step and overlapping elements
+
+#### Scenario: Intentional overlap can be marked
+- **WHEN** a presentation marks a subtree as allowing overlap
+- **THEN** the helper does not report overlap warnings for elements inside that subtree

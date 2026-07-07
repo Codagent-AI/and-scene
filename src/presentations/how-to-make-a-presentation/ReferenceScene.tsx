@@ -78,7 +78,7 @@ function ConversationRow({ p }: { p: RefPayload }) {
       <div className="ref-convo-link">
         <AnimatePresence>
           {p.bubble && (
-            <motion.div key="bubble" exit={{ opacity: 0, transition: LAYOUT_T }}>
+            <motion.div key="bubble" exit={{ opacity: 0, transition: { duration: 0.3 } }}>
               <Emphasis layoutId={ENTITIES.prompt} accent="cyan" className="ref-bubble">
                 <MessageCircle className="ref-bubble-icon" size={20} aria-hidden />
                 &ldquo;I need a presentation about&hellip;&rdquo;
@@ -113,20 +113,22 @@ function ConversationRow({ p }: { p: RefPayload }) {
         </AnimatePresence>
       </div>
 
-      <AnimatePresence>
-        {p.skill && (
-          <Appear key="skill">
-            <Box
-              layoutId={ENTITIES.skill}
-              Icon={Sparkles}
-              label="Skill"
-              subtitle="asks, then builds"
-              accent="cyan"
-              className="ref-box"
-            />
-          </Appear>
-        )}
-      </AnimatePresence>
+      <div className="ref-skill-slot">
+        <AnimatePresence>
+          {p.skill && (
+            <Appear key="skill">
+              <Box
+                layoutId={ENTITIES.skill}
+                Icon={Sparkles}
+                label="Skill"
+                subtitle="asks, then builds"
+                accent="cyan"
+                className="ref-box"
+              />
+            </Appear>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }
@@ -164,7 +166,7 @@ function Tray({ p }: { p: RefPayload }) {
         <AnimatePresence>
           {p.route && (
             <Appear key="route-label">
-              <span className="ref-route-label">{p.reveal ? '/how-to-make-a-presentation' : '/your-talk'}</span>
+              <span className="ref-route-label">/and-scene:presentation</span>
             </Appear>
           )}
         </AnimatePresence>
@@ -206,6 +208,7 @@ function Tray({ p }: { p: RefPayload }) {
           {p.ghost && (
             <motion.div
               key="ghost"
+              className="ref-ghost-slot"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1, transition: ENTER_T }}
               exit={{ opacity: 0, transition: LAYOUT_T }}
@@ -268,15 +271,15 @@ function LoopArc() {
       exit={{ opacity: 0, transition: LAYOUT_T }}
       aria-hidden
     >
-      <svg className="ref-loop-svg" viewBox="0 0 130 90" fill="none">
+      <svg className="ref-loop-svg" viewBox="0 0 150 92" fill="none">
         <path
           className="ref-loop-dash"
-          d="M 120 5 Q 30 15 13 78"
+          d="M 55 4 Q 5 44 67 86"
           stroke="currentColor"
           strokeWidth="2"
           strokeDasharray="6 6"
         />
-        <path d="M 13 78 l -6 -12 M 13 78 l 12 -8" stroke="currentColor" strokeWidth="2" />
+        <path d="M 67 86 l -14 -1 M 67 86 l -5 -13" stroke="currentColor" strokeWidth="2" />
       </svg>
       <span className="ref-loop-label">
         <Pencil size={12} aria-hidden />

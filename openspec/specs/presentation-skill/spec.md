@@ -31,7 +31,7 @@ Before creating or modifying a presentation, the skill SHALL ensure the project 
 
 Detection is contract-level, keyed on the presence of these anchors rather than a byte-identical scaffold, so cosmetic differences (file naming, formatting, extra dependencies) do not trigger re-scaffolding. When scaffolding, the skill SHALL NOT assume the required dependencies are already installed.
 
-The scaffold SHALL be styling-framework-neutral. It SHALL install the runtime and build dependencies needed for React, Vite, TypeScript, Motion, Lucide icons, linting, and render verification, but it SHALL NOT require Tailwind, a Tailwind Vite plugin, a default CSS theme, or any other styling framework. Styling systems MAY be added by the presentation author or host project after scaffolding.
+The scaffold SHALL be styling-framework-neutral and SHALL ship with zero presentation styling defaults. It SHALL install the runtime and build dependencies needed for React, Vite, TypeScript, Motion, Lucide icons, linting, and render verification, but it SHALL NOT require Tailwind, a Tailwind Vite plugin, a default CSS theme, default colors, default fonts, default card styles, default button styles, or any other styling framework. Styling systems MAY be added by the presentation author or host project after scaffolding.
 
 #### Scenario: Empty or fully unscaffolded directory
 - **WHEN** the skill runs in an empty directory or a project with none of the three anchors present
@@ -48,7 +48,7 @@ The scaffold SHALL be styling-framework-neutral. It SHALL install the runtime an
 #### Scenario: Scaffold does not impose a style system
 - **WHEN** the skill scaffolds a presentation app
 - **THEN** the generated app can build without Tailwind or another styling framework
-- **AND** the scaffold does not define default presentation colors, fonts, card styles, button styles, or CSS theme tokens
+- **AND** the scaffold does not define default presentation colors, fonts, spacing scale, card styles, button styles, borders, shadows, or CSS theme tokens
 
 #### Scenario: Monorepo target
 - **WHEN** the skill runs inside a monorepo

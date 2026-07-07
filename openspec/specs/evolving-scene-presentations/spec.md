@@ -45,12 +45,16 @@ Adjacent steps that represent successive states of the same evolving diagram SHA
 - **THEN** the implementation preserves that composition while maintaining clean morphs, rather than flattening or spreading entities only to satisfy an implementation pattern
 
 ### Requirement: Style ownership boundary
-The scene kit SHALL be unstyled by default. It SHALL provide motion behavior, fixed-canvas layout plumbing, navigation/chrome behavior, and stable DOM hooks for authors to style, but it SHALL NOT impose a palette, font, border treatment, glow, card appearance, button style, CSS theme tokens, or styling-framework dependency.
+The scene kit SHALL have zero styling defaults. It SHALL provide motion behavior, fixed-canvas layout plumbing, navigation/chrome behavior, and stable DOM hooks for authors to style, but it SHALL NOT impose a palette, font, color, border treatment, glow, card appearance, button style, spacing scale, CSS theme tokens, or styling-framework dependency. Any default geometry used for the fixed canvas or chrome placement is layout behavior, not a visual style system.
 
 #### Scenario: Kit primitives expose style hooks
 - **WHEN** a presentation composes scene kit primitives or chrome
 - **THEN** the rendered markup exposes stable hooks that presentation-owned CSS can target
 - **AND** visual choices such as color, typography, spacing scale, borders, and shadows come from the presentation or host app
+
+#### Scenario: Unstyled kit output
+- **WHEN** a presentation uses scene kit primitives without presentation-owned CSS
+- **THEN** the kit does not supply fallback colors, fonts, borders, shadows, card treatments, or button treatments
 
 #### Scenario: Optional styling frameworks remain optional
 - **WHEN** a presentation author wants to use Tailwind or another styling framework

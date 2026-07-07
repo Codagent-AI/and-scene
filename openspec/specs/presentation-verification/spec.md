@@ -16,22 +16,25 @@ A generated sample presentation SHALL be committed in the repository as a known-
 
 The sample is the self-referential talk **"How to Use This Skill to Make a Presentation"** — a presentation, built by the skill, about building presentations with the skill. Its closing beat reveals that the viewer is looking at an example of the skill's own output. The sample SHALL implement the following steps (titles, captions, and scene intent are normative; the per-step visual design is deferred to design):
 
+The sample is one continuously evolving scene: a conversation row (**you** ↔ **skill**) anchors the top, a tray of step cards accumulates below it, and later beats draw frames and connections around what is already on screen. Entities accumulate; they are never rearranged or redrawn.
+
 | # | Era | Title (present) | Caption (browse) | Scene content |
 |---|-----|-----------------|------------------|---------------|
 | 1 | the ask | "You have a topic" | It starts with you, a topic, and mild overconfidence. | A **you** entity and a **prompt** bubble appear. |
-| 2 | the ask | "The skill interviews you" | One question at a time: topic, visual style, every step. | A **skill** node appears; a question-loop arrow connects skill↔you, questions popping one at a time. |
-| 3 | the gathering | "Answers become steps" | Each answer is captured as a step — content plus a visual description. | **Step-cards** accumulate and stack as answers land. |
-| 4 | the gathering | "You set the depth" | Specify everything, or just a few and see how it looks. You hold the gate. | The stack shows partial vs. full; a control on **you** governs how much is captured. |
-| 5 | the build | "It assembles the scene" | Your steps are wired into reusable scene components — one folder, one route. | A **scene-kit** node connects; step-cards + kit merge/collapse into a **presentation route** box. |
-| 6 | the build | "It checks its own work" | Before saying done, it builds and renders — and fixes what breaks. | A **verify** node connects to the route; build + render checks resolve to a green check. |
-| 7 | the loop | "Changed your mind? Loop it." | Point at the result and ask for changes. The skill edits in place. | A **modify** arrow loops from the route back to the gathering. |
-| 8 | the reveal | "You're looking at one" | This presentation was built exactly this way. Thanks for watching. | A frame draws around the whole diagram, labeled — self-reference reveal. |
+| 2 | the ask | "The skill interviews you" | One question at a time: the topic, the look, then each beat of the story. | A **skill** node appears; a two-way arrow connects you↔skill with a **question chip** above it. |
+| 3 | the gathering | "Answers become steps" | Each answer lands as a step card: a title, a caption, and what the scene should show. | A tray appears under the conversation; the first **step-card** lands in it. |
+| 4 | the gathering | "The deck grows" | Same shapes, new beats. Every answer extends the story without redrawing it. | More step-cards land in the tray; everything already on screen stays put. |
+| 5 | the gathering | "You set the depth" | Spell out every step, or sketch a few and see how it looks. You hold the gate. | A dashed **ghost card** marks unspecified steps; a partial↔full control docks on **you**. |
+| 6 | the build | "It assembles the scene" | Your steps are wired into one evolving scene — one folder, one route, entities that morph. | A route frame draws around the tray in place; the **scene-kit** socket plugs into its edge. |
+| 7 | the build | "It checks its own work" | Before saying done, it builds and renders every step — and fixes what breaks. | A **verify** node chains onto the route; build + render checks resolve to a green pass check landing on it. |
+| 8 | the loop | "Changed your mind? Loop it." | Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch. | A **modify** arc reaches from the conversation down into the route; the edited card is flagged. |
+| 9 | the reveal | "You're looking at one" | This presentation was built exactly this way. Thanks for watching. | An outer frame draws around the whole diagram, labeled — self-reference reveal. |
 
 <!-- deferred-to-design: per-step visual design — exact entity shapes, layout coordinates, layoutId namespace, colors, and motion timing — is settled in the design stage. The steps, titles, captions, and scene intent above are fixed. -->
 
 #### Scenario: Sample exists and matches the outline
 - **WHEN** verification runs
-- **THEN** it confirms the committed reference sample presentation exists, is registered/reachable, and implements the eight steps above in order
+- **THEN** it confirms the committed reference sample presentation exists, is registered/reachable, and implements the nine steps above in order
 
 #### Scenario: Missing sample fails
 - **WHEN** the reference sample is absent

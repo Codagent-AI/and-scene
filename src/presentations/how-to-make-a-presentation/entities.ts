@@ -2,20 +2,20 @@
 export const ENTITIES = {
   you: 'you',
   prompt: 'prompt',
-  skill: 'skill',
-  questionLoop: 'question-loop',
   questionChip: 'question-chip',
+  convoArrow: 'convo-arrow',
+  skill: 'skill',
   stepCard1: 'step-card-1',
   stepCard2: 'step-card-2',
   stepCard3: 'step-card-3',
-  depthControl: 'depth-control',
-  sceneKit: 'scene-kit',
-  presentationRoute: 'presentation-route',
+  ghostCard: 'ghost-card',
+  depthChip: 'depth-chip',
+  tray: 'tray',
+  kitSocket: 'kit-socket',
+  verifyArrow: 'verify-arrow',
   verifyNode: 'verify-node',
   greenCheck: 'green-check',
-  modifyLoop: 'modify-loop',
-  revealFrame: 'reveal-frame',
-  diagram: 'diagram',
+  editBadge: 'edit-badge',
 } as const
 
 export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]

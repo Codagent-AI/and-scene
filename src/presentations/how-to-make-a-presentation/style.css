@@ -152,297 +152,394 @@
   opacity: 1;
 }
 
-.ref-row {
-  display: flex;
-  align-items: center;
-}
+/* ---------------------------------------------------------------------------
+ * The scene. One stable anatomy for all nine steps:
+ *   - conversation row (You ↔ Skill) on top,
+ *   - the tray of step cards below, later framed as the route,
+ *   - overlays (modify loop, reveal outline) drawn around it, never through it.
+ * Sizes are deliberately constant across steps so entities morph position,
+ * not shape.
+ * ------------------------------------------------------------------------- */
 
-.ref-row--small {
-  gap: 1.25rem;
-}
-
-.ref-row--medium {
-  gap: 1.5rem;
-}
-
-.ref-row--large {
-  gap: 2rem;
-}
-
-.ref-row--wide {
-  gap: 2.5rem;
-}
-
-.ref-row--extra-wide {
-  gap: 4rem;
-}
-
-.ref-row--reveal {
-  justify-content: center;
-  gap: 1rem;
-}
-
-.ref-column {
+.ref-stage {
+  position: relative;
   display: flex;
   flex-direction: column;
-}
-
-.ref-column--tight {
   align-items: center;
-  gap: 0.5rem;
+  gap: 2.75rem;
 }
 
-.ref-column--medium {
-  gap: 0.75rem;
-}
+/* --- conversation row ---------------------------------------------------- */
 
-.ref-column--center {
+.ref-convo {
+  display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 2.25rem;
 }
 
-.ref-relative {
+.ref-you-slot {
   position: relative;
 }
 
+.ref-depth-slot {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, -0.8rem);
+  white-space: nowrap;
+}
+
+.ref-convo-link {
+  display: flex;
+  align-items: center;
+  min-width: 15rem;
+  justify-content: center;
+}
+
+.ref-link-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ref-question-slot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 2.4rem;
+}
+
+/* --- shared node treatments ---------------------------------------------- */
+
 .ref-box,
-.ref-frame,
-.ref-emphasis,
-.reference-talk [data-node='symbol-chip'] {
+.ref-bubble,
+.ref-chip,
+.ref-tray[data-route],
+.ref-socket {
   position: relative;
   border: 2px solid rgb(156 163 175 / 0.4);
   background: rgb(27 34 44 / 0.7);
   text-align: center;
+  transition: border-color 0.6s ease, box-shadow 0.6s ease;
 }
 
 .ref-box {
-  padding: 1.5rem 2rem;
+  min-width: 9.5rem;
+  padding: 1.15rem 1.5rem;
   box-shadow: 0 0 28px rgb(148 163 184 / 0.12);
 }
 
 .ref-box[data-accent='cyan'],
-.ref-emphasis[data-accent='cyan'],
-.reference-talk [data-node='symbol-chip'][data-accent='cyan'] {
+.ref-chip[data-accent='cyan'],
+.ref-bubble[data-accent='cyan'] {
   border-color: rgb(92 224 216 / 0.45);
   box-shadow: 0 0 28px rgb(92 224 216 / 0.14);
 }
 
 .ref-box[data-accent='amber'],
-.ref-emphasis[data-accent='amber'],
-.reference-talk [data-node='symbol-chip'][data-accent='amber'] {
+.ref-chip[data-accent='amber'] {
   border-color: rgb(240 168 48 / 0.45);
   box-shadow: 0 0 28px rgb(240 168 48 / 0.14);
 }
 
-.ref-box[data-accent='green'],
-.ref-emphasis[data-accent='green'],
-.reference-talk [data-node='symbol-chip'][data-accent='green'] {
+.ref-box[data-accent='green'] {
   border-color: rgb(74 222 128 / 0.45);
   box-shadow: 0 0 28px rgb(74 222 128 / 0.14);
 }
 
 .ref-box[data-accent='cyan'] [data-node-part='icon'],
-.ref-emphasis[data-accent='cyan'],
-.reference-talk [data-node='symbol-chip'][data-accent='cyan'] [data-node-part='icon'] {
+.ref-chip[data-accent='cyan'],
+.ref-bubble .ref-bubble-icon {
   color: var(--ref-cyan);
 }
 
 .ref-box[data-accent='amber'] [data-node-part='icon'],
-.ref-emphasis[data-accent='amber'],
-.reference-talk [data-node='symbol-chip'][data-accent='amber'] [data-node-part='icon'] {
+.ref-chip[data-accent='amber'] {
   color: var(--ref-amber);
 }
 
-.ref-box[data-accent='green'] [data-node-part='icon'],
-.ref-emphasis[data-accent='green'],
-.reference-talk [data-node='symbol-chip'][data-accent='green'] [data-node-part='icon'] {
+.ref-box[data-accent='green'] [data-node-part='icon'] {
   color: var(--ref-green);
 }
 
 .ref-box [data-node-part='icon'] {
   display: flex;
   justify-content: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.6rem;
 }
 
 .ref-box [data-node-part='icon'] svg {
-  width: 2rem;
-  height: 2rem;
+  width: 1.75rem;
+  height: 1.75rem;
   stroke-width: 1.4;
 }
 
-.ref-box [data-node-part='label'],
-.reference-talk [data-node='symbol-chip'] [data-node-part='label'] {
+.ref-box [data-node-part='label'] {
   color: var(--ref-heading);
+  font-size: 0.875rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
-.ref-box [data-node-part='subtitle'],
-.reference-talk [data-node='symbol-chip'] [data-node-part='subtitle'] {
-  margin-top: 0.5rem;
-  color: var(--ref-text);
+.ref-box [data-node-part='subtitle'] {
+  margin-top: 0.4rem;
+  color: var(--ref-muted);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
   font-size: 0.6875rem;
   letter-spacing: 0.025em;
-  line-height: 1.625;
+  line-height: 1.5;
   text-transform: none;
+  white-space: nowrap;
 }
 
-.ref-box--compact {
-  padding: 0.75rem 1.5rem;
+/* --- prompt bubble + question chip ---------------------------------------- */
+
+.ref-bubble {
+  max-width: 13rem;
+  padding: 0.9rem 1.1rem;
+  border-width: 1px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.ref-bubble-icon {
+  display: block;
+  margin: 0 auto 0.5rem;
+}
+
+.ref-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.8rem;
+  border-width: 1px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
   font-size: 0.75rem;
+  white-space: nowrap;
 }
 
-.ref-box--tiny {
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
+/* --- the tray / route ------------------------------------------------------ */
+
+.ref-band {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
 }
 
-.ref-box--pass {
-  padding: 1rem 1.25rem;
-}
-
-.ref-step-stack {
+.ref-tray {
   position: relative;
-  width: 18rem;
-  height: 14rem;
+  border: 2px solid transparent;
+  padding: 1.1rem 1.3rem;
 }
 
-.ref-step-stack-card--one {
-  bottom: 0;
-  left: 0;
+.ref-tray[data-route] {
+  border-color: rgb(74 222 128 / 0.45);
+  background: rgb(27 34 44 / 0.5);
+  box-shadow: 0 0 28px rgb(74 222 128 / 0.12);
 }
 
-.ref-step-stack-card--two {
-  bottom: 1.5rem;
-  left: 4rem;
+.ref-route-label-slot {
+  position: absolute;
+  top: -0.8rem;
+  left: 1.1rem;
+}
+
+.ref-route-label {
+  display: block;
+  background: var(--ref-bg);
+  color: var(--ref-green);
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.ref-cards {
+  display: flex;
+  align-items: stretch;
+  gap: 0.8rem;
+}
+
+.ref-card-slot {
+  position: relative;
+}
+
+.ref-card {
+  min-width: 7.25rem;
+  height: 100%;
+  padding: 0.85rem 0.9rem;
+}
+
+.ref-card [data-node-part='label'] {
+  font-size: 0.75rem;
+}
+
+.ref-card [data-node-part='icon'] svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.ref-card [data-node-part='icon'] {
+  margin-bottom: 0.45rem;
+}
+
+.ref-card--ghost {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ref-card--ghost [data-node-part='label'] {
+  color: var(--ref-muted);
+}
+
+.ref-edit-slot {
+  position: absolute;
+  top: -0.9rem;
+  right: -0.7rem;
   z-index: 10;
 }
 
-.ref-step-stack-card--three {
-  bottom: 3rem;
-  left: 8rem;
-  z-index: 20;
+.ref-chip--edit {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.6875rem;
+  background: var(--ref-bg);
 }
 
-.ref-emphasis {
-  padding: 0.5rem 1rem;
-  border-width: 1px;
+/* --- scene-kit socket ------------------------------------------------------ */
+
+.ref-socket-slot {
+  position: absolute;
+  bottom: -1.05rem;
+  left: 50%;
 }
 
-.ref-emphasis--prompt {
-  max-width: 12rem;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
-  font-size: 0.875rem;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.ref-message-icon {
-  display: block;
-  margin: 0 auto 0.5rem;
-  color: var(--ref-cyan);
-}
-
-.ref-emphasis--small,
-.ref-emphasis--control,
-.ref-emphasis--modify {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
-  font-size: 0.75rem;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.ref-emphasis--control {
+.ref-socket {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  transform: translateX(-50%);
+  padding: 0.4rem 0.85rem;
+  border-color: rgb(92 224 216 / 0.55);
+  box-shadow: 0 0 20px rgb(92 224 216 / 0.2);
+  color: var(--ref-cyan);
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: ref-socket-pulse 2.4s ease-in-out infinite;
 }
 
-.ref-emphasis--modify {
+@keyframes ref-socket-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgb(92 224 216 / 0.15);
+  }
+  50% {
+    box-shadow: 0 0 26px rgb(92 224 216 / 0.45);
+  }
+}
+
+/* --- verify chain ----------------------------------------------------------- */
+
+.ref-verify {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.ref-verify-slot {
+  position: relative;
+}
+
+.ref-pass-slot {
   position: absolute;
-  top: -1.25rem;
-  right: -1rem;
+  top: -0.9rem;
+  right: -0.7rem;
+  z-index: 10;
 }
 
-.ref-inline-icon {
-  display: inline;
-  margin-right: 0.25rem;
-  vertical-align: -0.125rem;
+.ref-chip--pass {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.6875rem;
+  background: var(--ref-bg);
+  color: var(--ref-green);
 }
 
 .ref-arrow {
   color: var(--ref-cyan);
+  font-size: 1.25rem;
 }
 
-.ref-arrow--large {
-  font-size: 1.5rem;
+.ref-arrow--convo {
+  font-size: 1.6rem;
 }
 
-.ref-arrow--loop {
+/* --- modify loop ------------------------------------------------------------ */
+
+/* Anchored just left of the stage's center line, in the open gap between the
+ * conversation arrow above and the tray of cards below. */
+.ref-loop {
+  position: absolute;
+  left: calc(50% - 115px);
+  top: 90px;
+  width: 130px;
+  height: 90px;
   color: var(--ref-amber);
-  font-size: 1.875rem;
+  pointer-events: none;
 }
 
-.reference-talk [data-node='symbol-chip'] {
+.ref-loop-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ref-loop-dash {
+  animation: ref-loop-march 1.4s linear infinite;
+}
+
+@keyframes ref-loop-march {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.ref-loop-label {
+  position: absolute;
+  left: 2.6rem;
+  top: 0.7rem;
   display: flex;
   align-items: center;
-}
-
-.reference-talk [data-node='symbol-chip'][data-variant='chip'] {
-  flex-direction: row;
-  gap: 0.625rem;
-  padding: 0.625rem 1rem;
-}
-
-.reference-talk [data-node='symbol-chip'][data-variant='symbol'] {
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1.75rem 2.25rem;
-}
-
-.reference-talk [data-node='symbol-chip'][data-variant='chip'] [data-node-part='label'] {
+  gap: 0.35rem;
+  background: var(--ref-bg);
+  padding: 0.2rem 0.5rem;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
   font-size: 0.75rem;
 }
 
-.reference-talk [data-node='symbol-chip'][data-variant='symbol'] [data-node-part='label'] {
-  font-size: 1.125rem;
-}
+/* --- reveal outline ---------------------------------------------------------- */
 
-.reference-talk [data-node='symbol-chip'] [data-node-part='icon'] svg {
-  width: 1.125rem;
-  height: 1.125rem;
-  stroke-width: 1.4;
-}
-
-.reference-talk [data-node='symbol-chip'][data-variant='symbol'] [data-node-part='icon'] svg {
-  width: 2.875rem;
-  height: 2.875rem;
-}
-
-.ref-frame {
-  padding: 1.5rem 2rem;
-  border-color: rgb(156 163 175 / 0.45);
-  background: rgb(27 34 44 / 0.5);
-}
-
-.ref-frame [data-node-part='frame-label'] {
+.ref-reveal {
   position: absolute;
-  top: -0.75rem;
-  left: 1.25rem;
+  inset: -1.6rem -1.5rem;
+  border: 2px solid rgb(240 168 48 / 0.55);
+  box-shadow: 0 0 36px rgb(240 168 48 / 0.14);
+  pointer-events: none;
+}
+
+.ref-reveal-label {
+  position: absolute;
+  top: -0.8rem;
+  left: 1.4rem;
   background: var(--ref-bg);
-  color: #e5e7eb;
+  color: var(--ref-amber);
   padding: 0 0.5rem;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-}
-
-.ref-built-label {
-  display: block;
-  margin-top: 1rem;
-  color: var(--ref-amber);
-  text-align: center;
 }

@@ -14,6 +14,10 @@ A presentation SHALL be one scene rendered through an ordered list of named step
 - **WHEN** steps are inserted, removed, or reordered
 - **THEN** each step's on-screen number is derived from its position so no manual renumbering is required
 
+#### Scenario: Typed payloads reach presentation boundary
+- **WHEN** a grouped scene defines steps with a strongly typed payload
+- **THEN** the presentation host accepts that typed step array without requiring casts at the `<Presentation>` boundary
+
 ### Requirement: Stable entities morph across steps
 Entities that persist between steps SHALL keep a stable identity and animate their change in place rather than disappearing and reappearing. Entities present in only one of two adjacent steps SHALL animate in or out.
 
@@ -65,11 +69,15 @@ The scene kit SHALL have zero styling defaults. It SHALL provide motion behavior
 - **THEN** kit primitives expose class/style hooks, and authors MAY use raw motion elements with stable `layoutId`s when a primitive is not the right shape
 
 ### Requirement: Kit attribution
-The scene kit SHALL include a small default attribution link reading "made by and-scene" in the bottom-right corner, linking to the and-scene GitHub repository. The attribution is toolkit disclosure, not a presentation style system. The kit SHALL NOT add a default top-left "and-scene" brand link; host applications MAY provide their own header brand explicitly.
+The scene kit SHALL include a default attribution link reading "made by and-scene" in the bottom-right corner, linking to the and-scene GitHub repository. The attribution is toolkit disclosure, not a presentation style system. The kit SHALL expose a stable hook so presentation-owned CSS can make the attribution legible and intentional. The kit SHALL NOT add a default top-left "and-scene" brand link; host applications MAY provide their own header brand explicitly.
 
 #### Scenario: Default attribution is shown
 - **WHEN** a presentation renders without overriding attribution options
 - **THEN** it shows a bottom-right link labeled "made by and-scene" pointing to the and-scene GitHub repository
+
+#### Scenario: Attribution exposes a styling hook
+- **WHEN** the default attribution is rendered
+- **THEN** it exposes a stable presentation hook that the presentation or host app can target for local styling
 
 #### Scenario: Top-left brand is opt-in
 - **WHEN** a presentation renders without host-provided branding
@@ -104,6 +112,10 @@ A presentation SHALL let the viewer move between steps via keyboard, touch, and 
 #### Scenario: Direct jump
 - **WHEN** the user activates a progress indicator or a table-of-contents entry
 - **THEN** the presentation jumps directly to that step, or to the first step of that section's era for a table-of-contents entry
+
+#### Scenario: Active navigation state is exposed
+- **WHEN** a progress indicator or table-of-contents entry represents the active step
+- **THEN** it exposes semantic current-step state and a stable active-state hook for presentation-owned styling
 
 #### Scenario: Controls keep their keys
 - **WHEN** focus is on an interactive control

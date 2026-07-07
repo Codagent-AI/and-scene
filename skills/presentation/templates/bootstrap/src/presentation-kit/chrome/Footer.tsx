@@ -100,6 +100,7 @@ export function Footer({
                 // distinct for screen readers; blank-title chrome cards fall back
                 // to era.
                 aria-label={`Go to step ${i + 1}: ${s.title || s.era}`}
+                aria-current={i === step ? 'step' : undefined}
                 data-presentation-progress-dot
                 data-active={i === step ? 'true' : undefined}
               />

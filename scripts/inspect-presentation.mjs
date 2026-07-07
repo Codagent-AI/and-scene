@@ -200,6 +200,93 @@ async function findOverlapWarnings(page, slug, stepIndex) {
   )
 }
 
+async function findChromeWarnings(page, slug, stepIndex) {
+  return page.evaluate(
+    ({ slug, stepIndex }) => {
+      const isVisible = (el) => {
+        if (!el) return false
+        const rect = el.getBoundingClientRect()
+        const style = window.getComputedStyle(el)
+        return (
+          rect.width >= 1 &&
+          rect.height >= 1 &&
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          Number(style.opacity) >= 0.2
+        )
+      }
+
+      const styleSignature = (el, { includeSize = false } = {}) => {
+        const style = window.getComputedStyle(el)
+        const rect = el.getBoundingClientRect()
+        const parts = [
+          style.color,
+          style.backgroundColor,
+          style.borderTopColor,
+          style.borderRightColor,
+          style.borderBottomColor,
+          style.borderLeftColor,
+          style.fontWeight,
+          style.opacity,
+          style.textDecorationLine,
+        ]
+        if (includeSize) parts.push(String(Math.round(rect.width)), String(Math.round(rect.height)))
+        return parts.join('|')
+      }
+
+      const warnings = []
+      const progressDots = Array.from(document.querySelectorAll('[data-presentation-progress-dot]'))
+        .filter(isVisible)
+      const activeProgress = progressDots.find((el) =>
+        el.getAttribute('data-active') === 'true' || el.getAttribute('aria-current') === 'step',
+      )
+      const inactiveProgress = progressDots.find((el) => el !== activeProgress)
+      if (!activeProgress && progressDots.length > 1) {
+        warnings.push(`${slug} step ${stepIndex + 1}: no active progress dot is exposed`)
+      } else if (
+        activeProgress &&
+        inactiveProgress &&
+        styleSignature(activeProgress, { includeSize: true }) ===
+          styleSignature(inactiveProgress, { includeSize: true })
+      ) {
+        warnings.push(
+          `${slug} step ${stepIndex + 1}: active progress dot looks identical to inactive dots; style [data-presentation-progress-dot][data-active='true']`,
+        )
+      }
+
+      const tocItems = Array.from(document.querySelectorAll('[data-presentation-toc-item]'))
+        .filter(isVisible)
+      const activeToc = tocItems.find((el) =>
+        el.getAttribute('data-active') === 'true' || el.getAttribute('aria-current') === 'step',
+      )
+      const inactiveToc = tocItems.find((el) => el !== activeToc)
+      if (!activeToc && tocItems.length > 1) {
+        warnings.push(`${slug} step ${stepIndex + 1}: no active table-of-contents item is exposed`)
+      } else if (activeToc && inactiveToc && styleSignature(activeToc) === styleSignature(inactiveToc)) {
+        warnings.push(
+          `${slug} step ${stepIndex + 1}: active table-of-contents item looks identical to inactive items; style [data-presentation-toc-item][data-active='true']`,
+        )
+      }
+
+      const attribution = document.querySelector('[data-presentation-attribution]')
+      if (isVisible(attribution)) {
+        const style = window.getComputedStyle(attribution)
+        const rect = attribution.getBoundingClientRect()
+        const fontSize = Number.parseFloat(style.fontSize)
+        const defaultLinkBlue = style.color === 'rgb(0, 0, 238)' || style.color === '-webkit-link'
+        if (fontSize < 12 || rect.height < 14 || defaultLinkBlue) {
+          warnings.push(
+            `${slug} step ${stepIndex + 1}: attribution appears too small or browser-default; style [data-presentation-attribution] in presentation CSS`,
+          )
+        }
+      }
+
+      return warnings
+    },
+    { slug, stepIndex },
+  )
+}
+
 async function capturePresentation(page, port, slug, width, height, settleMs) {
   const outDir = join(OUT_ROOT, slug)
   await mkdir(outDir, { recursive: true })
@@ -221,6 +308,7 @@ async function capturePresentation(page, port, slug, width, height, settleMs) {
 
     await page.waitForTimeout(settleMs)
     warnings.push(...await findOverlapWarnings(page, slug, i))
+    warnings.push(...await findChromeWarnings(page, slug, i))
 
     const path = join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
     await page.screenshot({ path, fullPage: false })

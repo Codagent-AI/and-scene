@@ -33,6 +33,8 @@ Detection is contract-level, keyed on the presence of these anchors rather than 
 
 The scaffold SHALL be styling-framework-neutral and SHALL ship with zero presentation styling defaults. It SHALL install the runtime and build dependencies needed for React, Vite, TypeScript, Motion, Lucide icons, linting, and render verification, but it SHALL NOT require Tailwind, a Tailwind Vite plugin, a default CSS theme, default colors, default fonts, default card styles, default button styles, or any other styling framework. Styling systems MAY be added by the presentation author or host project after scaffolding.
 
+The skill SHALL resolve scaffold templates relative to the skill file that declares them, so agents do not depend on the user's current working directory when locating `templates/bootstrap/` or presentation templates.
+
 #### Scenario: Empty or fully unscaffolded directory
 - **WHEN** the skill runs in an empty directory or a project with none of the three anchors present
 - **THEN** it performs a full scaffold (build setup, scene kit, and presentation index) and installs the required dependencies before creating the presentation
@@ -49,6 +51,10 @@ The scaffold SHALL be styling-framework-neutral and SHALL ship with zero present
 - **WHEN** the skill scaffolds a presentation app
 - **THEN** the generated app can build without Tailwind or another styling framework
 - **AND** the scaffold does not define default presentation colors, fonts, spacing scale, card styles, button styles, borders, shadows, or CSS theme tokens
+
+#### Scenario: Templates resolve from skill directory
+- **WHEN** the skill copies bootstrap or presentation templates
+- **THEN** it resolves those paths relative to the skill's own `SKILL.md` directory
 
 #### Scenario: Monorepo target
 - **WHEN** the skill runs inside a monorepo
@@ -90,7 +96,7 @@ The skill SHALL support modifying an existing presentation, identifying the targ
 - **THEN** the skill asks only about the requested changes (steps, entities, or style) and edits that presentation without re-walking the full create flow
 
 ### Requirement: Self-verify before reporting completion
-Before reporting success, the skill SHALL confirm that the generated or modified presentation builds, renders without errors, and is visually coherent in a browser, fixing any failures itself. The render check SHALL at minimum render the presentation's first step without runtime or console errors; the full multi-step render check across every step is defined by the `presentation-verification` capability. The visual composition check SHALL inspect screenshots or an equivalent browser view of the first step, the last step, and any dense/key steps; responsive-sensitive presentations SHALL also be checked at a narrow viewport. When a project-local screenshot helper is available, the skill SHALL prefer it over ad hoc scripts outside the project tree so browser tooling resolves from local dependencies, settled screenshots are captured after animations complete, and advisory overlap warnings can be reviewed.
+Before reporting success, the skill SHALL confirm that the generated or modified presentation builds, renders without errors, and is visually coherent in a browser, fixing any failures itself. The render check SHALL at minimum render the presentation's first step without runtime or console errors; the full multi-step render check across every step is defined by the `presentation-verification` capability. The visual composition check SHALL inspect screenshots or an equivalent browser view of the first step, the last step, and any dense/key steps; responsive-sensitive presentations SHALL also be checked at a narrow viewport. When a project-local screenshot helper is available, the skill SHALL prefer it over ad hoc scripts outside the project tree so browser tooling resolves from local dependencies, settled screenshots are captured after animations complete, and advisory visual warnings can be reviewed.
 
 #### Scenario: Checks run before done
 - **WHEN** the skill finishes generating or modifying a presentation
@@ -124,5 +130,10 @@ Every generated presentation SHALL build with no type errors, render its first s
 - **THEN** it uses the scaffolded project-local helper when available, or otherwise writes any temporary Playwright helper under the project root
 
 #### Scenario: Visual warnings are reviewed
-- **WHEN** the screenshot helper emits overlap warnings
-- **THEN** the skill reviews the referenced steps, fixes accidental collisions, and marks only intentional readable overlaps as allowed
+- **WHEN** the screenshot helper emits overlap or chrome-polish warnings
+- **THEN** the skill reviews the referenced steps, fixes accidental collisions or indistinct current-step chrome, and marks only intentional readable overlaps as allowed
+
+#### Scenario: Active chrome and attribution are styled locally
+- **WHEN** the generated presentation includes table-of-contents, progress, navigation, or attribution chrome
+- **THEN** presentation-owned or host-owned CSS makes the active step visibly distinct and the attribution legible
+- **AND** the reusable scene kit remains free of default colors, fonts, borders, button styles, and theme tokens

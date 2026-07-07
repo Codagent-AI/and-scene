@@ -16,7 +16,13 @@ import type { Mode, Step } from './types'
  * its `step` prop changes, so on-screen elements update in place instead of
  * re-animating. See StepMeta.groupKey.
  */
-export function Stage({ step, mode }: { step: Step; mode: Mode }) {
+export function Stage<P extends Record<string, unknown> = Record<string, unknown>>({
+  step,
+  mode,
+}: {
+  step: Step<P>
+  mode: Mode
+}) {
   const layout = STAGE_LAYOUT[mode]
   const scale = useFitScale(layout)
   const Scene = step.Scene

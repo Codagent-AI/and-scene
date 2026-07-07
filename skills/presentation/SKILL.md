@@ -84,6 +84,8 @@ already a JS app gets scaffolded in place at the root.
 
 1. Determine which anchors are missing (all, some, or none)
 2. Copy missing pieces from `templates/bootstrap/` in this skill directory.
+   Template paths are relative to this `SKILL.md` file, not necessarily to the
+   user's current working directory.
    The bootstrap `package.json` ships a neutral `presentation-app` name —
    rename it to suit the target project (e.g. the repo or monorepo package
    name) before installing.
@@ -158,11 +160,13 @@ Before reporting success:
    writes project-local screenshots under `artifacts/presentation-inspection/`
    so Playwright resolves from the project's installed dependencies. The helper
    waits for morph/fade animations to settle before each screenshot and prints
-   advisory overlap warnings for text/chrome collisions. Check the screenshots
-   and warnings for accidental overlap, clipped/off-canvas content, unreadable
-   stacking, and collisions with chrome such as captions, progress dots, table
-   of contents, or navigation buttons. `npm run verify` catches crashes and
-   console errors; it does not prove the scene is visually correct.
+   advisory warnings for text/chrome collisions, visually identical active
+   navigation states, and unpolished attribution. Check the screenshots and
+   warnings for accidental overlap, clipped/off-canvas content, unreadable
+   stacking, missing active TOC/progress styling, and collisions with chrome
+   such as captions, progress dots, table of contents, or navigation buttons.
+   `npm run verify` catches crashes and console errors; it does not prove the
+   scene is visually correct.
 4. If any check fails, **fix the issues and re-check** — never report success
    on broken output
 
@@ -247,7 +251,33 @@ interface Step<P extends Record<string, unknown> = Record<string, unknown>> {
 ```
 
 For strongly typed grouped scenes, define a payload type and use `Step<Payload>`
-for the steps and scene props instead of casting each `payload`.
+for the steps, scene props, and `<Presentation steps={STEPS} />` boundary
+instead of casting each `payload`.
+
+```tsx
+type PhasePayload = { active: 'idea' | 'system'; count: number }
+
+function GroupedScene({ step }: { step: Step<PhasePayload> }) {
+  const payload = step.payload
+  return <SceneLayer>{/* render from payload */}</SceneLayer>
+}
+
+const STEPS: Step<PhasePayload>[] = [
+  {
+    id: 'idea',
+    era: 'shape',
+    title: 'The idea appears',
+    caption: 'A first shape lands.',
+    groupKey: 'main-scene',
+    payload: { active: 'idea', count: 1 },
+    Scene: GroupedScene,
+  },
+]
+
+export default function Talk() {
+  return <Presentation steps={STEPS} title="Example" initialMode="browse" />
+}
+```
 
 ### Entity continuity (`layoutId`)
 
@@ -313,10 +343,12 @@ Compose steps from kit primitives (all accept `layoutId`):
 
 The kit is intentionally **unstyled**. It supplies motion behavior, stable DOM
 hooks (`data-node`, `data-node-part`, `data-accent`, `data-variant`, and
-`data-presentation-*` chrome hooks), fixed-canvas layout plumbing, and a small
-bottom-right attribution link (`made by and-scene`) to the GitHub repository. It
-must not impose a palette, font, border treatment, glow, card style, or Tailwind
-dependency. Every presentation owns its visual system.
+`data-presentation-*` chrome hooks), fixed-canvas layout plumbing, active-state
+semantics (`aria-current="step"` plus `data-active="true"`), and a bottom-right
+attribution link (`made by and-scene`) to the GitHub repository. It must not
+impose a palette, font, border treatment, glow, card style, button treatment, or
+Tailwind dependency. Every presentation owns its visual system, including chrome
+polish.
 
 Kit primitives accept `className` and `style` so presentations can use either
 CSS classes or explicit coordinates. For complex diagrams with literal per-step
@@ -363,6 +395,20 @@ Plain CSS example:
 .my-talk [data-accent='cyan'] {
   color: #0f766e;
 }
+
+.my-talk [data-presentation-progress-dot][data-active='true'] {
+  background: #0f766e;
+}
+
+.my-talk [data-presentation-toc-item][data-active='true'] {
+  color: #0f766e;
+}
+
+.my-talk [data-presentation-attribution] {
+  color: #475569;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
 ```
 
 Optional Tailwind example (only after the project has chosen and installed
@@ -393,7 +439,11 @@ layout, then append to the `STEPS` array in `Talk.tsx`.
 ### Navigation and chrome
 
 The kit provides browse/present modes, captions per step, table of contents,
-progress dots, and prev/next controls. Users navigate with →/Space/PageDown (next),
+progress dots, and prev/next controls. Active TOC and progress items expose
+`aria-current="step"` and `data-active="true"`, but the presentation must make
+that current state visibly distinct in its own CSS. The attribution link also
+needs presentation-owned styling so it is legible and intentional rather than a
+raw browser-default anchor. Users navigate with →/Space/PageDown (next),
 ←/PageUp (prev), P (toggle mode), or horizontal swipe.
 
 ## Out of scope
@@ -418,6 +468,9 @@ Every generated presentation must:
 - Pass a browser visual composition check: important steps fit within the fixed
   canvas, intentional overlaps remain readable, and scene content does not
   collide with browse/present chrome
+- Make current-step chrome visibly distinct: active TOC/progress states must be
+  readable, and the `made by and-scene` attribution must be legible and styled
+  by the presentation or host app
 
 ## Templates
 

@@ -31,10 +31,33 @@ describe('Presentation chrome hooks', () => {
     const chrome = screen.getByTestId('step-progress')
     expect(chrome).toHaveAttribute('data-step-count', '2')
     expect(chrome).toHaveAttribute('data-step-index', '0')
+    expect(screen.getByLabelText('Go to step 1: First step')).toHaveAttribute('aria-current', 'step')
   })
 
   it('derives on-screen step numbers from position', () => {
     render(<Presentation steps={steps} title="Demo" initialMode="browse" />)
     expect(screen.getAllByText('01').length).toBeGreaterThan(0)
+  })
+
+  it('accepts strongly typed step payloads at the presentation boundary', () => {
+    type Payload = { count: number }
+    function TypedScene({ step }: { step: Step<Payload> }) {
+      return <div data-testid="typed-scene">{step.payload?.count}</div>
+    }
+
+    const typedSteps: Step<Payload>[] = [
+      {
+        id: 'typed',
+        era: 'typed',
+        title: 'Typed step',
+        caption: 'Typed caption',
+        payload: { count: 3 },
+        Scene: TypedScene,
+      },
+    ]
+
+    render(<Presentation steps={typedSteps} title="Typed demo" initialMode="browse" />)
+
+    expect(screen.getByTestId('typed-scene')).toHaveTextContent('3')
   })
 })

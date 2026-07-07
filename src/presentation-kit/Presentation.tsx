@@ -7,20 +7,8 @@ import { stepMarker } from './stepMarker'
 import { usePresentationNav } from './usePresentationNav'
 import type { Mode, Step } from './types'
 
-export function Presentation({
-  steps,
-  initialMode = 'browse',
-  title = 'Presentation',
-  brand,
-  homeHref = '/',
-  homeLabel,
-  background,
-  overlay,
-  marker,
-  attribution = 'made by and-scene',
-  attributionHref = 'https://github.com/Codagent-AI/and-scene',
-}: {
-  steps: Step[]
+export interface PresentationProps<P extends Record<string, unknown> = Record<string, unknown>> {
+  steps: Step<P>[]
   initialMode?: Mode
   title?: string
   /** Optional header brand. Omitted by default; pass a logo or title node to add one. */
@@ -42,12 +30,26 @@ export function Presentation({
    * A callback (not a per-step field) so hosts can number relationally — e.g.
    * skip chrome cards and count only body steps.
    */
-  marker?: (index: number, steps: Step[]) => string
+  marker?: (index: number, steps: Step<P>[]) => string
   /** Small bottom-right attribution link. Pass `null` to hide it. */
   attribution?: ReactNode
   /** Attribution target; defaults to the and-scene GitHub repository. */
   attributionHref?: string
-}) {
+}
+
+export function Presentation<P extends Record<string, unknown> = Record<string, unknown>>({
+  steps,
+  initialMode = 'browse',
+  title = 'Presentation',
+  brand,
+  homeHref = '/',
+  homeLabel,
+  background,
+  overlay,
+  marker,
+  attribution = 'made by and-scene',
+  attributionHref = 'https://github.com/Codagent-AI/and-scene',
+}: PresentationProps<P>) {
   const { step, setStep, next, prev, last, mode } = usePresentationNav(steps.length, initialMode)
   // An empty deck has no current step; render a clear placeholder instead of
   // crashing on `steps[step].title`. (Hooks above run unconditionally first.)

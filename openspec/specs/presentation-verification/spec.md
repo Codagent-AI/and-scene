@@ -64,7 +64,7 @@ Verification SHALL produce an unambiguous pass/fail outcome suitable for automat
 - **THEN** it reports a clear pass or fail (non-zero exit on failure) identifying which check failed
 
 ### Requirement: Visual inspection artifacts
-Scaffolded projects SHALL provide a project-local helper that captures per-step screenshots from a production preview for human visual review. The helper SHALL wait for step transition animations to settle before each screenshot and SHALL surface advisory overlap warnings for suspicious text/chrome collisions. The helper supports the skill's visual composition check, but its screenshots and overlap warnings are inspection artifacts rather than automated pass/fail evidence.
+Scaffolded projects SHALL provide a project-local helper that captures per-step screenshots from a production preview for human visual review. The helper SHALL wait for step transition animations to settle before each screenshot and SHALL surface advisory warnings for suspicious text/chrome collisions, visually indistinct active navigation states, and unpolished attribution. The helper supports the skill's visual composition check, but its screenshots and warnings are inspection artifacts rather than automated pass/fail evidence.
 
 #### Scenario: Capture step screenshots
 - **WHEN** the screenshot helper runs for a registered presentation
@@ -81,3 +81,11 @@ Scaffolded projects SHALL provide a project-local helper that captures per-step 
 #### Scenario: Intentional overlap can be marked
 - **WHEN** a presentation marks a subtree as allowing overlap
 - **THEN** the helper does not report overlap warnings for elements inside that subtree
+
+#### Scenario: Indistinct active chrome is reported
+- **WHEN** the active progress indicator or active table-of-contents entry is visually indistinguishable from inactive controls
+- **THEN** the helper prints an advisory warning identifying the affected chrome
+
+#### Scenario: Unpolished attribution is reported
+- **WHEN** the attribution link appears too small or browser-default
+- **THEN** the helper prints an advisory warning pointing authors to the attribution styling hook

@@ -6,13 +6,7 @@
   --ref-cyan: #5ce0d8;
   --ref-amber: #f0a830;
   --ref-green: #4ade80;
-  /* Shared geometry. The conversation row and the tray share --ref-core-w so
-   * You's left border and Skill's right border align exactly with the route
-   * frame's borders. The stage itself is fixed at --ref-stage-w (core + the
-   * verify appendage) so the composition never recenters between steps. */
   --ref-card-w: 8rem;
-  --ref-core-w: calc(3 * var(--ref-card-w) + 2 * 0.8rem + 2 * 1.3rem + 4px);
-  --ref-stage-w: calc(var(--ref-core-w) + 2 * 0.9rem + 1.25rem + var(--ref-card-w) + 4px);
   position: fixed;
   inset: 0;
   min-width: 320px;
@@ -163,35 +157,52 @@
  * The scene. One stable anatomy for all nine steps:
  *   - conversation row (You ↔ Skill) on top,
  *   - the tray of step cards below, later framed as the route,
+ *   - the verify chain hanging off the route's right,
  *   - overlays (modify loop, reveal outline) drawn around it, never through it.
- * Sizes are deliberately constant across steps so entities morph position,
- * not shape.
+ *
+ * Nothing is pinned to a fixed width. The whole composition is content-sized
+ * and centered, so each step lays itself out around whatever is currently on
+ * screen and *re-centers* when the next piece appears — every entity carries a
+ * layoutId, so those re-alignments animate rather than jump. This animated
+ * re-centering is the point; do not freeze it with fixed widths.
+ *
+ * The conversation row and the tray live together in .ref-core; the row is
+ * `align-self: stretch`, so it always spans exactly the core's width — which
+ * the tray defines once the cards make it the widest thing. That is what keeps
+ * You's left border and Skill's right border aligned to the route frame's
+ * borders, by construction, at whatever width the scene has grown to. The
+ * verify chain sits OUTSIDE .ref-core (so it never widens the row) and shifts
+ * the core left as it fades in.
  * ------------------------------------------------------------------------- */
 
 .ref-stage {
   position: relative;
   display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 0.9rem;
+}
+
+.ref-core {
+  position: relative;
+  display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 2.75rem;
-  width: var(--ref-stage-w);
 }
 
 /* --- conversation row ---------------------------------------------------- */
 
 .ref-convo {
+  align-self: stretch;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: var(--ref-core-w);
+  gap: 2rem;
 }
 
 .ref-you-slot {
   position: relative;
-}
-
-.ref-skill-slot {
-  width: 9.5rem;
 }
 
 .ref-depth-slot {
@@ -340,17 +351,14 @@
 
 /* --- the tray / route ------------------------------------------------------ */
 
-.ref-band {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-
+/* Stretches to the core's width, exactly like the conversation row, so the
+ * route frame's borders always line up with You's left and Skill's right —
+ * whichever of the two is wider at a given step sets the shared width. */
 .ref-tray {
+  align-self: stretch;
   position: relative;
   border: 2px solid transparent;
   padding: 1.1rem 1.3rem;
-  width: var(--ref-core-w);
 }
 
 .ref-tray[data-route] {
@@ -375,11 +383,16 @@
   letter-spacing: 0.05em;
 }
 
+/* Hugs the cards and centers itself in the (possibly wider) tray, so the cards
+ * stay centered in the route and the ghost — anchored to this row's right edge
+ * — still sits just past the last real card. */
 .ref-cards {
   position: relative;
   display: flex;
   align-items: stretch;
   gap: 0.8rem;
+  width: max-content;
+  margin-inline: auto;
 }
 
 .ref-card-slot {
@@ -473,10 +486,14 @@
 
 /* --- verify chain ----------------------------------------------------------- */
 
+/* Hangs off the route's right edge. Stage aligns it flex-end (to the tray's
+ * bottom); the padding lifts it up so the chain centers on the cards, not on
+ * the tray's bottom padding. */
 .ref-verify {
   display: flex;
   align-items: center;
   gap: 0.9rem;
+  padding-bottom: 1.1rem;
 }
 
 .ref-verify-slot {
@@ -508,14 +525,15 @@
 
 /* --- modify loop ------------------------------------------------------------ */
 
-/* The conversation arrow and card 2 share the same vertical axis (the center
- * of --ref-core-w), so the arc bows left from one down to the other. */
+/* The conversation arrow and card 2 share the core's horizontal center, so the
+ * arc bows left from one down to the other. Centered on .ref-core. */
 .ref-loop {
   position: absolute;
-  left: calc(var(--ref-core-w) / 2 - 55px);
+  left: 50%;
   top: 88px;
   width: 150px;
   height: 92px;
+  transform: translateX(-50%);
   color: var(--ref-amber);
   pointer-events: none;
 }

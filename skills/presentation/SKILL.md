@@ -317,6 +317,24 @@ kit code. Follow these rules when generating or modifying step scenes:
   satisfy the wrapper rule.
 - Use `Appear` only for newcomers. Continuing entities with a shared `layoutId`
   should persist and morph; they should not fade out and back in.
+- **Let the layout re-center; do not pin it.** The signature move of an
+  evolving scene is that each step lays itself out around whatever is currently
+  on screen and then *re-aligns* when the next entity appears — one box centered
+  alone, two boxes balanced, a row that spreads to frame the tray that grew
+  beneath it. Because every entity carries a `layoutId`, those re-alignments
+  animate for free. Achieve it by keeping the composition **content-sized and
+  centered** (natural widths, `justify-content`/`align-items: center`,
+  `align-self: stretch` to match a sibling's width), and let flow do the
+  positioning. Do **not** freeze positions with fixed pixel/`ch` widths, fixed
+  stage widths, reserved empty slots, or `align-items: flex-start` pinning —
+  those hold entities still across steps and kill the re-centering, which is the
+  most striking thing the framework does. If two entities must share an edge
+  (e.g. a header row framing a panel below it), give them a shared width by
+  construction (`align-self: stretch` against a common parent, or one CSS var
+  both consume) rather than hardcoding a number. When you need to stop a
+  *transient* overshoot during a swap (an exiting element and an entering one
+  briefly widening a row), stack them in one grid cell — do not solve it by
+  fixing the whole row's width.
 - Keep browse-mode chrome in mind while composing scenes. The table of contents
   can occupy the left side on wide browse viewports, and captions/progress/nav
   occupy the lower band. Avoid dense horizontal rows that only fit the raw

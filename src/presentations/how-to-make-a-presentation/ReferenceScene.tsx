@@ -113,22 +113,20 @@ function ConversationRow({ p }: { p: RefPayload }) {
         </AnimatePresence>
       </div>
 
-      <div className="ref-skill-slot">
-        <AnimatePresence>
-          {p.skill && (
-            <Appear key="skill">
-              <Box
-                layoutId={ENTITIES.skill}
-                Icon={Sparkles}
-                label="Skill"
-                subtitle="asks, then builds"
-                accent="cyan"
-                className="ref-box"
-              />
-            </Appear>
-          )}
-        </AnimatePresence>
-      </div>
+      <AnimatePresence>
+        {p.skill && (
+          <Appear key="skill">
+            <Box
+              layoutId={ENTITIES.skill}
+              Icon={Sparkles}
+              label="Skill"
+              subtitle="asks, then builds"
+              accent="cyan"
+              className="ref-box"
+            />
+          </Appear>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -161,6 +159,9 @@ function Tray({ p }: { p: RefPayload }) {
       transition={LAYOUT_T}
       className="ref-tray"
       data-route={p.route || undefined}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: ENTER_T }}
+      exit={{ opacity: 0, transition: LAYOUT_T }}
     >
       <div className="ref-route-label-slot" data-allow-overlap>
         <AnimatePresence>
@@ -309,22 +310,12 @@ export function ReferenceScene({ step }: SceneProps<RefPayload>) {
   return (
     <SceneLayer>
       <div className="ref-stage">
-        <ConversationRow p={p} />
-        <AnimatePresence>
-          {(p.cards ?? 0) > 0 && (
-            <motion.div
-              key="band"
-              className="ref-band"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: ENTER_T }}
-              exit={{ opacity: 0, transition: LAYOUT_T }}
-            >
-              <Tray p={p} />
-              <AnimatePresence>{p.verify && <VerifyChain key="verify" />}</AnimatePresence>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <AnimatePresence>{p.loop && <LoopArc key="loop" />}</AnimatePresence>
+        <div className="ref-core">
+          <ConversationRow p={p} />
+          <AnimatePresence>{(p.cards ?? 0) > 0 && <Tray key="tray" p={p} />}</AnimatePresence>
+          <AnimatePresence>{p.loop && <LoopArc key="loop" />}</AnimatePresence>
+        </div>
+        <AnimatePresence>{p.verify && <VerifyChain key="verify" />}</AnimatePresence>
         <AnimatePresence>{p.reveal && <RevealOutline key="reveal" />}</AnimatePresence>
       </div>
     </SceneLayer>

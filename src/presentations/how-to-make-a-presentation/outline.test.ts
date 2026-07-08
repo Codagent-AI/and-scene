@@ -43,7 +43,8 @@ describe('reference sample outline', () => {
 
   it('accumulates the scene instead of rearranging it', () => {
     // Each beat may only add to (or keep) what the previous beat showed for the
-    // long-lived anatomy: the skill, the cards, and the route. Removals are
+    // long-lived anatomy: the skill, the cards, and the assembled scene kit
+    // (the `route` flag). Removals are
     // reserved for transient annotations (question chip, ghost card, loop arc).
     for (let i = 1; i < STEPS.length; i++) {
       const prev = STEPS[i - 1].payload ?? {}

@@ -16,7 +16,7 @@ A generated sample presentation SHALL be committed in the repository as a known-
 
 The sample is the self-referential talk **"How to Use This Skill to Make a Presentation"** — a presentation, built by the skill, about building presentations with the skill. Its closing beat reveals that the viewer is looking at an example of the skill's own output. The sample SHALL implement the following steps (titles, captions, and scene intent are normative; the per-step visual design is deferred to design):
 
-The sample is one continuously evolving scene: a conversation row (**you** ↔ **skill**) anchors the top, a tray of step cards accumulates below it, and later beats draw frames and connections around what is already on screen. Entities accumulate; they are never rearranged or redrawn.
+The sample is one continuously evolving scene: a conversation row (**you** ↔ **skill**) anchors the top, a tray of step cards accumulates below it, and later beats draw connections and a final reveal frame around what is already on screen. Entities accumulate; they are never rearranged or redrawn.
 
 | # | Era | Title (present) | Caption (browse) | Scene content |
 |---|-----|-----------------|------------------|---------------|
@@ -25,8 +25,8 @@ The sample is one continuously evolving scene: a conversation row (**you** ↔ *
 | 3 | the gathering | "Answers become steps" | Each answer lands as a step card: a title, a caption, and what the scene should show. | A tray appears under the conversation; the first **step-card** lands in it. |
 | 4 | the gathering | "The deck grows" | Same shapes, new beats. Every answer extends the story without redrawing it. | More step-cards land in the tray; everything already on screen stays put. |
 | 5 | the gathering | "You set the depth" | Spell out every step, or sketch a few and see how it looks. You hold the gate. | A dashed **ghost card** marks unspecified steps; a partial↔full control docks on **you**. |
-| 6 | the build | "It assembles the scene" | Your steps are wired into one evolving scene — one folder, one route, entities that morph. | A route frame draws around the tray in place; the **scene-kit** socket plugs into its edge. |
-| 7 | the build | "It checks its own work" | Before saying done, it builds and renders every step — and fixes what breaks. | A **verify** node joins the route, chained after the step cards inside the same frame (verification is part of the skill's own pipeline); build + render checks resolve to a green pass check on it. |
+| 6 | the build | "It assembles the scene" | Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph. | The **scene-kit** socket plugs into the bottom edge of the assembled tray of step cards (the tray is not framed); its label names the shared kit the scene is drawn with. |
+| 7 | the build | "It checks its own work" | Before saying done, it builds and renders every step — and fixes what breaks. | A **verify** node is chained after the step cards in the same tray row (verification is part of the skill's own pipeline); build + render checks resolve to a green pass check on it. |
 | 8 | the loop | "Changed your mind? Loop it." | Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch. | A **modify** arc reaches from the conversation down into the route; the edited card is flagged. |
 | 9 | the reveal | "You're looking at one" | This presentation was built exactly this way. Thanks for watching. | An outer frame draws around the whole diagram, labeled — self-reference reveal. |
 

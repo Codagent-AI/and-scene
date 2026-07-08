@@ -34,7 +34,7 @@ export const REFERENCE_STEP_OUTLINE = [
     id: 'assembles-the-scene',
     era: 'the build',
     title: 'It assembles the scene',
-    caption: 'Your steps are wired into one evolving scene — one folder, one route, entities that morph.',
+    caption: 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.',
   },
   {
     id: 'checks-its-work',

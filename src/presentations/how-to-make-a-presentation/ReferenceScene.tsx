@@ -32,11 +32,11 @@ export type RefPayload = {
   ghost?: boolean
   /** The partial↔full control docked on You. */
   depth?: boolean
-  /** The tray is framed as a route and the scene kit plugs into it. */
+  /** The scene is assembled: the scene kit plugs into the tray of cards. */
   route?: boolean
-  /** Verify chain (arrow → verify → pass) attached to the route. */
+  /** Verify chain (arrow → verify → pass) chained after the cards. */
   verify?: boolean
-  /** The modify arrow looping from the route back to the conversation. */
+  /** The modify arrow looping from the tray back to the conversation. */
   loop?: boolean
   /** Outer frame drawn around everything: the self-reference reveal. */
   reveal?: boolean
@@ -131,7 +131,7 @@ function ConversationRow({ p }: { p: RefPayload }) {
   )
 }
 
-/** The scene-kit plug straddling the route frame's top edge. */
+/** The scene-kit plug straddling the tray's bottom edge. */
 function KitSocket() {
   return (
     <div className="ref-socket-slot" data-allow-overlap>
@@ -150,7 +150,7 @@ function KitSocket() {
   )
 }
 
-/** The tray of step cards; framed as the presentation route once assembled. */
+/** The tray of step cards; the scene kit plugs in once assembled. */
 function Tray({ p }: { p: RefPayload }) {
   const count = p.cards ?? 0
   return (
@@ -158,20 +158,10 @@ function Tray({ p }: { p: RefPayload }) {
       layoutId={ENTITIES.tray}
       transition={LAYOUT_T}
       className="ref-tray"
-      data-route={p.route || undefined}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: ENTER_T }}
       exit={{ opacity: 0, transition: LAYOUT_T }}
     >
-      <div className="ref-route-label-slot" data-allow-overlap>
-        <AnimatePresence>
-          {p.route && (
-            <Appear key="route-label">
-              <span className="ref-route-label">/and-scene:presentation</span>
-            </Appear>
-          )}
-        </AnimatePresence>
-      </div>
       <div className="ref-cards">
         <AnimatePresence>
           {CARDS.slice(0, count).map((card) => {

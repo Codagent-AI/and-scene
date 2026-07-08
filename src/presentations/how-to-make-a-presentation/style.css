@@ -156,9 +156,12 @@
 /* ---------------------------------------------------------------------------
  * The scene. One stable anatomy for all nine steps:
  *   - conversation row (You ↔ Skill) on top,
- *   - the tray of step cards below, later framed as the route, with the
- *     verify node chained after the cards inside that same frame,
+ *   - the tray of step cards below, with the verify node chained after them and
+ *     the scene-kit socket plugged into the bottom edge,
  *   - overlays (modify loop, reveal outline) drawn around it, never through it.
+ *
+ * The tray is unframed: the only frame in the scene is the step-9 reveal
+ * outline that wraps everything for the self-reference reveal.
  *
  * Nothing is pinned to a fixed width. The whole composition is content-sized
  * and centered, so each step lays itself out around whatever is currently on
@@ -169,10 +172,9 @@
  * The conversation row and the tray live together in .ref-core; the row is
  * `align-self: stretch`, so it always spans exactly the core's width — which
  * the tray defines once the cards make it the widest thing. That is what keeps
- * You's left border and Skill's right border aligned to the route frame's
- * borders, by construction, at whatever width the scene has grown to. When the
- * verify node joins the route the tray becomes the widest thing, so the whole
- * core widens and re-centers around it.
+ * You and Skill spread to span the deck below, by construction, at whatever
+ * width the scene has grown to. When the verify node joins the tray the tray
+ * becomes the widest thing, so the whole core widens and re-centers around it.
  * ------------------------------------------------------------------------- */
 
 .ref-stage {
@@ -213,7 +215,7 @@
  * swap never transiently widens the row. Its width is fixed (rather than sized
  * to whichever occupant is currently widest) so the You↔Skill gap is a stable
  * conversational channel: only the deliberate re-alignments — Skill arriving,
- * the route growing beneath — move the boxes, never the chip swapping width. */
+ * the deck growing beneath — move the boxes, never the chip swapping width. */
 .ref-convo-link {
   display: grid;
   place-items: center;
@@ -243,7 +245,6 @@
 .ref-box,
 .ref-bubble,
 .ref-chip,
-.ref-tray[data-route],
 .ref-socket {
   position: relative;
   border: 2px solid rgb(156 163 175 / 0.4);
@@ -348,14 +349,14 @@
   white-space: nowrap;
 }
 
-/* --- the tray / route ------------------------------------------------------ */
+/* --- the tray -------------------------------------------------------------- */
 
 /* Stretches to the core's width, exactly like the conversation row, so the
- * route frame's borders always line up with You's left and Skill's right —
- * whichever of the two is wider at a given step sets the shared width. The
- * cards and the verify node sit inside as a centered row: verification is part
- * of the skill's own pipeline, so it lives within the route frame, not beside
- * it. */
+ * cards and the conversation share a width — whichever is wider at a given step
+ * sets it, and You/Skill spread to span the deck below. The cards and the
+ * verify node sit inside as a centered row: verification is part of the skill's
+ * own pipeline, so it chains directly after the cards. The tray itself is
+ * unframed — the only frame in the scene is the step-9 reveal outline. */
 .ref-tray {
   align-self: stretch;
   position: relative;
@@ -363,30 +364,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.9rem;
-  border: 2px solid transparent;
-  padding: 1.1rem 1.3rem;
-}
-
-.ref-tray[data-route] {
-  border-color: rgb(74 222 128 / 0.45);
-  background: rgb(27 34 44 / 0.5);
-  box-shadow: 0 0 28px rgb(74 222 128 / 0.12);
-}
-
-.ref-route-label-slot {
-  position: absolute;
-  top: -0.8rem;
-  left: 1.1rem;
-}
-
-.ref-route-label {
-  display: block;
-  background: var(--ref-bg);
-  color: var(--ref-green);
-  padding: 0 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  padding: 1.1rem 0;
 }
 
 /* The row of step cards. Hugs its cards (a flex item in the tray), so the
@@ -409,8 +387,8 @@
   padding: 0.85rem 0.9rem;
 }
 
-/* The ghost hangs outside the fixed-width tray so the tray (and therefore the
- * route frame) never resizes when it appears or leaves. */
+/* The ghost hangs off the card row's right edge (out of flow) so the tray never
+ * resizes when it appears or leaves. */
 .ref-ghost-slot {
   position: absolute;
   top: 0;
@@ -493,7 +471,7 @@
 
 /* --- verify chain ----------------------------------------------------------- */
 
-/* The build+render check, chained after the cards inside the route frame. */
+/* The build+render check, chained after the cards in the same tray row. */
 .ref-verify {
   display: flex;
   align-items: center;

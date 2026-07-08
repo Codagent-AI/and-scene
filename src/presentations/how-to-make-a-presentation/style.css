@@ -367,9 +367,10 @@
   padding: 1.1rem 0;
 }
 
-/* The row of step cards. Hugs its cards (a flex item in the tray), so the
- * ghost — anchored to this row's right edge — still sits just past the last
- * real card. */
+/* The row of step cards, morph links interleaved between them. Hugs its
+ * contents (a flex item in the tray); the ghost step and its leading morph link
+ * are ordinary in-flow items, so the row grows to include Step 4 and re-centers
+ * tighter once it drops away. */
 .ref-cards {
   position: relative;
   display: flex;
@@ -385,28 +386,60 @@
   min-width: var(--ref-card-w);
   height: 100%;
   padding: 0.85rem 0.9rem;
-}
-
-/* The ghost hangs off the card row's right edge (out of flow) so the tray never
- * resizes when it appears or leaves. */
-.ref-ghost-slot {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(100% + 0.8rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .ref-card [data-node-part='label'] {
   font-size: 0.75rem;
 }
 
-.ref-card [data-node-part='icon'] svg {
-  width: 1.4rem;
-  height: 1.4rem;
+/* Every step card lists the same parts, so the deck reads as steps of one shape
+ * — not cards each holding a different part. What morphs is not here; it rides
+ * the link between boxes (see .ref-morph). */
+.ref-card-fields {
+  list-style: none;
+  /* Zero the UA list margin AND padding-inline-start (the ~40px reserved for
+   * bullets): the margin-bottom would skew the card's vertical flex centering
+   * upward, and the left padding shoves the whole list into the right half of
+   * the box instead of centering it under the label. */
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.28rem;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--ref-muted);
 }
 
-.ref-card [data-node-part='icon'] {
-  margin-bottom: 0.45rem;
+/* The morph link between two step boxes: one step becomes the next. Centered
+ * vertically in the row so it reads as an arrow flowing from box to box. */
+.ref-morph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
+.ref-morph-arrow {
+  color: var(--ref-cyan);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.ref-morph-label {
+  color: var(--ref-muted);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
 }
 
 .ref-card--ghost {
@@ -415,8 +448,9 @@
   box-shadow: none;
 }
 
-.ref-card--ghost [data-node-part='label'] {
-  color: var(--ref-muted);
+.ref-card--ghost [data-node-part='label'],
+.ref-card--ghost .ref-card-fields {
+  color: rgb(167 176 188 / 0.55);
 }
 
 .ref-edit-slot {
@@ -439,7 +473,7 @@
  * translateX (that is what made it drift right when verify widened the tray). */
 .ref-socket-slot {
   position: absolute;
-  bottom: -1.05rem;
+  bottom: -1.7rem;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -554,7 +588,9 @@
 
 .ref-reveal {
   position: absolute;
-  inset: -1.6rem -1.5rem;
+  /* top | right/left | bottom. The bottom sits lower than the top to clear the
+   * scene-kit socket, which hangs below the tray (see .ref-socket-slot). */
+  inset: -1.6rem -1.5rem -2.25rem;
   border: 2px solid rgb(240 168 48 / 0.55);
   box-shadow: 0 0 36px rgb(240 168 48 / 0.14);
   pointer-events: none;

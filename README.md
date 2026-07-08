@@ -1,6 +1,6 @@
 # and-scene
 
-A Claude Code **skill** that builds **evolving-scene presentations** into your own
+An **agent skill** that builds **evolving-scene presentations** into your own
 project — and a reusable scene kit it brings with it.
 
 An evolving-scene presentation is not a stack of unrelated slides. It is one

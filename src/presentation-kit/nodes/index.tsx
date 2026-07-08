@@ -64,6 +64,13 @@ export function SceneLayer({ children, style, ...rest }: HTMLMotionProps<'div'>)
 
 type Accent = string
 
+export function MotionNode({
+  transition = LAYOUT_T,
+  ...rest
+}: HTMLMotionProps<'div'>) {
+  return <motion.div transition={transition} {...rest} />
+}
+
 export function Box({
   layoutId,
   Icon,

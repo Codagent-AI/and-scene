@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
 import {
   Boxes,
   CheckCircle2,
@@ -9,7 +9,7 @@ import {
   Sparkles,
   User,
 } from 'lucide-react'
-import { Appear, Arrow, Box, Emphasis, ENTER_T, LAYOUT_T, SceneLayer } from '../../presentation-kit'
+import { Appear, Arrow, Box, Emphasis, ENTER_T, LAYOUT_T, MotionNode, SceneLayer } from '../../presentation-kit'
 import type { SceneProps } from '../../presentation-kit'
 import { ENTITIES } from './entities'
 
@@ -78,15 +78,15 @@ function ConversationRow({ p }: { p: RefPayload }) {
       <div className="ref-convo-link">
         <AnimatePresence>
           {p.bubble && (
-            <motion.div key="bubble" exit={{ opacity: 0, transition: { duration: 0.3 } }}>
+            <MotionNode key="bubble" exit={{ opacity: 0, transition: { duration: 0.3 } }}>
               <Emphasis layoutId={ENTITIES.prompt} accent="cyan" className="ref-bubble">
                 <MessageCircle className="ref-bubble-icon" size={20} aria-hidden />
                 &ldquo;I need a presentation about&hellip;&rdquo;
               </Emphasis>
-            </motion.div>
+            </MotionNode>
           )}
           {p.skill && (
-            <motion.div
+            <MotionNode
               key="link"
               className="ref-link-column"
               exit={{ opacity: 0, transition: LAYOUT_T }}
@@ -108,23 +108,22 @@ function ConversationRow({ p }: { p: RefPayload }) {
                 </Arrow>
               </Appear>
               <div className="ref-question-slot" aria-hidden />
-            </motion.div>
+            </MotionNode>
           )}
         </AnimatePresence>
       </div>
 
       <AnimatePresence>
         {p.skill && (
-          <Appear key="skill">
-            <Box
-              layoutId={ENTITIES.skill}
-              Icon={Sparkles}
-              label="Skill"
-              subtitle="asks, then builds"
-              accent="cyan"
-              className="ref-box"
-            />
-          </Appear>
+          <Box
+            key="skill"
+            layoutId={ENTITIES.skill}
+            Icon={Sparkles}
+            label="Skill"
+            subtitle="asks, then builds"
+            accent="cyan"
+            className="ref-box"
+          />
         )}
       </AnimatePresence>
     </div>
@@ -135,7 +134,7 @@ function ConversationRow({ p }: { p: RefPayload }) {
 function KitSocket() {
   return (
     <div className="ref-socket-slot" data-allow-overlap>
-      <motion.div
+      <MotionNode
         layoutId={ENTITIES.kitSocket}
         transition={LAYOUT_T}
         initial={{ opacity: 0 }}
@@ -145,7 +144,7 @@ function KitSocket() {
       >
         <Boxes size={15} aria-hidden />
         scene kit
-      </motion.div>
+      </MotionNode>
     </div>
   )
 }
@@ -154,7 +153,7 @@ function KitSocket() {
 function Tray({ p }: { p: RefPayload }) {
   const count = p.cards ?? 0
   return (
-    <motion.div
+    <MotionNode
       layoutId={ENTITIES.tray}
       transition={LAYOUT_T}
       className="ref-tray"
@@ -167,7 +166,7 @@ function Tray({ p }: { p: RefPayload }) {
           {CARDS.slice(0, count).map((card) => {
             const edited = p.loop && card.id === ENTITIES.stepCard2
             return (
-              <motion.div
+              <MotionNode
                 key={card.id}
                 className="ref-card-slot"
                 initial={{ opacity: 0 }}
@@ -193,11 +192,11 @@ function Tray({ p }: { p: RefPayload }) {
                     )}
                   </AnimatePresence>
                 </div>
-              </motion.div>
+              </MotionNode>
             )
           })}
           {p.ghost && (
-            <motion.div
+            <MotionNode
               key="ghost"
               className="ref-ghost-slot"
               initial={{ opacity: 0 }}
@@ -211,20 +210,20 @@ function Tray({ p }: { p: RefPayload }) {
                 accent="gray"
                 className="ref-box ref-card ref-card--ghost"
               />
-            </motion.div>
+            </MotionNode>
           )}
         </AnimatePresence>
       </div>
       <AnimatePresence>{p.verify && <VerifyChain key="verify" />}</AnimatePresence>
       <AnimatePresence>{p.route && <KitSocket key="socket" />}</AnimatePresence>
-    </motion.div>
+    </MotionNode>
   )
 }
 
 /** Arrow → verify; the green check lands on the verify node once it passes. */
 function VerifyChain() {
   return (
-    <motion.div className="ref-verify" exit={{ opacity: 0, transition: LAYOUT_T }}>
+    <MotionNode className="ref-verify" exit={{ opacity: 0, transition: LAYOUT_T }}>
       <Appear>
         <Arrow layoutId={ENTITIES.verifyArrow} className="ref-arrow" />
       </Appear>
@@ -248,14 +247,14 @@ function VerifyChain() {
           </Appear>
         </div>
       </div>
-    </motion.div>
+    </MotionNode>
   )
 }
 
 /** The modify loop: a dashed arc from the conversation down to the edited card. */
 function LoopArc() {
   return (
-    <motion.div
+    <MotionNode
       className="ref-loop"
       data-allow-overlap
       initial={{ opacity: 0 }}
@@ -277,14 +276,14 @@ function LoopArc() {
         <Pencil size={12} aria-hidden />
         modify
       </span>
-    </motion.div>
+    </MotionNode>
   )
 }
 
 /** The self-reference reveal: an outline drawn around the whole diagram. */
 function RevealOutline() {
   return (
-    <motion.div
+    <MotionNode
       className="ref-reveal"
       data-allow-overlap
       initial={{ opacity: 0, scale: 1.04 }}
@@ -292,7 +291,7 @@ function RevealOutline() {
       exit={{ opacity: 0, transition: LAYOUT_T }}
     >
       <span className="ref-reveal-label">this presentation</span>
-    </motion.div>
+    </MotionNode>
   )
 }
 

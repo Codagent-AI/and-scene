@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
 
@@ -31,6 +31,18 @@ function parseArgs() {
 
 function normalizeSlug(value) {
   return value.replace(/^https?:\/\/[^/]+/, '').replace(/^\//, '').replace(/\/$/, '')
+}
+
+function artifactDirForSlug(slug) {
+  const safeName = slug.replace(/[\\/]+/g, '_')
+  if (!safeName || safeName.includes('..')) {
+    throw new Error(`invalid presentation slug for artifact output: ${slug}`)
+  }
+
+  const root = resolve(OUT_ROOT)
+  const outDir = resolve(root, safeName)
+  if (outDir !== root && outDir.startsWith(`${root}${sep}`)) return outDir
+  throw new Error(`presentation artifact output escaped ${OUT_ROOT}: ${slug}`)
 }
 
 function runBuild() {
@@ -316,7 +328,7 @@ async function findChromeWarnings(page, slug, stepIndex) {
 }
 
 async function capturePresentation(page, baseUrl, slug, width, height, settleMs) {
-  const outDir = join(OUT_ROOT, slug)
+  const outDir = artifactDirForSlug(slug)
   await mkdir(outDir, { recursive: true })
   await page.setViewportSize({ width, height })
   await page.goto(`${baseUrl}${slug}`, { waitUntil: 'load', timeout: 30_000 })

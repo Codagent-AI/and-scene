@@ -84,6 +84,8 @@ already a JS app gets scaffolded in place at the root.
 
 1. Determine which anchors are missing (all, some, or none)
 2. Copy missing pieces from `templates/bootstrap/` in this skill directory.
+   Template paths are relative to this `SKILL.md` file, not necessarily to the
+   user's current working directory.
    The bootstrap `package.json` ships a neutral `presentation-app` name —
    rename it to suit the target project (e.g. the repo or monorepo package
    name) before installing.
@@ -91,10 +93,10 @@ already a JS app gets scaffolded in place at the root.
    ensure this full set:
    - **Runtime:** `react`, `react-dom`, `motion`, `lucide-react`
    - **Dev/build:** `vite`, `@vitejs/plugin-react`, `typescript`,
-     `@types/react`, `@types/react-dom`, `@types/node`, `tailwindcss`,
-     `@tailwindcss/vite`, the eslint stack (`@eslint/js`, `eslint`,
-     `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`,
-     `typescript-eslint`), and `playwright` (for render checks)
+     `@types/react`, `@types/react-dom`, `@types/node`, the eslint stack
+     (`@eslint/js`, `eslint`, `eslint-plugin-react-hooks`,
+     `eslint-plugin-react-refresh`, `globals`, `typescript-eslint`), and
+     `playwright` (for render checks)
 4. Run `npm install` in the resolved target directory
 
 **Non-empty project without scaffolding:** state the resolved target location
@@ -115,7 +117,12 @@ detection, monorepo heuristics, and target resolution for automated checks.
    - `entities.ts` — stable `layoutId` namespace for every morphing entity
    - `steps/*.tsx` — one file per step; each exports a `Step` object
    - `Talk.tsx` — imports all steps, renders `<Presentation steps={STEPS} />`
-3. Register in `src/presentations/index.ts`:
+3. Add presentation-owned styling if the user wants a designed look. The kit is
+   BYO styles: no colors, fonts, borders, spacing scale, or framework defaults
+   are provided by the scaffold. Default to plain CSS in a presentation-local
+   stylesheet. Use Tailwind or another styling system only when the host project
+   already uses it or the user explicitly requests it.
+4. Register in `src/presentations/index.ts`:
 
 ```ts
 {
@@ -125,7 +132,7 @@ detection, monorepo heuristics, and target resolution for automated checks.
 },
 ```
 
-4. Preserve all existing registry entries — new presentations must not break others
+5. Preserve all existing registry entries — new presentations must not break others
 
 #### Modify an existing presentation
 
@@ -146,8 +153,26 @@ Before reporting success:
    must render without runtime or console errors. Use `npm run verify` when
    available (full multi-step check), or start `npm run preview` and open the
    route in a browser / Playwright
-3. If either check fails, **fix the issues and re-check** — never report success
+3. Run a **visual composition check** in a browser. Capture or inspect
+   screenshots of the first step, the last step, and any dense/key steps at a
+   normal desktop viewport; for responsive-sensitive presentations, also inspect
+   a narrow viewport. Prefer `npm run inspect -- <slug>` when available; it
+   writes project-local screenshots under `artifacts/presentation-inspection/`
+   so Playwright resolves from the project's installed dependencies. The helper
+   waits for morph/fade animations to settle before each screenshot and prints
+   advisory warnings for text/chrome collisions, visually identical active
+   navigation states, and unpolished attribution. Check the screenshots and
+   warnings for accidental overlap, clipped/off-canvas content, unreadable
+   stacking, missing active TOC/progress styling, and collisions with chrome
+   such as captions, progress dots, table of contents, or navigation buttons.
+   `npm run verify` catches crashes and console errors; it does not prove the
+   scene is visually correct.
+4. If any check fails, **fix the issues and re-check** — never report success
    on broken output
+
+If Chromium is missing, run `npx playwright install chromium`. Do not run
+`--with-deps` unless the environment has OS package privileges and actually
+needs browser system dependencies.
 
 ### Output format
 
@@ -155,7 +180,8 @@ Report completion in this structure:
 
 1. **Action** — created or modified, with presentation title and route (`/<slug>`)
 2. **Files changed** — list of paths written or edited
-3. **Verification** — commands run (`npm run build`, render check) and their result
+3. **Verification** — commands run (`npm run build`, render check), visual
+   composition check performed, and their result
 4. **Follow-ups** — any unresolved questions or partial details the user may want to iterate on (omit if none)
 
 ## Updating the vendored kit
@@ -213,14 +239,43 @@ only its own entities and step scenes.
 ### Step contract
 
 ```ts
-interface Step {
+interface Step<P extends Record<string, unknown> = Record<string, unknown>> {
   id: string          // stable key for AnimatePresence
   era: string         // table-of-contents section label
   title: string      // presenter-mode one-liner
   caption: string    // browse-mode paragraph
   groupKey?: string  // consecutive steps with same groupKey are not remounted
-  payload?: Record<string, unknown>
-  Scene: ComponentType<{ step: Step }>
+  payload?: P
+  Scene: ComponentType<{ step: Step<P> }>
+}
+```
+
+For strongly typed grouped scenes, define a payload type and use `Step<Payload>`
+for the steps, scene props, and `<Presentation steps={STEPS} />` boundary
+instead of casting each `payload`.
+
+```tsx
+type PhasePayload = { active: 'idea' | 'system'; count: number }
+
+function GroupedScene({ step }: { step: Step<PhasePayload> }) {
+  const payload = step.payload
+  return <SceneLayer>{/* render from payload */}</SceneLayer>
+}
+
+const STEPS: Step<PhasePayload>[] = [
+  {
+    id: 'idea',
+    era: 'shape',
+    title: 'The idea appears',
+    caption: 'A first shape lands.',
+    groupKey: 'main-scene',
+    payload: { active: 'idea', count: 1 },
+    Scene: GroupedScene,
+  },
+]
+
+export default function Talk() {
+  return <Presentation steps={STEPS} title="Example" initialMode="browse" />
 }
 ```
 
@@ -244,16 +299,17 @@ kit code. Follow these rules when generating or modifying step scenes:
   composition should intentionally remount.
 - Put stable `layoutId`s only on the entity that should morph. A new visual
   object gets a new id; the same conceptual object keeps the same id.
-- Do not put Tailwind transform or opacity utilities such as `scale-*`,
-  `rotate-*`, or `opacity-*` directly on an element with `layoutId`. Motion uses
-  transforms and opacity during layout projection; combine those on a child or
-  wrapper only when it is not the shared layout entity.
-- Do not put conflicting positioning utilities on one element, especially
-  `relative` plus `absolute`. Kit primitives such as `Box` are already
-  positioned for their internal labels and effects. For relative offsets, use
-  `bottom-*`, `left-*`, and `z-*` without adding `absolute`; for true absolute
-  placement, put the absolute positioning on a non-`layoutId` wrapper and verify
-  the layout still matches the intended design.
+- Do not put transform or opacity styling directly on an element with
+  `layoutId` (`scale`, `rotate`, `opacity`, or Tailwind equivalents such as
+  `scale-*`, `rotate-*`, `opacity-*`). Motion uses transforms and opacity during
+  layout projection; combine those on a child or wrapper only when it is not the
+  shared layout entity.
+- Do not put conflicting positioning styles on one element, especially
+  `position: relative` plus `position: absolute` through mixed classes. For
+  relative offsets, use relative positioning and offsets without adding
+  absolute positioning; for true absolute placement, put the absolute
+  positioning on a non-`layoutId` wrapper and verify the layout still matches
+  the intended design.
 - When fixing a smooth-morph issue in an existing presentation, preserve the
   intentional composition. If cards or callouts are meant to overlap, keep that
   overlap and move only the unsafe positioning/opacity/transform utilities to a
@@ -261,6 +317,32 @@ kit code. Follow these rules when generating or modifying step scenes:
   satisfy the wrapper rule.
 - Use `Appear` only for newcomers. Continuing entities with a shared `layoutId`
   should persist and morph; they should not fade out and back in.
+- **Let the layout re-center; do not pin it.** The signature move of an
+  evolving scene is that each step lays itself out around whatever is currently
+  on screen and then *re-aligns* when the next entity appears — one box centered
+  alone, two boxes balanced, a row that spreads to frame the tray that grew
+  beneath it. Because every entity carries a `layoutId`, those re-alignments
+  animate for free. Achieve it by keeping the composition **content-sized and
+  centered** (natural widths, `justify-content`/`align-items: center`,
+  `align-self: stretch` to match a sibling's width), and let flow do the
+  positioning. Do **not** freeze positions with fixed pixel/`ch` widths, fixed
+  stage widths, reserved empty slots, or `align-items: flex-start` pinning —
+  those hold entities still across steps and kill the re-centering, which is the
+  most striking thing the framework does. If two entities must share an edge
+  (e.g. a header row framing a panel below it), give them a shared width by
+  construction (`align-self: stretch` against a common parent, or one CSS var
+  both consume) rather than hardcoding a number. When you need to stop a
+  *transient* overshoot during a swap (an exiting element and an entering one
+  briefly widening a row), stack them in one grid cell — do not solve it by
+  fixing the whole row's width.
+- Keep browse-mode chrome in mind while composing scenes. The table of contents
+  can occupy the left side on wide browse viewports, and captions/progress/nav
+  occupy the lower band. Avoid dense horizontal rows that only fit the raw
+  880px stage in isolation; prefer up to three primary boxes per row, compact
+  chips, grouped entities, or wrapping/stacking when a concept list grows.
+- Intentional overlap is allowed and often useful. When an overlap is part of
+  the design and should not be treated as a suspicious visual collision, wrap
+  that region in an element with `data-allow-overlap`.
 
 ### Node primitives
 
@@ -268,14 +350,28 @@ Compose steps from kit primitives (all accept `layoutId`):
 
 | Primitive | Use for |
 |-----------|---------|
-| `Box` | Bordered card with optional Lucide icon, label, subtitle |
-| `Label` | Small uppercase annotation |
-| `Arrow` | Directional connector (default `→`) |
-| `Frame` | Grouped region with optional frame label |
-| `Emphasis` | Highlighted callout |
-| `SymbolChip` | Icon-as-symbol or compact chip variant |
+| `Box` | Unstyled entity wrapper with optional Lucide icon, label, subtitle |
+| `Label` | Unstyled annotation |
+| `Arrow` | Unstyled connector (default `→`) |
+| `Frame` | Unstyled grouped region with optional frame label |
+| `Emphasis` | Unstyled callout wrapper |
+| `SymbolChip` | Unstyled icon+label entity with `symbol` or `chip` variant hooks |
 | `Appear` | Fade-in for newcomers after persisting entities settle |
 | `SceneLayer` | Absolutely-positioned diagram layer (prevents reflow between steps) |
+
+The kit is intentionally **unstyled**. It supplies motion behavior, stable DOM
+hooks (`data-node`, `data-node-part`, `data-accent`, `data-variant`, and
+`data-presentation-*` chrome hooks), fixed-canvas layout plumbing, active-state
+semantics (`aria-current="step"` plus `data-active="true"`), and a bottom-right
+attribution link (`made by and-scene`) to the GitHub repository. It must not
+impose a palette, font, border treatment, glow, card style, button treatment, or
+Tailwind dependency. Every presentation owns its visual system, including chrome
+polish.
+
+Kit primitives accept `className` and `style` so presentations can use either
+CSS classes or explicit coordinates. For complex diagrams with literal per-step
+pixel coordinates, use primitive `style` props or raw `motion.div` elements with
+the same `layoutId` discipline.
 
 ### Layout pattern
 
@@ -286,7 +382,7 @@ import { ENTITIES } from '../entities'
 function MyScene() {
   return (
     <SceneLayer>
-      <div className="flex items-center gap-8">
+      <div className="flow">
         <Box layoutId={ENTITIES.hero} label="Idea" accent="cyan" />
         <Arrow layoutId={ENTITIES.flow} />
         <Box layoutId={ENTITIES.result} label="Outcome" accent="green" />
@@ -296,8 +392,62 @@ function MyScene() {
 }
 ```
 
-Position entities with Tailwind flex/grid/absolute classes inside `SceneLayer`.
-The kit scales a fixed design canvas (880×380) to fit between header and footer.
+Position entities with the presentation's own classes or styles inside
+`SceneLayer`. The kit scales a fixed design canvas (880×380) to fit between
+header and footer.
+
+Plain CSS example:
+
+```css
+.my-talk .flow {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.my-talk [data-node='box'] {
+  border: 2px solid currentColor;
+  padding: 1rem 1.5rem;
+}
+
+.my-talk [data-accent='cyan'] {
+  color: #0f766e;
+}
+
+.my-talk [data-presentation-progress-dot][data-active='true'] {
+  background: #0f766e;
+}
+
+.my-talk [data-presentation-toc-item][data-active='true'] {
+  color: #0f766e;
+}
+
+.my-talk [data-presentation-attribution] {
+  color: #475569;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+```
+
+Optional Tailwind example (only after the project has chosen and installed
+Tailwind):
+
+```tsx
+<SceneLayer>
+  <div className="flex items-center gap-8">
+    <Box layoutId={ENTITIES.hero} label="Idea" accent="cyan" className="border-2 px-6 py-4" />
+    <Arrow layoutId={ENTITIES.flow} className="text-3xl" />
+    <Box layoutId={ENTITIES.result} label="Outcome" accent="green" className="border-2 px-6 py-4" />
+  </div>
+</SceneLayer>
+```
+
+For ad hoc visual checks, put Playwright/screenshot helper scripts under the
+project root (for example `scripts/`) rather than a temp scratchpad outside the
+project, so imports such as `playwright` resolve from local dependencies. Prefer
+the scaffolded `npm run inspect -- <slug>` helper before writing a custom script.
+Use `--settle-ms <ms>` only when a presentation deliberately uses longer custom
+animations than the default settle wait.
 
 ### Adding a step
 
@@ -307,7 +457,11 @@ layout, then append to the `STEPS` array in `Talk.tsx`.
 ### Navigation and chrome
 
 The kit provides browse/present modes, captions per step, table of contents,
-progress dots, and prev/next controls. Users navigate with →/Space/PageDown (next),
+progress dots, and prev/next controls. Active TOC and progress items expose
+`aria-current="step"` and `data-active="true"`, but the presentation must make
+that current state visibly distinct in its own CSS. The attribution link also
+needs presentation-owned styling so it is legible and intentional rather than a
+raw browser-default anchor. Users navigate with →/Space/PageDown (next),
 ←/PageUp (prev), P (toggle mode), or horizontal swipe.
 
 ## Out of scope
@@ -329,6 +483,12 @@ Every generated presentation must:
 - Render its first step without runtime or console errors
 - Show a caption per step (browse mode) and support next/previous navigation
 - Conform to the evolving-scene model (stable entities morph across steps)
+- Pass a browser visual composition check: important steps fit within the fixed
+  canvas, intentional overlaps remain readable, and scene content does not
+  collide with browse/present chrome
+- Make current-step chrome visibly distinct: active TOC/progress states must be
+  readable, and the `made by and-scene` attribution must be legible and styled
+  by the presentation or host app
 
 ## Templates
 
@@ -345,3 +505,5 @@ Replace `{{PLACEHOLDER}}` tokens in templates with gathered content.
 | Path | Purpose |
 |------|---------|
 | `sync-kit.mjs` | Diff/resync a project's vendored `src/presentation-kit/` against the shipped snapshot (see [Updating the vendored kit](#updating-the-vendored-kit)) |
+| `templates/bootstrap/scripts/verify.mjs` | Build + render verifier used by scaffolded projects |
+| `templates/bootstrap/scripts/inspect-presentation.mjs` | Project-local screenshot helper for visual composition checks |

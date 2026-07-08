@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { toSections } from './tocSections'
 import type { StepMeta } from '../types'
 
@@ -5,6 +6,12 @@ interface TocProps {
   steps: StepMeta[]
   step: number
   onSelect: (i: number) => void
+}
+
+function isWideViewport() {
+  if (typeof window === 'undefined') return true
+  if (window.matchMedia) return window.matchMedia('(min-width: 1280px)').matches
+  return window.innerWidth >= 1280
 }
 
 /**
@@ -16,12 +23,30 @@ interface TocProps {
  */
 export function Toc({ steps, step, onSelect }: TocProps) {
   const sections = toSections(steps)
+  const [visible, setVisible] = useState(isWideViewport)
+
+  useEffect(() => {
+    if (!window.matchMedia) return
+    const query = window.matchMedia('(min-width: 1280px)')
+    const update = () => setVisible(query.matches)
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+
   return (
     <nav
       aria-label="Contents"
-      className="absolute left-8 top-1/2 z-20 hidden -translate-y-1/2 xl:block"
+      data-presentation-toc
+      style={{
+        display: visible ? undefined : 'none',
+        position: 'absolute',
+        left: 32,
+        top: '50%',
+        zIndex: 20,
+        transform: 'translateY(-50%)',
+      }}
     >
-      <ol className="space-y-3.5">
+      <ol data-presentation-toc-list style={{ display: 'grid', gap: 14, margin: 0, padding: 0 }}>
         {sections.map((sec) => {
           const active = step >= sec.start && step <= sec.end
           return (
@@ -29,9 +54,8 @@ export function Toc({ steps, step, onSelect }: TocProps) {
               <button
                 onClick={() => onSelect(sec.start)}
                 aria-current={active ? 'step' : undefined}
-                className={`text-left text-[11px] uppercase tracking-[0.18em] transition-colors ${
-                  active ? 'text-cyan' : 'text-gray-500 hover:text-gray-300'
-                }`}
+                data-presentation-toc-item
+                data-active={active ? 'true' : undefined}
               >
                 {sec.era}
               </button>

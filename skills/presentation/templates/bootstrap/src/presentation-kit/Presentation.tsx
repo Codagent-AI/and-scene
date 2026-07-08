@@ -7,27 +7,17 @@ import { stepMarker } from './stepMarker'
 import { usePresentationNav } from './usePresentationNav'
 import type { Mode, Step } from './types'
 
-export function Presentation({
-  steps,
-  initialMode = 'browse',
-  title = 'Presentation',
-  brand,
-  homeHref = '/',
-  homeLabel,
-  background,
-  overlay,
-  marker,
-}: {
-  steps: Step[]
+export interface PresentationProps<P extends Record<string, unknown> = Record<string, unknown>> {
+  steps: Step<P>[]
   initialMode?: Mode
   title?: string
-  /** Header brand: defaults to the text "and-scene". Pass a logo node to override. */
+  /** Optional header brand. Omitted by default; pass a logo or title node to add one. */
   brand?: ReactNode
   /** Home link target for the header brand and the last-step footer button. */
   homeHref?: string
   /** Accessible label for the home link. */
   homeLabel?: string
-  /** Full-bleed layer rendered behind the content; suppresses the opaque `bg-bg`. */
+  /** Full-bleed layer rendered behind the content. */
   background?: ReactNode
   /**
    * Full-bleed layer rendered *above* the content (e.g. a CRT/scanline overlay).
@@ -40,16 +30,40 @@ export function Presentation({
    * A callback (not a per-step field) so hosts can number relationally — e.g.
    * skip chrome cards and count only body steps.
    */
-  marker?: (index: number, steps: Step[]) => string
-}) {
+  marker?: (index: number, steps: Step<P>[]) => string
+  /** Small bottom-right attribution link. Pass `null` to hide it. */
+  attribution?: ReactNode
+  /** Attribution target; defaults to the and-scene GitHub repository. */
+  attributionHref?: string
+}
+
+export function Presentation<P extends Record<string, unknown> = Record<string, unknown>>({
+  steps,
+  initialMode = 'browse',
+  title = 'Presentation',
+  brand,
+  homeHref = '/',
+  homeLabel,
+  background,
+  overlay,
+  marker,
+  attribution = 'made by and-scene',
+  attributionHref = 'https://github.com/Codagent-AI/and-scene',
+}: PresentationProps<P>) {
   const { step, setStep, next, prev, last, mode } = usePresentationNav(steps.length, initialMode)
   // An empty deck has no current step; render a clear placeholder instead of
   // crashing on `steps[step].title`. (Hooks above run unconditionally first.)
   if (steps.length === 0) {
     return (
       <div
-        className="flex min-h-screen items-center justify-center bg-bg font-mono text-gray-300"
         data-presentation={title}
+        data-presentation-empty
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
         No steps to present.
       </div>
@@ -59,9 +73,24 @@ export function Presentation({
   const markerText = (marker ?? ((i) => stepMarker(i)))(step, steps)
 
   return (
-    <div className="relative min-h-screen select-none overflow-hidden font-mono" data-presentation={title}>
-      {background && <div className="absolute inset-0 z-0">{background}</div>}
-      <div className={`relative z-10 min-h-screen ${background ? '' : 'bg-bg'}`}>
+    <div
+      data-presentation={title}
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        userSelect: 'none',
+        overflow: 'hidden',
+      }}
+    >
+      {background && (
+        <div
+          data-presentation-background
+          style={{ position: 'absolute', inset: 0, zIndex: 0 }}
+        >
+          {background}
+        </div>
+      )}
+      <div data-presentation-content style={{ position: 'relative', zIndex: 10, minHeight: '100vh' }}>
         <Stage step={current} mode={mode} />
         <Header
           marker={markerText}
@@ -82,7 +111,29 @@ export function Presentation({
           onSelect={setStep}
         />
       </div>
-      {overlay && <div className="pointer-events-none absolute inset-0 z-50">{overlay}</div>}
+      {overlay && (
+        <div
+          data-presentation-overlay
+          style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 50 }}
+        >
+          {overlay}
+        </div>
+      )}
+      {attribution && (
+        <a
+          href={attributionHref}
+          data-presentation-attribution
+          style={{
+            position: 'absolute',
+            right: 16,
+            bottom: 8,
+            zIndex: 60,
+            fontSize: 12,
+          }}
+        >
+          {attribution}
+        </a>
+      )}
     </div>
   )
 }

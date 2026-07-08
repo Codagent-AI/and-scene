@@ -3,7 +3,7 @@ import type { ComponentType } from 'react'
 export type Mode = 'browse' | 'present'
 
 /** Narration + identity for one beat of the evolving diagram. */
-export interface StepMeta {
+export interface StepMeta<P extends Record<string, unknown> = Record<string, unknown>> {
   /** Stable key for AnimatePresence + React reconciliation. */
   id: string
   /** Header label, e.g. "the model". */
@@ -22,15 +22,15 @@ export interface StepMeta {
    */
   groupKey?: string
   /** Per-step data handed to the Scene (e.g. how many chips to show). */
-  payload?: Record<string, unknown>
+  payload?: P
 }
 
 /**
  * Props every Scene receives. Most scenes ignore them; a grouped scene reads
  * `step.payload` to decide which sub-state of its diagram to render.
  */
-export interface SceneProps {
-  step: Step
+export interface SceneProps<P extends Record<string, unknown> = Record<string, unknown>> {
+  step: Step<P>
 }
 
 /**
@@ -40,6 +40,6 @@ export interface SceneProps {
  * between steps share a layoutId — that's the only contract between one step
  * and the next.
  */
-export interface Step extends StepMeta {
-  Scene: ComponentType<SceneProps>
+export interface Step<P extends Record<string, unknown> = Record<string, unknown>> extends StepMeta<P> {
+  Scene: ComponentType<SceneProps<P>>
 }

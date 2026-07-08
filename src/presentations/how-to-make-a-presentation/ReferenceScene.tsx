@@ -1,239 +1,312 @@
-import type { ReactNode } from 'react'
+import { AnimatePresence } from 'motion/react'
 import {
   Boxes,
   CheckCircle2,
-  Layers,
   MessageCircle,
   Pencil,
-  Route,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   User,
 } from 'lucide-react'
-import { Appear, Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip } from '../../presentation-kit'
+import { Appear, Arrow, Box, Emphasis, ENTER_T, LAYOUT_T, MotionNode, SceneLayer } from '../../presentation-kit'
 import type { SceneProps } from '../../presentation-kit'
 import { ENTITIES } from './entities'
 
-function TopicBeat() {
+/**
+ * Per-step state of the one evolving diagram. Every step renders the same
+ * scene; the payload only says which pieces are on stage. Pieces accumulate —
+ * nothing is ever rearranged, so each step reads as "one new thing happened
+ * to the picture I was already looking at".
+ */
+export type RefPayload = {
+  /** The skill node + conversation link are on stage. */
+  skill?: boolean
+  /** The opening prompt bubble (step 1 only; it morphs into the question chip). */
+  bubble?: boolean
+  /** Current interview question, shown in the chip above the conversation arrow. */
+  question?: string
+  /** How many step cards have landed in the tray (0–3). */
+  cards?: number
+  /** A dashed placeholder card marks the steps you left unspecified. */
+  ghost?: boolean
+  /** The partial↔full control docked on You. */
+  depth?: boolean
+  /** The scene is assembled: the scene kit plugs into the tray of cards. */
+  route?: boolean
+  /** Verify chain (arrow → verify → pass) chained after the cards. */
+  verify?: boolean
+  /** The modify arrow looping from the tray back to the conversation. */
+  loop?: boolean
+  /** Outer frame drawn around everything: the self-reference reveal. */
+  reveal?: boolean
+}
+
+const CARDS = [
+  { id: ENTITIES.stepCard1, label: 'Step 1', subtitle: 'title + caption' },
+  { id: ENTITIES.stepCard2, label: 'Step 2', subtitle: 'the visual' },
+  { id: ENTITIES.stepCard3, label: 'Step 3', subtitle: 'what morphs' },
+] as const
+
+/** You, the interview chip + arrow, and the skill. Anchors the top band. */
+function ConversationRow({ p }: { p: RefPayload }) {
   return (
-    <div className="flex items-center gap-10">
-      <Box
-        layoutId={ENTITIES.you}
-        Icon={User}
-        label="You"
-        subtitle="topic in hand"
-        accent="amber"
-      />
-      <Appear delay={0.2}>
-        <Emphasis
-          layoutId={ENTITIES.prompt}
-          accent="cyan"
-          className="max-w-[12rem] text-center font-sans text-sm normal-case tracking-normal"
-        >
-          <MessageCircle className="mx-auto mb-2 text-cyan" size={20} aria-hidden />
-          &ldquo;I need a presentation about…&rdquo;
-        </Emphasis>
-      </Appear>
+    <div className="ref-convo">
+      <div className="ref-you-slot">
+        <Box
+          layoutId={ENTITIES.you}
+          Icon={User}
+          label="You"
+          subtitle="topic in hand"
+          accent="amber"
+          className="ref-box"
+        />
+        <div className="ref-depth-slot" data-allow-overlap>
+          <AnimatePresence>
+            {p.depth && (
+              <Appear key="depth">
+                <Emphasis layoutId={ENTITIES.depthChip} accent="amber" className="ref-chip">
+                  <SlidersHorizontal size={13} aria-hidden />
+                  partial ↔ full
+                </Emphasis>
+              </Appear>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <div className="ref-convo-link">
+        <AnimatePresence>
+          {p.bubble && (
+            <MotionNode key="bubble" exit={{ opacity: 0, transition: { duration: 0.3 } }}>
+              <Emphasis layoutId={ENTITIES.prompt} accent="cyan" className="ref-bubble">
+                <MessageCircle className="ref-bubble-icon" size={20} aria-hidden />
+                &ldquo;I need a presentation about&hellip;&rdquo;
+              </Emphasis>
+            </MotionNode>
+          )}
+          {p.skill && (
+            <MotionNode
+              key="link"
+              className="ref-link-column"
+              exit={{ opacity: 0, transition: LAYOUT_T }}
+            >
+              <div className="ref-question-slot">
+                <AnimatePresence>
+                  {p.question && (
+                    <Appear key="question">
+                      <Emphasis layoutId={ENTITIES.questionChip} accent="cyan" className="ref-chip">
+                        {p.question}
+                      </Emphasis>
+                    </Appear>
+                  )}
+                </AnimatePresence>
+              </div>
+              <Appear delay={0.15}>
+                <Arrow layoutId={ENTITIES.convoArrow} className="ref-arrow ref-arrow--convo">
+                  ↔
+                </Arrow>
+              </Appear>
+              <div className="ref-question-slot" aria-hidden />
+            </MotionNode>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <AnimatePresence>
+        {p.skill && (
+          <Box
+            key="skill"
+            layoutId={ENTITIES.skill}
+            Icon={Sparkles}
+            label="Skill"
+            subtitle="asks, then builds"
+            accent="cyan"
+            className="ref-box"
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
-function InterviewBeat() {
+/** The scene-kit plug straddling the tray's bottom edge. */
+function KitSocket() {
   return (
-    <div className="flex items-center gap-6">
-      <Box
-        layoutId={ENTITIES.skill}
-        Icon={Sparkles}
-        label="Skill"
-        subtitle="one question at a time"
-        accent="cyan"
-      />
-      <div className="flex flex-col items-center gap-2">
-        <Arrow layoutId={ENTITIES.questionLoop} className="text-2xl">
-          ↔
-        </Arrow>
+    <div className="ref-socket-slot" data-allow-overlap>
+      <MotionNode
+        layoutId={ENTITIES.kitSocket}
+        transition={LAYOUT_T}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1, transition: ENTER_T }}
+        exit={{ opacity: 0, transition: LAYOUT_T }}
+        className="ref-socket"
+      >
+        <Boxes size={15} aria-hidden />
+        scene kit
+      </MotionNode>
+    </div>
+  )
+}
+
+/** The tray of step cards; the scene kit plugs in once assembled. */
+function Tray({ p }: { p: RefPayload }) {
+  const count = p.cards ?? 0
+  return (
+    <MotionNode
+      layoutId={ENTITIES.tray}
+      transition={LAYOUT_T}
+      className="ref-tray"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: ENTER_T }}
+      exit={{ opacity: 0, transition: LAYOUT_T }}
+    >
+      <div className="ref-cards">
+        <AnimatePresence>
+          {CARDS.slice(0, count).map((card) => {
+            const edited = p.loop && card.id === ENTITIES.stepCard2
+            return (
+              <MotionNode
+                key={card.id}
+                className="ref-card-slot"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: ENTER_T }}
+                exit={{ opacity: 0, transition: LAYOUT_T }}
+              >
+                <Box
+                  layoutId={card.id}
+                  label={card.label}
+                  subtitle={card.subtitle}
+                  accent={edited ? 'amber' : 'gray'}
+                  className="ref-box ref-card"
+                />
+                <div className="ref-edit-slot" data-allow-overlap>
+                  <AnimatePresence>
+                    {edited && (
+                      <Appear key="edit">
+                        <Emphasis layoutId={ENTITIES.editBadge} accent="amber" className="ref-chip ref-chip--edit">
+                          <Pencil size={11} aria-hidden />
+                          edited
+                        </Emphasis>
+                      </Appear>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </MotionNode>
+            )
+          })}
+          {p.ghost && (
+            <MotionNode
+              key="ghost"
+              className="ref-ghost-slot"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: ENTER_T }}
+              exit={{ opacity: 0, transition: LAYOUT_T }}
+            >
+              <Box
+                layoutId={ENTITIES.ghostCard}
+                label="Step 4…"
+                subtitle="up to you"
+                accent="gray"
+                className="ref-box ref-card ref-card--ghost"
+              />
+            </MotionNode>
+          )}
+        </AnimatePresence>
+      </div>
+      <AnimatePresence>{p.verify && <VerifyChain key="verify" />}</AnimatePresence>
+      <AnimatePresence>{p.route && <KitSocket key="socket" />}</AnimatePresence>
+    </MotionNode>
+  )
+}
+
+/** Arrow → verify; the green check lands on the verify node once it passes. */
+function VerifyChain() {
+  return (
+    <MotionNode className="ref-verify" exit={{ opacity: 0, transition: LAYOUT_T }}>
+      <Appear>
+        <Arrow layoutId={ENTITIES.verifyArrow} className="ref-arrow" />
+      </Appear>
+      <div className="ref-verify-slot">
         <Appear delay={0.15}>
-          <Emphasis
-            layoutId={ENTITIES.questionChip}
-            accent="amber"
-            className="font-sans text-xs normal-case tracking-normal"
-          >
-            Topic? Style? Step 3?
-          </Emphasis>
+          <Box
+            layoutId={ENTITIES.verifyNode}
+            Icon={ShieldCheck}
+            label="verify"
+            subtitle="build + render"
+            accent="cyan"
+            className="ref-box ref-card"
+          />
         </Appear>
+        <div className="ref-pass-slot" data-allow-overlap>
+          <Appear delay={0.7}>
+            <Emphasis layoutId={ENTITIES.greenCheck} accent="green" className="ref-chip ref-chip--pass">
+              <CheckCircle2 size={13} aria-hidden />
+              pass
+            </Emphasis>
+          </Appear>
+        </div>
       </div>
-      <Box layoutId={ENTITIES.you} Icon={User} label="You" accent="amber" />
-    </div>
+    </MotionNode>
   )
 }
 
-function StepStackBeat() {
+/** The modify loop: a dashed arc from the conversation down to the edited card. */
+function LoopArc() {
   return (
-    <div className="relative h-56 w-72">
-      <Box
-        layoutId={ENTITIES.stepCard1}
-        Icon={Layers}
-        label="Step 1"
-        subtitle="title + caption"
-        accent="gray"
-        className="bottom-0 left-0"
-      />
-      <Box
-        layoutId={ENTITIES.stepCard2}
-        label="Step 2"
-        subtitle="visual description"
-        accent="gray"
-        className="bottom-6 left-16 z-10"
-      />
-      <Box
-        layoutId={ENTITIES.stepCard3}
-        label="Step 3"
-        subtitle="era + scene"
-        accent="cyan"
-        className="bottom-12 left-32 z-20"
-      />
-    </div>
-  )
-}
-
-function DepthBeat() {
-  return (
-    <div className="flex items-center gap-16">
-      <div className="flex flex-col gap-3">
-        <Box layoutId={ENTITIES.stepCard1} label="Step 1" accent="gray" className="px-6 py-3 text-xs" />
-        <Box layoutId={ENTITIES.stepCard2} label="Step 2" accent="gray" className="px-6 py-3 text-xs" />
-        <Box layoutId={ENTITIES.stepCard3} label="…" accent="gray" className="px-6 py-3 text-xs" />
-      </div>
-      <div className="flex flex-col items-center gap-4">
-        <Box layoutId={ENTITIES.you} Icon={User} label="You" accent="amber" />
-        <Emphasis
-          layoutId={ENTITIES.depthControl}
-          accent="amber"
-          className="flex items-center gap-2 font-sans text-xs normal-case tracking-normal"
-        >
-          <SlidersHorizontal size={14} aria-hidden />
-          partial ↔ full
-        </Emphasis>
-      </div>
-    </div>
-  )
-}
-
-function AssemblyBeat() {
-  return (
-    <div className="flex items-center gap-5">
-      <div className="flex flex-col gap-2">
-        <Box layoutId={ENTITIES.stepCard2} label="steps" accent="gray" className="px-4 py-3 text-xs" />
-        <Box layoutId={ENTITIES.stepCard3} label="…" accent="gray" className="px-4 py-2 text-xs" />
-      </div>
-      <Arrow layoutId={ENTITIES.questionLoop} />
-      <SymbolChip
-        layoutId={ENTITIES.sceneKit}
-        Icon={Boxes}
-        label="Scene kit"
-        variant="chip"
-        accent="cyan"
-      />
-      <Arrow layoutId={ENTITIES.modifyLoop} />
-      <Box
-        layoutId={ENTITIES.presentationRoute}
-        Icon={Route}
-        label="/your-talk"
-        subtitle="one folder · one route"
-        accent="green"
-      />
-    </div>
-  )
-}
-
-function ChecksBeat() {
-  return (
-    <div className="flex items-center gap-6">
-      <Box
-        layoutId={ENTITIES.presentationRoute}
-        Icon={Route}
-        label="/your-talk"
-        accent="green"
-      />
-      <Arrow layoutId={ENTITIES.questionLoop} />
-      <Box
-        layoutId={ENTITIES.verifyNode}
-        Icon={ShieldCheck}
-        label="verify"
-        subtitle="build + render"
-        accent="cyan"
-      />
-      <Appear delay={0.2}>
-        <Box
-          layoutId={ENTITIES.greenCheck}
-          Icon={CheckCircle2}
-          label="pass"
-          accent="green"
-          className="px-5 py-4"
+    <MotionNode
+      className="ref-loop"
+      data-allow-overlap
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: ENTER_T }}
+      exit={{ opacity: 0, transition: LAYOUT_T }}
+      aria-hidden
+    >
+      <svg className="ref-loop-svg" viewBox="0 0 150 92" fill="none">
+        <path
+          className="ref-loop-dash"
+          d="M 55 4 Q 5 44 67 86"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeDasharray="6 6"
         />
-      </Appear>
-    </div>
+        <path d="M 67 86 l -14 -1 M 67 86 l -5 -13" stroke="currentColor" strokeWidth="2" />
+      </svg>
+      <span className="ref-loop-label">
+        <Pencil size={12} aria-hidden />
+        modify
+      </span>
+    </MotionNode>
   )
 }
 
-function LoopBeat() {
+/** The self-reference reveal: an outline drawn around the whole diagram. */
+function RevealOutline() {
   return (
-    <div className="flex items-center gap-8">
-      <Box layoutId={ENTITIES.stepCard2} label="gathering" accent="gray" className="px-6 py-4 text-xs" />
-      <Arrow layoutId={ENTITIES.questionLoop} className="text-3xl text-amber">
-        ↺
-      </Arrow>
-      <div className="relative">
-        <Box layoutId={ENTITIES.presentationRoute} Icon={Route} label="/your-talk" accent="green" />
-        <Emphasis
-          layoutId={ENTITIES.modifyLoop}
-          accent="amber"
-          className="absolute -right-4 -top-5 font-sans text-xs normal-case tracking-normal"
-        >
-          <Pencil size={12} className="mr-1 inline" aria-hidden />
-          modify
-        </Emphasis>
-      </div>
-    </div>
+    <MotionNode
+      className="ref-reveal"
+      data-allow-overlap
+      initial={{ opacity: 0, scale: 1.04 }}
+      animate={{ opacity: 1, scale: 1, transition: ENTER_T }}
+      exit={{ opacity: 0, transition: LAYOUT_T }}
+    >
+      <span className="ref-reveal-label">this presentation</span>
+    </MotionNode>
   )
 }
 
-function RevealBeat() {
+export function ReferenceScene({ step }: SceneProps<RefPayload>) {
+  const p = step.payload ?? {}
   return (
-    <Frame layoutId={ENTITIES.revealFrame} label="this presentation" className="px-8 py-6">
-      <div className="flex items-center justify-center gap-4">
-        <Box layoutId={ENTITIES.you} Icon={User} label="You" accent="amber" className="px-4 py-3 text-xs" />
-        <Box layoutId={ENTITIES.skill} Icon={Sparkles} label="Skill" accent="cyan" className="px-4 py-3 text-xs" />
-        <Box layoutId={ENTITIES.sceneKit} Icon={Boxes} label="Kit" accent="cyan" className="px-4 py-3 text-xs" />
-        <Box
-          layoutId={ENTITIES.presentationRoute}
-          Icon={Route}
-          label="/how-to…"
-          accent="green"
-          className="px-4 py-3 text-xs"
-        />
+    <SceneLayer>
+      <div className="ref-stage">
+        <div className="ref-core">
+          <ConversationRow p={p} />
+          <AnimatePresence>{(p.cards ?? 0) > 0 && <Tray key="tray" p={p} />}</AnimatePresence>
+          <AnimatePresence>{p.loop && <LoopArc key="loop" />}</AnimatePresence>
+        </div>
+        <AnimatePresence>{p.reveal && <RevealOutline key="reveal" />}</AnimatePresence>
       </div>
-      <Label layoutId={ENTITIES.depthControl} className="mt-4 text-center text-amber">
-        built exactly this way
-      </Label>
-    </Frame>
+    </SceneLayer>
   )
-}
-
-export function ReferenceScene({ step }: SceneProps) {
-  const beats: Record<string, ReactNode> = {
-    'you-have-a-topic': <TopicBeat />,
-    'skill-interviews-you': <InterviewBeat />,
-    'answers-become-steps': <StepStackBeat />,
-    'you-set-the-depth': <DepthBeat />,
-    'assembles-the-scene': <AssemblyBeat />,
-    'checks-its-work': <ChecksBeat />,
-    'loop-it': <LoopBeat />,
-    reveal: <RevealBeat />,
-  }
-  const beat = beats[step.id]
-  if (!beat) throw new Error(`Unknown reference step id: ${step.id}`)
-
-  return <SceneLayer>{beat}</SceneLayer>
 }

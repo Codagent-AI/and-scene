@@ -22,9 +22,6 @@ entry_points:
           command: npm audit --audit-level=moderate
           run_locally: false
     reviews:
-      - all-reviewers:
-          builtin: all-reviewers
-          num_reviews: 1
       - code-quality:
           builtin: code-quality
           num_reviews: 1

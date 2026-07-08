@@ -13,11 +13,26 @@ format in action — see [Development](#development) at the bottom.
 
 ## Demo
 
+They were inspired by [the original](https://www.codagent.dev/what-is-a-harness)
+presentation.
+
+### How to make a presentation
+
 <video controls muted loop playsinline>
   <source src="docs/assets/and-scene-demo.mp4" type="video/mp4" />
 </video>
 
 [Download the demo video](docs/assets/and-scene-demo.mp4)
+
+### Evolution of the bicycle
+
+<video controls muted loop playsinline>
+  <source src="docs/assets/evolution-of-the-bicycle-demo.mp4" type="video/mp4" />
+</video>
+
+Made by Claude Code with Opus 4.8.
+
+[Download the bicycle demo video](docs/assets/evolution-of-the-bicycle-demo.mp4)
 
 ## Getting started
 
@@ -98,8 +113,8 @@ re-apply any theming the update overwrote, then rebuild.
 There is **no `npm install and-scene`**. The reusable **scene kit**
 (`presentation-kit/`, ~650 lines) is **vendored** — the skill *copies* it into
 your project as source you own and can edit, like
-[shadcn/ui](https://ui.shadcn.com). You're meant to tweak its branding, colors,
-and node primitives.
+[shadcn/ui](https://ui.shadcn.com). You're meant to own its styling in your
+presentation or app.
 
 ### Where the skill scaffolds
 
@@ -114,18 +129,13 @@ confirm before writing:
 | Non-empty repo that is **not** a JS app (no root `package.json` — e.g. Python/Go/Rust) | Self-contained app under `presentation/` |
 | Already has the infrastructure | Uses it in place; scaffolds only what's missing |
 
-### Host requirements
+### Styling
 
-The kit renders against a small CSS contract. The skill's scaffold ships it in
-`src/index.css`, so a scaffolded project is covered. If you instead **copy the
-kit into an existing themed app**, define these yourself (Tailwind v4 `@theme`)
-or the render will silently lose its colors and buttons:
-
-| Contract | Used for |
-|----------|----------|
-| `--color-bg`, `--color-cyan`, `--color-amber`, `--color-green` | Surface + accent palette |
-| `--font-family-mono`, `--font-family-sans` | Diagram (mono) vs. caption (sans) type |
-| `.btn-secondary`, `.btn-neutral` | Footer navigation buttons |
+The kit is BYO styles. It ships motion behavior, fixed-canvas layout plumbing,
+and stable DOM hooks such as `data-node`, `data-node-part`, `data-accent`,
+`data-variant`, and `data-presentation-*`; it does not ship a palette, font,
+card treatment, button style, or Tailwind dependency. Style each presentation
+with plain CSS, CSS modules, Tailwind, or whatever the host project chooses.
 
 ## Controls
 
@@ -147,6 +157,7 @@ Scaffolding adds these to your project:
 | `npm run build` | Type-check (`tsc -b`) and production build |
 | `npm run preview` | Serve the production build |
 | `npm run verify` | Build + render-check every registered presentation |
+| `npm run inspect -- <slug>` | Capture screenshots for visual composition review |
 | `npm run test` | Vitest unit tests |
 | `npm run lint` | ESLint |
 
@@ -155,10 +166,15 @@ preview and steps through **every** registered presentation, failing on any buil
 error, console error, or uncaught page error. (It needs a Chromium browser — run
 `npx playwright install chromium` once.)
 
+`inspect` builds the app, launches a production preview, and writes step
+screenshots to `artifacts/presentation-inspection/<slug>/` so layouts can be
+checked for overflow, unintended overlap, and chrome collisions.
+
 ## Tech
 
-React 19 · TypeScript · Vite · Tailwind CSS v4 · [`motion`](https://motion.dev)
-for `layoutId` morph animations · `lucide-react` for glyphs.
+React 19 · TypeScript · Vite · [`motion`](https://motion.dev) for `layoutId`
+morph animations · `lucide-react` for glyphs. Styling is presentation-owned;
+Tailwind can be added by a host project, but it is not required by the kit.
 
 ---
 

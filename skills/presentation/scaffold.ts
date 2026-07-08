@@ -24,8 +24,6 @@ export const REQUIRED_DEPENDENCIES = {
     '@types/react',
     '@types/react-dom',
     '@types/node',
-    'tailwindcss',
-    '@tailwindcss/vite',
     '@eslint/js',
     'eslint',
     'eslint-plugin-react-hooks',

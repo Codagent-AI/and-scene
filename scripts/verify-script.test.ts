@@ -14,6 +14,17 @@ describe('verify entry point', () => {
     expect(() => readFileSync(join(ROOT, 'scripts/verify.mjs'), 'utf-8')).not.toThrow()
   })
 
+  it('package.json exposes npm run inspect for visual screenshots', () => {
+    const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
+    expect(pkg.scripts?.inspect).toBe(
+      'node --experimental-strip-types scripts/inspect-presentation.mjs',
+    )
+  })
+
+  it('inspect script exists', () => {
+    expect(() => readFileSync(join(ROOT, 'scripts/inspect-presentation.mjs'), 'utf-8')).not.toThrow()
+  })
+
   it('playwright is listed as a dev dependency', () => {
     const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
     expect(pkg.devDependencies?.playwright).toBeDefined()

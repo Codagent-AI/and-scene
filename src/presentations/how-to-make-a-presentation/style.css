@@ -1,0 +1,574 @@
+.reference-talk {
+  --ref-bg: #1b222c;
+  --ref-text: #c9d1d9;
+  --ref-heading: #f3f6f8;
+  --ref-muted: #a7b0bc;
+  --ref-cyan: #5ce0d8;
+  --ref-amber: #f0a830;
+  --ref-green: #4ade80;
+  --ref-card-w: 8rem;
+  position: fixed;
+  inset: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--ref-bg);
+  color: var(--ref-text);
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.reference-talk *,
+.reference-talk *::before,
+.reference-talk *::after {
+  box-sizing: border-box;
+}
+
+.reference-talk button:not(:disabled) {
+  cursor: pointer;
+}
+
+.reference-talk button,
+.reference-talk input,
+.reference-talk textarea,
+.reference-talk select {
+  font: inherit;
+}
+
+.reference-talk [data-presentation-home] {
+  flex-shrink: 0;
+  color: #8f9aa8;
+  font-size: 0.875rem;
+  letter-spacing: 0.2em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.reference-talk [data-presentation-home]:hover {
+  color: var(--ref-cyan);
+}
+
+.reference-talk [data-presentation-marker] {
+  color: var(--ref-amber);
+  font-size: 0.875rem;
+}
+
+.reference-talk [data-presentation-title] {
+  color: var(--ref-heading);
+  font-size: clamp(1.25rem, 1rem + 1vw, 1.875rem);
+  font-weight: 400;
+}
+
+.reference-talk [data-presentation-caption] {
+  color: var(--ref-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: clamp(1rem, 0.9rem + 0.35vw, 1.125rem);
+  line-height: 1.625;
+}
+
+.reference-talk [data-presentation-progress-dot] {
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(156 163 175 / 0.4);
+  padding: 0;
+  transition: background 0.2s ease;
+}
+
+.reference-talk [data-presentation-progress-dot][data-active='true'] {
+  background: var(--ref-cyan);
+}
+
+.reference-talk [data-presentation-progress-dot]:hover {
+  background: #9ca3af;
+}
+
+.reference-talk [data-presentation-button] {
+  border: 1px solid #4b5563;
+  background: transparent;
+  color: #d1d5db;
+  padding: 0.375rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.reference-talk [data-presentation-button]:disabled {
+  opacity: 0.3;
+}
+
+.reference-talk [data-presentation-button='home'],
+.reference-talk [data-presentation-button='next'] {
+  border-color: var(--ref-cyan);
+  color: var(--ref-cyan);
+}
+
+.reference-talk [data-presentation-button='home']:hover,
+.reference-talk [data-presentation-button='next']:hover {
+  background: var(--ref-cyan);
+  color: var(--ref-bg);
+  box-shadow: 0 0 16px rgb(92 224 216 / 0.15);
+}
+
+.reference-talk [data-presentation-toc-item] {
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  padding: 0;
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-align: left;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.reference-talk [data-presentation-toc-list] {
+  list-style: none;
+}
+
+.reference-talk [data-presentation-toc-item][data-active='true'] {
+  color: var(--ref-cyan);
+}
+
+.reference-talk [data-presentation-toc-item]:hover {
+  color: #d1d5db;
+}
+
+.reference-talk [data-presentation-attribution] {
+  color: #9ca3af;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 0.75rem;
+  text-decoration: none;
+  opacity: 0.8;
+}
+
+.reference-talk [data-presentation-attribution]:hover,
+.reference-talk [data-presentation-attribution]:focus-visible {
+  color: var(--ref-cyan);
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+ * The scene. One stable anatomy for all nine steps:
+ *   - conversation row (You ↔ Skill) on top,
+ *   - the tray of step cards below, with the verify node chained after them and
+ *     the scene-kit socket plugged into the bottom edge,
+ *   - overlays (modify loop, reveal outline) drawn around it, never through it.
+ *
+ * The tray is unframed: the only frame in the scene is the step-9 reveal
+ * outline that wraps everything for the self-reference reveal.
+ *
+ * Nothing is pinned to a fixed width. The whole composition is content-sized
+ * and centered, so each step lays itself out around whatever is currently on
+ * screen and *re-centers* when the next piece appears — every entity carries a
+ * layoutId, so those re-alignments animate rather than jump. This animated
+ * re-centering is the point; do not freeze it with fixed widths.
+ *
+ * The conversation row and the tray live together in .ref-core; the row is
+ * `align-self: stretch`, so it always spans exactly the core's width — which
+ * the tray defines once the cards make it the widest thing. That is what keeps
+ * You and Skill spread to span the deck below, by construction, at whatever
+ * width the scene has grown to. When the verify node joins the tray the tray
+ * becomes the widest thing, so the whole core widens and re-centers around it.
+ * ------------------------------------------------------------------------- */
+
+.ref-stage {
+  position: relative;
+}
+
+.ref-core {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.75rem;
+}
+
+/* --- conversation row ---------------------------------------------------- */
+
+.ref-convo {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.ref-you-slot {
+  position: relative;
+}
+
+.ref-depth-slot {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, -0.8rem);
+  white-space: nowrap;
+}
+
+/* One grid cell hosts the bubble, then the question/arrow column, stacked so a
+ * swap never transiently widens the row. Its width is fixed (rather than sized
+ * to whichever occupant is currently widest) so the You↔Skill gap is a stable
+ * conversational channel: only the deliberate re-alignments — Skill arriving,
+ * the deck growing beneath — move the boxes, never the chip swapping width. */
+.ref-convo-link {
+  display: grid;
+  place-items: center;
+  width: 7rem;
+}
+
+.ref-convo-link > * {
+  grid-area: 1 / 1;
+}
+
+.ref-link-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ref-question-slot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 2.4rem;
+}
+
+/* --- shared node treatments ---------------------------------------------- */
+
+.ref-box,
+.ref-bubble,
+.ref-chip,
+.ref-socket {
+  position: relative;
+  border: 2px solid rgb(156 163 175 / 0.4);
+  background: rgb(27 34 44 / 0.7);
+  text-align: center;
+  transition: border-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+.ref-box {
+  min-width: 9.5rem;
+  padding: 1.15rem 1.5rem;
+  box-shadow: 0 0 28px rgb(148 163 184 / 0.12);
+}
+
+.ref-box[data-accent='cyan'],
+.ref-chip[data-accent='cyan'],
+.ref-bubble[data-accent='cyan'] {
+  border-color: rgb(92 224 216 / 0.45);
+  box-shadow: 0 0 28px rgb(92 224 216 / 0.14);
+}
+
+.ref-box[data-accent='amber'],
+.ref-chip[data-accent='amber'] {
+  border-color: rgb(240 168 48 / 0.45);
+  box-shadow: 0 0 28px rgb(240 168 48 / 0.14);
+}
+
+.ref-box[data-accent='green'] {
+  border-color: rgb(74 222 128 / 0.45);
+  box-shadow: 0 0 28px rgb(74 222 128 / 0.14);
+}
+
+.ref-box[data-accent='cyan'] [data-node-part='icon'],
+.ref-chip[data-accent='cyan'],
+.ref-bubble .ref-bubble-icon {
+  color: var(--ref-cyan);
+}
+
+.ref-box[data-accent='amber'] [data-node-part='icon'],
+.ref-chip[data-accent='amber'] {
+  color: var(--ref-amber);
+}
+
+.ref-box[data-accent='green'] [data-node-part='icon'] {
+  color: var(--ref-green);
+}
+
+.ref-box [data-node-part='icon'] {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.6rem;
+}
+
+.ref-box [data-node-part='icon'] svg {
+  width: 1.75rem;
+  height: 1.75rem;
+  stroke-width: 1.4;
+}
+
+.ref-box [data-node-part='label'] {
+  color: var(--ref-heading);
+  font-size: 0.875rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.ref-box [data-node-part='subtitle'] {
+  margin-top: 0.4rem;
+  color: var(--ref-muted);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 0.6875rem;
+  letter-spacing: 0.025em;
+  line-height: 1.5;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+/* --- prompt bubble + question chip ---------------------------------------- */
+
+.ref-bubble {
+  max-width: 8.75rem;
+  padding: 0.9rem 1rem;
+  border-width: 1px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.ref-bubble-icon {
+  display: block;
+  margin: 0 auto 0.5rem;
+}
+
+.ref-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.8rem;
+  border-width: 1px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* --- the tray -------------------------------------------------------------- */
+
+/* Stretches to the core's width, exactly like the conversation row, so the
+ * cards and the conversation share a width — whichever is wider at a given step
+ * sets it, and You/Skill spread to span the deck below. The cards and the
+ * verify node sit inside as a centered row: verification is part of the skill's
+ * own pipeline, so it chains directly after the cards. The tray itself is
+ * unframed — the only frame in the scene is the step-9 reveal outline. */
+.ref-tray {
+  align-self: stretch;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 1.1rem 0;
+}
+
+/* The row of step cards. Hugs its cards (a flex item in the tray), so the
+ * ghost — anchored to this row's right edge — still sits just past the last
+ * real card. */
+.ref-cards {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 0.8rem;
+}
+
+.ref-card-slot {
+  position: relative;
+}
+
+.ref-card {
+  min-width: var(--ref-card-w);
+  height: 100%;
+  padding: 0.85rem 0.9rem;
+}
+
+/* The ghost hangs off the card row's right edge (out of flow) so the tray never
+ * resizes when it appears or leaves. */
+.ref-ghost-slot {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(100% + 0.8rem);
+}
+
+.ref-card [data-node-part='label'] {
+  font-size: 0.75rem;
+}
+
+.ref-card [data-node-part='icon'] svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.ref-card [data-node-part='icon'] {
+  margin-bottom: 0.45rem;
+}
+
+.ref-card--ghost {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ref-card--ghost [data-node-part='label'] {
+  color: var(--ref-muted);
+}
+
+.ref-edit-slot {
+  position: absolute;
+  top: -0.9rem;
+  right: -0.7rem;
+  z-index: 10;
+}
+
+.ref-chip--edit {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.6875rem;
+  background: var(--ref-bg);
+}
+
+/* --- scene-kit socket ------------------------------------------------------ */
+
+/* Centering lives on this wrapper, not on .ref-socket: the socket is a layoutId
+ * element, so Motion owns its transform during tray morphs and would drop a CSS
+ * translateX (that is what made it drift right when verify widened the tray). */
+.ref-socket-slot {
+  position: absolute;
+  bottom: -1.05rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ref-socket {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  border-color: rgb(92 224 216 / 0.55);
+  box-shadow: 0 0 20px rgb(92 224 216 / 0.2);
+  color: var(--ref-cyan);
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: ref-socket-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes ref-socket-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgb(92 224 216 / 0.15);
+  }
+  50% {
+    box-shadow: 0 0 26px rgb(92 224 216 / 0.45);
+  }
+}
+
+/* --- verify chain ----------------------------------------------------------- */
+
+/* The build+render check, chained after the cards in the same tray row. */
+.ref-verify {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.ref-verify-slot {
+  position: relative;
+}
+
+.ref-pass-slot {
+  position: absolute;
+  top: -0.9rem;
+  right: -0.7rem;
+  z-index: 10;
+}
+
+.ref-chip--pass {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.6875rem;
+  background: var(--ref-bg);
+  color: var(--ref-green);
+}
+
+.ref-arrow {
+  color: var(--ref-cyan);
+  font-size: 1.25rem;
+}
+
+.ref-arrow--convo {
+  font-size: 1.6rem;
+}
+
+/* --- modify loop ------------------------------------------------------------ */
+
+/* The conversation arrow and card 2 share the core's horizontal center, so the
+ * arc bows left from one down to the other. Centered on .ref-core. */
+.ref-loop {
+  position: absolute;
+  left: 50%;
+  top: 88px;
+  width: 150px;
+  height: 92px;
+  transform: translateX(-50%);
+  color: var(--ref-amber);
+  pointer-events: none;
+}
+
+.ref-loop-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ref-loop-dash {
+  animation: ref-loop-march 1.4s linear infinite;
+}
+
+@keyframes ref-loop-march {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.ref-loop-label {
+  position: absolute;
+  left: 0.1rem;
+  top: 1.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--ref-bg);
+  padding: 0.2rem 0.5rem;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 0.75rem;
+}
+
+/* --- reveal outline ---------------------------------------------------------- */
+
+.ref-reveal {
+  position: absolute;
+  inset: -1.6rem -1.5rem;
+  border: 2px solid rgb(240 168 48 / 0.55);
+  box-shadow: 0 0 36px rgb(240 168 48 / 0.14);
+  pointer-events: none;
+}
+
+.ref-reveal-label {
+  position: absolute;
+  top: -0.8rem;
+  left: 1.4rem;
+  background: var(--ref-bg);
+  color: var(--ref-amber);
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}

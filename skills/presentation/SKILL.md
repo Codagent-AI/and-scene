@@ -36,14 +36,28 @@ Ask **one question at a time**. Cover:
 
 1. **Topic** — what the presentation is about
 2. **Visual style** — accents, mood, density (sparse diagram vs. rich layout)
-3. **Each step** — content (title, caption, era) and visual description (which
-   entities appear, how they relate, what morphs between steps)
+3. **High-level sections** — the major parts of the story, in order
+4. **Each step** — after the sections are agreed, flesh them out one by one.
+   A "step" means one navigable beat in the presentation: the caption/title plus
+   the scene state shown for that moment.
+5. **Per-step visuals** — which entities appear, how they relate, and what
+   morphs between steps
 
 Rules:
 
 - Do **not** assume details the user can still provide
 - Allow the user to proceed with **partial detail** and iterate later — no hard
   completeness gate
+- Do **not** start by asking how long the talk should be or how many steps it
+  should have. First establish the high-level sections, then expand each section
+  into steps. Ask about length/count only after that structure exists, or when
+  the user explicitly asks the agent to decide or fill in details.
+- If the user says the length/count is TBD, accept that and continue by shaping
+  the high-level sections before implementing any steps.
+- Define skill-specific terms the first time they are used in user-facing
+  conversation. For example: a "step" is one navigable beat of the talk; a
+  "hero" entity is the main visual object that carries continuity across the
+  scene. Do not front-load a glossary; define terms just before they matter.
 - If the prompt already contains topic, style, and all step details, proceed to
   scaffold/generate without further questions
 - For **key or complex steps**, optionally draw an **ASCII mockup** of the layout

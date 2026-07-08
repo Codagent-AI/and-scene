@@ -43,10 +43,59 @@ export type RefPayload = {
 }
 
 const CARDS = [
-  { id: ENTITIES.stepCard1, label: 'Step 1', subtitle: 'title + caption' },
-  { id: ENTITIES.stepCard2, label: 'Step 2', subtitle: 'the visual' },
-  { id: ENTITIES.stepCard3, label: 'Step 3', subtitle: 'what morphs' },
+  { id: ENTITIES.stepCard1, label: 'Step 1' },
+  { id: ENTITIES.stepCard2, label: 'Step 2' },
+  { id: ENTITIES.stepCard3, label: 'Step 3' },
 ] as const
+
+/**
+ * The parts every step carries, shown identically in each card so the deck
+ * reads as "steps of one shape". What *morphs* is not one of these — a morph is
+ * the change between two steps, so it lives on the link between the boxes, not
+ * inside them (see MorphLink).
+ */
+const STEP_FIELDS = ['title', 'caption', 'visual'] as const
+
+/** One step card: a labelled node listing the parts every step has. */
+function StepCard({
+  layoutId,
+  label,
+  accent = 'gray',
+  ghost = false,
+}: {
+  layoutId: string
+  label: string
+  accent?: string
+  ghost?: boolean
+}) {
+  return (
+    <MotionNode
+      layoutId={layoutId}
+      className={`ref-box ref-card${ghost ? ' ref-card--ghost' : ''}`}
+      data-node="box"
+      data-accent={accent}
+    >
+      <div data-node-part="label">{label}</div>
+      <ul className="ref-card-fields">
+        {STEP_FIELDS.map((field) => (
+          <li key={field}>{field}</li>
+        ))}
+      </ul>
+    </MotionNode>
+  )
+}
+
+/** The "morphs" link that sits between two step boxes: one step becomes the next. */
+function MorphLink() {
+  return (
+    <Appear className="ref-morph">
+      <span className="ref-morph-arrow" aria-hidden>
+        →
+      </span>
+      <span className="ref-morph-label">morphs</span>
+    </Appear>
+  )
+}
 
 /** You, the interview chip + arrow, and the skill. Anchors the top band. */
 function ConversationRow({ p }: { p: RefPayload }) {
@@ -163,9 +212,9 @@ function Tray({ p }: { p: RefPayload }) {
     >
       <div className="ref-cards">
         <AnimatePresence>
-          {CARDS.slice(0, count).map((card) => {
+          {CARDS.slice(0, count).flatMap((card, i) => {
             const edited = p.loop && card.id === ENTITIES.stepCard2
-            return (
+            const slot = (
               <MotionNode
                 key={card.id}
                 className="ref-card-slot"
@@ -173,12 +222,10 @@ function Tray({ p }: { p: RefPayload }) {
                 animate={{ opacity: 1, transition: ENTER_T }}
                 exit={{ opacity: 0, transition: LAYOUT_T }}
               >
-                <Box
+                <StepCard
                   layoutId={card.id}
                   label={card.label}
-                  subtitle={card.subtitle}
                   accent={edited ? 'amber' : 'gray'}
-                  className="ref-box ref-card"
                 />
                 <div className="ref-edit-slot" data-allow-overlap>
                   <AnimatePresence>
@@ -194,24 +241,21 @@ function Tray({ p }: { p: RefPayload }) {
                 </div>
               </MotionNode>
             )
+            // A morph link sits between consecutive cards — never before the first.
+            return i === 0 ? [slot] : [<MorphLink key={`morph-${card.id}`} />, slot]
           })}
-          {p.ghost && (
+          {p.ghost && [
+            <MorphLink key="morph-ghost" />,
             <MotionNode
               key="ghost"
-              className="ref-ghost-slot"
+              className="ref-card-slot"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1, transition: ENTER_T }}
               exit={{ opacity: 0, transition: LAYOUT_T }}
             >
-              <Box
-                layoutId={ENTITIES.ghostCard}
-                label="Step 4…"
-                subtitle="up to you"
-                accent="gray"
-                className="ref-box ref-card ref-card--ghost"
-              />
-            </MotionNode>
-          )}
+              <StepCard layoutId={ENTITIES.ghostCard} label="Step 4…" ghost />
+            </MotionNode>,
+          ]}
         </AnimatePresence>
       </div>
       <AnimatePresence>{p.verify && <VerifyChain key="verify" />}</AnimatePresence>

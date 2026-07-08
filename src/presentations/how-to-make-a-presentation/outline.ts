@@ -16,7 +16,7 @@ export const REFERENCE_STEP_OUTLINE = [
     id: 'answers-become-steps',
     era: 'the gathering',
     title: 'Answers become steps',
-    caption: 'Each answer lands as a step card: a title, a caption, and what the scene should show.',
+    caption: 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.',
   },
   {
     id: 'the-deck-grows',

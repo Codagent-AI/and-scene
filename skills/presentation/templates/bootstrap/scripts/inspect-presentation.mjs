@@ -1,5 +1,4 @@
 import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -9,6 +8,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const VITE_BIN = join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'vite.cmd' : 'vite')
 const OUT_ROOT = join(ROOT, 'artifacts', 'presentation-inspection')
 const DEFAULT_SETTLE_MS = 950
+const PREVIEW_URL_RE = /http:\/\/127\.0\.0\.1:(\d+)\//
 
 function parseArgs() {
   const args = process.argv.slice(2)
@@ -51,28 +51,16 @@ async function readRegistry() {
   return mod.presentations
 }
 
-function getFreePort() {
-  return new Promise((resolve, reject) => {
-    const srv = createServer()
-    srv.listen(0, '127.0.0.1', () => {
-      const addr = srv.address()
-      const port = typeof addr === 'object' && addr ? addr.port : 0
-      srv.close((err) => (err ? reject(err) : resolve(port)))
-    })
-    srv.on('error', reject)
-  })
-}
-
 function childExited(child) {
   return child.exitCode !== null || child.signalCode !== null
 }
 
-async function waitForPreview(port, child, deadlineMs = 30_000) {
+async function waitForPreview(baseUrl, child, deadlineMs = 30_000) {
   const started = Date.now()
   while (Date.now() - started < deadlineMs) {
     if (childExited(child)) throw new Error(`vite preview exited before ready (code ${child.exitCode})`)
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/`)
+      const res = await fetch(baseUrl)
       const html = await res.text()
       if (res.ok && html.includes('id="root"')) return
     } catch {
@@ -108,21 +96,61 @@ function stopPreview(child) {
   })
 }
 
-function startPreview(port) {
+function startPreview() {
   return new Promise((resolve, reject) => {
     const child = spawn(
       VITE_BIN,
-      ['preview', '--port', String(port), '--strictPort', '--host', '127.0.0.1'],
-      { cwd: ROOT, stdio: 'ignore', detached: true },
+      ['preview', '--port', '0', '--host', '127.0.0.1'],
+      { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
     )
-    child.unref()
-    child.on('error', reject)
-    waitForPreview(port, child)
-      .then(() => resolve({ child, port }))
-      .catch(async (err) => {
-        await stopPreview(child)
-        reject(err)
-      })
+
+    let output = ''
+    let settled = false
+    let readyStarted = false
+
+    const cleanup = () => {
+      clearTimeout(timer)
+      child.stdout?.off('data', onData)
+      child.stderr?.off('data', onData)
+      child.off('error', onError)
+      child.off('close', onClose)
+    }
+    const rejectWith = async (err) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      await stopPreview(child)
+      reject(err)
+    }
+    const resolveWith = (value) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      resolve(value)
+    }
+    const onData = (chunk) => {
+      output += chunk.toString()
+      const match = output.match(PREVIEW_URL_RE)
+      if (!match || readyStarted) return
+      readyStarted = true
+      const baseUrl = match[0]
+      waitForPreview(baseUrl, child)
+        .then(() => resolveWith({ child, baseUrl }))
+        .catch(rejectWith)
+    }
+    const onError = (err) => rejectWith(err)
+    const onClose = (code) => {
+      if (!settled) rejectWith(new Error(`vite preview exited before ready (code ${code})`))
+    }
+    const timer = setTimeout(() => {
+      const detail = output.trim() ? ` Output:\n${output.trim()}` : ''
+      rejectWith(new Error(`vite preview did not print a local URL within 30s.${detail}`))
+    }, 30_000)
+
+    child.stdout?.on('data', onData)
+    child.stderr?.on('data', onData)
+    child.on('error', onError)
+    child.on('close', onClose)
   })
 }
 
@@ -287,11 +315,11 @@ async function findChromeWarnings(page, slug, stepIndex) {
   )
 }
 
-async function capturePresentation(page, port, slug, width, height, settleMs) {
+async function capturePresentation(page, baseUrl, slug, width, height, settleMs) {
   const outDir = join(OUT_ROOT, slug)
   await mkdir(outDir, { recursive: true })
   await page.setViewportSize({ width, height })
-  await page.goto(`http://127.0.0.1:${port}/${slug}`, { waitUntil: 'load', timeout: 30_000 })
+  await page.goto(`${baseUrl}${slug}`, { waitUntil: 'load', timeout: 30_000 })
 
   const progress = page.locator('[data-testid="step-progress"]')
   await progress.waitFor({ timeout: 10_000 })
@@ -339,8 +367,7 @@ async function main() {
     throw new Error(opts.slug ? `presentation not found: ${opts.slug}` : 'no presentations registered')
   }
 
-  const port = await getFreePort()
-  const { child } = await startPreview(port)
+  const { child, baseUrl } = await startPreview()
   let browser
   try {
     browser = await chromium.launch()
@@ -348,7 +375,7 @@ async function main() {
     for (const { slug } of selected) {
       const { written, warnings } = await capturePresentation(
         page,
-        port,
+        baseUrl,
         slug,
         opts.width,
         opts.height,

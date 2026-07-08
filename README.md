@@ -1,6 +1,6 @@
 # and-scene
 
-and-scene is a plugin for Claude Code and Codex that builds animated,
+and-scene is Agent Skill that builds animated,
 morphing slide presentations directly into your project: you describe the
 presentation, the agent scaffolds a Vite/React app if needed, generates the
 steps, and verifies they render.

@@ -1,4 +1,77 @@
-## ADDED Requirements
+# Task: Presentation skill
+
+## Goal
+
+Author the local **presentation skill** that an agent uses to create and modify
+evolving-scene presentations: a hybrid skill made of a `SKILL.md` procedure plus
+`templates/`. The skill interactively gathers details, self-bootstraps missing
+scaffolding (monorepo-aware), generates or modifies presentations, registers them,
+and self-verifies build + render before reporting done.
+
+## Background
+
+This repo (`and-scene`) is a Vite + React 19 + TypeScript app whose reusable
+presentation engine — the "scene kit" — lives at `src/presentation-kit/`, with an
+explicit presentation registry at `src/presentations/index.ts` and a zero-dep
+pathname router in `src/main.tsx` (presentations live at `/<slug>`, each as its own
+folder under `src/presentations/<slug>/` rendering `<Presentation steps={…} />`).
+A presentation supplies only its own entities (a `layoutId` namespace) and its
+`steps/*` (Scenes composing the kit's generic node primitives: `Box`, `Label`,
+`Arrow`, `Frame`, `Emphasis`, `SymbolChip`, plus `Appear`/`SceneLayer`).
+
+You MUST read these files before starting:
+- `openspec/changes/create-and-scene/design.md` — full architecture; see the
+  "Skill" section (procedure, scaffold target resolution, required dependency set)
+  and the repository layout.
+- `openspec/changes/create-and-scene/specs/presentation-skill/spec.md` — the
+  behavioral contract (also copied verbatim below).
+- `src/presentation-kit/` (all files) — the engine the skill writes presentations
+  against; the SKILL.md must describe how to compose it.
+- `src/presentations/index.ts` and `src/main.tsx` — how presentations are
+  registered and routed.
+- `package.json`, `vite.config.ts` — the build setup and dependency baseline.
+
+**This is a hybrid skill** — the `SKILL.md` provides the agent procedure and
+quality bar; `templates/` keep generated output consistent. Place it at
+`skills/presentation/` with:
+- `skills/presentation/SKILL.md` — the procedure.
+- `skills/presentation/templates/` — a presentation template (folder with
+  `entities.ts`, a `steps/` example, and `Talk.tsx`), a single-step template, AND
+  a snapshot of the app + scene kit used ONLY to bootstrap a fresh/empty project.
+
+**Procedure the SKILL.md must encode (from the design):**
+1. **Gather** — ask one question at a time for topic, visual style, and each step's
+   content + visual description; optionally draw ASCII mockups for key/complex
+   steps. The human controls depth and may build from partial detail and iterate.
+2. **Resolve target + scaffold if needed** — detect the three contract anchors
+   (build setup; scene kit; presentation index) at the contract level (not a
+   byte-identical match). Resolve a target location, then scaffold whatever is
+   missing from `templates/`, installing the required dependencies. Never assume
+   deps are installed.
+   - Target resolution: empty/standalone → repo root; **monorepo** (workspaces in
+     `package.json`, `pnpm-workspace.yaml`, or a `packages/`|`apps/` layout) →
+     scaffold a self-contained app under `presentations/`; already-scaffolded →
+     use it, scaffold only missing anchors.
+   - Required dependency set the scaffold ensures: runtime `react`, `react-dom`,
+     `motion`, `lucide-react`; dev/build `vite`, `@vitejs/plugin-react`,
+     `typescript` + `@types/react` + `@types/react-dom` + `@types/node`,
+     `tailwindcss`, `@tailwindcss/vite`, the eslint stack, and `playwright` (for
+     the render check).
+   - In a non-empty project, state the resolved target location and confirm before
+     writing.
+3. **Generate / modify** — create writes a new `src/presentations/<slug>/`
+   (`entities.ts` + `steps/*` + `Talk.tsx`) and registers one line in
+   `src/presentations/index.ts`; modify identifies the target first (listing
+   existing presentations if ambiguous) and makes only the requested scoped edits.
+4. **Self-verify** — run the build and a render check; fix failures before
+   reporting done.
+
+**Constraint:** the SKILL.md is a procedure document, so it may reference the
+project's verification entry point (`npm run verify`) as the self-verify command
+even though the script itself is delivered alongside the reference sample. Keep the
+procedure tool-agnostic about how the agent asks questions.
+
+## Spec
 
 ### Requirement: Interactive requirement gathering
 The skill SHALL gather presentation details by asking the user clarifying questions one at a time — covering the topic, the visual style, and the content and visual description of each step. The user controls how much to specify; the skill SHALL NOT assume details the user can still provide, but SHALL allow the user to proceed with partial detail and iterate. The skill MAY, at its discretion, draw ASCII mockups to represent key or complex steps when doing so helps confirm the intended visual layout.
@@ -28,10 +101,6 @@ Before creating or modifying a presentation, the skill SHALL ensure the project 
 
 Detection is contract-level, keyed on the presence of these anchors rather than a byte-identical scaffold, so cosmetic differences (file naming, formatting, extra dependencies) do not trigger re-scaffolding. When scaffolding, the skill SHALL NOT assume the required dependencies are already installed.
 
-The scaffold SHALL be styling-framework-neutral and SHALL ship with zero presentation styling defaults. It SHALL install the runtime and build dependencies needed for React, Vite, TypeScript, Motion, Lucide icons, linting, and render verification, but it SHALL NOT require Tailwind, a Tailwind Vite plugin, a default CSS theme, default colors, default fonts, default card styles, default button styles, or any other styling framework. Styling systems MAY be added by the presentation author or host project after scaffolding.
-
-The skill SHALL resolve scaffold templates relative to the skill file that declares them, so agents do not depend on the user's current working directory when locating `templates/bootstrap/` or presentation templates.
-
 #### Scenario: Empty or fully unscaffolded directory
 - **WHEN** the skill runs in an empty directory or a project with none of the three anchors present
 - **THEN** it performs a full scaffold (build setup, scene kit, and presentation index) and installs the required dependencies before creating the presentation
@@ -43,15 +112,6 @@ The skill SHALL resolve scaffold templates relative to the skill file that decla
 #### Scenario: Partial scaffold
 - **WHEN** some but not all anchors are present
 - **THEN** the skill scaffolds only the missing anchors (and their dependencies) without disturbing the ones already present
-
-#### Scenario: Scaffold does not impose a style system
-- **WHEN** the skill scaffolds a presentation app
-- **THEN** the generated app can build without Tailwind or another styling framework
-- **AND** the scaffold does not define default presentation colors, fonts, spacing scale, card styles, button styles, borders, shadows, or CSS theme tokens
-
-#### Scenario: Templates resolve from skill directory
-- **WHEN** the skill copies bootstrap or presentation templates
-- **THEN** it resolves those paths relative to the skill's own `SKILL.md` directory
 
 #### Scenario: Monorepo target
 - **WHEN** the skill runs inside a monorepo
@@ -72,11 +132,6 @@ The skill SHALL generate a new presentation as a self-contained unit reachable a
 - **WHEN** a new presentation is created
 - **THEN** it is written as its own folder, reachable at its own route, and registered in the presentation index
 
-#### Scenario: Presentation owns its visual style
-- **WHEN** the skill creates a presentation with a designed visual look
-- **THEN** the styling is added in files owned by that presentation or by the host app rather than in the reusable scene kit
-- **AND** plain CSS is the default styling approach unless the host project already uses a styling framework or the user explicitly requests one
-
 #### Scenario: Existing presentations are preserved
 - **WHEN** a new presentation is created and other presentations already exist
 - **THEN** the existing presentations remain intact and reachable
@@ -93,18 +148,18 @@ The skill SHALL support modifying an existing presentation, identifying the targ
 - **THEN** the skill asks only about the requested changes (steps, entities, or style) and edits that presentation without re-walking the full create flow
 
 ### Requirement: Self-verify before reporting completion
-Before reporting success, the skill SHALL confirm that the generated or modified presentation builds, renders without errors, and is visually coherent in a browser, fixing any failures itself. The render check SHALL at minimum render the presentation's first step without runtime or console errors; the full multi-step render check across every step is defined by the `presentation-verification` capability. The visual composition check SHALL inspect screenshots or an equivalent browser view of the first step, the last step, and any dense/key steps; responsive-sensitive presentations SHALL also be checked at a narrow viewport. When a project-local screenshot helper is available, the skill SHALL prefer it over ad hoc scripts outside the project tree so browser tooling resolves from local dependencies, settled screenshots are captured after animations complete, and advisory visual warnings can be reviewed.
+Before reporting success, the skill SHALL confirm that the generated or modified presentation builds and renders without errors, fixing any failures itself. The render check SHALL at minimum render the presentation's first step without runtime or console errors; the full multi-step render check across every step is defined by the `presentation-verification` capability.
 
 #### Scenario: Checks run before done
 - **WHEN** the skill finishes generating or modifying a presentation
-- **THEN** it runs the build, at least a first-step render check, and a browser visual composition check before reporting completion
+- **THEN** it runs the build and at least a first-step render check before reporting completion
 
 #### Scenario: Failures are fixed, not reported as success
-- **WHEN** the build, render, or visual composition check fails
+- **WHEN** the build or render check fails
 - **THEN** the skill fixes the issues and re-checks rather than reporting success
 
 ### Requirement: Generated presentation quality bar
-Every generated presentation SHALL build with no type errors, render its first step without runtime errors, present a caption per step, support next/previous navigation, pass a visual composition check, and conform to the evolving-scene model.
+Every generated presentation SHALL build with no type errors, render its first step without runtime errors, present a caption per step, support next/previous navigation, and conform to the evolving-scene model.
 
 #### Scenario: Builds clean
 - **WHEN** a presentation is generated
@@ -118,19 +173,12 @@ Every generated presentation SHALL build with no type errors, render its first s
 - **WHEN** viewing a presentation
 - **THEN** each step shows a caption and the user can navigate to the next and previous steps
 
-#### Scenario: Visual composition is inspected
-- **WHEN** a presentation is generated or modified
-- **THEN** key browser screenshots or equivalent browser views show that important scene content fits the fixed canvas, intentional overlaps remain readable, and content does not collide with chrome such as captions, progress indicators, table of contents, or navigation controls
+## Done When
 
-#### Scenario: Screenshot helper is project-local
-- **WHEN** the skill captures screenshots for visual inspection
-- **THEN** it uses the scaffolded project-local helper when available, or otherwise writes any temporary Playwright helper under the project root
-
-#### Scenario: Visual warnings are reviewed
-- **WHEN** the screenshot helper emits overlap or chrome-polish warnings
-- **THEN** the skill reviews the referenced steps, fixes accidental collisions or indistinct current-step chrome, and marks only intentional readable overlaps as allowed
-
-#### Scenario: Active chrome and attribution are styled locally
-- **WHEN** the generated presentation includes table-of-contents, progress, navigation, or attribution chrome
-- **THEN** presentation-owned or host-owned CSS makes the active step visibly distinct and the attribution legible
-- **AND** the reusable scene kit remains free of default colors, fonts, borders, button styles, and theme tokens
+`skills/presentation/SKILL.md` and `skills/presentation/templates/` exist and fully
+encode the procedure above: interactive one-at-a-time gathering, contract-anchor
+detection with monorepo-aware target resolution and the full dependency set,
+create/modify flows that register in the index, self-verify, and the quality bar.
+The templates are sufficient to bootstrap a fresh project and to stamp out a new
+presentation. (The procedure is exercised end-to-end when the skill is used to
+build a real presentation.)

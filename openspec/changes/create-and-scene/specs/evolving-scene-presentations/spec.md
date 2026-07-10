@@ -11,6 +11,10 @@ A presentation SHALL be one scene rendered through an ordered list of named step
 - **WHEN** steps are inserted, removed, or reordered
 - **THEN** each step's on-screen number is derived from its position so no manual renumbering is required
 
+#### Scenario: Typed payloads reach presentation boundary
+- **WHEN** a grouped scene defines steps with a strongly typed payload
+- **THEN** the presentation host accepts that typed step array without requiring casts at the `<Presentation>` boundary
+
 ### Requirement: Stable entities morph across steps
 Entities that persist between steps SHALL keep a stable identity and animate their change in place rather than disappearing and reappearing. Entities present in only one of two adjacent steps SHALL animate in or out.
 
@@ -25,6 +29,56 @@ Entities that persist between steps SHALL keep a stable identity and animate the
 #### Scenario: Departing entity exits
 - **WHEN** an entity exists in a step but not in the next step
 - **THEN** it animates out on that transition
+
+### Requirement: Persistent grouped scenes
+Adjacent steps that represent successive states of the same evolving diagram SHALL be able to share a scene group so that the scene component persists while only the active step data changes. Shared groups prevent the whole scene from remounting between beats and preserve entity continuity for layout morphs.
+
+#### Scenario: Grouped steps update in place
+- **WHEN** adjacent steps share a scene group and the same scene component
+- **THEN** navigating between those steps updates the existing scene instance with the new step state rather than remounting separate scenes
+
+#### Scenario: Continuing entities are not faded as newcomers
+- **WHEN** an entity with the same stable identity continues across grouped steps
+- **THEN** it morphs through layout projection without being wrapped in newcomer fade-in behavior
+
+#### Scenario: Intentional composition is preserved
+- **WHEN** a grouped scene intentionally overlaps or stacks entities
+- **THEN** the implementation preserves that composition while maintaining clean morphs, rather than flattening or spreading entities only to satisfy an implementation pattern
+
+### Requirement: Style ownership boundary
+The scene kit SHALL have zero styling defaults. It SHALL provide motion behavior, fixed-canvas layout plumbing, navigation/chrome behavior, and stable DOM hooks for authors to style, but it SHALL NOT impose a palette, font, color, border treatment, glow, card appearance, button style, spacing scale, CSS theme tokens, or styling-framework dependency. Any default geometry used for the fixed canvas or chrome placement is layout behavior, not a visual style system.
+
+#### Scenario: Kit primitives expose style hooks
+- **WHEN** a presentation composes scene kit primitives or chrome
+- **THEN** the rendered markup exposes stable hooks that presentation-owned CSS can target
+- **AND** visual choices such as color, typography, spacing scale, borders, and shadows come from the presentation or host app
+
+#### Scenario: Unstyled kit output
+- **WHEN** a presentation uses scene kit primitives without presentation-owned CSS
+- **THEN** the kit does not supply fallback colors, fonts, borders, shadows, card treatments, or button treatments
+
+#### Scenario: Optional styling frameworks remain optional
+- **WHEN** a presentation author wants to use Tailwind or another styling framework
+- **THEN** that framework is configured by the presentation or host app, not required by the reusable scene kit
+
+#### Scenario: Coordinate-heavy diagrams are supported
+- **WHEN** a presentation needs literal per-step coordinates for diagram entities
+- **THEN** kit primitives expose class/style hooks, and authors MAY use raw motion elements with stable `layoutId`s when a primitive is not the right shape
+
+### Requirement: Kit attribution
+The scene kit SHALL include a default attribution link reading "made by and-scene" in the bottom-right corner, linking to the and-scene GitHub repository. The attribution is toolkit disclosure, not a presentation style system. The kit SHALL expose a stable hook so presentation-owned CSS can make the attribution legible and intentional. The kit SHALL NOT add a default top-left "and-scene" brand link; host applications MAY provide their own header brand explicitly.
+
+#### Scenario: Default attribution is shown
+- **WHEN** a presentation renders without overriding attribution options
+- **THEN** it shows a bottom-right link labeled "made by and-scene" pointing to the and-scene GitHub repository
+
+#### Scenario: Attribution exposes a styling hook
+- **WHEN** the default attribution is rendered
+- **THEN** it exposes a stable presentation hook that the presentation or host app can target for local styling
+
+#### Scenario: Top-left brand is opt-in
+- **WHEN** a presentation renders without host-provided branding
+- **THEN** the top-left header slot does not contain a default and-scene brand link
 
 ### Requirement: Present and browse modes
 A presentation SHALL support a present mode for live delivery and a browse mode for self-guided reading, switchable at runtime, and MAY declare which mode it opens in.
@@ -56,6 +110,10 @@ A presentation SHALL let the viewer move between steps via keyboard, touch, and 
 - **WHEN** the user activates a progress indicator or a table-of-contents entry
 - **THEN** the presentation jumps directly to that step, or to the first step of that section's era for a table-of-contents entry
 
+#### Scenario: Active navigation state is exposed
+- **WHEN** a progress indicator or table-of-contents entry represents the active step
+- **THEN** it exposes semantic current-step state and a stable active-state hook for presentation-owned styling
+
 #### Scenario: Controls keep their keys
 - **WHEN** focus is on an interactive control
 - **THEN** navigation keys drive that control rather than also advancing the deck
@@ -81,37 +139,3 @@ The diagram SHALL be composed in a fixed design canvas and scaled uniformly to f
 #### Scenario: Default canvas dimensions
 - **WHEN** a presentation does not override the design canvas
 - **THEN** it uses the reference dimensions of 880 × 380
-
-### Requirement: Host-configurable chrome
-The presentation chrome SHALL expose host overrides for branding, background, and step numbering without requiring the host to fork the scene kit. A presentation MAY supply: a brand node together with a home-link target and accessible label for the header; a full-bleed background layer rendered behind the diagram; and a step-marker function that overrides the default position-derived marker. Every override SHALL default to the kit's built-in behavior, so a presentation that supplies none renders unchanged.
-
-#### Scenario: Custom brand and home link
-- **WHEN** a presentation supplies a brand node and a home-link target
-- **THEN** the header renders that brand linking to that target, and the same target drives the last-step home control so the two cannot diverge
-
-#### Scenario: Default branding
-- **WHEN** a presentation supplies no branding overrides
-- **THEN** the header shows the kit's default brand, home target, and label
-
-#### Scenario: Custom background layer
-- **WHEN** a presentation supplies a background layer
-- **THEN** it renders full-bleed behind the diagram and the kit's opaque default background is suppressed
-
-#### Scenario: Relational step markers
-- **WHEN** a presentation supplies a step-marker function
-- **THEN** each step's marker is computed by that function, which receives the step index and the full step list, allowing chrome steps to be unnumbered or steps to be numbered relationally
-
-#### Scenario: Default step markers
-- **WHEN** a presentation supplies no step-marker override
-- **THEN** markers fall back to the default position-derived numbering
-
-### Requirement: Host theming contract
-The scene kit SHALL render against a documented set of theme tokens and utility classes that the host provides: surface and accent color tokens, mono and sans font-family tokens, and the footer navigation button classes. The skill's scaffold SHALL supply this contract so a scaffolded project renders correctly without further setup; a project that instead vendors the kit into an existing app SHALL provide the contract itself, and the contract SHALL be documented so adopters can do so.
-
-#### Scenario: Scaffold provides the contract
-- **WHEN** the skill scaffolds a project
-- **THEN** the generated styles define the color tokens, font tokens, and button classes the kit depends on
-
-#### Scenario: Contract documented for manual adopters
-- **WHEN** the kit is copied into an existing themed app rather than scaffolded
-- **THEN** the required tokens and classes are documented so the adopter supplies them instead of discovering a silently broken render

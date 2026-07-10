@@ -15,12 +15,8 @@ while still being small enough to reset and rerun from a spec-only branch.
   slides.
 - Add reusable React components, templates, and scripts that the skill can use
   when creating a new presentation.
-- Make the scene-kit chrome host-configurable — branding/home link, a full-bleed
-  background layer, and a step-marker override — and document the host theming
-  contract (color/font tokens, button classes) the kit renders against.
 - Add a verification flow that invokes the skill on a sample topic and confirms
-  the generated presentation builds and renders, and that the skill's vendored
-  kit snapshot stays byte-identical to the canonical kit.
+  the generated presentation builds and renders.
 
 ## Capabilities
 

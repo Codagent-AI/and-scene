@@ -309,7 +309,9 @@ async function findChromeWarnings(page, slug, stepIndex) {
       }
 
       const attribution = document.querySelector('[data-presentation-attribution]')
-      if (isVisible(attribution)) {
+      if (!isVisible(attribution)) {
+        warnings.push(`${slug} step ${stepIndex + 1}: required attribution is missing`)
+      } else {
         const style = window.getComputedStyle(attribution)
         const rect = attribution.getBoundingClientRect()
         const fontSize = Number.parseFloat(style.fontSize)

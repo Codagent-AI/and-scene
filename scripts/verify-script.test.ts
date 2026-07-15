@@ -25,6 +25,17 @@ describe('verify entry point', () => {
     expect(() => readFileSync(join(ROOT, 'scripts/inspect-presentation.mjs'), 'utf-8')).not.toThrow()
   })
 
+  it('inspect warns when the required attribution is missing', () => {
+    for (const path of [
+      join(ROOT, 'scripts/inspect-presentation.mjs'),
+      join(ROOT, 'skills/presentation/templates/bootstrap/scripts/inspect-presentation.mjs'),
+    ]) {
+      const script = readFileSync(path, 'utf-8')
+      expect(script).toContain('required attribution is missing')
+      expect(script).toMatch(/if \(!isVisible\(attribution\)\)/)
+    }
+  })
+
   it('playwright is listed as a dev dependency', () => {
     const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
     expect(pkg.devDependencies?.playwright).toBeDefined()

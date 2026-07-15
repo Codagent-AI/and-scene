@@ -31,8 +31,9 @@ Current scaffold state: plain-CSS single-page `App.tsx`, no router, no Tailwind.
 - A committed **sample** ("How to Use This Skill to Make a Presentation").
 - A **verification** entry point (`npm run verify`) that builds the whole app and
   renders the sample through every step in a real browser.
-- Behavioral and visual parity with the `codagent-dot-dev` harness where it
-  already solved a problem (canvas dims, morph timing, nav, modes).
+- Behavioral parity with the `codagent-dot-dev` harness where it already solved a
+  problem (canvas dimensions, morph timing, navigation, and modes), while keeping
+  all visual styling owned by the presentation or host.
 
 **Non-Goals:**
 - Export (PPT/Keynote/PDF/image), a visual editor, hosting/publishing.
@@ -48,7 +49,7 @@ Current scaffold state: plain-CSS single-page `App.tsx`, no router, no Tailwind.
 src/
   main.tsx                 # minimal pathname router: "/" → Landing, "/<slug>" → lazy presentation
   Landing.tsx              # replaces App.tsx; enumerates the registry, links to each presentation
-  index.css                # Tailwind v4 entry + theme (accents: bg, cyan, amber, green)
+  index.css                # host/app CSS only; no reusable-kit visual defaults
   presentation-kit/        # the reusable engine (the "scene kit") — canonical source
     types.ts               # Step, Scene, StepMeta, SceneProps  (the step contract)
     constants.ts           # EASE, LAYOUT_T, ENTER_T/ENTER_DELAY, DESIGN_W=880, DESIGN_H=380,
@@ -64,13 +65,13 @@ src/
     nodes/                 # generic primitives composed by each presentation's steps
       Box.tsx              # bordered card; optional LucideIcon glyph; carries layoutId
       Label.tsx, Arrow.tsx, Frame.tsx, Emphasis.tsx
-      SymbolChip.tsx       # generalized HarnessNode: symbol↔chip variants, accent, LucideIcon
+      SymbolChip.tsx       # generalized HarnessNode with stable styling hooks
       Appear.tsx, SceneLayer.tsx
   presentations/
     index.ts               # EXPLICIT registry: [{ slug, title, load: () => import('./<dir>/Talk') }]
     how-to-make-a-presentation/        # the committed sample
       entities.ts          # this presentation's layoutId namespace (stable entity ids)
-      steps/*.tsx          # 8 Step objects composing kit primitives
+      steps/*.tsx          # 9 Step objects composing kit primitives
       Talk.tsx             # <Presentation steps={STEPS} title=… initialMode="browse" />
 skills/presentation/
   SKILL.md                 # procedure (below)
@@ -83,8 +84,9 @@ scripts/
 
 A direct generalization of `codagent-dot-dev/src/presentation/harness/**`:
 
-- **Step contract** (`types.ts`): `StepMeta { id, era, title, caption, groupKey?, payload? }`
-  and `Step extends StepMeta { Scene: ComponentType<SceneProps> }`. Steps that
+- **Step contract** (`types.ts`): generic `Step<TPayload>` and
+  `SceneProps<TPayload>` types preserve strongly typed grouped payloads through
+  the `<Presentation>` boundary without casts. Steps that
   share a `groupKey` (and `Scene`) are not remounted between navigations — the
   instance persists and only `payload` changes, so on-screen entities update in
   place; otherwise `AnimatePresence` cross-fades and shared `layoutId` elements
@@ -99,13 +101,15 @@ A direct generalization of `codagent-dot-dev/src/presentation/harness/**`:
 - **Chrome**: present mode shows marker + one-line title (caption, ToC, nav
   hidden); browse mode shows title + multi-line caption + ToC (wide viewports) +
   progress dots + prev/next. A presentation may declare `initialMode`.
+  Active navigation exposes semantic current state and stable active hooks.
+  Bottom-right attribution defaults to a `made by and-scene` GitHub link with a
+  stable hook; top-left branding is host opt-in.
 - **Generic node primitives**: the reusable replacement for dot-dev's
-  talk-specific nodes. Each accepts a `layoutId` (so entities morph across steps),
-  styling via Tailwind accents, and — where glyphs apply — a `lucide-react`
-  `LucideIcon` prop (same pattern as the reference's `HarnessNode`). `Appear`
-  sequences newcomers after persisting entities settle; `SceneLayer`
-  absolutely-positions a step's diagram so mounting one layer never reflows
-  another.
+  talk-specific nodes. Each accepts stable identity and class/data/style hooks,
+  but supplies no palette, font, spacing, border, shadow, card, button, or theme
+  defaults. `Appear` sequences newcomers only after persisting entities settle;
+  `SceneLayer` absolutely positions a step's diagram so mounting one layer never
+  reflows another.
 
 Each **presentation** supplies only its own `entities.ts` (its `layoutId`
 namespace) and `steps/*` (Scenes composing the primitives), then renders
@@ -153,15 +157,18 @@ output consistent. Procedure:
 **Required dependency set the scaffold ensures** (cannot assume any are present):
 - Runtime: `react`, `react-dom`, `motion`, `lucide-react`.
 - Dev/build: `vite`, `@vitejs/plugin-react`, `typescript` + `@types/react` +
-  `@types/react-dom` + `@types/node`, `tailwindcss`, `@tailwindcss/vite`, the
-  eslint stack, and `playwright` (for the render check).
+  `@types/react-dom` + `@types/node`, the eslint stack, and `playwright` (for the
+  render check). Tailwind or another framework is added only when the host already
+  uses it or the user explicitly requests it.
 
 ### Verification (`npm run verify` → `scripts/verify.mjs`)
 
 1. `npm run build` (`tsc -b && vite build`) over the whole app — any type/build
    error fails.
-2. Assert the sample is present in `presentations/index.ts`.
-3. `vite preview`, then Playwright (Chromium) opens the sample route. The driver
+2. Assert the canonical nine-step sample is present in `presentations/index.ts`
+   with every normative title and caption in order.
+3. `vite preview` on `127.0.0.1`, then Playwright (Chromium) opens the sample
+   route using the same IPv4 loopback address. The driver
    reads the step count from a `data-step-count` hook on the chrome, then steps
    through every step (`ArrowRight`), checking the `data-step-index` advances.
 4. Any `console.error`, `pageerror` (uncaught exception), or failed step
@@ -171,25 +178,29 @@ output consistent. Procedure:
 The chrome exposes `data-step-count` and `data-step-index` test hooks so the
 headless driver enumerates steps without coupling to DOM structure.
 
+The project-local screenshot helper captures every settled step and reports
+advisory warnings for unmarked visible text/chrome overlap, indistinct active
+navigation, and missing, browser-default, or undersized attribution. Intentional
+overlap is exempt only through an explicit allow-overlap marker.
+
 ### Styling
 
-Tailwind v4 via `@tailwindcss/vite`, with a small theme (accent colors `bg`,
-`cyan`, `amber`, `green`) mirroring the reference, defined in `index.css`. The
-kit's nodes/chrome are authored in utility classes so they port from the
-reference with minimal change; the landing page is restyled to match.
+The reusable scene kit owns behavior, layout geometry, and stable DOM hooks only.
+It has zero visual defaults and no styling-framework dependency. Each
+presentation owns its designed look in presentation-local plain CSS unless the
+host already uses, or the user explicitly requests, another styling system.
 
 ## Decisions
 
-1. **Tailwind v4 + theme over plain CSS** — the reference kit's look is entirely
-   utility-class/accent-color based; porting verbatim preserves the proven look
-   and keeps eval output consistent. *Alternatives:* plain CSS/CSS-modules (large
-   re-authoring, visual drift); Tailwind only inside the kit (two styling systems
-   in one repo). Cost: a build dependency and restyling the landing.
+1. **Style-neutral kit + presentation-owned CSS** — only behavioral and geometric
+   decisions are ported from the reference. Stable hooks let each presentation
+   own palette, typography, spacing, borders, shadows, and control treatments.
+   This prevents the reusable engine from becoming an accidental design system.
 2. **Generic node primitives** — ship `Box/Label/Arrow/Frame/Emphasis/SymbolChip`
-   parameterized by `layoutId`, accent, and `LucideIcon`, instead of
+   parameterized by stable identity and semantic styling hooks instead of
    talk-specific nodes. This is the core generalization that makes the kit
    reusable across topics. *Alternative:* copy the reference nodes (couples the
-   kit to one talk).
+   kit to one talk and its visual system).
 3. **Zero-dep pathname router + explicit registry** — minimal `main.tsx` switch +
    `presentations/index.ts`. Deterministic, diffable, no new dep. *Alternatives:*
    `react-router-dom` (extra dep/surface); `import.meta.glob` auto-registration
@@ -236,8 +247,8 @@ reference with minimal change; the landing page is restyled to match.
 ## Migration Plan
 
 Greenfield (no production users); the implementing change will, roughly:
-1. Add deps: `tailwindcss`, `@tailwindcss/vite`, `playwright` (runtime deps
-   already present); wire Tailwind into `vite.config.ts` + `index.css`.
+1. Add `playwright` for verification (runtime/build dependencies already present);
+   keep the reusable kit styling-framework-neutral.
 2. Build `src/presentation-kit/**` by generalizing the reference harness.
 3. Add the router (`main.tsx`), `Landing.tsx` (replacing `App.tsx`), and
    `presentations/index.ts`.

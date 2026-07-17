@@ -240,7 +240,7 @@ async function findOverlapWarnings(page, slug, stepIndex) {
   )
 }
 
-async function findChromeWarnings(page, slug, stepIndex) {
+export async function findChromeWarnings(page, slug, stepIndex) {
   return page.evaluate(
     ({ slug, stepIndex }) => {
       const isVisible = (el) => {
@@ -309,14 +309,22 @@ async function findChromeWarnings(page, slug, stepIndex) {
       }
 
       const attribution = document.querySelector('[data-presentation-attribution]')
-      if (isVisible(attribution)) {
+      if (!attribution) {
+        warnings.push(
+          `${slug}: attribution is not rendered; pass attribution={null} only for an intentional opt-out`,
+        )
+      } else if (!isVisible(attribution)) {
+        warnings.push(
+          `${slug}: attribution is present but not visible; style [data-presentation-attribution] in presentation CSS`,
+        )
+      } else {
         const style = window.getComputedStyle(attribution)
         const rect = attribution.getBoundingClientRect()
         const fontSize = Number.parseFloat(style.fontSize)
         const defaultLinkBlue = style.color === 'rgb(0, 0, 238)' || style.color === '-webkit-link'
         if (fontSize < 12 || rect.height < 14 || defaultLinkBlue) {
           warnings.push(
-            `${slug} step ${stepIndex + 1}: attribution appears too small or browser-default; style [data-presentation-attribution] in presentation CSS`,
+            `${slug}: attribution appears too small or browser-default; style [data-presentation-attribution] in presentation CSS`,
           )
         }
       }
@@ -325,6 +333,15 @@ async function findChromeWarnings(page, slug, stepIndex) {
     },
     { slug, stepIndex },
   )
+}
+
+export function appendInspectionWarnings(warnings, seenAttributionWarnings, additions) {
+  for (const warning of additions) {
+    const isAttributionWarning = warning.includes(': attribution ')
+    if (isAttributionWarning && seenAttributionWarnings.has(warning)) continue
+    warnings.push(warning)
+    if (isAttributionWarning) seenAttributionWarnings.add(warning)
+  }
 }
 
 async function capturePresentation(page, baseUrl, slug, width, height, settleMs) {
@@ -342,13 +359,14 @@ async function capturePresentation(page, baseUrl, slug, width, height, settleMs)
 
   const written = []
   const warnings = []
+  const seenAttributionWarnings = new Set()
   for (let i = 0; i < stepCount; i++) {
     const expectedIndex = Number(await progress.getAttribute('data-step-index'))
     if (expectedIndex !== i) throw new Error(`${slug} step ${i}: expected index ${i}, got ${expectedIndex}`)
 
     await page.waitForTimeout(settleMs)
     warnings.push(...await findOverlapWarnings(page, slug, i))
-    warnings.push(...await findChromeWarnings(page, slug, i))
+    appendInspectionWarnings(warnings, seenAttributionWarnings, await findChromeWarnings(page, slug, i))
 
     const path = join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
     await page.screenshot({ path, fullPage: false })
@@ -403,7 +421,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(`FAIL [inspect]: ${err instanceof Error ? err.message : String(err)}`)
-  process.exit(1)
-})
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    console.error(`FAIL [inspect]: ${err instanceof Error ? err.message : String(err)}`)
+    process.exit(1)
+  })
+}

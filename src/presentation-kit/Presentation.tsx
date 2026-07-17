@@ -31,7 +31,7 @@ export interface PresentationProps<P extends Record<string, unknown> = Record<st
    * skip chrome cards and count only body steps.
    */
   marker?: (index: number, steps: Step<P>[]) => string
-  /** Small bottom-right attribution link. Pass `null` to hide it. */
+  /** Small bottom-right attribution link. Defaults to and-scene; pass `null` for an intentional opt-out. */
   attribution?: ReactNode
   /** Attribution target; defaults to the and-scene GitHub repository. */
   attributionHref?: string

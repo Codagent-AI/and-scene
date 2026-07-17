@@ -187,7 +187,11 @@ error, console error, or uncaught page error. (It needs a Chromium browser — r
 
 `inspect` builds the app, launches a production preview, and writes step
 screenshots to `artifacts/presentation-inspection/<slug>/` so layouts can be
-checked for overflow, unintended overlap, and chrome collisions.
+checked for overflow, unintended overlap, and chrome collisions. The kit API
+allows an intentional `attribution={null}` opt-out, but generated presentations
+are expected to retain and style the default attribution; inspection reports a
+single deck-level warning when it is absent, hidden, undersized, or left with
+browser-default styling.
 
 ## Tech
 

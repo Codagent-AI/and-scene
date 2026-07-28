@@ -28,6 +28,12 @@ describe('Presentation', () => {
     expect(screen.getByTestId('scene-payload').textContent).toBe('one')
   })
 
+  it('fails with a named error rather than a TypeError when given no steps', () => {
+    expect(() => render(<Presentation<TalkPayload> steps={[]} title="A talk" />)).toThrow(
+      /at least one step/i,
+    )
+  })
+
   it('exposes data-step-count and data-step-index for external verification', () => {
     const { container } = render(<Presentation steps={buildSteps()} title="A talk" />)
     const root = container.querySelector('[data-scene-kit="presentation"]')

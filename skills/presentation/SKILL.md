@@ -1,12 +1,14 @@
 ---
 description: >-
-  Creates or modifies a browser-based presentation modeled as one evolving
-  diagrammatic scene (stable entities moving through named steps), rather than
-  independent slides. Self-bootstraps the build setup, scene kit, and
-  presentation registry when they are missing, then generates or edits a
+  Creates and modifies browser-based presentations, decks, talks, and
+  walkthroughs. Use when the user asks to create a presentation, deck, talk,
+  or walkthrough as a web app, to modify an existing one, to add or change
+  steps, or to resync a project's vendored scene kit. Models the result as one
+  evolving diagrammatic scene (stable entities moving through named steps)
+  rather than independent slides. Self-bootstraps the build setup, scene kit,
+  and presentation registry when they are missing, then generates or edits the
   presentation and verifies it builds, renders, and looks right before
-  reporting done. Use when the user asks to create a presentation, deck, talk,
-  or walkthrough as a web app, or to modify an existing one.
+  reporting done.
 ---
 
 Create or modify a presentation by gathering requirements one question at a
@@ -36,9 +38,9 @@ Ask, in roughly this order, stopping as soon as the user chooses to proceed:
    wants you to propose an outline): its content and its visual/diagrammatic
    intent — what's on screen, what's new, what persists from the step before.
 
-For a step whose layout is genuinely key or complex, you may sketch a small
-ASCII mockup and confirm it with the user before building — do not do this for
-every step, only where it earns its keep.
+Sketch a small ASCII mockup and confirm it with the user before building only
+when a step's layout is genuinely key or complex — not for every step, only
+where it earns its keep.
 
 If the prompt that invoked this skill already contains the topic, style, and
 every step's content, you may skip straight to Step 2 without asking anything.
@@ -207,6 +209,23 @@ If the build, render check, or visual check fails, fix the underlying issue
 and re-run the checks — do not report the presentation as done on a failing or
 unreviewed state.
 
+### Completion report
+
+Report completion in exactly this shape, so nothing material is left implicit:
+
+```
+Presentation: <title> (<slug>) at <route> — created | modified
+Files: <paths added or changed>
+Build: pass | fail (<command run>)
+Render: pass | fail (<command run>, <n> steps rendered)
+Inspected: <steps and viewports actually viewed, e.g. steps 1, 5, 9 at 1280x800 + 420x760>
+Advisory warnings: none | <each warning and whether it was fixed or deliberately allowed, with why>
+Follow-ups: none | <anything left undone, unverified, or needing the user's decision>
+```
+
+Every field is required. Write `none` rather than dropping a line, and never
+report a check as `pass` without having run it in this session.
+
 ## Quality bar for every generated or modified presentation
 
 - Builds with zero type errors.
@@ -219,3 +238,25 @@ unreviewed state.
   visually distinct/legible via presentation- or host-owned CSS — the scene
   kit itself stays free of default colors, fonts, borders, buttons, and theme
   tokens.
+
+## Out of scope
+
+This skill builds browser-based, step-based presentations in the target
+project. It does not cover:
+
+- **Non-browser formats** — PowerPoint, Keynote, Google Slides, PDF decks, or
+  exporting to them. Say so and offer the browser presentation instead.
+- **Static image or video output** — recording, narrating, or rendering the
+  presentation to a movie. Screenshots exist for verification only.
+- **Redesigning the host application** — routing, layout, or styling outside
+  the presentation's own folder and its registry entry.
+- **Editing other presentations** — scope every change to the selected target;
+  touching a sibling presentation needs the user to ask for it.
+- **Replacing or restyling the shared scene kit** — treat the kit as
+  style-neutral infrastructure. Change it only when the user explicitly asks
+  for a kit change, and never to fix one presentation's styling.
+- **Content research** — the user supplies the substance; do not invent facts,
+  data, or quotes to fill steps.
+
+When a request falls outside this list, say which part is out of scope, do the
+part that is in scope, and leave the rest to the user.

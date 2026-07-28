@@ -20,6 +20,13 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'present' }
     document.title = title
   }, [title])
 
+  // Guarded after the hooks so hook order stays unconditional. Without this,
+  // an empty step array surfaces as "cannot read properties of undefined"
+  // from deep inside the chrome rather than naming the actual mistake.
+  if (!step) {
+    throw new Error('Presentation requires at least one step, but received an empty steps array.')
+  }
+
   return (
     <div
       className="sk-presentation"

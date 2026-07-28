@@ -38,8 +38,17 @@ export interface Step<TPayload> extends StepMeta {
   groupKey?: string
 }
 
-/** A step with its payload type erased, for hosting heterogeneous step arrays. */
-export type AnyStep = Step<unknown>
+/**
+ * A step with its payload type erased, for hosting heterogeneous step arrays.
+ *
+ * Deliberately `any` rather than `unknown`: a `Step<TPayload>` carries its
+ * payload both as data (covariant) and through `Scene`'s props (contravariant),
+ * so `Step<unknown>` accepts no concrete step at all under strict function
+ * variance. `any` is bivariant, which is what an intentionally erased type
+ * needs. Each step still pairs its own `Scene` with its own `payload`.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyStep = Step<any>
 
 export interface PresentationProps<TPayload> {
   /** Ordered steps making up the presentation. On-screen numbering derives from position. */

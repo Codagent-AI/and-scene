@@ -143,16 +143,53 @@ async function checkOverlap(page, warnings, stepLabel) {
 
 async function checkActiveState(page, warnings, stepLabel) {
   const activeMarks = await page.evaluate(() => {
+    // Visual properties that could plausibly carry an active/inactive
+    // distinction. `transform` is excluded: layout morphs leave per-element
+    // transforms that differ for reasons unrelated to active styling.
+    const VISUAL_PROPERTIES = [
+      'backgroundColor',
+      'color',
+      'borderStyle',
+      'borderColor',
+      'borderWidth',
+      'outlineStyle',
+      'fontWeight',
+      'opacity',
+      'boxShadow',
+      'textDecorationLine',
+    ]
+    // Covers the element *and its subtree*: the kit deliberately puts the
+    // `data-active` hook on the control (e.g. the progress-dot button) while
+    // presentations style an inner mark (`.sk-progress-dot__mark`), so reading
+    // only the hook element itself would miss the distinction entirely.
+    const signature = (el) => {
+      const parts = []
+      for (const node of [el, ...el.querySelectorAll('*')]) {
+        const style = getComputedStyle(node)
+        parts.push(VISUAL_PROPERTIES.map((property) => style[property]).join('|'))
+      }
+      return parts.join('||')
+    }
+
+    // Group by hook so each active element is compared against its own
+    // inactive siblings. Comparing against the document body instead would
+    // call an entry "distinct" merely for sharing a border with its siblings.
+    const groups = new Map()
+    for (const el of document.querySelectorAll('[data-active]')) {
+      const hook = el.getAttribute('data-scene-kit') ?? '(unhooked)'
+      if (!groups.has(hook)) groups.set(hook, [])
+      groups.get(hook).push(el)
+    }
+
     const results = []
-    for (const el of document.querySelectorAll('[data-active="true"]')) {
-      const style = getComputedStyle(el)
-      const distinct =
-        style.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
-        style.color !== getComputedStyle(document.body).color ||
-        style.borderStyle !== 'none' ||
-        style.outlineStyle !== 'none' ||
-        style.fontWeight !== getComputedStyle(document.body).fontWeight
-      results.push({ hook: el.getAttribute('data-scene-kit'), distinct })
+    for (const [hook, elements] of groups) {
+      const inactive = elements.filter((el) => el.getAttribute('data-active') !== 'true')
+      // Nothing to contrast against: no active/inactive pair on this hook.
+      if (inactive.length === 0) continue
+      const inactiveSignatures = new Set(inactive.map(signature))
+      for (const el of elements.filter((candidate) => candidate.getAttribute('data-active') === 'true')) {
+        results.push({ hook, distinct: !inactiveSignatures.has(signature(el)) })
+      }
     }
     return results
   })
@@ -170,11 +207,27 @@ async function checkAttribution(page, warnings, stepLabel) {
     if (!el) return null
     const rect = el.getBoundingClientRect()
     const style = getComputedStyle(el)
+
+    // Measure "browser default" against a throwaway unstyled anchor rather
+    // than hardcoding this browser's default link colour. The probe is
+    // inserted as a sibling so it inherits the same context, and only the
+    // properties the UA stylesheet actually sets on a link are compared —
+    // font size/family are inherited, so including them would mask a
+    // genuinely unstyled attribution. Size is checked separately below.
+    const probe = document.createElement('a')
+    probe.href = el.getAttribute('href') ?? '#'
+    probe.textContent = el.textContent
+    ;(el.parentElement ?? document.body).appendChild(probe)
+    const probeStyle = getComputedStyle(probe)
+    const browserDefault =
+      style.color === probeStyle.color && style.textDecorationLine === probeStyle.textDecorationLine
+    probe.remove()
+
     return {
       width: rect.width,
       height: rect.height,
       fontSize: parseFloat(style.fontSize),
-      color: style.color,
+      browserDefault,
     }
   })
 
@@ -186,7 +239,12 @@ async function checkAttribution(page, warnings, stepLabel) {
     warnings.push(`${stepLabel}: attribution renders undersized (${Math.round(attribution.width)}x${Math.round(attribution.height)}px)`)
   }
   if (attribution.fontSize && attribution.fontSize < 8) {
-    warnings.push(`${stepLabel}: attribution font-size (${attribution.fontSize}px) reads as browser-default/too small`)
+    warnings.push(`${stepLabel}: attribution font-size (${attribution.fontSize}px) reads as too small`)
+  }
+  if (attribution.browserDefault) {
+    warnings.push(
+      `${stepLabel}: attribution renders with browser-default anchor styling — presentation CSS should make it intentional`,
+    )
   }
 }
 
@@ -229,7 +287,16 @@ async function main() {
 
     const rootLocator = page.locator('[data-scene-kit="presentation"]')
     await rootLocator.waitFor({ state: 'attached', timeout: 10000 })
-    const stepCount = Number(await rootLocator.getAttribute('data-step-count'))
+    // Without this guard a missing attribute (Number(null) === 0) or a
+    // nonnumeric one (NaN) skips the loop entirely, and inspection reports
+    // "no advisory warnings" having captured nothing.
+    const rawStepCount = await rootLocator.getAttribute('data-step-count')
+    const stepCount = Number(rawStepCount)
+    if (!Number.isInteger(stepCount) || stepCount < 1) {
+      throw new Error(
+        `presentation "${slug}" exposes an invalid data-step-count: ${JSON.stringify(rawStepCount)}`,
+      )
+    }
 
     for (let index = 0; index < stepCount; index += 1) {
       await waitForSceneSettled(page)

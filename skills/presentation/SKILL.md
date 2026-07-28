@@ -48,9 +48,16 @@ project. It does not cover:
   to it, or change its contract to suit one presentation — restyle the
   presentation instead. If a kit change is genuinely required, raise it with
   the user first.
-- **Resyncing the kit** is in scope, but only as the explicit "update/resync
-  the scene kit" request — never as an unrequested side effect of creating or
-  editing a presentation.
+  This includes resyncing or upgrading an existing project's vendored kit:
+  that is not one of this skill's flows. Scaffolding copies the kit into a
+  project that does not yet have one; it does not migrate a project that
+  already does. When asked to upgrade or resync a vendored kit, say that this
+  skill does not cover it, then ask the user whether to handle it as ordinary
+  repository work outside the skill — and if they agree, treat it as a normal
+  code change (diff the vendored copy against
+  `templates/bootstrap/src/presentation-kit/`, migrate deliberately, and
+  re-run the project's own `npm run verify`) rather than running any step of
+  this procedure.
 
 When a request falls outside this list but nearby, say which part you can do
 and ask before proceeding.

@@ -25,6 +25,11 @@ import { chromium } from 'playwright'
 import { CANONICAL_SLUG, findCanonicalMismatches } from './canonical-sample.mjs'
 import { stopServer, waitForServer } from './local-server.mjs'
 import {
+  describeDetachedChrome,
+  formatStepLocation,
+  readStepIndexSafely,
+} from './verify-diagnostics.mjs'
+import {
   findDiscoveryFailures,
   parseRegisteredSlugs,
   readRegistrySource,
@@ -74,11 +79,15 @@ async function discoverSlugs(page) {
 async function verifyPresentation(page, slug) {
   const errors = []
   const steps = []
+  // Updated as the run advances so console/page errors name the failing step.
+  let currentStep = 0
   const onConsole = (message) => {
-    if (message.type() === 'error') errors.push(`console.error on /${slug}: ${message.text()}`)
+    if (message.type() === 'error') {
+      errors.push(`console.error on ${formatStepLocation(slug, currentStep)}: ${message.text()}`)
+    }
   }
   const onPageError = (error) => {
-    errors.push(`uncaught page error on /${slug}: ${error.message}`)
+    errors.push(`uncaught page error on ${formatStepLocation(slug, currentStep)}: ${error.message}`)
   }
   page.on('console', onConsole)
   page.on('pageerror', onPageError)
@@ -86,7 +95,12 @@ async function verifyPresentation(page, slug) {
   try {
     await page.goto(`${BASE_URL}/${slug}`, { waitUntil: 'networkidle' })
     const chrome = page.locator('[data-step-count]').first()
-    await chrome.waitFor({ state: 'attached', timeout: 10_000 })
+    try {
+      await chrome.waitFor({ state: 'attached', timeout: 10_000 })
+    } catch {
+      errors.push(describeDetachedChrome(slug, currentStep))
+      return { errors, steps }
+    }
 
     const stepCount = Number(await chrome.getAttribute('data-step-count'))
     if (!Number.isInteger(stepCount) || stepCount < 1) {
@@ -95,7 +109,12 @@ async function verifyPresentation(page, slug) {
     }
 
     for (let expectedIndex = 0; expectedIndex < stepCount; expectedIndex += 1) {
-      const actualIndex = Number(await chrome.getAttribute('data-step-index'))
+      currentStep = expectedIndex
+      const actualIndex = await readStepIndexSafely(chrome)
+      if (actualIndex === null) {
+        errors.push(describeDetachedChrome(slug, expectedIndex))
+        return { errors, steps }
+      }
       if (actualIndex !== expectedIndex) {
         errors.push(
           `/${slug}: expected data-step-index ${expectedIndex} but found ${actualIndex}`,
@@ -108,6 +127,9 @@ async function verifyPresentation(page, slug) {
       steps.push({ title, caption })
 
       if (expectedIndex < stepCount - 1) {
+        // Attribute anything thrown by the incoming render to the step being
+        // entered, not the one being left.
+        currentStep = expectedIndex + 1
         await page.keyboard.press('ArrowRight')
         await delay(50)
       }

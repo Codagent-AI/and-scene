@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveTargetSteps } from './step-targets.mjs'
+import { resolveTargetSteps, screenshotFileName } from './step-targets.mjs'
 
 describe('resolveTargetSteps', () => {
   it('defaults to every step when none were requested', () => {
@@ -26,5 +26,17 @@ describe('resolveTargetSteps', () => {
   it('rejects a presentation that reports an unusable step count', () => {
     expect(() => resolveTargetSteps(null, 0)).toThrow(/step-count/i)
     expect(() => resolveTargetSteps(null, Number.NaN)).toThrow(/step-count/i)
+  })
+})
+
+describe('screenshotFileName', () => {
+  it('names desktop captures by zero-padded step index', () => {
+    expect(screenshotFileName(0, false)).toBe('step-00.png')
+    expect(screenshotFileName(8, false)).toBe('step-08.png')
+  })
+
+  it('keeps narrow captures from overwriting the desktop ones', () => {
+    expect(screenshotFileName(8, true)).toBe('step-08-narrow.png')
+    expect(screenshotFileName(8, true)).not.toBe(screenshotFileName(8, false))
   })
 })

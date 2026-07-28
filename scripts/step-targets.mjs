@@ -1,4 +1,5 @@
-// Resolves which step indices `inspect-presentation.mjs` should capture.
+// Resolves which step indices `inspect-presentation.mjs` should capture, and
+// what to name each capture.
 //
 // The capture loop walks forward with ArrowRight and names each screenshot
 // after its target index, so an unsorted, duplicated, or out-of-range `--steps`
@@ -28,4 +29,14 @@ export function resolveTargetSteps(requested, stepCount) {
   }
 
   return [...new Set(requested)].sort((a, b) => a - b)
+}
+
+/**
+ * Narrow-viewport captures get their own suffix so a `--narrow` run does not
+ * overwrite the desktop screenshots from a previous run — reviewers routinely
+ * need both widths side by side.
+ */
+export function screenshotFileName(stepIndex, narrow) {
+  const step = `step-${String(stepIndex).padStart(2, '0')}`
+  return narrow ? `${step}-narrow.png` : `${step}.png`
 }

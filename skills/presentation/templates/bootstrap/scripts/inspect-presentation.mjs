@@ -24,7 +24,7 @@ import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 import { stopServer, waitForServer } from './local-server.mjs'
-import { resolveTargetSteps } from './step-targets.mjs'
+import { resolveTargetSteps, screenshotFileName } from './step-targets.mjs'
 import {
   checkAttribution,
   findIndistinctActiveState,
@@ -90,7 +90,7 @@ async function main() {
         }
         await delay(SETTLE_MS)
 
-        const screenshotPath = path.join(outDir, `step-${String(targetIndex).padStart(2, '0')}.png`)
+        const screenshotPath = path.join(outDir, screenshotFileName(targetIndex, options.narrow))
         await page.screenshot({ path: screenshotPath })
         console.log(`captured ${screenshotPath}`)
 

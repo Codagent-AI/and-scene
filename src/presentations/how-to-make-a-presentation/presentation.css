@@ -1,0 +1,395 @@
+/*
+ * How to Use This Skill to Make a Presentation — presentation-owned styling.
+ * The scene kit ships with zero visual defaults; every color, font, spacing,
+ * and control treatment below targets the kit's stable data hooks.
+ */
+
+[data-presentation-root] {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: #14171f;
+  color: #e8ecf6;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  overflow: hidden;
+}
+
+[data-presentation-chrome='header'] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 16px 24px;
+  z-index: 2;
+}
+
+[data-presentation-node='marker'] {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7c8bb0;
+}
+
+[data-presentation-node='step-title'] {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+[data-presentation-chrome='stage'] {
+  position: relative;
+  margin: 0 auto;
+}
+
+/* Stage geometry is computed against STAGE_LAYOUT's insets (see
+   presentation-kit/constants.ts); mirror them here so the stage never sits
+   under the absolutely positioned header/footer chrome. */
+[data-presentation-mode='browse'][data-presentation-chrome='stage'] {
+  margin-top: 96px;
+}
+
+[data-presentation-mode='present'][data-presentation-chrome='stage'] {
+  margin-top: 64px;
+}
+
+[data-presentation-node='scene-root'] {
+  position: absolute;
+  inset: 0;
+}
+
+[data-presentation-node='box'],
+[data-presentation-node='symbol-chip'] {
+  border: 1px solid #3a4160;
+  background: #1d2230;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.3;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+}
+
+[data-presentation-active='true'][data-presentation-node='box'],
+[data-presentation-active='true'][data-presentation-node='symbol-chip'] {
+  border-color: #6ea8fe;
+  box-shadow: 0 0 0 2px rgba(110, 168, 254, 0.35);
+}
+
+.node-you {
+  position: absolute;
+  left: 16px;
+  top: 24px;
+  width: 72px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.node-depth-slot {
+  position: absolute;
+  left: 16px;
+  top: 76px;
+}
+
+.node-depth {
+  font-size: 11px;
+  color: #b7c2e0;
+}
+
+.node-prompt-slot {
+  position: absolute;
+  left: 104px;
+  top: 16px;
+  width: 220px;
+}
+
+.node-prompt {
+  font-style: italic;
+  color: #cdd6ee;
+}
+
+.node-skill-slot {
+  position: absolute;
+  right: 16px;
+  top: 24px;
+}
+
+.node-skill {
+  width: 72px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.connector-slot {
+  position: absolute;
+  left: 104px;
+  top: 56px;
+  width: 660px;
+  height: 24px;
+}
+
+.connector-arrow {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.connector-arrow line {
+  stroke: #6ea8fe;
+  stroke-width: 2;
+}
+
+.connector-arrow path {
+  fill: #6ea8fe;
+}
+
+.question-chip-slot {
+  position: absolute;
+  left: 380px;
+  top: 32px;
+}
+
+.node-question-chip {
+  font-size: 11px;
+  color: #9db4e8;
+}
+
+.tray-slot {
+  position: absolute;
+  left: 16px;
+  top: 118px;
+}
+
+.tray-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7c8bb0;
+}
+
+.card-step-slot {
+  position: absolute;
+  left: 16px;
+  top: 148px;
+}
+
+.card-deck-slot {
+  position: absolute;
+  left: 176px;
+  top: 148px;
+}
+
+.ghost-card-slot {
+  position: absolute;
+  left: 336px;
+  top: 148px;
+}
+
+.verify-node-slot {
+  position: absolute;
+  left: 496px;
+  top: 148px;
+}
+
+.node-card {
+  width: 140px;
+  min-height: 56px;
+}
+
+.node-card--ghost {
+  border-style: dashed;
+  color: #7c8bb0;
+}
+
+.node-card--edited {
+  border-color: #f4b740;
+}
+
+.edited-flag {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #f4b740;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.node-verify {
+  width: 96px;
+  text-align: center;
+}
+
+[data-presentation-node='box-icon'] {
+  display: block;
+  margin: 0 auto 4px;
+  width: 18px;
+  height: 18px;
+  color: #6bd08f;
+}
+
+.scene-kit-slot {
+  position: absolute;
+  left: 16px;
+  top: 236px;
+}
+
+.node-scene-kit {
+  width: 140px;
+  text-align: center;
+  border-color: #6bd08f;
+}
+
+.modify-arc-slot {
+  position: absolute;
+  left: 96px;
+  top: 56px;
+  width: 200px;
+  height: 190px;
+  pointer-events: none;
+}
+
+.modify-arrow {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.modify-arrow path {
+  fill: none;
+  stroke: #f4b740;
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.modify-arrow marker path {
+  fill: #f4b740;
+  stroke: none;
+}
+
+.reveal-frame {
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed #6ea8fe;
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.reveal-frame-label {
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  background: #14171f;
+  padding: 0 6px;
+  font-size: 11px;
+  color: #6ea8fe;
+}
+
+[data-presentation-chrome='toc'] {
+  position: absolute;
+  top: 260px;
+  right: 16px;
+  width: 160px;
+  z-index: 2;
+}
+
+[data-presentation-chrome='toc'] ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+[data-presentation-node='toc-entry'] {
+  background: none;
+  border: none;
+  color: #7c8bb0;
+  font-size: 12px;
+  padding: 4px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+[data-presentation-node='toc-entry'][data-presentation-active='true'] {
+  color: #e8ecf6;
+  font-weight: 700;
+  background: #232a3d;
+  border-radius: 6px;
+}
+
+[data-presentation-chrome='footer'] {
+  position: absolute;
+  /* Leave a clear strip below for the kit's fixed bottom-right attribution
+     link so the two never overlap. */
+  bottom: 26px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  z-index: 2;
+}
+
+[data-presentation-node='caption'] {
+  flex: 1;
+  font-size: 13px;
+  color: #b7c2e0;
+  margin: 0;
+}
+
+[data-presentation-chrome='progress'] {
+  display: flex;
+  gap: 6px;
+}
+
+[data-presentation-node='progress-dot'] {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: #3a4160;
+  cursor: pointer;
+  padding: 0;
+}
+
+[data-presentation-node='progress-dot'][data-presentation-active='true'] {
+  background: #6ea8fe;
+  box-shadow: 0 0 0 2px rgba(110, 168, 254, 0.35);
+}
+
+[data-presentation-chrome='prev-next'] button {
+  background: #232a3d;
+  color: #e8ecf6;
+  border: 1px solid #3a4160;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+[data-presentation-chrome='prev-next'] button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+[data-presentation-attribution] {
+  font-size: 12px;
+  color: #9db4e8;
+  text-decoration: none;
+  background: #1d2230;
+  border: 1px solid #3a4160;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+[data-presentation-attribution]:hover {
+  color: #e8ecf6;
+}

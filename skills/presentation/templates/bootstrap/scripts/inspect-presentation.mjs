@@ -24,6 +24,7 @@ import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 import { stopServer, waitForServer } from './local-server.mjs'
+import { resolveTargetSteps } from './step-targets.mjs'
 import {
   checkAttribution,
   findIndistinctActiveState,
@@ -78,7 +79,7 @@ async function main() {
       const chrome = page.locator('[data-step-count]').first()
       await chrome.waitFor({ state: 'attached', timeout: 10_000 })
       const stepCount = Number(await chrome.getAttribute('data-step-count'))
-      const targetSteps = options.steps ?? Array.from({ length: stepCount }, (_, i) => i)
+      const targetSteps = resolveTargetSteps(options.steps, stepCount)
 
       let currentIndex = 0
       let anyWarnings = false

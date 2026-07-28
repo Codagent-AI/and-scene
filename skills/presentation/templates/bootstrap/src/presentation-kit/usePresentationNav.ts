@@ -46,6 +46,16 @@ export function usePresentationNav({
   }, [])
   const touchStartX = useRef<number | null>(null)
 
+  // Keep the stored index inside the current bounds, not just the value handed
+  // out: a deck that shrinks and later grows again must not resurrect the old
+  // position and jump the viewer away from the step they were left on. This is
+  // the adjust-state-during-render pattern, so no extra commit is needed.
+  const [lastStepCount, setLastStepCount] = useState(stepCount)
+  if (lastStepCount !== stepCount) {
+    setLastStepCount(stepCount)
+    setIndex((current) => clamp(current, stepCount))
+  }
+
   const goTo = useCallback(
     (target: number) => {
       setIndex(clamp(target, stepCount))
@@ -53,12 +63,15 @@ export function usePresentationNav({
     [stepCount],
   )
 
+  // `current` can be stale when the step count shrinks under a mounted deck, so
+  // clamp it before stepping — otherwise the first press only re-selects the
+  // step already on screen and reads as an unresponsive control.
   const next = useCallback(() => {
-    setIndex((current) => clamp(current + 1, stepCount))
+    setIndex((current) => clamp(clamp(current, stepCount) + 1, stepCount))
   }, [stepCount])
 
   const prev = useCallback(() => {
-    setIndex((current) => clamp(current - 1, stepCount))
+    setIndex((current) => clamp(clamp(current, stepCount) - 1, stepCount))
   }, [stepCount])
 
   const toggleMode = useCallback(() => {
@@ -123,5 +136,5 @@ export function usePresentationNav({
     }
   }, [stageNode, next, prev])
 
-  return { index, mode, next, prev, goTo, toggleMode, setMode, stageRef }
+  return { index: clamp(index, stepCount), mode, next, prev, goTo, toggleMode, setMode, stageRef }
 }

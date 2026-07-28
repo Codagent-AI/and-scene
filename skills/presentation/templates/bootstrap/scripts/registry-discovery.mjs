@@ -9,9 +9,10 @@
 
 import { readFile } from 'node:fs/promises'
 
-/** Counts the `slug:` entries declared in a presentations registry module. */
-export function countRegisteredSlugs(registrySource) {
-  return (registrySource.match(/^[ \t]*slug:\s*['"`]/gm) ?? []).length
+/** Extracts the slugs declared in a presentations registry module, in order. */
+export function parseRegisteredSlugs(registrySource) {
+  const matches = registrySource.matchAll(/^[ \t]*slug:\s*['"`]([^'"`]+)['"`]/gm)
+  return Array.from(matches, (match) => match[1])
 }
 
 /**
@@ -27,15 +28,16 @@ export async function readRegistrySource(registryPath) {
 }
 
 /**
- * Returns failure descriptions when the registry declares presentations that
- * landing-page discovery missed. An empty registry is a legitimate freshly
- * scaffolded project and produces no failure.
+ * Returns one failure per registered presentation that landing-page discovery
+ * missed, so partial loss fails as loudly as total loss — a registry entry that
+ * is never discovered is a presentation verification never renders. An empty
+ * registry is a legitimate freshly scaffolded project and produces no failure.
  */
-export function findDiscoveryFailures(registeredCount, discoveredSlugs) {
-  if (registeredCount > 0 && discoveredSlugs.length === 0) {
-    return [
-      `src/presentations/index.ts declares ${registeredCount} presentation(s) but none were discoverable on the landing page — each entry must render an <a href="/slug"> inside [data-testid="presentation-registry"]`,
-    ]
-  }
-  return []
+export function findDiscoveryFailures(registeredSlugs, discoveredSlugs) {
+  return registeredSlugs
+    .filter((slug) => !discoveredSlugs.includes(slug))
+    .map(
+      (slug) =>
+        `registered presentation "${slug}" was not discoverable on the landing page — it must render an <a href="/${slug}"> inside [data-testid="presentation-registry"]`,
+    )
 }

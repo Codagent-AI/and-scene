@@ -25,8 +25,8 @@ import { chromium } from 'playwright'
 import { CANONICAL_SLUG, findCanonicalMismatches } from './canonical-sample.mjs'
 import { stopServer, waitForServer } from './local-server.mjs'
 import {
-  countRegisteredSlugs,
   findDiscoveryFailures,
+  parseRegisteredSlugs,
   readRegistrySource,
 } from './registry-discovery.mjs'
 
@@ -138,10 +138,10 @@ async function main() {
       const page = await browser.newPage()
       const slugs = await discoverSlugs(page)
 
-      const registeredCount = countRegisteredSlugs(await readRegistrySource(REGISTRY_PATH))
-      failures.push(...findDiscoveryFailures(registeredCount, slugs))
+      const registeredSlugs = parseRegisteredSlugs(await readRegistrySource(REGISTRY_PATH))
+      failures.push(...findDiscoveryFailures(registeredSlugs, slugs))
 
-      if (slugs.length === 0 && registeredCount === 0) {
+      if (slugs.length === 0 && registeredSlugs.length === 0) {
         console.warn('No presentations registered in src/presentations/index.ts; skipping render checks.')
       }
 

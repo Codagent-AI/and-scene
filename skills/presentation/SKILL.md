@@ -27,6 +27,34 @@ every template path relative to this file's own directory
 (`skills/presentation/`), never relative to the caller's working directory,
 so the skill behaves the same regardless of where it is invoked from.
 
+## Out of scope
+
+This skill builds browser-rendered evolving-scene presentations in a React
+project. It does not cover:
+
+- **Independent slide decks** — content that is a sequence of unrelated
+  slides rather than one accumulating scene. Say so and offer the
+  evolving-scene framing instead; if the user genuinely wants discrete
+  slides, this is the wrong tool.
+- **PowerPoint, Keynote, PDF, or image-export decks.** There is no export
+  path; the output is a routed web app. Redirect to a document or
+  presentation-authoring tool.
+- **General web applications.** Routing, landing page, and app shell exist
+  only to host presentations. Unrelated app features belong outside this
+  skill.
+- **Redesigning the shared scene kit.** `src/presentation-kit/` is vendored
+  and kept byte-aligned with its bootstrap-template copy; presentations own
+  all styling. Do not refactor the kit, add a CSS framework or design system
+  to it, or change its contract to suit one presentation — restyle the
+  presentation instead. If a kit change is genuinely required, raise it with
+  the user first.
+- **Resyncing the kit** is in scope, but only as the explicit "update/resync
+  the scene kit" request — never as an unrequested side effect of creating or
+  editing a presentation.
+
+When a request falls outside this list but nearby, say which part you can do
+and ask before proceeding.
+
 ## Procedure
 
 ### 1. Gather requirements
@@ -126,6 +154,21 @@ changing anything.
 
 #### Creating a new presentation
 
+0. **Read the host project before writing anything.** The templates encode
+   *this* repository's conventions, and step 2 accepts any equivalent app
+   contract rather than a byte-identical one — so the target may legitimately
+   differ. Before copying, inspect:
+   - the registry (`src/presentations/index.ts`) and the scene kit's public
+     exports (`src/presentation-kit/index.ts`) — take the component and type
+     names from the kit that is actually installed, not from memory;
+   - one or two existing presentations, if any, plus their tests — note how
+     steps are split across files, how payloads are typed, and how each
+     registers;
+   - the import and styling conventions in use (path aliases vs. relative
+     imports, CSS file per presentation vs. shared, naming of `layoutId`s).
+
+   Adapt the template to what you find. Where the host diverges from the
+   template, follow the host.
 1. Pick a URL-safe `slug` (kebab-case) from the topic; confirm it doesn't
    already exist in the registry.
 2. Copy `templates/presentation/` into `src/presentations/<slug>/` (or the

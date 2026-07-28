@@ -25,6 +25,63 @@ describe('Presentation', () => {
     expect(screen.getByTestId('scene-payload')).toHaveTextContent('one')
   })
 
+  it('renders an empty root instead of crashing when given no steps', () => {
+    const { container } = render(<Presentation steps={[]} title="Empty talk" />)
+    const root = container.querySelector('[data-presentation-root]')
+    expect(root).toHaveAttribute('data-step-count', '0')
+    expect(screen.queryByTestId('scene-payload')).toBeNull()
+  })
+
+  it('clamps to the last step when a non-empty steps prop shrinks below the active index', () => {
+    const steps = makeSteps()
+    const { container, rerender } = render(<Presentation steps={steps} title="My talk" />)
+
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    expect(container.querySelector('[data-presentation-root]')).toHaveAttribute('data-step-index', '2')
+
+    rerender(<Presentation steps={steps.slice(0, 2)} title="My talk" />)
+
+    const root = container.querySelector('[data-presentation-root]')
+    expect(root).toHaveAttribute('data-step-count', '2')
+    expect(root).toHaveAttribute('data-step-index', '1')
+    // Chrome reads straight off the active step, so this proves which step is live.
+    expect(screen.getByText('Second caption')).toBeInTheDocument()
+    expect(screen.queryByText('Third caption')).not.toBeInTheDocument()
+  })
+
+  it('keeps navigation responsive after the deck shrinks, without a swallowed first click', () => {
+    const steps = makeSteps()
+    const { container, rerender } = render(<Presentation steps={steps} title="My talk" />)
+
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    rerender(<Presentation steps={steps.slice(0, 2)} title="My talk" />)
+
+    // Stored index is stale at 2 while step 1 renders; one Prev must reach step 0.
+    fireEvent.click(screen.getByRole('button', { name: /prev/i }))
+
+    expect(container.querySelector('[data-presentation-root]')).toHaveAttribute('data-step-index', '0')
+    expect(screen.getByText('First caption')).toBeInTheDocument()
+  })
+
+  it('does not resurrect a stale index when the deck shrinks and then grows again', () => {
+    const steps = makeSteps()
+    const { container, rerender } = render(<Presentation steps={steps} title="My talk" />)
+    const root = () => container.querySelector('[data-presentation-root]')
+
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    rerender(<Presentation steps={steps.slice(0, 2)} title="My talk" />)
+    expect(root()).toHaveAttribute('data-step-index', '1')
+
+    rerender(<Presentation steps={steps} title="My talk" />)
+
+    // The viewer was moved to step 1 by the shrink; regrowing must not jump them.
+    expect(root()).toHaveAttribute('data-step-index', '1')
+    expect(screen.getByText('Second caption')).toBeInTheDocument()
+  })
+
   it('exposes data-step-count and data-step-index so steps can be enumerated externally', () => {
     const steps = makeSteps()
     const { container } = render(<Presentation steps={steps} title="My talk" />)

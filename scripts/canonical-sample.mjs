@@ -11,9 +11,10 @@ export const CANONICAL_SLUG = 'how-to-make-a-presentation'
 export function findCanonicalMismatches(actualSteps, canonicalSteps) {
   const errors = []
 
-  if (actualSteps.length < canonicalSteps.length) {
+  // The outline is exact: extra steps are as much a mismatch as missing ones.
+  if (actualSteps.length !== canonicalSteps.length) {
     errors.push(
-      `${CANONICAL_SLUG}: missing steps — expected ${canonicalSteps.length} canonical steps but found ${actualSteps.length}`,
+      `${CANONICAL_SLUG}: step count mismatch — expected ${canonicalSteps.length} canonical steps but found ${actualSteps.length}`,
     )
   }
 

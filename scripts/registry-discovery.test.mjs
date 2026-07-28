@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  countRegisteredSlugs,
   findDiscoveryFailures,
+  parseRegisteredSlugs,
   readRegistrySource,
 } from './registry-discovery.mjs'
 
@@ -26,24 +26,27 @@ const EMPTY_REGISTRY = `import type { PresentationRegistryEntry } from '../route
 export const presentations: PresentationRegistryEntry[] = []
 `
 
-describe('countRegisteredSlugs', () => {
-  it('counts every declared slug entry', () => {
-    expect(countRegisteredSlugs(REGISTRY_WITH_TWO)).toBe(2)
+describe('parseRegisteredSlugs', () => {
+  it('extracts every declared slug, in order, across quote styles', () => {
+    expect(parseRegisteredSlugs(REGISTRY_WITH_TWO)).toEqual([
+      'how-to-make-a-presentation',
+      'second-talk',
+    ])
   })
 
-  it('returns 0 for an empty registry', () => {
-    expect(countRegisteredSlugs(EMPTY_REGISTRY)).toBe(0)
+  it('returns an empty list for an empty registry', () => {
+    expect(parseRegisteredSlugs(EMPTY_REGISTRY)).toEqual([])
   })
 
   it('ignores commented-out entries', () => {
-    expect(countRegisteredSlugs(`  // slug: 'not-registered',\n`)).toBe(0)
+    expect(parseRegisteredSlugs(`  // slug: 'not-registered',\n`)).toEqual([])
   })
 })
 
 describe('readRegistrySource', () => {
   it('reads a real registry module', async () => {
     const source = await readRegistrySource('src/presentations/index.ts')
-    expect(countRegisteredSlugs(source)).toBeGreaterThan(0)
+    expect(parseRegisteredSlugs(source)).toContain('how-to-make-a-presentation')
   })
 
   it('treats an unreadable registry as empty rather than throwing', async () => {
@@ -53,16 +56,29 @@ describe('readRegistrySource', () => {
 
 describe('findDiscoveryFailures', () => {
   it('fails loudly when the registry is non-empty but nothing was discovered', () => {
-    const failures = findDiscoveryFailures(2, [])
-    expect(failures).toHaveLength(1)
-    expect(failures[0]).toContain('declares 2 presentation(s)')
+    const failures = findDiscoveryFailures(['a', 'b'], [])
+    expect(failures).toHaveLength(2)
+    expect(failures[0]).toContain('"a"')
+    expect(failures[1]).toContain('"b"')
+  })
+
+  it('reports each registered presentation that discovery missed, not just total loss', () => {
+    const failures = findDiscoveryFailures(['a', 'b', 'c'], ['b'])
+    expect(failures).toHaveLength(2)
+    expect(failures.join(' ')).toContain('"a"')
+    expect(failures.join(' ')).toContain('"c"')
+    expect(failures.join(' ')).not.toContain('"b"')
   })
 
   it('passes when an empty registry discovers nothing', () => {
-    expect(findDiscoveryFailures(0, [])).toEqual([])
+    expect(findDiscoveryFailures([], [])).toEqual([])
   })
 
   it('passes when every registered presentation was discovered', () => {
-    expect(findDiscoveryFailures(2, ['a', 'b'])).toEqual([])
+    expect(findDiscoveryFailures(['a', 'b'], ['a', 'b'])).toEqual([])
+  })
+
+  it('ignores extra discovered slugs that are not in the registry', () => {
+    expect(findDiscoveryFailures(['a'], ['a', 'stray'])).toEqual([])
   })
 })

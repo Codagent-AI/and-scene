@@ -45,6 +45,18 @@ describe('findCanonicalMismatches', () => {
     const actual = [{ title: 'You have a topic', caption: 'It starts.' }]
     const errors = findCanonicalMismatches(actual, CANONICAL)
     expect(errors).toHaveLength(1)
-    expect(errors[0]).toMatch(/missing/i)
+    expect(errors[0]).toMatch(/count mismatch/i)
+  })
+
+  it('reports a count mismatch when actual has extra steps beyond the canonical outline', () => {
+    const actual = [
+      { title: 'You have a topic', caption: 'It starts.' },
+      { title: 'The skill interviews you', caption: 'One question at a time.' },
+      { title: 'Bonus step', caption: 'Not in the outline.' },
+    ]
+    const errors = findCanonicalMismatches(actual, CANONICAL)
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toMatch(/count mismatch/i)
+    expect(errors[0]).toMatch(/found 3/)
   })
 })

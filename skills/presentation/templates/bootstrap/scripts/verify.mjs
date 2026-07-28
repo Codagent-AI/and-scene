@@ -13,11 +13,11 @@
 // Exits non-zero with a description of the first failure.
 
 import { spawn } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { stopServer, waitForServer } from './local-server.mjs'
 import {
   countRegisteredSlugs,
   findDiscoveryFailures,
@@ -39,20 +39,6 @@ function run(command, args) {
     })
     child.on('error', reject)
   })
-}
-
-async function waitForServer(url, timeoutMs = 20_000) {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url)
-      if (response.ok || response.status < 500) return
-    } catch {
-      // Server not ready yet.
-    }
-    await delay(200)
-  }
-  throw new Error(`Timed out waiting for ${url}`)
 }
 
 async function discoverSlugs(page) {
@@ -124,7 +110,7 @@ async function main() {
       const page = await browser.newPage()
       const slugs = await discoverSlugs(page)
 
-      const registeredCount = countRegisteredSlugs(await readRegistrySource(readFile, REGISTRY_PATH))
+      const registeredCount = countRegisteredSlugs(await readRegistrySource(REGISTRY_PATH))
       failures.push(...findDiscoveryFailures(registeredCount, slugs))
 
       if (slugs.length === 0 && registeredCount === 0) {
@@ -139,13 +125,7 @@ async function main() {
       await browser.close()
     }
   } finally {
-    // `npx` spawns vite as a child process; killing only the npx process
-    // leaves the real server running. Kill the whole detached process group.
-    try {
-      process.kill(-preview.pid)
-    } catch {
-      preview.kill()
-    }
+    stopServer(preview)
   }
 
   if (failures.length > 0) {

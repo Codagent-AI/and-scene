@@ -7,16 +7,18 @@
 // without this cross-check verification would skip every render check and still
 // report "Verification passed".
 
+import { readFile } from 'node:fs/promises'
+
 /** Counts the `slug:` entries declared in a presentations registry module. */
 export function countRegisteredSlugs(registrySource) {
-  return (registrySource.match(/^[ \t]*slug:\s*(['"`])[^'"`]+\1/gm) ?? []).length
+  return (registrySource.match(/^[ \t]*slug:\s*['"`]/gm) ?? []).length
 }
 
 /**
  * Reads a registry module, treating an unreadable file as an empty registry so
  * this cross-check can never itself become the reason verification fails.
  */
-export async function readRegistrySource(readFile, registryPath) {
+export async function readRegistrySource(registryPath) {
   try {
     return await readFile(registryPath, 'utf8')
   } catch {

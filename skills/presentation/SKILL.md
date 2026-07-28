@@ -94,9 +94,9 @@ not a byte-identical match — file naming or extra dependencies don't matter):
   `.gitignore`, `src/` (including `src/presentation-kit/`,
   `src/presentations/index.ts` as an empty registry, `src/main.tsx`,
   `src/Root.tsx`, `src/router.ts`, `src/Landing.tsx`, `src/index.css`), and
-  the whole `scripts/` directory (`verify.mjs` and `inspect-presentation.mjs`
-  plus the `registry-discovery.mjs` / `inspect-checks.mjs` modules they
-  import — copying only the two entry points leaves a broken scaffold). Merge into an
+  the whole `scripts/` directory (the `verify.mjs` and
+  `inspect-presentation.mjs` entry points import sibling modules from it, so
+  copying only those two leaves a broken scaffold). Merge into an
   existing `package.json`/`.gitignore` instead of overwriting when the target
   already has one of those files but was missing an anchor.
 - **Non-empty project missing scaffolding** — before writing anything, state

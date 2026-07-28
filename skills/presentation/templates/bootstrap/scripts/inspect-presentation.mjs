@@ -23,6 +23,7 @@ import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { stopServer, waitForServer } from './local-server.mjs'
 import {
   checkAttribution,
   findIndistinctActiveState,
@@ -51,20 +52,6 @@ function parseArgs(argv) {
     }
   }
   return options
-}
-
-async function waitForServer(url, timeoutMs = 20_000) {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url)
-      if (response.ok || response.status < 500) return
-    } catch {
-      // Server not ready yet.
-    }
-    await delay(200)
-  }
-  throw new Error(`Timed out waiting for ${url}`)
 }
 
 async function main() {
@@ -124,13 +111,7 @@ async function main() {
       await browser.close()
     }
   } finally {
-    // `npx` spawns vite as a child process; killing only the npx process
-    // leaves the real server running. Kill the whole detached process group.
-    try {
-      process.kill(-devServer.pid)
-    } catch {
-      devServer.kill()
-    }
+    stopServer(devServer)
   }
 }
 

@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 import { CANONICAL_SLUG, findCanonicalMismatches } from './canonical-sample.mjs'
+import { stopServer, waitForServer } from './local-server.mjs'
 import {
   countRegisteredSlugs,
   findDiscoveryFailures,
@@ -40,16 +41,15 @@ const CANONICAL_OUTLINE_PATH = path.join(
 const REGISTRY_PATH = path.join(REPO_ROOT, 'src/presentations/index.ts')
 
 // The kit renders the active step's title in the header in browse mode and in
-// the footer in present mode, so read whichever hook this presentation's mode
+// the footer in present mode, so match whichever hook this presentation's mode
 // actually mounted instead of blocking on one of them.
-const TITLE_SELECTORS = ['[data-presentation-header-title]', '[data-presentation-footer-title]']
+const TITLE_SELECTOR = '[data-presentation-header-title], [data-presentation-footer-title]'
 
-async function readOptionalText(page, selectors) {
-  for (const selector of selectors) {
-    const locator = page.locator(selector).first()
-    if ((await locator.count()) > 0) return (await locator.textContent())?.trim() ?? ''
-  }
-  return ''
+/** Reads a hook's text, or '' when this mode does not mount it (no auto-wait). */
+async function readOptionalText(page, selector) {
+  const locator = page.locator(selector).first()
+  if ((await locator.count()) === 0) return ''
+  return (await locator.textContent())?.trim() ?? ''
 }
 
 function run(command, args) {
@@ -61,20 +61,6 @@ function run(command, args) {
     })
     child.on('error', reject)
   })
-}
-
-async function waitForServer(url, timeoutMs = 20_000) {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url)
-      if (response.ok || response.status < 500) return
-    } catch {
-      // Server not ready yet.
-    }
-    await delay(200)
-  }
-  throw new Error(`Timed out waiting for ${url}`)
 }
 
 async function discoverSlugs(page) {
@@ -117,8 +103,8 @@ async function verifyPresentation(page, slug) {
         return { errors, steps }
       }
 
-      const title = await readOptionalText(page, TITLE_SELECTORS)
-      const caption = await readOptionalText(page, ['[data-presentation-caption]'])
+      const title = await readOptionalText(page, TITLE_SELECTOR)
+      const caption = await readOptionalText(page, '[data-presentation-caption]')
       steps.push({ title, caption })
 
       if (expectedIndex < stepCount - 1) {
@@ -152,7 +138,7 @@ async function main() {
       const page = await browser.newPage()
       const slugs = await discoverSlugs(page)
 
-      const registeredCount = countRegisteredSlugs(await readRegistrySource(readFile, REGISTRY_PATH))
+      const registeredCount = countRegisteredSlugs(await readRegistrySource(REGISTRY_PATH))
       failures.push(...findDiscoveryFailures(registeredCount, slugs))
 
       if (slugs.length === 0 && registeredCount === 0) {
@@ -178,13 +164,7 @@ async function main() {
       await browser.close()
     }
   } finally {
-    // `npx` spawns vite as a child process; killing only the npx process
-    // leaves the real server running. Kill the whole detached process group.
-    try {
-      process.kill(-preview.pid)
-    } catch {
-      preview.kill()
-    }
+    stopServer(preview)
   }
 
   if (failures.length > 0) {

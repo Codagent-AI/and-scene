@@ -18,25 +18,15 @@
  * would warn on every step regardless of composition.
  */
 export function findUnmarkedOverlaps() {
-  const chromeSelectors = [
-    '[data-presentation-header]',
-    '[data-presentation-footer]',
-    '[data-presentation-caption]',
-    '[data-presentation-progress]',
-    '[data-presentation-toc]',
-    '[data-presentation-nav-controls]',
-    '[data-presentation-attribution]',
-  ]
-  // Kit nodes that paint a visible boundary of their own.
-  const boundedSceneSelectors = [
-    '[data-presentation-frame]',
-    '[data-presentation-box]',
-    '[data-presentation-symbol-chip]',
-  ]
-  const chromeEls = chromeSelectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)))
   const stage = document.querySelector('[data-presentation-stage]')
   if (!stage) return []
 
+  const chromeNames = ['header', 'footer', 'caption', 'progress', 'toc', 'nav-controls', 'attribution']
+  // Kit nodes that paint a visible boundary of their own.
+  const boundedSceneNames = ['frame', 'box', 'symbol-chip']
+
+  const hook = (name) => `[data-presentation-${name}]`
+  const matchName = (el, names) => names.find((name) => el.matches(hook(name)))
   const intersects = (a, b) =>
     a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
 
@@ -45,22 +35,19 @@ export function findUnmarkedOverlaps() {
     return style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0
   }
 
-  const describe = (el) => {
-    const bounded = boundedSceneSelectors.find((selector) => el.matches(selector))
-    if (bounded) return `scene ${bounded.replace('[data-presentation-', '').replace(']', '')}`
-    return `scene text "${el.textContent?.trim().slice(0, 40)}"`
+  const describeScene = (el) => {
+    const name = matchName(el, boundedSceneNames)
+    return name ? `scene ${name}` : `scene text "${el.textContent?.trim().slice(0, 40)}"`
   }
 
-  const describeChrome = (el) => {
-    for (const selector of chromeSelectors) {
-      if (el.matches(selector)) return selector.replace('[data-presentation-', '').replace(']', '')
-    }
-    return el.tagName.toLowerCase()
-  }
+  const chromeBoxes = chromeNames
+    .flatMap((name) => Array.from(document.querySelectorAll(hook(name))))
+    .map((el) => ({ el, name: matchName(el, chromeNames), rect: el.getBoundingClientRect() }))
+    .filter(({ rect }) => rect.width > 0 && rect.height > 0)
 
   const candidates = Array.from(stage.querySelectorAll('*')).filter((el) => {
     if (!isVisible(el)) return false
-    if (boundedSceneSelectors.some((selector) => el.matches(selector))) return true
+    if (matchName(el, boundedSceneNames)) return true
     // Leaf text nodes only: a text-bearing container would double-report its child.
     return Boolean(el.textContent?.trim()) && el.children.length === 0
   })
@@ -70,12 +57,10 @@ export function findUnmarkedOverlaps() {
     if (sceneEl.closest('[data-presentation-allow-overlap]')) continue
     const sceneRect = sceneEl.getBoundingClientRect()
     if (sceneRect.width === 0 || sceneRect.height === 0) continue
-    for (const chromeEl of chromeEls) {
-      if (chromeEl.contains(sceneEl) || sceneEl.contains(chromeEl)) continue
-      const chromeRect = chromeEl.getBoundingClientRect()
-      if (chromeRect.width === 0 || chromeRect.height === 0) continue
-      if (intersects(sceneRect, chromeRect)) {
-        warnings.push(`${describe(sceneEl)} overlaps ${describeChrome(chromeEl)} chrome`)
+    for (const chrome of chromeBoxes) {
+      if (chrome.el.contains(sceneEl) || sceneEl.contains(chrome.el)) continue
+      if (intersects(sceneRect, chrome.rect)) {
+        warnings.push(`${describeScene(sceneEl)} overlaps ${chrome.name} chrome`)
       }
     }
   }

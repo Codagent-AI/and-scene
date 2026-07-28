@@ -41,16 +41,13 @@ describe('countRegisteredSlugs', () => {
 })
 
 describe('readRegistrySource', () => {
-  it('returns the file contents when readable', async () => {
-    const readFile = async () => EMPTY_REGISTRY
-    expect(await readRegistrySource(readFile, 'src/presentations/index.ts')).toBe(EMPTY_REGISTRY)
+  it('reads a real registry module', async () => {
+    const source = await readRegistrySource('src/presentations/index.ts')
+    expect(countRegisteredSlugs(source)).toBeGreaterThan(0)
   })
 
   it('treats an unreadable registry as empty rather than throwing', async () => {
-    const readFile = async () => {
-      throw new Error('ENOENT')
-    }
-    expect(await readRegistrySource(readFile, 'missing.ts')).toBe('')
+    expect(await readRegistrySource('src/presentations/does-not-exist.ts')).toBe('')
   })
 })
 

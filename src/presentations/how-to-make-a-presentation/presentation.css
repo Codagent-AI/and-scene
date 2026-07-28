@@ -324,6 +324,16 @@
   border-radius: 6px;
 }
 
+/* Browse mode shows the table of contents on wide viewports only. The kit
+   renders it whenever the presentation is in browse mode and leaves
+   viewport-based visibility to the presentation, so collapse it here rather
+   than letting it float over the scene on narrow screens. */
+@media (max-width: 900px) {
+  [data-presentation-chrome='toc'] {
+    display: none;
+  }
+}
+
 [data-presentation-chrome='footer'] {
   position: absolute;
   /* Leave a clear strip below for the kit's fixed bottom-right attribution

@@ -21,3 +21,15 @@
  * entry, and attribution link a visibly distinct, legible treatment — the
  * inspection helper flags steps where they read as indistinct or default.
  */
+
+/* Browse mode shows the table of contents on wide viewports only. The kit
+   renders it whenever the presentation is in browse mode and leaves
+   viewport-based visibility to the presentation, so collapse it here rather
+   than letting it float over the scene on narrow screens. Tune or move the
+   breakpoint to suit this presentation's layout, but keep the narrow-viewport
+   rule — `npm run verify` checks it. */
+@media (max-width: 900px) {
+  [data-presentation-chrome='toc'] {
+    display: none;
+  }
+}

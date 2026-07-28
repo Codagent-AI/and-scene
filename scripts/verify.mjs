@@ -24,6 +24,8 @@ const HOST = '127.0.0.1'
 const PORT = Number(process.env.VERIFY_PORT ?? 4173)
 const BASE_URL = `http://${HOST}:${PORT}`
 
+const NARROW_VIEWPORT = { width: 390, height: 800 }
+
 const REFERENCE_SAMPLE_SLUG = 'how-to-make-a-presentation'
 const REFERENCE_SAMPLE_DIR = path.join(projectRoot, 'src/presentations/how-to-make-a-presentation')
 
@@ -149,6 +151,29 @@ async function verifyRoute(browser, slug) {
   return { slug, ok: true }
 }
 
+// The canonical spec scopes the browse-mode table of contents to wide
+// viewports. The kit renders it unconditionally in browse mode (visibility is
+// a style decision the presentation owns), so this asserts the reference
+// sample actually collapses it at a phone-width viewport instead of leaving it
+// floating over the scene.
+async function verifyNarrowViewport(browser, slug) {
+  const page = await browser.newPage({ viewport: NARROW_VIEWPORT })
+  try {
+    await page.goto(`${BASE_URL}/${slug}`, { waitUntil: 'networkidle' })
+
+    const toc = page.locator('[data-presentation-chrome="toc"]')
+    if ((await toc.count()) > 0 && (await toc.first().isVisible())) {
+      return {
+        ok: false,
+        message: `table of contents is still visible at ${NARROW_VIEWPORT.width}px; the canonical spec scopes it to wide viewports`,
+      }
+    }
+    return { ok: true }
+  } finally {
+    await page.close()
+  }
+}
+
 async function main() {
   console.log('[verify] building the whole app…')
   const build = spawnSync('npm', ['run', 'build'], { cwd: projectRoot, stdio: 'inherit', shell: true })
@@ -192,6 +217,14 @@ async function main() {
         } else {
           console.log(`[verify] /${slug} OK (${slugs.length} route(s) checked)`)
         }
+      }
+
+      console.log(`[verify] checking /${REFERENCE_SAMPLE_SLUG} at ${NARROW_VIEWPORT.width}px…`)
+      const narrow = await verifyNarrowViewport(browser, REFERENCE_SAMPLE_SLUG)
+      if (!narrow.ok) {
+        fail(`/${REFERENCE_SAMPLE_SLUG} — ${narrow.message}`)
+      } else {
+        console.log(`[verify] /${REFERENCE_SAMPLE_SLUG} narrow viewport OK`)
       }
     } finally {
       await browser.close()

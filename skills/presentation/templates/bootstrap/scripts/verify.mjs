@@ -108,10 +108,13 @@ async function main() {
   }
 
   console.log(`[verify] starting preview on ${BASE_URL}…`)
+  // detached + killing the negative pid terminates the whole process group —
+  // spawning through a shell means `preview.kill()` alone would only kill the
+  // shell wrapper and leave the actual vite server running, hanging this script.
   const preview = spawn(
     'npx',
     ['vite', 'preview', '--host', HOST, '--port', String(PORT), '--strictPort'],
-    { cwd: projectRoot, stdio: 'pipe', shell: true },
+    { cwd: projectRoot, stdio: 'pipe', shell: true, detached: true },
   )
 
   try {
@@ -134,7 +137,11 @@ async function main() {
   } catch (error) {
     fail(error instanceof Error ? error.message : String(error))
   } finally {
-    preview.kill()
+    try {
+      process.kill(-preview.pid, 'SIGKILL')
+    } catch {
+      // process group already gone
+    }
   }
 
   if (process.exitCode !== 1) {

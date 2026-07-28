@@ -26,7 +26,17 @@ const SETTLE_MS = 500
 
 function run(command, args) {
   console.log(`> ${command} ${args.join(' ')}`)
-  const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' })
+  const result = spawnSync(command, args, {
+    cwd: root,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+    // `loadRegistry()` opens a vite dev server before this runs, and vite sets
+    // process.env.NODE_ENV = 'development' in-process. The spawned build would
+    // inherit it and emit a development bundle — so the screenshots and
+    // advisory warnings would describe a build that is not what ships, and
+    // dist/ would be left holding it. Pin the build to production.
+    env: { ...process.env, NODE_ENV: 'production' },
+  })
   if (result.status !== 0) {
     console.error(`\nfailed: ${command} ${args.join(' ')}`)
     process.exit(result.status ?? 1)

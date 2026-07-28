@@ -25,10 +25,14 @@ export function Presentation<TPayload>({ steps, initialMode }: PresentationProps
       data-step-count={steps.length}
       data-step-index={index}
       ref={stageRef}
+      style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
     >
       <Header mode={mode} marker={marker} title={activeStep.title} />
 
-      <div data-presentation-canvas-viewport="">
+      <div
+        data-presentation-canvas-viewport=""
+        style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+      >
         <div
           data-presentation-canvas=""
           style={{ width: DESIGN_W, height: DESIGN_H, transform: `scale(${scale})` }}

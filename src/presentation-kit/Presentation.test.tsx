@@ -113,4 +113,11 @@ describe('Presentation', () => {
     fireEvent.keyDown(nextButton, { key: 'ArrowLeft' })
     expect(container.querySelector('[data-step-index]')).toHaveAttribute('data-step-index', '0')
   })
+
+  it('centers the scaled design canvas within its viewport so it cannot bleed off-screen at width-bound scale factors', () => {
+    const steps = makeSteps()
+    const { container } = render(<Presentation steps={steps} title="My talk" />)
+    const canvasViewport = container.querySelector('[data-presentation-canvas-viewport]')
+    expect(canvasViewport).toHaveStyle({ display: 'flex', alignItems: 'center', justifyContent: 'center' })
+  })
 })

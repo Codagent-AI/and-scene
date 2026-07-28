@@ -8,16 +8,29 @@
 //    using the `data-step-count` / `data-step-index` chrome hooks.
 // 4. Fails on any console error, uncaught page error, or a step index that
 //    does not advance.
+// 5. Asserts the canonical nine-step reference sample is registered and that
+//    every step's title/caption matches the outline in
+//    openspec/changes/create-and-scene/specs/presentation-verification/spec.md,
+//    in order.
 //
 // Exits non-zero with a description of the first failure.
 
 import { spawn } from 'node:child_process'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { CANONICAL_SLUG, findCanonicalMismatches } from './canonical-sample.mjs'
 
 const HOST = '127.0.0.1'
 const PORT = 4173
 const BASE_URL = `http://${HOST}:${PORT}`
+const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
+const CANONICAL_OUTLINE_PATH = path.join(
+  REPO_ROOT,
+  'src/presentations/how-to-make-a-presentation/canonical-outline.json',
+)
 
 function run(command, args) {
   return new Promise((resolve, reject) => {
@@ -54,6 +67,7 @@ async function discoverSlugs(page) {
 
 async function verifyPresentation(page, slug) {
   const errors = []
+  const steps = []
   const onConsole = (message) => {
     if (message.type() === 'error') errors.push(`console.error on /${slug}: ${message.text()}`)
   }
@@ -71,7 +85,7 @@ async function verifyPresentation(page, slug) {
     const stepCount = Number(await chrome.getAttribute('data-step-count'))
     if (!Number.isInteger(stepCount) || stepCount < 1) {
       errors.push(`/${slug}: invalid data-step-count "${await chrome.getAttribute('data-step-count')}"`)
-      return errors
+      return { errors, steps }
     }
 
     for (let expectedIndex = 0; expectedIndex < stepCount; expectedIndex += 1) {
@@ -80,8 +94,13 @@ async function verifyPresentation(page, slug) {
         errors.push(
           `/${slug}: expected data-step-index ${expectedIndex} but found ${actualIndex}`,
         )
-        return errors
+        return { errors, steps }
       }
+
+      const title = await page.locator('[data-presentation-header-title]').first().textContent()
+      const caption = await page.locator('[data-presentation-caption]').first().textContent()
+      steps.push({ title: title?.trim() ?? '', caption: caption?.trim() ?? '' })
+
       if (expectedIndex < stepCount - 1) {
         await page.keyboard.press('ArrowRight')
         await delay(50)
@@ -92,7 +111,7 @@ async function verifyPresentation(page, slug) {
     page.off('pageerror', onPageError)
   }
 
-  return errors
+  return { errors, steps }
 }
 
 async function main() {
@@ -117,9 +136,20 @@ async function main() {
         console.warn('No presentations registered in src/presentations/index.ts; skipping render checks.')
       }
 
+      if (!slugs.includes(CANONICAL_SLUG)) {
+        failures.push(
+          `canonical reference sample "${CANONICAL_SLUG}" is not registered/reachable in src/presentations/index.ts`,
+        )
+      }
+
       for (const slug of slugs) {
-        const slugFailures = await verifyPresentation(page, slug)
-        failures.push(...slugFailures)
+        const { errors, steps } = await verifyPresentation(page, slug)
+        failures.push(...errors)
+
+        if (slug === CANONICAL_SLUG && errors.length === 0) {
+          const canonicalOutline = JSON.parse(await readFile(CANONICAL_OUTLINE_PATH, 'utf8'))
+          failures.push(...findCanonicalMismatches(steps, canonicalOutline))
+        }
       }
     } finally {
       await browser.close()

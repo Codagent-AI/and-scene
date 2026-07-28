@@ -1,0 +1,320 @@
+/*
+ * Presentation-owned visual design for "How to Use This Skill to Make a
+ * Presentation". The scene kit ships no palette, typography, spacing,
+ * border, shadow, or card/button defaults — everything visual lives here,
+ * styling the stable data-presentation-* hooks and this presentation's own
+ * htmap- classes.
+ */
+
+[data-presentation-root] {
+  --htmap-ink: #f8f3e6;
+  --htmap-ink-dim: rgba(248, 243, 230, 0.62);
+  --htmap-accent: #e8a33d;
+  --htmap-accent-soft: rgba(232, 163, 61, 0.16);
+  --htmap-panel: rgba(248, 243, 230, 0.05);
+  --htmap-border: rgba(248, 243, 230, 0.28);
+  color: var(--htmap-ink);
+  font-family: inherit;
+}
+
+[data-presentation-header] {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 20px 28px 0;
+}
+
+[data-presentation-marker] {
+  font-variant-numeric: tabular-nums;
+  color: var(--htmap-accent);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+[data-presentation-header-title] {
+  font-size: 15px;
+  color: var(--htmap-ink-dim);
+}
+
+[data-presentation-footer] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  /* Clears the fixed-position attribution pill in the bottom-right corner. */
+  padding: 0 28px 64px;
+  text-align: center;
+}
+
+[data-presentation-caption] {
+  max-width: 640px;
+  margin: 0;
+  color: var(--htmap-ink-dim);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+[data-presentation-progress] {
+  display: flex;
+  gap: 8px;
+}
+
+[data-presentation-progress-dot] {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(248, 243, 230, 0.25);
+  cursor: pointer;
+}
+
+[data-presentation-progress-dot][data-active='true'] {
+  background: var(--htmap-accent);
+  box-shadow: 0 0 0 3px var(--htmap-accent-soft);
+}
+
+[data-presentation-nav-controls] {
+  display: flex;
+  gap: 8px;
+}
+
+[data-presentation-nav-controls] button {
+  border: 1px solid var(--htmap-border);
+  background: transparent;
+  color: var(--htmap-ink);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+[data-presentation-nav-controls] button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+[data-presentation-toc] {
+  position: absolute;
+  top: 96px;
+  right: 28px;
+}
+
+[data-presentation-toc] ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+[data-presentation-toc-entry] {
+  border: none;
+  background: transparent;
+  color: var(--htmap-ink-dim);
+  font-size: 13px;
+  text-align: right;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+[data-presentation-toc-entry][data-active='true'] {
+  color: var(--htmap-accent);
+  font-weight: 700;
+}
+
+[data-presentation-attribution] {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--htmap-ink-dim);
+  background: var(--htmap-panel);
+  text-decoration: none;
+  border: 1px solid var(--htmap-border);
+}
+
+[data-presentation-attribution]:hover {
+  color: var(--htmap-ink);
+  border-color: var(--htmap-accent);
+}
+
+/* --- scene content --- */
+
+.htmap-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  height: 100%;
+  padding: 12px 32px;
+}
+
+.htmap-conversation-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  width: 100%;
+}
+
+.htmap-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--htmap-border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  background: var(--htmap-panel);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.htmap-box--you,
+.htmap-box--skill {
+  font-weight: 600;
+  border-color: var(--htmap-accent);
+}
+
+.htmap-box--prompt {
+  color: var(--htmap-ink-dim);
+  font-style: italic;
+}
+
+.htmap-box--verify {
+  border-color: #58c27d;
+  color: #58c27d;
+  font-weight: 600;
+}
+
+.htmap-verify-pass {
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+}
+
+.htmap-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--htmap-accent);
+  background: var(--htmap-accent-soft);
+  color: var(--htmap-accent);
+  padding: 4px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.htmap-arrow {
+  width: 32px;
+  height: 2px;
+  background: var(--htmap-border);
+  position: relative;
+}
+
+.htmap-arrow--conversation::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: -3px;
+  border: 4px solid transparent;
+  border-left-color: var(--htmap-border);
+}
+
+.htmap-arrow--modify {
+  width: 2px;
+  height: 24px;
+  align-self: flex-end;
+  margin-top: -4px;
+  background: var(--htmap-accent);
+}
+
+.htmap-tray {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  border-top: 1px dashed var(--htmap-border);
+  padding-top: 20px;
+}
+
+.htmap-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--htmap-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  min-width: 80px;
+  background: var(--htmap-panel);
+}
+
+.htmap-card-title {
+  font-size: 12px;
+  color: var(--htmap-ink-dim);
+}
+
+.htmap-card--ghost {
+  border-style: dashed;
+  color: var(--htmap-ink-dim);
+  opacity: 0.7;
+}
+
+.htmap-card--flagged {
+  border-color: var(--htmap-accent);
+  box-shadow: 0 0 0 2px var(--htmap-accent-soft);
+}
+
+.htmap-chip--depth,
+.htmap-chip--scene-kit {
+  align-self: flex-end;
+}
+
+.htmap-reveal-appear {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.htmap-reveal-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  border: 1px solid var(--htmap-accent);
+  border-radius: 16px;
+  padding: 14px 24px 20px;
+}
+
+.htmap-reveal-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--htmap-accent);
+}
+
+.htmap-reveal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: 100%;
+}
+
+.htmap-reveal-icon {
+  width: 14px;
+  height: 14px;
+}
+
+[data-presentation-emphasis][data-active='true'] {
+  font-weight: 700;
+}

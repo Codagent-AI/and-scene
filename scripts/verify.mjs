@@ -2,12 +2,13 @@
 // Deterministic build + browser-render verification for a scaffolded
 // presentation app. Fails the process (non-zero exit) on any build error,
 // console error, uncaught page error, or failed step transition.
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { createServer } from 'vite'
 import { CANONICAL_SAMPLE_SLUG, validateCanonicalSteps } from './validate-canonical-steps.mjs'
+import { startPreviewServer } from './preview-server.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
@@ -21,20 +22,6 @@ function run(command, args) {
     console.error(`\nfailed: ${command} ${args.join(' ')}`)
     process.exit(result.status ?? 1)
   }
-}
-
-async function waitForServer(url, timeoutMs = 15000) {
-  const start = Date.now()
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const response = await fetch(url)
-      if (response.ok || response.status < 500) return
-    } catch {
-      // not up yet
-    }
-    await new Promise((resolve) => setTimeout(resolve, 200))
-  }
-  throw new Error(`server at ${url} did not become ready within ${timeoutMs}ms`)
 }
 
 /** Opens one SSR server for the duration of `fn`, closing it either way. */
@@ -129,23 +116,17 @@ async function main() {
     return
   }
 
-  const preview = spawn('npx', ['vite', 'preview', '--host', HOST, '--port', String(PORT), '--strictPort'], {
-    cwd: root,
-    stdio: 'pipe',
-    shell: process.platform === 'win32',
-  })
-
+  const preview = await startPreviewServer({ root, host: HOST, port: PORT })
   const baseUrl = `http://${HOST}:${PORT}`
 
   try {
-    await waitForServer(baseUrl)
     for (const entry of presentations) {
       console.log(`\nrendering "${entry.slug}"...`)
       await verifyPresentation(baseUrl, entry.slug)
       console.log(`"${entry.slug}" rendered all steps with no errors`)
     }
   } finally {
-    preview.kill()
+    await preview.close()
   }
 
   console.log('\nverify passed')

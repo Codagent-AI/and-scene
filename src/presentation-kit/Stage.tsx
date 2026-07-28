@@ -31,6 +31,11 @@ export function Stage<TPayload>({ steps, index, mode }: StageProps<TPayload>) {
         style={{
           width: DESIGN_W,
           height: DESIGN_H,
+          // The stage is a flex container, so without this the canvas shrinks
+          // below DESIGN_W on narrow viewports while the absolutely positioned
+          // scene keeps design coordinates — the fixed canvas would reflow and
+          // clip, which is exactly what fit-scaling exists to prevent.
+          flexShrink: 0,
           position: 'relative',
           transform: `scale(${scale})`,
         }}

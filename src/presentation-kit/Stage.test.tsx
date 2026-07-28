@@ -51,3 +51,19 @@ describe('Stage', () => {
     expect(mountLogB.length).toBe(1)
   })
 })
+
+describe('Stage fixed-canvas invariant', () => {
+  it('pins the design canvas against flex shrink so the composition cannot reflow', () => {
+    const steps: Step<Payload>[] = [
+      { id: 'a', section: 'one', title: 'A', caption: 'a', Scene: ({ payload }) => <div>{payload.label}</div>, payload: { label: 'A' } },
+    ]
+    const { container } = render(<Stage steps={steps} index={0} mode="browse" />)
+
+    // `.sk-stage` is a flex container, so without an explicit flex-shrink the
+    // canvas collapses below DESIGN_W on narrow viewports and the absolutely
+    // positioned scene overflows it.
+    const canvas = container.querySelector<HTMLElement>('[data-scene-kit="stage-canvas"]')
+    expect(canvas).not.toBeNull()
+    expect(canvas!.style.flexShrink).toBe('0')
+  })
+})

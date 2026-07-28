@@ -10,12 +10,13 @@
 //     `data-allow-overlap="true"` on the overlapping element)
 //   - visually indistinct active progress/table-of-contents state
 //   - missing, browser-default, or undersized attribution
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { createServer } from 'vite'
+import { startPreviewServer } from './preview-server.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
@@ -42,22 +43,6 @@ async function loadRegistry() {
   }
 }
 
-function waitForServer(url, timeoutMs = 15000) {
-  const start = Date.now()
-  return new Promise((resolve, reject) => {
-    const attempt = async () => {
-      try {
-        const response = await fetch(url)
-        if (response.ok || response.status < 500) return resolve()
-      } catch {
-        // not up yet
-      }
-      if (Date.now() - start > timeoutMs) return reject(new Error(`server at ${url} did not become ready`))
-      setTimeout(attempt, 200)
-    }
-    attempt()
-  })
-}
 
 /**
  * Waits for the scene to settle before measuring. A step change that crosses a
@@ -270,17 +255,11 @@ async function main() {
   // an edit under review appears to have had no effect.
   run('npm', ['run', 'build'])
 
-  const preview = spawn('npx', ['vite', 'preview', '--host', HOST, '--port', String(PORT), '--strictPort'], {
-    cwd: root,
-    stdio: 'pipe',
-    shell: process.platform === 'win32',
-  })
-
+  const preview = await startPreviewServer({ root, host: HOST, port: PORT })
   const baseUrl = `http://${HOST}:${PORT}`
   const warnings = []
 
   try {
-    await waitForServer(baseUrl)
     const browser = await chromium.launch()
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
     await page.goto(`${baseUrl}/${slug}`, { waitUntil: 'networkidle' })
@@ -316,7 +295,7 @@ async function main() {
 
     await browser.close()
   } finally {
-    preview.kill()
+    await preview.close()
   }
 
   if (warnings.length > 0) {

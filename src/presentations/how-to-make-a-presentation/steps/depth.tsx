@@ -4,7 +4,7 @@
  * shared `layoutId`s), only the ghost card and depth control are new here.
  */
 import type { Step } from '../../../presentation-kit/types'
-import { Scene, type BeatPayload } from './Scene'
+import { Scene, NONE_VISIBLE, type BeatPayload } from './Scene'
 
 export const youSetTheDepth: Step<BeatPayload> = {
   id: 'you-set-the-depth',
@@ -15,6 +15,7 @@ export const youSetTheDepth: Step<BeatPayload> = {
   groupKey: 'depth',
   payload: {
     visible: {
+      ...NONE_VISIBLE,
       you: true,
       prompt: true,
       skill: true,
@@ -22,12 +23,6 @@ export const youSetTheDepth: Step<BeatPayload> = {
       cardCount: 4,
       ghost: true,
       depthControl: true,
-      kitSocket: false,
-      verifyNode: false,
-      verifyPass: false,
-      modifyArc: false,
-      editedCardIndex: null,
-      revealFrame: false,
     },
     introduced: ['ghost', 'ghostLink', 'depthControl'],
   },

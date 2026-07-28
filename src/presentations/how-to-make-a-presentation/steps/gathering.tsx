@@ -4,22 +4,15 @@
  * and its first card persist while later cards land beside them.
  */
 import type { Step } from '../../../presentation-kit/types'
-import { Scene, type BeatPayload } from './Scene'
+import { Scene, NONE_VISIBLE, type BeatPayload } from './Scene'
 
-const BASE: BeatPayload['visible'] = {
+/** What the ask left on screen: the conversation, before any card lands. */
+const CONVERSATION: BeatPayload['visible'] = {
+  ...NONE_VISIBLE,
   you: true,
   prompt: true,
   skill: true,
   link: true,
-  cardCount: 0,
-  ghost: false,
-  depthControl: false,
-  kitSocket: false,
-  verifyNode: false,
-  verifyPass: false,
-  modifyArc: false,
-  editedCardIndex: null,
-  revealFrame: false,
 }
 
 export const answersBecomeSteps: Step<BeatPayload> = {
@@ -31,7 +24,7 @@ export const answersBecomeSteps: Step<BeatPayload> = {
   Scene,
   groupKey: 'gathering',
   payload: {
-    visible: { ...BASE, cardCount: 1 },
+    visible: { ...CONVERSATION, cardCount: 1 },
     introduced: ['card1'],
   },
 }
@@ -44,7 +37,7 @@ export const deckGrows: Step<BeatPayload> = {
   Scene,
   groupKey: 'gathering',
   payload: {
-    visible: { ...BASE, cardCount: 4 },
+    visible: { ...CONVERSATION, cardCount: 4 },
     introduced: ['card2', 'card3', 'card4', 'cardLink12', 'cardLink23', 'cardLink34'],
   },
 }

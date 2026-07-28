@@ -5,9 +5,11 @@
  * on beside it.
  */
 import type { Step } from '../../../presentation-kit/types'
-import { Scene, type BeatPayload } from './Scene'
+import { Scene, NONE_VISIBLE, type BeatPayload } from './Scene'
 
-const BASE: BeatPayload['visible'] = {
+/** What the gathering left on screen: a full, depth-gated tray of step cards. */
+const GATED_TRAY: BeatPayload['visible'] = {
+  ...NONE_VISIBLE,
   you: true,
   prompt: true,
   skill: true,
@@ -15,12 +17,6 @@ const BASE: BeatPayload['visible'] = {
   cardCount: 4,
   ghost: true,
   depthControl: true,
-  kitSocket: false,
-  verifyNode: false,
-  verifyPass: false,
-  modifyArc: false,
-  editedCardIndex: null,
-  revealFrame: false,
 }
 
 export const assemblesTheScene: Step<BeatPayload> = {
@@ -32,7 +28,7 @@ export const assemblesTheScene: Step<BeatPayload> = {
   Scene,
   groupKey: 'build',
   payload: {
-    visible: { ...BASE, kitSocket: true },
+    visible: { ...GATED_TRAY, kitSocket: true },
     introduced: ['kitSocket'],
   },
 }
@@ -45,7 +41,7 @@ export const checksItsOwnWork: Step<BeatPayload> = {
   Scene,
   groupKey: 'build',
   payload: {
-    visible: { ...BASE, kitSocket: true, verifyNode: true, verifyPass: true },
+    visible: { ...GATED_TRAY, kitSocket: true, verifyNode: true, verifyPass: true },
     introduced: ['verifyNode', 'verifyLink', 'verifyCheck'],
   },
 }

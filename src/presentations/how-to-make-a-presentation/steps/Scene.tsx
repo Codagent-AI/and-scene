@@ -33,15 +33,36 @@ export interface BeatPayload {
   introduced: string[]
 }
 
+/**
+ * Every entity switched off. Steps spread this and name only what they turn
+ * on, so adding an entity to `BeatPayload` is one edit here rather than one
+ * per step file.
+ */
+export const NONE_VISIBLE: BeatPayload['visible'] = {
+  you: false,
+  prompt: false,
+  skill: false,
+  link: false,
+  cardCount: 0,
+  ghost: false,
+  depthControl: false,
+  kitSocket: false,
+  verifyNode: false,
+  verifyPass: false,
+  modifyArc: false,
+  editedCardIndex: null,
+  revealFrame: false,
+}
+
 function pos(left: number, top: number, width: number, height: number): CSSProperties {
   return { position: 'absolute', left, top, width, height }
 }
 
 const CARD_SLOTS = [
-  { left: 40, layoutId: entities.card1 },
-  { left: 180, layoutId: entities.card2 },
-  { left: 320, layoutId: entities.card3 },
-  { left: 460, layoutId: entities.card4 },
+  { left: 40, layoutId: entities.card1, introduceKey: 'card1' },
+  { left: 180, layoutId: entities.card2, introduceKey: 'card2' },
+  { left: 320, layoutId: entities.card3, introduceKey: 'card3' },
+  { left: 460, layoutId: entities.card4, introduceKey: 'card4' },
 ]
 const CARD_TOP = 160
 const CARD_W = 90
@@ -53,9 +74,9 @@ const CARD_TITLES = ['topic', 'look', 'beat one', 'beat two']
 const CARD_CAPTIONS = ['what it is about', 'how it should feel', 'first answer lands', 'story keeps going']
 
 const LINK_SLOTS = [
-  { left: 130, layoutId: entities.cardLink12 },
-  { left: 270, layoutId: entities.cardLink23 },
-  { left: 410, layoutId: entities.cardLink34 },
+  { left: 130, layoutId: entities.cardLink12, introduceKey: 'cardLink12' },
+  { left: 270, layoutId: entities.cardLink23, introduceKey: 'cardLink23' },
+  { left: 410, layoutId: entities.cardLink34, introduceKey: 'cardLink34' },
 ]
 
 export function Scene({ payload }: SceneProps<BeatPayload>) {
@@ -126,12 +147,11 @@ export function Scene({ payload }: SceneProps<BeatPayload>) {
       {/* tray: step cards accumulate, never reframed as a group */}
       {CARD_SLOTS.map((slot, index) => {
         if (index >= visible.cardCount) return null
-        const key = index === 0 ? 'card1' : `card${index + 1}`
         const isEdited = visible.editedCardIndex === index
         return (
           <div key={slot.layoutId}>
             {wrap(
-              key,
+              slot.introduceKey,
               <Box
                 layoutId={slot.layoutId}
                 className="ahs-box ahs-card"
@@ -158,11 +178,10 @@ export function Scene({ payload }: SceneProps<BeatPayload>) {
       })}
       {LINK_SLOTS.map((slot, index) => {
         if (index + 2 > visible.cardCount) return null
-        const key = index === 0 ? 'cardLink12' : index === 1 ? 'cardLink23' : 'cardLink34'
         return (
           <div key={slot.layoutId}>
             {wrap(
-              key,
+              slot.introduceKey,
               <Label layoutId={slot.layoutId} className="ahs-card-link" style={pos(slot.left, 186, 40, 14)}>
                 morphs
               </Label>,

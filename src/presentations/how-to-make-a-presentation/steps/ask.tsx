@@ -4,23 +4,7 @@
  * question link accumulate in place instead of remounting.
  */
 import type { Step } from '../../../presentation-kit/types'
-import { Scene, type BeatPayload } from './Scene'
-
-const BASE: BeatPayload['visible'] = {
-  you: false,
-  prompt: false,
-  skill: false,
-  link: false,
-  cardCount: 0,
-  ghost: false,
-  depthControl: false,
-  kitSocket: false,
-  verifyNode: false,
-  verifyPass: false,
-  modifyArc: false,
-  editedCardIndex: null,
-  revealFrame: false,
-}
+import { Scene, NONE_VISIBLE, type BeatPayload } from './Scene'
 
 export const youHaveATopic: Step<BeatPayload> = {
   id: 'you-have-a-topic',
@@ -30,7 +14,7 @@ export const youHaveATopic: Step<BeatPayload> = {
   Scene,
   groupKey: 'ask',
   payload: {
-    visible: { ...BASE, you: true, prompt: true },
+    visible: { ...NONE_VISIBLE, you: true, prompt: true },
     introduced: ['you', 'prompt'],
   },
 }
@@ -43,7 +27,7 @@ export const skillInterviewsYou: Step<BeatPayload> = {
   Scene,
   groupKey: 'ask',
   payload: {
-    visible: { ...BASE, you: true, prompt: true, skill: true, link: true },
+    visible: { ...NONE_VISIBLE, you: true, prompt: true, skill: true, link: true },
     introduced: ['skill', 'link', 'questionChip'],
   },
 }

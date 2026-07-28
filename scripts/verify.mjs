@@ -37,14 +37,19 @@ async function waitForServer(url, timeoutMs = 15000) {
   throw new Error(`server at ${url} did not become ready within ${timeoutMs}ms`)
 }
 
-async function loadRegistry() {
+/** Opens one SSR server for the duration of `fn`, closing it either way. */
+async function withSsrServer(fn) {
   const server = await createServer({ root, server: { middlewareMode: true } })
   try {
-    const module = await server.ssrLoadModule('/src/presentations/index.ts')
-    return module.presentations ?? []
+    return await fn(server)
   } finally {
     await server.close()
   }
+}
+
+async function loadRegistry(server) {
+  const module = await server.ssrLoadModule('/src/presentations/index.ts')
+  return module.presentations ?? []
 }
 
 /**
@@ -54,27 +59,20 @@ async function loadRegistry() {
  * ordered step metadata straight from the presentation's own `steps` module
  * (its real `STEPS` export) rather than duplicating a second step list.
  */
-async function assertCanonicalSample() {
-  const server = await createServer({ root, server: { middlewareMode: true } })
-  try {
-    const registryModule = await server.ssrLoadModule('/src/presentations/index.ts')
-    const presentations = registryModule.presentations ?? []
-    const entry = presentations.find((candidate) => candidate.slug === CANONICAL_SAMPLE_SLUG)
-    if (!entry) {
-      throw new Error(
-        `canonical reference sample missing: no presentation registered with slug "${CANONICAL_SAMPLE_SLUG}"`,
-      )
-    }
+async function assertCanonicalSample(server, presentations) {
+  const entry = presentations.find((candidate) => candidate.slug === CANONICAL_SAMPLE_SLUG)
+  if (!entry) {
+    throw new Error(
+      `canonical reference sample missing: no presentation registered with slug "${CANONICAL_SAMPLE_SLUG}"`,
+    )
+  }
 
-    const stepsModule = await server.ssrLoadModule(`/src/presentations/${CANONICAL_SAMPLE_SLUG}/steps/index.ts`)
-    const steps = stepsModule.STEPS
+  const stepsModule = await server.ssrLoadModule(`/src/presentations/${CANONICAL_SAMPLE_SLUG}/steps/index.ts`)
+  const steps = stepsModule.STEPS
 
-    const result = validateCanonicalSteps(steps)
-    if (!result.ok) {
-      throw new Error(`canonical reference sample does not match the required nine-step outline: ${result.message}`)
-    }
-  } finally {
-    await server.close()
+  const result = validateCanonicalSteps(steps)
+  if (!result.ok) {
+    throw new Error(`canonical reference sample does not match the required nine-step outline: ${result.message}`)
   }
 }
 
@@ -119,10 +117,13 @@ async function verifyPresentation(baseUrl, slug) {
 async function main() {
   run('npm', ['run', 'build'])
 
-  await assertCanonicalSample()
+  const presentations = await withSsrServer(async (server) => {
+    const registry = await loadRegistry(server)
+    await assertCanonicalSample(server, registry)
+    return registry
+  })
   console.log('canonical reference sample matches the required nine-step outline')
 
-  const presentations = await loadRegistry()
   if (presentations.length === 0) {
     console.log('\nno presentations registered — build verified, skipping render check')
     return

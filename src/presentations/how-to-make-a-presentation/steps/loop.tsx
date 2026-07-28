@@ -4,7 +4,7 @@
  * from earlier beats carries over plainly via shared `layoutId`s.
  */
 import type { Step } from '../../../presentation-kit/types'
-import { Scene, type BeatPayload } from './Scene'
+import { Scene, NONE_VISIBLE, type BeatPayload } from './Scene'
 
 export const changedYourMindLoopIt: Step<BeatPayload> = {
   id: 'loop-it',
@@ -15,6 +15,7 @@ export const changedYourMindLoopIt: Step<BeatPayload> = {
   groupKey: 'loop',
   payload: {
     visible: {
+      ...NONE_VISIBLE,
       you: true,
       prompt: true,
       skill: true,
@@ -27,7 +28,6 @@ export const changedYourMindLoopIt: Step<BeatPayload> = {
       verifyPass: true,
       modifyArc: true,
       editedCardIndex: 1,
-      revealFrame: false,
     },
     introduced: ['modifyArc', 'modifyLabel', 'editedFlag'],
   },

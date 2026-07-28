@@ -4,7 +4,7 @@
  * entity carries over plainly via shared `layoutId`s.
  */
 import type { Step } from '../../../presentation-kit/types'
-import { Scene, type BeatPayload } from './Scene'
+import { Scene, NONE_VISIBLE, type BeatPayload } from './Scene'
 
 export const youreLookingAtOne: Step<BeatPayload> = {
   id: 'youre-looking-at-one',
@@ -15,6 +15,7 @@ export const youreLookingAtOne: Step<BeatPayload> = {
   groupKey: 'reveal',
   payload: {
     visible: {
+      ...NONE_VISIBLE,
       you: true,
       prompt: true,
       skill: true,

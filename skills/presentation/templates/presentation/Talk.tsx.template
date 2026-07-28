@@ -1,0 +1,11 @@
+import { Presentation } from '../../presentation-kit/Presentation'
+import { STEPS } from './steps'
+
+// {{PRESENTATION_TITLE}}
+//
+// One evolving scene, not a slide deck: entities declared in `entities.ts`
+// persist across steps and morph in place via shared `layoutId`s. Add new
+// steps in `steps/` and list them, in order, from `steps/index.ts`.
+export default function Talk() {
+  return <Presentation steps={STEPS} title="{{PRESENTATION_TITLE}}" initialMode="browse" />
+}

@@ -1,0 +1,30 @@
+import type { Step } from '../../presentation-kit/types'
+import { Box } from '../../presentation-kit/nodes/Box'
+import { ENTITY } from '../entities'
+
+// {{STEP_TITLE}}
+//
+// - `id` must be stable and unique within the presentation; it does not need
+//   to encode position — step numbering is derived from array order.
+// - `era` groups steps into the table-of-contents sections shown in browse
+//   mode; consecutive steps sharing an `era` collapse to one ToC entry.
+// - `title` is the one-line present-mode headline; `caption` is the
+//   multi-line browse-mode paragraph.
+// - Give a persisting entity the same `layoutId` (from `entities.ts`) it had
+//   on the previous step so it morphs in place instead of re-entering.
+function Scene({ active }: { active: boolean; payload: unknown }) {
+  return (
+    <Box layoutId={ENTITY.EXAMPLE_ENTITY} data-presentation-active={active}>
+      {/* {{STEP_VISUAL_DESCRIPTION}} */}
+    </Box>
+  )
+}
+
+export const step{{STEP_INDEX}}: Step = {
+  id: '{{STEP_ID}}',
+  era: '{{STEP_ERA}}',
+  title: '{{STEP_TITLE}}',
+  caption: '{{STEP_CAPTION}}',
+  Scene,
+  payload: undefined,
+}

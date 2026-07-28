@@ -1,0 +1,23 @@
+/*
+ * {{PRESENTATION_TITLE}} — presentation-owned styling.
+ *
+ * The scene kit ships with zero visual defaults: no palette, typography,
+ * spacing, borders, shadows, or card/button treatments. Every visual choice
+ * for this presentation belongs in this file (or another file this
+ * presentation imports), targeting the kit's stable data hooks:
+ *
+ *   [data-presentation-node="box"]           generic entity container
+ *   [data-presentation-node="label"]         text label
+ *   [data-presentation-node="arrow"]         connector
+ *   [data-presentation-node="frame"]         outer frame/group
+ *   [data-presentation-node="emphasis"]      emphasis marker
+ *   [data-presentation-node="symbol-chip"]   icon + label chip
+ *   [data-presentation-active="true"]        the active variant of the above
+ *   [data-presentation-node="progress-dot"][data-presentation-active="true"]
+ *   [data-presentation-node="toc-entry"][data-presentation-active="true"]
+ *   [data-presentation-attribution]          the "made by and-scene" link
+ *
+ * Import this file from Talk.tsx. Give the active progress dot, active ToC
+ * entry, and attribution link a visibly distinct, legible treatment — the
+ * inspection helper flags steps where they read as indistinct or default.
+ */

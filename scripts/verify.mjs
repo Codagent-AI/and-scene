@@ -9,9 +9,8 @@
 //    step through every step via the chrome's data-step-count/data-step-index
 //    hooks, and fail on console errors, uncaught page errors, or a step index
 //    that does not advance.
-// 5. Re-opens the reference sample at a phone-width viewport and fails if the
-//    browse-mode table of contents is still visible (it is scoped to wide
-//    viewports).
+// 5. Re-opens each route at a phone-width viewport and fails if the browse-mode
+//    table of contents is still visible (it is scoped to wide viewports).
 // 6. Exits non-zero with the failing check/step reported.
 
 import { spawn, spawnSync } from 'node:child_process'
@@ -154,21 +153,22 @@ async function verifyRoute(browser, slug) {
   return { slug, ok: true }
 }
 
-// The canonical spec scopes the browse-mode table of contents to wide
-// viewports. The kit renders it unconditionally in browse mode (visibility is
-// a style decision the presentation owns), so this asserts the reference
-// sample actually collapses it at a phone-width viewport instead of leaving it
-// floating over the scene.
+// The browse-mode table of contents is scoped to wide viewports. The kit
+// renders it unconditionally in browse mode (visibility is a style decision the
+// presentation owns), so this asserts each presentation actually collapses it
+// at a phone-width viewport instead of leaving it floating over the scene.
 async function verifyNarrowViewport(browser, slug) {
   const page = await browser.newPage({ viewport: NARROW_VIEWPORT })
   try {
     await page.goto(`${BASE_URL}/${slug}`, { waitUntil: 'networkidle' })
 
+    // isVisible() is false for an element that does not exist, so this also
+    // covers a presentation that renders no table of contents at all.
     const toc = page.locator('[data-presentation-chrome="toc"]')
-    if ((await toc.count()) > 0 && (await toc.first().isVisible())) {
+    if (await toc.first().isVisible()) {
       return {
         ok: false,
-        message: `table of contents is still visible at ${NARROW_VIEWPORT.width}px; the canonical spec scopes it to wide viewports`,
+        message: `table of contents is still visible at ${NARROW_VIEWPORT.width}px; scope it to wide viewports in this presentation's CSS`,
       }
     }
     return { ok: true }
@@ -215,19 +215,14 @@ async function main() {
       for (const slug of slugs) {
         console.log(`[verify] rendering /${slug}…`)
         const result = await verifyRoute(browser, slug)
-        if (!result.ok) {
-          fail(`/${slug} — ${result.message}`)
-        } else {
+        if (!result.ok) fail(`/${slug} — ${result.message}`)
+
+        const narrow = await verifyNarrowViewport(browser, slug)
+        if (!narrow.ok) fail(`/${slug} — ${narrow.message}`)
+
+        if (result.ok && narrow.ok) {
           console.log(`[verify] /${slug} OK (${slugs.length} route(s) checked)`)
         }
-      }
-
-      console.log(`[verify] checking /${REFERENCE_SAMPLE_SLUG} at ${NARROW_VIEWPORT.width}px…`)
-      const narrow = await verifyNarrowViewport(browser, REFERENCE_SAMPLE_SLUG)
-      if (!narrow.ok) {
-        fail(`/${REFERENCE_SAMPLE_SLUG} — ${narrow.message}`)
-      } else {
-        console.log(`[verify] /${REFERENCE_SAMPLE_SLUG} narrow viewport OK`)
       }
     } finally {
       await browser.close()

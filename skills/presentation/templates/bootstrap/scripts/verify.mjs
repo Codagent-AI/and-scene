@@ -105,8 +105,10 @@ async function verifyNarrowViewport(browser, slug) {
   try {
     await page.goto(`${BASE_URL}/${slug}`, { waitUntil: 'networkidle' })
 
+    // isVisible() is false for an element that does not exist, so this also
+    // covers a presentation that renders no table of contents at all.
     const toc = page.locator('[data-presentation-chrome="toc"]')
-    if ((await toc.count()) > 0 && (await toc.first().isVisible())) {
+    if (await toc.first().isVisible()) {
       return {
         ok: false,
         message: `table of contents is still visible at ${NARROW_VIEWPORT.width}px; scope it to wide viewports in this presentation's CSS`,
@@ -150,15 +152,13 @@ async function main() {
       for (const slug of slugs) {
         console.log(`[verify] rendering /${slug}…`)
         const result = await verifyRoute(browser, slug)
-        if (!result.ok) {
-          fail(`/${slug} — ${result.message}`)
-        } else {
-          console.log(`[verify] /${slug} OK (${slugs.length} route(s) checked)`)
-        }
+        if (!result.ok) fail(`/${slug} — ${result.message}`)
 
         const narrow = await verifyNarrowViewport(browser, slug)
-        if (!narrow.ok) {
-          fail(`/${slug} — ${narrow.message}`)
+        if (!narrow.ok) fail(`/${slug} — ${narrow.message}`)
+
+        if (result.ok && narrow.ok) {
+          console.log(`[verify] /${slug} OK (${slugs.length} route(s) checked)`)
         }
       }
     } finally {

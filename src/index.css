@@ -30,3 +30,41 @@ textarea,
 select {
   font: inherit;
 }
+
+/* The landing page is this app's only entry point, and the kit deliberately
+   ships no styling, so the host app owns its treatment. Without these rules the
+   list links fall back to the browser default #0000EE on the near-black
+   background above — around 2:1 contrast, effectively illegible. */
+[data-presentation-chrome='landing'] {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+[data-presentation-chrome='landing'] h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+  letter-spacing: -0.01em;
+}
+
+[data-presentation-chrome='landing'] ul {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+[data-presentation-chrome='landing'] a {
+  color: #e9c96b;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(233, 201, 107, 0.4);
+  padding-bottom: 2px;
+}
+
+[data-presentation-chrome='landing'] a:hover,
+[data-presentation-chrome='landing'] a:focus-visible {
+  color: #f8f3e6;
+  border-bottom-color: #f8f3e6;
+}

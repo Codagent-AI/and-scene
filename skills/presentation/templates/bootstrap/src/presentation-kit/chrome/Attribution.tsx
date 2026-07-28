@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 
-export const ATTRIBUTION_URL = 'https://github.com/and-scene/and-scene'
+export const ATTRIBUTION_URL = 'https://github.com/Codagent-AI/and-scene'
 
 const POSITION_STYLE: CSSProperties = { position: 'absolute', bottom: 0, right: 0 }
 

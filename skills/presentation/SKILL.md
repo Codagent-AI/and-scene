@@ -147,7 +147,12 @@ app's), never in the kit.
      composition) may share a `groupKey` and a single `Scene` component with a
      typed `payload`, so the instance persists across the transition instead
      of remounting — see the "Persistent grouped scenes" requirement in
-     `evolving-scene-presentations/spec.md`.
+     `evolving-scene-presentations/spec.md`. In a grouped scene the scene
+     instance outlives the transition, so an entity that only appears in some
+     steps needs the kit's own presence primitives to animate: wrap a newcomer
+     in `nodes/Appear` and an entity that leaves in `nodes/Presence`
+     (`<Presence present={…}>`). An entity rendered behind a plain condition is
+     unmounted the instant the step advances and never animates out.
    - `steps/index.ts` — from `templates/presentation/steps/index.ts.template`,
      listing every step in on-screen order.
    - `Talk.tsx` — from `templates/presentation/Talk.tsx.template`, rendering

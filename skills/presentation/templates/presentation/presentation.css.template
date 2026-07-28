@@ -12,6 +12,8 @@
  *   [data-presentation-node="frame"]         outer frame/group
  *   [data-presentation-node="emphasis"]      emphasis marker
  *   [data-presentation-node="symbol-chip"]   icon + label chip
+ *   [data-presentation-node="appear"]        entering-entity wrapper
+ *   [data-presentation-node="presence"]      departing-entity wrapper
  *   [data-presentation-active="true"]        the active variant of the above
  *   [data-presentation-node="progress-dot"][data-presentation-active="true"]
  *   [data-presentation-node="toc-entry"][data-presentation-active="true"]

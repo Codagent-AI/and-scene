@@ -1,5 +1,6 @@
 import { Presentation } from '../../presentation-kit/Presentation'
 import { STEPS } from './steps'
+import './presentation.css'
 
 // {{PRESENTATION_TITLE}}
 //

@@ -66,7 +66,11 @@ export function Scene({ payload, active }: { payload: ScenePayload; active: bool
       {at(2) ? (
         <Appear className="connector-slot">
           <Arrow layoutId={ENTITY.connector} className="connector-arrow" data-presentation-active={isNew(2)}>
-            <line x1="4" y1="12" x2="196" y2="12" markerEnd="url(#arrow-end)" markerStart="url(#arrow-start)" />
+            {/* The SVG has no viewBox, so lengths are CSS pixels in the slot
+                `.connector-slot` sizes. Percentages keep the two-way arrow
+                spanning that whole slot — from `you` across to `skill` — instead
+                of stopping at a fixed user-unit width. */}
+            <line x1="1%" y1="12" x2="99%" y2="12" markerEnd="url(#arrow-end)" markerStart="url(#arrow-start)" />
             <defs>
               <marker id="arrow-end" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
                 <path d="M0,0 L8,4 L0,8 Z" />
@@ -159,7 +163,10 @@ export function Scene({ payload, active }: { payload: ScenePayload; active: bool
       {at(8) ? (
         <Appear className="modify-arc-slot">
           <Arrow layoutId={ENTITY.modifyArc} className="modify-arrow" data-presentation-active={isNew(8)}>
-            <path d="M0,64 C60,104 100,120 144,96" markerEnd="url(#modify-end)" />
+            {/* Reaches from under the conversation row down to just above the
+                edited card. It stops short of the card so the arrowhead points
+                at it rather than printing over its label. */}
+            <path d="M54,32 C100,40 144,52 144,78" markerEnd="url(#modify-end)" />
             <defs>
               <marker id="modify-end" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
                 <path d="M0,0 L8,4 L0,8 Z" />

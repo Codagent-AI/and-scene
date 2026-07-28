@@ -12,6 +12,10 @@ import { ENTITY } from '../entities'
 //   multi-line browse-mode paragraph.
 // - Give a persisting entity the same `layoutId` (from `entities.ts`) it had
 //   on the previous step so it morphs in place instead of re-entering.
+// - An entity that only exists in some steps needs a presence primitive to
+//   animate: wrap a newcomer in `nodes/Appear` and an entity that leaves in
+//   `nodes/Presence` (`<Presence present={…}>`). Plain conditional rendering
+//   inside a grouped scene unmounts it with no exit animation.
 function Scene({ active }: { active: boolean; payload: unknown }) {
   return (
     <Box layoutId={ENTITY.EXAMPLE_ENTITY} data-presentation-active={active}>

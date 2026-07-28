@@ -31,6 +31,10 @@ const BASE_URL = `http://${HOST}:${PORT}`
 // every step is inspected in its settled state.
 const STEP_SETTLE_MS = 900
 
+// Short on purpose: by the time this is read the step has already settled, so a
+// missing root means the tree unmounted rather than that it is still rendering.
+const ROOT_ATTR_TIMEOUT_MS = 5_000
+
 const NARROW_VIEWPORT = { width: 390, height: 800 }
 
 const REFERENCE_SAMPLE_SLUG = 'how-to-make-a-presentation'
@@ -140,14 +144,40 @@ async function verifyRoute(browser, slug) {
     // including on the final step, where nothing re-checks afterwards.
     await page.waitForTimeout(STEP_SETTLE_MS)
 
-    const current = Number(await root.getAttribute('data-step-index'))
-    if (current !== index) {
-      await page.close()
-      return { slug, ok: false, message: `step ${index}: expected data-step-index=${index}, got ${current}` }
-    }
+    // Consult captured errors before touching the DOM. An uncaught render error
+    // unmounts the tree, taking [data-presentation-root] with it, so reading
+    // data-step-index first stalls for the full locator timeout and then reports
+    // that timeout instead of the page error we already hold.
     if (errors.length > 0) {
       await page.close()
       return { slug, ok: false, message: `step ${index}: ${errors.join('; ')}` }
+    }
+
+    let raw
+    try {
+      raw = await root.getAttribute('data-step-index', { timeout: ROOT_ATTR_TIMEOUT_MS })
+    } catch {
+      // The root went away without a captured error — still identify the step.
+      const detail = errors.length > 0 ? errors.join('; ') : 'the presentation root disappeared'
+      await page.close()
+      return { slug, ok: false, message: `step ${index}: ${detail}` }
+    }
+
+    // Check for the attribute before converting: `Number(null)` is 0, so a root
+    // that never renders the hook at all would otherwise satisfy step 0 — and on
+    // a single-step presentation nothing later would catch it.
+    if (raw === null || !Number.isInteger(Number(raw))) {
+      await page.close()
+      return {
+        slug,
+        ok: false,
+        message: `step ${index}: [data-presentation-root] has no integer data-step-index (got ${JSON.stringify(raw)})`,
+      }
+    }
+    const current = Number(raw)
+    if (current !== index) {
+      await page.close()
+      return { slug, ok: false, message: `step ${index}: expected data-step-index=${index}, got ${current}` }
     }
     if (index < stepCount - 1) {
       await page.keyboard.press('ArrowRight')

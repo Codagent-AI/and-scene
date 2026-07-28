@@ -1,0 +1,33 @@
+/*
+ * Presentation-owned visual design for __TITLE__.
+ *
+ * The scene kit ships no palette, typography, spacing, border, shadow, or
+ * card/button defaults — this file is where all of that lives. Style the
+ * stable data-presentation-* hooks (see src/presentation-kit) rather than
+ * introducing new markup. Give the active progress dot, active
+ * table-of-contents entry, and attribution link a visibly distinct,
+ * legible treatment.
+ */
+
+[data-presentation-box] {
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+[data-presentation-progress-dot][data-active='true'] {
+  opacity: 1;
+}
+
+[data-presentation-progress-dot]:not([data-active='true']) {
+  opacity: 0.4;
+}
+
+[data-presentation-toc-entry][data-active='true'] {
+  font-weight: 600;
+}
+
+[data-presentation-attribution] {
+  font-size: 12px;
+  opacity: 0.7;
+}

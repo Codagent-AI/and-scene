@@ -1,18 +1,23 @@
 import type { ComponentType } from 'react'
 
-export interface PresentationEntry {
+export interface PresentationRegistryEntry {
+  /** URL path segment the presentation is served at, e.g. "how-to-make-a-presentation". */
   slug: string
+  /** Display title used on the landing page and as the document title. */
   title: string
+  /** Lazily loads the presentation's entry component. */
   load: () => Promise<{ default: ComponentType }>
 }
 
-/** Explicit registry — add a folder + one line here for each presentation. */
-export const presentations: PresentationEntry[] = [
+/**
+ * Explicit presentation registry. Adding a presentation is a new folder plus
+ * one entry here — deterministic and diffable, unlike glob-based
+ * auto-registration.
+ */
+export const presentations: PresentationRegistryEntry[] = [
   {
     slug: 'how-to-make-a-presentation',
     title: 'How to Use This Skill to Make a Presentation',
     load: () => import('./how-to-make-a-presentation/Talk'),
   },
 ]
-
-export const presentationSlugs = new Set(presentations.map((p) => p.slug))

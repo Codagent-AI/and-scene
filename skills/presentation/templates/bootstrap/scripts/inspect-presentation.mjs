@@ -1,429 +1,322 @@
-import { spawn } from 'node:child_process'
-import { mkdir } from 'node:fs/promises'
-import { dirname, join, resolve, sep } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+#!/usr/bin/env node
+// Project-local screenshot + visual-quality diagnostic helper.
+//
+// Usage: npm run inspect -- <slug> [outDir]
+//
+// Starts a preview server, steps through every step of the given
+// presentation, waits for motion animations to settle, and captures a
+// screenshot per step. Emits advisory warnings (not failures) for:
+//   - unmarked visible text/chrome overlap (mark intentional overlap with
+//     `data-allow-overlap="true"` on the overlapping element)
+//   - visually indistinct active progress/table-of-contents state
+//   - missing, browser-default, or undersized attribution
+import { spawnSync } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import { createServer } from 'vite'
+import { startPreviewServer } from './preview-server.mjs'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const VITE_BIN = join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'vite.cmd' : 'vite')
-const OUT_ROOT = join(ROOT, 'artifacts', 'presentation-inspection')
-const DEFAULT_SETTLE_MS = 950
-const PREVIEW_URL_RE = /http:\/\/127\.0\.0\.1:(\d+)\//
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const root = path.resolve(__dirname, '..')
+const HOST = '127.0.0.1'
+const PORT = 4174
+const SETTLE_MS = 500
 
-function parseArgs() {
-  const args = process.argv.slice(2)
-  const opts = { slug: '', width: 1440, height: 900, settleMs: DEFAULT_SETTLE_MS }
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
-    if (arg === '--width') opts.width = Number(args[++i])
-    else if (arg === '--height') opts.height = Number(args[++i])
-    else if (arg === '--settle-ms') opts.settleMs = Number(args[++i])
-    else if (arg === '--slug' || arg === '--route') opts.slug = normalizeSlug(args[++i] ?? '')
-    else if (!arg.startsWith('--') && !opts.slug) opts.slug = normalizeSlug(arg)
-  }
-  if (!Number.isFinite(opts.width) || opts.width < 320) throw new Error(`invalid width: ${opts.width}`)
-  if (!Number.isFinite(opts.height) || opts.height < 320) throw new Error(`invalid height: ${opts.height}`)
-  if (!Number.isFinite(opts.settleMs) || opts.settleMs < 0) {
-    throw new Error(`invalid --settle-ms: ${opts.settleMs}`)
-  }
-  return opts
-}
-
-function normalizeSlug(value) {
-  return value.replace(/^https?:\/\/[^/]+/, '').replace(/^\//, '').replace(/\/$/, '')
-}
-
-function artifactDirForSlug(slug) {
-  const safeName = slug.replace(/[\\/]+/g, '_')
-  if (!safeName || safeName.includes('..')) {
-    throw new Error(`invalid presentation slug for artifact output: ${slug}`)
-  }
-
-  const root = resolve(OUT_ROOT)
-  const outDir = resolve(root, safeName)
-  if (outDir !== root && outDir.startsWith(`${root}${sep}`)) return outDir
-  throw new Error(`presentation artifact output escaped ${OUT_ROOT}: ${slug}`)
-}
-
-function runBuild() {
-  return new Promise((resolve, reject) => {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-    const child = spawn(npm, ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: false })
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`build exited ${code}`))))
-    child.on('error', reject)
+function run(command, args) {
+  console.log(`> ${command} ${args.join(' ')}`)
+  const result = spawnSync(command, args, {
+    cwd: root,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+    // `loadRegistry()` opens a vite dev server before this runs, and vite sets
+    // process.env.NODE_ENV = 'development' in-process. The spawned build would
+    // inherit it and emit a development bundle — so the screenshots and
+    // advisory warnings would describe a build that is not what ships, and
+    // dist/ would be left holding it. Pin the build to production.
+    env: { ...process.env, NODE_ENV: 'production' },
   })
-}
-
-async function readRegistry() {
-  const registryUrl = pathToFileURL(join(ROOT, 'src/presentations/index.ts')).href
-  const mod = await import(registryUrl)
-  if (!Array.isArray(mod.presentations)) {
-    throw new Error('src/presentations/index.ts does not export a `presentations` array')
+  if (result.status !== 0) {
+    console.error(`\nfailed: ${command} ${args.join(' ')}`)
+    process.exit(result.status ?? 1)
   }
-  return mod.presentations
 }
 
-function childExited(child) {
-  return child.exitCode !== null || child.signalCode !== null
-}
-
-async function waitForPreview(baseUrl, child, deadlineMs = 30_000) {
-  const started = Date.now()
-  while (Date.now() - started < deadlineMs) {
-    if (childExited(child)) throw new Error(`vite preview exited before ready (code ${child.exitCode})`)
-    try {
-      const res = await fetch(baseUrl)
-      const html = await res.text()
-      if (res.ok && html.includes('id="root"')) return
-    } catch {
-      // server not listening yet
-    }
-    await new Promise((r) => setTimeout(r, 200))
+async function loadRegistry() {
+  const server = await createServer({ root, server: { middlewareMode: true } })
+  try {
+    const module = await server.ssrLoadModule('/src/presentations/index.ts')
+    return module.presentations ?? []
+  } finally {
+    await server.close()
   }
-  throw new Error('vite preview did not become ready within 30s')
 }
 
-function stopPreview(child) {
-  return new Promise((resolve) => {
-    if (!child.pid) {
-      resolve()
-      return
-    }
-    child.once('close', () => resolve())
-    try {
-      process.kill(-child.pid, 'SIGTERM')
-    } catch {
-      child.kill('SIGTERM')
-    }
-    setTimeout(() => {
-      if (!childExited(child)) {
-        try {
-          process.kill(-child.pid, 'SIGKILL')
-        } catch {
-          child.kill('SIGKILL')
-        }
-      }
-      resolve()
-    }, 3000)
-  })
-}
 
-function startPreview() {
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      VITE_BIN,
-      ['preview', '--port', '0', '--host', '127.0.0.1'],
-      { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
+/**
+ * Waits for the scene to settle before measuring. A step change that crosses a
+ * `groupKey` boundary remounts the scene, and `AnimatePresence` keeps the
+ * outgoing instance mounted while it fades out — so several scene layers are
+ * briefly in the DOM at once. Measuring then reports the fading duplicates as
+ * overlapping the incoming entities. Wait for the exit to finish (a single
+ * scene layer) before falling back to the fixed settle delay for motion.
+ */
+async function waitForSceneSettled(page) {
+  try {
+    await page.waitForFunction(
+      () => document.querySelectorAll('[data-scene-kit="scene-layer"]').length <= 1,
+      undefined,
+      { timeout: 5000 },
     )
-
-    let output = ''
-    let settled = false
-    let readyStarted = false
-
-    const cleanup = () => {
-      clearTimeout(timer)
-      child.stdout?.off('data', onData)
-      child.stderr?.off('data', onData)
-      child.off('error', onError)
-      child.off('close', onClose)
-    }
-    const rejectWith = async (err) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      await stopPreview(child)
-      reject(err)
-    }
-    const resolveWith = (value) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      resolve(value)
-    }
-    const onData = (chunk) => {
-      output += chunk.toString()
-      const match = output.match(PREVIEW_URL_RE)
-      if (!match || readyStarted) return
-      readyStarted = true
-      const baseUrl = match[0]
-      waitForPreview(baseUrl, child)
-        .then(() => resolveWith({ child, baseUrl }))
-        .catch(rejectWith)
-    }
-    const onError = (err) => rejectWith(err)
-    const onClose = (code) => {
-      if (!settled) rejectWith(new Error(`vite preview exited before ready (code ${code})`))
-    }
-    const timer = setTimeout(() => {
-      const detail = output.trim() ? ` Output:\n${output.trim()}` : ''
-      rejectWith(new Error(`vite preview did not print a local URL within 30s.${detail}`))
-    }, 30_000)
-
-    child.stdout?.on('data', onData)
-    child.stderr?.on('data', onData)
-    child.on('error', onError)
-    child.on('close', onClose)
-  })
+  } catch {
+    // Fall through to the fixed delay; a stuck exit is reported by the checks below.
+  }
+  await page.waitForTimeout(SETTLE_MS)
 }
 
-async function findOverlapWarnings(page, slug, stepIndex) {
-  return page.evaluate(
-    ({ slug, stepIndex }) => {
-      const selectors = [
-        '[data-node-part="label"]',
-        '[data-node-part="subtitle"]',
-        '[data-node="label"]',
-        '[data-presentation-title]',
-        '[data-presentation-caption]',
-        '[data-presentation-toc-item]',
-        '[data-presentation-button]',
-      ]
+/** Bounding boxes overlap, sharing more than a sliver of area. */
+function overlaps(a, b) {
+  const left = Math.max(a.x, b.x)
+  const right = Math.min(a.x + a.width, b.x + b.width)
+  const top = Math.max(a.y, b.y)
+  const bottom = Math.min(a.y + a.height, b.y + b.height)
+  if (right <= left || bottom <= top) return false
+  const overlapArea = (right - left) * (bottom - top)
+  const smallerArea = Math.min(a.width * a.height, b.width * b.height)
+  return smallerArea > 0 && overlapArea / smallerArea > 0.15
+}
 
-      const rectFor = (el) => {
-        const rect = el.getBoundingClientRect()
-        if (rect.width < 1 || rect.height < 1) return null
-        const style = window.getComputedStyle(el)
-        if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) < 0.2) {
-          return null
-        }
+async function checkOverlap(page, warnings, stepLabel) {
+  const boxes = await page.evaluate(() => {
+    const nodes = Array.from(
+      document.querySelectorAll(
+        '[data-scene-kit="box"], [data-scene-kit="label"], [data-scene-kit="symbol-chip"], [data-scene-kit="header"], [data-scene-kit="footer"], [data-scene-kit="toc"]',
+      ),
+    )
+    // The spec scopes this check to *visible* overlap: an entity that is
+    // transparent, hidden, or mid-fade is not a composition problem.
+    const isVisible = (node) => {
+      let current = node
+      let opacity = 1
+      while (current && current !== document.documentElement) {
+        const style = getComputedStyle(current)
+        if (style.visibility === 'hidden' || style.display === 'none') return false
+        opacity *= Number.parseFloat(style.opacity)
+        if (!(opacity > 0.05)) return false
+        current = current.parentElement
+      }
+      return true
+    }
+
+    return nodes
+      .filter((node) => node.getAttribute('data-allow-overlap') !== 'true')
+      .filter(isVisible)
+      .map((node) => {
+        const rect = node.getBoundingClientRect()
         return {
-          left: rect.left,
-          right: rect.right,
-          top: rect.top,
-          bottom: rect.bottom,
+          hook: node.getAttribute('data-scene-kit'),
+          x: rect.x,
+          y: rect.y,
           width: rect.width,
           height: rect.height,
         }
-      }
+      })
+      .filter((box) => box.width > 0 && box.height > 0)
+  })
 
-      const labelFor = (el) => {
-        const hook = Array.from(el.attributes)
-          .find((attr) => attr.name.startsWith('data-node') || attr.name.startsWith('data-presentation'))
-        const text = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40)
-        return `${hook ? hook.name : el.tagName.toLowerCase()}${text ? ` "${text}"` : ''}`
-      }
-
-      const items = selectors.flatMap((selector) =>
-        Array.from(document.querySelectorAll(selector)),
-      )
-        .filter((el) => !el.closest('[data-allow-overlap]'))
-        .map((el) => ({ el, rect: rectFor(el), label: labelFor(el) }))
-        .filter((item) => item.rect)
-
-      const warnings = []
-      for (let i = 0; i < items.length; i++) {
-        for (let j = i + 1; j < items.length; j++) {
-          const a = items[i]
-          const b = items[j]
-          if (a.el.contains(b.el) || b.el.contains(a.el)) continue
-          const left = Math.max(a.rect.left, b.rect.left)
-          const right = Math.min(a.rect.right, b.rect.right)
-          const top = Math.max(a.rect.top, b.rect.top)
-          const bottom = Math.min(a.rect.bottom, b.rect.bottom)
-          const width = right - left
-          const height = bottom - top
-          if (width <= 0 || height <= 0) continue
-
-          const area = width * height
-          const smaller = Math.min(a.rect.width * a.rect.height, b.rect.width * b.rect.height)
-          if (area < 24 || area / smaller < 0.08) continue
-
-          warnings.push(
-            `${slug} step ${stepIndex + 1}: ${a.label} overlaps ${b.label} (${Math.round(area)}px^2)`,
-          )
-          if (warnings.length >= 10) return warnings
-        }
-      }
-      return warnings
-    },
-    { slug, stepIndex },
-  )
-}
-
-export async function findChromeWarnings(page, slug, stepIndex) {
-  return page.evaluate(
-    ({ slug, stepIndex }) => {
-      const isVisible = (el) => {
-        if (!el) return false
-        const rect = el.getBoundingClientRect()
-        const style = window.getComputedStyle(el)
-        return (
-          rect.width >= 1 &&
-          rect.height >= 1 &&
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          Number(style.opacity) >= 0.2
-        )
-      }
-
-      const styleSignature = (el, { includeSize = false } = {}) => {
-        const style = window.getComputedStyle(el)
-        const rect = el.getBoundingClientRect()
-        const parts = [
-          style.color,
-          style.backgroundColor,
-          style.borderTopColor,
-          style.borderRightColor,
-          style.borderBottomColor,
-          style.borderLeftColor,
-          style.fontWeight,
-          style.opacity,
-          style.textDecorationLine,
-        ]
-        if (includeSize) parts.push(String(Math.round(rect.width)), String(Math.round(rect.height)))
-        return parts.join('|')
-      }
-
-      const warnings = []
-      const progressDots = Array.from(document.querySelectorAll('[data-presentation-progress-dot]'))
-        .filter(isVisible)
-      const activeProgress = progressDots.find((el) =>
-        el.getAttribute('data-active') === 'true' || el.getAttribute('aria-current') === 'step',
-      )
-      const inactiveProgress = progressDots.find((el) => el !== activeProgress)
-      if (!activeProgress && progressDots.length > 1) {
-        warnings.push(`${slug} step ${stepIndex + 1}: no active progress dot is exposed`)
-      } else if (
-        activeProgress &&
-        inactiveProgress &&
-        styleSignature(activeProgress, { includeSize: true }) ===
-          styleSignature(inactiveProgress, { includeSize: true })
-      ) {
+  for (let i = 0; i < boxes.length; i += 1) {
+    for (let j = i + 1; j < boxes.length; j += 1) {
+      if (overlaps(boxes[i], boxes[j])) {
         warnings.push(
-          `${slug} step ${stepIndex + 1}: active progress dot looks identical to inactive dots; style [data-presentation-progress-dot][data-active='true']`,
+          `${stepLabel}: unmarked overlap between "${boxes[i].hook}" and "${boxes[j].hook}" — mark intentional overlap with data-allow-overlap="true"`,
         )
       }
-
-      const tocItems = Array.from(document.querySelectorAll('[data-presentation-toc-item]'))
-        .filter(isVisible)
-      const activeToc = tocItems.find((el) =>
-        el.getAttribute('data-active') === 'true' || el.getAttribute('aria-current') === 'step',
-      )
-      const inactiveToc = tocItems.find((el) => el !== activeToc)
-      if (!activeToc && tocItems.length > 1) {
-        warnings.push(`${slug} step ${stepIndex + 1}: no active table-of-contents item is exposed`)
-      } else if (activeToc && inactiveToc && styleSignature(activeToc) === styleSignature(inactiveToc)) {
-        warnings.push(
-          `${slug} step ${stepIndex + 1}: active table-of-contents item looks identical to inactive items; style [data-presentation-toc-item][data-active='true']`,
-        )
-      }
-
-      const attribution = document.querySelector('[data-presentation-attribution]')
-      if (!attribution) {
-        warnings.push(
-          `${slug}: attribution is not rendered; pass attribution={null} only for an intentional opt-out`,
-        )
-      } else if (!isVisible(attribution)) {
-        warnings.push(
-          `${slug}: attribution is present but not visible; style [data-presentation-attribution] in presentation CSS`,
-        )
-      } else {
-        const style = window.getComputedStyle(attribution)
-        const rect = attribution.getBoundingClientRect()
-        const fontSize = Number.parseFloat(style.fontSize)
-        const defaultLinkBlue = style.color === 'rgb(0, 0, 238)' || style.color === '-webkit-link'
-        if (fontSize < 12 || rect.height < 14 || defaultLinkBlue) {
-          warnings.push(
-            `${slug}: attribution appears too small or browser-default; style [data-presentation-attribution] in presentation CSS`,
-          )
-        }
-      }
-
-      return warnings
-    },
-    { slug, stepIndex },
-  )
-}
-
-export function appendInspectionWarnings(warnings, seenAttributionWarnings, additions) {
-  for (const warning of additions) {
-    const isAttributionWarning = warning.includes(': attribution ')
-    if (isAttributionWarning && seenAttributionWarnings.has(warning)) continue
-    warnings.push(warning)
-    if (isAttributionWarning) seenAttributionWarnings.add(warning)
-  }
-}
-
-async function capturePresentation(page, baseUrl, slug, width, height, settleMs) {
-  const outDir = artifactDirForSlug(slug)
-  await mkdir(outDir, { recursive: true })
-  await page.setViewportSize({ width, height })
-  await page.goto(`${baseUrl}${slug}`, { waitUntil: 'load', timeout: 30_000 })
-
-  const progress = page.locator('[data-testid="step-progress"]')
-  await progress.waitFor({ timeout: 10_000 })
-  const stepCount = Number(await progress.getAttribute('data-step-count'))
-  if (!Number.isFinite(stepCount) || stepCount < 1) {
-    throw new Error(`${slug}: invalid data-step-count: ${stepCount}`)
-  }
-
-  const written = []
-  const warnings = []
-  const seenAttributionWarnings = new Set()
-  for (let i = 0; i < stepCount; i++) {
-    const expectedIndex = Number(await progress.getAttribute('data-step-index'))
-    if (expectedIndex !== i) throw new Error(`${slug} step ${i}: expected index ${i}, got ${expectedIndex}`)
-
-    await page.waitForTimeout(settleMs)
-    warnings.push(...await findOverlapWarnings(page, slug, i))
-    appendInspectionWarnings(warnings, seenAttributionWarnings, await findChromeWarnings(page, slug, i))
-
-    const path = join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
-    await page.screenshot({ path, fullPage: false })
-    written.push(path)
-
-    if (i < stepCount - 1) {
-      await page.keyboard.press('ArrowRight')
-      await page.waitForFunction(
-        (expected) => {
-          const el = document.querySelector('[data-testid="step-progress"]')
-          return el && Number(el.getAttribute('data-step-index')) === expected
-        },
-        i + 1,
-        { timeout: 5000 },
-      )
     }
   }
-  return { written, warnings }
+}
+
+async function checkActiveState(page, warnings, stepLabel) {
+  const activeMarks = await page.evaluate(() => {
+    // Visual properties that could plausibly carry an active/inactive
+    // distinction. `transform` is excluded: layout morphs leave per-element
+    // transforms that differ for reasons unrelated to active styling.
+    const VISUAL_PROPERTIES = [
+      'backgroundColor',
+      'color',
+      'borderStyle',
+      'borderColor',
+      'borderWidth',
+      'outlineStyle',
+      'fontWeight',
+      'opacity',
+      'boxShadow',
+      'textDecorationLine',
+    ]
+    // Covers the element *and its subtree*: the kit deliberately puts the
+    // `data-active` hook on the control (e.g. the progress-dot button) while
+    // presentations style an inner mark (`.sk-progress-dot__mark`), so reading
+    // only the hook element itself would miss the distinction entirely.
+    const signature = (el) => {
+      const parts = []
+      for (const node of [el, ...el.querySelectorAll('*')]) {
+        const style = getComputedStyle(node)
+        parts.push(VISUAL_PROPERTIES.map((property) => style[property]).join('|'))
+      }
+      return parts.join('||')
+    }
+
+    // Group by hook so each active element is compared against its own
+    // inactive siblings. Comparing against the document body instead would
+    // call an entry "distinct" merely for sharing a border with its siblings.
+    const groups = new Map()
+    for (const el of document.querySelectorAll('[data-active]')) {
+      const hook = el.getAttribute('data-scene-kit') ?? '(unhooked)'
+      if (!groups.has(hook)) groups.set(hook, [])
+      groups.get(hook).push(el)
+    }
+
+    const results = []
+    for (const [hook, elements] of groups) {
+      const inactive = elements.filter((el) => el.getAttribute('data-active') !== 'true')
+      // Nothing to contrast against: no active/inactive pair on this hook.
+      if (inactive.length === 0) continue
+      const inactiveSignatures = new Set(inactive.map(signature))
+      for (const el of elements.filter((candidate) => candidate.getAttribute('data-active') === 'true')) {
+        results.push({ hook, distinct: !inactiveSignatures.has(signature(el)) })
+      }
+    }
+    return results
+  })
+
+  for (const mark of activeMarks) {
+    if (!mark.distinct) {
+      warnings.push(`${stepLabel}: active state on "${mark.hook}" is not visually distinct from its inactive siblings`)
+    }
+  }
+}
+
+async function checkAttribution(page, warnings, stepLabel) {
+  const attribution = await page.evaluate(() => {
+    const el = document.querySelector('[data-scene-kit="attribution"]')
+    if (!el) return null
+    const rect = el.getBoundingClientRect()
+    const style = getComputedStyle(el)
+
+    // Measure "browser default" against a throwaway unstyled anchor rather
+    // than hardcoding this browser's default link colour. The probe is
+    // inserted as a sibling so it inherits the same context, and only the
+    // properties the UA stylesheet actually sets on a link are compared —
+    // font size/family are inherited, so including them would mask a
+    // genuinely unstyled attribution. Size is checked separately below.
+    const probe = document.createElement('a')
+    probe.href = el.getAttribute('href') ?? '#'
+    probe.textContent = el.textContent
+    ;(el.parentElement ?? document.body).appendChild(probe)
+    const probeStyle = getComputedStyle(probe)
+    const browserDefault =
+      style.color === probeStyle.color && style.textDecorationLine === probeStyle.textDecorationLine
+    probe.remove()
+
+    return {
+      width: rect.width,
+      height: rect.height,
+      fontSize: parseFloat(style.fontSize),
+      browserDefault,
+    }
+  })
+
+  if (!attribution) {
+    warnings.push(`${stepLabel}: attribution hook is missing from the page`)
+    return
+  }
+  if (attribution.width < 20 || attribution.height < 8) {
+    warnings.push(`${stepLabel}: attribution renders undersized (${Math.round(attribution.width)}x${Math.round(attribution.height)}px)`)
+  }
+  if (attribution.fontSize && attribution.fontSize < 8) {
+    warnings.push(`${stepLabel}: attribution font-size (${attribution.fontSize}px) reads as too small`)
+  }
+  if (attribution.browserDefault) {
+    warnings.push(
+      `${stepLabel}: attribution renders with browser-default anchor styling — presentation CSS should make it intentional`,
+    )
+  }
 }
 
 async function main() {
-  const opts = parseArgs()
-  await runBuild()
-
-  const presentations = await readRegistry()
-  const selected = opts.slug ? presentations.filter((entry) => entry.slug === opts.slug) : presentations
-  if (selected.length === 0) {
-    throw new Error(opts.slug ? `presentation not found: ${opts.slug}` : 'no presentations registered')
-  }
-
-  const { child, baseUrl } = await startPreview()
-  let browser
-  try {
-    browser = await chromium.launch()
-    const page = await browser.newPage()
-    for (const { slug } of selected) {
-      const { written, warnings } = await capturePresentation(
-        page,
-        baseUrl,
-        slug,
-        opts.width,
-        opts.height,
-        opts.settleMs,
-      )
-      console.log(`INSPECT: ${slug} (${written.length} screenshot${written.length === 1 ? '' : 's'})`)
-      for (const path of written) console.log(path)
-      for (const warning of warnings) console.warn(`WARN [inspect-overlap]: ${warning}`)
-    }
-  } finally {
-    await browser?.close()
-    await stopPreview(child)
-  }
-}
-
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((err) => {
-    console.error(`FAIL [inspect]: ${err instanceof Error ? err.message : String(err)}`)
+  const [slug, outDirArg] = process.argv.slice(2)
+  if (!slug) {
+    console.error('usage: npm run inspect -- <slug> [outDir]')
     process.exit(1)
-  })
+  }
+
+  const presentations = await loadRegistry()
+  const entry = presentations.find((candidate) => candidate.slug === slug)
+  if (!entry) {
+    console.error(`no presentation registered with slug "${slug}"`)
+    process.exit(1)
+  }
+
+  const outDir = path.resolve(root, outDirArg ?? path.join('.inspect', slug))
+  fs.mkdirSync(outDir, { recursive: true })
+
+  // `vite preview` serves whatever is already in `dist/`. Without building
+  // first, the screenshots and advisory warnings describe a stale bundle, so
+  // an edit under review appears to have had no effect.
+  run('npm', ['run', 'build'])
+
+  const preview = await startPreviewServer({ root, host: HOST, port: PORT })
+  const baseUrl = `http://${HOST}:${PORT}`
+  const warnings = []
+
+  try {
+    const browser = await chromium.launch()
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+    await page.goto(`${baseUrl}/${slug}`, { waitUntil: 'networkidle' })
+
+    const rootLocator = page.locator('[data-scene-kit="presentation"]')
+    await rootLocator.waitFor({ state: 'attached', timeout: 10000 })
+    // Without this guard a missing attribute (Number(null) === 0) or a
+    // nonnumeric one (NaN) skips the loop entirely, and inspection reports
+    // "no advisory warnings" having captured nothing.
+    const rawStepCount = await rootLocator.getAttribute('data-step-count')
+    const stepCount = Number(rawStepCount)
+    if (!Number.isInteger(stepCount) || stepCount < 1) {
+      throw new Error(
+        `presentation "${slug}" exposes an invalid data-step-count: ${JSON.stringify(rawStepCount)}`,
+      )
+    }
+
+    for (let index = 0; index < stepCount; index += 1) {
+      await waitForSceneSettled(page)
+      const stepLabel = `step ${index + 1}/${stepCount}`
+      const file = path.join(outDir, `step-${String(index + 1).padStart(2, '0')}.png`)
+      await page.screenshot({ path: file })
+      console.log(`captured ${file}`)
+
+      await checkOverlap(page, warnings, stepLabel)
+      await checkActiveState(page, warnings, stepLabel)
+      await checkAttribution(page, warnings, stepLabel)
+
+      if (index < stepCount - 1) {
+        await page.keyboard.press('ArrowRight')
+      }
+    }
+
+    await browser.close()
+  } finally {
+    await preview.close()
+  }
+
+  if (warnings.length > 0) {
+    console.log(`\n${warnings.length} advisory warning(s):`)
+    for (const warning of warnings) console.log(`  - ${warning}`)
+  } else {
+    console.log('\nno advisory warnings')
+  }
 }
+
+main().catch((error) => {
+  console.error(`inspect failed: ${error.message}`)
+  process.exit(1)
+})

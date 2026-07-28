@@ -9,7 +9,10 @@
 //    step through every step via the chrome's data-step-count/data-step-index
 //    hooks, and fail on console errors, uncaught page errors, or a step index
 //    that does not advance.
-// 5. Exits non-zero with the failing check/step reported.
+// 5. Re-opens the reference sample at a phone-width viewport and fails if the
+//    browse-mode table of contents is still visible (it is scoped to wide
+//    viewports).
+// 6. Exits non-zero with the failing check/step reported.
 
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'

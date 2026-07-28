@@ -7,7 +7,9 @@
 //    step through every step via the chrome's data-step-count/data-step-index
 //    hooks, and fail on console errors, uncaught page errors, or a step index
 //    that does not advance.
-// 4. Exits non-zero with the failing check/step reported.
+// 4. Re-opens each route at a phone-width viewport and fails if the browse-mode
+//    table of contents is still visible (it is scoped to wide viewports).
+// 5. Exits non-zero with the failing check/step reported.
 
 import { spawn, spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -20,6 +22,7 @@ const projectRoot = path.resolve(fileURLToPath(import.meta.url), '../..')
 const HOST = '127.0.0.1'
 const PORT = Number(process.env.VERIFY_PORT ?? 4173)
 const BASE_URL = `http://${HOST}:${PORT}`
+const NARROW_VIEWPORT = { width: 390, height: 800 }
 
 function fail(message) {
   console.error(`\n[verify] FAIL: ${message}`)
@@ -93,6 +96,28 @@ async function verifyRoute(browser, slug) {
   return { slug, ok: true }
 }
 
+// The browse-mode table of contents is scoped to wide viewports. The kit
+// renders it unconditionally in browse mode (visibility is a style decision the
+// presentation owns), so this asserts each presentation actually collapses it
+// at a phone-width viewport instead of leaving it floating over the scene.
+async function verifyNarrowViewport(browser, slug) {
+  const page = await browser.newPage({ viewport: NARROW_VIEWPORT })
+  try {
+    await page.goto(`${BASE_URL}/${slug}`, { waitUntil: 'networkidle' })
+
+    const toc = page.locator('[data-presentation-chrome="toc"]')
+    if ((await toc.count()) > 0 && (await toc.first().isVisible())) {
+      return {
+        ok: false,
+        message: `table of contents is still visible at ${NARROW_VIEWPORT.width}px; scope it to wide viewports in this presentation's CSS`,
+      }
+    }
+    return { ok: true }
+  } finally {
+    await page.close()
+  }
+}
+
 async function main() {
   console.log('[verify] building the whole app…')
   const build = spawnSync('npm', ['run', 'build'], { cwd: projectRoot, stdio: 'inherit', shell: true })
@@ -129,6 +154,11 @@ async function main() {
           fail(`/${slug} — ${result.message}`)
         } else {
           console.log(`[verify] /${slug} OK (${slugs.length} route(s) checked)`)
+        }
+
+        const narrow = await verifyNarrowViewport(browser, slug)
+        if (!narrow.ok) {
+          fail(`/${slug} — ${narrow.message}`)
         }
       }
     } finally {

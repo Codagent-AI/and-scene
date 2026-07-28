@@ -258,5 +258,5 @@ project. It does not cover:
 - **Content research** — the user supplies the substance; do not invent facts,
   data, or quotes to fill steps.
 
-When a request falls outside this list, say which part is out of scope, do the
-part that is in scope, and leave the rest to the user.
+When a request includes something from this list, say which part is out of
+scope, do the part that is in scope, and leave the rest to the user.

@@ -17,6 +17,13 @@ export function Presentation<TPayload>({ steps, initialMode = 'present', brand }
   const scale = useFitScale(nav.mode)
   const step = steps[nav.index]
 
+  // A presentation with no steps is an authoring mistake, not a render error.
+  // Emit the root with its step hooks so the verification scripts report a
+  // stepless presentation instead of an undefined-property crash.
+  if (!step) {
+    return <div data-presentation-root="true" data-step-count={0} data-step-index={0} />
+  }
+
   return (
     <div
       data-presentation-root="true"

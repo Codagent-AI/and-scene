@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify a browser-based presentation modeled as one evolving diagrammatic scene. Use when asked to build a presentation/talk/deck about a topic, or to change an existing one.
+description: Creates and modifies browser-based presentations modeled as one evolving diagrammatic scene rather than a slide deck. Triggers when users ask to build or write a presentation, talk, or deck about a topic, add or reword steps, change an existing presentation's scene, or scaffold presentation infrastructure.
 ---
 
 # Presentation skill
@@ -117,6 +117,10 @@ adding whichever are missing — after copying files:
   `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`,
   `typescript-eslint`, `globals`), and `playwright` (for the render check).
 
+Install them from the resolved scaffold target: run `npm ci` when a lockfile is
+already present there, and `npm install` otherwise. Use the host project's
+package manager instead (`pnpm`, `yarn`, `bun`) when its lockfile shows one.
+
 Do **not** add Tailwind, a Tailwind Vite plugin, or any other styling
 framework unless the host project already depends on one or the user
 explicitly asks for it. `templates/bootstrap/` never references one.
@@ -222,3 +226,19 @@ on a known failure.
 Template files use `{{PLACEHOLDER}}` tokens; replace every placeholder with
 gathered content before writing the file, and remove any template comments
 that no longer apply.
+
+## Out of Scope
+
+This skill does NOT:
+
+- Produce slide files — PowerPoint, Keynote, Google Slides, or reveal.js/Marp
+  decks. It builds one evolving scene as a React route. For a conventional
+  deck, write the file directly rather than using this skill.
+- Generate documents, reports, or diagram images (PDF, Word, standalone
+  SVG/PNG). Use the relevant document or diagram tooling instead.
+- Convert an existing slide deck into a presentation. Gather the content
+  through the normal requirements step and build the scene from it.
+- Deploy, host, or publish the presentation, or configure CI. It builds and
+  verifies locally; deployment is the host project's concern.
+- Add a styling framework or design system. The kit stays style-neutral and
+  each presentation owns its own CSS — see the scaffolding rules above.

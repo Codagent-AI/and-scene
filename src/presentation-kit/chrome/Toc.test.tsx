@@ -41,4 +41,34 @@ describe('Toc', () => {
     await userEvent.click(screen.getByTestId('toc-entry-Growth'))
     expect(onJump).toHaveBeenCalledWith(2)
   })
+
+  describe('an era that recurs in a later, non-consecutive section', () => {
+    const recurring: Step<undefined>[] = [
+      makeStep('a', 'Origins'),
+      makeStep('b', 'Growth'),
+      makeStep('c', 'Origins'),
+    ]
+
+    it('renders each section, not just the first use of the era', () => {
+      render(<Toc steps={recurring} activeIndex={0} onJump={() => {}} />)
+      expect(screen.getAllByText('Origins')).toHaveLength(2)
+    })
+
+    it('marks only the section containing the active step as active', () => {
+      render(<Toc steps={recurring} activeIndex={2} onJump={() => {}} />)
+      const entries = screen.getAllByTestId(/^toc-entry-/)
+      expect(entries.map((entry) => entry.getAttribute('data-presentation-active'))).toEqual([
+        'false',
+        'false',
+        'true',
+      ])
+    })
+
+    it('jumps to the first step of the clicked section', async () => {
+      const onJump = vi.fn()
+      render(<Toc steps={recurring} activeIndex={0} onJump={onJump} />)
+      await userEvent.click(screen.getAllByText('Origins')[1])
+      expect(onJump).toHaveBeenCalledWith(2)
+    })
+  })
 })

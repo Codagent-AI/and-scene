@@ -101,4 +101,17 @@ describe('usePresentationNav', () => {
     })
     expect(result.current.index).toBe(0)
   })
+
+  it('clamps the reported index when the step count shrinks past it', () => {
+    const { result, rerender } = renderHook(({ count }) => usePresentationNav(count), {
+      initialProps: { count: 5 },
+    })
+    act(() => {
+      result.current.goTo(4)
+    })
+    expect(result.current.index).toBe(4)
+
+    rerender({ count: 2 })
+    expect(result.current.index).toBe(1)
+  })
 })

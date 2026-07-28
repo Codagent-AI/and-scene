@@ -101,5 +101,10 @@ export function usePresentationNav(
     [next, prev],
   )
 
-  return { index, mode, next, prev, goTo, setMode, toggleMode, handleTouchStart, handleTouchEnd }
+  // Clamp on read so a step count that shrinks past the stored index (an edit
+  // during authoring, a hot reload) reports a step that still exists rather
+  // than indexing off the end.
+  const safeIndex = clampIndex(index, stepCount)
+
+  return { index: safeIndex, mode, next, prev, goTo, setMode, toggleMode, handleTouchStart, handleTouchEnd }
 }

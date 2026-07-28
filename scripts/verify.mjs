@@ -26,6 +26,11 @@ const HOST = '127.0.0.1'
 const PORT = Number(process.env.VERIFY_PORT ?? 4173)
 const BASE_URL = `http://${HOST}:${PORT}`
 
+// Appear nodes mount after ENTER_DELAY (0.5s) and fade in over ENTER_T (0.35s)
+// — see src/presentation-kit/constants.ts. Wait past both, plus a buffer, so
+// every step is inspected in its settled state.
+const STEP_SETTLE_MS = 900
+
 const NARROW_VIEWPORT = { width: 390, height: 800 }
 
 const REFERENCE_SAMPLE_SLUG = 'how-to-make-a-presentation'
@@ -129,6 +134,12 @@ async function verifyRoute(browser, slug) {
   }
 
   for (let index = 0; index < stepCount; index += 1) {
+    // Let the step settle before inspecting it. Appear nodes mount only after
+    // ENTER_DELAY and then fade in over ENTER_T, so checking sooner inspects a
+    // half-mounted step and misses errors thrown by the delayed content —
+    // including on the final step, where nothing re-checks afterwards.
+    await page.waitForTimeout(STEP_SETTLE_MS)
+
     const current = Number(await root.getAttribute('data-step-index'))
     if (current !== index) {
       await page.close()
@@ -140,7 +151,6 @@ async function verifyRoute(browser, slug) {
     }
     if (index < stepCount - 1) {
       await page.keyboard.press('ArrowRight')
-      await page.waitForTimeout(400)
     }
   }
 

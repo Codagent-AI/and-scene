@@ -78,4 +78,11 @@ describe('Presentation', () => {
     const root = container.querySelector('[data-step-count]')
     expect(root).toHaveAttribute('data-step-index', '2')
   })
+
+  it('renders an empty root instead of crashing when there are no steps', () => {
+    const { container } = render(<Presentation steps={[]} title="Empty" />)
+    const root = container.querySelector('[data-presentation-root]')
+    expect(root).toHaveAttribute('data-step-count', '0')
+  })
+
 })

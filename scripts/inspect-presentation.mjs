@@ -26,7 +26,11 @@ const projectRoot = path.resolve(fileURLToPath(import.meta.url), '../..')
 const HOST = '127.0.0.1'
 const PORT = Number(process.env.INSPECT_PORT ?? 4174)
 const BASE_URL = `http://${HOST}:${PORT}`
-const SETTLE_MS = 600
+// The kit's Appear nodes mount after ENTER_DELAY (0.5s) and then fade in over
+// ENTER_T (0.35s) — see src/presentation-kit/constants.ts. Capture after that
+// completes, plus a small buffer, so screenshots show the settled composition
+// rather than a half-mounted one.
+const SETTLE_MS = 900
 
 function parseArgs(argv) {
   const [slug, ...rest] = argv

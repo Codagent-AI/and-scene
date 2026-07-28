@@ -1,21 +1,20 @@
-/** Stable layoutId namespace — entities morph across steps when ids match. */
-export const ENTITIES = {
-  you: 'you',
-  prompt: 'prompt',
-  questionChip: 'question-chip',
-  convoArrow: 'convo-arrow',
-  skill: 'skill',
-  stepCard1: 'step-card-1',
-  stepCard2: 'step-card-2',
-  stepCard3: 'step-card-3',
-  ghostCard: 'ghost-card',
-  depthChip: 'depth-chip',
-  tray: 'tray',
-  kitSocket: 'kit-socket',
-  verifyArrow: 'verify-arrow',
-  verifyNode: 'verify-node',
-  greenCheck: 'green-check',
-  editBadge: 'edit-badge',
+/**
+ * Stable layoutId namespace for how-to-make-a-presentation.
+ *
+ * Every entity that should morph (not remount) across steps needs a stable id
+ * here, prefixed so it can never collide with another presentation's ids.
+ */
+export const entities = {
+  you: 'htmap-you',
+  prompt: 'htmap-prompt',
+  skill: 'htmap-skill',
+  conversationArrow: 'htmap-conversation-arrow',
+  questionChip: 'htmap-question-chip',
+  tray: 'htmap-tray',
+  depthControl: 'htmap-depth-control',
+  sceneKit: 'htmap-scene-kit',
+  verify: 'htmap-verify',
+  modifyArc: 'htmap-modify-arc',
+  revealFrame: 'htmap-reveal-frame',
+  card: (index: number) => `htmap-card-${index}`,
 } as const
-
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]

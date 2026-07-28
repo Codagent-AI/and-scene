@@ -1,10 +1,22 @@
+import type { ComponentType } from 'react'
+
+export interface PresentationRegistryEntry {
+  slug: string
+  title: string
+  load: () => Promise<{ default: ComponentType }>
+}
+
 export type Route =
   | { kind: 'landing' }
-  | { kind: 'presentation'; slug: string }
+  | { kind: 'presentation'; entry: PresentationRegistryEntry }
 
-export function resolveRoute(pathname: string, slugs: ReadonlySet<string>): Route {
-  if (pathname === '/' || pathname === '') return { kind: 'landing' }
-  const slug = pathname.replace(/^\//, '').replace(/\/$/, '')
-  if (slug && slugs.has(slug)) return { kind: 'presentation', slug }
-  return { kind: 'landing' }
+export function resolveRoute(
+  pathname: string,
+  registry: PresentationRegistryEntry[],
+): Route {
+  const slug = pathname.replace(/^\/+/, '').replace(/\/+$/, '')
+  if (!slug) return { kind: 'landing' }
+
+  const entry = registry.find((candidate) => candidate.slug === slug)
+  return entry ? { kind: 'presentation', entry } : { kind: 'landing' }
 }

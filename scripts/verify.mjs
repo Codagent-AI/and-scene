@@ -7,7 +7,8 @@
 //    links, then opens each presentation route and steps through every step
 //    using the `data-step-count` / `data-step-index` chrome hooks.
 // 4. Fails on any console error, uncaught page error, or a step index that
-//    does not advance.
+//    does not advance, or if the registry declares presentations that landing
+//    page discovery missed (which would otherwise skip every render check).
 // 5. Asserts the canonical nine-step reference sample is registered and that
 //    every step's title/caption matches the outline in
 //    openspec/changes/create-and-scene/specs/presentation-verification/spec.md,
@@ -22,6 +23,11 @@ import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 import { CANONICAL_SLUG, findCanonicalMismatches } from './canonical-sample.mjs'
+import {
+  countRegisteredSlugs,
+  findDiscoveryFailures,
+  readRegistrySource,
+} from './registry-discovery.mjs'
 
 const HOST = '127.0.0.1'
 const PORT = 4173
@@ -31,6 +37,20 @@ const CANONICAL_OUTLINE_PATH = path.join(
   REPO_ROOT,
   'src/presentations/how-to-make-a-presentation/canonical-outline.json',
 )
+const REGISTRY_PATH = path.join(REPO_ROOT, 'src/presentations/index.ts')
+
+// The kit renders the active step's title in the header in browse mode and in
+// the footer in present mode, so read whichever hook this presentation's mode
+// actually mounted instead of blocking on one of them.
+const TITLE_SELECTORS = ['[data-presentation-header-title]', '[data-presentation-footer-title]']
+
+async function readOptionalText(page, selectors) {
+  for (const selector of selectors) {
+    const locator = page.locator(selector).first()
+    if ((await locator.count()) > 0) return (await locator.textContent())?.trim() ?? ''
+  }
+  return ''
+}
 
 function run(command, args) {
   return new Promise((resolve, reject) => {
@@ -97,9 +117,9 @@ async function verifyPresentation(page, slug) {
         return { errors, steps }
       }
 
-      const title = await page.locator('[data-presentation-header-title]').first().textContent()
-      const caption = await page.locator('[data-presentation-caption]').first().textContent()
-      steps.push({ title: title?.trim() ?? '', caption: caption?.trim() ?? '' })
+      const title = await readOptionalText(page, TITLE_SELECTORS)
+      const caption = await readOptionalText(page, ['[data-presentation-caption]'])
+      steps.push({ title, caption })
 
       if (expectedIndex < stepCount - 1) {
         await page.keyboard.press('ArrowRight')
@@ -132,7 +152,10 @@ async function main() {
       const page = await browser.newPage()
       const slugs = await discoverSlugs(page)
 
-      if (slugs.length === 0) {
+      const registeredCount = countRegisteredSlugs(await readRegistrySource(readFile, REGISTRY_PATH))
+      failures.push(...findDiscoveryFailures(registeredCount, slugs))
+
+      if (slugs.length === 0 && registeredCount === 0) {
         console.warn('No presentations registered in src/presentations/index.ts; skipping render checks.')
       }
 

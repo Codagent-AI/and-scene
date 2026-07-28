@@ -7,17 +7,28 @@
 //    links, then opens each presentation route and steps through every step
 //    using the `data-step-count` / `data-step-index` chrome hooks.
 // 4. Fails on any console error, uncaught page error, or a step index that
-//    does not advance.
+//    does not advance, or if the registry declares presentations that landing
+//    page discovery missed (which would otherwise skip every render check).
 //
 // Exits non-zero with a description of the first failure.
 
 import { spawn } from 'node:child_process'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import {
+  countRegisteredSlugs,
+  findDiscoveryFailures,
+  readRegistrySource,
+} from './registry-discovery.mjs'
 
 const HOST = '127.0.0.1'
 const PORT = 4173
 const BASE_URL = `http://${HOST}:${PORT}`
+const PROJECT_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
+const REGISTRY_PATH = path.join(PROJECT_ROOT, 'src/presentations/index.ts')
 
 function run(command, args) {
   return new Promise((resolve, reject) => {
@@ -113,7 +124,10 @@ async function main() {
       const page = await browser.newPage()
       const slugs = await discoverSlugs(page)
 
-      if (slugs.length === 0) {
+      const registeredCount = countRegisteredSlugs(await readRegistrySource(readFile, REGISTRY_PATH))
+      failures.push(...findDiscoveryFailures(registeredCount, slugs))
+
+      if (slugs.length === 0 && registeredCount === 0) {
         console.warn('No presentations registered in src/presentations/index.ts; skipping render checks.')
       }
 

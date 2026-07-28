@@ -23,13 +23,16 @@ import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import {
+  checkAttribution,
+  findIndistinctActiveState,
+  findUnmarkedOverlaps,
+} from './inspect-checks.mjs'
 
 const HOST = '127.0.0.1'
 const PORT = 5183
 const BASE_URL = `http://${HOST}:${PORT}`
 const SETTLE_MS = 1000
-const MIN_ATTRIBUTION_WIDTH = 40
-const MIN_ATTRIBUTION_HEIGHT = 10
 
 function parseArgs(argv) {
   const [slug, ...rest] = argv
@@ -62,94 +65,6 @@ async function waitForServer(url, timeoutMs = 20_000) {
     await delay(200)
   }
   throw new Error(`Timed out waiting for ${url}`)
-}
-
-/** Runs in-page: finds visible-text elements inside the stage that overlap chrome. */
-function findUnmarkedOverlaps() {
-  const chromeSelectors = [
-    '[data-presentation-header]',
-    '[data-presentation-footer]',
-    '[data-presentation-caption]',
-    '[data-presentation-progress]',
-    '[data-presentation-toc]',
-    '[data-presentation-nav-controls]',
-    '[data-presentation-attribution]',
-  ]
-  const chromeEls = chromeSelectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)))
-  const stage = document.querySelector('[data-presentation-stage]')
-  if (!stage) return []
-
-  const intersects = (a, b) =>
-    a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
-
-  const warnings = []
-  const sceneEls = Array.from(stage.querySelectorAll('*')).filter((el) => {
-    const text = el.textContent?.trim()
-    if (!text) return false
-    if (el.children.length > 0) return false // leaf text nodes only
-    const style = window.getComputedStyle(el)
-    return style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0
-  })
-
-  for (const sceneEl of sceneEls) {
-    if (sceneEl.closest('[data-presentation-allow-overlap]')) continue
-    const sceneRect = sceneEl.getBoundingClientRect()
-    if (sceneRect.width === 0 || sceneRect.height === 0) continue
-    for (const chromeEl of chromeEls) {
-      const chromeRect = chromeEl.getBoundingClientRect()
-      if (intersects(sceneRect, chromeRect)) {
-        warnings.push(
-          `scene text "${sceneEl.textContent?.trim().slice(0, 40)}" overlaps ${chromeEl.getAttribute('data-presentation-header') !== null ? 'header' : chromeEl.tagName.toLowerCase()} chrome`,
-        )
-      }
-    }
-  }
-  return warnings
-}
-
-/** Runs in-page: checks the active progress dot / toc entry reads as visually distinct. */
-function findIndistinctActiveState() {
-  const warnings = []
-  const groups = [
-    { selector: '[data-presentation-progress-dot]', label: 'progress dot' },
-    { selector: '[data-presentation-toc-entry]', label: 'table-of-contents entry' },
-  ]
-  for (const group of groups) {
-    const els = Array.from(document.querySelectorAll(group.selector))
-    const active = els.find((el) => el.getAttribute('data-active') === 'true')
-    const inactive = els.find((el) => el.getAttribute('data-active') !== 'true')
-    if (!active || !inactive) continue
-    const activeStyle = window.getComputedStyle(active)
-    const inactiveStyle = window.getComputedStyle(inactive)
-    const same =
-      activeStyle.backgroundColor === inactiveStyle.backgroundColor &&
-      activeStyle.color === inactiveStyle.color &&
-      activeStyle.borderColor === inactiveStyle.borderColor &&
-      activeStyle.opacity === inactiveStyle.opacity &&
-      activeStyle.fontWeight === inactiveStyle.fontWeight
-    if (same) {
-      warnings.push(`active ${group.label} is not visually distinct from an inactive sibling`)
-    }
-  }
-  return warnings
-}
-
-/** Runs in-page: checks the attribution link is present, sized, and non-default. */
-function checkAttribution() {
-  const attribution = document.querySelector('[data-presentation-attribution]')
-  if (!attribution) return ['attribution link is missing']
-  const rect = attribution.getBoundingClientRect()
-  const style = window.getComputedStyle(attribution)
-  const warnings = []
-  if (rect.width < 40 || rect.height < 10) {
-    warnings.push(`attribution link is undersized (${Math.round(rect.width)}x${Math.round(rect.height)}px)`)
-  }
-  // A completely unstyled anchor keeps the UA default blue/underline.
-  const isDefaultBlue = /rgb\(0,\s*0,\s*238\)/.test(style.color)
-  if (isDefaultBlue && style.textDecorationLine === 'underline') {
-    warnings.push('attribution link appears to use unstyled browser defaults')
-  }
-  return warnings
 }
 
 async function main() {

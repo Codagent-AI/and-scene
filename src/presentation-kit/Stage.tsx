@@ -10,13 +10,27 @@ interface StageProps<TPayload> {
   previousStep?: Step<TPayload>
 }
 
+const sceneIdentities = new WeakMap<object, number>()
+let nextSceneIdentity = 0
+
+function getSceneIdentity(scene: object) {
+  const existing = sceneIdentities.get(scene)
+  if (existing !== undefined) return existing
+  const identity = nextSceneIdentity
+  nextSceneIdentity += 1
+  sceneIdentities.set(scene, identity)
+  return identity
+}
+
 export function Stage<TPayload>({ step, index, mode, previousStep }: StageProps<TPayload>) {
   const scale = useFitScale(mode)
   const contiguousGroup =
     step.groupKey &&
     previousStep?.groupKey === step.groupKey &&
     previousStep.Scene === step.Scene
-  const sceneKey = step.groupKey ? `group:${step.groupKey}` : `step:${step.id}`
+  const sceneKey = step.groupKey
+    ? `group:${step.groupKey}:scene:${getSceneIdentity(step.Scene)}`
+    : `step:${step.id}`
   const Scene = step.Scene
 
   return (

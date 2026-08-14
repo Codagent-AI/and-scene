@@ -27,17 +27,7 @@ function assertReferenceSample() {
   if (![registryPath, stepsPath, talkPath].every(existsSync)) throw new Error('reference sample files are missing')
 
   const registry = readFileSync(registryPath, 'utf8')
-  const steps = readFileSync(stepsPath, 'utf8')
   if (!registry.includes(`slug: '${slug}'`) || !registry.includes(`./${slug}/Talk`)) throw new Error('reference sample is not registered')
-  let previousTitle = -1
-  for (const [era, title, caption] of canonicalOutline) {
-    if (!steps.includes(era) || !steps.includes(title) || !steps.includes(caption)) {
-      throw new Error(`reference sample is missing its canonical step: ${title}`)
-    }
-    const titlePosition = steps.indexOf(title)
-    if (titlePosition <= previousTitle) throw new Error(`reference sample is not in canonical order at: ${title}`)
-    previousTitle = titlePosition
-  }
 }
 
 function runBuild() {
@@ -59,6 +49,21 @@ async function waitForStep(root, expectedIndex) {
     await delay(50)
   }
   throw new Error(`step ${expectedIndex} did not become active`)
+}
+
+async function assertCanonicalMetadata(page, index) {
+  const selectors = [
+    '[data-presentation-marker]',
+    '[data-presentation-title]',
+    '[data-presentation-caption]',
+  ]
+  const actual = await Promise.all(selectors.map(async (selector) =>
+    (await page.locator(selector).textContent())?.trim(),
+  ))
+  const expected = canonicalOutline[index]
+  if (actual.some((value, field) => value !== expected[field])) {
+    throw new Error(`step ${index} canonical metadata mismatch: expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`)
+  }
 }
 
 async function verify() {
@@ -84,6 +89,7 @@ async function verify() {
       await waitForStep(root, activeStep)
       await page.waitForTimeout(600)
       if (errors.length) throw new Error(errors[0])
+      await assertCanonicalMetadata(page, activeStep)
       if (activeStep < count - 1) await page.keyboard.press('ArrowRight')
     }
     console.log(`VERIFY PASSED: built and rendered ${count} reference-sample steps at /${slug}`)

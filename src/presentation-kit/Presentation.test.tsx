@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { useEffect } from 'react'
+import { ENTER_DELAY, LAYOUT_T } from './constants'
 import type { SceneProps, Step } from './types'
 import { Presentation } from './Presentation'
 
@@ -15,6 +16,10 @@ function DemoScene({ payload }: SceneProps<DemoPayload>) {
   }, [])
 
   return <div data-demo-scene>{payload.label}</div>
+}
+
+function AlternateScene() {
+  return <div>alternate scene</div>
 }
 
 const steps = [
@@ -50,6 +55,23 @@ test('passes typed grouped payloads through the presentation boundary without re
   fireEvent.click(screen.getByRole('button', { name: 'Next step' }))
   expect(screen.getByText('second')).toBeTruthy()
   expect(mounts).toBe(1)
+})
+
+test('cross-fades different scene components even when they reuse a group key', () => {
+  const mixedScenes = [
+    steps[0],
+    { ...steps[1], Scene: AlternateScene },
+  ] satisfies readonly Step<DemoPayload>[]
+
+  render(<Presentation steps={mixedScenes} title="Demo" initialMode="browse" />)
+  fireEvent.click(screen.getByRole('button', { name: 'Next step' }))
+
+  expect(screen.getByText('first')).toBeTruthy()
+  expect(screen.getByText('alternate scene')).toBeTruthy()
+})
+
+test('delays newcomers until continuing layout motion has settled', () => {
+  expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
 })
 
 test('exposes browse chrome, active navigation semantics, and attribution', () => {

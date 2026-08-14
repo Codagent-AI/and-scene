@@ -116,9 +116,11 @@ Do not report success until all checks are clean. Run these from the resolved
 app root, fixing failures and rerunning the affected checks:
 
 1. `npm run build`.
-2. `npm run verify` when available; otherwise use the local Playwright helper
-   under the project root to open `http://127.0.0.1:<port>/<slug>` and confirm
-   the first step has no console or runtime errors.
+2. `npm run verify -- <slug>` when the verifier accepts a target route. The
+   bootstrap verifier may omit the slug only when exactly one presentation is
+   registered. Otherwise use the local Playwright helper under the project root
+   to open `http://127.0.0.1:<port>/<slug>` and confirm the first step has no
+   console or runtime errors.
 3. Prefer `npm run inspect -- <slug>` when the project-local screenshot helper
    exists. It captures settled screenshots after each transition and exposes
    advisory overlap, active-chrome, and attribution warnings.

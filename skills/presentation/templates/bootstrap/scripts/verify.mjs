@@ -6,12 +6,7 @@ import { chromium } from 'playwright'
 const host = '127.0.0.1'
 const port = 4173
 const baseUrl = `http://${host}:${port}`
-const slug = process.argv[2]
-
-if (!slug) {
-  console.error('VERIFY FAILED: provide a presentation slug, for example: npm run verify -- my-presentation')
-  process.exit(1)
-}
+const requestedSlug = process.argv[2]
 
 function runBuild() {
   console.log('VERIFY: building app')
@@ -31,9 +26,21 @@ async function waitForPreview() {
   throw new Error(`preview did not become ready at ${baseUrl}`)
 }
 
+async function inferSolePresentationSlug(page) {
+  await page.goto(baseUrl, { waitUntil: 'networkidle' })
+  const hrefs = await page.locator('[data-presentation-landing] a[href^="/"]').evaluateAll((links) =>
+    links.map((link) => link.getAttribute('href')).filter(Boolean),
+  )
+  if (hrefs.length !== 1) {
+    throw new Error(`provide a presentation slug with npm run verify -- <slug>; found ${hrefs.length} registered presentations`)
+  }
+  return hrefs[0].slice(1)
+}
+
 async function verify() {
   runBuild()
   const server = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['vite', 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
+  let browser
   const stop = async () => {
     if (!server.killed) server.kill('SIGTERM')
     await once(server, 'exit').catch(() => undefined)
@@ -41,11 +48,12 @@ async function verify() {
 
   try {
     await waitForPreview()
-    const browser = await chromium.launch()
+    browser = await chromium.launch()
     const page = await browser.newPage()
     const errors = []
     page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
     page.on('pageerror', (error) => errors.push(error.message))
+    const slug = requestedSlug ?? await inferSolePresentationSlug(page)
     await page.goto(`${baseUrl}/${slug}`, { waitUntil: 'networkidle' })
     const root = page.locator('[data-presentation-root]')
     const count = Number(await root.getAttribute('data-step-count'))
@@ -56,9 +64,9 @@ async function verify() {
       if (index < count - 1) await page.keyboard.press('ArrowRight')
       await page.waitForTimeout(500)
     }
-    await browser.close()
     console.log(`VERIFY PASSED: rendered ${count} step${count === 1 ? '' : 's'} at /${slug}`)
   } finally {
+    await browser?.close()
     await stop()
   }
 }

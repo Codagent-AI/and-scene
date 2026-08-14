@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 const root = process.cwd()
@@ -57,4 +57,24 @@ test('ships a self-contained, style-neutral presentation bootstrap and authoring
   expect(kit).toContain('data-step-count')
   expect(kit).toContain('data-step-index')
   expect(kit).not.toMatch(/#[0-9a-f]{3,8}|font-family|box-shadow|border\s*:/i)
+
+  const bootstrapVerify = readFileSync(skill('templates/bootstrap/scripts/verify.mjs'), 'utf8')
+  expect(bootstrapVerify).toContain('inferSolePresentationSlug')
+})
+
+test('keeps the distributable scene kit byte-aligned with canonical runtime files', () => {
+  const canonical = join(root, 'src', 'presentation-kit')
+  const snapshot = skill('templates/bootstrap/src/presentation-kit')
+  const runtimeFiles = (directory: string, prefix = ''): string[] => readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry) => {
+      const relative = join(prefix, entry.name)
+      if (entry.isDirectory()) return runtimeFiles(join(directory, entry.name), relative)
+      return entry.name.includes('.test.') ? [] : [relative]
+    })
+    .sort()
+
+  expect(runtimeFiles(snapshot)).toEqual(runtimeFiles(canonical))
+  for (const file of runtimeFiles(canonical)) {
+    expect(readFileSync(join(snapshot, file), 'utf8')).toBe(readFileSync(join(canonical, file), 'utf8'))
+  }
 })

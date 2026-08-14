@@ -15,4 +15,10 @@ export function definePresentation(registration: PresentationRegistration): Regi
   return { ...registration, Component: lazy(registration.load) }
 }
 
-export const presentations: readonly RegisteredPresentation[] = []
+export const presentations: readonly RegisteredPresentation[] = [
+  definePresentation({
+    slug: 'how-to-make-a-presentation',
+    title: 'How to Use This Skill to Make a Presentation',
+    load: () => import('./how-to-make-a-presentation/Talk'),
+  }),
+]

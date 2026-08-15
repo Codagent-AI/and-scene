@@ -2,6 +2,7 @@ import { motion } from 'motion/react'
 import type { HTMLMotionProps } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { withBaseClass } from './classNames'
 
 interface BoxProps extends Omit<HTMLMotionProps<'div'>, 'children' | 'layoutId'> {
   layoutId: string
@@ -15,7 +16,7 @@ export function Box({ layoutId, children, Icon, className, ...props }: BoxProps)
       {...props}
       layout
       layoutId={layoutId}
-      className={`presentation-box${className ? ` ${className}` : ''}`}
+      className={withBaseClass('presentation-box', className)}
       data-presentation-node="box"
     >
       {Icon ? <Icon aria-hidden="true" data-presentation-glyph /> : null}

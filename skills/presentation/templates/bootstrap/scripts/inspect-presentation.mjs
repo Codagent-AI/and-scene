@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { collectVisualWarnings } from './visual-warnings.mjs'
 
 const slug = process.argv[2]
 const host = '127.0.0.1'
@@ -24,10 +25,6 @@ async function waitForPreview() {
   throw new Error(`preview did not become ready at ${baseUrl}`)
 }
 
-function overlap(a, b) {
-  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
-}
-
 async function inspect() {
   const output = join('artifacts', 'presentation-inspection', slug)
   await mkdir(output, { recursive: true })
@@ -42,35 +39,7 @@ async function inspect() {
     for (let index = 0; index < count; index += 1) {
       await page.waitForTimeout(settleMs)
       await page.screenshot({ path: join(output, `step-${String(index + 1).padStart(2, '0')}.png`), fullPage: true })
-      const warnings = await page.evaluate(() => {
-        const visible = [...document.querySelectorAll('[data-presentation-root] *')].filter((node) => {
-          const element = node
-          const style = getComputedStyle(element)
-          return style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0 && element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0
-        })
-        const chrome = visible.filter((element) => element.matches('[data-presentation-caption], [data-presentation-progress-item], [data-presentation-controls] > button, [data-presentation-toc-item], [data-presentation-attribution]'))
-        const text = visible.filter((element) => element.childElementCount === 0 && element.textContent?.trim())
-        const flagged = []
-        for (const item of [...new Set([...text, ...chrome])]) for (const other of [...new Set([...text, ...chrome])]) {
-          if (item === other || item.contains(other) || other.contains(item) || item.closest('[data-presentation-allow-overlap]') || other.closest('[data-presentation-allow-overlap]')) continue
-          const a = item.getBoundingClientRect(); const b = other.getBoundingClientRect()
-          if (a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top) flagged.push(`${item.tagName.toLowerCase()} overlaps ${other.tagName.toLowerCase()}`)
-        }
-        for (const selector of ['[data-presentation-progress-item]', '[data-presentation-toc-item]']) {
-          const active = document.querySelector(`${selector}[data-presentation-active]`)
-          const inactive = document.querySelector(`${selector}:not([data-presentation-active])`)
-          if (active && inactive) {
-            const fields = ['color', 'backgroundColor', 'borderColor', 'fontWeight', 'opacity']
-            if (fields.every((field) => getComputedStyle(active)[field] === getComputedStyle(inactive)[field])) {
-              flagged.push(`active ${selector.includes('progress') ? 'progress' : 'table-of-contents'} state may be visually indistinct`)
-            }
-          }
-        }
-        const attribution = document.querySelector('[data-presentation-attribution]')
-        if (!attribution) flagged.push('missing attribution; style [data-presentation-attribution] locally')
-        else { const style = getComputedStyle(attribution); if (Number.parseFloat(style.fontSize) < 10 || style.color === 'rgb(0, 0, 238)') flagged.push('attribution appears undersized or browser-default; style [data-presentation-attribution] locally') }
-        return [...new Set(flagged)]
-      })
+      const warnings = await page.evaluate(collectVisualWarnings)
       for (const warning of warnings) console.warn(`INSPECT WARNING step ${index + 1}: ${warning}`)
       if (index < count - 1) await page.keyboard.press('ArrowRight')
     }

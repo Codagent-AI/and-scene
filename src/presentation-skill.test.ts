@@ -18,6 +18,7 @@ test('ships a self-contained, style-neutral presentation bootstrap and authoring
     'templates/bootstrap/src/presentations/index.ts',
     'templates/bootstrap/scripts/verify.mjs',
     'templates/bootstrap/scripts/inspect-presentation.mjs',
+    'templates/bootstrap/scripts/visual-warnings.mjs',
   ]
 
   for (const file of requiredFiles) expect(existsSync(skill(file))).toBe(true)
@@ -60,6 +61,7 @@ test('ships a self-contained, style-neutral presentation bootstrap and authoring
 
   const bootstrapVerify = readFileSync(skill('templates/bootstrap/scripts/verify.mjs'), 'utf8')
   expect(bootstrapVerify).toContain('inferSolePresentationSlug')
+  expect(readFileSync(skill('templates/bootstrap/scripts/visual-warnings.mjs'), 'utf8')).toContain('data-presentation-allow-overlap')
 })
 
 test('keeps the distributable scene kit byte-aligned with canonical runtime files', () => {

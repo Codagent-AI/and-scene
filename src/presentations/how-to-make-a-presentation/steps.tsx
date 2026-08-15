@@ -20,6 +20,7 @@ const cards = [
   ['3', 'rhythm', 'detail', 'scene'],
   ['4', 'finish', 'check', 'share'],
 ] as const
+const cardLayoutIds = [entities.cardOne, entities.cardTwo, entities.cardThree, entities.cardFour]
 
 function SceneConnector({ layoutId, className, children }: { layoutId: string; className: string; children: ReactNode }) {
   return <Arrow layoutId={layoutId} className={className} viewBox="0 0 880 380" preserveAspectRatio="none">{children}</Arrow>
@@ -40,7 +41,7 @@ export function HowToMakeAPresentationScene({ payload }: SceneProps<SamplePayloa
       {payload.cards > 0 ? <Appear className="how-tray" aria-label="Accumulating presentation steps">
         <Label layoutId="how-to-make-a-presentation:tray-label" className="how-tray-label">your evolving scene</Label>
         {cards.slice(0, payload.cards).map(([number, ...parts], index) => (
-          <Box key={number} layoutId={[entities.cardOne, entities.cardTwo, entities.cardThree, entities.cardFour][index]!} className={`how-step-card how-step-card-${index + 1}`}>
+          <Box key={number} layoutId={cardLayoutIds[index]!} className={`how-step-card how-step-card-${index + 1}`}>
             <strong>{number}</strong>
             {parts.map((part) => <span key={part}>{part}</span>)}
           </Box>

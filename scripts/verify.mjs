@@ -9,15 +9,15 @@ const port = 4173
 const baseUrl = `http://${host}:${port}`
 const slug = 'how-to-make-a-presentation'
 const canonicalOutline = [
-  ['the ask', 'You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
-  ['the ask', 'The skill interviews you', 'One question at a time: the topic, the look, then each beat of the story.'],
-  ['the gathering', 'Answers become steps', 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.'],
-  ['the gathering', 'The deck grows', 'Same shapes, new beats. Every answer extends the story without redrawing it.'],
-  ['the gathering', 'You set the depth', 'Spell out every step, or sketch a few and see how it looks. You hold the gate.'],
-  ['the build', 'It assembles the scene', 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.'],
-  ['the build', 'It checks its own work', 'Before saying done, it builds and renders every step — and fixes what breaks.'],
-  ['the loop', 'Changed your mind? Loop it.', 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.'],
-  ['the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
+  { era: 'the ask', title: 'You have a topic', caption: 'It starts with you, a topic, and mild overconfidence.' },
+  { era: 'the ask', title: 'The skill interviews you', caption: 'One question at a time: the topic, the look, then each beat of the story.' },
+  { era: 'the gathering', title: 'Answers become steps', caption: 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.' },
+  { era: 'the gathering', title: 'The deck grows', caption: 'Same shapes, new beats. Every answer extends the story without redrawing it.' },
+  { era: 'the gathering', title: 'You set the depth', caption: 'Spell out every step, or sketch a few and see how it looks. You hold the gate.' },
+  { era: 'the build', title: 'It assembles the scene', caption: 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.' },
+  { era: 'the build', title: 'It checks its own work', caption: 'Before saying done, it builds and renders every step — and fixes what breaks.' },
+  { era: 'the loop', title: 'Changed your mind? Loop it.', caption: 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.' },
+  { era: 'the reveal', title: "You're looking at one", caption: 'This presentation was built exactly this way. Thanks for watching.' },
 ]
 
 function assertReferenceSample() {
@@ -52,16 +52,17 @@ async function waitForStep(root, expectedIndex) {
 }
 
 async function assertCanonicalMetadata(page, index) {
-  const selectors = [
-    '[data-presentation-marker]',
-    '[data-presentation-title]',
-    '[data-presentation-caption]',
-  ]
-  const actual = await Promise.all(selectors.map(async (selector) =>
-    (await page.locator(selector).textContent())?.trim(),
-  ))
+  const readText = async (selector) => (await page.locator(selector).textContent())?.trim()
+  const actual = {
+    era: await readText('[data-presentation-marker]'),
+    title: await readText('[data-presentation-title]'),
+    caption: await readText('[data-presentation-caption]'),
+  }
   const expected = canonicalOutline[index]
-  if (actual.some((value, field) => value !== expected[field])) {
+  const matchesCanonicalStep = actual.era === expected.era &&
+    actual.title === expected.title &&
+    actual.caption === expected.caption
+  if (!matchesCanonicalStep) {
     throw new Error(`step ${index} canonical metadata mismatch: expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`)
   }
 }

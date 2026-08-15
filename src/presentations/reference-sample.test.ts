@@ -25,14 +25,17 @@ test('registers the canonical nine-step reference sample', () => {
 test('ships project-local production verification and visual inspection helpers', () => {
   const verifyPath = join(process.cwd(), 'scripts', 'verify.mjs')
   const inspectPath = join(process.cwd(), 'scripts', 'inspect-presentation.mjs')
+  const warningsPath = join(process.cwd(), 'scripts', 'visual-warnings.mjs')
 
   expect(existsSync(verifyPath)).toBe(true)
   expect(existsSync(inspectPath)).toBe(true)
+  expect(existsSync(warningsPath)).toBe(true)
   expect(readFileSync(verifyPath, 'utf8')).toContain('127.0.0.1')
   expect(readFileSync(verifyPath, 'utf8')).toContain('data-step-count')
   expect(readFileSync(verifyPath, 'utf8')).toContain('data-presentation-marker')
   expect(readFileSync(verifyPath, 'utf8')).toContain('data-presentation-title')
   expect(readFileSync(verifyPath, 'utf8')).toContain('data-presentation-caption')
   expect(readFileSync(verifyPath, 'utf8')).toContain('canonical metadata mismatch')
-  expect(readFileSync(inspectPath, 'utf8')).toContain('data-presentation-allow-overlap')
+  expect(readFileSync(inspectPath, 'utf8')).toContain('collectVisualWarnings')
+  expect(readFileSync(warningsPath, 'utf8')).toContain('data-presentation-allow-overlap')
 })

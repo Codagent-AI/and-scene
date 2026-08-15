@@ -9,7 +9,7 @@ test('ships a self-contained, style-neutral presentation bootstrap and authoring
     'SKILL.md',
     'templates/presentation/Talk.tsx',
     'templates/presentation/entities.ts',
-    'templates/presentation/step.tsx',
+    'templates/presentation/steps/first.tsx',
     'templates/presentation/presentation.css',
     'templates/bootstrap/package.json',
     'templates/bootstrap/index.html',
@@ -33,6 +33,15 @@ test('ships a self-contained, style-neutral presentation bootstrap and authoring
   expect(procedure).toContain('npm run build')
   expect(procedure).toContain('npm run verify')
   expect(procedure).toContain('inspect-presentation')
+  expect(procedure).toContain('## Out of scope')
+  expect(procedure).toContain('Remaining failures:')
+  expect(procedure).toContain("target's `Talk.tsx`, `entities.ts`")
+
+  const talkTemplate = readFileSync(skill('templates/presentation/Talk.tsx'), 'utf8')
+  const stepTemplate = readFileSync(skill('templates/presentation/steps/first.tsx'), 'utf8')
+  expect(talkTemplate).toContain("from './steps/first'")
+  expect(stepTemplate).toContain("from '../entities'")
+  expect(stepTemplate).toContain("from '../../../presentation-kit'")
 
   const bootstrapPackage = JSON.parse(readFileSync(skill('templates/bootstrap/package.json'), 'utf8')) as {
     dependencies: Record<string, string>
@@ -60,7 +69,10 @@ test('ships a self-contained, style-neutral presentation bootstrap and authoring
   expect(kit).not.toMatch(/#[0-9a-f]{3,8}|font-family|box-shadow|border\s*:/i)
 
   const bootstrapVerify = readFileSync(skill('templates/bootstrap/scripts/verify.mjs'), 'utf8')
+  const bootstrapInspect = readFileSync(skill('templates/bootstrap/scripts/inspect-presentation.mjs'), 'utf8')
   expect(bootstrapVerify).toContain('inferSolePresentationSlug')
+  expect(bootstrapInspect).toContain('let browser')
+  expect(bootstrapInspect).toContain('await browser?.close()')
   expect(readFileSync(skill('templates/bootstrap/scripts/visual-warnings.mjs'), 'utf8')).toContain('data-presentation-allow-overlap')
 })
 

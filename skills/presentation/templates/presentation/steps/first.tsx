@@ -1,5 +1,5 @@
-import type { SceneProps, Step } from '../../presentation-kit'
-import { Appear, Box, SceneLayer } from '../../presentation-kit'
+import type { SceneProps, Step } from '../../../presentation-kit'
+import { Appear, Box, SceneLayer } from '../../../presentation-kit'
 import { entities } from '../entities'
 
 export interface YourPresentationPayload {

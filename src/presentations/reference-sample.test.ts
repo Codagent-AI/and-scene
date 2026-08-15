@@ -39,3 +39,11 @@ test('ships project-local production verification and visual inspection helpers'
   expect(readFileSync(inspectPath, 'utf8')).toContain('collectVisualWarnings')
   expect(readFileSync(warningsPath, 'utf8')).toContain('data-presentation-allow-overlap')
 })
+
+test('aligns present-mode CSS with the kit stage geometry', () => {
+  const css = readFileSync(join(process.cwd(), 'src', 'presentations', 'how-to-make-a-presentation', 'presentation.css'), 'utf8')
+
+  expect(css).toContain("[data-presentation-mode='present'] [data-presentation-header] { height: 48px;")
+  expect(css).toContain("[data-presentation-mode='present'] [data-presentation-stage] { height: calc(100vh - 104px);")
+  expect(css).toContain("[data-presentation-mode='present'] [data-presentation-footer] { height: 56px;")
+})

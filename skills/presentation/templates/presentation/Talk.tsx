@@ -1,5 +1,5 @@
 import { Presentation } from '../../presentation-kit'
-import { firstStep } from './step'
+import { firstStep } from './steps/first'
 import './presentation.css'
 
 const steps = [firstStep]

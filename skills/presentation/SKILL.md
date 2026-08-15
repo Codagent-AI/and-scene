@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify a browser-based presentation as one evolving diagrammatic scene.
+description: Creates or modifies browser-based presentations as evolving diagrammatic scenes. Triggers when users ask to create a presentation, build a deck, modify slides, edit presentation steps, or change presentation visuals.
 ---
 
 # Presentation
@@ -43,10 +43,16 @@ without repeating questions. For a key or complex composition, an optional
 small ASCII mockup can confirm layout before implementation; do not make a
 mockup mandatory for every step.
 
-For a modification, identify the target presentation first. If it is unclear,
-list the registrations from `src/presentations/index.ts` and ask which one to
-change. Then ask only about the requested steps, entities, or style; preserve
-the rest of that presentation and all other routes.
+For a modification:
+
+1. Identify the target presentation. If it is unclear, list the registrations
+   from `src/presentations/index.ts` and ask which one to change.
+2. Before editing, read the target's `Talk.tsx`, `entities.ts`, all files under
+   `steps/`, presentation CSS, and registry entry. Read one neighboring
+   presentation when one exists. Record its import layout, entity naming,
+   scene-grouping, and styling patterns, and match those patterns in the edit.
+3. Ask only about the requested steps, entities, or style. Preserve the rest of
+   that presentation and all other routes.
 
 ## Resolve the target and anchors
 
@@ -99,8 +105,9 @@ Create a self-contained folder under `src/presentations/<slug>/` using the
 presentation templates:
 
 - `entities.ts` owns stable namespaced layout IDs.
-- `steps/` contains typed `Step` objects. Group consecutive steps that share a
-  `Scene` and `groupKey` so their entities update in place.
+- `steps/` contains typed `Step` objects, beginning with the supplied
+  `steps/first.tsx` template. Group consecutive steps that share a `Scene` and
+  `groupKey` so their entities update in place.
 - `Talk.tsx` composes `<Presentation>` and imports only local visual CSS.
 - `presentation.css` owns all colors, fonts, spacing, controls, active chrome,
   and attribution treatment. Never put presentation design in the reusable kit.
@@ -136,6 +143,39 @@ support previous/next navigation, and remain a coherent evolving scene.
 
 ## Completion report
 
-State the route, files created or modified, checks run, visual steps inspected,
-and any assumptions made because the author chose partial detail. Do not claim
-success if a build, render, or composition check still fails.
+Use this exact structure; check statuses are `pass`, `fail`, or `not run`:
+
+```markdown
+Route: /<slug>
+
+Files:
+- <created or modified path>
+
+Checks:
+- build: <pass|fail|not run> — <command or reason>
+- render: <pass|fail|not run> — <command or reason>
+- inspection: <pass|fail|not run> — <command or reason>
+
+Visual inspection:
+- <viewport and inspected first, last, dense, or key steps>
+
+Assumptions:
+- None.
+
+Remaining failures:
+- None.
+```
+
+Replace `None.` with concise items when assumptions or failures remain. Do not
+claim success if any required build, render, or composition check is `fail` or
+`not run`.
+
+## Out of scope
+
+- Native PowerPoint or Keynote files: use a workflow that authors those native
+  formats or export from a compatible presentation tool.
+- PDF-only decks or document-layout requests: use document or PDF generation
+  tooling instead of this browser-presentation skill.
+- Unrelated websites, dashboards, or general web applications: use the host
+  project's normal web-development workflow unless the request is specifically
+  for an evolving-scene presentation route.

@@ -31,6 +31,10 @@
 [data-presentation-attribution] { position: fixed; right: 32px; bottom: 10px; color: #66738a; font: 600 11px/1 ui-sans-serif, system-ui, sans-serif; text-decoration: none; }
 [data-presentation-attribution]:hover { color: var(--orange); text-decoration: underline; }
 
+[data-presentation-root][data-presentation-mode='present'] [data-presentation-header] { height: 48px; padding-top: 12px; }
+[data-presentation-root][data-presentation-mode='present'] [data-presentation-stage] { height: calc(100vh - 104px); min-height: 0; }
+[data-presentation-root][data-presentation-mode='present'] [data-presentation-footer] { height: 56px; min-height: 56px; padding: 8px 32px; }
+
 .how-scene { isolation: isolate; }
 .how-person, .how-prompt, .how-question, .how-step-card, .how-ghost-card, .how-depth-control, .how-kit, .how-verify, .how-pass, .how-edited-flag { position: absolute; display: flex; align-items: center; justify-content: center; }
 .how-person { top: 38px; width: 116px; height: 50px; gap: 8px; border: 2px solid var(--ink); border-radius: 8px; background: #fffdf7; font: 700 17px/1 Georgia, serif; }

@@ -29,9 +29,10 @@ async function inspect() {
   const output = join('artifacts', 'presentation-inspection', slug)
   await mkdir(output, { recursive: true })
   const server = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['vite', 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
+  let browser
   try {
     await waitForPreview()
-    const browser = await chromium.launch()
+    browser = await chromium.launch()
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
     await page.goto(`${baseUrl}/${slug}`, { waitUntil: 'networkidle' })
     const root = page.locator('[data-presentation-root]')
@@ -43,9 +44,9 @@ async function inspect() {
       for (const warning of warnings) console.warn(`INSPECT WARNING step ${index + 1}: ${warning}`)
       if (index < count - 1) await page.keyboard.press('ArrowRight')
     }
-    await browser.close()
     console.log(`INSPECT COMPLETE: screenshots written to ${output}`)
   } finally {
+    await browser?.close()
     if (!server.killed) server.kill('SIGTERM')
     await once(server, 'exit').catch(() => undefined)
   }

@@ -127,10 +127,11 @@ and all other presentation folders intact.
 Never report success on a failed check.
 
 1. Run `npm run build` in the app target and fix type or bundling errors.
-2. Run the local first-route browser check: `npm run render:smoke`. It opens a
-   production preview at `127.0.0.1` and must have no console or page errors.
-   When the completed project offers `npm run verify`, run that too; it is the
-   full every-step gate.
+2. Run the local browser check for the generated route:
+   `npm run render:smoke -- <slug>`. It opens a production preview at
+   `127.0.0.1` and must have no console or page errors. When the completed
+   project offers `npm run verify`, run `npm run verify -- <slug>` too; it is
+   the full every-step gate for that presentation.
 3. Prefer the project-local helper: `npm run inspect -- <slug>`. It captures
    settled screenshots under the project artifact directory. Inspect the first,
    last, and densest/key steps; inspect a narrow viewport too if the composition

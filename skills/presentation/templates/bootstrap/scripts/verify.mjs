@@ -4,8 +4,9 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
+const slug = process.argv[2] || 'starter'
 const port = 4173
-const url = `http://127.0.0.1:${port}/starter`
+const url = `http://127.0.0.1:${port}/${slug}`
 const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
 
 function run(command, args) {
@@ -25,9 +26,9 @@ async function waitForPreview(preview) {
   throw new Error(`preview phase failed: server did not become ready at ${url}`)
 }
 
-async function verifyStarter() {
+async function verifyPresentation() {
   const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-  if (!registry.includes("slug: 'starter'")) throw new Error('reference sample phase failed: starter route is not registered')
+  if (!registry.includes(`slug: '${slug}'`) && !registry.includes(`slug: "${slug}"`)) throw new Error(`reference sample phase failed: ${slug} route is not registered`)
   const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' })
   let browser
   let step = 0
@@ -65,8 +66,8 @@ async function verifyStarter() {
 
 try {
   await run('npm', ['run', 'build'])
-  await verifyStarter()
-  console.log('verify: PASS — starter presentation rendered cleanly on 127.0.0.1')
+  await verifyPresentation()
+  console.log(`verify: PASS — ${slug} presentation rendered cleanly on 127.0.0.1`)
 } catch (error) {
   console.error(`verify: FAIL — ${error instanceof Error ? error.message : String(error)}`)
   process.exitCode = 1

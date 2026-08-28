@@ -49,9 +49,10 @@ try {
         .filter(visible)
         .map((element, index) => {
           const box = element.getBoundingClientRect()
+          const overlapRegion = element.closest('[data-presentation-allow-overlap="true"]')
           return {
-            allowOverlap: Boolean(element.closest('[data-presentation-allow-overlap="true"]')),
             id: element.getAttribute('aria-label') || element.getAttribute('data-presentation-caption') || element.textContent?.trim() || `element-${index + 1}`,
+            overlapRegion: overlapRegion ? `region-${[...document.querySelectorAll('[data-presentation-allow-overlap="true"]')].indexOf(overlapRegion)}` : null,
             rect: { bottom: box.bottom, left: box.left, right: box.right, top: box.top },
           }
         })

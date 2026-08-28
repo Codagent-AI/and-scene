@@ -73,7 +73,7 @@ describe('presentation bootstrap template', () => {
       inspectStep: (input: {
         activeStyles: { active: string; inactive: string }[]
         attribution: { browserDefault: boolean; fontSize: number; present: boolean }
-        elements: { allowOverlap: boolean; id: string; rect: { bottom: number; left: number; right: number; top: number } }[]
+        elements: { id: string; overlapRegion: string | null; rect: { bottom: number; left: number; right: number; top: number } }[]
       }) => string[]
     }
 
@@ -81,12 +81,12 @@ describe('presentation bootstrap template', () => {
       activeStyles: [{ active: 'rgb(0, 0, 0)', inactive: 'rgb(0, 0, 0)' }],
       attribution: { browserDefault: true, fontSize: 12, present: true },
       elements: [
-        { allowOverlap: false, id: 'caption', rect: { bottom: 40, left: 0, right: 100, top: 0 } },
-        { allowOverlap: false, id: 'next', rect: { bottom: 60, left: 50, right: 140, top: 20 } },
-        { allowOverlap: true, id: 'intentional-a', rect: { bottom: 40, left: 200, right: 300, top: 0 } },
-        { allowOverlap: true, id: 'intentional-b', rect: { bottom: 50, left: 220, right: 320, top: 10 } },
-        { allowOverlap: true, id: 'intentional-card', rect: { bottom: 100, left: 400, right: 500, top: 0 } },
-        { allowOverlap: false, id: 'next-control', rect: { bottom: 120, left: 450, right: 550, top: 20 } },
+        { id: 'caption', overlapRegion: null, rect: { bottom: 40, left: 0, right: 100, top: 0 } },
+        { id: 'next', overlapRegion: null, rect: { bottom: 60, left: 50, right: 140, top: 20 } },
+        { id: 'intentional-a', overlapRegion: 'region-1', rect: { bottom: 40, left: 200, right: 300, top: 0 } },
+        { id: 'intentional-b', overlapRegion: 'region-1', rect: { bottom: 50, left: 220, right: 320, top: 10 } },
+        { id: 'intentional-card', overlapRegion: 'region-2', rect: { bottom: 100, left: 400, right: 500, top: 0 } },
+        { id: 'next-control', overlapRegion: null, rect: { bottom: 120, left: 450, right: 550, top: 20 } },
       ],
     })
 
@@ -95,6 +95,18 @@ describe('presentation bootstrap template', () => {
     expect(warnings).toContain('attribution is browser-default or undersized')
     expect(warnings).toContain('overlap: intentional-card and next-control')
     expect(warnings.join('\n')).not.toContain('intentional-a')
+  })
+
+  test('scaffold browser checks target the generated presentation slug when provided', async () => {
+    const [renderSmoke, verify] = await Promise.all([
+      readFile(join(bootstrapTemplate, 'scripts', 'render-smoke.mjs'), 'utf8'),
+      readFile(join(bootstrapTemplate, 'scripts', 'verify.mjs'), 'utf8'),
+    ])
+
+    for (const script of [renderSmoke, verify]) {
+      expect(script).toMatch(/const slug = process\.argv/)
+      expect(script).toContain('`http://127.0.0.1:${port}/${slug}`')
+    }
   })
 
   test('keeps the starter visual treatment presentation-owned, including usable chrome', async () => {

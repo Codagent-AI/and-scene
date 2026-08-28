@@ -5,14 +5,15 @@ import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const checkOnly = process.argv.includes('--check-only')
+const slug = process.argv.slice(2).find((argument) => !argument.startsWith('--')) || 'starter'
 const port = 4173
-const url = `http://127.0.0.1:${port}/starter`
+const url = `http://127.0.0.1:${port}/${slug}`
 const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
 
-async function assertStarter() {
+async function assertPresentation() {
   await access(new URL('../dist/index.html', import.meta.url))
   const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-  if (!registry.includes("slug: 'starter'")) throw new Error('render smoke requires a registered starter route')
+  if (!registry.includes(`slug: '${slug}'`) && !registry.includes(`slug: "${slug}"`)) throw new Error(`render smoke requires a registered ${slug} route`)
 }
 
 async function waitForPreview(preview) {
@@ -24,7 +25,7 @@ async function waitForPreview(preview) {
   throw new Error(`preview did not become ready at ${url}`)
 }
 
-await assertStarter()
+await assertPresentation()
 if (checkOnly) {
   console.log('render smoke preflight passed')
   process.exit(0)

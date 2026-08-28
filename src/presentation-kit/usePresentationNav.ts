@@ -3,7 +3,10 @@ import type { TouchEvent } from 'react'
 import type { PresentationMode } from './types'
 
 function isInteractiveTarget(target: EventTarget | null) {
-  return target instanceof Element && Boolean(target.closest('button, a, input, select, textarea, [contenteditable="true"]'))
+  const element = target instanceof Element ? target.closest('[contenteditable], button, a, input, select, textarea') : null
+  if (!(element instanceof HTMLElement)) return false
+  if (element.matches('button, a, input, select, textarea')) return true
+  return element.isContentEditable || element.getAttribute('contenteditable') !== 'false'
 }
 
 export function clampStep(index: number, stepCount: number) {
@@ -13,11 +16,11 @@ export function clampStep(index: number, stepCount: number) {
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode) {
   const [stepIndex, setStepIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
-  const touchStart = useRef<number | null>(null)
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
 
   const goTo = useCallback((index: number) => setStepIndex(clampStep(index, stepCount)), [stepCount])
-  const next = useCallback(() => goTo(stepIndex + 1), [goTo, stepIndex])
-  const prev = useCallback(() => goTo(stepIndex - 1), [goTo, stepIndex])
+  const next = useCallback(() => setStepIndex((current) => clampStep(current + 1, stepCount)), [stepCount])
+  const prev = useCallback(() => setStepIndex((current) => clampStep(current - 1, stepCount)), [stepCount])
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])
 
   useEffect(() => {
@@ -42,19 +45,25 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
   }, [next, prev, toggleMode])
 
   return {
-    stepIndex,
+    stepIndex: clampStep(stepIndex, stepCount),
     mode,
     goTo,
     next,
     prev,
     toggleMode,
-    onTouchStart: (event: TouchEvent) => { touchStart.current = event.changedTouches[0]?.clientX ?? null },
+    onTouchStart: (event: TouchEvent) => {
+      const touch = event.changedTouches[0]
+      touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null
+    },
     onTouchEnd: (event: TouchEvent) => {
       const start = touchStart.current
-      const end = event.changedTouches[0]?.clientX
+      const end = event.changedTouches[0]
       touchStart.current = null
-      if (start === null || end === undefined || Math.abs(end - start) < 40) return
-      if (end < start) next()
+      if (!start || !end) return
+      const horizontal = end.clientX - start.x
+      const vertical = end.clientY - start.y
+      if (Math.abs(horizontal) < 40 || Math.abs(horizontal) <= Math.abs(vertical)) return
+      if (horizontal < 0) next()
       else prev()
     },
   }

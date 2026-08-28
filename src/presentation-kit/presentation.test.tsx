@@ -50,6 +50,15 @@ describe('Presentation', () => {
     expect(screen.getByTestId('presentation').getAttribute('data-step-index')).toBe('2')
   })
 
+  test('safely clamps a mounted presentation when its steps shrink', () => {
+    const { rerender } = render(<Presentation title="Demo" steps={steps} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 3: End' }))
+
+    expect(() => rerender(<Presentation title="Demo" steps={steps.slice(0, 1)} />)).not.toThrow()
+    expect(screen.getByTestId('presentation').getAttribute('data-step-index')).toBe('0')
+    expect(screen.getByText('one')).toBeTruthy()
+  })
+
   test('does not hijack navigation keys from a focused control', () => {
     render(<Presentation title="Demo" steps={steps} />)
     const progress = screen.getByRole('button', { name: 'Go to step 2: Middle' })
@@ -58,6 +67,29 @@ describe('Presentation', () => {
     fireEvent.keyDown(progress, { key: 'ArrowRight' })
 
     expect(screen.getByTestId('presentation').getAttribute('data-step-index')).toBe('0')
+  })
+
+  test('does not hijack keys from every enabled contenteditable variant', () => {
+    render(<Presentation title="Demo" steps={steps} />)
+    const editable = document.createElement('div')
+    editable.setAttribute('contenteditable', 'plaintext-only')
+    document.body.append(editable)
+    editable.focus()
+
+    fireEvent.keyDown(editable, { key: 'ArrowRight' })
+
+    expect(screen.getByTestId('presentation').getAttribute('data-step-index')).toBe('0')
+    editable.remove()
+  })
+
+  test('does not treat diagonal vertical scrolling as a horizontal swipe', () => {
+    render(<Presentation title="Demo" steps={steps} />)
+    const presentation = screen.getByTestId('presentation')
+
+    fireEvent.touchStart(presentation, { changedTouches: [{ clientX: 240, clientY: 80 }] })
+    fireEvent.touchEnd(presentation, { changedTouches: [{ clientX: 100, clientY: 400 }] })
+
+    expect(presentation.getAttribute('data-step-index')).toBe('0')
   })
 
   test('exposes semantic active progress and table-of-contents controls for direct jumps', () => {
@@ -81,6 +113,15 @@ describe('Presentation', () => {
     expect(screen.getByTestId('presentation').getAttribute('data-step-index')).toBe('1')
     expect(screen.queryByText('The middle.')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Previous step' })).toBeNull()
+  })
+
+  test('uses viewport-constrained stage geometry for present mode', () => {
+    render(<Presentation title="Demo" steps={steps} initialMode="present" />)
+    const stage = document.querySelector('[data-presentation-stage]')
+
+    expect(stage?.getAttribute('data-presentation-stage-mode')).toBe('present')
+    expect(stage?.getAttribute('style')).toContain('height: calc(100dvh - 100px)')
+    expect(stage?.getAttribute('style')).toContain('min-height: 0')
   })
 
   test('renders an unbranded default attribution with a stable style hook', () => {

@@ -1,28 +1,56 @@
-import { Suspense, use } from 'react'
-import type { ComponentType } from 'react'
+import { Component, Suspense, use, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Landing } from './Landing'
 import type { PresentationEntry } from './presentations'
 import { presentationRegistry } from './presentations'
+import { loadPresentationModule, resetPresentationModule } from './presentationLoader'
 import { resolvePresentationRoute } from './router'
 
-const presentationPages = new Map<PresentationEntry, Promise<{ default: ComponentType }>>()
-
-function presentationModule(entry: PresentationEntry) {
-  const existing = presentationPages.get(entry)
-  if (existing) return existing
-  const page = entry.load()
-  presentationPages.set(entry, page)
-  return page
-}
-
 function RegisteredPresentation({ entry }: { entry: PresentationEntry }) {
-  const PresentationPage = use(presentationModule(entry)).default
+  const PresentationPage = use(loadPresentationModule(entry)).default
   return <PresentationPage />
 }
+
+type PresentationLoadBoundaryProps = { children: ReactNode; onRetry: () => void }
+
+export class PresentationLoadBoundary extends Component<PresentationLoadBoundaryProps, { failed: boolean }> {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  private retry = () => {
+    this.setState({ failed: false })
+    this.props.onRetry()
+  }
+
+  render() {
+    if (this.state.failed) {
+      return <section role="alert"><p>Unable to load this presentation.</p><button onClick={this.retry} type="button">Retry loading presentation</button></section>
+    }
+    return this.props.children
+  }
+}
+
+export function PresentationRoute({ entry }: { entry: PresentationEntry }) {
+  const [attempt, setAttempt] = useState(0)
+  const retry = () => {
+    resetPresentationModule(entry)
+    setAttempt((current) => current + 1)
+  }
+
+  return (
+    <PresentationLoadBoundary onRetry={retry}>
+      <Suspense fallback={<p>Loading presentation…</p>}><RegisteredPresentation entry={entry} key={attempt} /></Suspense>
+    </PresentationLoadBoundary>
+  )
+}
+
 
 export function AppRouter() {
   const route = resolvePresentationRoute(window.location.pathname, presentationRegistry)
   if (route.kind === 'landing') return <Landing />
 
-  return <Suspense fallback={<p>Loading presentation…</p>}><RegisteredPresentation entry={route.entry} /></Suspense>
+  return <PresentationRoute entry={route.entry} />
 }

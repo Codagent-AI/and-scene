@@ -3,7 +3,7 @@ import { Footer } from './chrome/Footer'
 import { Header } from './chrome/Header'
 import { Toc } from './chrome/Toc'
 import { Stage } from './Stage'
-import { usePresentationNav } from './usePresentationNav'
+import { clampStep, usePresentationNav } from './usePresentationNav'
 import type { PresentationProps } from './types'
 
 function useWideViewport() {
@@ -24,22 +24,23 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse' }:
 
   const nav = usePresentationNav(steps.length, initialMode)
   const wide = useWideViewport()
-  const step = steps[nav.stepIndex]!
+  const stepIndex = clampStep(nav.stepIndex, steps.length)
+  const step = steps[stepIndex]!
 
   return (
     <main
       data-presentation="true"
       data-presentation-mode={nav.mode}
       data-step-count={steps.length}
-      data-step-index={nav.stepIndex}
+      data-step-index={stepIndex}
       onTouchEnd={nav.onTouchEnd}
       onTouchStart={nav.onTouchStart}
       data-testid="presentation"
     >
       <Header mode={nav.mode} step={step} title={title} />
-      {nav.mode === 'browse' && wide ? <Toc steps={steps} stepIndex={nav.stepIndex} onGoTo={nav.goTo} /> : null}
-      <Stage step={step} stepCount={steps.length} stepIndex={nav.stepIndex} />
-      <Footer mode={nav.mode} step={step} stepIndex={nav.stepIndex} steps={steps} onGoTo={nav.goTo} onNext={nav.next} onPrev={nav.prev} />
+      {nav.mode === 'browse' && wide ? <Toc steps={steps} stepIndex={stepIndex} onGoTo={nav.goTo} /> : null}
+      <Stage mode={nav.mode} step={step} stepCount={steps.length} stepIndex={stepIndex} />
+      <Footer mode={nav.mode} step={step} stepIndex={stepIndex} steps={steps} onGoTo={nav.goTo} onNext={nav.next} onPrev={nav.prev} />
       <button aria-label={`Switch to ${nav.mode === 'browse' ? 'present' : 'browse'} mode`} data-presentation-mode-toggle="true" onClick={nav.toggleMode} type="button">{nav.mode === 'browse' ? 'Present' : 'Browse'}</button>
       <a data-presentation-attribution="true" href="https://github.com/Codagent-AI/and-scene" style={{ bottom: 0, position: 'fixed', right: 0 }}>made by and-scene</a>
     </main>

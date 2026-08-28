@@ -1,10 +1,10 @@
-export type Route =
-  | { kind: 'landing' }
-  | { kind: 'presentation'; slug: string }
+import type { PresentationEntry } from './presentations'
 
-export function resolveRoute(pathname: string, slugs: ReadonlySet<string>): Route {
-  if (pathname === '/' || pathname === '') return { kind: 'landing' }
-  const slug = pathname.replace(/^\//, '').replace(/\/$/, '')
-  if (slug && slugs.has(slug)) return { kind: 'presentation', slug }
-  return { kind: 'landing' }
+export type PresentationRoute = { kind: 'landing' } | { kind: 'presentation'; entry: PresentationEntry }
+
+export function resolvePresentationRoute(pathname: string, entries: readonly PresentationEntry[]): PresentationRoute {
+  const slug = pathname.replace(/^\/+|\/+$/g, '')
+  if (!slug) return { kind: 'landing' }
+  const entry = entries.find((candidate) => candidate.slug === slug)
+  return entry ? { kind: 'presentation', entry } : { kind: 'landing' }
 }

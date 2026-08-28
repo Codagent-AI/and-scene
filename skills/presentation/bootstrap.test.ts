@@ -107,9 +107,20 @@ describe('presentation bootstrap template', () => {
 
     expect(target.resolvePresentationSlug(['--check-only', 'generated-route'])).toBe('generated-route')
     expect(target.resolvePresentationSlug([])).toBe('starter')
-    expect(target.isPresentationRegistered("{ slug: 'generated-route' }", 'generated-route')).toBe(true)
-    expect(target.isPresentationRegistered('{ slug: "generated-route" }', 'generated-route')).toBe(true)
-    expect(target.isPresentationRegistered("{ slug: 'starter' }", 'generated-route')).toBe(false)
+    for (const invalid of ['starter?x=1', 'starter#x', 'foo/../starter']) {
+      expect(() => target.resolvePresentationSlug([invalid])).toThrow('invalid presentation slug')
+    }
+
+    const registry = `
+      const ignored = [{ slug: 'commented-out' }]
+      export const presentationRegistry = [
+        { slug /* formatting is valid */ :
+          'generated-route', title: 'Generated' },
+      ]
+    `
+    expect(target.isPresentationRegistered(registry, 'generated-route')).toBe(true)
+    expect(target.isPresentationRegistered(registry, 'commented-out')).toBe(false)
+    expect(target.isPresentationRegistered('// slug: \'comment-only\'', 'comment-only')).toBe(false)
 
     const [renderSmoke, verify] = await Promise.all([
       readFile(join(bootstrapTemplate, 'scripts', 'render-smoke.mjs'), 'utf8'),

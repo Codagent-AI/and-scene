@@ -41,9 +41,30 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse' }:
       <Header mode={nav.mode} step={step} title={title} />
       {nav.mode === 'browse' && wide ? <Toc steps={steps} stepIndex={stepIndex} onGoTo={nav.goTo} /> : null}
       <Stage mode={nav.mode} step={step} stepCount={steps.length} stepIndex={stepIndex} />
-      <Footer mode={nav.mode} step={step} stepIndex={stepIndex} steps={steps} onGoTo={nav.goTo} onNext={nav.next} onPrev={nav.prev} />
-      <button aria-label={`Switch to ${nav.mode === 'browse' ? 'present' : 'browse'} mode`} data-presentation-mode-toggle="true" onClick={nav.toggleMode} type="button">{nav.mode === 'browse' ? 'Present' : 'Browse'}</button>
-      <a data-presentation-attribution="true" href="https://github.com/Codagent-AI/and-scene" style={{ bottom: 0, position: 'fixed', right: 0 }}>made by and-scene</a>
+      <Footer
+        mode={nav.mode}
+        step={step}
+        stepIndex={stepIndex}
+        steps={steps}
+        onGoTo={nav.goTo}
+        onNext={nav.next}
+        onPrev={nav.prev}
+      />
+      <button
+        aria-label={`Switch to ${nav.mode === 'browse' ? 'present' : 'browse'} mode`}
+        data-presentation-mode-toggle="true"
+        onClick={nav.toggleMode}
+        type="button"
+      >
+        {nav.mode === 'browse' ? 'Present' : 'Browse'}
+      </button>
+      <a
+        data-presentation-attribution="true"
+        href="https://github.com/Codagent-AI/and-scene"
+        style={{ bottom: 0, position: 'fixed', right: 0 }}
+      >
+        made by and-scene
+      </a>
     </main>
   )
 }

@@ -97,14 +97,27 @@ describe('presentation bootstrap template', () => {
     expect(warnings.join('\n')).not.toContain('intentional-a')
   })
 
-  test('scaffold browser checks target the generated presentation slug when provided', async () => {
+  test('scaffold browser checks share presentation target parsing and registry matching', async () => {
+    const helperPath = join(bootstrapTemplate, 'scripts', 'presentation-target.mjs')
+    await expect(stat(helperPath)).resolves.toBeTruthy()
+    const target = await import('./templates/bootstrap/scripts/presentation-target.mjs') as {
+      isPresentationRegistered: (registry: string, slug: string) => boolean
+      resolvePresentationSlug: (args: string[]) => string
+    }
+
+    expect(target.resolvePresentationSlug(['--check-only', 'generated-route'])).toBe('generated-route')
+    expect(target.resolvePresentationSlug([])).toBe('starter')
+    expect(target.isPresentationRegistered("{ slug: 'generated-route' }", 'generated-route')).toBe(true)
+    expect(target.isPresentationRegistered('{ slug: "generated-route" }', 'generated-route')).toBe(true)
+    expect(target.isPresentationRegistered("{ slug: 'starter' }", 'generated-route')).toBe(false)
+
     const [renderSmoke, verify] = await Promise.all([
       readFile(join(bootstrapTemplate, 'scripts', 'render-smoke.mjs'), 'utf8'),
       readFile(join(bootstrapTemplate, 'scripts', 'verify.mjs'), 'utf8'),
     ])
 
     for (const script of [renderSmoke, verify]) {
-      expect(script).toMatch(/const slug = process\.argv/)
+      expect(script).toContain("from './presentation-target.mjs'")
       expect(script).toContain('`http://127.0.0.1:${port}/${slug}`')
     }
   })

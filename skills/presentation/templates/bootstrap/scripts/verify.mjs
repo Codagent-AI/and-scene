@@ -2,9 +2,10 @@ import { readFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
+import { isPresentationRegistered, resolvePresentationSlug } from './presentation-target.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
-const slug = process.argv[2] || 'starter'
+const slug = resolvePresentationSlug(process.argv.slice(2))
 const port = 4173
 const url = `http://127.0.0.1:${port}/${slug}`
 const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
@@ -28,7 +29,9 @@ async function waitForPreview(preview) {
 
 async function verifyPresentation() {
   const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-  if (!registry.includes(`slug: '${slug}'`) && !registry.includes(`slug: "${slug}"`)) throw new Error(`reference sample phase failed: ${slug} route is not registered`)
+  if (!isPresentationRegistered(registry, slug)) {
+    throw new Error(`reference sample phase failed: ${slug} route is not registered`)
+  }
   const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' })
   let browser
   let step = 0

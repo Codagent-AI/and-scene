@@ -3,8 +3,9 @@ import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { inspectStep } from './inspection-diagnostics.mjs'
+import { resolvePresentationSlug } from './presentation-target.mjs'
 
-const slug = process.argv[2] || 'starter'
+const slug = resolvePresentationSlug(process.argv.slice(2))
 if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error('invalid presentation slug')
 const port = 4174
 const url = `http://127.0.0.1:${port}/${slug}`
@@ -40,19 +41,28 @@ try {
     await delay(750)
     await page.screenshot({ path: fileURLToPath(new URL(`step-${String(index + 1).padStart(2, '0')}.png`, output)), fullPage: true })
     const warnings = await page.evaluate(() => {
+      const overlapRegions = [...document.querySelectorAll('[data-presentation-allow-overlap="true"]')]
       const visible = (element) => {
         const style = getComputedStyle(element)
         const box = element.getBoundingClientRect()
         return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0 && box.width > 0 && box.height > 0
       }
-      const elements = [...document.querySelectorAll('[data-presentation-caption], [data-presentation-controls] button, [data-presentation-progress] button, [data-presentation-toc] button, [data-presentation-attribution], [data-presentation-label]')]
+      const diagnosticSelector = [
+        '[data-presentation-caption]',
+        '[data-presentation-controls] button',
+        '[data-presentation-progress] button',
+        '[data-presentation-toc] button',
+        '[data-presentation-attribution]',
+        '[data-presentation-label]',
+      ].join(', ')
+      const elements = [...document.querySelectorAll(diagnosticSelector)]
         .filter(visible)
         .map((element, index) => {
           const box = element.getBoundingClientRect()
           const overlapRegion = element.closest('[data-presentation-allow-overlap="true"]')
           return {
             id: element.getAttribute('aria-label') || element.getAttribute('data-presentation-caption') || element.textContent?.trim() || `element-${index + 1}`,
-            overlapRegion: overlapRegion ? `region-${[...document.querySelectorAll('[data-presentation-allow-overlap="true"]')].indexOf(overlapRegion)}` : null,
+            overlapRegion: overlapRegion ? `region-${overlapRegions.indexOf(overlapRegion)}` : null,
             rect: { bottom: box.bottom, left: box.left, right: box.right, top: box.top },
           }
         })

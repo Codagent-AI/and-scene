@@ -2,10 +2,11 @@ import { access, readFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
+import { isPresentationRegistered, resolvePresentationSlug } from './presentation-target.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const checkOnly = process.argv.includes('--check-only')
-const slug = process.argv.slice(2).find((argument) => !argument.startsWith('--')) || 'starter'
+const slug = resolvePresentationSlug(process.argv.slice(2))
 const port = 4173
 const url = `http://127.0.0.1:${port}/${slug}`
 const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
@@ -13,7 +14,9 @@ const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.me
 async function assertPresentation() {
   await access(new URL('../dist/index.html', import.meta.url))
   const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-  if (!registry.includes(`slug: '${slug}'`) && !registry.includes(`slug: "${slug}"`)) throw new Error(`render smoke requires a registered ${slug} route`)
+  if (!isPresentationRegistered(registry, slug)) {
+    throw new Error(`render smoke requires a registered ${slug} route`)
+  }
 }
 
 async function waitForPreview(preview) {

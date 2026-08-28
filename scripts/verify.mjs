@@ -6,7 +6,7 @@ import { canonicalSteps, validateRenderedStep } from './verify-contract.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const slug = 'how-to-make-a-presentation'
-const port = 4173
+const port = Number.parseInt(process.env.PRESENTATION_PORT || '4173', 10)
 const url = `http://127.0.0.1:${port}/${slug}`
 const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
 

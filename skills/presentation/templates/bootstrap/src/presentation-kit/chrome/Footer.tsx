@@ -19,7 +19,19 @@ export function Footer<TPayload>({ mode, step, stepIndex, steps, onGoTo, onNext,
       <div aria-label="Presentation progress" data-presentation-progress="true">
         {steps.map((item, index) => {
           const active = index === stepIndex
-          return <button aria-current={active ? 'step' : undefined} aria-label={`Go to step ${index + 1}: ${item.title}`} data-presentation-progress-item="true" data-presentation-progress-active={active || undefined} key={item.id} onClick={() => onGoTo(index)} type="button">{index + 1}</button>
+          return (
+            <button
+              aria-current={active ? 'step' : undefined}
+              aria-label={`Go to step ${index + 1}: ${item.title}`}
+              data-presentation-progress-item="true"
+              data-presentation-progress-active={active || undefined}
+              key={item.id}
+              onClick={() => onGoTo(index)}
+              type="button"
+            >
+              {index + 1}
+            </button>
+          )
         })}
       </div>
       <div data-presentation-controls="true">

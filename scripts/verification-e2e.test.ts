@@ -9,6 +9,7 @@ import { afterEach, describe, expect, test } from 'vitest'
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url))
 const temporaryDirectories: string[] = []
 const excludedRoots = new Set(['.git', 'artifacts', 'dist', 'node_modules', 'validator_logs'])
+const verificationPort = String(20_000 + (process.pid % 20_000))
 
 async function makeFaultCopy() {
   const target = await mkdtemp(join(tmpdir(), 'and-scene-e2e-'))
@@ -34,6 +35,7 @@ function runVerification(target: string) {
   const result = spawnSync('npm', ['run', 'verify'], {
     cwd: target,
     encoding: 'utf8',
+    env: { ...process.env, PRESENTATION_PORT: verificationPort },
     timeout: 120_000,
   })
   return { ...result, output: `${result.stdout}\n${result.stderr}` }

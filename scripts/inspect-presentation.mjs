@@ -22,19 +22,28 @@ async function waitForPreview(preview) {
 
 async function readDiagnostics(page) {
   return page.evaluate(() => {
+    const overlapRegions = [...document.querySelectorAll('[data-presentation-allow-overlap="true"]')]
     const visible = (element) => {
       const style = getComputedStyle(element)
       const box = element.getBoundingClientRect()
       return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0 && box.width > 0 && box.height > 0
     }
-    const elements = [...document.querySelectorAll('[data-presentation-caption], [data-presentation-controls] button, [data-presentation-progress] button, [data-presentation-toc] button, [data-presentation-attribution], [data-presentation-label]')]
+    const diagnosticSelector = [
+      '[data-presentation-caption]',
+      '[data-presentation-controls] button',
+      '[data-presentation-progress] button',
+      '[data-presentation-toc] button',
+      '[data-presentation-attribution]',
+      '[data-presentation-label]',
+    ].join(', ')
+    const elements = [...document.querySelectorAll(diagnosticSelector)]
       .filter(visible)
       .map((element, index) => {
         const box = element.getBoundingClientRect()
         const overlapRegion = element.closest('[data-presentation-allow-overlap="true"]')
         return {
           id: element.getAttribute('aria-label') || element.textContent?.trim() || `element-${index + 1}`,
-          overlapRegion: overlapRegion ? `region-${[...document.querySelectorAll('[data-presentation-allow-overlap="true"]')].indexOf(overlapRegion)}` : null,
+          overlapRegion: overlapRegion ? `region-${overlapRegions.indexOf(overlapRegion)}` : null,
           rect: { bottom: box.bottom, left: box.left, right: box.right, top: box.top },
         }
       })
@@ -43,7 +52,15 @@ async function readDiagnostics(page) {
     const activeStyles = chrome.map((element) => ({ active: signature(element), inactive: signature(element.parentElement?.querySelector(':scope > button:not([aria-current="step"])')) })).filter(({ inactive }) => Boolean(inactive))
     const attribution = document.querySelector('[data-presentation-attribution]')
     const attributionStyle = attribution ? getComputedStyle(attribution) : null
-    return { activeStyles, attribution: { browserDefault: attributionStyle?.color === 'rgb(0, 0, 238)', fontSize: Number.parseFloat(attributionStyle?.fontSize || '0'), present: Boolean(attribution) }, elements }
+    return {
+      activeStyles,
+      attribution: {
+        browserDefault: attributionStyle?.color === 'rgb(0, 0, 238)',
+        fontSize: Number.parseFloat(attributionStyle?.fontSize || '0'),
+        present: Boolean(attribution),
+      },
+      elements,
+    }
   })
 }
 

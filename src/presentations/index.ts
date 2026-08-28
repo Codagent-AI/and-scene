@@ -6,4 +6,10 @@ export type PresentationEntry = {
   load: () => Promise<{ default: ComponentType }>
 }
 
-export const presentationRegistry: readonly PresentationEntry[] = []
+export const presentationRegistry: readonly PresentationEntry[] = [
+  {
+    slug: 'how-to-make-a-presentation',
+    title: 'How to Use This Skill to Make a Presentation',
+    load: () => import('./how-to-make-a-presentation/Talk'),
+  },
+]

@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "render:smoke": "node scripts/render-smoke.mjs",
-    "inspect": "node scripts/inspect-presentation.mjs"
+    "inspect": "node scripts/inspect-presentation.mjs",
+    "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

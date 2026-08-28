@@ -6,6 +6,7 @@ const root = new URL('..', import.meta.url)
 const checkOnly = process.argv.includes('--check-only')
 const port = 4173
 const url = `http://127.0.0.1:${port}/starter`
+const vite = new URL('../node_modules/vite/bin/vite.js', import.meta.url).pathname
 
 async function assertStarter() {
   await access(new URL('../dist/index.html', import.meta.url))
@@ -13,8 +14,9 @@ async function assertStarter() {
   if (!registry.includes("slug: 'starter'")) throw new Error('render smoke requires a registered starter route')
 }
 
-async function waitForPreview() {
+async function waitForPreview(preview) {
   for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (preview.exitCode !== null) throw new Error(`preview exited before becoming ready (exit ${preview.exitCode})`)
     try { if ((await fetch(url)).ok) return } catch { /* preview is still starting */ }
     await delay(150)
   }
@@ -27,9 +29,9 @@ if (checkOnly) {
   process.exit(0)
 }
 
-const preview = spawn('npm', ['exec', 'vite', 'preview', '--', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root.pathname, stdio: 'ignore' })
+const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root.pathname, stdio: 'ignore' })
 try {
-  await waitForPreview()
+  await waitForPreview(preview)
   const { chromium } = await import('playwright')
   const browser = await chromium.launch()
   const page = await browser.newPage()

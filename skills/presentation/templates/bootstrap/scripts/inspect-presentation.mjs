@@ -7,19 +7,21 @@ const slug = process.argv[2] || 'starter'
 const port = 4174
 const url = `http://127.0.0.1:${port}/${slug}`
 const output = new URL(`../artifacts/presentation/${slug}/`, import.meta.url)
+const vite = new URL('../node_modules/vite/bin/vite.js', import.meta.url).pathname
 
-async function waitForPreview() {
+async function waitForPreview(preview) {
   for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (preview.exitCode !== null) throw new Error(`preview exited before becoming ready (exit ${preview.exitCode})`)
     try { if ((await fetch(url)).ok) return } catch { /* preview is still starting */ }
     await delay(150)
   }
   throw new Error(`preview did not become ready at ${url}`)
 }
 
-const preview = spawn('npm', ['exec', 'vite', 'preview', '--', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: new URL('..', import.meta.url).pathname, stdio: 'ignore' })
+const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: new URL('..', import.meta.url).pathname, stdio: 'ignore' })
 try {
   await mkdir(output, { recursive: true })
-  await waitForPreview()
+  await waitForPreview(preview)
   const { chromium } = await import('playwright')
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
@@ -28,7 +30,10 @@ try {
   const count = Number(await deck.getAttribute('data-step-count'))
   if (!Number.isInteger(count) || count < 1) throw new Error(`invalid step count on ${url}`)
   for (let index = 0; index < count; index += 1) {
-    if (index) await page.keyboard.press('ArrowRight')
+    if (index) {
+      await page.keyboard.press('ArrowRight')
+      await page.waitForFunction((expected) => document.querySelector('[data-presentation="true"]')?.getAttribute('data-step-index') === String(expected), index)
+    }
     await delay(750)
     await page.screenshot({ path: new URL(`step-${String(index + 1).padStart(2, '0')}.png`, output).pathname, fullPage: true })
     const warnings = await page.evaluate(() => {

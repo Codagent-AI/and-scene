@@ -1,13 +1,16 @@
 import { mkdir } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
+import { fileURLToPath } from 'node:url'
 import { inspectStep } from './inspection-diagnostics.mjs'
 
 const slug = process.argv[2] || 'starter'
+if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error('invalid presentation slug')
 const port = 4174
 const url = `http://127.0.0.1:${port}/${slug}`
 const output = new URL(`../artifacts/presentation/${slug}/`, import.meta.url)
-const vite = new URL('../node_modules/vite/bin/vite.js', import.meta.url).pathname
+const root = fileURLToPath(new URL('..', import.meta.url))
+const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
 
 async function waitForPreview(preview) {
   for (let attempt = 0; attempt < 40; attempt += 1) {
@@ -18,7 +21,7 @@ async function waitForPreview(preview) {
   throw new Error(`preview did not become ready at ${url}`)
 }
 
-const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: new URL('..', import.meta.url).pathname, stdio: 'ignore' })
+const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' })
 try {
   await mkdir(output, { recursive: true })
   await waitForPreview(preview)
@@ -35,7 +38,7 @@ try {
       await page.waitForFunction((expected) => document.querySelector('[data-presentation="true"]')?.getAttribute('data-step-index') === String(expected), index)
     }
     await delay(750)
-    await page.screenshot({ path: new URL(`step-${String(index + 1).padStart(2, '0')}.png`, output).pathname, fullPage: true })
+    await page.screenshot({ path: fileURLToPath(new URL(`step-${String(index + 1).padStart(2, '0')}.png`, output)), fullPage: true })
     const warnings = await page.evaluate(() => {
       const visible = (element) => {
         const style = getComputedStyle(element)
@@ -73,7 +76,7 @@ try {
     for (const warning of inspectStep(warnings)) console.warn(`warning: step ${index + 1}: ${warning}`)
   }
   await browser.close()
-  console.log(`captured ${count} settled screenshots in ${output.pathname}`)
+  console.log(`captured ${count} settled screenshots in ${fileURLToPath(output)}`)
 } finally {
   preview.kill('SIGTERM')
 }

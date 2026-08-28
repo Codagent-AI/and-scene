@@ -1,14 +1,15 @@
 import { mkdir } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
-import { inspectStep } from './inspection-diagnostics.mjs'
+import { fileURLToPath } from 'node:url'
+import { assertPresentationSlug, inspectStep } from './inspection-diagnostics.mjs'
 
-const root = new URL('..', import.meta.url)
-const slug = process.argv[2] || 'how-to-make-a-presentation'
+const root = fileURLToPath(new URL('..', import.meta.url))
+const slug = assertPresentationSlug(process.argv[2] || 'how-to-make-a-presentation')
 const port = 4174
 const url = `http://127.0.0.1:${port}/${slug}`
 const output = new URL(`../artifacts/presentation/${slug}/`, import.meta.url)
-const vite = new URL('../node_modules/vite/bin/vite.js', import.meta.url).pathname
+const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
 
 async function waitForPreview(preview) {
   for (let attempt = 0; attempt < 40; attempt += 1) {
@@ -45,7 +46,7 @@ async function readDiagnostics(page) {
   })
 }
 
-const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root.pathname, stdio: 'ignore' })
+const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' })
 let browser
 try {
   await mkdir(output, { recursive: true })
@@ -63,10 +64,10 @@ try {
       await page.waitForFunction((expected) => document.querySelector('[data-presentation="true"]')?.getAttribute('data-step-index') === String(expected), index)
     }
     await delay(750)
-    await page.screenshot({ path: new URL(`step-${String(index + 1).padStart(2, '0')}.png`, output).pathname, fullPage: true })
+    await page.screenshot({ path: fileURLToPath(new URL(`step-${String(index + 1).padStart(2, '0')}.png`, output)), fullPage: true })
     for (const warning of inspectStep(await readDiagnostics(page))) console.warn(`warning: step ${index + 1}: ${warning}`)
   }
-  console.log(`captured ${count} settled screenshots in ${output.pathname}`)
+  console.log(`captured ${count} settled screenshots in ${fileURLToPath(output)}`)
 } finally {
   await browser?.close()
   preview.kill('SIGTERM')

@@ -1,12 +1,13 @@
 import { access, readFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
+import { fileURLToPath } from 'node:url'
 
-const root = new URL('..', import.meta.url)
+const root = fileURLToPath(new URL('..', import.meta.url))
 const checkOnly = process.argv.includes('--check-only')
 const port = 4173
 const url = `http://127.0.0.1:${port}/starter`
-const vite = new URL('../node_modules/vite/bin/vite.js', import.meta.url).pathname
+const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
 
 async function assertStarter() {
   await access(new URL('../dist/index.html', import.meta.url))
@@ -29,7 +30,7 @@ if (checkOnly) {
   process.exit(0)
 }
 
-const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root.pathname, stdio: 'ignore' })
+const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' })
 try {
   await waitForPreview(preview)
   const { chromium } = await import('playwright')

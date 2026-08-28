@@ -10,19 +10,11 @@ export const canonicalSteps = [
   { era: 'the reveal', title: "You're looking at one", caption: 'This presentation was built exactly this way. Thanks for watching.' },
 ]
 
-export function validateReferenceSample(source) {
-  const problems = []
-  if (!source.includes("slug: 'how-to-make-a-presentation'")) problems.push('reference sample is not registered')
-  let cursor = 0
-  for (const [index, step] of canonicalSteps.entries()) {
-    const era = source.indexOf(step.era, cursor)
-    const title = source.indexOf(step.title, Math.max(era, cursor))
-    const caption = source.indexOf(step.caption, Math.max(title, cursor))
-    if (era < cursor || title < era || caption < title) {
-      problems.push(`reference sample step ${index + 1} has an unexpected title or caption`)
-    } else {
-      cursor = caption + step.caption.length
+export function validateRenderedStep(expected, observed, index) {
+  for (const field of ['era', 'title', 'caption']) {
+    if (observed[field] !== expected[field]) {
+      return `render phase failed at step ${index + 1}: expected ${field} ${JSON.stringify(expected[field])}, received ${JSON.stringify(observed[field])}`
     }
   }
-  return problems
+  return null
 }

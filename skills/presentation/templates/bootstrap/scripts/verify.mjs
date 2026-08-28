@@ -1,15 +1,16 @@
 import { readFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
+import { fileURLToPath } from 'node:url'
 
-const root = new URL('..', import.meta.url)
+const root = fileURLToPath(new URL('..', import.meta.url))
 const port = 4173
 const url = `http://127.0.0.1:${port}/starter`
-const vite = new URL('../node_modules/vite/bin/vite.js', import.meta.url).pathname
+const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
 
 function run(command, args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd: root.pathname, stdio: 'inherit' })
+    const child = spawn(command, args, { cwd: root, stdio: 'inherit' })
     child.once('error', reject)
     child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`build phase failed (${command} ${args.join(' ')}, exit ${code})`)))
   })
@@ -27,7 +28,7 @@ async function waitForPreview(preview) {
 async function verifyStarter() {
   const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
   if (!registry.includes("slug: 'starter'")) throw new Error('reference sample phase failed: starter route is not registered')
-  const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root.pathname, stdio: 'ignore' })
+  const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' })
   let browser
   let step = 0
   const errors = []
@@ -46,7 +47,14 @@ async function verifyStarter() {
     for (step = 0; step < count; step += 1) {
       if (errors.length) throw new Error(`render phase failed at ${errors[0]}`)
       if (Number(await deck.getAttribute('data-step-index')) !== step) throw new Error(`render phase failed at step ${step + 1}: expected public step index ${step}`)
-      if (step < count - 1) await page.keyboard.press('ArrowRight')
+      if (step < count - 1) {
+        await page.keyboard.press('ArrowRight')
+        try {
+          await page.waitForFunction((expected) => document.querySelector('[data-presentation="true"]')?.getAttribute('data-step-index') === String(expected), step + 1)
+        } catch {
+          throw new Error(`render phase failed at step ${step + 2}: public step index did not advance`)
+        }
+      }
     }
     if (errors.length) throw new Error(`render phase failed at ${errors[0]}`)
   } finally {

@@ -1,17 +1,18 @@
-import { access, readFile } from 'node:fs/promises'
+import { access } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
-import { canonicalSteps, validateReferenceSample } from './verify-contract.mjs'
+import { fileURLToPath } from 'node:url'
+import { canonicalSteps, validateRenderedStep } from './verify-contract.mjs'
 
-const root = new URL('..', import.meta.url)
+const root = fileURLToPath(new URL('..', import.meta.url))
 const slug = 'how-to-make-a-presentation'
 const port = 4173
 const url = `http://127.0.0.1:${port}/${slug}`
-const vite = new URL('../node_modules/vite/bin/vite.js', import.meta.url).pathname
+const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
 
 function run(command, args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd: root.pathname, stdio: 'inherit' })
+    const child = spawn(command, args, { cwd: root, stdio: 'inherit' })
     child.once('error', reject)
     child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`build phase failed (${command} ${args.join(' ')}, exit ${code})`)))
   })
@@ -19,12 +20,6 @@ function run(command, args) {
 
 async function assertReferenceSample() {
   await access(new URL('../src/presentations/how-to-make-a-presentation/Talk.tsx', import.meta.url))
-  const [registry, steps] = await Promise.all([
-    readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8'),
-    readFile(new URL('../src/presentations/how-to-make-a-presentation/steps/index.tsx', import.meta.url), 'utf8'),
-  ])
-  const problems = validateReferenceSample(`${registry}\n${steps}`)
-  if (problems.length) throw new Error(`reference sample phase failed: ${problems.join('; ')}`)
 }
 
 async function waitForPreview(preview) {
@@ -37,7 +32,7 @@ async function waitForPreview(preview) {
 }
 
 async function renderEveryStep() {
-  const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root.pathname, stdio: 'inherit' })
+  const preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit' })
   let browser
   let step = 0
   const errors = []
@@ -45,7 +40,7 @@ async function renderEveryStep() {
     await waitForPreview(preview)
     const { chromium } = await import('playwright')
     browser = await chromium.launch()
-    const page = await browser.newPage()
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
     page.on('console', (message) => { if (message.type() === 'error') errors.push(`step ${step + 1}: console error: ${message.text()}`) })
     page.on('pageerror', (error) => errors.push(`step ${step + 1}: page error: ${error.message}`))
     await page.goto(url, { waitUntil: 'networkidle' })
@@ -56,6 +51,18 @@ async function renderEveryStep() {
     for (step = 0; step < count; step += 1) {
       if (errors.length) throw new Error(`render phase failed at ${errors[0]}`)
       if (Number(await deck.getAttribute('data-step-index')) !== step) throw new Error(`render phase failed at step ${step + 1}: expected public step index ${step}`)
+      const [caption, eraLabel, titleLabel] = await Promise.all([
+        page.locator('[data-presentation-caption]').textContent(),
+        page.locator('[data-presentation-toc-active]').getAttribute('aria-label'),
+        page.locator('[data-presentation-progress-active]').getAttribute('aria-label'),
+      ])
+      const expected = canonicalSteps[step]
+      const problem = validateRenderedStep(expected, {
+        caption: caption ?? '',
+        era: eraLabel?.replace('Go to era: ', '') ?? '',
+        title: titleLabel?.replace(`Go to step ${step + 1}: `, '') ?? '',
+      }, step)
+      if (problem) throw new Error(problem)
       if (step < count - 1) {
         await page.keyboard.press('ArrowRight')
         try {

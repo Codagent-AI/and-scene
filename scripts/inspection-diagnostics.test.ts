@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, test } from 'vitest'
-import { inspectStep } from './inspection-diagnostics.mjs'
+import { assertPresentationSlug, inspectStep } from './inspection-diagnostics.mjs'
 
 describe('inspection diagnostics', () => {
   test('INT-002 reports accidental defects but exempts a marked composition', () => {
@@ -19,5 +19,10 @@ describe('inspection diagnostics', () => {
     expect(warnings).toContain('active chrome is visually indistinct')
     expect(warnings).toContain('attribution is browser-default or undersized')
     expect(warnings.join('\n')).not.toContain('intentional-a')
+  })
+
+  test('rejects screenshot artifact paths outside the presentation slug format', () => {
+    expect(() => assertPresentationSlug('../../report')).toThrow('invalid presentation slug')
+    expect(assertPresentationSlug('how-to-make-a-presentation')).toBe('how-to-make-a-presentation')
   })
 })

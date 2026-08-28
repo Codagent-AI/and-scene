@@ -2,6 +2,11 @@ function overlaps(first, second) {
   return first.left < second.right && first.right > second.left && first.top < second.bottom && first.bottom > second.top
 }
 
+export function assertPresentationSlug(slug) {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error('invalid presentation slug')
+  return slug
+}
+
 export function inspectStep({ activeStyles, attribution, elements }) {
   const warnings = []
   for (let firstIndex = 0; firstIndex < elements.length; firstIndex += 1) {

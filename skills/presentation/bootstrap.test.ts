@@ -64,8 +64,9 @@ describe('presentation bootstrap template', () => {
 
     run('npm', ['ci', '--ignore-scripts'], target)
     run('npm', ['run', 'build'], target)
-    run('npm', ['run', 'render:smoke', '--', '--check-only'], target)
-  }, 120_000)
+    run('npm', ['exec', 'playwright', 'install', 'chromium'], target)
+    run('npm', ['run', 'render:smoke'], target)
+  }, 300_000)
 
   test('reports accidental visual defects while exempting explicitly allowed overlap', async () => {
     const { inspectStep } = await import('./templates/bootstrap/scripts/inspection-diagnostics.mjs') as {
@@ -84,12 +85,15 @@ describe('presentation bootstrap template', () => {
         { allowOverlap: false, id: 'next', rect: { bottom: 60, left: 50, right: 140, top: 20 } },
         { allowOverlap: true, id: 'intentional-a', rect: { bottom: 40, left: 200, right: 300, top: 0 } },
         { allowOverlap: true, id: 'intentional-b', rect: { bottom: 50, left: 220, right: 320, top: 10 } },
+        { allowOverlap: true, id: 'intentional-card', rect: { bottom: 100, left: 400, right: 500, top: 0 } },
+        { allowOverlap: false, id: 'next-control', rect: { bottom: 120, left: 450, right: 550, top: 20 } },
       ],
     })
 
     expect(warnings).toContain('overlap: caption and next')
     expect(warnings).toContain('active chrome is visually indistinct')
     expect(warnings).toContain('attribution is browser-default or undersized')
+    expect(warnings).toContain('overlap: intentional-card and next-control')
     expect(warnings.join('\n')).not.toContain('intentional-a')
   })
 
@@ -100,5 +104,6 @@ describe('presentation bootstrap template', () => {
     expect(stylesheet).toContain('[data-presentation-controls="true"] button')
     expect(stylesheet).toContain('[data-presentation-progress="true"] button')
     expect(stylesheet).toContain('right: 1rem !important')
+    expect(stylesheet).toContain('[data-presentation-progress="true"] button[data-presentation-progress-active="true"]')
   })
 })

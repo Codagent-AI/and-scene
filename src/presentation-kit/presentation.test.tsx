@@ -115,13 +115,25 @@ describe('Presentation', () => {
     expect(screen.queryByRole('button', { name: 'Previous step' })).toBeNull()
   })
 
-  test('uses viewport-constrained stage geometry for present mode', () => {
+  test('uses viewport-constrained flex stage geometry for present mode', () => {
     render(<Presentation title="Demo" steps={steps} initialMode="present" />)
     const stage = document.querySelector('[data-presentation-stage]')
 
     expect(stage?.getAttribute('data-presentation-stage-mode')).toBe('present')
-    expect(stage?.getAttribute('style')).toContain('height: calc(100dvh - 100px)')
+    expect(stage?.getAttribute('style')).toContain('flex: 1 1 auto')
+    expect(stage?.getAttribute('style')).toContain('height: auto')
     expect(stage?.getAttribute('style')).toContain('min-height: 0')
+  })
+
+  test('uses the actual remaining flex space instead of fixed chrome-height estimates', () => {
+    render(<Presentation title="Demo" steps={steps} initialMode="browse" />)
+    const presentation = screen.getByTestId('presentation')
+    const stage = document.querySelector('[data-presentation-stage]')
+
+    expect(presentation.getAttribute('style')).toContain('display: flex')
+    expect(presentation.getAttribute('style')).toContain('height: 100dvh')
+    expect(stage?.getAttribute('style')).toContain('flex: 1 1 auto')
+    expect(stage?.getAttribute('style')).not.toContain('calc(100dvh')
   })
 
   test('renders an unbranded default attribution with a stable style hook', () => {

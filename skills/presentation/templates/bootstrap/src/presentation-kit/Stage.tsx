@@ -1,5 +1,5 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
-import { DESIGN_H, DESIGN_W, EASE, LAYOUT_T, STAGE_LAYOUT } from './constants'
+import { DESIGN_H, DESIGN_W, EASE, LAYOUT_T } from './constants'
 import { useFitScale } from './useFitScale'
 import type { PresentationMode, Step } from './types'
 
@@ -14,14 +14,13 @@ export function Stage<TPayload>({ mode, step, stepIndex, stepCount }: StageProps
   const { scale, setContainer } = useFitScale()
   const sceneKey = step.groupKey ? `group:${step.groupKey}` : `step:${step.id}`
   const Scene = step.Scene
-  const chromeHeight = STAGE_LAYOUT[mode].header + STAGE_LAYOUT[mode].footer
 
   return (
     <div
       ref={setContainer}
       data-presentation-stage="true"
       data-presentation-stage-mode={mode}
-      style={{ height: `calc(100dvh - ${chromeHeight}px)`, minHeight: 0, overflow: 'hidden', position: 'relative' }}
+      style={{ flex: '1 1 auto', height: 'auto', minHeight: 0, overflow: 'hidden', position: 'relative' }}
     >
       <div
         data-presentation-canvas="true"

@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify a browser-based presentation as one evolving scene. Use when a user asks for a presentation, deck, talk, or diagrammatic story in a React project.
+description: Creates or modifies browser-based presentations as one evolving scene. Use when a user asks for a presentation, deck, talk, or diagrammatic story in a React project.
 ---
 
 # And Scene presentations
@@ -143,5 +143,25 @@ Never report success on a failed check.
    an accidental collision.
 5. Re-run every failed check after repair.
 
-Report the generated/changed folder, route, checks run, and visual inspection
-coverage only after the build, route render, and composition review are clean.
+Report completion only after the build, route render, and composition review are
+clean. Use this exact structure:
+
+```text
+Presentation folder: <path>
+Route: /<slug>
+Build: pass | fail
+Route render: pass | fail
+Full verification: pass | fail | not available
+Inspected steps/viewports: <first, last, dense steps and widths>
+Remaining warnings: none | <step-specific advisory warnings>
+```
+
+## Out of scope
+
+This skill creates React browser presentations that use the included evolving
+scene kit. It does not create PowerPoint, Keynote, PDF, video, or image exports;
+use a dedicated export or document-generation workflow for those deliverables.
+It also does not create conventional independent-slide decks: use a slide/deck
+workflow when entity continuity is not wanted. Requests for a standalone image,
+logo, or illustration should use an image-generation workflow instead of this
+skill. It does not replace unrelated diagram editors or visual-design systems.

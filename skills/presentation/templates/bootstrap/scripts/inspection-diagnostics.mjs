@@ -8,7 +8,7 @@ export function inspectStep({ activeStyles, attribution, elements }) {
     for (let secondIndex = firstIndex + 1; secondIndex < elements.length; secondIndex += 1) {
       const first = elements[firstIndex]
       const second = elements[secondIndex]
-      if (!first || !second || first.allowOverlap || second.allowOverlap || !overlaps(first.rect, second.rect)) continue
+      if (!first || !second || (first.allowOverlap && second.allowOverlap) || !overlaps(first.rect, second.rect)) continue
       warnings.push(`overlap: ${first.id} and ${second.id}`)
     }
   }

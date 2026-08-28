@@ -7,7 +7,7 @@
 [data-presentation-toc="true"] { display: flex; gap: .5rem; left: 2rem; position: absolute; top: 4.5rem; z-index: 1; }
 [data-presentation-controls="true"] button, [data-presentation-progress="true"] button, [data-presentation-toc="true"] button, [data-presentation-mode-toggle="true"] { background: #273a4f; border: 1px solid #96b4cd; color: #f6f1e6; cursor: pointer; min-height: 2rem; padding: .35rem .65rem; }
 [data-presentation-progress="true"] button { border-radius: 999px; min-width: 2rem; }
-[data-presentation-progress-active="true"], [data-presentation-toc-active="true"] { background: #f0bf5d; color: #18202a; }
+[data-presentation-progress="true"] button[data-presentation-progress-active="true"], [data-presentation-toc="true"] button[data-presentation-toc-active="true"] { background: #f0bf5d; color: #18202a; }
 [data-presentation-attribution="true"] { bottom: 1rem !important; color: #f6f1e6; font-size: .875rem; position: fixed; right: 1rem !important; }
 .starter-scene { display: grid; place-items: center; }
 .starter-card { background: #f0bf5d; border: 2px solid #f6f1e6; color: #18202a; padding: 2rem; }

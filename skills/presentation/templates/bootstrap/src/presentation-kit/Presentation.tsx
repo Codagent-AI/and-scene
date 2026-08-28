@@ -36,6 +36,7 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse' }:
       onTouchEnd={nav.onTouchEnd}
       onTouchStart={nav.onTouchStart}
       data-testid="presentation"
+      style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}
     >
       <Header mode={nav.mode} step={step} title={title} />
       {nav.mode === 'browse' && wide ? <Toc steps={steps} stepIndex={stepIndex} onGoTo={nav.goTo} /> : null}

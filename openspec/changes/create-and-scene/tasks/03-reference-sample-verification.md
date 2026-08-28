@@ -17,6 +17,8 @@ Before starting, read:
   the authoritative nine-step outline and verification contract
 - `openspec/changes/create-and-scene/design.md` — verification and scene
   composition guidance
+- `openspec/changes/create-and-scene/test-plan.md` — INT-002, E2E-001,
+E2E-002, and the completed-system acceptance flows AT-001 through AT-004
 - all of `src/presentation-kit/`, plus `src/presentations/index.ts`,
   `src/main.tsx`, and `package.json`
 
@@ -50,6 +52,15 @@ settle and emit advisory warnings for:
 - visually indistinct active progress or table-of-contents state
 - missing, browser-default, or undersized attribution
 
+Deliver INT-002 with controlled browser fixtures for screenshots, settling,
+warnings, and overlap exemptions. Deliver E2E-001 as the successful production
+verification journey and E2E-002 with isolated fault-injection copies that prove
+actionable non-zero failures without mutating the source checkout. Once the
+completed system passes its automated checks, confirm that no implementation gap
+prevents the later acceptance tester from executing AT-001 through AT-004. The
+acceptance phase, not this implementation task, owns executing those flows and
+retaining their evidence.
+
 ## Acceptance criteria
 
 The canonical scenarios and nine-step outline in
@@ -63,4 +74,6 @@ The sample exists under
 nine canonical steps in order as one continuously accumulating scene.
 `npm run verify` builds and renders every step on `127.0.0.1`, returning nonzero
 with a useful failure when any required check fails. The project-local screenshot
-helper implements every canonical advisory check.
+helper implements every canonical advisory check. INT-002, E2E-001, and E2E-002
+pass, and the completed system is ready for AT-001 through AT-004 with no known
+unapproved substitute or blocked required flow.

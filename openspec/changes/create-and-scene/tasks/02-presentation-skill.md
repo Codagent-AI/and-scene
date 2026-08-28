@@ -16,6 +16,8 @@ Before starting, read:
   authoritative behavioral contract
 - `openspec/changes/create-and-scene/design.md` — architecture, target resolution,
   and style ownership
+- `openspec/changes/create-and-scene/test-plan.md` — especially INT-001 and the
+  public skill flows AT-001, AT-002, and AT-004
 - all of `src/presentation-kit/` — the engine the skill composes
 - `src/presentations/index.ts`, `src/main.tsx`, `package.json`, and
   `vite.config.ts` — registration, routing, and build setup
@@ -50,6 +52,12 @@ The procedure must:
 7. Build, render, and visually inspect the required steps, fixing failures before
    reporting completion. Prefer the project-local screenshot helper.
 
+Deliver the automated coverage needed by INT-001 for materializing the bootstrap
+outside this repository, proving its anchors and dependency contract, building
+it, and checking canonical/template kit parity without imposing a style system.
+Keep the skill and templates usable by the AT-001, AT-002, and AT-004 flows; the
+separate acceptance phase runs those flows after task 03 completes the system.
+
 ## Acceptance criteria
 
 The canonical scenarios in
@@ -62,3 +70,5 @@ authoritative. This task deliberately does not duplicate that spec.
 procedure. A materialized bootstrap template builds without Tailwind, contains no
 kit-owned visual defaults, resolves its own templates independent of the working
 directory, and provides the required local verification and screenshot helpers.
+INT-001 passes, and the delivered public workflow contains no gaps that would
+prevent AT-001, AT-002, or AT-004 from running after task 03.

@@ -1,0 +1,7 @@
+import { Presentation, type Step } from '../../presentation-kit'
+import './presentation.css'
+import { steps } from './steps'
+
+export default function Talk() {
+  return <Presentation steps={steps} title="{{title}}" initialMode="browse" />
+}

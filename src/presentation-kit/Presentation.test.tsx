@@ -22,7 +22,7 @@ function Scene({ payload }: SceneProps<Payload>) {
   return <Box id="persistent-node">{payload.label}</Box>
 }
 
-const steps: readonly Step<Payload>[] = [
+const steps: readonly [Step<Payload>, ...Step<Payload>[]] = [
   {
     id: 'ask',
     era: 'Ask',
@@ -92,6 +92,43 @@ describe('Presentation', () => {
     expect(root.getAttribute('data-step-index')).toBe('1')
   })
 
+  test('does not hijack modified browser shortcuts', () => {
+    render(<Presentation steps={steps} title="A scene" />)
+    const root = document.querySelector('[data-presentation]')!
+
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowRight', altKey: true })
+
+    expect(root.getAttribute('data-presentation-mode')).toBe('browse')
+    expect(root.getAttribute('data-step-index')).toBe('0')
+  })
+
+  test('normalizes a stale step index after the step list shrinks', () => {
+    const threeSteps: readonly [Step<Payload>, ...Step<Payload>[]] = [
+      ...steps,
+      { ...steps[1]!, id: 'finish', title: 'Third title', payload: { label: 'third' } },
+    ]
+    const { rerender } = render(<Presentation steps={threeSteps} title="A scene" />)
+    const root = document.querySelector('[data-presentation]')!
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    rerender(<Presentation steps={[steps[0]!, steps[1]!]} title="A scene" />)
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    expect(root.getAttribute('data-step-index')).toBe('0')
+  })
+
+  test('does not navigate for a vertical touch gesture with horizontal drift', () => {
+    render(<Presentation steps={steps} title="A scene" />)
+    const root = document.querySelector('[data-presentation]')!
+
+    fireEvent.touchStart(root, { touches: [{ clientX: 200, clientY: 10 }] })
+    fireEvent.touchEnd(root, { changedTouches: [{ clientX: 100, clientY: 220 }] })
+
+    expect(root.getAttribute('data-step-index')).toBe('0')
+  })
+
   test('switches modes without changing the current step', () => {
     render(<Presentation steps={steps} title="A scene" />)
     fireEvent.click(screen.getByRole('button', { name: 'Next' }))
@@ -116,5 +153,12 @@ describe('Presentation', () => {
   test('scales the fixed 880 by 380 canvas uniformly', () => {
     expect(calculateFitScale(1760, 1000, 'present')).toBeCloseTo((1760 - 48) / 880)
     expect(calculateFitScale(440, 300, 'browse')).toBeGreaterThan(0)
+  })
+
+  test('rejects an empty presentation at the runtime boundary', () => {
+    const emptySteps = [] as unknown as readonly [Step<Payload>, ...Step<Payload>[]]
+    expect(() => render(<Presentation steps={emptySteps} title="Empty" />)).toThrow(
+      'Presentation requires at least one step.',
+    )
   })
 })

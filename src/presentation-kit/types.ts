@@ -26,8 +26,10 @@ export interface SceneStyleProps {
   children?: ReactNode
 }
 
+export type NonEmptySteps<TPayload> = readonly [Step<TPayload>, ...Step<TPayload>[]]
+
 export interface PresentationProps<TPayload> {
-  steps: readonly Step<TPayload>[]
+  steps: NonEmptySteps<TPayload>
   title: string
   initialMode?: PresentationMode
   className?: string

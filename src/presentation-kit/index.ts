@@ -1,6 +1,6 @@
 export { Presentation } from './Presentation'
 export { Stage } from './Stage'
 export * from './nodes'
-export type { PresentationMode, PresentationProps, SceneProps, Step } from './types'
+export type { NonEmptySteps, PresentationMode, PresentationProps, SceneProps, Step } from './types'
 export { useFitScale } from './useFitScale'
 export { usePresentationNav } from './usePresentationNav'

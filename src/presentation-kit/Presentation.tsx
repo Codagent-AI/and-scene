@@ -16,9 +16,12 @@ export function Presentation<TPayload>({
   attributionHref = DEFAULT_ATTRIBUTION,
 }: PresentationProps<TPayload>) {
   const navigation = usePresentationNav(steps.length, initialMode)
+  if (steps.length === 0) {
+    throw new Error('Presentation requires at least one step.')
+  }
   const step = steps[navigation.index]
 
-  if (!step) return null
+  if (!step) throw new Error('Presentation could not resolve the active step.')
 
   return (
     <main

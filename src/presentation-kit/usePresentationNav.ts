@@ -30,21 +30,31 @@ export function usePresentationNav(
 ): PresentationNav {
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
-  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null)
 
   const goTo = useCallback(
     (nextIndex: number) => setIndex(clampStepIndex(nextIndex, stepCount)),
     [stepCount],
   )
-  const next = useCallback(() => goTo(index + 1), [goTo, index])
-  const previous = useCallback(() => goTo(index - 1), [goTo, index])
+  const next = useCallback(() => {
+    setIndex((current) => clampStepIndex(clampStepIndex(current, stepCount) + 1, stepCount))
+  }, [stepCount])
+  const previous = useCallback(() => {
+    setIndex((current) => clampStepIndex(clampStepIndex(current, stepCount) - 1, stepCount))
+  }, [stepCount])
   const toggleMode = useCallback(() => {
     setMode((current) => (current === 'browse' ? 'present' : 'browse'))
   }, [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isFocusedControl(event.target)) return
+      if (
+        event.defaultPrevented ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        isFocusedControl(event.target)
+      ) return
 
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') {
         event.preventDefault()
@@ -70,14 +80,18 @@ export function usePresentationNav(
       previous,
       goTo,
       toggleMode,
-      onTouchStart: (event) => setTouchStart(event.touches[0]?.clientX ?? null),
+      onTouchStart: (event) => {
+        const touch = event.touches[0]
+        setTouchStart(touch ? { x: touch.clientX, y: touch.clientY } : null)
+      },
       onTouchEnd: (event) => {
-        const end = event.changedTouches[0]?.clientX
-        if (touchStart === null || end === undefined) return
+        const end = event.changedTouches[0]
+        if (touchStart === null || !end) return
 
-        const delta = end - touchStart
-        if (Math.abs(delta) >= 40) {
-          if (delta < 0) next()
+        const deltaX = end.clientX - touchStart.x
+        const deltaY = end.clientY - touchStart.y
+        if (Math.abs(deltaX) >= 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
+          if (deltaX < 0) next()
           else previous()
         }
         setTouchStart(null)

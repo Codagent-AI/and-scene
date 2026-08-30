@@ -2,10 +2,9 @@ import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import { rm, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
 import { resolve } from 'node:path'
-import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { getAvailablePort, run, waitForPreview, watchPreview } from './preview-server.mjs'
 
 const referenceSlug = 'how-to-make-a-presentation'
 const slug = referenceSlug
@@ -22,52 +21,6 @@ const expectedReferenceSteps = [
   ['the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ]
 
-function run(command, args) {
-  return new Promise((resolveRun, reject) => {
-    const child = spawn(command, args, { stdio: 'inherit' })
-    child.on('error', reject)
-    child.on('exit', (code) => code === 0 ? resolveRun() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
-  })
-}
-
-function getAvailablePort() {
-  return new Promise((resolvePort, reject) => {
-    const server = createServer()
-    server.once('error', reject)
-    server.listen(0, host, () => {
-      const address = server.address()
-      if (!address || typeof address === 'string') {
-        server.close()
-        reject(new Error('Could not allocate an IPv4 preview port.'))
-        return
-      }
-      server.close((error) => error ? reject(error) : resolvePort(address.port))
-    })
-  })
-}
-
-function watchPreview(preview) {
-  let failure
-  const recordFailure = (error) => { failure = error instanceof Error ? error : new Error(String(error)) }
-  preview.once('error', recordFailure)
-  preview.once('exit', (code, signal) => recordFailure(new Error(`Preview exited before readiness (${code ?? signal ?? 'unknown'}).`)))
-  return () => failure
-}
-
-async function waitForPreview(url, getPreviewFailure) {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    const failure = getPreviewFailure()
-    if (failure) throw failure
-    try {
-      if ((await fetch(url)).ok) return
-    } catch {
-      // The preview process is still starting.
-    }
-    await delay(250)
-  }
-  throw getPreviewFailure() ?? new Error(`Preview did not become ready at ${url}`)
-}
-
 function checkReferenceStep(index, count, era, title, caption) {
   if (count !== expectedReferenceSteps.length) throw new Error(`Reference sample must expose nine steps; found ${count}.`)
   const expected = expectedReferenceSteps[index]
@@ -83,7 +36,7 @@ let markerPath
 try {
   if (process.argv[2]) throw new Error('Root verification always targets the canonical reference sample.')
   await run('npm', ['run', 'build'])
-  const port = await getAvailablePort()
+  const port = await getAvailablePort(host)
   const marker = randomUUID()
   markerPath = resolve('dist', '.and-scene-verify-marker')
   await writeFile(markerPath, marker)

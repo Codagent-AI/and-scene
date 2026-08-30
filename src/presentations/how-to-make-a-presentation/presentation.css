@@ -1,0 +1,454 @@
+.how-to-make-a-presentation {
+  --ink: #17213a;
+  --paper: #f7f4ed;
+  --blue: #2c5cc5;
+  --coral: #e96e50;
+  --mint: #5abf9f;
+  background: radial-gradient(circle at 12% 0%, #fff 0 12%, transparent 35%), var(--paper);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 24px 42px 104px;
+}
+
+.how-to-make-a-presentation [data-presentation-header] {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  height: 58px;
+}
+
+.how-to-make-a-presentation [data-presentation-marker] {
+  color: var(--coral);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.how-to-make-a-presentation [data-presentation-title] {
+  font-family: Georgia, serif;
+  font-size: clamp(24px, 3vw, 39px);
+  line-height: 1;
+  margin: 0;
+}
+
+.how-to-make-a-presentation [data-presentation-toc] {
+  display: flex;
+  gap: 8px;
+  position: fixed;
+  right: 40px;
+  top: 26px;
+  z-index: 5;
+}
+
+.how-to-make-a-presentation button {
+  background: transparent;
+  border: 1px solid #a9b0be;
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 6px 10px;
+}
+
+.how-to-make-a-presentation [data-presentation-toc] button {
+  border: 0;
+  font-size: 11px;
+  text-transform: lowercase;
+}
+
+.how-to-make-a-presentation [data-presentation-toc-active="true"] {
+  background: var(--ink);
+  color: white;
+}
+
+.how-to-make-a-presentation [data-presentation-stage] {
+  margin: 8px auto 0;
+  max-width: 100%;
+}
+
+.how-to-make-a-presentation [data-presentation-footer] {
+  align-items: center;
+  bottom: 24px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(260px, 1fr) auto auto;
+  left: 42px;
+  position: fixed;
+  right: 42px;
+  z-index: 6;
+}
+
+.how-to-make-a-presentation [data-presentation-caption] {
+  font-size: 14px;
+  line-height: 1.35;
+  margin: 0;
+  max-width: 660px;
+}
+
+.how-to-make-a-presentation [data-presentation-progress],
+.how-to-make-a-presentation [data-presentation-controls] {
+  display: flex;
+  gap: 5px;
+}
+
+.how-to-make-a-presentation [data-presentation-progress] button {
+  border-radius: 50%;
+  font-size: 10px;
+  height: 25px;
+  padding: 0;
+  width: 25px;
+}
+
+.how-to-make-a-presentation [data-presentation-progress-active="true"] {
+  background: var(--coral);
+  border-color: var(--coral);
+  color: white;
+  font-weight: 800;
+  transform: scale(1.12);
+}
+
+.how-to-make-a-presentation [data-presentation-controls] button:disabled {
+  cursor: default;
+  opacity: .38;
+}
+
+.how-to-make-a-presentation [data-presentation-mode-toggle] {
+  position: fixed;
+  right: 42px;
+  top: 68px;
+  z-index: 7;
+}
+
+.how-to-make-a-presentation [data-presentation-attribution] {
+  bottom: 5px !important;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  right: 10px !important;
+  text-decoration: none;
+  z-index: 10;
+}
+
+.how-to-make-a-presentation[data-presentation-mode="present"] {
+  background: var(--ink);
+  color: #f9f5ec;
+  padding-top: 22px;
+}
+
+.how-to-make-a-presentation[data-presentation-mode="present"] [data-presentation-header] {
+  justify-content: center;
+}
+
+.how-to-make-a-presentation[data-presentation-mode="present"] [data-presentation-footer] {
+  bottom: 28px;
+  display: block;
+  font-family: Georgia, serif;
+  font-size: 31px;
+  text-align: center;
+}
+
+.how-to-scene {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.how-to-scene .presentation-box,
+.how-to-scene .presentation-symbol-chip,
+.how-to-scene .presentation-label,
+.how-to-scene .presentation-emphasis {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  position: absolute;
+}
+
+.how-to-person {
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  flex-direction: column;
+  gap: 4px;
+  height: 72px;
+  width: 126px;
+}
+
+.how-to-person strong {
+  font-size: 19px;
+}
+
+.how-to-person span {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.how-to-you {
+  left: 58px;
+  top: 42px;
+}
+
+.how-to-skill {
+  left: 692px;
+  top: 42px;
+}
+
+.how-to-prompt {
+  background: #ffe5a3;
+  border: 2px solid var(--ink);
+  border-radius: 18px;
+  font-size: 13px;
+  height: 52px;
+  left: 230px;
+  padding: 0 18px;
+  top: 52px;
+  width: 292px;
+}
+
+.how-to-conversation-link {
+  color: var(--blue);
+  font-size: 31px;
+  left: 520px;
+  position: absolute;
+  text-align: center;
+  top: 59px;
+  width: 162px;
+}
+
+.how-to-question {
+  background: var(--blue);
+  border-radius: 999px;
+  color: white;
+  font-size: 10px;
+  gap: 5px;
+  left: 540px;
+  padding: 7px 10px;
+  top: 18px;
+}
+
+.how-to-question [data-presentation-symbol] {
+  font-size: 15px;
+}
+
+.how-to-tray {
+  background: #e7ecf7;
+  border-radius: 22px 22px 12px 12px;
+  height: 132px;
+  left: 48px;
+  position: absolute;
+  top: 178px;
+  width: 784px;
+}
+
+.how-to-card {
+  background: white;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  flex-direction: column;
+  gap: 3px;
+  height: 96px;
+  justify-content: flex-start !important;
+  padding: 10px;
+  width: 137px;
+}
+
+.how-to-card b {
+  align-self: flex-start;
+  color: var(--coral);
+  font-size: 10px;
+}
+
+.how-to-card strong {
+  font-size: 14px;
+}
+
+.how-to-card span {
+  font-size: 9px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.how-to-card-one {
+  left: 74px;
+  top: 196px;
+}
+
+.how-to-card-two {
+  left: 229px;
+  top: 196px;
+}
+
+.how-to-card-three {
+  left: 384px;
+  top: 196px;
+}
+
+.how-to-card-four {
+  left: 539px;
+  top: 196px;
+}
+
+.how-to-morph-link {
+  color: var(--blue);
+  font-size: 10px;
+  left: 208px;
+  position: absolute;
+  top: 292px;
+}
+
+.how-to-ghost-card {
+  border: 2px dashed #78829a;
+  border-radius: 10px;
+  color: #667085;
+  font-size: 10px;
+  height: 96px;
+  left: 694px;
+  position: absolute;
+  top: 196px;
+  width: 120px;
+}
+
+.how-to-depth-control {
+  background: var(--coral);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 10px;
+  left: 55px;
+  padding: 6px 8px;
+  top: 118px;
+}
+
+.how-to-scene-kit {
+  background: #d7f2e8;
+  border: 2px solid var(--mint);
+  border-radius: 10px;
+  flex-direction: column;
+  font-size: 9px;
+  height: 62px;
+  left: 388px;
+  top: 300px;
+  width: 156px;
+}
+
+.how-to-scene-kit strong {
+  font-size: 15px;
+}
+
+.how-to-kit-plug {
+  color: var(--mint);
+  font-size: 30px;
+  left: 445px;
+  position: absolute;
+  top: 278px;
+}
+
+.how-to-verify {
+  background: #fff;
+  border: 2px solid var(--blue);
+  border-radius: 10px;
+  flex-direction: column;
+  font-size: 10px;
+  height: 96px;
+  left: 694px;
+  top: 196px;
+  width: 120px;
+}
+
+.how-to-verify strong {
+  font-size: 15px;
+}
+
+.how-to-verify-link {
+  color: var(--blue);
+  font-size: 21px;
+  left: 660px;
+  position: absolute;
+  top: 232px;
+}
+
+.how-to-pass {
+  background: #d7f2e8;
+  border-radius: 999px;
+  color: #16805c;
+  font-size: 10px;
+  left: 706px;
+  padding: 5px 8px;
+  top: 286px;
+}
+
+.how-to-modify-arc {
+  color: var(--coral);
+  font-size: 11px;
+  left: 620px;
+  position: absolute;
+  top: 125px;
+  transform: rotate(18deg);
+}
+
+.how-to-edited-flag {
+  background: var(--coral);
+  color: white;
+  font-size: 9px;
+  left: 545px;
+  padding: 4px 6px;
+  top: 188px;
+}
+
+.how-to-reveal {
+  border: 3px solid var(--coral);
+  border-radius: 20px;
+  height: 376px;
+  left: 10px;
+  position: absolute;
+  top: 2px;
+  width: 860px;
+}
+
+.how-to-reveal span {
+  background: var(--coral);
+  color: white;
+  font-size: 10px;
+  left: 16px;
+  padding: 4px 8px;
+  position: absolute;
+  top: -1px;
+}
+
+@media (max-width: 899px) {
+  .how-to-make-a-presentation {
+    padding: 18px 18px 114px;
+  }
+
+  .how-to-make-a-presentation [data-presentation-header] {
+    padding-right: 86px;
+  }
+
+  .how-to-make-a-presentation [data-presentation-title] {
+    font-size: 22px;
+  }
+
+  .how-to-make-a-presentation [data-presentation-toc] {
+    display: none;
+  }
+
+  .how-to-make-a-presentation [data-presentation-footer] {
+    bottom: 27px;
+    grid-template-columns: 1fr auto;
+    left: 18px;
+    right: 18px;
+  }
+
+  .how-to-make-a-presentation [data-presentation-caption] {
+    grid-column: 1 / -1;
+  }
+
+  .how-to-make-a-presentation [data-presentation-progress] {
+    display: none;
+  }
+
+  .how-to-make-a-presentation [data-presentation-mode-toggle] {
+    right: 18px;
+    top: 18px;
+  }
+}

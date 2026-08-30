@@ -40,16 +40,24 @@ export function watchPreview(preview) {
   return () => failure
 }
 
-export async function waitForPreview(url, getPreviewFailure) {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+export async function waitForPreview(url, getPreviewFailure, {
+  overallTimeoutMs = 10_000,
+  pollIntervalMs = 250,
+  requestTimeoutMs = 1_000,
+} = {}) {
+  const deadline = Date.now() + overallTimeoutMs
+  while (Date.now() < deadline) {
     const failure = getPreviewFailure()
     if (failure) throw failure
+    const remainingMs = deadline - Date.now()
     try {
-      if ((await fetch(url)).ok) return
+      const timeoutMs = Math.max(1, Math.min(requestTimeoutMs, remainingMs))
+      if ((await fetch(url, { signal: AbortSignal.timeout(timeoutMs) })).ok) return
     } catch {
       // The preview process is still starting.
     }
-    await delay(250)
+    const delayMs = Math.min(pollIntervalMs, deadline - Date.now())
+    if (delayMs > 0) await delay(delayMs)
   }
   throw getPreviewFailure() ?? new Error(`Preview did not become ready at ${url}`)
 }

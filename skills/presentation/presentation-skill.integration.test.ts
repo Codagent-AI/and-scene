@@ -98,9 +98,11 @@ test('INT-001 materializes a buildable, style-neutral bootstrap independently of
       "if (!Number.isInteger(count) || count < 1) throw new Error('Presentation did not expose a valid data-step-count.')",
     )
     const inspector = readFileSync(resolve(bootstrapRoot, 'scripts/inspect-presentation.mjs'), 'utf8')
-    expect(inspector).toContain("document.querySelectorAll('[data-presentation] *')")
-    expect(inspector).toContain('element.children.length === 0')
-    expect(inspector).toContain("closest('[data-presentation-allow-overlap]')")
+    const diagnostics = readFileSync(resolve(bootstrapRoot, 'scripts/inspection-diagnostics.mjs'), 'utf8')
+    expect(inspector).toContain("import { textOverlapWarnings } from './inspection-diagnostics.mjs'")
+    expect(diagnostics).toContain('document.createTreeWalker')
+    expect(diagnostics).toContain("closest('[data-presentation-allow-overlap]')")
+    expect(diagnostics).toContain('const buckets = new Map()')
   } finally {
     rmSync(materializedRoot, { force: true, recursive: true })
   }

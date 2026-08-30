@@ -4,30 +4,15 @@ import { resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { textOverlapWarnings } from './inspection-diagnostics.mjs'
 import { getAvailablePort, run, waitForPreview, watchPreview } from './preview-server.mjs'
 
 const slug = process.argv[2]
 const host = '127.0.0.1'
 const settleMs = 750
 
-function inspectionWarnings(index) {
-  const visible = (element) => {
-    const style = getComputedStyle(element)
-    const rect = element.getBoundingClientRect()
-    return style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0
-  }
-  const description = (element) => element.getAttribute('data-presentation-node') || element.getAttribute('data-presentation-header') || element.getAttribute('data-presentation-footer') || element.getAttribute('data-presentation-toc') || element.getAttribute('data-presentation-attribution') || element.textContent?.trim().slice(0, 36) || element.tagName.toLowerCase()
-  const intersects = (first, second) => first.left < second.right && first.right > second.left && first.top < second.bottom && first.bottom > second.top
-  const text = Array.from(document.querySelectorAll('[data-presentation] *')).filter((element) => element.children.length === 0 && element.textContent?.trim() && visible(element))
+function chromeWarnings(index) {
   const warnings = []
-  for (let firstIndex = 0; firstIndex < text.length; firstIndex += 1) {
-    for (let secondIndex = firstIndex + 1; secondIndex < text.length; secondIndex += 1) {
-      const first = text[firstIndex]
-      const second = text[secondIndex]
-      if (first.closest('[data-presentation-allow-overlap]') || second.closest('[data-presentation-allow-overlap]')) continue
-      if (intersects(first.getBoundingClientRect(), second.getBoundingClientRect())) warnings.push(`step ${index + 1}: visible overlap between ${description(first)} and ${description(second)}`)
-    }
-  }
   const active = document.querySelector('[data-presentation-progress-active="true"], [data-presentation-toc-active="true"]')
   const inactive = document.querySelector('[data-presentation-progress] button:not([data-presentation-progress-active]), [data-presentation-toc] button:not([data-presentation-toc-active])')
   if (active && inactive) {
@@ -72,7 +57,8 @@ try {
   for (let index = 0; index < count; index += 1) {
     await delay(settleMs)
     await page.screenshot({ path: resolve(artifactDirectory, `step-${String(index + 1).padStart(2, '0')}.png`), fullPage: true })
-    for (const warning of await page.evaluate(inspectionWarnings, index)) console.warn(`INSPECT WARN: ${warning}`)
+    for (const warning of await page.evaluate(textOverlapWarnings, index)) console.warn(`INSPECT WARN: ${warning}`)
+    for (const warning of await page.evaluate(chromeWarnings, index)) console.warn(`INSPECT WARN: ${warning}`)
     if (index < count - 1) {
       await page.keyboard.press('ArrowRight')
       await page.waitForFunction((nextIndex) => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === String(nextIndex), index + 1, { timeout: 3_000 })

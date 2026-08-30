@@ -10,14 +10,14 @@ test('inspection builds fresh assets, rejects unsafe slugs, and retains preview 
 
   expect(source).toContain("await run('npm', ['run', 'build'])")
   expect(source).toContain("if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))")
-  expect(source).toContain("previewExited = once(preview, 'exit')")
+  expect(source).toContain("previewExited = once(preview, 'exit').catch(() => undefined)")
   expect(source).toContain("if (preview.exitCode === null && preview.signalCode === null) preview.kill('SIGTERM')")
 })
 
 test('verification cleanup waits for the exit event captured at preview startup', () => {
   const source = read('scripts/verify.mjs')
 
-  expect(source).toContain("previewExited = once(preview, 'exit')")
+  expect(source).toContain("previewExited = once(preview, 'exit').catch(() => undefined)")
   expect(source).toContain("if (preview.exitCode === null && preview.signalCode === null) preview.kill('SIGTERM')")
 })
 

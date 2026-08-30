@@ -87,7 +87,7 @@ try {
   markerPath = resolve('dist', '.and-scene-verify-marker')
   await writeFile(markerPath, marker)
   preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
-  previewExited = once(preview, 'exit')
+  previewExited = once(preview, 'exit').catch(() => undefined)
   const getPreviewFailure = watchPreview(preview)
   const previewUrl = `http://${host}:${port}`
   await waitForPreview(`${previewUrl}/.and-scene-verify-marker`, getPreviewFailure)
@@ -131,7 +131,7 @@ try {
   await browser?.close()
   if (preview) {
     if (preview.exitCode === null && preview.signalCode === null) preview.kill('SIGTERM')
-    await previewExited?.catch(() => undefined)
+    await previewExited
   }
   if (markerPath) await rm(markerPath, { force: true })
 }

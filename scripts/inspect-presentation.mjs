@@ -10,6 +10,14 @@ const slug = process.argv[2]
 const host = '127.0.0.1'
 const settleMs = 750
 
+function run(command, args) {
+  return new Promise((resolveRun, reject) => {
+    const child = spawn(command, args, { stdio: 'inherit' })
+    child.on('error', reject)
+    child.on('exit', (code) => code === 0 ? resolveRun() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
+  })
+}
+
 function getAvailablePort() {
   return new Promise((resolvePort, reject) => {
     const server = createServer()
@@ -84,12 +92,16 @@ function inspectionWarnings(index) {
 }
 
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
+if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error('Invalid presentation slug.')
 
 let preview
+let previewExited
 let browser
 try {
+  await run('npm', ['run', 'build'])
   const port = await getAvailablePort()
   preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
+  previewExited = once(preview, 'exit')
   const getPreviewFailure = watchPreview(preview)
   const previewUrl = `http://${host}:${port}`
   await waitForPreview(`${previewUrl}/`, getPreviewFailure)
@@ -116,7 +128,7 @@ try {
 } finally {
   await browser?.close()
   if (preview) {
-    preview.kill('SIGTERM')
-    await once(preview, 'exit').catch(() => undefined)
+    if (preview.exitCode === null && preview.signalCode === null) preview.kill('SIGTERM')
+    await previewExited?.catch(() => undefined)
   }
 }

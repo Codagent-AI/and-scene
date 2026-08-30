@@ -1,12 +1,12 @@
 ---
 name: presentation
-description: Create or modify browser-based presentations as one evolving diagrammatic scene, including scaffolding and browser verification.
+description: Creates or modifies browser-based presentations as evolving diagrammatic scenes. Trigger when users ask to create a presentation, build a slide deck, modify presentation steps, scaffold an And Scene app, or verify presentation rendering.
 ---
 
 # And Scene presentations
 
-Use this skill to create or modify a browser presentation. A presentation is one
-evolving diagram, not a stack of independent slides: persistent entities retain
+Create or modify browser-based presentations as one evolving diagram, not a
+stack of independent slides: persistent entities retain
 their stable identity across ordered scene states and new entities enter only
 when the story introduces them.
 
@@ -158,7 +158,26 @@ chrome-devtools-axi snapshot
 chrome-devtools-axi screenshot /tmp/<slug>.png
 ```
 
-Report the created or modified route, the changed files, verification commands
-and outcomes, and any intentionally retained visual caveat. Do not describe the
-work as complete while a required build, render, or visual-composition problem
-remains.
+Use this exact completion report after all required checks pass:
+
+```text
+Presentation route: /<slug>
+Changed files: <one path per line or concise grouped list>
+Verification:
+- npm run build — <pass/fail>
+- npm run verify -- <slug> — <pass/fail>
+- npm run inspect -- <slug> — <pass/fail and warning disposition>
+Visual inspection: <first/last/dense steps and viewport sizes inspected>
+Retained visual caveats: <none, or only explicitly intentional readable overlap>
+```
+
+Do not describe the work as complete while a required build, render, or
+visual-composition problem remains.
+
+## Out of Scope
+
+Do not use this skill for conventional independent-slide decks, PowerPoint,
+Keynote, PDF, or image export, visual-editor work, or unrelated image/video
+generation. Use the appropriate document, export, or image-generation workflow
+for those requests instead. This skill owns browser-rendered, routed React
+presentations built as evolving scenes.

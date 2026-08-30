@@ -1,4 +1,5 @@
 import { mkdir } from 'node:fs/promises'
+import { createServer } from 'node:net'
 import { resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
@@ -7,11 +8,36 @@ import { chromium } from 'playwright'
 
 const slug = process.argv[2]
 const host = '127.0.0.1'
-const port = 4174
 const settleMs = 750
 
-async function waitForPreview(url) {
+function getAvailablePort() {
+  return new Promise((resolvePort, reject) => {
+    const server = createServer()
+    server.once('error', reject)
+    server.listen(0, host, () => {
+      const address = server.address()
+      if (!address || typeof address === 'string') {
+        server.close()
+        reject(new Error('Could not allocate an IPv4 preview port.'))
+        return
+      }
+      server.close((error) => error ? reject(error) : resolvePort(address.port))
+    })
+  })
+}
+
+function watchPreview(preview) {
+  let failure
+  const recordFailure = (error) => { failure = error instanceof Error ? error : new Error(String(error)) }
+  preview.once('error', recordFailure)
+  preview.once('exit', (code, signal) => recordFailure(new Error(`Preview exited before readiness (${code ?? signal ?? 'unknown'}).`)))
+  return () => failure
+}
+
+async function waitForPreview(url, getPreviewFailure) {
   for (let attempt = 0; attempt < 40; attempt += 1) {
+    const failure = getPreviewFailure()
+    if (failure) throw failure
     try {
       if ((await fetch(url)).ok) return
     } catch {
@@ -19,7 +45,7 @@ async function waitForPreview(url) {
     }
     await delay(250)
   }
-  throw new Error(`Preview did not become ready at ${url}`)
+  throw getPreviewFailure() ?? new Error(`Preview did not become ready at ${url}`)
 }
 
 function overlapWarnings(index) {
@@ -43,14 +69,18 @@ if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
 let preview
 let browser
 try {
-  preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port)], { stdio: 'inherit' })
-  await waitForPreview(`http://${host}:${port}/`)
+  const port = await getAvailablePort()
+  preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
+  const getPreviewFailure = watchPreview(preview)
+  const previewUrl = `http://${host}:${port}`
+  await waitForPreview(`${previewUrl}/`, getPreviewFailure)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-  await page.goto(`http://${host}:${port}/${slug}`, { waitUntil: 'networkidle' })
+  await page.goto(`${previewUrl}/${slug}`, { waitUntil: 'networkidle' })
   const root = page.locator('[data-presentation]')
   await root.waitFor()
   const count = Number(await root.getAttribute('data-step-count'))
+  if (!Number.isInteger(count) || count < 1) throw new Error('Presentation did not expose a valid data-step-count.')
   const artifactDirectory = resolve('artifacts', 'presentation-inspection', slug)
   await mkdir(artifactDirectory, { recursive: true })
 

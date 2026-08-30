@@ -49,19 +49,24 @@ async function waitForPreview(url, getPreviewFailure) {
 }
 
 function overlapWarnings(index) {
-  const chrome = '[data-presentation-header], [data-presentation-footer], [data-presentation-toc], [data-presentation-attribution]'
-  const rect = (element) => element.getBoundingClientRect()
+  const visible = (element) => {
+    const style = getComputedStyle(element)
+    const rect = element.getBoundingClientRect()
+    return style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0
+  }
+  const description = (element) => element.getAttribute('data-presentation-node') || element.getAttribute('data-presentation-header') || element.getAttribute('data-presentation-footer') || element.getAttribute('data-presentation-toc') || element.getAttribute('data-presentation-attribution') || element.textContent?.trim().slice(0, 36) || element.tagName.toLowerCase()
   const intersects = (first, second) => first.left < second.right && first.right > second.left && first.top < second.bottom && first.bottom > second.top
-  return Array.from(document.querySelectorAll(chrome)).flatMap((first, firstIndex, all) =>
-    all.slice(firstIndex + 1).flatMap((second) => {
-      if (first.closest('[data-presentation-allow-overlap]') || second.closest('[data-presentation-allow-overlap]')) return []
-      const a = rect(first)
-      const b = rect(second)
-      return a.width && a.height && b.width && b.height && intersects(a, b)
-        ? [`step ${index + 1}: chrome overlap between ${first.dataset.presentationHeader ?? first.dataset.presentationFooter ?? first.dataset.presentationToc ?? 'attribution'} and ${second.dataset.presentationHeader ?? second.dataset.presentationFooter ?? second.dataset.presentationToc ?? 'attribution'}`]
-        : []
-    }),
-  )
+  const text = Array.from(document.querySelectorAll('[data-presentation] *')).filter((element) => element.children.length === 0 && element.textContent?.trim() && visible(element))
+  const warnings = []
+  for (let firstIndex = 0; firstIndex < text.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < text.length; secondIndex += 1) {
+      const first = text[firstIndex]
+      const second = text[secondIndex]
+      if (first.closest('[data-presentation-allow-overlap]') || second.closest('[data-presentation-allow-overlap]')) continue
+      if (intersects(first.getBoundingClientRect(), second.getBoundingClientRect())) warnings.push(`step ${index + 1}: visible overlap between ${description(first)} and ${description(second)}`)
+    }
+  }
+  return [...new Set(warnings)]
 }
 
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')

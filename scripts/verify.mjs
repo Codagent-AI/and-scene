@@ -8,7 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 
 const referenceSlug = 'how-to-make-a-presentation'
-const slug = process.argv[2] ?? referenceSlug
+const slug = referenceSlug
 const host = '127.0.0.1'
 const expectedReferenceSteps = [
   ['the ask', 'You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
@@ -81,6 +81,7 @@ let previewExited
 let browser
 let markerPath
 try {
+  if (process.argv[2]) throw new Error('Root verification always targets the canonical reference sample.')
   await run('npm', ['run', 'build'])
   const port = await getAvailablePort()
   const marker = randomUUID()
@@ -111,12 +112,10 @@ try {
     const stepNumber = index + 1
     if (await root.getAttribute('data-step-index') !== String(index)) throw new Error(`Step ${stepNumber} did not become active.`)
     if (errors.length) throw new Error(`Step ${stepNumber} failed: ${errors.join('; ')}`)
-    if (slug === referenceSlug) {
-      const era = await page.locator('[data-presentation-marker]').textContent()
-      const title = await page.locator('[data-presentation-header] [data-presentation-title]').textContent()
-      const caption = await page.locator('[data-presentation-caption]').textContent()
-      checkReferenceStep(index, count, era, title, caption)
-    }
+    const era = await page.locator('[data-presentation-marker]').textContent()
+    const title = await page.locator('[data-presentation-header] [data-presentation-title]').textContent()
+    const caption = await page.locator('[data-presentation-caption]').textContent()
+    checkReferenceStep(index, count, era, title, caption)
     if (index < count - 1) {
       await page.keyboard.press('ArrowRight')
       await page.waitForFunction((nextIndex) => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === String(nextIndex), index + 1, { timeout: 3_000 })

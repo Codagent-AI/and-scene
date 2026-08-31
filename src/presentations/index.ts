@@ -7,7 +7,13 @@ export interface PresentationRegistration {
   load: () => Promise<{ default: ComponentType }>
 }
 
-export const presentations: readonly PresentationRegistration[] = []
+export const presentations: readonly PresentationRegistration[] = [
+  {
+    slug: 'how-to-make-a-presentation',
+    title: 'How to Use This Skill to Make a Presentation',
+    load: () => import('./how-to-make-a-presentation/Talk'),
+  },
+]
 
 export const presentationComponents = new Map(
   presentations.map((presentation) => [presentation.slug, lazy(presentation.load)]),

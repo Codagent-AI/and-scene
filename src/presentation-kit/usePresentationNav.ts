@@ -9,13 +9,14 @@ function isInteractiveTarget(target: EventTarget | null) {
 }
 
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
-  const [stepIndex, setStepIndex] = useState(0)
+  const [storedIndex, setStoredIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
   const touchStart = useRef<number | null>(null)
   const lastIndex = Math.max(0, stepCount - 1)
+  const stepIndex = Math.min(storedIndex, lastIndex)
 
   const goTo = useCallback((index: number) => {
-    setStepIndex(Math.min(lastIndex, Math.max(0, index)))
+    setStoredIndex(Math.min(lastIndex, Math.max(0, index)))
   }, [lastIndex])
   const next = useCallback(() => goTo(stepIndex + 1), [goTo, stepIndex])
   const previous = useCallback(() => goTo(stepIndex - 1), [goTo, stepIndex])

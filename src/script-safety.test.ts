@@ -25,6 +25,7 @@ describe('presentation helper safety contracts', () => {
     expect(inspect).toContain("from './browser-runtime.mjs'")
     expect(verify).toContain("from './browser-runtime.mjs'")
     expect(runtime).toContain('AbortSignal.timeout(500)')
-    expect(runtime).toContain('await waitForExit(preview)')
+    expect(runtime).toContain('waitForExitWithin(preview, gracefulTimeoutMs)')
+    expect(runtime).toContain("signalProcessGroup(preview.pid, 'SIGKILL')")
   })
 })

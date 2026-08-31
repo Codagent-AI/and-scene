@@ -28,10 +28,11 @@ const output = resolve(artifactsRoot, slug)
 if (relative(artifactsRoot, output).startsWith('..')) throw new Error('Invalid presentation artifact path')
 await run(npmCommand, ['run', 'build'])
 await mkdir(output, { recursive: true })
-const preview = startPreview(host, port)
+const { child: preview, started: previewStarted } = startPreview(host, port)
 let browser
 
 try {
+  await previewStarted
   const url = `http://${host}:${port}/${slug}`
   await waitForPreview(url)
   browser = await chromium.launch()

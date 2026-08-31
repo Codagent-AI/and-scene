@@ -18,10 +18,11 @@ function assertNoBrowserErrors(errors, stepIndex) {
 if (!slug) throw new Error('Usage: npm run verify -- <presentation-slug>')
 
 await run(npmCommand, ['run', 'build'])
-const preview = startPreview(host, port)
+const { child: preview, started: previewStarted } = startPreview(host, port)
 let browser
 
 try {
+  await previewStarted
   const url = `http://${host}:${port}/${slug}`
   await waitForPreview(url)
   browser = await chromium.launch()

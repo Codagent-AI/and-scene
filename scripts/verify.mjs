@@ -45,7 +45,9 @@ try {
   } catch (error) {
     throw new Error(`build failed: ${error instanceof Error ? error.message : String(error)}`)
   }
-  preview = startPreview(host, port)
+  const previewHandle = startPreview(host, port)
+  preview = previewHandle.child
+  await previewHandle.started
   const url = `http://${host}:${port}/${slug}`
   await waitForPreview(url)
   browser = await chromium.launch()

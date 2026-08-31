@@ -1,11 +1,10 @@
-import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { npmCommand, run, startPreview, terminatePreview, waitForPreview } from './browser-runtime.mjs'
 
 const host = '127.0.0.1'
 const port = 4173
 const slug = 'how-to-make-a-presentation'
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 const expectedSteps = [
   ['the ask', 'You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
   ['the ask', 'The skill interviews you', 'One question at a time: the topic, the look, then each beat of the story.'],
@@ -17,40 +16,6 @@ const expectedSteps = [
   ['the loop', 'Changed your mind? Loop it.', 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.'],
   ['the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ]
-
-function run(command, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: 'inherit' })
-    child.once('error', reject)
-    child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`build failed: ${command} ${args.join(' ')} exited ${code}`)))
-  })
-}
-
-function waitForExit(child) {
-  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve()
-  return new Promise((resolve) => child.once('close', resolve))
-}
-
-async function terminatePreview(preview) {
-  if (!preview?.pid) return
-  if (process.platform === 'win32') {
-    const taskkill = spawn('taskkill', ['/pid', String(preview.pid), '/T', '/F'], { stdio: 'ignore' })
-    await new Promise((resolve) => taskkill.once('close', resolve))
-  } else {
-    try { process.kill(-preview.pid, 'SIGTERM') } catch (error) {
-      if (error && typeof error === 'object' && 'code' in error && error.code !== 'ESRCH') throw error
-    }
-  }
-  await waitForExit(preview)
-}
-
-async function waitForPreview(url) {
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    try { if ((await fetch(url, { signal: AbortSignal.timeout(500) })).ok) return } catch { /* preview is still starting */ }
-    await delay(100)
-  }
-  throw new Error(`preview failed: did not become ready at ${url}`)
-}
 
 async function assertStep(page, index) {
   const chrome = page.locator(`[data-step-index="${index}"]`)
@@ -75,8 +40,12 @@ let preview
 let browser
 let activeStep = 0
 try {
-  await run(npmCommand, ['run', 'build'])
-  preview = spawn(npmCommand, ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { detached: process.platform !== 'win32', stdio: 'ignore' })
+  try {
+    await run(npmCommand, ['run', 'build'])
+  } catch (error) {
+    throw new Error(`build failed: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  preview = startPreview(host, port)
   const url = `http://${host}:${port}/${slug}`
   await waitForPreview(url)
   browser = await chromium.launch()

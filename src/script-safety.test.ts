@@ -15,13 +15,16 @@ describe('presentation helper safety contracts', () => {
     expect(source).toContain("await run(npmCommand, ['run', 'build'])")
   })
 
-  it('bounds preview readiness requests in both browser helpers', async () => {
-    const [inspect, verify] = await Promise.all([
+  it('shares bounded preview lifecycle handling across both browser helpers', async () => {
+    const [inspect, verify, runtime] = await Promise.all([
       readFile(join(root, 'scripts/inspect-presentation.mjs'), 'utf8'),
       readFile(join(root, 'scripts/verify.mjs'), 'utf8'),
+      readFile(join(root, 'scripts/browser-runtime.mjs'), 'utf8'),
     ])
 
-    expect(inspect).toContain('AbortSignal.timeout(500)')
-    expect(verify).toContain('AbortSignal.timeout(500)')
+    expect(inspect).toContain("from './browser-runtime.mjs'")
+    expect(verify).toContain("from './browser-runtime.mjs'")
+    expect(runtime).toContain('AbortSignal.timeout(500)')
+    expect(runtime).toContain('await waitForExit(preview)')
   })
 })

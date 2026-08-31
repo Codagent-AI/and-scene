@@ -35,12 +35,32 @@ async function replace(directory: string, relativePath: string, from: string, to
   await writeFile(path, source.replace(from, to))
 }
 
+function fixtureWithReplacement(relativePath: string, from: string, to: string) {
+  return fixture((directory) => replace(directory, relativePath, from, to))
+}
+
 describe('production verification fault reporting', () => {
   it('returns actionable non-zero failures for isolated build, sample, browser, and transition faults', async () => {
-    const buildFault = await fixture((directory) => replace(directory, 'src/presentations/how-to-make-a-presentation/entities.ts', "const prefix = 'how-to-make-a-presentation'", 'const prefix: number = \'invalid\''))
-    const missingSampleFault = await fixture((directory) => replace(directory, 'src/presentations/index.ts', "slug: 'how-to-make-a-presentation'", "slug: 'missing-sample'"))
-    const eraFault = await fixture((directory) => replace(directory, 'src/presentations/how-to-make-a-presentation/steps.tsx', "['you-have-a-topic', 'the ask'", "['you-have-a-topic', 'wrong era'"))
-    const browserFault = await fixture((directory) => replace(directory, 'src/presentations/how-to-make-a-presentation/Talk.tsx', 'export default function Talk() {', "export default function Talk() { console.error('injected browser fault')"))
+    const buildFault = await fixtureWithReplacement(
+      'src/presentations/how-to-make-a-presentation/entities.ts',
+      "const prefix = 'how-to-make-a-presentation'",
+      'const prefix: number = \'invalid\'',
+    )
+    const missingSampleFault = await fixtureWithReplacement(
+      'src/presentations/index.ts',
+      "slug: 'how-to-make-a-presentation'",
+      "slug: 'missing-sample'",
+    )
+    const eraFault = await fixtureWithReplacement(
+      'src/presentations/how-to-make-a-presentation/steps.tsx',
+      "['you-have-a-topic', 'the ask'",
+      "['you-have-a-topic', 'wrong era'",
+    )
+    const browserFault = await fixtureWithReplacement(
+      'src/presentations/how-to-make-a-presentation/Talk.tsx',
+      'export default function Talk() {',
+      "export default function Talk() { console.error('injected browser fault')",
+    )
     const transitionFault = await fixture(async (directory) => {
       await replace(directory, 'scripts/verify.mjs', "await page.keyboard.press('ArrowRight')", 'await Promise.resolve()')
       await replace(directory, 'scripts/verify.mjs', "if (errors.length) throw new Error(errors.join('; '))", "if (false) throw new Error(errors.join('; '))")
@@ -67,7 +87,8 @@ describe('production verification fault reporting', () => {
       expect(transition.code).not.toBe(0)
       expect(transition.output).toContain('transition failed at step 2')
     } finally {
-      await Promise.all([buildFault, missingSampleFault, eraFault, browserFault, transitionFault].map((directory) => rm(directory, { force: true, recursive: true })))
+      const faultDirectories = [buildFault, missingSampleFault, eraFault, browserFault, transitionFault]
+      await Promise.all(faultDirectories.map((directory) => rm(directory, { force: true, recursive: true })))
     }
   }, 120_000)
 })

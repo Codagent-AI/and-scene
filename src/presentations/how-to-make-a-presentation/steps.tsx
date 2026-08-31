@@ -14,4 +14,12 @@ const outline = [
   ['youre-looking-at-one', 'the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ] as const
 
-export const STEPS: readonly Step<SamplePayload>[] = outline.map(([id, era, title, caption], index) => ({ id, era, title, caption, groupKey: 'how-to-make-a-presentation:scene', Scene: SampleScene, payload: { phase: index + 1 } }))
+export const STEPS: readonly Step<SamplePayload>[] = outline.map(([id, era, title, caption], index) => ({
+  id,
+  era,
+  title,
+  caption,
+  groupKey: 'how-to-make-a-presentation:scene',
+  Scene: SampleScene,
+  payload: { phase: index + 1 },
+}))

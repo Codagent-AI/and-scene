@@ -1,40 +1,10 @@
-import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { npmCommand, run, startPreview, terminatePreview, waitForPreview } from './browser-runtime.mjs'
 
 const slug = process.argv[2]
 const host = '127.0.0.1'
 const port = 4173
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-
-function run(command, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: 'inherit' })
-    child.on('error', reject)
-    child.on('exit', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
-  })
-}
-
-function waitForExit(child) {
-  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve()
-  return new Promise((resolve) => child.once('close', resolve))
-}
-
-async function terminatePreview(preview) {
-  if (!preview.pid) return
-  if (process.platform === 'win32') {
-    const taskkill = spawn('taskkill', ['/pid', String(preview.pid), '/T', '/F'], { stdio: 'ignore' })
-    await new Promise((resolve) => taskkill.once('close', resolve))
-  } else {
-    try {
-      process.kill(-preview.pid, 'SIGTERM')
-    } catch (error) {
-      if (error && typeof error === 'object' && 'code' in error && error.code !== 'ESRCH') throw error
-    }
-  }
-  await waitForExit(preview)
-}
-
 async function waitForStep(page, index) {
   const chrome = page.locator(`[data-step-index="${index}"]`)
   await chrome.waitFor({ state: 'attached' })
@@ -45,20 +15,10 @@ function assertNoBrowserErrors(errors, stepIndex) {
   if (errors.length) throw new Error(`Browser error at step ${stepIndex}: ${errors.join('; ')}`)
 }
 
-async function waitForPreview(url) {
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    try {
-      if ((await fetch(url, { signal: AbortSignal.timeout(500) })).ok) return
-    } catch { /* preview is still starting */ }
-    await delay(100)
-  }
-  throw new Error(`Preview did not become ready at ${url}`)
-}
-
 if (!slug) throw new Error('Usage: npm run verify -- <presentation-slug>')
 
 await run(npmCommand, ['run', 'build'])
-const preview = spawn(npmCommand, ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { detached: process.platform !== 'win32', stdio: 'ignore' })
+const preview = startPreview(host, port)
 let browser
 
 try {

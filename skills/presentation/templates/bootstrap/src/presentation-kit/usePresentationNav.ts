@@ -3,9 +3,12 @@ import type { PresentationMode } from './types'
 
 const SWIPE_THRESHOLD = 40
 
-function isInteractiveTarget(target: EventTarget | null) {
+function focusedControlConsumesKey(target: EventTarget | null, key: string) {
   if (!(target instanceof HTMLElement)) return false
-  return Boolean(target.closest('button, a, input, select, textarea, [contenteditable="true"]'))
+  const control = target.closest('button, input, select, textarea, [contenteditable="true"]')
+  if (!control) return false
+  return control.matches('input, select, textarea, [contenteditable="true"]')
+    || (control.matches('button') && key === ' ')
 }
 
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
@@ -26,7 +29,7 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isInteractiveTarget(event.target)) return
+      if (event.defaultPrevented || focusedControlConsumesKey(event.target, event.key)) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') {
         event.preventDefault()
         next()

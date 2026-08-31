@@ -88,7 +88,7 @@ describe('Presentation', () => {
     expect(chrome).toHaveAttribute('data-step-index', '1')
   })
 
-  it('switches modes without changing the active step and does not hijack focused control keys', () => {
+  it('switches modes without changing the active step and does not hijack keys consumed by focused controls', () => {
     render(<Presentation steps={steps} title="Modes" initialMode="browse" />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Next step' }))
@@ -101,7 +101,17 @@ describe('Presentation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Switch to browse mode' }))
     const previous = screen.getByRole('button', { name: 'Previous step' })
     previous.focus()
-    fireEvent.keyDown(previous, { key: 'ArrowLeft' })
+    fireEvent.keyDown(previous, { key: ' ' })
+    expect(screen.getByTestId('presentation-chrome')).toHaveAttribute('data-step-index', '1')
+  })
+
+  it('keeps deck arrow navigation active when a focused button does not consume the key', () => {
+    render(<Presentation steps={steps} title="Keyboard navigation" initialMode="browse" />)
+
+    const next = screen.getByRole('button', { name: 'Next step' })
+    next.focus()
+    fireEvent.keyDown(next, { key: 'ArrowRight' })
+
     expect(screen.getByTestId('presentation-chrome')).toHaveAttribute('data-step-index', '1')
   })
 

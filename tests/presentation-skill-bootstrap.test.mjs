@@ -75,7 +75,8 @@ describe('presentation skill bootstrap', () => {
       await cp(bootstrapRoot, materializedRoot, { recursive: true })
       await symlink(resolve(repositoryRoot, 'node_modules'), resolve(materializedRoot, 'node_modules'), 'dir')
       await execFileAsync('npm', ['run', 'build'], { cwd: materializedRoot })
-      await execFileAsync('npm', ['run', 'inspect', '--', 'bootstrap-example'], { cwd: materializedRoot })
+      const { stdout, stderr } = await execFileAsync('npm', ['run', 'inspect', '--', 'bootstrap-example'], { cwd: materializedRoot })
+      expect(`${stdout}${stderr}`).not.toContain('unpolished attribution:')
       expect(await readdir(resolve(materializedRoot, 'artifacts/presentation-inspection/bootstrap-example'))).toContain('step-01.png')
     } finally {
       await rm(materializedRoot, { force: true, recursive: true })

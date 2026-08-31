@@ -1,0 +1,39 @@
+:root {
+  color: #f8f3e6;
+  background: #0d0c0b;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: radial-gradient(circle at 20% 10%, rgba(199, 167, 85, 0.16), transparent 28rem), #0d0c0b;
+}
+
+[data-presentation-landing] {
+  width: min(720px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 80px 0;
+}
+
+[data-presentation-landing] h1,
+[data-presentation-landing] p {
+  margin: 0;
+}
+
+[data-presentation-landing] h1 {
+  font-size: clamp(2.5rem, 8vw, 5.5rem);
+}
+
+[data-presentation-landing] p {
+  max-width: 36rem;
+  margin-top: 1rem;
+  color: #c9c2b4;
+}
+
+[data-presentation-landing] ul {
+  padding: 0;
+  list-style: none;
+}
+
+[data-presentation-landing] a {
+  color: inherit;
+}

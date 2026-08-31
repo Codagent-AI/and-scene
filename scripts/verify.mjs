@@ -46,7 +46,7 @@ async function terminatePreview(preview) {
 
 async function waitForPreview(url) {
   for (let attempt = 0; attempt < 50; attempt += 1) {
-    try { if ((await fetch(url)).ok) return } catch { /* preview is still starting */ }
+    try { if ((await fetch(url, { signal: AbortSignal.timeout(500) })).ok) return } catch { /* preview is still starting */ }
     await delay(100)
   }
   throw new Error(`preview failed: did not become ready at ${url}`)

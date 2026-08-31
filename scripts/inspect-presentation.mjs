@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
-import { resolve } from 'node:path'
+import { relative, resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 
@@ -9,15 +9,21 @@ const host = '127.0.0.1'
 const port = 4174
 const settleMs = 700
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
-async function waitForPreview(url) { for (let attempt = 0; attempt < 50; attempt += 1) { try { if ((await fetch(url)).ok) return } catch { /* preview is still starting */ } await delay(100) } throw new Error(`Preview did not become ready at ${url}`) }
+function run(command, args) { return new Promise((resolve, reject) => { const child = spawn(command, args, { stdio: 'inherit' }); child.once('error', reject); child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`))) }) }
+async function waitForPreview(url) { for (let attempt = 0; attempt < 50; attempt += 1) { try { if ((await fetch(url, { signal: AbortSignal.timeout(500) })).ok) return } catch { /* preview is still starting */ } await delay(100) } throw new Error(`Preview did not become ready at ${url}`) }
 function waitForExit(child) { if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve(); return new Promise((resolve) => child.once('close', resolve)) }
 async function terminatePreview(preview) { if (!preview.pid) return; if (process.platform === 'win32') { const taskkill = spawn('taskkill', ['/pid', String(preview.pid), '/T', '/F'], { stdio: 'ignore' }); await new Promise((resolve) => taskkill.once('close', resolve)) } else { try { process.kill(-preview.pid, 'SIGTERM') } catch (error) { if (error && typeof error === 'object' && 'code' in error && error.code !== 'ESRCH') throw error } } await waitForExit(preview) }
 async function waitForStep(page, index) { const chrome = page.locator(`[data-step-index="${index}"]`); await chrome.waitFor({ state: 'attached' }); await delay(settleMs) }
 function assertNoBrowserErrors(errors, stepIndex) { if (errors.length) throw new Error(`Browser error at step ${stepIndex}: ${errors.join('; ')}`) }
 
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
-const output = resolve('artifacts', 'presentation-inspection', slug)
+if (!slugPattern.test(slug)) throw new Error('Invalid presentation slug')
+const artifactsRoot = resolve('artifacts', 'presentation-inspection')
+const output = resolve(artifactsRoot, slug)
+if (relative(artifactsRoot, output).startsWith('..')) throw new Error('Invalid presentation artifact path')
+await run(npmCommand, ['run', 'build'])
 await mkdir(output, { recursive: true })
 const preview = spawn(npmCommand, ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { detached: process.platform !== 'win32', stdio: 'ignore' })
 let browser

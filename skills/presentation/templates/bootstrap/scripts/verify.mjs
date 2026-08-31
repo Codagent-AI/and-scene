@@ -48,7 +48,7 @@ function assertNoBrowserErrors(errors, stepIndex) {
 async function waitForPreview(url) {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     try {
-      if ((await fetch(url)).ok) return
+      if ((await fetch(url, { signal: AbortSignal.timeout(500) })).ok) return
     } catch { /* preview is still starting */ }
     await delay(100)
   }

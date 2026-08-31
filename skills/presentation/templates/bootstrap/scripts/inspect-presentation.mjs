@@ -8,6 +8,7 @@ const slug = process.argv[2]
 const host = '127.0.0.1'
 const port = 4174
 const settleMs = 700
+const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 
 async function waitForPreview(url) {
   for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -17,10 +18,40 @@ async function waitForPreview(url) {
   throw new Error(`Preview did not become ready at ${url}`)
 }
 
+function waitForExit(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve()
+  return new Promise((resolve) => child.once('close', resolve))
+}
+
+async function terminatePreview(preview) {
+  if (!preview.pid) return
+  if (process.platform === 'win32') {
+    const taskkill = spawn('taskkill', ['/pid', String(preview.pid), '/T', '/F'], { stdio: 'ignore' })
+    await new Promise((resolve) => taskkill.once('close', resolve))
+  } else {
+    try {
+      process.kill(-preview.pid, 'SIGTERM')
+    } catch (error) {
+      if (error && typeof error === 'object' && 'code' in error && error.code !== 'ESRCH') throw error
+    }
+  }
+  await waitForExit(preview)
+}
+
+async function waitForStep(page, index) {
+  const chrome = page.locator(`[data-step-index="${index}"]`)
+  await chrome.waitFor({ state: 'attached' })
+  await delay(settleMs)
+}
+
+function assertNoBrowserErrors(errors, stepIndex) {
+  if (errors.length) throw new Error(`Browser error at step ${stepIndex}: ${errors.join('; ')}`)
+}
+
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
 const output = resolve('artifacts', 'presentation-inspection', slug)
 await mkdir(output, { recursive: true })
-const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'ignore' })
+const preview = spawn(npmCommand, ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { detached: process.platform !== 'win32', stdio: 'ignore' })
 let browser
 
 try {
@@ -28,12 +59,16 @@ try {
   await waitForPreview(url)
   browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  const errors = []
+  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', (error) => errors.push(error.message))
   await page.goto(url, { waitUntil: 'networkidle' })
   const chrome = page.locator('[data-step-count][data-step-index]')
   const count = Number(await chrome.getAttribute('data-step-count'))
   if (!Number.isInteger(count) || count < 1) throw new Error(`No renderable steps found at ${url}`)
   for (let index = 0; index < count; index += 1) {
-    await delay(settleMs)
+    await waitForStep(page, index)
+    assertNoBrowserErrors(errors, index)
     await page.screenshot({ path: resolve(output, `step-${String(index + 1).padStart(2, '0')}.png`), fullPage: true })
     const warnings = await page.evaluate(() => {
       const relevant = '[data-presentation-caption], [data-presentation-header], [data-presentation-footer], [data-presentation-toc], [data-presentation-controls], [data-presentation-node], [data-presentation-attribution]'
@@ -72,10 +107,14 @@ try {
       return [...new Set(warnings)]
     })
     for (const warning of warnings) console.warn(`WARN step ${index}: ${warning}`)
-    if (index < count - 1) await page.keyboard.press('ArrowRight')
+    if (index < count - 1) {
+      await page.keyboard.press('ArrowRight')
+      await waitForStep(page, index + 1)
+    }
   }
+  assertNoBrowserErrors(errors, count - 1)
   console.log(`Captured ${count} settled screenshots in ${output}`)
 } finally {
   await browser?.close()
-  preview.kill('SIGTERM')
+  await terminatePreview(preview)
 }

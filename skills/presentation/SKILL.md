@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify a browser presentation made from one evolving diagrammatic scene.
+description: Creates or modifies routed React presentations built as one evolving diagrammatic scene. Triggers when users ask to 'create a presentation,' 'modify a presentation,' build a 'React presentation,' or animate entities across presentation steps.
 ---
 
 # Presentation
@@ -8,6 +8,13 @@ description: Create or modify a browser presentation made from one evolving diag
 Use this skill to create and modify routed React presentations. A presentation is
 one evolving scene: entities retain stable identities between named steps and
 move, enter, or leave in place. Do not generate a stack of independent slides.
+
+## Out of Scope
+
+This skill does not create conventional independent-slide decks, PowerPoint,
+Keynote, PDF, or image exports, and it does not apply to unrelated React UI or
+document-generation work. Use a format-specific export or document workflow when
+those deliverables are required.
 
 ## Locate this skill and its templates
 

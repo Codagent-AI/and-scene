@@ -77,7 +77,7 @@ describe('Presentation', () => {
     expect(screen.getByRole('button', { name: 'First step' })).toHaveAttribute('data-presentation-active', 'true')
     expect(screen.getByTestId('presentation-attribution')).toHaveAttribute(
       'href',
-      'https://github.com/and-scene/and-scene',
+      'https://github.com/Codagent-AI/and-scene',
     )
     expect(screen.queryByRole('link', { name: /and-scene/i })).toBe(screen.getByTestId('presentation-attribution'))
 

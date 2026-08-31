@@ -84,14 +84,18 @@ try {
     assertNoBrowserErrors(errors, index)
     await page.screenshot({ path: resolve(output, `step-${String(index + 1).padStart(2, '0')}.png`), fullPage: true })
     const warnings = await page.evaluate(() => {
-      const relevant = '[data-presentation-caption], [data-presentation-header], [data-presentation-footer], [data-presentation-toc], [data-presentation-controls], [data-presentation-node], [data-presentation-attribution]'
+      const relevant = '[data-presentation-caption], [data-presentation-marker], [data-presentation-title], [data-presentation-present-title], [data-presentation-mode-toggle], [data-presentation-toc-entry], [data-presentation-progress-item], [data-presentation-controls] button, [data-presentation-node], [data-presentation-attribution]'
       const visible = (element) => {
         const style = getComputedStyle(element)
         const box = element.getBoundingClientRect()
         return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0 && box.width > 0 && box.height > 0
       }
       const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
-      const elements = [...document.querySelectorAll(relevant)].filter(visible)
+      const root = document.querySelector('[data-presentation-root]')
+      const elements = root ? [...root.querySelectorAll('*')].filter((element) => {
+        const hasDirectText = [...element.childNodes].some((node) => node.nodeType === 3 && node.textContent?.trim())
+        return (element.matches(relevant) || hasDirectText) && visible(element)
+      }) : []
       const warnings = []
       for (let firstIndex = 0; firstIndex < elements.length; firstIndex += 1) {
         for (let secondIndex = firstIndex + 1; secondIndex < elements.length; secondIndex += 1) {

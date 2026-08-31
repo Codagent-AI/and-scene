@@ -39,6 +39,7 @@ describe('production verification fault reporting', () => {
   it('returns actionable non-zero failures for isolated build, sample, browser, and transition faults', async () => {
     const buildFault = await fixture((directory) => replace(directory, 'src/presentations/how-to-make-a-presentation/entities.ts', "const prefix = 'how-to-make-a-presentation'", 'const prefix: number = \'invalid\''))
     const missingSampleFault = await fixture((directory) => replace(directory, 'src/presentations/index.ts', "slug: 'how-to-make-a-presentation'", "slug: 'missing-sample'"))
+    const eraFault = await fixture((directory) => replace(directory, 'src/presentations/how-to-make-a-presentation/steps.tsx', "['you-have-a-topic', 'the ask'", "['you-have-a-topic', 'wrong era'"))
     const browserFault = await fixture((directory) => replace(directory, 'src/presentations/how-to-make-a-presentation/Talk.tsx', 'export default function Talk() {', "export default function Talk() { console.error('injected browser fault')"))
     const transitionFault = await fixture(async (directory) => {
       await replace(directory, 'scripts/verify.mjs', "await page.keyboard.press('ArrowRight')", 'await Promise.resolve()')
@@ -54,6 +55,10 @@ describe('production verification fault reporting', () => {
       expect(missing.code).not.toBe(0)
       expect(missing.output).toContain('sample outline failed')
 
+      const era = await runVerify(eraFault)
+      expect(era.code).not.toBe(0)
+      expect(era.output).toContain('expected canonical era "the ask"')
+
       const browser = await runVerify(browserFault)
       expect(browser.code).not.toBe(0)
       expect(browser.output).toContain('console at step 1: injected browser fault')
@@ -62,7 +67,7 @@ describe('production verification fault reporting', () => {
       expect(transition.code).not.toBe(0)
       expect(transition.output).toContain('transition failed at step 2')
     } finally {
-      await Promise.all([buildFault, missingSampleFault, browserFault, transitionFault].map((directory) => rm(directory, { force: true, recursive: true })))
+      await Promise.all([buildFault, missingSampleFault, eraFault, browserFault, transitionFault].map((directory) => rm(directory, { force: true, recursive: true })))
     }
   }, 120_000)
 })

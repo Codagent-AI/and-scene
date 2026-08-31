@@ -82,6 +82,74 @@ describe('presentation skill bootstrap', () => {
     }
   })
 
+  it('INT-002 reports controlled text and chrome defects after settling while exempting allowed overlap', async () => {
+    const materializedRoot = await mkdtemp(resolve(tmpdir(), 'and-scene-bootstrap-diagnostics-'))
+
+    try {
+      await cp(bootstrapRoot, materializedRoot, { recursive: true })
+      await symlink(resolve(repositoryRoot, 'node_modules'), resolve(materializedRoot, 'node_modules'), 'dir')
+      const presentationRoot = resolve(materializedRoot, 'src/presentations/bootstrap-example')
+      await writeFile(resolve(presentationRoot, 'steps.tsx'), `import { useEffect, useState } from 'react'
+import { SceneLayer } from '../../presentation-kit'
+import type { SceneProps, Step } from '../../presentation-kit'
+
+type Payload = { phase: number }
+
+function DiagnosticScene({ payload }: SceneProps<Payload>) {
+  const [settled, setSettled] = useState(false)
+
+  useEffect(() => {
+    setSettled(false)
+    const timer = window.setTimeout(() => setSettled(true), 600)
+    return () => window.clearTimeout(timer)
+  }, [payload.phase])
+
+  return <SceneLayer>
+    {payload.phase === 1 ? <>
+      <p className="fixture-text fixture-collision-a">collision one</p>
+      <p className="fixture-text fixture-collision-b">collision two</p>
+    </> : <>
+      <div data-presentation-allow-overlap>
+        <p className="fixture-text fixture-allowed-a">allowed one</p>
+        <p className="fixture-text fixture-allowed-b">allowed two</p>
+      </div>
+      <p className="fixture-text fixture-settling-a">settling one</p>
+      <p className={\`fixture-text fixture-settling-b \${settled ? 'fixture-settled' : ''}\`}>settling two</p>
+    </>}
+  </SceneLayer>
+}
+
+export const STEPS: readonly Step<Payload>[] = [
+  { id: 'defects', era: 'fixture', title: 'Defects', caption: 'Controlled defects.', groupKey: 'diagnostics', Scene: DiagnosticScene, payload: { phase: 1 } },
+  { id: 'settled', era: 'fixture', title: 'Settled', caption: 'Settled and exempt.', groupKey: 'diagnostics', Scene: DiagnosticScene, payload: { phase: 2 } },
+]
+`)
+      await writeFile(resolve(presentationRoot, 'presentation.css'), `
+[data-presentation-root] { min-height: 100vh; padding: 2rem; position: relative; }
+[data-presentation-chrome] { position: relative; }
+[data-presentation-mode-toggle] { position: absolute; right: 0; top: 0; }
+[data-presentation-stage] { margin: 5rem auto; }
+[data-presentation-header] { display: flex; gap: 1rem; }
+[data-presentation-footer] { display: flex; gap: 1rem; justify-content: space-between; }
+.fixture-text { margin: 0; position: absolute; }
+.fixture-collision-a, .fixture-collision-b { left: 40px; top: 40px; }
+.fixture-allowed-a, .fixture-allowed-b { left: 40px; top: 120px; }
+.fixture-settling-a, .fixture-settling-b { left: 260px; top: 200px; }
+.fixture-settling-b.fixture-settled { left: 460px; }
+`)
+
+      const { stdout, stderr } = await execFileAsync('npm', ['run', 'inspect', '--', 'bootstrap-example'], { cwd: materializedRoot })
+      const diagnostics = `${stdout}${stderr}`
+      expect(await readdir(resolve(materializedRoot, 'artifacts/presentation-inspection/bootstrap-example'))).toEqual(['step-01.png', 'step-02.png'])
+      expect(diagnostics).toContain('WARN step 0: overlap:')
+      expect(diagnostics).toContain('WARN step 0: indistinct active chrome:')
+      expect(diagnostics).toContain('WARN step 0: unpolished attribution:')
+      expect(diagnostics.split('\n').filter((line) => line.includes(': overlap:'))).toEqual(['WARN step 0: overlap: p and p'])
+    } finally {
+      await rm(materializedRoot, { force: true, recursive: true })
+    }
+  }, 15_000)
+
   it('fails inspection when the rendered presentation emits a browser error', async () => {
     const materializedRoot = await mkdtemp(resolve(tmpdir(), 'and-scene-bootstrap-inspection-error-'))
 

@@ -48,7 +48,7 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse' }:
       <Stage step={step} stepIndex={navigation.stepIndex} mode={navigation.mode} />
       {isBrowse && <Footer step={step} stepIndex={navigation.stepIndex} steps={steps} goTo={navigation.goTo} next={navigation.next} previous={navigation.previous} />}
       <a
-        href="https://github.com/and-scene/and-scene"
+        href="https://github.com/Codagent-AI/and-scene"
         data-presentation-attribution
         data-testid="presentation-attribution"
         style={{ bottom: 0, position: 'absolute', right: 0 }}

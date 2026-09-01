@@ -6,11 +6,13 @@ import { Stage } from './Stage'
 import type { PresentationProps } from './types'
 import { usePresentationNav } from './usePresentationNav'
 
+const wideViewportQuery = '(min-width: 900px)'
+
 function useWideViewport() {
-  const [wide, setWide] = useState(() => window.matchMedia?.('(min-width: 900px)').matches ?? false)
+  const [wide, setWide] = useState(() => window.matchMedia?.(wideViewportQuery).matches ?? false)
 
   useEffect(() => {
-    const media = window.matchMedia?.('(min-width: 900px)')
+    const media = window.matchMedia?.(wideViewportQuery)
     if (!media) return undefined
     const update = () => setWide(media.matches)
     media.addEventListener('change', update)
@@ -29,6 +31,7 @@ export function Presentation<TPayload>({
   const wide = useWideViewport()
   if (steps.length === 0) throw new Error('A presentation needs at least one step.')
   const step = steps[nav.index]!
+  const showTableOfContents = nav.mode === 'browse' && wide
 
   return (
     <main
@@ -42,9 +45,9 @@ export function Presentation<TPayload>({
       <Header mode={nav.mode} presentationTitle={title} step={step} />
       <div
         data-presentation-content="true"
-        style={{ display: 'grid', gridTemplateColumns: nav.mode === 'browse' && wide ? 'auto minmax(0, 1fr)' : 'minmax(0, 1fr)', minHeight: 0 }}
+        style={{ display: 'grid', gridTemplateColumns: showTableOfContents ? 'auto minmax(0, 1fr)' : 'minmax(0, 1fr)', minHeight: 0 }}
       >
-        {nav.mode === 'browse' && wide ? <Toc steps={steps} activeIndex={nav.index} goTo={nav.goTo} /> : null}
+        {showTableOfContents ? <Toc steps={steps} activeIndex={nav.index} goTo={nav.goTo} /> : null}
         <Stage step={step} stepIndex={nav.index} />
       </div>
       <div

@@ -35,7 +35,7 @@ function StepCard({ card, index, edited }: { card: (typeof cards)[number]; index
 }
 
 function SampleScene({ payload }: SceneProps<SamplePayload>) {
-  const interviewed = Boolean(payload.interviewed || payload.cards > 0)
+  const interviewed = payload.interviewed || payload.cards > 0
   return (
     <SceneLayer className="how-scene">
       <Box layoutId={entities.you} className="how-person" style={{ left: 74, position: 'absolute', top: 58 }}>you</Box>
@@ -81,14 +81,25 @@ function SampleScene({ payload }: SceneProps<SamplePayload>) {
   )
 }
 
+const sharedScene = {
+  groupKey: 'how-to-make-a-presentation',
+  Scene: SampleScene,
+} as const
+
+const allCards = { cards: 4 } as const
+const depthSelected = { ...allCards, depth: true } as const
+const assembledScene = { ...depthSelected, assembled: true } as const
+const verifiedScene = { ...assembledScene, verified: true } as const
+const modifiedScene = { ...verifiedScene, modified: true } as const
+
 export const STEPS: readonly Step<SamplePayload>[] = [
-  { id: 'topic', era: 'the ask', title: 'You have a topic', caption: 'It starts with you, a topic, and mild overconfidence.', groupKey: 'how-to-make-a-presentation', Scene: SampleScene, payload: { cards: 0 } },
-  { id: 'interview', era: 'the ask', title: 'The skill interviews you', caption: 'One question at a time: the topic, the look, then each beat of the story.', groupKey: 'how-to-make-a-presentation', Scene: SampleScene, payload: { cards: 0, interviewed: true } },
-  { id: 'answers', era: 'the gathering', title: 'Answers become steps', caption: 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.', groupKey: 'how-to-make-a-presentation', Scene: SampleScene, payload: { cards: 1 } },
-  { id: 'growth', era: 'the gathering', title: 'The deck grows', caption: 'Same shapes, new beats. Every answer extends the story without redrawing it.', groupKey: 'how-to-make-a-presentation', Scene: SampleScene, payload: { cards: 4 } },
-  { id: 'depth', era: 'the gathering', title: 'You set the depth', caption: 'Spell out every step, or sketch a few and see how it looks. You hold the gate.', groupKey: 'how-to-make-a-presentation', Scene: SampleScene, payload: { cards: 4, depth: true } },
-  { id: 'assemble', era: 'the build', title: 'It assembles the scene', caption: 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.', groupKey: 'how-to-make-a-presentation', Scene: SampleScene, payload: { cards: 4, depth: true, assembled: true } },
-  { id: 'verify', era: 'the build', title: 'It checks its own work', caption: 'Before saying done, it builds and renders every step — and fixes what breaks.', groupKey: 'how-to-make-a-presentation', Scene: SampleScene, payload: { cards: 4, depth: true, assembled: true, verified: true } },
-  { id: 'loop', era: 'the loop', title: 'Changed your mind? Loop it.', caption: 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.', groupKey: 'how-to-make-a-presentation', Scene: SampleScene, payload: { cards: 4, depth: true, assembled: true, verified: true, modified: true } },
-  { id: 'reveal', era: 'the reveal', title: "You're looking at one", caption: 'This presentation was built exactly this way. Thanks for watching.', groupKey: 'how-to-make-a-presentation', Scene: SampleScene, payload: { cards: 4, depth: true, assembled: true, verified: true, modified: true, revealed: true } },
+  { id: 'topic', era: 'the ask', title: 'You have a topic', caption: 'It starts with you, a topic, and mild overconfidence.', ...sharedScene, payload: { cards: 0 } },
+  { id: 'interview', era: 'the ask', title: 'The skill interviews you', caption: 'One question at a time: the topic, the look, then each beat of the story.', ...sharedScene, payload: { cards: 0, interviewed: true } },
+  { id: 'answers', era: 'the gathering', title: 'Answers become steps', caption: 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.', ...sharedScene, payload: { cards: 1 } },
+  { id: 'growth', era: 'the gathering', title: 'The deck grows', caption: 'Same shapes, new beats. Every answer extends the story without redrawing it.', ...sharedScene, payload: allCards },
+  { id: 'depth', era: 'the gathering', title: 'You set the depth', caption: 'Spell out every step, or sketch a few and see how it looks. You hold the gate.', ...sharedScene, payload: depthSelected },
+  { id: 'assemble', era: 'the build', title: 'It assembles the scene', caption: 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.', ...sharedScene, payload: assembledScene },
+  { id: 'verify', era: 'the build', title: 'It checks its own work', caption: 'Before saying done, it builds and renders every step — and fixes what breaks.', ...sharedScene, payload: verifiedScene },
+  { id: 'loop', era: 'the loop', title: 'Changed your mind? Loop it.', caption: 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.', ...sharedScene, payload: modifiedScene },
+  { id: 'reveal', era: 'the reveal', title: "You're looking at one", caption: 'This presentation was built exactly this way. Thanks for watching.', ...sharedScene, payload: { ...modifiedScene, revealed: true } },
 ]

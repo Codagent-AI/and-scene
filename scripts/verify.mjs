@@ -23,6 +23,10 @@ function run(command, args) {
   if (result.status !== 0) throw new Error(`build phase failed: ${command} ${args.join(' ')}`)
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 async function assertReferenceSample() {
   const [registry, steps] = await Promise.all([
     readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8'),
@@ -33,7 +37,6 @@ async function assertReferenceSample() {
   }
   let cursor = 0
   for (const [era, title, caption] of canonicalSteps) {
-    const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const fragment = new RegExp(
       `era:\\s*['"]${escapeRegExp(era)}['"][\\s\\S]*?title:\\s*(['"])${escapeRegExp(title)}\\1[\\s\\S]*?caption:\\s*(['"])${escapeRegExp(caption)}\\2`,
     )

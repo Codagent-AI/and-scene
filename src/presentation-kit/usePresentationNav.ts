@@ -7,7 +7,9 @@ export function clampStepIndex(index: number, count: number): number {
 
 function targetOwnsKeyboard(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && Boolean(
-    target.closest('button, a, input, select, textarea, [contenteditable="true"]'),
+    target.closest(
+      'button, a, input, select, textarea, [contenteditable]:not([contenteditable="false"])',
+    ),
   )
 }
 
@@ -28,7 +30,7 @@ export function usePresentationNav(
 ): PresentationNav {
   const [requestedIndex, setRequestedIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
-  const touchStartX = useRef<number | null>(null)
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
   const index = clampStepIndex(requestedIndex, count)
 
   const goTo = useCallback((nextIndex: number) => {
@@ -41,7 +43,14 @@ export function usePresentationNav(
   }, [])
 
   useEffect(() => {
+    // React state intentionally tracks the clamped position if the deck changes size.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRequestedIndex((current) => clampStepIndex(current, count))
+  }, [count])
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return
       if (targetOwnsKeyboard(event.target)) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') {
         event.preventDefault()
@@ -59,14 +68,18 @@ export function usePresentationNav(
   }, [next, previous, toggleMode])
 
   const onTouchStart = useCallback((event: React.TouchEvent) => {
-    touchStartX.current = event.touches[0]?.clientX ?? null
+    const touch = event.touches[0]
+    touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null
   }, [])
   const onTouchEnd = useCallback((event: React.TouchEvent) => {
-    const start = touchStartX.current
-    const end = event.changedTouches[0]?.clientX
-    touchStartX.current = null
-    if (start === null || end === undefined || Math.abs(start - end) < 40) return
-    if (start > end) next()
+    const start = touchStart.current
+    const end = event.changedTouches[0]
+    touchStart.current = null
+    if (!start || !end) return
+    const horizontalDistance = start.x - end.clientX
+    const verticalDistance = start.y - end.clientY
+    if (Math.abs(horizontalDistance) < 40 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return
+    if (horizontalDistance > 0) next()
     else previous()
   }, [next, previous])
 

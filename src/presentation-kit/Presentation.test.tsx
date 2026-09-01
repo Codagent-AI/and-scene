@@ -83,6 +83,29 @@ describe('Presentation', () => {
     expect(screen.getByTestId('presentation-chrome')).toHaveAttribute('data-step-index', '0')
   })
 
+  it('preserves modified browser shortcuts such as Ctrl+P', () => {
+    render(<Presentation steps={steps} title="Example" />)
+
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true })
+
+    expect(screen.getByTestId('presentation-root')).toHaveAttribute('data-presentation-mode', 'browse')
+  })
+
+  it('does not navigate while focus is in any enabled editable element', () => {
+    render(
+      <>
+        <div contentEditable="plaintext-only" aria-label="Editor" />
+        <Presentation steps={steps} title="Example" />
+      </>,
+    )
+
+    const editor = screen.getByLabelText('Editor')
+    editor.focus()
+    fireEvent.keyDown(editor, { key: 'ArrowRight' })
+
+    expect(screen.getByTestId('presentation-chrome')).toHaveAttribute('data-step-index', '0')
+  })
+
   it('moves between steps on a horizontal touch swipe', () => {
     render(<Presentation steps={steps} title="Example" />)
 
@@ -91,6 +114,28 @@ describe('Presentation', () => {
     fireEvent.touchEnd(stage, { changedTouches: [{ clientX: 80 }] })
 
     expect(screen.getByTestId('presentation-chrome')).toHaveAttribute('data-step-index', '1')
+  })
+
+  it('does not navigate for a mostly vertical touch gesture', () => {
+    render(<Presentation steps={steps} title="Example" />)
+
+    const stage = document.querySelector('[data-presentation-stage="true"]')!
+    fireEvent.touchStart(stage, { touches: [{ clientX: 200, clientY: 20 }] })
+    fireEvent.touchEnd(stage, { changedTouches: [{ clientX: 120, clientY: 180 }] })
+
+    expect(screen.getByTestId('presentation-chrome')).toHaveAttribute('data-step-index', '0')
+  })
+
+  it('keeps the clamped position when its step list later grows', () => {
+    const view = render(<Presentation steps={steps} title="Example" />)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(screen.getByTestId('presentation-chrome')).toHaveAttribute('data-step-index', '1')
+
+    view.rerender(<Presentation steps={steps.slice(0, 1)} title="Example" />)
+    expect(screen.getByTestId('presentation-chrome')).toHaveAttribute('data-step-index', '0')
+
+    view.rerender(<Presentation steps={steps} title="Example" />)
+    expect(screen.getByTestId('presentation-chrome')).toHaveAttribute('data-step-index', '0')
   })
 
   it('renders the default attribution with its stable styling hook', () => {

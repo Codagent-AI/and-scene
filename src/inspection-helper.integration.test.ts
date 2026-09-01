@@ -61,23 +61,28 @@ describe('INT-002 presentation inspection helper', () => {
     await mkdir(fixtureDirectory, { recursive: true })
     await writeFile(join(fixtureDirectory, 'Talk.tsx'), `import { Presentation, type SceneProps, type Step } from '../../presentation-kit'
 
-type Payload = { allowOverlap: boolean }
+type Payload = { allowOverlap: boolean; hideAttribution?: boolean }
 
 function FixtureScene({ payload }: SceneProps<Payload>) {
   return (
-    <div
-      {...(payload.allowOverlap ? { 'data-presentation-allow-overlap': 'true' } : {})}
-      style={{ height: 200, position: 'relative', width: 400 }}
-    >
-      <span data-presentation-step-title="fixture-a" style={{ left: 20, position: 'absolute', top: 20 }}>first collision label</span>
-      <span data-presentation-step-title="fixture-b" style={{ left: 20, position: 'absolute', top: 20 }}>second collision label</span>
-    </div>
+    <>
+      <style>{'main:has([data-hide-attribution="true"]) [data-presentation-attribution] { color: rgb(20, 20, 20); display: none; font-size: 12px; text-decoration: none; }'}</style>
+      <div
+        {...(payload.allowOverlap ? { 'data-presentation-allow-overlap': 'true' } : {})}
+        data-hide-attribution={payload.hideAttribution ? 'true' : undefined}
+        style={{ height: 200, position: 'relative', width: 400 }}
+      >
+        <span data-presentation-step-title="fixture-a" style={{ left: 20, position: 'absolute', top: 20 }}>first collision label</span>
+        <span data-presentation-step-title="fixture-b" style={{ left: 20, position: 'absolute', top: 20 }}>second collision label</span>
+      </div>
+    </>
   )
 }
 
 const steps: readonly Step<Payload>[] = [
   { id: 'unmarked', era: 'one', title: 'Unmarked collision', caption: 'This step must warn.', Scene: FixtureScene, payload: { allowOverlap: false } },
   { id: 'allowed', era: 'two', title: 'Allowed collision', caption: 'This step must not warn about its marked scene.', Scene: FixtureScene, payload: { allowOverlap: true } },
+  { id: 'hidden-attribution', era: 'three', title: 'Hidden attribution', caption: 'This step must warn about hidden attribution.', Scene: FixtureScene, payload: { allowOverlap: true, hideAttribution: true } },
 ]
 
 export default function Talk() {
@@ -107,16 +112,20 @@ export default function Talk() {
     expect(output).toContain('active progress state is visually indistinct')
     expect(output).toContain('active table-of-contents state is visually indistinct')
     expect(output).toContain('browser-default or undersized attribution')
-    expect(output).toContain('Captured 2 settled screenshots in inspection-artifacts/inspection-fixture/.')
+    expect(output).toContain('WARN step 3: missing or hidden attribution')
+    expect(output).toContain('Captured 3 settled screenshots in inspection-artifacts/inspection-fixture/.')
 
     const artifactDirectory = join(project, 'inspection-artifacts/inspection-fixture')
-    expect(await readdir(artifactDirectory)).toEqual(['01.png', '02.png'])
-    const [first, second] = await Promise.all([
+    expect(await readdir(artifactDirectory)).toEqual(['01.png', '02.png', '03.png'])
+    const [first, second, third] = await Promise.all([
       stat(join(artifactDirectory, '01.png')),
       stat(join(artifactDirectory, '02.png')),
+      stat(join(artifactDirectory, '03.png')),
     ])
     expect(first.size).toBeGreaterThan(0)
     expect(second.size).toBeGreaterThan(0)
+    expect(third.size).toBeGreaterThan(0)
     expect(second.mtimeMs - first.mtimeMs).toBeGreaterThanOrEqual(500)
+    expect(third.mtimeMs - second.mtimeMs).toBeGreaterThanOrEqual(500)
   }, 60_000)
 })

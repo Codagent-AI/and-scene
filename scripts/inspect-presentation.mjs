@@ -46,9 +46,11 @@ async function diagnostics(page) {
       const b = getComputedStyle(inactive)
       return ['color', 'backgroundColor', 'borderColor', 'fontWeight', 'opacity', 'transform'].every((property) => a[property] === b[property])
     }
-    const attribution = document.querySelector('[data-presentation-attribution="true"]')
+    const attributions = [...document.querySelectorAll('[data-presentation-attribution="true"]')]
+    const attribution = attributions[0]
     let attributionWarning
-    if (!attribution || document.querySelectorAll('[data-presentation-attribution="true"]').length !== 1) attributionWarning = 'missing or ambiguous attribution'
+    if (attributions.length !== 1) attributionWarning = 'missing or ambiguous attribution'
+    else if (!visible(attribution)) attributionWarning = 'missing or hidden attribution'
     else {
       const style = getComputedStyle(attribution)
       const defaultBlue = style.color === 'rgb(0, 0, 238)' && style.textDecorationLine.includes('underline')

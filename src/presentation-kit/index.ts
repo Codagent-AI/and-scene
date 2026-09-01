@@ -1,0 +1,6 @@
+export { Presentation } from './Presentation'
+export { Stage } from './Stage'
+export * from './constants'
+export * from './nodes'
+export type { PresentationMode, PresentationProps, Scene, SceneProps, Step } from './types'
+export { clampStepIndex, usePresentationNav } from './usePresentationNav'

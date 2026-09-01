@@ -20,4 +20,20 @@ describe('pathname router', () => {
     view.rerender(<Router />)
     expect(await screen.findByRole('heading', { name: 'Example presentation' })).toBeInTheDocument()
   })
+
+  it('does not match extra pathname segments to a single-segment route', () => {
+    const Router = createAppRouter([
+      {
+        slug: 'example',
+        title: 'Example',
+        load: async () => ({ default: () => <h1>Example presentation</h1> }),
+      },
+    ])
+
+    window.history.pushState({}, '', '/example/extra')
+    render(<Router />)
+
+    expect(screen.getByRole('heading', { name: 'Presentations' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Example presentation' })).not.toBeInTheDocument()
+  })
 })

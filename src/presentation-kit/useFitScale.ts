@@ -3,7 +3,7 @@ import { DESIGN_H, DESIGN_W, MIN_SCALE } from './constants'
 
 export function fitScaleForSize(width: number, height: number): number {
   if (width <= 0 || height <= 0) return MIN_SCALE
-  return Math.max(MIN_SCALE, Math.min(width / DESIGN_W, height / DESIGN_H))
+  return Math.min(width / DESIGN_W, height / DESIGN_H)
 }
 
 export function useFitScale(container: RefObject<HTMLElement | null>): number {

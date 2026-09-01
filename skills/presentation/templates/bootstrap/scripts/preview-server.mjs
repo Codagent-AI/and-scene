@@ -19,12 +19,15 @@ export function waitForPreviewResponse(url, {
       settled = true
       callback(value)
     }
+
     const poll = async () => {
       for (let attempt = 0; attempt < attempts && !settled; attempt += 1) {
         try {
           const response = await fetchImpl(url, { signal: AbortSignal.timeout(requestTimeoutMs) })
           if (response.ok) return finish(resolve)
-        } catch { /* preview is still starting */ }
+        } catch {
+          // A timed-out or refused request is expected while Vite starts.
+        }
         if (!settled) await new Promise((resume) => setTimeout(resume, delayMs))
       }
       finish(reject, new Error(`owned preview did not become ready at ${url}.`))

@@ -62,6 +62,10 @@ describe('presentation bootstrap template', () => {
     expect(verifyScript).toContain('await browser?.close()')
     expect(inspectScript).toContain('await browser?.close()')
     expect(inspectScript).toContain("/^[a-z0-9]+(?:-[a-z0-9]+)*$/")
+    expect(inspectScript).toBe(await readFile(join(repositoryRoot, 'scripts/inspect-presentation.mjs'), 'utf8'))
+    expect(await readFile(join(project, 'scripts/preview-server.mjs'), 'utf8')).toBe(
+      await readFile(join(repositoryRoot, 'scripts/preview-server.mjs'), 'utf8'),
+    )
     expect(packageJson.dependencies).toMatchObject({
       'lucide-react': expect.any(String), motion: expect.any(String), react: expect.any(String), 'react-dom': expect.any(String),
     })

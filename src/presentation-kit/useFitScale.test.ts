@@ -6,5 +6,6 @@ describe('fitScaleForSize', () => {
     expect([DESIGN_W, DESIGN_H]).toEqual([880, 380])
     expect(fitScaleForSize(440, 380)).toBe(0.5)
     expect(fitScaleForSize(1760, 190)).toBe(0.5)
+    expect(fitScaleForSize(44, 19)).toBe(0.05)
   })
 })

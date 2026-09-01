@@ -29,12 +29,13 @@ async function waitForServer(url) {
 run('npm', ['run', 'build'])
 const slug = await registeredSlug()
 const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
+let browser
 
 try {
   const url = `http://${host}:${port}/${slug}`
   await waitForServer(url)
   const { chromium } = await import('playwright')
-  const browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
   const errors = []
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
@@ -48,11 +49,11 @@ try {
     if (index < count - 1) await page.keyboard.press('ArrowRight')
   }
   if (errors.length) throw new Error(`Browser error while rendering ${slug}: ${errors.join('; ')}`)
-  await browser.close()
   console.log(`PASS: built and rendered ${slug} through ${count} steps.`)
 } catch (error) {
   console.error(`FAIL: ${error instanceof Error ? error.message : String(error)}`)
   process.exitCode = 1
 } finally {
+  await browser?.close()
   preview.kill('SIGTERM')
 }

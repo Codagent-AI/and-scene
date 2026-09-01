@@ -1,7 +1,7 @@
 import { Box, SceneLayer, type SceneProps, type Step } from '../../presentation-kit'
 import { entities } from './entities'
 
-type Payload = { detail: string }
+export type Payload = { detail: string }
 
 function Scene({ payload }: SceneProps<Payload>) {
   return <SceneLayer><Box layoutId={entities.subject} className="{{SLUG}}-subject">{payload.detail}</Box></SceneLayer>

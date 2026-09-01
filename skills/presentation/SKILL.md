@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify a browser-based, evolving-scene presentation with the And Scene kit.
+description: Creates and modifies browser-based, evolving-scene presentations with the And Scene kit. Activates when users ask to create a presentation, build a slide deck, add or revise presentation steps, or mention "And Scene" or a browser presentation.
 ---
 
 # And Scene presentation skill
@@ -79,4 +79,20 @@ Fix failures; never report completion while a check fails.
 3. Prefer the project-local screenshot helper: `npm run inspect -- <slug>`. Inspect settled screenshots for the first, last, and dense or visually important steps. Also inspect a narrow viewport when the layout is responsive-sensitive.
 4. Review warnings. Fix accidental text/chrome collisions, indistinct active progress or table-of-contents state, and missing/browser-default/undersized attribution. Mark only deliberate, readable overlaps with an explicit `data-presentation-allow-overlap` marker, then rerun inspection.
 
-Report the created or modified route, files changed, captured assumptions or intentionally partial details, and the exact build/render/visual checks that passed.
+Use this exact completion report:
+
+```text
+Route: /<slug>
+Files changed: <comma-separated paths>
+Assumptions: <captured partial details or "none">
+Checks passed:
+- PASS — npm run lint
+- PASS — npm run build
+- PASS — npm run verify -- <slug>
+- PASS — npm run inspect -- <slug> (steps inspected: <first, dense, last; narrow if applicable>)
+Warnings remaining: <"none" or an intentional, readable overlap with its marker>
+```
+
+## Out of Scope
+
+This skill creates browser-based evolving scenes only. It does not create PowerPoint, Keynote, PDF, video, image-export, or unrelated independent-slide deliverables; use an export/presentation-format skill when one is available, otherwise ask the user to choose a browser presentation or a different workflow. It also does not provide a visual editor, publish presentations, or redesign the reusable kit as a host design system.

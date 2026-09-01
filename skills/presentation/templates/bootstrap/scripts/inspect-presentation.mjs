@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises'
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
+import { startOwnedPreview, waitForPreviewResponse } from './preview-server.mjs'
 
 const host = '127.0.0.1'
 const port = Number(process.env.PRESENTATION_INSPECT_PORT ?? 4174)
@@ -13,14 +14,6 @@ if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error('Invalid presentat
 function run(command, args) {
   const result = spawnSync(command, args, { stdio: 'inherit' })
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed`)
-}
-
-async function waitForServer(url) {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    try { if ((await fetch(url)).ok) return } catch { /* preview is still starting */ }
-    await new Promise((resolve) => setTimeout(resolve, 250))
-  }
-  throw new Error(`Timed out waiting for ${url}`)
 }
 
 async function diagnostics(page) {
@@ -63,11 +56,12 @@ async function diagnostics(page) {
 
 run('npm', ['run', 'build'])
 await mkdir('inspection-artifacts', { recursive: true })
-const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
+let preview
 let browser
 try {
   const url = `http://${host}:${port}/${slug}`
-  await waitForServer(url)
+  preview = await startOwnedPreview({ host, port })
+  await waitForPreviewResponse(url)
   const { chromium } = await import('playwright')
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
@@ -89,5 +83,5 @@ try {
   console.log(`Captured ${count} settled screenshots in inspection-artifacts/.`)
 } finally {
   await browser?.close()
-  preview.kill('SIGTERM')
+  await preview?.close()
 }

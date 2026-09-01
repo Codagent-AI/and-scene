@@ -1,5 +1,6 @@
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
+import { startOwnedPreview, waitForPreviewResponse } from './preview-server.mjs'
 
 const host = '127.0.0.1'
 const port = Number(process.env.PRESENTATION_PORT ?? 4173)
@@ -18,22 +19,15 @@ async function registeredSlug() {
   return match[1]
 }
 
-async function waitForServer(url) {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    try { if ((await fetch(url)).ok) return } catch { /* preview is still starting */ }
-    await new Promise((resolve) => setTimeout(resolve, 250))
-  }
-  throw new Error(`Timed out waiting for ${url}`)
-}
-
 run('npm', ['run', 'build'])
 const slug = await registeredSlug()
-const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
+let preview
 let browser
 
 try {
   const url = `http://${host}:${port}/${slug}`
-  await waitForServer(url)
+  preview = await startOwnedPreview({ host, port })
+  await waitForPreviewResponse(url)
   const { chromium } = await import('playwright')
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
@@ -64,5 +58,5 @@ try {
   process.exitCode = 1
 } finally {
   await browser?.close()
-  preview.kill('SIGTERM')
+  await preview?.close()
 }

@@ -1,5 +1,6 @@
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
+import { startOwnedPreview, waitForPreviewResponse } from './preview-server.mjs'
 
 const host = '127.0.0.1'
 const port = Number(process.env.PRESENTATION_PORT ?? 4173)
@@ -44,26 +45,17 @@ async function assertReferenceSample() {
   }
 }
 
-async function waitForServer(url) {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    try {
-      if ((await fetch(url)).ok) return
-    } catch { /* preview is still starting */ }
-    await new Promise((resolve) => setTimeout(resolve, 250))
-  }
-  throw new Error(`preview phase failed: timed out waiting for ${url}`)
-}
-
 async function verify() {
   run('npm', ['run', 'build'])
   await assertReferenceSample()
   const slug = requestedSlug ?? canonicalSlug
-  const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
+  let preview
   let browser
   let failedStep = 0
   try {
     const url = `http://${host}:${port}/${slug}`
-    await waitForServer(url)
+    preview = await startOwnedPreview({ host, port })
+    await waitForPreviewResponse(url)
     const { chromium } = await import('playwright')
     browser = await chromium.launch({ headless: true })
     const page = await browser.newPage()
@@ -95,7 +87,7 @@ async function verify() {
     console.log(`PASS: built and rendered ${slug} through ${count} steps on ${host}.`)
   } finally {
     await browser?.close()
-    preview.kill('SIGTERM')
+    await preview?.close()
   }
 }
 

@@ -1,0 +1,13 @@
+import { Appear, Box, SceneLayer, type SceneProps, type Step } from '../../presentation-kit'
+import { entities } from '../entities'
+
+type Payload = { label: string }
+
+function Scene({ payload }: SceneProps<Payload>) {
+  return <SceneLayer><Appear><Box layoutId={entities.subject} className="{{SLUG}}-subject">{payload.label}</Box></Appear></SceneLayer>
+}
+
+export const STEP: Step<Payload> = {
+  id: '{{STEP_ID}}', era: '{{ERA}}', title: '{{TITLE}}', caption: '{{CAPTION}}', groupKey: '{{SLUG}}', Scene,
+  payload: { label: '{{VISUAL_INTENT}}' },
+}

@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Bootstrap is an independently lintable app with its own TypeScript project.
+  globalIgnores(['dist', 'skills/presentation/templates/bootstrap']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

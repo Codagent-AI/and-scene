@@ -59,3 +59,15 @@ main:has(.how-scene) [data-presentation-attribution] { color: #496050; font-size
   main:has(.how-scene) [data-presentation-progress] { position: absolute; right: 16px; top: 21px; }
   main:has(.how-scene) [data-presentation-step-controls] { grid-column: 1; grid-row: 3; justify-self: start; transform: none; }
 }
+
+@media (max-width: 600px) {
+  .how-person,
+  .how-skill,
+  .how-prompt,
+  .how-question,
+  .how-card strong,
+  .how-kit,
+  .how-verify,
+  .how-pass { font-size: 21px; }
+  .how-card > span:not(.how-edited) { display: none; }
+}

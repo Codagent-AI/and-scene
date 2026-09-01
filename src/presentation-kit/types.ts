@@ -1,45 +1,32 @@
 import type { ComponentType } from 'react'
 
-export type Mode = 'browse' | 'present'
+export type PresentationMode = 'browse' | 'present'
 
-/** Narration + identity for one beat of the evolving diagram. */
-export interface StepMeta<P extends Record<string, unknown> = Record<string, unknown>> {
-  /** Stable key for AnimatePresence + React reconciliation. */
+export interface SceneProps<TPayload> {
+  payload: TPayload
+  step: Step<TPayload>
+  stepIndex: number
+}
+
+export type Scene<TPayload> = ComponentType<SceneProps<TPayload>>
+
+export interface Step<TPayload> {
+  /** A stable, presentation-local identity used by navigation and automation. */
   id: string
-  /** Header label, e.g. "the model". */
+  /** The section label used by the table of contents and presenter marker. */
   era: string
-  /** Presenter-mode one-liner. */
+  /** Concise narration displayed during presentation mode. */
   title: string
-  /** Browsing-mode paragraph. */
+  /** Longer narration displayed while browsing. */
   caption: string
-  /**
-   * AnimatePresence key override. Consecutive steps that share a groupKey are
-   * NOT remounted when you navigate between them — the Scene instance persists
-   * and only its `step` prop changes, so elements already on screen never fade
-   * out and back in; they update in place (and a newly added element animates
-   * in on its own). Steps sharing a groupKey must also share the same `Scene`
-   * component. Defaults to `id`.
-   */
+  /** Adjacent matching keys keep their scene instance mounted. */
   groupKey?: string
-  /** Per-step data handed to the Scene (e.g. how many chips to show). */
-  payload?: P
+  Scene: Scene<TPayload>
+  payload: TPayload
 }
 
-/**
- * Props every Scene receives. Most scenes ignore them; a grouped scene reads
- * `step.payload` to decide which sub-state of its diagram to render.
- */
-export interface SceneProps<P extends Record<string, unknown> = Record<string, unknown>> {
-  step: Step<P>
-}
-
-/**
- * A step = its narration + the diagram layer rendered while it is active.
- *
- * `Scene` composes the shared nodes (see ./nodes). Elements that should morph
- * between steps share a layoutId — that's the only contract between one step
- * and the next.
- */
-export interface Step<P extends Record<string, unknown> = Record<string, unknown>> extends StepMeta<P> {
-  Scene: ComponentType<SceneProps<P>>
+export interface PresentationProps<TPayload> {
+  steps: readonly Step<TPayload>[]
+  title: string
+  initialMode?: PresentationMode
 }

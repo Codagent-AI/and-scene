@@ -13,7 +13,8 @@ describe('pathname router', () => {
 
     window.history.pushState({}, '', '/')
     const view = render(<Router />)
-    expect(screen.getByText('No presentations are registered yet.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'How to Use This Skill to Make a Presentation' }))
+      .toHaveAttribute('href', '/how-to-make-a-presentation')
 
     window.history.pushState({}, '', '/example')
     view.rerender(<Router />)

@@ -8,6 +8,7 @@ describe('application landing', () => {
     expect(
       screen.getByRole('heading', { name: 'Presentations' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('No presentations are registered yet.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'How to Use This Skill to Make a Presentation' }))
+      .toHaveAttribute('href', '/how-to-make-a-presentation')
   })
 })

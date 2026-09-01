@@ -1,0 +1,21 @@
+/** Stable identities for the entities that accumulate through this scene. */
+export const entities = {
+  you: 'how-to-make-a-presentation:you',
+  prompt: 'how-to-make-a-presentation:prompt',
+  skill: 'how-to-make-a-presentation:skill',
+  conversation: 'how-to-make-a-presentation:conversation',
+  question: 'how-to-make-a-presentation:question',
+  tray: 'how-to-make-a-presentation:tray',
+  cardOne: 'how-to-make-a-presentation:card-one',
+  cardTwo: 'how-to-make-a-presentation:card-two',
+  cardThree: 'how-to-make-a-presentation:card-three',
+  cardFour: 'how-to-make-a-presentation:card-four',
+  ghost: 'how-to-make-a-presentation:ghost',
+  depth: 'how-to-make-a-presentation:depth',
+  sceneKit: 'how-to-make-a-presentation:scene-kit',
+  verify: 'how-to-make-a-presentation:verify',
+  pass: 'how-to-make-a-presentation:pass',
+  modify: 'how-to-make-a-presentation:modify',
+  edited: 'how-to-make-a-presentation:edited',
+  reveal: 'how-to-make-a-presentation:reveal',
+} as const

@@ -46,7 +46,16 @@ try {
   if (!Number.isInteger(count) || count < 1) throw new Error('The presentation did not expose a valid step count.')
   for (let index = 0; index < count; index += 1) {
     if (Number(await chrome.getAttribute('data-step-index')) !== index) throw new Error(`Step ${index + 1} did not render.`)
-    if (index < count - 1) await page.keyboard.press('ArrowRight')
+    await page.waitForTimeout(600)
+    if (errors.length) throw new Error(`Browser error at step ${index + 1}: ${errors.join('; ')}`)
+    if (index < count - 1) {
+      await page.keyboard.press('ArrowRight')
+      await page.waitForFunction(
+        ({ expected }) => document.querySelector('[data-presentation-chrome="true"]')?.getAttribute('data-step-index') === String(expected),
+        { expected: index + 1 },
+        { timeout: 2_000 },
+      )
+    }
   }
   if (errors.length) throw new Error(`Browser error while rendering ${slug}: ${errors.join('; ')}`)
   console.log(`PASS: built and rendered ${slug} through ${count} steps.`)

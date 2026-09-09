@@ -79,7 +79,7 @@ describe('presentation skill bootstrap', () => {
 
       expect(source).toContain("import { preview as startPreview } from 'vite'")
       expect(source).toContain('strictPort: true')
-      expect(source).toContain('server.httpServer.close')
+      expect(source).toContain('await closePreview(browser, server)')
     }
   })
 })

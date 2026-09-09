@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { closePreview, runCommand } from './script-utils.mjs'
 import { access, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
@@ -22,20 +22,6 @@ const canonicalOutline = [
   ["You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ]
 
-function run(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd: root, stdio: 'inherit', ...options })
-    child.once('error', reject)
-    child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
-  })
-}
-
-function closeServer(server) {
-  return new Promise((resolve, reject) => {
-    server.httpServer.close((error) => error ? reject(error) : resolve())
-  })
-}
-
 async function assertCanonicalSample() {
   const registry = await readFile(join(root, 'src/presentations/index.ts'), 'utf8')
   const sample = join(root, 'src/presentations', canonicalSlug, 'Talk.tsx')
@@ -58,7 +44,7 @@ const errors = []
 
 try {
   if (slug === canonicalSlug) await assertCanonicalSample()
-  await run('npm', ['run', 'build'])
+  await runCommand('npm', ['run', 'build'])
   server = await startPreview({ root, preview: { host, port, strictPort: true } })
   const url = `http://${host}:${port}/${slug}`
   const readiness = await fetch(`http://${host}:${port}/`)
@@ -99,9 +85,5 @@ try {
   console.error(`VERIFY FAIL${activeStep >= 0 ? ` at step ${activeStep + 1}` : ''}: ${error instanceof Error ? error.message : String(error)}`)
   process.exitCode = 1
 } finally {
-  try {
-    await browser?.close()
-  } finally {
-    if (server) await closeServer(server)
-  }
+  await closePreview(browser, server)
 }

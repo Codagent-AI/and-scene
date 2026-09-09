@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { closePreview, runCommand } from './script-utils.mjs'
 import { chromium } from 'playwright'
 import { preview as startPreview } from 'vite'
 
@@ -8,20 +8,6 @@ const port = 4173
 const settleMs = 700
 const root = process.cwd()
 
-function run(command, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd: root, stdio: 'inherit' })
-    child.once('error', reject)
-    child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
-  })
-}
-
-function closeServer(server) {
-  return new Promise((resolve, reject) => {
-    server.httpServer.close((error) => error ? reject(error) : resolve())
-  })
-}
-
 let server
 let browser
 let activeStep = 0
@@ -29,7 +15,7 @@ const errors = []
 
 try {
   if (!slug) throw new Error('provide a registered presentation slug: npm run verify -- <slug>')
-  await run('npm', ['run', 'build'])
+  await runCommand('npm', ['run', 'build'])
   server = await startPreview({ root, preview: { host, port, strictPort: true } })
   const url = `http://${host}:${port}/${slug}`
   const readiness = await fetch(`http://${host}:${port}/`)
@@ -63,9 +49,5 @@ try {
   console.error(`VERIFY FAIL${activeStep >= 0 ? ` at step ${activeStep + 1}` : ''}: ${error instanceof Error ? error.message : String(error)}`)
   process.exitCode = 1
 } finally {
-  try {
-    await browser?.close()
-  } finally {
-    if (server) await closeServer(server)
-  }
+  await closePreview(browser, server)
 }

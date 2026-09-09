@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { closePreview, runCommand } from './script-utils.mjs'
 import { mkdir } from 'node:fs/promises'
 import { chromium } from 'playwright'
 import { preview as startPreview } from 'vite'
@@ -10,24 +10,10 @@ const settleMs = Number(process.env.PRESENTATION_SETTLE_MS ?? 700)
 const root = process.cwd()
 const output = `artifacts/inspection/${slug}`
 
-function closeServer(server) {
-  return new Promise((resolve, reject) => {
-    server.httpServer.close((error) => error ? reject(error) : resolve())
-  })
-}
-
-function run(command, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd: root, stdio: 'inherit' })
-    child.once('error', reject)
-    child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
-  })
-}
-
 let server
 let browser
 try {
-  await run('npm', ['run', 'build'])
+  await runCommand('npm', ['run', 'build'])
   await mkdir(output, { recursive: true })
   server = await startPreview({ root, preview: { host, port, strictPort: true } })
   browser = await chromium.launch({ headless: true })
@@ -83,9 +69,5 @@ try {
   console.error(`INSPECT FAIL: ${error instanceof Error ? error.message : String(error)}`)
   process.exitCode = 1
 } finally {
-  try {
-    await browser?.close()
-  } finally {
-    if (server) await closeServer(server)
-  }
+  await closePreview(browser, server)
 }

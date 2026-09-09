@@ -3,20 +3,27 @@ import { entities } from '../entities'
 
 export type ScenePayload = { readonly beat: number }
 
-const cardLabels = ['01  ask', '02  look', '03  beat', '04  iterate'] as const
+const cards = [
+  { id: entities.cardOne, title: '01  ask', description: 'title · caption · visual' },
+  { id: entities.cardTwo, title: '02  look', description: 'same shapes, new beat' },
+  { id: entities.cardThree, title: '03  beat', description: 'scene + motion' },
+  { id: entities.cardFour, title: '04  iterate', description: 'review + refine' },
+] as const
 
 function Card({ index }: { index: number }) {
+  const card = cards[index]
+
   return (
-    <Box layoutId={[entities.cardOne, entities.cardTwo, entities.cardThree, entities.cardFour][index]} className={`sample-card sample-card-${index}`}>
-      <strong>{cardLabels[index]}</strong>
-      <span>{index === 0 ? 'title · caption · visual' : index === 1 ? 'same shapes, new beat' : index === 2 ? 'scene + motion' : 'review + refine'}</span>
+    <Box layoutId={card.id} className={`sample-card sample-card-${index}`}>
+      <strong>{card.title}</strong>
+      <span>{card.description}</span>
     </Box>
   )
 }
 
 export function Scene({ payload }: SceneProps<ScenePayload>) {
   const { beat } = payload
-  const cards = beat >= 4 ? 4 : beat >= 3 ? 1 : 0
+  const visibleCardCount = beat >= 4 ? cards.length : beat >= 3 ? 1 : 0
 
   return (
     <SceneLayer className="sample-scene">
@@ -29,7 +36,7 @@ export function Scene({ payload }: SceneProps<ScenePayload>) {
 
       {beat >= 3 ? <Appear><Label layoutId={entities.tray} className="sample-tray-label">YOUR STORY, AS A SCENE</Label></Appear> : null}
       {beat >= 3 ? <Arrow layoutId={`${entities.tray}:rule`} className="sample-tray-rule" /> : null}
-      {Array.from({ length: cards }, (_, index) => <Appear key={index}><Card index={index} /></Appear>)}
+      {Array.from({ length: visibleCardCount }, (_, index) => <Appear key={index}><Card index={index} /></Appear>)}
 
       {beat >= 5 ? <Appear><Box layoutId={entities.ghost} className="sample-ghost">? <span>open beat</span></Box></Appear> : null}
       {beat >= 5 ? <Appear><SymbolChip layoutId={entities.depth} className="sample-depth">partial ↔ full</SymbolChip></Appear> : null}

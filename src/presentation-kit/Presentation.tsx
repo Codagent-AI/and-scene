@@ -15,10 +15,6 @@ export function Presentation<TPayload>({
   const current = steps[nav.stepIndex]
   if (!current) return null
 
-  const move = (nextIndex: number) => nav.goTo(nextIndex)
-  const next = () => nav.next()
-  const previousStep = () => nav.previous()
-
   return (
     <main
       data-presentation-root
@@ -29,9 +25,9 @@ export function Presentation<TPayload>({
       onTouchEnd={nav.onTouchEnd}
     >
       <Header mode={nav.mode} step={current} />
-      {nav.mode === 'browse' ? <Toc steps={steps} stepIndex={nav.stepIndex} onGoTo={move} /> : null}
+      {nav.mode === 'browse' ? <Toc steps={steps} stepIndex={nav.stepIndex} onGoTo={nav.goTo} /> : null}
       <Stage current={current} stepIndex={nav.stepIndex} mode={nav.mode} />
-      <Footer mode={nav.mode} title={title} step={current} stepIndex={nav.stepIndex} steps={steps} onGoTo={move} onNext={next} onPrevious={previousStep} />
+      <Footer mode={nav.mode} title={title} step={current} stepIndex={nav.stepIndex} steps={steps} onGoTo={nav.goTo} onNext={nav.next} onPrevious={nav.previous} />
       {attribution === false ? null : attribution ?? <a data-presentation-attribution href="https://github.com/Codagent-AI/and-scene">made by and-scene</a>}
     </main>
   )

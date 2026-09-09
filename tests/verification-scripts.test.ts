@@ -18,8 +18,8 @@ describe('verification scripts', () => {
   it('builds current source before the inspection preview starts', async () => {
     const source = await readFile(rootInspector, 'utf8')
 
-    expect(source).toContain("await run('npm', ['run', 'build'])")
-    expect(source.indexOf("await run('npm', ['run', 'build'])")).toBeLessThan(source.indexOf('server = await startPreview'))
+    expect(source).toContain("await runCommand('npm', ['run', 'build'])")
+    expect(source.indexOf("await runCommand('npm', ['run', 'build'])")).toBeLessThan(source.indexOf('server = await startPreview'))
   })
 
   it('keeps the distributable verifier generic and slug-driven', async () => {
@@ -37,7 +37,7 @@ describe('verification scripts', () => {
 
     expect(source).toContain('const slug = process.argv[2]')
     expect(source).toContain('provide a registered presentation slug')
-    expect(source).toContain("await run('npm', ['run', 'build'])")
+    expect(source).toContain("await runCommand('npm', ['run', 'build'])")
     expect(source).not.toContain('how-to-make-a-presentation')
   })
 })

@@ -1,8 +1,9 @@
+import { spawn } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
 import { chromium } from 'playwright'
 import { preview as startPreview } from 'vite'
 
-const slug = process.argv[2] ?? 'how-to-make-a-presentation'
+const slug = process.argv[2]
 const host = '127.0.0.1'
 const port = 4174
 const settleMs = Number(process.env.PRESENTATION_SETTLE_MS ?? 700)
@@ -15,9 +16,19 @@ function closeServer(server) {
   })
 }
 
+function run(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { cwd: root, stdio: 'inherit' })
+    child.once('error', reject)
+    child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
+  })
+}
+
 let server
 let browser
 try {
+  if (!slug) throw new Error('provide a registered presentation slug: npm run inspect -- <slug>')
+  await run('npm', ['run', 'build'])
   await mkdir(output, { recursive: true })
   server = await startPreview({ root, preview: { host, port, strictPort: true } })
   browser = await chromium.launch({ headless: true })

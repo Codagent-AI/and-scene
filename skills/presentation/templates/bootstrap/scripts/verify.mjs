@@ -1,29 +1,16 @@
 import { spawn } from 'node:child_process'
-import { access, readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import { chromium } from 'playwright'
 import { preview as startPreview } from 'vite'
 
-const canonicalSlug = 'how-to-make-a-presentation'
-const slug = process.argv[2] ?? canonicalSlug
+const slug = process.argv[2]
 const host = '127.0.0.1'
 const port = 4173
+const settleMs = 700
 const root = process.cwd()
-const canonicalOutline = [
-  ['You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
-  ['The skill interviews you', 'One question at a time: the topic, the look, then each beat of the story.'],
-  ['Answers become steps', 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.'],
-  ['The deck grows', 'Same shapes, new beats. Every answer extends the story without redrawing it.'],
-  ['You set the depth', 'Spell out every step, or sketch a few and see how it looks. You hold the gate.'],
-  ['It assembles the scene', 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.'],
-  ['It checks its own work', 'Before saying done, it builds and renders every step — and fixes what breaks.'],
-  ['Changed your mind? Loop it.', 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.'],
-  ["You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
-]
 
-function run(command, args, options = {}) {
+function run(command, args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd: root, stdio: 'inherit', ...options })
+    const child = spawn(command, args, { cwd: root, stdio: 'inherit' })
     child.once('error', reject)
     child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
   })
@@ -35,28 +22,13 @@ function closeServer(server) {
   })
 }
 
-async function assertCanonicalSample() {
-  const registry = await readFile(join(root, 'src/presentations/index.ts'), 'utf8')
-  const sample = join(root, 'src/presentations', canonicalSlug, 'Talk.tsx')
-  await access(sample)
-  const source = await readFile(sample, 'utf8')
-  if (!registry.includes(`slug: '${canonicalSlug}'`)) throw new Error('reference sample is not registered')
-  let position = -1
-  for (const [title, caption] of canonicalOutline) {
-    const titlePosition = source.indexOf(title, position + 1)
-    const captionPosition = source.indexOf(caption, titlePosition + 1)
-    if (titlePosition < 0 || captionPosition < 0) throw new Error(`reference sample is missing canonical step “${title}”`)
-    position = captionPosition
-  }
-}
-
 let server
 let browser
 let activeStep = 0
 const errors = []
 
 try {
-  if (slug === canonicalSlug) await assertCanonicalSample()
+  if (!slug) throw new Error('provide a registered presentation slug: npm run verify -- <slug>')
   await run('npm', ['run', 'build'])
   server = await startPreview({ root, preview: { host, port, strictPort: true } })
   const url = `http://${host}:${port}/${slug}`
@@ -74,16 +46,11 @@ try {
   if (await presentation.count() !== 1) throw new Error(`route /${slug} did not render a presentation`)
   const count = Number(await presentation.getAttribute('data-step-count'))
   if (!Number.isInteger(count) || count < 1) throw new Error(`route /${slug} did not expose a positive data-step-count`)
-  if (slug === canonicalSlug && count !== canonicalOutline.length) throw new Error(`reference sample exposes ${count} steps, expected ${canonicalOutline.length}`)
 
   for (activeStep = 0; activeStep < count; activeStep += 1) {
-    if (await presentation.getAttribute('data-step-index') !== String(activeStep)) throw new Error(`step ${activeStep + 1} did not become active`)
-    if (slug === canonicalSlug) {
-      const [title, caption] = canonicalOutline[activeStep]
-      if (await page.locator('[data-presentation-title]').textContent() !== title) throw new Error(`step ${activeStep + 1} rendered the wrong title`)
-      if (await page.locator('[data-presentation-caption]').textContent() !== caption) throw new Error(`step ${activeStep + 1} rendered the wrong caption`)
-    }
+    await page.waitForTimeout(settleMs)
     if (errors.length) throw new Error(errors.join('; '))
+    if (await presentation.getAttribute('data-step-index') !== String(activeStep)) throw new Error(`step ${activeStep + 1} did not become active`)
     if (activeStep < count - 1) {
       await page.keyboard.press('ArrowRight')
       await presentation.waitFor({ state: 'attached' })

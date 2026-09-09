@@ -8,6 +8,7 @@ const canonicalSlug = 'how-to-make-a-presentation'
 const slug = process.argv[2] ?? canonicalSlug
 const host = '127.0.0.1'
 const port = 4173
+const settleMs = 700
 const root = process.cwd()
 const canonicalOutline = [
   ['You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
@@ -77,6 +78,8 @@ try {
   if (slug === canonicalSlug && count !== canonicalOutline.length) throw new Error(`reference sample exposes ${count} steps, expected ${canonicalOutline.length}`)
 
   for (activeStep = 0; activeStep < count; activeStep += 1) {
+    await page.waitForTimeout(settleMs)
+    if (errors.length) throw new Error(errors.join('; '))
     if (await presentation.getAttribute('data-step-index') !== String(activeStep)) throw new Error(`step ${activeStep + 1} did not become active`)
     if (slug === canonicalSlug) {
       const [title, caption] = canonicalOutline[activeStep]

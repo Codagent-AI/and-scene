@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
 import { chromium } from 'playwright'
 import { preview as startPreview } from 'vite'
@@ -15,9 +16,18 @@ function closeServer(server) {
   })
 }
 
+function run(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { cwd: root, stdio: 'inherit' })
+    child.once('error', reject)
+    child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
+  })
+}
+
 let server
 let browser
 try {
+  await run('npm', ['run', 'build'])
   await mkdir(output, { recursive: true })
   server = await startPreview({ root, preview: { host, port, strictPort: true } })
   browser = await chromium.launch({ headless: true })

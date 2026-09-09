@@ -23,6 +23,7 @@ export function useFitScale(mode: PresentationMode): number {
 
   useEffect(() => {
     const resize = () => setScale(getScale())
+    resize()
     window.addEventListener('resize', resize)
     return () => window.removeEventListener('resize', resize)
   }, [getScale])

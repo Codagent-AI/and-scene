@@ -28,7 +28,7 @@ export function Stage<TPayload>({ current, stepIndex, mode }: StageProps<TPayloa
       >
         <LayoutGroup id="presentation-scene">
           {grouped ? (
-            <div data-presentation-scene data-scene-group={current.groupKey}>{scene}</div>
+            <div key={current.groupKey} data-presentation-scene data-scene-group={current.groupKey}>{scene}</div>
           ) : (
             <AnimatePresence mode="wait" initial={false}>
               <motion.div

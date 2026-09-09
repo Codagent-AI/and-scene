@@ -19,7 +19,7 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isFocusedControl(event.target)) return
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || isFocusedControl(event.target)) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') {
         event.preventDefault()
         next()

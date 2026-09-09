@@ -1,4 +1,4 @@
-import { act } from 'react'
+import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { AppRouter } from '../src/AppRouter'
@@ -36,6 +36,20 @@ const groupedSteps: readonly Step<Payload>[] = [
   },
 ]
 
+function StatefulScene({ payload }: { payload: Payload }) {
+  const [selected, setSelected] = useState(false)
+  return <button type="button" data-stateful-scene onClick={() => setSelected(true)}>{selected ? 'selected' : payload.label}</button>
+}
+
+const separateGroups: readonly Step<Payload>[] = [
+  {
+    id: 'first-group', era: 'First', title: 'First', caption: 'First group.', groupKey: 'first', Scene: StatefulScene, payload: { label: 'one' },
+  },
+  {
+    id: 'second-group', era: 'Second', title: 'Second', caption: 'Second group.', groupKey: 'second', Scene: StatefulScene, payload: { label: 'two' },
+  },
+]
+
 let root: Root | undefined
 let host: HTMLDivElement | undefined
 
@@ -49,6 +63,10 @@ function render(node: React.ReactNode) {
 
 function press(key: string) {
   act(() => (document.activeElement ?? window).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })))
+}
+
+function modifiedPress(key: string) {
+  act(() => (document.activeElement ?? window).dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true })))
 }
 
 function swipe(target: HTMLElement, startX: number, endX: number) {
@@ -122,6 +140,39 @@ describe('Presentation', () => {
     previous.focus()
     press('ArrowLeft')
     expect(screen.querySelector('[data-presentation-root]')?.getAttribute('data-step-index')).toBe('1')
+  })
+
+  it('does not handle modified browser shortcuts', () => {
+    const screen = render(<Presentation steps={groupedSteps} title="A title" />)
+
+    modifiedPress('p')
+    expect(screen.querySelector('[data-presentation-root]')?.getAttribute('data-mode')).toBe('browse')
+    modifiedPress('ArrowRight')
+    expect(screen.querySelector('[data-presentation-root]')?.getAttribute('data-step-index')).toBe('0')
+  })
+
+  it('resets local scene state when a new scene group starts', () => {
+    const screen = render(<Presentation steps={separateGroups} title="Separate groups" />)
+
+    act(() => screen.querySelector<HTMLButtonElement>('[data-stateful-scene]')?.click())
+    expect(screen.querySelector('[data-stateful-scene]')?.textContent).toBe('selected')
+    press('ArrowRight')
+    expect(screen.querySelector('[data-stateful-scene]')?.textContent).toBe('two')
+  })
+
+  it('recalculates the fit scale immediately when presentation mode changes', () => {
+    const originalWidth = window.innerWidth
+    const originalHeight = window.innerHeight
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 2000 })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 })
+    const screen = render(<Presentation steps={groupedSteps} title="A title" />)
+
+    expect(screen.querySelector('[data-presentation-canvas]')?.getAttribute('style')).toContain('scale(0.7368421052631579)')
+    press('p')
+    expect(screen.querySelector('[data-presentation-canvas]')?.getAttribute('style')).toContain('scale(1.0526315789473684)')
+
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalHeight })
   })
 
   it('exposes unstyled primitive hooks without adding visual defaults', () => {

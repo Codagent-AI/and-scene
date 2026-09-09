@@ -4,6 +4,9 @@ import { basename, join } from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { afterEach, describe, expect, it } from 'vitest'
+import { chromium, type Page } from 'playwright'
+import { closePreview } from '../scripts/script-utils.mjs'
+import { preview } from 'vite'
 
 const execFileAsync = promisify(execFile)
 const repositoryRoot = process.cwd()
@@ -54,4 +57,60 @@ describe('production presentation verification', () => {
     expect(result.output).toContain('VERIFY FAIL at step 1')
     expect(result.output).toContain('controlled browser fault')
   }, 60_000)
+})
+
+async function withReferencePage(check: (page: Page) => Promise<void>) {
+  await execFileAsync('npm', ['run', 'build'], { cwd: repositoryRoot })
+  const server = await preview({ preview: { host: '127.0.0.1', port: 0, strictPort: true } })
+  let browser
+  try {
+    const address = server.httpServer.address()
+    if (!address || typeof address === 'string') throw new Error('preview did not bind a TCP port')
+    browser = await chromium.launch({ headless: true })
+    const page = await browser.newPage()
+    await page.goto(`http://127.0.0.1:${address.port}/how-to-make-a-presentation`, { waitUntil: 'networkidle' })
+    await check(page)
+  } finally {
+    await closePreview(browser, server)
+  }
+}
+
+describe('reference browser behavior', () => {
+  it('places default attribution at bottom right without presentation-owned styles', async () => {
+    await withReferencePage(async (page) => {
+      const attributionPosition = await page.evaluate(() => {
+        const wrapper = document.querySelector('.sample-presentation')!
+        wrapper.classList.remove('sample-presentation')
+        const bounds = document.querySelector('[data-presentation-attribution]')!.getBoundingClientRect()
+        const result = { rightGap: innerWidth - bounds.right, bottomGap: innerHeight - bounds.bottom }
+        wrapper.classList.add('sample-presentation')
+        return result
+      })
+      expect(attributionPosition.rightGap).toBeLessThanOrEqual(1)
+      expect(attributionPosition.bottomGap).toBeLessThanOrEqual(1)
+    })
+  }, 30_000)
+
+  it('retains the reveal during reverse-navigation exit and removes it after settling', async () => {
+    await withReferencePage(async (page) => {
+      await page.locator('[data-presentation-progress]').last().click()
+      await page.waitForTimeout(750)
+
+      const observed = await page.evaluate(async () => {
+        const continuing = document.querySelector('[data-layout-id="how-to-make-a-presentation:you"]')
+        const scene = document.querySelector('[data-presentation-scene]')
+        document.querySelector<HTMLButtonElement>('[data-presentation-prev]')!.click()
+        await new Promise(requestAnimationFrame)
+        return {
+          step: document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index'),
+          revealPresent: Boolean(document.querySelector('.sample-reveal')),
+          sameScene: scene === document.querySelector('[data-presentation-scene]'),
+          sameEntity: continuing === document.querySelector('[data-layout-id="how-to-make-a-presentation:you"]'),
+        }
+      })
+      expect(observed).toEqual({ step: '7', revealPresent: true, sameScene: true, sameEntity: true })
+      await page.waitForFunction(() => !document.querySelector('.sample-reveal'), undefined, { timeout: 2000 })
+      expect(await page.locator('[data-presentation-root]').getAttribute('data-step-index')).toBe('7')
+    })
+  }, 30_000)
 })

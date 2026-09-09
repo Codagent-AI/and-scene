@@ -1,9 +1,12 @@
 import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
+import { AnimatePresence, usePresence } from 'motion/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { AppRouter } from '../src/AppRouter'
 import {
+  Appear,
   Box,
+  SceneLayer,
   Presentation,
   type PresentationRegistration,
   type Step,
@@ -86,6 +89,53 @@ afterEach(() => {
   host?.remove()
   root = undefined
   host = undefined
+})
+
+describe('SceneLayer presence', () => {
+  it('propagates whole-layer removal and waits for descendant exits to finish', async () => {
+    function ExitProbe() {
+      const [isPresent, safeToRemove] = usePresence()
+      return <button data-exit-probe onClick={() => safeToRemove?.()}>{isPresent ? 'present' : 'exiting'}</button>
+    }
+
+    const screen = render(
+      <AnimatePresence>
+        <SceneLayer key="layer"><ExitProbe /></SceneLayer>
+      </AnimatePresence>,
+    )
+    const probe = screen.querySelector<HTMLButtonElement>('[data-exit-probe]')!
+
+    act(() => root?.render(<AnimatePresence />))
+
+    expect(screen.querySelector('[data-exit-probe]')).toBe(probe)
+    expect(probe.textContent).toBe('exiting')
+
+    await act(async () => {
+      probe.click()
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    })
+    expect(screen.querySelector('[data-exit-probe]')).toBeNull()
+  })
+
+  it('keeps departing entities mounted for exit while preserving continuing entities', () => {
+    const screen = render(
+      <SceneLayer>
+        <Appear key="continuing"><Box layoutId="continuing">Continue</Box></Appear>
+        <Appear key="departing"><Box layoutId="departing">Leave</Box></Appear>
+      </SceneLayer>,
+    )
+    const continuing = screen.querySelector('[data-layout-id="continuing"]')
+    const departing = screen.querySelector('[data-layout-id="departing"]')
+
+    act(() => root?.render(
+      <SceneLayer>
+        <Appear key="continuing"><Box layoutId="continuing">Continue</Box></Appear>
+      </SceneLayer>,
+    ))
+
+    expect(screen.querySelector('[data-layout-id="continuing"]')).toBe(continuing)
+    expect(screen.querySelector('[data-layout-id="departing"]')).toBe(departing)
+  })
 })
 
 describe('Presentation', () => {

@@ -1,3 +1,4 @@
+import './layout.css'
 import { Footer } from './chrome/Footer'
 import { Header } from './chrome/Header'
 import { Toc } from './chrome/Toc'

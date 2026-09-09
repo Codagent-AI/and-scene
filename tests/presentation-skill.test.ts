@@ -58,7 +58,7 @@ describe('presentation skill bootstrap', () => {
   it('INT-001 keeps the bootstrap scene kit byte-aligned and builds from an external directory', async () => {
     const directory = await materializeBootstrap()
     const kitFiles = [
-      'constants.ts', 'index.ts', 'Presentation.tsx', 'Stage.tsx', 'types.ts', 'useFitScale.ts', 'usePresentationNav.ts',
+      'constants.ts', 'index.ts', 'layout.css', 'Presentation.tsx', 'Stage.tsx', 'types.ts', 'useFitScale.ts', 'usePresentationNav.ts',
       'chrome/Footer.tsx', 'chrome/Header.tsx', 'chrome/Toc.tsx',
       'nodes/Appear.tsx', 'nodes/Arrow.tsx', 'nodes/Box.tsx', 'nodes/Emphasis.tsx', 'nodes/Frame.tsx', 'nodes/Label.tsx', 'nodes/SceneLayer.tsx', 'nodes/SymbolChip.tsx',
     ]

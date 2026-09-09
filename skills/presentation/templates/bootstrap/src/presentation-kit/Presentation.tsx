@@ -32,7 +32,7 @@ export function Presentation<TPayload>({
       {nav.mode === 'browse' ? <Toc steps={steps} stepIndex={nav.stepIndex} onGoTo={move} /> : null}
       <Stage current={current} stepIndex={nav.stepIndex} mode={nav.mode} />
       <Footer mode={nav.mode} title={title} step={current} stepIndex={nav.stepIndex} steps={steps} onGoTo={move} onNext={next} onPrevious={previousStep} />
-      {attribution === false ? null : attribution ?? <a data-presentation-attribution href="https://github.com/openai/and-scene">made by and-scene</a>}
+      {attribution === false ? null : attribution ?? <a data-presentation-attribution href="https://github.com/Codagent-AI/and-scene">made by and-scene</a>}
     </main>
   )
 }

@@ -108,7 +108,7 @@ describe('Presentation', () => {
     expect(screen.querySelector('[data-presentation-progress][aria-current="step"]')).not.toBeNull()
     expect(screen.querySelector('[data-presentation-progress][data-active="true"]')).not.toBeNull()
     expect(screen.querySelector('[data-presentation-attribution]')?.getAttribute('href')).toBe(
-      'https://github.com/openai/and-scene',
+      'https://github.com/Codagent-AI/and-scene',
     )
     expect(screen.textContent).toContain('made by and-scene')
     expect(screen.querySelector('[data-presentation-brand]')).toBeNull()

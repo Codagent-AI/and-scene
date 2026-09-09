@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
-import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { preview as startPreview } from 'vite'
 
 const slug = process.argv[2]
 const host = '127.0.0.1'
@@ -14,27 +14,22 @@ function run(command, args, options = {}) {
   })
 }
 
-async function ready(url) {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    try {
-      if ((await fetch(url)).ok) return
-    } catch { /* preview is not listening yet */ }
-    await delay(150)
-  }
-  throw new Error(`preview did not become ready at ${url}`)
+function closeServer(server) {
+  return new Promise((resolve, reject) => {
+    server.httpServer.close((error) => error ? reject(error) : resolve())
+  })
 }
 
 if (!slug) {
   console.error('VERIFY FAIL: provide a registered presentation slug: npm run verify -- <slug>')
   process.exitCode = 1
 } else {
-  let preview
+  let server
   let browser
   try {
     await run('npm', ['run', 'build'])
-    preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', port], { stdio: 'ignore' })
+    server = await startPreview({ preview: { host, port: Number(port), strictPort: true } })
     const url = `http://${host}:${port}/${slug}`
-    await ready(url)
     browser = await chromium.launch({ headless: true })
     const page = await browser.newPage()
     const errors = []
@@ -50,7 +45,10 @@ if (!slug) {
     console.error(`VERIFY FAIL: ${error instanceof Error ? error.message : String(error)}`)
     process.exitCode = 1
   } finally {
-    await browser?.close()
-    preview?.kill('SIGTERM')
+    try {
+      await browser?.close()
+    } finally {
+      if (server) await closeServer(server)
+    }
   }
 }

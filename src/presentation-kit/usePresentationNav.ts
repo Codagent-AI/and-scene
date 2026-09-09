@@ -11,6 +11,9 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
   const [mode, setMode] = useState<PresentationMode>(initialMode)
   const swipeStart = useRef<number | undefined>(undefined)
   const lastIndex = Math.max(0, stepCount - 1)
+  const currentIndex = Math.min(stepIndex, lastIndex)
+
+  if (stepIndex !== currentIndex) setStepIndex(currentIndex)
 
   const goTo = useCallback((index: number) => setStepIndex(Math.max(0, Math.min(lastIndex, index))), [lastIndex])
   const next = useCallback(() => setStepIndex((index) => Math.min(lastIndex, index + 1)), [lastIndex])
@@ -37,7 +40,7 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
 
   return {
     mode,
-    stepIndex,
+    stepIndex: currentIndex,
     goTo,
     next,
     previous,

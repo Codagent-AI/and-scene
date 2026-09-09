@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify a browser-based presentation made from one evolving React scene. Use for presentation, talk, deck, slide-like, or visual narrative requests.
+description: Creates and modifies browser-based React presentations with one evolving scene. Activates for requests to create a presentation, modify a talk, or build an interactive visual narrative.
 ---
 
 # Evolving-scene presentations
@@ -9,6 +9,12 @@ Create browser presentations as a single diagrammatic scene that changes through
 ordered, named steps. Do not make unrelated slide pages. Stable entities keep
 stable `layoutId` values, grouped steps reuse one `Scene`, and each presentation
 owns its visual design outside `src/presentation-kit/`.
+
+## Out of scope
+
+This skill creates a browser application, not native PowerPoint, Keynote, PDF,
+or other document exports. Route those deliverables to an appropriate document
+or slide-generation workflow.
 
 ## Locate this skill's resources
 
@@ -94,9 +100,14 @@ or host stylesheet. The bootstrap includes local `scripts/verify.mjs` and
 
 For a new presentation:
 
-1. Derive a unique kebab-case slug and make `src/presentations/<slug>/`.
-2. Copy `entities.ts.template`, `Talk.tsx.template`, `Scene.tsx.template`, and
-   `presentation.css.template`, then replace their placeholders.
+1. Derive a unique kebab-case slug and make `src/presentations/<slug>/steps/`.
+2. Copy templates with these exact destinations, removing only the `.template`
+   suffix: `PRESENTATION_TEMPLATE/Talk.tsx.template` →
+   `src/presentations/<slug>/Talk.tsx`, `entities.ts.template` →
+   `src/presentations/<slug>/entities.ts`, and `presentation.css.template` →
+   `src/presentations/<slug>/presentation.css`. Copy
+   `STEP_TEMPLATE/Scene.tsx.template` →
+   `src/presentations/<slug>/steps/Scene.tsx`. Then replace their placeholders.
 3. Add one typed `Step` per gathered beat. Every step needs a stable `id`, era,
    title, caption, `Scene`, and payload. Adjacent states of one diagram share a
    `groupKey`; entity ids in `entities.ts` are namespaced by slug and persist

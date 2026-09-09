@@ -72,4 +72,14 @@ describe('presentation skill bootstrap', () => {
     await expect(execFileAsync('npm', ['ci', '--ignore-scripts'], { cwd: directory })).resolves.toMatchObject({ stdout: expect.any(String) })
     await expect(execFileAsync('npm', ['run', 'build'], { cwd: directory })).resolves.toMatchObject({ stdout: expect.any(String) })
   })
+
+  it('owns strict Vite preview servers so verification cannot inspect another app or leak a port', async () => {
+    for (const script of ['verify.mjs', 'inspect-presentation.mjs']) {
+      const source = await readFile(join(bootstrapRoot, 'scripts', script), 'utf8')
+
+      expect(source).toContain("import { preview as startPreview } from 'vite'")
+      expect(source).toContain('strictPort: true')
+      expect(source).toContain('server.httpServer.close')
+    }
+  })
 })

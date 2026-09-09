@@ -142,6 +142,18 @@ describe('Presentation', () => {
     expect(screen.querySelector('[data-presentation-root]')?.getAttribute('data-step-index')).toBe('1')
   })
 
+  it('keeps rendering a valid step when the step list shrinks', () => {
+    const screen = render(<Presentation steps={groupedSteps} title="A title" />)
+
+    press('ArrowRight')
+    expect(screen.querySelector('[data-presentation-root]')?.getAttribute('data-step-index')).toBe('1')
+
+    act(() => root?.render(<Presentation steps={groupedSteps.slice(0, 1)} title="A title" />))
+
+    expect(screen.querySelector('[data-presentation-root]')?.getAttribute('data-step-index')).toBe('0')
+    expect(screen.querySelector('[data-scene-probe]')?.textContent).toBe('one')
+  })
+
   it('does not handle modified browser shortcuts', () => {
     const screen = render(<Presentation steps={groupedSteps} title="A title" />)
 

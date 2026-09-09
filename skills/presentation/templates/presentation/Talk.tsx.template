@@ -1,0 +1,21 @@
+import { Presentation, type Step } from '../../presentation-kit'
+import { Scene } from './steps/Scene'
+import './presentation.css'
+
+type ScenePayload = { readonly message: string }
+
+const STEPS: readonly Step<ScenePayload>[] = [
+  {
+    id: '{{step-id}}',
+    era: '{{era}}',
+    title: '{{title}}',
+    caption: '{{caption}}',
+    groupKey: '{{scene-group}}',
+    Scene,
+    payload: { message: '{{scene-message}}' },
+  },
+]
+
+export default function Talk() {
+  return <Presentation steps={STEPS} title="{{presentation-title}}" initialMode="browse" />
+}

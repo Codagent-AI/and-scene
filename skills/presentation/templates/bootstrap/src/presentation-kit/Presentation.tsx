@@ -11,8 +11,8 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse' }:
   if (steps.length === 0) throw new Error('A presentation needs at least one step.')
   const nav = usePresentationNav(steps.length, initialMode)
   const step = steps[nav.index]
-  return <main className="presentation" aria-label={title} data-presentation data-presentation-mode={nav.mode} style={{ display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr) auto', minHeight: '100vh' }}>
-    <div data-testid="presentation-chrome" data-presentation-chrome data-step-count={steps.length} data-step-index={nav.index} data-presentation-mode={nav.mode}>
+  return <main className="presentation" aria-label={title} data-presentation data-presentation-mode={nav.mode}>
+    <div data-testid="presentation-chrome" data-presentation-chrome data-step-count={steps.length} data-step-index={nav.index} data-presentation-mode={nav.mode} style={{ display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr) auto', minHeight: '100vh' }}>
       <Header step={step} mode={nav.mode} onToggleMode={nav.toggleMode} />
       {nav.mode === 'browse' ? <Toc steps={steps} index={nav.index} onGoTo={nav.goTo} /> : null}
       <Stage step={step} index={nav.index} mode={nav.mode} onTouchStart={nav.onTouchStart} onTouchEnd={nav.onTouchEnd} />

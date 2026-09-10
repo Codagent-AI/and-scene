@@ -24,7 +24,7 @@ export function Toc<TPayload>({ steps, index, onGoTo }: TocProps<TPayload>) {
     if (!result.some((entry) => entry.era === step.era)) result.push({ era: step.era, firstIndex: stepIndex })
     return result
   }, [])
-  return <nav aria-label="Presentation sections" data-presentation-toc>
+  return <nav aria-label="Presentation sections" data-presentation-toc style={{ gridRow: 2 }}>
     {eras.map(({ era, firstIndex }) => {
       const active = steps[index].era === era
       return <button key={era} type="button" aria-current={active ? 'step' : undefined} data-presentation-toc-item data-presentation-active={active || undefined} onClick={() => onGoTo(firstIndex)}>{era}</button>

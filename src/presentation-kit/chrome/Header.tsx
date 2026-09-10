@@ -8,7 +8,7 @@ interface HeaderProps<TPayload> {
 
 export function Header<TPayload>({ step, mode, onToggleMode }: HeaderProps<TPayload>) {
   const nextMode = mode === 'browse' ? 'present' : 'browse'
-  return <header className="presentation-header" data-presentation-header>
+  return <header className="presentation-header" data-presentation-header style={{ gridRow: 1 }}>
     <span data-presentation-marker>{step.era}</span>
     <h1 data-presentation-title>{step.title}</h1>
     <button type="button" onClick={onToggleMode} aria-label={`Switch to ${nextMode} mode`} data-presentation-mode-toggle>{mode}</button>

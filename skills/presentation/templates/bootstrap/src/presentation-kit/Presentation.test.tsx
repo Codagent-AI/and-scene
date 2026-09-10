@@ -134,6 +134,18 @@ test('uses the fixed 880 by 380 design canvas', () => {
   expect(canvas.dataset.designHeight).toBe('380')
 })
 
+test('gives the chrome wrapper the viewport grid that sizes the stage', () => {
+  render(<Presentation steps={steps} title="Layout" />)
+
+  const chrome = screen.getByTestId('presentation-chrome')
+  expect(chrome.style.display).toBe('grid')
+  expect(chrome.style.gridTemplateRows).toBe('auto auto minmax(0, 1fr) auto')
+  expect(chrome.style.minHeight).toBe('100vh')
+  expect(screen.getByTestId('presentation-canvas').parentElement?.parentElement?.style.gridRow).toBe('3')
+  expect(screen.getByRole('navigation', { name: 'Presentation sections' }).style.gridRow).toBe('2')
+  expect(screen.getByRole('contentinfo').style.gridRow).toBe('4')
+})
+
 test('accepts the grouped typed payload contract without a cast', () => {
   const typedStep: Step<Payload> = steps[0]
   expect(typedStep.payload.label).toBe('one')

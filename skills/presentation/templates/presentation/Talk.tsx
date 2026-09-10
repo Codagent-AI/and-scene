@@ -1,4 +1,4 @@
-import { Presentation } from '../../../presentation-kit/Presentation'
+import { Presentation } from '../../presentation-kit/Presentation'
 import { firstStep, type PresentationPayload } from './steps/first'
 import './presentation.css'
 

@@ -10,7 +10,7 @@ interface FooterProps<TPayload> {
 
 export function Footer<TPayload>({ steps, index, onGoTo, onNext, onPrev }: FooterProps<TPayload>) {
   const activeStep = steps[index]
-  return <footer className="presentation-footer" data-presentation-footer>
+  return <footer className="presentation-footer" data-presentation-footer style={{ gridRow: 4 }}>
     <p data-presentation-caption>{activeStep.caption}</p>
     <div data-presentation-progress aria-label="Step progress">
       {steps.map((step, stepIndex) => {

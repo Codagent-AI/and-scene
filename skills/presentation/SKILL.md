@@ -1,12 +1,19 @@
 ---
 name: presentation
-description: Create or modify a browser-based presentation that advances one evolving diagrammatic scene through named steps.
+description: Creates or modifies browser-based presentations built as evolving diagrammatic scenes. Triggers when users ask to create a presentation, build a slide deck, modify presentation steps, or design an animated visual narrative.
 ---
 
 # And Scene presentation skill
 
 Use this procedure to create or modify a presentation. Keep the reusable scene
 kit style-neutral; the presentation or host owns every visual decision.
+
+## Out of Scope
+
+This skill does not create static PowerPoint, Keynote, or PDF decks; edit
+unrelated scene-kit internals; introduce a design system into the style-neutral
+kit; or build non-presentation web applications. Redirect those requests to an
+appropriate export, application-development, or scene-kit-maintenance workflow.
 
 ## 1. Gather, one question at a time
 
@@ -105,5 +112,15 @@ attribution, then rerun the failed check. Mark `data-presentation-allow-overlap`
 only for a deliberate, readable composition.
 
 Report completion only after the build, first-step render, and visual review are
-clean. Summarize the created or changed route, files, commands run, and any
-remaining advisory warning accurately.
+clean. Use this exact report format:
+
+```text
+Route: /<slug>
+Changed files: <comma-separated paths>
+Validation: npm run build — PASS; npm run verify — PASS
+Visual inspection: <steps and viewports inspected>
+Remaining warnings: None
+```
+
+List every command with its PASS or FAIL status. Replace `None` only with
+accurate advisory warnings that remain after review.

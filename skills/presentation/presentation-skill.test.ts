@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, readdir, rm, stat } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { execFile } from 'node:child_process'
@@ -58,5 +58,23 @@ test('INT-001 bootstrap materializes outside the repository with the required an
   expect(bootstrapContents).not.toMatch(/tailwind|--(?:color|font|space)|background(?:-color)?\s*:/i)
 
   await run('npm', ['ci', '--ignore-scripts'], { cwd: destination })
+  await cp(join(repositoryRoot, 'skills/presentation/templates/presentation'), join(destination, 'src/presentations/example'), { recursive: true })
+  await writeFile(join(destination, 'src/presentations/index.ts'), `import type { ComponentType } from 'react'
+
+export interface PresentationRegistration {
+  slug: string
+  title: string
+  load: () => Promise<{ default: ComponentType }>
+}
+
+export const presentations: readonly PresentationRegistration[] = [
+  { slug: 'example', title: 'Example', load: () => import('./example/Talk') },
+]
+
+export function resolvePresentation(pathname: string, registry: readonly PresentationRegistration[] = presentations) {
+  const slug = pathname.replace(/^\\/+|\\/+$/g, '')
+  return slug.includes('/') ? undefined : registry.find((presentation) => presentation.slug === slug)
+}
+`)
   await run('npm', ['run', 'build'], { cwd: destination })
 })

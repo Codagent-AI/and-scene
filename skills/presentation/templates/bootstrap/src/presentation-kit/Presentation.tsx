@@ -31,7 +31,7 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse', h
       </section>
       <Footer title={title} steps={steps} index={index} mode={mode} goTo={goTo} prev={prev} next={next} />
       <button type="button" aria-label={`Switch to ${mode === 'browse' ? 'present' : 'browse'} mode`} data-presentation-mode-toggle="true" onClick={toggleMode}>Switch mode</button>
-      <a href="https://github.com/and-scene/and-scene" data-presentation-attribution="true" style={{ position: 'fixed', right: 0, bottom: 0 }}>made by and-scene</a>
+      <a href="https://github.com/Codagent-AI/and-scene" data-presentation-attribution="true" style={{ position: 'fixed', right: 0, bottom: 0 }}>made by and-scene</a>
     </main>
   )
 }

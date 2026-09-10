@@ -93,6 +93,12 @@ add exactly one explicit registry entry:
 { slug: '<slug>', title: '<title>', load: () => import('./<slug>/Talk') }
 ```
 
+The presentation and step templates use `{{NAME}}` placeholders. Replace every
+placeholder in copied files with the gathered values before building; there is
+no automatic template renderer. Use a valid TypeScript identifier for
+`{{STEP_EXPORT}}`, and escape values for their TypeScript-string, JSX, or CSS
+context. Check the generated folder for unresolved `{{...}}` tokens.
+
 Use the kit primitives rather than modifying the kit for a presentation's
 design. Give every step a concise caption, title, era, and typed payload. Reuse
 stable entity IDs from `entities.ts` across adjacent states so one scene visibly

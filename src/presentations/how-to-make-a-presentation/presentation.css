@@ -14,7 +14,9 @@
 .reference-prompt { left: 49px; top: 112px; padding: 5px 10px; border-radius: 99px; color: #634e82; background: #efe8f9; font-size: 14px; }
 .reference-question { left: 218px; top: 42px; display: flex; gap: 5px; align-items: center; padding: 5px 8px; border-radius: 99px; color: #5e448c; background: #fff5dc; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; }
 .reference-tray-label { left: 126px; top: 182px; color: #827292; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
-.reference-card { top: 199px; width: 103px; height: 78px; padding: 10px; border: 1px solid #b69ad3; border-radius: 10px; background: #fff; box-shadow: 3px 4px 0 #e3d7f0; }
+.reference-card { top: 199px; width: 103px; height: 88px; padding: 8px; border: 1px solid #b69ad3; border-radius: 10px; background: #fff; box-shadow: 3px 4px 0 #e3d7f0; font-size: 12px; line-height: 1.5; }
+.reference-card strong { font-size: 14px; }
+.reference-card small { margin-top: 2px; font-size: 10.5px; }
 .reference-card-number { color: #9b7fc0; font-family: ui-monospace, monospace; font-size: 12px; }
 .reference-card-1 { left: 142px; }.reference-card-2 { left: 262px; }.reference-card-3 { left: 382px; }.reference-card-4 { left: 502px; }
 .reference-ghost { left: 623px; top: 199px; width: 120px; height: 78px; padding: 24px 10px; border: 1px dashed #b9a8ca; border-radius: 10px; color: #9585a5; font-size: 11px; text-align: center; }

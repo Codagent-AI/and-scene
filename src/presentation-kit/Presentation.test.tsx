@@ -156,7 +156,7 @@ describe('Presentation', () => {
 
     expect(screen.getByText('Unstyled').hasAttribute('style')).toBe(false)
     const attribution = screen.getByRole('link', { name: 'made by and-scene' })
-    expect(attribution.getAttribute('href')).toBe('https://github.com/and-scene/and-scene')
+    expect(attribution.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene')
     expect(attribution.getAttribute('data-presentation-attribution')).toBe('true')
     expect(screen.queryByRole('link', { name: 'and-scene' })).toBeNull()
   })

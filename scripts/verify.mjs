@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -7,7 +6,8 @@ import { chromium } from 'playwright'
 const host = '127.0.0.1'
 const port = 4173
 const referenceSlug = 'how-to-make-a-presentation'
-const requestedSlug = process.argv[2]?.replace(/^\/+|\/+$/g, '')
+const requireReference = process.argv.includes('--require-reference-sample') || process.env.AND_SCENE_REQUIRE_REFERENCE_SAMPLE === '1'
+const requestedSlug = process.argv.slice(2).find((argument) => argument !== '--require-reference-sample')?.replace(/^\/+|\/+$/g, '')
 const canonicalOutline = [
   ['the ask', 'You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
   ['the ask', 'The skill interviews you', 'One question at a time: the topic, the look, then each beat of the story.'],
@@ -36,20 +36,19 @@ async function waitForPreview(url) {
   throw new Error(`preview readiness failed at ${url}`)
 }
 
-async function assertReferenceSample() {
-  if (process.env.AND_SCENE_REQUIRE_REFERENCE_SAMPLE !== '1') return
-  const [registry, steps] = await Promise.all([
-    readFile('src/presentations/index.ts', 'utf8'),
-    readFile(`src/presentations/${referenceSlug}/steps/index.tsx`, 'utf8'),
-  ])
-  if (!registry.includes(`slug: '${referenceSlug}'`)) throw new Error(`reference sample is not registered: ${referenceSlug}`)
-  const hasValue = (value) => steps.includes(`'${value}'`) || steps.includes(`"${value}"`)
-  let previous = -1
-  for (const [era, title, caption] of canonicalOutline) {
-    const position = Math.max(steps.indexOf(`'${title}'`), steps.indexOf(`"${title}"`))
-    if (position < 0 || !hasValue(era) || !hasValue(caption)) throw new Error(`reference sample is malformed near “${title}”`)
-    if (position <= previous) throw new Error(`reference sample is out of order near “${title}”`)
-    previous = position
+async function assertReferenceStep(page, index) {
+  const [era, title, caption] = canonicalOutline[index]
+  const rendered = [
+    await page.locator('[data-presentation-toc] [aria-current="step"]').textContent(),
+    await page.locator('[data-presentation-progress] [aria-current="step"]').getAttribute('aria-label'),
+    await page.locator('[data-presentation-caption]').textContent(),
+  ]
+  for (const [field, actual, expected] of [
+    ['era', rendered[0], `Go to ${era}`],
+    ['title', rendered[1], `Go to step ${index + 1}: ${title}`],
+    ['caption', rendered[2], caption],
+  ]) {
+    if (actual !== expected) throw new Error(`reference sample failed at step ${index + 1}: ${field} expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`)
   }
 }
 
@@ -62,26 +61,34 @@ async function verifyRoute(slug) {
     const browser = await chromium.launch({ headless: true })
     try {
       const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+      page.setDefaultTimeout(2500)
       let currentStep = 0
       const browserErrors = []
       page.on('console', (message) => { if (message.type() === 'error') browserErrors.push({ step: currentStep + 1, message: message.text() }) })
       page.on('pageerror', (error) => browserErrors.push({ step: currentStep + 1, message: error.message }))
+      if (requireReference && slug === referenceSlug) {
+        await page.goto(`http://${host}:${port}/`, { waitUntil: 'networkidle' })
+        if (await page.locator(`a[href="/${referenceSlug}"]`).count() !== 1) throw new Error(`reference sample is not registered: ${referenceSlug}`)
+      }
       await page.goto(url, { waitUntil: 'networkidle' })
       const root = page.locator('[data-presentation-root]')
       const count = Number(await root.getAttribute('data-step-count'))
       if (!Number.isInteger(count) || count < 1) throw new Error(`render phase failed: route /${slug} did not expose a valid data-step-count`)
-      if (slug === referenceSlug && process.env.AND_SCENE_REQUIRE_REFERENCE_SAMPLE === '1' && count !== 9) throw new Error(`render phase failed: expected 9 reference steps, received ${count}`)
+      if (slug === referenceSlug && requireReference && count !== 9) throw new Error(`render phase failed: expected 9 reference steps, received ${count}`)
+      if (requireReference && slug === referenceSlug && await root.getAttribute('data-presentation-mode') === 'present') await page.keyboard.press('p')
       for (let index = 0; index < count; index += 1) {
         currentStep = index
-        await page.waitForFunction((expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === expected, String(index), { timeout: 2500 })
+        try {
+          if (index > 0) await page.keyboard.press('ArrowRight')
+          await page.waitForFunction((expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === expected, String(index), { timeout: 2500 })
+        } catch (error) {
+          throw new Error(`render phase failed at step ${index + 1}: ${browserErrors[0]?.message ?? error.message}`)
+        }
         if (browserErrors.length) {
           const error = browserErrors[0]
           throw new Error(`render phase failed at step ${error.step}: ${error.message}`)
         }
-        if (index + 1 < count) {
-          await page.keyboard.press('ArrowRight')
-          await page.waitForFunction((expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === expected, String(index + 1), { timeout: 2500 })
-        }
+        if (requireReference && slug === referenceSlug) await assertReferenceStep(page, index)
       }
       if (browserErrors.length) {
         const error = browserErrors[0]
@@ -98,9 +105,10 @@ async function verifyRoute(slug) {
 }
 
 async function main() {
-  await assertReferenceSample()
   await run('npm', ['run', 'build'])
-  await verifyRoute(requestedSlug || referenceSlug)
+  if (requireReference) await verifyRoute(referenceSlug)
+  if (requestedSlug && (!requireReference || requestedSlug !== referenceSlug)) await verifyRoute(requestedSlug)
+  else if (!requireReference && !requestedSlug) throw new Error('Usage: npm run verify -- <presentation-slug>')
 }
 
 main().then(() => console.log('Presentation verification passed.')).catch((error) => {

@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "preview": "vite preview",
-    "verify": "AND_SCENE_REQUIRE_REFERENCE_SAMPLE=1 node scripts/verify.mjs",
+    "verify": "node scripts/verify.mjs --require-reference-sample",
     "inspect": "node scripts/inspect-presentation.mjs"
   },
   "dependencies": {

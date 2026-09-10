@@ -41,12 +41,20 @@ try {
       await page.screenshot({ path: resolve(outputDirectory, `${String(index + 1).padStart(2, '0')}.png`), fullPage: true })
       const diagnostics = await page.evaluate(() => {
         const visible = (element) => { const style = getComputedStyle(element); const box = element.getBoundingClientRect(); return style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0 && box.width > 0 && box.height > 0 }
-        const textElements = [...document.querySelectorAll('[data-presentation-canvas-host] *, [data-presentation-header] *, [data-presentation-footer] *, [data-presentation-toc] *, [data-presentation-mode-toggle]')].filter((element) => visible(element) && element.children.length === 0 && [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()))
-        const overlap = (a, b) => { const x = a.getBoundingClientRect(); const y = b.getBoundingClientRect(); return x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top }
+        const textElements = [...document.querySelectorAll('[data-presentation-canvas-host] *, [data-presentation-header] *, [data-presentation-footer] *, [data-presentation-toc] *, [data-presentation-mode-toggle]')]
+          .filter(visible)
+          .flatMap((element) => [...element.childNodes]
+            .filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim())
+            .flatMap((node) => {
+              const range = document.createRange()
+              range.selectNodeContents(node)
+              return [...range.getClientRects()].map((box) => ({ element, node, box, text: node.textContent.trim() }))
+            }))
+        const overlap = (a, b) => { const x = a.box; const y = b.box; return x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top }
         const permitted = (element) => Boolean(element.closest('[data-presentation-allow-overlap="true"]'))
         const collisions = []
         for (let a = 0; a < textElements.length; a += 1) for (let b = a + 1; b < textElements.length; b += 1) {
-          if (!permitted(textElements[a]) && !permitted(textElements[b]) && overlap(textElements[a], textElements[b])) collisions.push(`${textElements[a].textContent?.trim().slice(0, 30)} / ${textElements[b].textContent?.trim().slice(0, 30)}`)
+          if (textElements[a].node !== textElements[b].node && !permitted(textElements[a].element) && !permitted(textElements[b].element) && overlap(textElements[a], textElements[b])) collisions.push(`${textElements[a].text.slice(0, 30)} / ${textElements[b].text.slice(0, 30)}`)
         }
         const activeControls = [...document.querySelectorAll('[data-presentation-active="true"]')]
         const indistinct = activeControls.some((active) => {

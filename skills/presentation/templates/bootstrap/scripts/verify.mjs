@@ -31,6 +31,7 @@ async function waitForPreview(url) {
 async function main() {
   await run('npm', ['run', 'build'])
   const preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
+  const previewExited = once(preview, 'exit')
   try {
     const url = `http://${host}:${port}${requestedSlug ? `/${requestedSlug.replace(/^\/+/, '')}` : '/'}`
     await waitForPreview(url)
@@ -53,8 +54,8 @@ async function main() {
       await browser.close()
     }
   } finally {
-    preview.kill('SIGTERM')
-    await once(preview, 'exit').catch(() => undefined)
+    if (preview.exitCode === null && preview.signalCode === null) preview.kill('SIGTERM')
+    await previewExited.catch(() => undefined)
   }
 }
 

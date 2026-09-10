@@ -55,6 +55,7 @@ async function assertReferenceSample() {
 
 async function verifyRoute(slug) {
   const preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
+  const previewExited = once(preview, 'exit')
   try {
     const url = `http://${host}:${port}/${slug}`
     await waitForPreview(url)
@@ -91,8 +92,8 @@ async function verifyRoute(slug) {
       await browser.close()
     }
   } finally {
-    preview.kill('SIGTERM')
-    await once(preview, 'exit').catch(() => undefined)
+    if (preview.exitCode === null && preview.signalCode === null) preview.kill('SIGTERM')
+    await previewExited.catch(() => undefined)
   }
 }
 

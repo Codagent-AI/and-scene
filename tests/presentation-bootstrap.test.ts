@@ -1,10 +1,12 @@
-import { access, cp, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { access, cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { afterEach, describe, expect, it } from 'vitest'
+import { chromium } from 'playwright'
+import { preview } from 'vite'
 
 const execFileAsync = promisify(execFile)
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -65,6 +67,46 @@ describe('presentation bootstrap template', () => {
 
     const kitText = (await Promise.all(sourceKitFiles.map((file) => readFile(join(target, 'src/presentation-kit', file), 'utf8')))).join('\n')
     expect(kitText).not.toMatch(/tailwind|font-family|background(?:-color)?\s*:|box-shadow|border(?:-color)?\s*:/i)
+    await writeFile(join(target, 'src/presentations/Smoke.tsx'), `
+      import { Presentation } from '../presentation-kit'
+      const Scene = () => <div>Bootstrap route content</div>
+      export default function Smoke() {
+        return <Presentation title="Bootstrap smoke" steps={[
+          { id: 'first', era: 'start', title: 'First step', caption: 'Ready to present', payload: null, Scene },
+        ]} />
+      }
+    `)
+    await writeFile(join(target, 'src/presentations/index.ts'), `
+      export const presentations = [
+        { slug: 'bootstrap-smoke', title: 'Bootstrap smoke', load: () => import('./Smoke') },
+      ]
+    `)
     await expect(execFileAsync('npm', ['run', 'build'], { cwd: target })).resolves.toMatchObject({ stderr: expect.any(String) })
+    const server = await preview({ root: target, configFile: false, preview: { host: '127.0.0.1', port: 0 } })
+    try {
+      const browser = await chromium.launch()
+      try {
+        const page = await browser.newPage()
+        const errors: string[] = []
+        page.on('pageerror', (error) => errors.push(error.message))
+        page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
+        await page.goto(new URL('/bootstrap-smoke', server.resolvedUrls!.local[0]).href)
+        await page.locator('[data-step-index="0"]').waitFor()
+        expect(await page.getByText('Bootstrap route content').isVisible()).toBe(true)
+        // Headless Chromium may omit its automatic favicon request. Resolve the
+        // document's icon (or browser fallback) explicitly to cover the asset.
+        const iconUrl = await page.evaluate(() =>
+          document.querySelector<HTMLLinkElement>('link[rel~="icon"]')?.href ?? new URL('/favicon.ico', location.href).href,
+        )
+        const icon = await fetch(iconUrl)
+        expect(icon.ok, `favicon ${iconUrl}: HTTP ${icon.status}`).toBe(true)
+        expect(icon.headers.get('content-type')).toMatch(/^image\//)
+        expect(errors).toEqual([])
+      } finally {
+        await browser.close()
+      }
+    } finally {
+      await new Promise<void>((resolve, reject) => server.httpServer.close((error) => error ? reject(error) : resolve()))
+    }
   }, 60000)
 })

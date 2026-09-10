@@ -1,21 +1,19 @@
-/** Stable layoutId namespace — entities morph across steps when ids match. */
-export const ENTITIES = {
-  you: 'you',
-  prompt: 'prompt',
-  questionChip: 'question-chip',
-  convoArrow: 'convo-arrow',
-  skill: 'skill',
-  stepCard1: 'step-card-1',
-  stepCard2: 'step-card-2',
-  stepCard3: 'step-card-3',
-  ghostCard: 'ghost-card',
-  depthChip: 'depth-chip',
-  tray: 'tray',
-  kitSocket: 'kit-socket',
-  verifyArrow: 'verify-arrow',
-  verifyNode: 'verify-node',
-  greenCheck: 'green-check',
-  editBadge: 'edit-badge',
-} as const
+const prefix = 'how-to-make-a-presentation'
 
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]
+export const entities = {
+  you: `${prefix}:you`,
+  prompt: `${prefix}:prompt`,
+  skill: `${prefix}:skill`,
+  conversation: `${prefix}:conversation`,
+  question: `${prefix}:question`,
+  tray: `${prefix}:tray`,
+  depth: `${prefix}:depth`,
+  kit: `${prefix}:scene-kit`,
+  verify: `${prefix}:verify`,
+  verifyLink: `${prefix}:verify-link`,
+  modify: `${prefix}:modify`,
+  edited: `${prefix}:edited`,
+  reveal: `${prefix}:reveal`,
+  cards: Array.from({ length: 5 }, (_, index) => `${prefix}:step-card-${index + 1}`),
+  cardLinks: Array.from({ length: 4 }, (_, index) => `${prefix}:step-link-${index + 1}`),
+} as const

@@ -1,15 +1,9 @@
-import { Presentation } from '../../presentation-kit'
-import { introStep } from './steps/intro'
+import { Presentation } from '../../presentation-kit/Presentation'
+import { firstStep, type PresentationPayload } from './steps/first'
+import './presentation.css'
 
-/** Replace with all steps for the talk; keep order stable for navigation. */
-const STEPS = [introStep]
+const STEPS = [firstStep] as const
 
 export default function Talk() {
-  return (
-    <Presentation
-      steps={STEPS}
-      title="{{PRESENTATION_TITLE}}"
-      initialMode="browse"
-    />
-  )
+  return <Presentation<PresentationPayload> steps={STEPS} title="Replace with presentation title" initialMode="browse" />
 }

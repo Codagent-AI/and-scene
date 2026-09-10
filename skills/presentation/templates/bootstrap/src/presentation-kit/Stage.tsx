@@ -1,62 +1,33 @@
-import { AnimatePresence, LayoutGroup } from 'motion/react'
-import { DESIGN_H, STAGE_LAYOUT } from './constants'
+import { useState } from 'react'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { DESIGN_H, DESIGN_W, EASE, ENTER_T } from './constants'
 import { useFitScale } from './useFitScale'
-import type { Mode, Step } from './types'
+import type { PresentationMode, Step } from './types'
 
-/**
- * The fixed design canvas, scaled to fit the gap between header and footer.
- * transform-origin is the canvas center and the canvas is flex-centered, so the
- * diagram stays centered at any scale.
- *
- * Hosts the LayoutGroup + AnimatePresence: only the active step's Scene is
- * mounted (keyed by groupKey, falling back to id), so when the step changes the
- * outgoing and incoming scenes coexist briefly and their shared layoutId
- * elements morph between them. Steps that share a groupKey (and Scene) are NOT
- * remounted when navigating between them — the same instance persists and only
- * its `step` prop changes, so on-screen elements update in place instead of
- * re-animating. See StepMeta.groupKey.
- */
-export function Stage<P extends Record<string, unknown> = Record<string, unknown>>({
-  step,
-  mode,
-}: {
-  step: Step<P>
-  mode: Mode
-}) {
-  const layout = STAGE_LAYOUT[mode]
-  const scale = useFitScale(layout)
+interface StageProps<TPayload> {
+  step: Step<TPayload>
+  index: number
+  mode: PresentationMode
+  onTouchStart: (event: React.TouchEvent) => void
+  onTouchEnd: (event: React.TouchEvent) => void
+}
+
+export function Stage<TPayload>({ step, index, mode, onTouchStart, onTouchEnd }: StageProps<TPayload>) {
+  const [stage, setStage] = useState<HTMLElement | null>(null)
+  const scale = useFitScale(stage, mode)
   const Scene = step.Scene
-
-  return (
-    <div
-      data-presentation-stage-shell
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: layout.top,
-        bottom: layout.bottom,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <div
-        data-presentation-stage
-        style={{
-          position: 'relative',
-          flexShrink: 0,
-          width: layout.fitW,
-          height: DESIGN_H,
-          transform: `scale(${scale})`,
-        }}
-      >
-        <LayoutGroup>
-          <AnimatePresence>
-            <Scene key={step.groupKey ?? step.id} step={step} />
+  const sceneKey = step.groupKey ?? step.id
+  return <section ref={setStage} className="presentation-stage" data-presentation-stage onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ display: 'grid', gridRow: 3, minHeight: 0, minWidth: 0, overflow: 'hidden', placeItems: 'center' }}>
+    <div style={{ width: DESIGN_W * scale, height: DESIGN_H * scale }}>
+      <div data-testid="presentation-canvas" data-presentation-canvas data-design-width={DESIGN_W} data-design-height={DESIGN_H} style={{ width: DESIGN_W, height: DESIGN_H, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+        <LayoutGroup id={sceneKey}>
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.div key={sceneKey} className="presentation-scene" data-presentation-scene data-presentation-scene-group={step.groupKey} initial={step.groupKey ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: ENTER_T, ease: EASE }}>
+              <Scene payload={step.payload} step={step} index={index} />
+            </motion.div>
           </AnimatePresence>
         </LayoutGroup>
       </div>
     </div>
-  )
+  </section>
 }

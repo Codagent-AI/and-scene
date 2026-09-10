@@ -1,0 +1,15 @@
+.presentation[data-presentation] .replace-with-presentation-entity {
+  position: absolute;
+  left: 80px;
+  top: 100px;
+  padding: 16px;
+  border: 1px solid currentColor;
+}
+
+.presentation[data-presentation] [data-presentation-attribution] {
+  font-size: 12px;
+}
+
+.presentation[data-presentation] [data-presentation-active] {
+  font-weight: 700;
+}

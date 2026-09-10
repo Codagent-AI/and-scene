@@ -16,6 +16,14 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
   const next = useCallback(() => goTo(index + 1), [goTo, index])
   const prev = useCallback(() => goTo(index - 1), [goTo, index])
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])
+  const clampedIndex = clampStep(index, count)
+
+  useEffect(() => {
+    if (index === clampedIndex) return
+    // The derived index keeps the current render usable; this synchronizes it for later expansions.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIndex(clampedIndex)
+  }, [clampedIndex, index])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -57,5 +65,5 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
     setTouchStart(null)
   }, [next, prev, touchStart])
 
-  return { index: clampStep(index, count), mode, goTo, next, prev, toggleMode, onTouchStart, onTouchEnd }
+  return { index: clampedIndex, mode, goTo, next, prev, toggleMode, onTouchStart, onTouchEnd }
 }

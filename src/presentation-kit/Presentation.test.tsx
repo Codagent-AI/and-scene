@@ -85,6 +85,21 @@ describe('Presentation', () => {
     expect(screen.getByText('one')).not.toBeNull()
   })
 
+  it('retains the clamped step when a shortened live step list grows again', () => {
+    function Scene({ payload }: SceneProps<Payload>) {
+      return <div>{payload.message}</div>
+    }
+    const steps = buildSteps(Scene)
+    const { rerender } = render(<Presentation steps={steps} title="Changing deck" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next step' }))
+    rerender(<Presentation steps={[steps[0]]} title="Changing deck" />)
+    rerender(<Presentation steps={steps} title="Changing deck" />)
+
+    expect(screen.getByTestId('presentation-root').getAttribute('data-step-index')).toBe('0')
+    expect(screen.getByText('one')).not.toBeNull()
+  })
+
   it('does not treat a touch gesture that starts on a control as slide navigation', () => {
     function Scene({ payload }: SceneProps<Payload>) {
       return <div>{payload.message}</div>

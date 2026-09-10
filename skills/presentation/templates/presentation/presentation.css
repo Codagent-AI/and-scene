@@ -1,0 +1,5 @@
+/* This presentation owns its visual direction. Replace these selectors with its designed treatment. */
+.{{SLUG}}-scene {
+  display: grid;
+  place-items: center;
+}

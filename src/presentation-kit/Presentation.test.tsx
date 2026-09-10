@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { useEffect } from 'react'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -55,6 +56,17 @@ test('keeps a grouped typed scene mounted while its payload changes', async () =
 
   expect(screen.getByText('two')).toBeTruthy()
   expect(sceneMounts).toBe(1)
+})
+
+test('clamps the active step when a mounted presentation receives fewer steps', async () => {
+  const user = userEvent.setup()
+  const { rerender } = render(<Presentation steps={steps} title="Changing steps" />)
+
+  await user.click(screen.getByRole('button', { name: 'Next step' }))
+  rerender(<Presentation steps={steps.slice(0, 1)} title="Changing steps" />)
+
+  expect(screen.getByTestId('presentation-chrome').dataset.stepIndex).toBe('0')
+  expect(screen.getByText('one')).toBeTruthy()
 })
 
 test('exposes active navigation semantics and direct step jumps', async () => {

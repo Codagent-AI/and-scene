@@ -24,6 +24,7 @@ export function usePresentationNav(
   const [mode, setMode] = useState<PresentationMode>(initialMode)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null)
   const lastIndex = Math.max(0, stepCount - 1)
+  const normalizedIndex = Math.min(index, lastIndex)
   const goTo = useCallback((nextIndex: number) => {
     setIndex(Math.max(0, Math.min(lastIndex, nextIndex)))
   }, [lastIndex])
@@ -56,7 +57,7 @@ export function usePresentationNav(
   }, [next, prev, toggleMode])
 
   return {
-    index,
+    index: normalizedIndex,
     mode,
     next,
     prev,

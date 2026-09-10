@@ -30,7 +30,7 @@ async function waitForPreview(url) {
 
 async function main() {
   await run('npm', ['run', 'build'])
-  const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit', shell: process.platform === 'win32' })
+  const preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
   try {
     const url = `http://${host}:${port}${requestedSlug ? `/${requestedSlug.replace(/^\/+/, '')}` : '/'}`
     await waitForPreview(url)

@@ -1,0 +1,32 @@
+.reference-scene { color: #241f32; font-family: Georgia, 'Times New Roman', serif; }
+.reference-scene [data-presentation-node], .reference-scene [data-entity-id] { position: absolute; }
+.reference-wires { position: absolute; inset: 0; width: 880px; height: 380px; overflow: visible; }
+.reference-line, .reference-tray-line, .reference-link, .reference-modify-line { fill: none; stroke: #8e76bc; stroke-width: 2; stroke-linecap: round; }
+.reference-tray-line { stroke: #cbbbe2; stroke-width: 4; }
+.reference-link { stroke-dasharray: 3 5; }
+.reference-modify-line { stroke: #d28462; stroke-dasharray: 4 5; }
+.reference-person { width: 136px; min-height: 56px; padding: 10px 12px; border: 1px solid #614a8a; border-radius: 12px; background: #fcf9ff; box-shadow: 0 6px 0 #e9dff7; }
+.reference-person strong, .reference-card strong { display: block; font-size: 17px; }
+.reference-person span, .reference-card small { display: block; margin-top: 3px; color: #6f6381; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; line-height: 1.2; }
+.reference-you { left: 50px; top: 47px; }
+.reference-skill { left: 348px; top: 47px; display: flex; gap: 7px; align-items: flex-start; background: #f1edff; }
+.reference-skill svg { flex: 0 0 auto; color: #7856a7; }
+.reference-prompt { left: 49px; top: 112px; padding: 5px 10px; border-radius: 99px; color: #634e82; background: #efe8f9; font-size: 14px; }
+.reference-question { left: 218px; top: 42px; display: flex; gap: 5px; align-items: center; padding: 5px 8px; border-radius: 99px; color: #5e448c; background: #fff5dc; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; }
+.reference-tray-label { left: 126px; top: 182px; color: #827292; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+.reference-card { top: 199px; width: 103px; height: 78px; padding: 10px; border: 1px solid #b69ad3; border-radius: 10px; background: #fff; box-shadow: 3px 4px 0 #e3d7f0; }
+.reference-card-number { color: #9b7fc0; font-family: ui-monospace, monospace; font-size: 12px; }
+.reference-card-1 { left: 142px; }.reference-card-2 { left: 262px; }.reference-card-3 { left: 382px; }.reference-card-4 { left: 502px; }
+.reference-ghost { left: 623px; top: 199px; width: 120px; height: 78px; padding: 24px 10px; border: 1px dashed #b9a8ca; border-radius: 10px; color: #9585a5; font-size: 11px; text-align: center; }
+.reference-depth { left: 214px; top: 132px; padding: 6px 8px; border: 1px solid #d8c7a4; border-radius: 8px; background: #fff9e9; color: #85662d; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; }.reference-depth span { color: #a46e44; }
+.reference-kit { left: 352px; top: 301px; display: flex; gap: 7px; align-items: center; padding: 8px 10px; border: 1px solid #97b4a3; border-radius: 9px; background: #eff9f2; color: #37634b; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; }.reference-kit span { color: #668575; font-size: 10px; }
+.reference-verify { left: 623px; top: 293px; display: flex; gap: 6px; align-items: center; padding: 9px; border: 1px solid #7fb292; border-radius: 9px; color: #356a49; background: #effaf2; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10px; }.reference-verify strong { color: #22703f; }
+.reference-edited { left: 242px; top: 310px; padding: 4px 7px; border-radius: 99px; color: #954f35; background: #fff1e9; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10px; }
+.reference-reveal { left: 26px; top: 22px; width: 748px; height: 325px; border: 2px solid #d27d58; border-radius: 17px; pointer-events: none; }.reference-reveal span { position: absolute; right: 16px; top: -13px; padding: 3px 8px; border-radius: 99px; color: #8f4c34; background: #fff4ed; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10px; }
+
+main[data-presentation-root] { min-height: 100vh; overflow: hidden; background: #faf6ef; color: #2d263b; }
+[data-presentation-header] { position: fixed; z-index: 3; top: 22px; left: 34px; } [data-presentation-title] { margin: 0; font-size: 18px; font-weight: 600; } [data-presentation-present-heading] { display: flex; gap: 10px; align-items: center; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 14px; } [data-presentation-marker] { padding: 4px 8px; border-radius: 99px; color: #795b9e; background: #ede4f5; font-size: 10px; text-transform: uppercase; }
+[data-presentation-toc] { position: fixed; z-index: 3; top: 21px; right: 34px; display: flex; gap: 5px; } [data-presentation-root] button { border: 0; cursor: pointer; } [data-presentation-toc] button, [data-presentation-progress] button { padding: 5px 7px; border-radius: 6px; color: #796c86; background: transparent; font-size: 10px; } [data-presentation-toc] button[data-presentation-active='true'], [data-presentation-progress] button[data-presentation-active='true'] { color: #fff; background: #725090; }
+[data-presentation-footer] { position: fixed; z-index: 3; right: 34px; bottom: 22px; left: 34px; display: flex; align-items: end; justify-content: space-between; gap: 20px; } [data-presentation-caption] { max-width: 520px; margin: 0; color: #62586d; font-size: 14px; line-height: 1.35; } [data-presentation-controls] { display: flex; gap: 7px; align-items: center; font-family: ui-sans-serif, system-ui, sans-serif; } [data-presentation-controls] > button { padding: 7px 9px; border-radius: 7px; color: #574b62; background: #eee7f2; font-size: 11px; }
+[data-presentation-mode-toggle] { position: fixed; z-index: 4; right: 35px; top: 68px; padding: 5px 8px; border-radius: 7px; color: #66516f; background: #f0e9f1; font-size: 10px; } [data-presentation-attribution] { position: fixed; z-index: 4; right: 10px; bottom: 4px; color: #70567b; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; text-decoration: none; } [data-presentation-attribution]:hover { text-decoration: underline; }
+@media (max-width: 899px) { [data-presentation-header] { left: 20px; top: 15px; } [data-presentation-footer] { right: 20px; bottom: 18px; left: 20px; } [data-presentation-caption] { max-width: 56vw; font-size: 12px; } [data-presentation-mode-toggle] { right: 20px; top: 48px; } [data-presentation-controls] { gap: 4px; } [data-presentation-progress] { display: flex; gap: 3px; align-items: center; } [data-presentation-progress] button { width: 9px; height: 9px; padding: 0; border-radius: 99px; font-size: 0; } [data-presentation-progress] button[data-presentation-active='true'] { transform: scale(1.35); } }

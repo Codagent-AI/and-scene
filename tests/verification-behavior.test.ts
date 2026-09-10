@@ -1,21 +1,16 @@
-import { cp, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { afterEach, describe, expect, it } from 'vitest'
+import { createAppFixture } from './helpers/app-fixture'
 
 const exec = promisify(execFile)
-const root = process.cwd()
 const copies: string[] = []
 
 async function fixture() {
-  const directory = await mkdtemp(join(tmpdir(), 'and-scene-verification-'))
+  const directory = await createAppFixture('and-scene-verification-')
   copies.push(directory)
-  for (const file of ['src', 'scripts', 'package.json', 'index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json']) {
-    await cp(join(root, file), join(directory, file), { recursive: true })
-  }
-  await symlink(join(root, 'node_modules'), join(directory, 'node_modules'), 'dir')
   return directory
 }
 

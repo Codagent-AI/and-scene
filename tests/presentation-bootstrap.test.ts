@@ -57,8 +57,10 @@ describe('presentation bootstrap template', () => {
     for (const file of sourceKitFiles) {
       expect(await readFile(join(target, 'src/presentation-kit', file), 'utf8')).toBe(await readFile(join(kitRoot, file), 'utf8'))
     }
-    for (const script of ['scripts/verify.mjs', 'scripts/inspect-presentation.mjs']) {
-      expect(await readFile(join(target, script), 'utf8')).toBe(await readFile(join(repositoryRoot, script), 'utf8'))
+    const scripts = await filesBelow(join(repositoryRoot, 'scripts'))
+    expect(await filesBelow(join(target, 'scripts'))).toEqual(scripts)
+    for (const script of scripts) {
+      expect(await readFile(join(target, 'scripts', script), 'utf8')).toBe(await readFile(join(repositoryRoot, 'scripts', script), 'utf8'))
     }
 
     const kitText = (await Promise.all(sourceKitFiles.map((file) => readFile(join(target, 'src/presentation-kit', file), 'utf8')))).join('\n')

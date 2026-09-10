@@ -13,6 +13,11 @@ export const canonicalSteps = [
   ['the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ]
 
+export function findCanonicalStepEnd(source, fields, cursor) {
+  const start = cursor < 0 ? 0 : cursor + 1
+  return fields.reduce((position, value) => position < 0 ? -1 : source.indexOf(value, position), start)
+}
+
 export function validateReferenceSample(registry, steps) {
   const registration = registry.find((entry) => entry.slug === sampleSlug)
   if (!registration || registration.title !== sampleTitle) {

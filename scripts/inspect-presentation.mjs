@@ -4,7 +4,7 @@ import { createServer } from 'node:net'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-import { attributionWarning, overlapWarnings, stylesAreIndistinct } from './inspection-diagnostics.mjs'
+import { attributionWarning, inspectionOutputDirectory, overlapWarnings, stylesAreIndistinct } from './inspection-diagnostics.mjs'
 
 const host = '127.0.0.1'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -78,7 +78,7 @@ async function main() {
   let browser
   try {
     await waitFor(origin)
-    const output = resolve(root, 'artifacts/presentation-inspection', slug)
+    const output = inspectionOutputDirectory(root, slug)
     await mkdir(output, { recursive: true })
     browser = await chromium.launch({ headless: true })
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })

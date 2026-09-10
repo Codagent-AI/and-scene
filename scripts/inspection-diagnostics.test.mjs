@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { attributionWarning, overlapWarnings, stylesAreIndistinct } from './inspection-diagnostics.mjs'
+import { attributionWarning, inspectionOutputDirectory, overlapWarnings, stylesAreIndistinct } from './inspection-diagnostics.mjs'
 
 test('reports unmarked collisions but exempts intentional overlap', () => {
   const candidates = [
@@ -14,4 +14,10 @@ test('detects indistinct active chrome and unpolished attribution', () => {
   expect(stylesAreIndistinct({ color: 'rgb(1, 1, 1)', backgroundColor: 'transparent', borderColor: 'rgb(2, 2, 2)' }, { color: 'rgb(1, 1, 1)', backgroundColor: 'transparent', borderColor: 'rgb(2, 2, 2)' })).toBe(true)
   expect(attributionWarning({ fontSize: 9, color: 'rgb(0, 0, 238)' })).toContain('attribution')
   expect(attributionWarning(null)).toContain('missing')
+})
+
+test('keeps inspection artifacts beneath the fixed output directory', () => {
+  expect(inspectionOutputDirectory('/project', 'safe-presentation')).toBe('/project/artifacts/presentation-inspection/safe-presentation')
+  expect(() => inspectionOutputDirectory('/project', '../outside')).toThrow('safe presentation slug')
+  expect(() => inspectionOutputDirectory('/project', '/tmp/outside')).toThrow('safe presentation slug')
 })

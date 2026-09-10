@@ -4,7 +4,7 @@ import { createServer } from 'node:net'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-import { canonicalSteps, sampleSlug } from './reference-sample.mjs'
+import { canonicalSteps, findCanonicalStepEnd, sampleSlug } from './reference-sample.mjs'
 
 const host = '127.0.0.1'
 const root = resolve(process.env.AND_SCENE_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '..'))
@@ -48,7 +48,7 @@ async function validateReferenceFiles() {
   let cursor = -1
   for (let index = 0; index < canonicalSteps.length; index += 1) {
     const [era, title, caption] = canonicalSteps[index]
-    const nextCursor = [era, title, caption].reduce((position, value) => position < -1 ? -1 : steps.indexOf(value, position + 1), cursor)
+    const nextCursor = findCanonicalStepEnd(steps, [era, title, caption], cursor)
     if (nextCursor < 0) {
       throw new Error(`reference sample step ${index + 1} is missing or out of canonical order`)
     }

@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { chromium } from 'playwright'
-import { attributionWarning, overlapWarnings, stylesAreIndistinct } from './inspection-diagnostics.mjs'
+import { attributionWarning, inspectionOutputDirectory, overlapWarnings, stylesAreIndistinct } from './inspection-diagnostics.mjs'
 
 const host = '127.0.0.1'
 const slug = process.argv[2]
@@ -30,7 +30,7 @@ const origin = `http://${host}:${previewPort}`
 const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(previewPort), '--strictPort'], { stdio: 'inherit', shell: process.platform === 'win32' })
 try {
   await ready(origin)
-  const output = resolve('artifacts/presentation-inspection', slug)
+  const output = inspectionOutputDirectory(process.cwd(), slug)
   await mkdir(output, { recursive: true })
   const browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })

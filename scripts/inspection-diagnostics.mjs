@@ -1,4 +1,18 @@
+import { relative, resolve, sep } from 'node:path'
+
 const collisionThreshold = 4
+const presentationSlug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+export function inspectionOutputDirectory(root, slug) {
+  if (!presentationSlug.test(slug)) throw new Error('provide a safe presentation slug')
+  const outputRoot = resolve(root, 'artifacts/presentation-inspection')
+  const output = resolve(outputRoot, slug)
+  const pathFromOutputRoot = relative(outputRoot, output)
+  if (pathFromOutputRoot === '' || pathFromOutputRoot.startsWith(`..${sep}`) || pathFromOutputRoot === '..') {
+    throw new Error('presentation inspection output must remain beneath the artifact directory')
+  }
+  return output
+}
 
 function overlaps(first, second) {
   return Math.min(first.rect.right, second.rect.right) - Math.max(first.rect.left, second.rect.left) > collisionThreshold

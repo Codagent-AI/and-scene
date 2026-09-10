@@ -1,42 +1,11 @@
-import { createRequire } from 'node:module'
-import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import { chromium } from 'playwright'
 import { canonicalSteps, findCanonicalStepEnd, sampleSlug } from './reference-sample.mjs'
+import { buildApplication, projectRoot, withPreview } from './preview-server.mjs'
 
-const host = '127.0.0.1'
-const root = resolve(process.env.AND_SCENE_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '..'))
+const root = resolve(process.env.AND_SCENE_ROOT || projectRoot)
 const transitionTimeout = Number(process.env.VERIFY_TRANSITION_TIMEOUT || 3000)
-
-function run(command, args) {
-  return new Promise((resolveRun, reject) => {
-    const child = spawn(command, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' })
-    child.once('error', reject)
-    child.once('exit', (code) => code === 0 ? resolveRun() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
-  })
-}
-
-function availablePort() {
-  return new Promise((resolvePort, reject) => {
-    const server = createServer()
-    server.once('error', reject)
-    server.listen(0, host, () => {
-      const address = server.address()
-      server.close((error) => error ? reject(error) : resolvePort(address.port))
-    })
-  })
-}
-
-async function waitFor(url) {
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    try { if ((await fetch(url)).ok) return } catch { /* preview is starting */ }
-    await new Promise((resolveWait) => setTimeout(resolveWait, 100))
-  }
-  throw new Error(`preview did not become ready at ${url}`)
-}
 
 async function validateReferenceFiles() {
   const [registry, steps] = await Promise.all([
@@ -58,14 +27,14 @@ async function validateReferenceFiles() {
 }
 
 async function main() {
-  await run('npm', ['run', 'build'])
+  await buildApplication(root)
   await validateReferenceFiles()
-  const port = await availablePort()
-  const origin = `http://${host}:${port}`
-  const preview = spawn(process.execPath, [createRequire(import.meta.url).resolve('vite/package.json').replace(/package\.json$/, 'bin/vite.js'), 'preview', '--host', host, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit' })
+  await withPreview(root, renderReference)
+}
+
+async function renderReference(origin) {
   let browser
   try {
-    await waitFor(origin)
     browser = await chromium.launch({ headless: true })
     const page = await browser.newPage()
     const errors = []
@@ -96,7 +65,6 @@ async function main() {
     console.log(`verify: PASS (${count} reference steps rendered)`)
   } finally {
     await browser?.close()
-    preview.kill()
   }
 }
 

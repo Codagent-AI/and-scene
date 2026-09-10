@@ -44,10 +44,12 @@ test('INT-001 bootstrap materializes outside the repository with the required an
   expect(await readFile(join(destination, 'src/presentation-kit/types.ts'), 'utf8')).toContain('export interface Step')
   expect(await readFile(join(destination, 'src/presentation-kit/Presentation.tsx'), 'utf8')).toContain('data-step-count')
   expect(await readFile(join(destination, 'src/presentations/index.ts'), 'utf8')).toContain('presentations')
-  expect(await readFile(join(destination, 'scripts/verify.mjs'), 'utf8')).toContain('127.0.0.1')
-  expect(await readFile(join(destination, 'scripts/inspect-presentation.mjs'), 'utf8')).toBe(
-    await readFile(join(repositoryRoot, 'scripts/inspect-presentation.mjs'), 'utf8'),
-  )
+  expect(await readFile(join(destination, 'scripts/preview-server.mjs'), 'utf8')).toContain('127.0.0.1')
+  for (const script of ['preview-server.mjs', 'inspect-presentation.mjs', 'inspection-diagnostics.mjs']) {
+    expect(await readFile(join(destination, 'scripts', script), 'utf8')).toBe(
+      await readFile(join(repositoryRoot, 'scripts', script), 'utf8'),
+    )
+  }
 
   const canonicalKit = join(repositoryRoot, 'src/presentation-kit')
   for (const filename of await filesBelow(canonicalKit)) {

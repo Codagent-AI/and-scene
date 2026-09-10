@@ -41,6 +41,13 @@ async function main() {
       page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
       page.on('pageerror', (error) => errors.push(error.message))
       await page.goto(url, { waitUntil: 'networkidle' })
+      const count = Number(await page.locator('[data-presentation-root]').getAttribute('data-step-count'))
+      if (!Number.isInteger(count) || count < 1) throw new Error(`Presentation did not render at ${url}`)
+      for (let index = 0; index < count; index += 1) {
+        await page.waitForFunction((expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === expected, String(index))
+        if (errors.length) throw new Error(`Browser errors at step ${index + 1}: ${errors.join('; ')}`)
+        if (index + 1 < count) await page.keyboard.press('ArrowRight')
+      }
       if (errors.length) throw new Error(`Browser errors: ${errors.join('; ')}`)
     } finally {
       await browser.close()

@@ -29,6 +29,18 @@ create interview.
 
 ## Find or bootstrap the app
 
+Before planning or editing, inspect the target so generated code follows the
+host rather than imposing a parallel convention:
+
+1. Read the package scripts, build configuration, and project conventions.
+2. Read `src/presentations/index.ts`, the presentation-kit public API, and the
+   target presentation when modifying one.
+3. Read one or two existing presentation folders, including their step, entity,
+   import, route, and local-style patterns.
+4. Read relevant presentation, routing, or browser-verification tests.
+5. Match those discovered patterns unless a requested change requires a scoped
+   exception; preserve unrelated presentations and host infrastructure.
+
 Treat these as contract anchors, not byte-for-byte files:
 
 1. A Vite + React + TypeScript build with a working `npm run build`.
@@ -90,6 +102,18 @@ When adding a presentation, leave every existing folder and registry entry
 intact. For a scoped modification, edit only the selected presentation plus a
 necessary registry or host file.
 
+## Out of scope
+
+This skill creates React browser presentations. It does not produce PowerPoint,
+Keynote, PDF, or image-export slide decks; use the appropriate document or asset
+workflow for those deliverables. It does not redesign unrelated host application
+pages, replace working host infrastructure, or rewrite an existing presentation
+kit merely to suit a single presentation. Use a dedicated application-design or
+refactoring workflow for those changes. It also does not generate bespoke visual
+assets unless that work is explicitly requested; use the image-generation
+workflow for bitmap assets and keep the generated asset scoped to the
+presentation.
+
 ## Verify and inspect before success
 
 Do not report completion until all applicable checks pass. Fix failures and run
@@ -107,6 +131,15 @@ the failed check again.
    Mark only a genuinely intentional and readable overlap with an explicit
    allow-overlap marker.
 
-In the completion report, name the route, changed presentation, build/render
-checks, visual views inspected, and any intentional advisory warning left in
-place.
+Use this exact completion report, replacing bracketed values. `Status` is only
+`passed` or `failed`; `Remaining warnings` is `none` or a concise list of
+intentional, marked warnings.
+
+```text
+Route: /[slug]
+Changed presentation: [created <slug> | modified <slug>]
+Checks: build=[passed|failed]; render=[passed|failed]; inspect=[passed|failed]
+Views inspected: [first, last, dense/key; include narrow when checked]
+Remaining warnings: [none | intentional marked warning(s)]
+Status: [passed|failed]
+```

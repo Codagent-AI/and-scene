@@ -54,6 +54,7 @@ try {
           allowedOverlap: Boolean(document.querySelector('[data-presentation-allow-overlap="true"]')),
           chromeOverlap: overlaps(rect('[data-presentation-canvas-host]'), rect('[data-presentation-footer]')) || overlaps(rect('[data-presentation-canvas-host]'), rect('[data-presentation-header]')),
           active,
+          hasActiveControls: Boolean(document.querySelector('[data-presentation-progress], [data-presentation-toc]')),
           attribution: attribution ? {
             linked: attribution instanceof HTMLAnchorElement && Boolean(attribution.href),
             fontSize: Number.parseFloat(attributionStyle?.fontSize ?? '0'),
@@ -63,7 +64,7 @@ try {
         }
       })
       if (diagnostics.chromeOverlap && !diagnostics.allowedOverlap) warn(index, 'scene content overlaps header or footer chrome without data-presentation-allow-overlap')
-      if (diagnostics.active === 0) warn(index, 'no current progress or table-of-contents control exposes data-presentation-active')
+      if (diagnostics.hasActiveControls && diagnostics.active === 0) warn(index, 'no current progress or table-of-contents control exposes data-presentation-active')
       if (!diagnostics.attribution) warn(index, 'missing data-presentation-attribution')
       else if (!diagnostics.attribution.linked || diagnostics.attribution.fontSize < 12 || diagnostics.attribution.browserDefault) warn(index, 'attribution is unlinked, undersized, or browser-default styled')
       if (index + 1 < Number(count)) {

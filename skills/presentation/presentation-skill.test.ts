@@ -45,7 +45,7 @@ test('INT-001 bootstrap materializes outside the repository with the required an
   expect(await readFile(join(destination, 'src/presentation-kit/Presentation.tsx'), 'utf8')).toContain('data-step-count')
   expect(await readFile(join(destination, 'src/presentations/index.ts'), 'utf8')).toContain('presentations')
   expect(await readFile(join(destination, 'scripts/preview-server.mjs'), 'utf8')).toContain('127.0.0.1')
-  for (const script of ['preview-server.mjs', 'inspect-presentation.mjs', 'inspection-diagnostics.mjs']) {
+  for (const script of ['preview-server.mjs', 'render-verification.mjs', 'inspect-presentation.mjs', 'inspection-diagnostics.mjs']) {
     expect(await readFile(join(destination, 'scripts', script), 'utf8')).toBe(
       await readFile(join(repositoryRoot, 'scripts', script), 'utf8'),
     )
@@ -80,10 +80,26 @@ export function resolvePresentation(pathname: string, registry: readonly Present
   return slug.includes('/') ? undefined : registry.find((presentation) => presentation.slug === slug)
 }
 `)
+  const talkPath = join(destination, 'src/presentations/example/Talk.tsx')
+  const scenePath = join(destination, 'src/presentations/example/steps/first.tsx')
+  const twoStepTalk = (await readFile(talkPath, 'utf8')).replace(
+    '[firstStep]',
+    "[firstStep, { ...firstStep, id: 'second', payload: { label: 'Later entity' } }]",
+  )
+  await writeFile(talkPath, twoStepTalk)
   const verified = await run('npm', ['run', 'verify'], { cwd: destination })
   expect(verified.stdout).toContain('verify: PASS')
-  const talkPath = join(destination, 'src/presentations/example/Talk.tsx')
-  await writeFile(talkPath, `console.error('bootstrap route fault')\n${await readFile(talkPath, 'utf8')}`)
+
+  await writeFile(talkPath, `console.error('bootstrap route fault')\n${twoStepTalk}`)
   await expect(run('npm', ['run', 'verify'], { cwd: destination, timeout: 30_000 }))
     .rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('bootstrap route fault') })
+  await writeFile(talkPath, twoStepTalk)
+
+  const scene = await readFile(scenePath, 'utf8')
+  await writeFile(scenePath, scene.replace(
+    '  return <SceneLayer>',
+    "  if (payload.label === 'Later entity') console.error('later step fault')\n  return <SceneLayer>",
+  ))
+  await expect(run('npm', ['run', 'verify'], { cwd: destination, timeout: 30_000 }))
+    .rejects.toMatchObject({ code: 1, stderr: expect.stringMatching(/step 2:.*later step fault/) })
 }, 60_000)

@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { chromium } from 'playwright'
+import { attributionWarning, overlapWarnings, stylesAreIndistinct } from './inspection-diagnostics.mjs'
 
 const host = '127.0.0.1'
 const slug = process.argv[2]
@@ -41,11 +42,16 @@ try {
     await page.locator(`[data-presentation-progress-item][aria-label="Go to step ${index + 1}"]`).click()
     await page.waitForTimeout(700)
     await page.screenshot({ path: resolve(output, `step-${String(index + 1).padStart(2, '0')}.png`), fullPage: true })
-    const attribution = page.locator('[data-presentation-attribution]')
-    const fontSize = await attribution.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
-    if (fontSize < 10) console.warn(`inspect: advisory step ${index + 1}: attribution is undersized; style [data-presentation-attribution] locally`)
-    const active = page.locator('[data-presentation-active]').first()
-    if (await active.count() && await active.evaluate((element) => getComputedStyle(element).color === getComputedStyle(element.parentElement).color)) console.warn(`inspect: advisory step ${index + 1}: active chrome may be indistinct; style [data-presentation-active] locally`)
+    const diagnostics = await page.evaluate(() => {
+      const candidates = [...document.querySelectorAll('[data-presentation-entity], [data-presentation-caption], [data-presentation-title], [data-presentation-marker], [data-presentation-progress-item], [data-presentation-toc-item], [data-presentation-controls], [data-presentation-attribution]')].filter((element) => { const style = getComputedStyle(element); const rect = element.getBoundingClientRect(); return style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0 }).map((element) => { const rect = element.getBoundingClientRect(); return { label: element.getAttribute('aria-label') || element.getAttribute('data-presentation-entity') || element.tagName.toLowerCase(), allowed: Boolean(element.closest('[data-presentation-allow-overlap]')), rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom } } })
+      const getStyles = (element) => element ? (() => { const style = getComputedStyle(element); return { color: style.color, backgroundColor: style.backgroundColor, borderColor: style.borderColor } })() : null
+      const attribution = document.querySelector('[data-presentation-attribution]'); const attributionStyle = attribution ? getComputedStyle(attribution) : null
+      return { candidates, active: getStyles(document.querySelector('[data-presentation-progress-item][data-presentation-active], [data-presentation-toc-item][data-presentation-active]')), inactive: getStyles(document.querySelector('[data-presentation-progress-item]:not([data-presentation-active]), [data-presentation-toc-item]:not([data-presentation-active])')), attribution: attributionStyle ? { fontSize: Number.parseFloat(attributionStyle.fontSize), color: attributionStyle.color } : null }
+    })
+    for (const warning of overlapWarnings(diagnostics.candidates, index + 1)) console.warn(warning)
+    if (diagnostics.active && diagnostics.inactive && stylesAreIndistinct(diagnostics.active, diagnostics.inactive)) console.warn(`inspect: advisory step ${index + 1}: active chrome may be indistinct; style [data-presentation-active] locally`)
+    const attributionIssue = attributionWarning(diagnostics.attribution)
+    if (attributionIssue) console.warn(attributionIssue)
   }
   await browser.close()
   console.log(`inspect: screenshots written to ${output}`)

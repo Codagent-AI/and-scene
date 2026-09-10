@@ -71,6 +71,33 @@ describe('Presentation', () => {
     expect(screen.getByTestId('presentation-root').getAttribute('data-step-index')).toBe('1')
   })
 
+  it('keeps a usable active step when a live step list is shortened', () => {
+    function Scene({ payload }: SceneProps<Payload>) {
+      return <div>{payload.message}</div>
+    }
+    const steps = buildSteps(Scene)
+    const { rerender } = render(<Presentation steps={steps} title="Changing deck" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next step' }))
+    rerender(<Presentation steps={[steps[0]]} title="Changing deck" />)
+
+    expect(screen.getByTestId('presentation-root').getAttribute('data-step-index')).toBe('0')
+    expect(screen.getByText('one')).not.toBeNull()
+  })
+
+  it('does not treat a touch gesture that starts on a control as slide navigation', () => {
+    function Scene({ payload }: SceneProps<Payload>) {
+      return <div>{payload.message}</div>
+    }
+    render(<Presentation steps={buildSteps(Scene)} title="Touch deck" />)
+
+    const next = screen.getByRole('button', { name: 'Next step' })
+    fireEvent.touchStart(next, { changedTouches: [{ clientX: 100 }] })
+    fireEvent.touchEnd(next, { changedTouches: [{ clientX: 0 }] })
+
+    expect(screen.getByTestId('presentation-root').getAttribute('data-step-index')).toBe('0')
+  })
+
   it('exposes browse and present chrome while preserving the current step', () => {
     function Scene({ payload }: SceneProps<Payload>) {
       return <div>{payload.message}</div>

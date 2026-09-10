@@ -37,11 +37,18 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
 
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const onTouchStart = useCallback((event: TouchEvent) => {
+    if (isInteractive(event.target)) {
+      setTouchStart(null)
+      return
+    }
     setTouchStart(event.changedTouches[0]?.clientX ?? null)
   }, [])
   const onTouchEnd = useCallback((event: TouchEvent) => {
     const end = event.changedTouches[0]?.clientX
-    if (touchStart === null || end === undefined) return
+    if (touchStart === null || end === undefined || isInteractive(event.target)) {
+      setTouchStart(null)
+      return
+    }
     const distance = end - touchStart
     if (Math.abs(distance) >= 40) {
       if (distance < 0) next()
@@ -50,5 +57,5 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
     setTouchStart(null)
   }, [next, prev, touchStart])
 
-  return { index, mode, goTo, next, prev, toggleMode, onTouchStart, onTouchEnd }
+  return { index: clampStep(index, count), mode, goTo, next, prev, toggleMode, onTouchStart, onTouchEnd }
 }

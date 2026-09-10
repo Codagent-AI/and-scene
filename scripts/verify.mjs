@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
@@ -61,7 +62,7 @@ async function main() {
   await validateReferenceFiles()
   const port = await availablePort()
   const origin = `http://${host}:${port}`
-  const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' })
+  const preview = spawn(process.execPath, [createRequire(import.meta.url).resolve('vite/package.json').replace(/package\.json$/, 'bin/vite.js'), 'preview', '--host', host, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit' })
   let browser
   try {
     await waitFor(origin)
@@ -84,6 +85,11 @@ async function main() {
         throw new Error(`render transition failed at step ${activeStep}: ${error instanceof Error ? error.message : error}`)
       }
       if (errors.length) throw new Error(`render failed at ${errors[0]}`)
+      const rendered = await page.evaluate(() => ['marker', 'title', 'caption'].map((hook) =>
+        document.querySelector(`[data-presentation-${hook}]`)?.textContent))
+      if (canonicalSteps[index].some((value, field) => value !== rendered[field])) {
+        throw new Error(`reference sample step ${activeStep} is missing or out of canonical order in the browser`)
+      }
       if (index < count - 1) await page.keyboard.press('ArrowRight')
     }
     await page.close()

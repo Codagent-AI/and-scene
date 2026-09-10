@@ -45,7 +45,9 @@ test('INT-001 bootstrap materializes outside the repository with the required an
   expect(await readFile(join(destination, 'src/presentation-kit/Presentation.tsx'), 'utf8')).toContain('data-step-count')
   expect(await readFile(join(destination, 'src/presentations/index.ts'), 'utf8')).toContain('presentations')
   expect(await readFile(join(destination, 'scripts/verify.mjs'), 'utf8')).toContain('127.0.0.1')
-  expect(await readFile(join(destination, 'scripts/inspect-presentation.mjs'), 'utf8')).toContain('screenshot')
+  expect(await readFile(join(destination, 'scripts/inspect-presentation.mjs'), 'utf8')).toBe(
+    await readFile(join(repositoryRoot, 'scripts/inspect-presentation.mjs'), 'utf8'),
+  )
 
   const canonicalKit = join(repositoryRoot, 'src/presentation-kit')
   for (const filename of await filesBelow(canonicalKit)) {
@@ -76,5 +78,10 @@ export function resolvePresentation(pathname: string, registry: readonly Present
   return slug.includes('/') ? undefined : registry.find((presentation) => presentation.slug === slug)
 }
 `)
-  await run('npm', ['run', 'build'], { cwd: destination })
-})
+  const verified = await run('npm', ['run', 'verify'], { cwd: destination })
+  expect(verified.stdout).toContain('verify: PASS')
+  const talkPath = join(destination, 'src/presentations/example/Talk.tsx')
+  await writeFile(talkPath, `console.error('bootstrap route fault')\n${await readFile(talkPath, 'utf8')}`)
+  await expect(run('npm', ['run', 'verify'], { cwd: destination, timeout: 30_000 }))
+    .rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('bootstrap route fault') })
+}, 60_000)

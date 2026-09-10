@@ -25,6 +25,10 @@ export async function createFaultFixture(fault) {
     const scene = await readFile(scenePath, 'utf8')
     await writeFile(scenePath, scene.replace('  const beat = payload.beat', "  if (payload.beat === 1) console.error('fixture runtime error')\n  const beat = payload.beat"))
   }
+  if (fault === 'runtime-reorder') {
+    const stepsPath = resolve(directory, 'src/presentations/how-to-make-a-presentation/steps/index.tsx')
+    await writeFile(stepsPath, (await readFile(stepsPath, 'utf8')).replace('= outline.map(', '= [...outline].reverse().map('))
+  }
   if (fault === 'build-error') await writeFile(entitiesPath, `${await readFile(entitiesPath, 'utf8')}\nconst = fixtureBuildError\n`)
   if (fault === 'stalled-transition') {
     const navigation = await readFile(navigationPath, 'utf8')

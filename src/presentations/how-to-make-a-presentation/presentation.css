@@ -60,5 +60,5 @@
   .presentation:has(.how-to-scene) [data-presentation-footer] { padding-right: 0; }
   .presentation:has(.how-to-scene) [data-presentation-caption] { grid-column: 1 / -1; }
   .presentation:has(.how-to-scene) [data-presentation-progress-item] { width: 21px; height: 21px; font-size: 10px; }
-  .presentation:has(.how-to-scene) [data-presentation-controls] { display: none; }
+  .presentation:has(.how-to-scene) [data-presentation-controls] { grid-column: 1 / -1; margin-bottom: 22px; }
 }

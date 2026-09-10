@@ -10,7 +10,7 @@ test('reports a malformed reference sample from an isolated checkout', async () 
   } finally {
     await fixture.cleanup()
   }
-})
+}, 30_000)
 
 test('reports the offending browser step from an isolated runtime fault', async () => {
   const fixture = await createFaultFixture('runtime-error')
@@ -21,7 +21,7 @@ test('reports the offending browser step from an isolated runtime fault', async 
   } finally {
     await fixture.cleanup()
   }
-})
+}, 30_000)
 
 test('reports isolated build and stalled-transition faults as failures', async () => {
   const buildFixture = await createFaultFixture('build-error')
@@ -37,4 +37,15 @@ test('reports isolated build and stalled-transition faults as failures', async (
     await buildFixture.cleanup()
     await transitionFixture.cleanup()
   }
-}, 15_000)
+}, 60_000)
+
+test('rejects runtime outline reordering even when canonical source strings remain', async () => {
+  const fixture = await createFaultFixture('runtime-reorder')
+  try {
+    const result = await runVerification(fixture)
+    expect(result.code).not.toBe(0)
+    expect(result.output).toContain('reference sample step 1')
+  } finally {
+    await fixture.cleanup()
+  }
+}, 30_000)

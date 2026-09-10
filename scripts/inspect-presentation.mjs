@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
 import { createServer } from 'node:net'
@@ -74,7 +75,7 @@ async function main() {
   await run('npm', ['run', 'build'])
   const port = await availablePort()
   const origin = `http://${host}:${port}`
-  const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' })
+  const preview = spawn(process.execPath, [createRequire(import.meta.url).resolve('vite/package.json').replace(/package\.json$/, 'bin/vite.js'), 'preview', '--host', host, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit' })
   let browser
   try {
     await waitFor(origin)

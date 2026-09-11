@@ -1,0 +1,8 @@
+export { Presentation } from './Presentation.tsx'
+export { Stage } from './Stage.tsx'
+export { calculateFitScale, useFitScale, useViewportSize } from './useFitScale.ts'
+export { clampStepIndex, usePresentationNav } from './usePresentationNav.ts'
+export * from './constants.ts'
+export * from './types.ts'
+export * from './chrome/index.ts'
+export * from './nodes/index.ts'

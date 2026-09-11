@@ -6,6 +6,7 @@ import { chromium } from 'playwright'
 
 const host = '127.0.0.1'
 const slug = process.argv[2]
+const settleMs = Number(process.env.PRESENTATION_SETTLE_MS ?? 750)
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
 
 function availablePort() {
@@ -20,7 +21,7 @@ function availablePort() {
 }
 
 async function waitFor(url) {
-  for (let attempt = 0; attempt < 60; attempt += 1) {
+  for (let attempt = 0; attempt < 80; attempt += 1) {
     try {
       if ((await fetch(url)).ok) return
     } catch {
@@ -32,7 +33,7 @@ async function waitFor(url) {
 }
 
 function stopProcess(child) {
-  if (!child.pid || child.exitCode !== null) return
+  if (!child?.pid || child.exitCode !== null) return
   try {
     child.kill('SIGTERM')
   } catch {
@@ -91,7 +92,7 @@ async function inspectStep(page, index) {
       if (!link) result.push('attribution is not a link')
       if (!Number.isFinite(Number.parseFloat(style.fontSize)) || Number.parseFloat(style.fontSize) < 10) result.push('attribution is undersized; style [data-presentation-attribution] locally')
       const linkStyle = link ? getComputedStyle(link) : style
-      if (link && (linkStyle.color === 'rgb(0, 0, 238)' || linkStyle.textDecorationLine.includes('underline'))) result.push('attribution still looks browser-default; style [data-presentation-attribution] locally')
+      if (link && (!linkStyle.color || linkStyle.color === 'rgb(0, 0, 238)' || linkStyle.textDecorationLine.includes('underline'))) result.push('attribution still looks browser-default; style [data-presentation-attribution] locally')
     }
     return result
   })
@@ -101,10 +102,12 @@ async function inspectStep(page, index) {
 async function main() {
   const port = await availablePort()
   const origin = `http://${host}:${port}`
-    const preview = spawn(process.execPath, [resolve('node_modules/vite/bin/vite.js'), 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
+  const preview = spawn(process.execPath, [resolve('node_modules/vite/bin/vite.js'), 'preview', '--host', host, '--port', String(port), '--strictPort'], {
+    stdio: 'ignore',
+  })
   let browser
   try {
-    await waitFor(origin)
+    await waitFor(`${origin}/`)
     const output = resolve('artifacts/presentation-inspection', slug)
     await mkdir(output, { recursive: true })
     browser = await chromium.launch({ headless: true })
@@ -119,9 +122,8 @@ async function main() {
     for (let index = 0; index < count; index += 1) {
       if (index > 0) {
         await page.keyboard.press('ArrowRight')
-        await page.waitForTimeout(750)
+        await page.waitForTimeout(settleMs)
       }
-      await page.waitForTimeout(100)
       if (Number(await chrome.getAttribute('data-step-index')) !== index) throw new Error(`step ${index + 1}: transition did not settle`)
       if (errors.length) throw new Error(`step ${index + 1}: ${errors.join('; ')}`)
       await inspectStep(page, index)

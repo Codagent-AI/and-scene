@@ -1,4 +1,5 @@
 import { createServer } from 'node:net'
+import { resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
 
@@ -38,7 +39,7 @@ async function waitFor(url) {
 function stopProcess(child) {
   if (!child.pid || child.exitCode !== null) return
   try {
-    process.kill(process.platform === 'win32' ? child.pid : -child.pid, 'SIGTERM')
+    child.kill('SIGTERM')
   } catch {
     child.kill()
   }
@@ -49,11 +50,7 @@ async function main() {
 
   const port = await availablePort()
   const origin = `http://${host}:${port}`
-  const preview = spawn(
-    'npm',
-    ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'],
-    { stdio: 'inherit', shell: process.platform === 'win32', detached: process.platform !== 'win32' },
-  )
+  const preview = spawn(process.execPath, [resolve('node_modules/vite/bin/vite.js'), 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'inherit' })
   let browser
 
   try {

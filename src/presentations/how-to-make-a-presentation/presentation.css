@@ -1,0 +1,488 @@
+.sample-presentation {
+  --sample-ink: #f7f3e8;
+  --sample-muted: #a9a699;
+  --sample-line: rgba(247, 243, 232, 0.24);
+  --sample-panel: rgba(247, 243, 232, 0.07);
+  --sample-coral: #ef806a;
+  --sample-mint: #9fd9c1;
+  --sample-yellow: #f4cc73;
+  position: relative;
+  overflow: hidden;
+  color: var(--sample-ink);
+  background:
+    radial-gradient(circle at 78% 18%, rgba(239, 128, 106, 0.12), transparent 24rem),
+    radial-gradient(circle at 12% 76%, rgba(159, 217, 193, 0.08), transparent 23rem),
+    #121311;
+}
+
+.sample-presentation .presentation-chrome,
+.sample-presentation .presentation-header,
+.sample-presentation .presentation-footer,
+.sample-presentation .presentation-toc,
+.sample-presentation .presentation-attribution {
+  position: absolute;
+  z-index: 4;
+}
+
+.sample-presentation .presentation-chrome {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.sample-presentation .presentation-header,
+.sample-presentation .presentation-footer,
+.sample-presentation .presentation-toc,
+.sample-presentation .presentation-attribution {
+  pointer-events: auto;
+}
+
+.sample-presentation .presentation-header {
+  inset: 0 0 auto;
+  display: grid;
+  grid-template-columns: auto auto minmax(180px, 1fr) minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 28px;
+  min-height: 92px;
+  padding: 24px 42px;
+  border-bottom: 1px solid rgba(247, 243, 232, 0.1);
+}
+
+.sample-presentation .presentation-header-brand {
+  min-width: 0;
+}
+
+.sample-presentation .presentation-header-marker,
+.sample-presentation .presentation-node-kicker,
+.sample-presentation .reference-node-kicker,
+.sample-presentation .reference-card-number {
+  color: var(--sample-coral);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sample-presentation .presentation-header h1,
+.sample-presentation .presentation-header [data-presentation-step-title],
+.sample-presentation .presentation-header [data-presentation-title] {
+  margin: 0;
+  font-size: clamp(14px, 1.4vw, 18px);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.sample-presentation .presentation-header h1 {
+  color: var(--sample-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.sample-presentation .presentation-header [data-presentation-step-title] {
+  color: var(--sample-ink);
+}
+
+.sample-presentation .presentation-mode-toggle,
+.sample-presentation .presentation-step-controls button,
+.sample-presentation .presentation-progress button,
+.sample-presentation .presentation-toc button {
+  border: 1px solid var(--sample-line);
+  color: var(--sample-ink);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sample-presentation .presentation-mode-toggle {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.sample-presentation .presentation-mode-toggle:hover,
+.sample-presentation .presentation-step-controls button:hover,
+.sample-presentation .presentation-toc button:hover {
+  border-color: var(--sample-coral);
+}
+
+.sample-presentation .presentation-toc {
+  top: 142px;
+  left: 42px;
+}
+
+.sample-presentation .presentation-toc nav {
+  display: grid;
+  gap: 9px;
+}
+
+.sample-presentation .presentation-toc button {
+  padding: 0;
+  border: 0;
+  color: var(--sample-muted);
+  font-size: 10px;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.sample-presentation .presentation-toc button.is-active,
+.sample-presentation .presentation-toc button[data-state-active="true"] {
+  color: var(--sample-coral);
+  font-weight: 800;
+}
+
+.sample-presentation .presentation-footer {
+  inset: auto 42px 28px;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto auto;
+  align-items: end;
+  gap: 28px;
+}
+
+.sample-presentation .presentation-caption {
+  max-width: 590px;
+  margin: 0;
+  color: var(--sample-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sample-presentation .presentation-progress {
+  display: flex;
+  gap: 5px;
+}
+
+.sample-presentation .presentation-progress button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--sample-muted);
+  font-size: 10px;
+}
+
+.sample-presentation .presentation-progress button.is-active,
+.sample-presentation .presentation-progress button[data-state-active="true"] {
+  border-color: var(--sample-coral);
+  color: #121311;
+  background: var(--sample-coral);
+  font-weight: 800;
+}
+
+.sample-presentation .presentation-step-controls {
+  display: flex;
+  gap: 7px;
+}
+
+.sample-presentation .presentation-step-controls button {
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.sample-presentation .presentation-step-controls button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.sample-presentation .presentation-attribution {
+  right: 42px;
+  bottom: 8px;
+}
+
+.sample-presentation [data-presentation-attribution] a {
+  color: var(--sample-muted);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.sample-presentation [data-presentation-attribution] a:hover {
+  color: var(--sample-ink);
+}
+
+.sample-presentation .presentation-stage-viewport {
+  min-height: 100vh;
+  height: 100vh;
+}
+
+.reference-scene {
+  position: relative;
+  width: 880px;
+  height: 380px;
+}
+
+.reference-entity,
+.reference-tray,
+.reference-reveal-frame {
+  position: absolute;
+}
+
+.reference-entity {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  border: 1px solid var(--sample-line);
+  background: var(--sample-panel);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.18);
+}
+
+.reference-you,
+.reference-skill {
+  top: 8px;
+  width: 126px;
+  height: 58px;
+  padding: 12px 14px;
+  border-radius: 13px;
+}
+
+.reference-you { left: 110px; }
+.reference-skill { right: 14px; border-color: rgba(159, 217, 193, 0.45); }
+
+.reference-you strong,
+.reference-skill strong { font-size: 15px; }
+
+.reference-prompt {
+  left: 260px;
+  top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 260px;
+  min-height: 43px;
+  padding: 0 14px;
+  border-color: rgba(244, 204, 115, 0.45);
+  border-radius: 22px 22px 22px 5px;
+  color: var(--sample-yellow);
+  font-size: 12px;
+}
+
+.reference-prompt-spark { color: var(--sample-coral); }
+
+.reference-conversation-arrow {
+  position: absolute;
+  left: 535px;
+  top: 36px;
+  color: var(--sample-mint);
+  font-size: 22px;
+}
+
+.reference-question {
+  position: absolute;
+  left: 535px;
+  top: 86px;
+  padding: 7px 12px;
+  border: 1px solid rgba(159, 217, 193, 0.45);
+  border-radius: 999px;
+  color: var(--sample-mint);
+  font-size: 10px;
+}
+
+.reference-tray {
+  left: 22px;
+  right: 22px;
+  top: 157px;
+  height: 162px;
+  border-top: 1px solid rgba(247, 243, 232, 0.3);
+  border-bottom: 1px solid rgba(247, 243, 232, 0.12);
+}
+
+.reference-tray-label {
+  position: absolute;
+  left: 0;
+  top: -20px;
+  color: var(--sample-muted);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.reference-card {
+  top: 182px;
+  width: 116px;
+  height: 116px;
+  padding: 12px;
+  border-color: rgba(247, 243, 232, 0.35);
+  border-radius: 9px;
+  background: #1b1d19;
+}
+
+.reference-card--1 { left: 46px; }
+.reference-card--2 { left: 176px; }
+.reference-card--3 { left: 306px; }
+.reference-card--4 { left: 436px; }
+
+.reference-card strong {
+  font-size: 14px;
+}
+
+.reference-card > span:not(.reference-card-number) {
+  color: var(--sample-muted);
+  font-size: 11px;
+}
+
+.reference-card small {
+  color: var(--sample-mint);
+  font-size: 10px;
+}
+
+.reference-morph-arrow {
+  position: absolute;
+  left: 505px;
+  top: 334px;
+  color: var(--sample-yellow);
+  font-size: 11px;
+}
+
+.reference-ghost-card {
+  left: 566px;
+  top: 182px;
+  width: 116px;
+  height: 116px;
+  padding: 12px;
+  border-style: dashed;
+  color: var(--sample-muted);
+}
+
+.reference-depth {
+  position: absolute;
+  right: 45px;
+  top: 118px;
+  padding: 7px 10px;
+  border: 1px solid rgba(244, 204, 115, 0.45);
+  border-radius: 999px;
+  color: var(--sample-yellow);
+  font-size: 10px;
+}
+
+.reference-scene-kit {
+  left: 118px;
+  top: 323px;
+  width: 146px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-color: rgba(159, 217, 193, 0.55);
+  border-radius: 8px;
+  background: rgba(159, 217, 193, 0.09);
+  font-size: 10px;
+}
+
+.reference-scene-kit::before {
+  position: absolute;
+  top: -9px;
+  left: 65px;
+  width: 14px;
+  height: 9px;
+  border: 1px solid rgba(159, 217, 193, 0.55);
+  border-bottom: 0;
+  content: '';
+}
+
+.reference-scene-kit > span:last-child,
+.reference-verify > span:last-child { color: var(--sample-muted); }
+
+.reference-verify {
+  left: 690px;
+  top: 205px;
+  width: 120px;
+  min-height: 76px;
+  padding: 12px;
+  border-color: rgba(159, 217, 193, 0.55);
+  border-radius: 9px;
+}
+
+.reference-pass {
+  position: absolute;
+  left: 822px;
+  top: 230px;
+  color: #121311;
+  background: var(--sample-mint);
+  padding: 9px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.reference-modify-arc {
+  position: absolute;
+  left: 680px;
+  top: 112px;
+  color: var(--sample-coral);
+  font-size: 11px;
+  transform: rotate(-12deg);
+}
+
+.reference-modified {
+  position: absolute;
+  left: 333px;
+  top: 169px;
+  padding: 3px 6px;
+  border: 1px solid var(--sample-coral);
+  border-radius: 4px;
+  color: var(--sample-coral);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.reference-reveal-frame {
+  inset: -8px 4px -8px;
+  border: 1px solid rgba(244, 204, 115, 0.65);
+  border-radius: 18px;
+  pointer-events: none;
+}
+
+.reference-reveal-label {
+  position: absolute;
+  right: 18px;
+  top: -9px;
+  padding: 0 8px;
+  color: var(--sample-yellow);
+  background: #121311;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 899px) {
+  .sample-presentation .presentation-header-brand {
+    display: none;
+  }
+
+  .sample-presentation .presentation-header {
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    padding: 20px;
+  }
+
+  .sample-presentation .presentation-header h1,
+  .sample-presentation .presentation-header [data-presentation-step-title] {
+    display: none;
+  }
+
+  .sample-presentation .presentation-footer {
+    inset: auto 20px 24px;
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+  }
+
+  .sample-presentation .presentation-progress {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .sample-presentation .presentation-caption {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 12px;
+  }
+
+  .sample-presentation .presentation-step-controls {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .sample-presentation .presentation-attribution {
+    right: 20px;
+    bottom: 5px;
+  }
+}

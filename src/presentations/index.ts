@@ -6,6 +6,12 @@ export type PresentationRegistryEntry = {
   load: () => Promise<{ default: ComponentType }>
 }
 
-export const PRESENTATIONS: PresentationRegistryEntry[] = []
+export const PRESENTATIONS: PresentationRegistryEntry[] = [
+  {
+    slug: 'how-to-make-a-presentation',
+    title: 'How to Use This Skill to Make a Presentation',
+    load: () => import('./how-to-make-a-presentation/Talk.tsx'),
+  },
+]
 
 export const presentationRegistry = PRESENTATIONS

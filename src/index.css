@@ -30,3 +30,35 @@ textarea,
 select {
   font: inherit;
 }
+
+/* Structural host styles; presentation palettes remain presentation-owned. */
+.landing-shell,
+[data-presentation] {
+  min-height: 100vh;
+}
+
+.presentation-stage-viewport {
+  display: grid;
+  place-items: center;
+  min-height: 52vh;
+  overflow: hidden;
+}
+
+.presentation-stage-frame {
+  position: relative;
+}
+
+.presentation-stage-canvas {
+  position: absolute;
+  transform-origin: top left;
+}
+
+.presentation-toc[hidden] {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .presentation-toc {
+    display: none;
+  }
+}

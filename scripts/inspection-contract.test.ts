@@ -1,22 +1,17 @@
 // @vitest-environment node
-import { cp, mkdtemp, mkdir, readdir, rm, symlink, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, readdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { spawn } from 'node:child_process'
 import { afterEach, describe, expect, it } from 'vitest'
+import { createTestWorkspace, removeTestWorkspaces, repositoryRoot, runNodeScript } from './test-workspace.ts'
 
-const repositoryRoot = process.cwd()
 const workspaces: string[] = []
 
 async function createWorkspace() {
-  const workspace = await mkdtemp(join(tmpdir(), 'and-scene-inspection-'))
-  workspaces.push(workspace)
-  await mkdir(join(workspace, 'scripts'), { recursive: true })
-  await cp(
+  const workspace = await createTestWorkspace(
+    'and-scene-inspection-',
     join(repositoryRoot, 'scripts/inspect-presentation.mjs'),
-    join(workspace, 'scripts/inspect-presentation.mjs'),
   )
-  await symlink(join(repositoryRoot, 'node_modules'), join(workspace, 'node_modules'), 'dir')
+  workspaces.push(workspace)
   await mkdir(join(workspace, 'dist'), { recursive: true })
   await writeFile(join(workspace, 'dist/index.html'), `<!doctype html>
 <html>
@@ -57,25 +52,14 @@ async function createWorkspace() {
   return workspace
 }
 
-function runInspection(workspace: string) {
-  return new Promise<{ code: number | null; output: string }>((resolveResult) => {
-    const child = spawn(process.execPath, ['scripts/inspect-presentation.mjs', 'fixture'], { cwd: workspace })
-    let output = ''
-    child.stdout.on('data', (chunk) => { output += chunk })
-    child.stderr.on('data', (chunk) => { output += chunk })
-    child.once('error', () => resolveResult({ code: null, output }))
-    child.once('exit', (code) => resolveResult({ code, output }))
-  })
-}
-
 afterEach(async () => {
-  await Promise.all(workspaces.splice(0).map((workspace) => rm(workspace, { recursive: true, force: true })))
+  await removeTestWorkspaces(workspaces)
 })
 
 describe('project-local inspection contract', () => {
   it('captures settled steps and reports warnings while honoring overlap exemptions', async () => {
     const workspace = await createWorkspace()
-    const result = await runInspection(workspace)
+    const result = await runNodeScript(workspace, 'scripts/inspect-presentation.mjs', ['fixture'])
     const screenshots = await readdir(join(workspace, 'artifacts/presentation-inspection/fixture'))
 
     expect(result.code).toBe(0)

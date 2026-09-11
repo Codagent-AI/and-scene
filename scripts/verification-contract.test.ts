@@ -1,20 +1,17 @@
 // @vitest-environment node
-import { cp, mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { cp, mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { spawn } from 'node:child_process'
 import { afterEach, describe, expect, it } from 'vitest'
+import { createTestWorkspace, removeTestWorkspaces, repositoryRoot, runNodeScript } from './test-workspace.ts'
 
-const repositoryRoot = process.cwd()
-const verificationScript = join(repositoryRoot, 'scripts/verify.mjs')
 const workspaces: string[] = []
 
 async function createWorkspace() {
-  const workspace = await mkdtemp(join(tmpdir(), 'and-scene-verification-'))
+  const workspace = await createTestWorkspace(
+    'and-scene-verification-',
+    join(repositoryRoot, 'scripts/verify.mjs'),
+  )
   workspaces.push(workspace)
-  await mkdir(join(workspace, 'scripts'), { recursive: true })
-  await cp(verificationScript, join(workspace, 'scripts/verify.mjs'))
-  await symlink(join(repositoryRoot, 'node_modules'), join(workspace, 'node_modules'), 'dir')
   return workspace
 }
 
@@ -23,28 +20,6 @@ async function writePackage(workspace: string, buildScript: string) {
     type: 'module',
     scripts: { build: buildScript },
   }))
-}
-
-async function runVerification(workspace: string) {
-  return await new Promise<{ code: number | null; output: string }>((resolveResult) => {
-    const child = spawn(process.execPath, ['scripts/verify.mjs'], { cwd: workspace })
-    let output = ''
-    let settled = false
-    const finish = (code: number | null) => {
-      if (settled) return
-      settled = true
-      clearTimeout(timeout)
-      resolveResult({ code, output })
-    }
-    const timeout = setTimeout(() => {
-      child.kill('SIGKILL')
-      finish(null)
-    }, 10_000)
-    child.stdout.on('data', (chunk) => { output += chunk })
-    child.stderr.on('data', (chunk) => { output += chunk })
-    child.once('error', () => finish(null))
-    child.once('exit', (code) => finish(code))
-  })
 }
 
 async function copyReferenceSource(workspace: string) {
@@ -71,8 +46,16 @@ await writeFile('dist/index.html', ${JSON.stringify(`<!doctype html>
   await copyReferenceSource(workspace)
 }
 
+const firstStepChrome = `
+<main data-presentation>
+  <div data-step-count="9" data-step-index="0"></div>
+  <div data-presentation-step-title>You have a topic</div>
+  <div data-presentation-caption>It starts with you, a topic, and mild overconfidence.</div>
+</main>
+`
+
 afterEach(async () => {
-  await Promise.all(workspaces.splice(0).map((workspace) => rm(workspace, { recursive: true, force: true })))
+  await removeTestWorkspaces(workspaces)
 })
 
 describe('verification failure contract', () => {
@@ -82,7 +65,7 @@ describe('verification failure contract', () => {
     await writePackage(workspace, 'node fail-build.mjs')
     await copyReferenceSource(workspace)
 
-    const result = await runVerification(workspace)
+    const result = await runNodeScript(workspace, 'scripts/verify.mjs')
 
     expect(result.code).not.toBe(0)
     expect(result.output).toContain('verify: FAIL build verification failed:')
@@ -92,7 +75,7 @@ describe('verification failure contract', () => {
     const workspace = await createWorkspace()
     await writePackage(workspace, 'node -e ""')
 
-    const result = await runVerification(workspace)
+    const result = await runNodeScript(workspace, 'scripts/verify.mjs')
 
     expect(result.code).not.toBe(0)
     expect(result.output).toContain('verify: FAIL reference sample is missing or malformed:')
@@ -101,15 +84,11 @@ describe('verification failure contract', () => {
   it('reports browser console failures with the offending step', async () => {
     const workspace = await createWorkspace()
     await writeBrowserFixture(workspace, `
-<main data-presentation>
-  <div data-step-count="9" data-step-index="0"></div>
-  <div data-presentation-step-title>You have a topic</div>
-  <div data-presentation-caption>It starts with you, a topic, and mild overconfidence.</div>
-</main>
+${firstStepChrome}
 <script>console.error('synthetic browser failure')</script>
 `)
 
-    const result = await runVerification(workspace)
+    const result = await runNodeScript(workspace, 'scripts/verify.mjs', [], 15_000)
 
     expect(result.code).not.toBe(0)
     expect(result.output).toContain('verify: FAIL browser verification failed: step 1: console error: synthetic browser failure')
@@ -118,11 +97,7 @@ describe('verification failure contract', () => {
   it('reports failed transitions with the offending step', async () => {
     const workspace = await createWorkspace()
     await writeBrowserFixture(workspace, `
-<main data-presentation>
-  <div data-step-count="9" data-step-index="0"></div>
-  <div data-presentation-step-title>You have a topic</div>
-  <div data-presentation-caption>It starts with you, a topic, and mild overconfidence.</div>
-</main>
+${firstStepChrome}
 <script>
   window.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowRight') event.preventDefault()
@@ -130,7 +105,7 @@ describe('verification failure contract', () => {
 </script>
 `)
 
-    const result = await runVerification(workspace)
+    const result = await runNodeScript(workspace, 'scripts/verify.mjs', [], 15_000)
 
     expect(result.code).not.toBe(0)
     expect(result.output).toContain('verify: FAIL browser verification failed: step 1: transition stopped at 0')

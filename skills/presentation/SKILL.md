@@ -68,8 +68,6 @@ Resolve the scaffold destination before writing:
 - A monorepo (package.json `workspaces`, `pnpm-workspace.yaml`, or an
   `apps/`/`packages/` layout) gets a self-contained app under
   `<repository>/presentations/`.
-- A non-empty non-JavaScript repository with no root package gets a dedicated
-  `<repository>/presentation/` app to avoid colliding with the host project.
 - If all anchors are present, use the existing app and scaffold nothing.
 - If only some anchors are present, add only the missing pieces and preserve
   the anchors that already satisfy the contract.
@@ -135,7 +133,7 @@ Run commands from the generated app root:
 
 ```bash
 npm run build
-npm run verify
+npm run verify -- <presentation-slug>
 npm run inspect -- <presentation-slug>
 ```
 

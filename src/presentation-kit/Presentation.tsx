@@ -4,7 +4,7 @@ import { Footer, Header, Toc } from './chrome/index.ts'
 import { usePresentationNav } from './usePresentationNav.ts'
 import type { IndexedStep, PresentationProps } from './types.ts'
 
-const ATTRIBUTION_HREF = 'https://github.com/openai/and-scene'
+const ATTRIBUTION_HREF = 'https://github.com/Codagent-AI/and-scene'
 
 export function Presentation<TPayload>({
   steps,

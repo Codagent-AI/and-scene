@@ -68,8 +68,10 @@ async function main() {
     if (requestedSlug) {
       await page.goto(`${origin}/${requestedSlug}`, { waitUntil: 'networkidle' })
     } else {
-      const firstRoute = page.locator('a[href^="/"]').first()
-      if (await firstRoute.count()) await page.goto(`${origin}${await firstRoute.getAttribute('href')}`, { waitUntil: 'networkidle' })
+      const routes = page.locator('a[href^="/"]')
+      const routeCount = await routes.count()
+      if (routeCount > 1) throw new Error('multiple presentations are registered; pass a presentation slug to npm run verify')
+      if (routeCount === 1) await page.goto(`${origin}${await routes.first().getAttribute('href')}`, { waitUntil: 'networkidle' })
     }
 
     const presentation = page.locator('[data-presentation]')

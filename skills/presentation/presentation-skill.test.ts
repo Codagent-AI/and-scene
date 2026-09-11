@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, readdir, rm, stat } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -6,7 +6,14 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { afterEach, describe, expect, it } from 'vitest'
 
-const run = promisify(execFile)
+const run = async (...args: Parameters<typeof execFile>) => {
+  try {
+    return await promisify(execFile)(...args)
+  } catch (error) {
+    const details = error as { message?: string; stdout?: string; stderr?: string }
+    throw new Error([details.message, details.stdout, details.stderr].filter(Boolean).join('\n'), { cause: error })
+  }
+}
 const repositoryRoot = process.cwd()
 const skillDirectory = join(repositoryRoot, 'skills/presentation')
 const bootstrapDirectory = join(skillDirectory, 'templates/bootstrap')
@@ -85,6 +92,61 @@ describe('presentation skill bootstrap contract', () => {
     }
 
     await run('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: destination })
+
+    await writeFile(join(destination, 'src/presentations/index.ts'), `
+import type { ComponentType } from 'react'
+
+export type PresentationRegistryEntry = {
+  slug: string
+  title: string
+  load: () => Promise<{ default: ComponentType }>
+}
+
+export const PRESENTATIONS = [{
+  slug: 'fixture',
+  title: 'Fixture',
+  load: () => import('./fixture/Talk.tsx'),
+}]
+`)
+    await mkdir(join(destination, 'src/presentations/fixture'), { recursive: true })
+    await writeFile(join(destination, 'src/presentations/fixture/Talk.tsx'), `
+import { Presentation } from '../../presentation-kit/index.ts'
+
+function Scene() {
+  return <div data-scene-node="fixture">fixture</div>
+}
+
+const steps = [{
+  id: 'fixture',
+  era: 'fixture',
+  title: 'Fixture',
+  caption: 'Fixture route',
+  Scene,
+  payload: null,
+}]
+
+export default function Talk() {
+  return <Presentation title="Fixture" steps={steps} />
+}
+    `)
     await run('npm', ['run', 'build'], { cwd: destination })
-  })
+    await run('npm', ['run', 'verify', '--', 'fixture'], { cwd: destination })
+    await writeFile(join(destination, 'src/presentations/index.ts'), `
+import type { ComponentType } from 'react'
+
+export type PresentationRegistryEntry = {
+  slug: string
+  title: string
+  load: () => Promise<{ default: ComponentType }>
+}
+
+export const PRESENTATIONS = [
+  { slug: 'fixture', title: 'Fixture', load: () => import('./fixture/Talk.tsx') },
+  { slug: 'fixture-two', title: 'Fixture two', load: () => import('./fixture/Talk.tsx') },
+]
+`)
+    await expect(run('npm', ['run', 'verify'], { cwd: destination })).rejects.toThrow(
+      'multiple presentations are registered; pass a presentation slug to npm run verify',
+    )
+  }, 30_000)
 })

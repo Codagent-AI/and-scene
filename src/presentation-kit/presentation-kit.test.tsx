@@ -126,7 +126,7 @@ describe('presentation kit contract', () => {
     expect(box).not.toHaveAttribute('style')
     expect(screen.getByRole('link', { name: 'made by and-scene' })).toHaveAttribute(
       'href',
-      'https://github.com/openai/and-scene',
+      'https://github.com/Codagent-AI/and-scene',
     )
     expect(screen.queryByRole('link', { name: /^and-scene$/i })).not.toBeInTheDocument()
   })

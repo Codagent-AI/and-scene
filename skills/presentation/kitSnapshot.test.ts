@@ -38,9 +38,9 @@ function walkFiles(root: string, dir = root, excludeTests = true): string[] {
 function formatDriftMessage(missingFromSnapshot: string[], extraInSnapshot: string[], changed: string[]) {
   const lines = [
     'presentation-kit snapshot drifted from src/presentation-kit.',
-    'Copy the changed files so both copies match (src/presentation-kit is canonical).',
-    'From the repo root, `node skills/presentation/sync-kit.mjs` prints the diff;',
-    '`--apply` copies the snapshot over src/presentation-kit.',
+    'src/presentation-kit is canonical: copy changed files from it into the bootstrap snapshot.',
+    'Do not run `sync-kit.mjs --apply` here; it copies the snapshot into a consuming',
+    "project's vendored src/presentation-kit and would overwrite canonical changes.",
     '',
   ]
 

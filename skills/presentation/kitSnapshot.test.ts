@@ -1,54 +1,90 @@
-import { readdirSync, readFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 /**
- * Drift guard for the deliberately-duplicated scene kit.
- *
- * The canonical kit lives at `src/presentation-kit/`; the skill ships a snapshot
- * copy at `skills/presentation/templates/bootstrap/src/presentation-kit/` that it
- * vendors into user projects. The two are kept **byte-identical** — excluding
- * test files, which only the canonical copy carries. `npm run verify` cannot
- * catch a desync here (it only renders the reference app), so this test does.
- *
- * When this fails: you changed one copy and not the other. Re-sync with
- *   cp <changed canonical file> <matching snapshot file>
- * (or the reverse), then re-run.
+ * Drift guard for the deliberately-duplicated scene kit: the canonical kit at
+ * `src/presentation-kit/` and the snapshot the skill vendors at
+ * `skills/presentation/templates/bootstrap/src/presentation-kit/` must stay
+ * byte-identical, excluding test files (which only the canonical copy carries).
  */
 
-const here = dirname(fileURLToPath(import.meta.url))
-const repoRoot = resolve(here, '..', '..')
-const CANONICAL = join(repoRoot, 'src/presentation-kit')
-const SNAPSHOT = join(repoRoot, 'skills/presentation/templates/bootstrap/src/presentation-kit')
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..')
+const CANONICAL_KIT = join(REPO_ROOT, 'src/presentation-kit')
+const SNAPSHOT_KIT = join(REPO_ROOT, 'skills/presentation/templates/bootstrap/src/presentation-kit')
 
-const isTestFile = (path: string) => /\.test\./.test(path)
-
-/** Relative paths of every non-test file under `dir`, sorted. */
-function kitFiles(dir: string): string[] {
-  const out: string[] = []
-  const walk = (current: string) => {
-    for (const entry of readdirSync(current, { withFileTypes: true })) {
-      const full = join(current, entry.name)
-      if (entry.isDirectory()) walk(full)
-      else if (!isTestFile(entry.name)) out.push(relative(dir, full))
-    }
-  }
-  walk(dir)
-  return out.sort()
+function isTestFile(path: string): boolean {
+  return /(^|\/)[^/]+\.test\.[^/]+$/.test(path)
 }
 
-describe('presentation-kit snapshot parity', () => {
-  it('canonical and snapshot share the same non-test file set', () => {
-    expect(kitFiles(SNAPSHOT)).toEqual(kitFiles(CANONICAL))
+function walkFiles(root: string, dir = root, excludeTests = true): string[] {
+  return readdirSync(dir)
+    .flatMap((entry) => {
+      const fullPath = join(dir, entry)
+      const stats = statSync(fullPath)
+      if (stats.isDirectory()) {
+        return walkFiles(root, fullPath, excludeTests)
+      }
+      if (!stats.isFile()) {
+        return []
+      }
+      const path = relative(root, fullPath)
+      return excludeTests && isTestFile(path) ? [] : [path]
+    })
+    .sort()
+}
+
+function formatDriftMessage(missingFromSnapshot: string[], extraInSnapshot: string[], changed: string[]) {
+  const lines = [
+    'presentation-kit snapshot drifted from src/presentation-kit.',
+    'src/presentation-kit is canonical: copy changed files from it into the bootstrap snapshot.',
+    'Do not run `sync-kit.mjs --apply` here; it copies the snapshot into a consuming',
+    "project's vendored src/presentation-kit and would overwrite canonical changes.",
+    '',
+  ]
+
+  if (missingFromSnapshot.length > 0) {
+    lines.push('Only in src/presentation-kit:', ...missingFromSnapshot.map((file) => `  ${file}`))
+  }
+  if (extraInSnapshot.length > 0) {
+    lines.push('Only in bootstrap snapshot:', ...extraInSnapshot.map((file) => `  ${file}`))
+  }
+  if (changed.length > 0) {
+    lines.push('Different contents:', ...changed.map((file) => `  ${file}`))
+  }
+
+  return lines.join('\n')
+}
+
+describe('presentation kit bootstrap snapshot', () => {
+  it('matches the canonical kit byte-for-byte, excluding tests', () => {
+    const canonicalFiles = walkFiles(CANONICAL_KIT)
+    const snapshotFiles = walkFiles(SNAPSHOT_KIT)
+    const canonicalSet = new Set(canonicalFiles)
+    const snapshotSet = new Set(snapshotFiles)
+
+    const missingFromSnapshot = canonicalFiles.filter((file) => !snapshotSet.has(file))
+    const extraInSnapshot = snapshotFiles.filter((file) => !canonicalSet.has(file))
+    const sharedFiles = canonicalFiles.filter((file) => snapshotSet.has(file))
+    const changed = sharedFiles.filter(
+      (file) => !readFileSync(join(CANONICAL_KIT, file)).equals(readFileSync(join(SNAPSHOT_KIT, file))),
+    )
+
+    const drifted =
+      missingFromSnapshot.length > 0 || extraInSnapshot.length > 0 || changed.length > 0
+
+    expect(
+      drifted,
+      drifted ? formatDriftMessage(missingFromSnapshot, extraInSnapshot, changed) : undefined,
+    ).toBe(false)
   })
 
-  it('every shared file is byte-identical between canonical and snapshot', () => {
-    const drifted = kitFiles(CANONICAL).filter((rel) => {
-      const canonical = readFileSync(join(CANONICAL, rel), 'utf8')
-      const snapshot = readFileSync(join(SNAPSHOT, rel), 'utf8')
-      return canonical !== snapshot
-    })
-    expect(drifted).toEqual([])
+  it('keeps canonical tests out of the bootstrap snapshot', () => {
+    const canonicalTests = walkFiles(CANONICAL_KIT, CANONICAL_KIT, false).filter(isTestFile)
+    const snapshotFiles = new Set(walkFiles(SNAPSHOT_KIT, SNAPSHOT_KIT, false))
+
+    expect(canonicalTests.length).toBeGreaterThan(0)
+    expect(canonicalTests.filter((file) => snapshotFiles.has(file))).toEqual([])
   })
 })

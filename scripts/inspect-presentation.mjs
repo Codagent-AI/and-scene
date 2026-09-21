@@ -1,32 +1,68 @@
 import { mkdir, readFile } from 'node:fs/promises'
+import { spawn } from 'node:child_process'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
-const root = new URL('..', import.meta.url).pathname
+const root = fileURLToPath(new URL('..', import.meta.url))
 const slug = process.argv[2] || 'how-to-make-a-presentation'
 const output = join(root, 'artifacts/inspection')
 const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
-const browser = await chromium.launch({ headless: true })
 const warnings = []
+await run('npm', ['run', 'build'])
+const preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', shell: process.platform === 'win32' })
 try {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
-  const errors = []
-  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
-  page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto(`http://127.0.0.1:4173/${slug}`, { waitUntil: 'networkidle' })
-  await page.locator('[data-presentation]').waitFor()
-  const count = Number(await page.locator('[data-presentation]').getAttribute('data-step-count'))
-  await mkdir(output, { recursive: true })
-  for (let index = 0; index < count; index += 1) {
-    await page.waitForTimeout(700)
-    await page.screenshot({ path: join(output, `${slug}-${index}.png`), fullPage: true })
-    warnings.push(...await page.evaluate(diagnose, index))
-    if (index < count - 1) await page.keyboard.press('ArrowRight')
+  await waitForPreview(preview)
+  const browser = await chromium.launch({ headless: true })
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+    const errors = []
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto(`http://127.0.0.1:4173/${slug}`, { waitUntil: 'networkidle' })
+    await page.locator('[data-presentation]').waitFor()
+    const count = Number(await page.locator('[data-presentation]').getAttribute('data-step-count'))
+    await mkdir(output, { recursive: true })
+    for (let index = 0; index < count; index += 1) {
+      if (preview.exitCode !== null) throw new Error(`preview exited during inspection at step ${index + 1}`)
+      await page.waitForTimeout(700)
+      await page.screenshot({ path: join(output, `${slug}-${index}.png`), fullPage: true })
+      warnings.push(...await page.evaluate(diagnose, index))
+      if (index < count - 1) await page.keyboard.press('ArrowRight')
+    }
+    for (const error of errors) warnings.push(`step runtime error: ${error}`)
+    console.log(`inspect: captured ${count} settled steps for ${packageJson.name}`)
+  } finally { await browser.close() }
+} finally {
+  if (preview.pid && process.platform !== 'win32') { try { process.kill(-preview.pid, 'SIGTERM') } catch {} }
+  preview.kill('SIGTERM')
+}
+
+if (warnings.length) for (const warning of warnings) console.warn(`inspect warning [${slug}]: ${warning}`)
+
+function run(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' })
+    child.on('error', reject)
+    child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited with ${code}`)))
+  })
+}
+
+async function waitForPreview(child) {
+  const deadline = Date.now() + 15_000
+  let output = ''
+  let started = false
+  child.stdout.on('data', (chunk) => { output += chunk.toString(); started ||= output.includes('127.0.0.1:4173') })
+  child.stderr.on('data', (chunk) => { output += chunk.toString() })
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) throw new Error(`preview exited before startup: ${output.trim()}`)
+    if (started) {
+      try { const response = await fetch('http://127.0.0.1:4173/'); await response.body?.cancel(); if (response.ok) return } catch {}
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100))
   }
-  for (const error of errors) warnings.push(`step runtime error: ${error}`)
-  if (warnings.length) for (const warning of warnings) console.warn(`inspect warning [${slug}]: ${warning}`)
-  console.log(`inspect: captured ${count} settled steps for ${packageJson.name}`)
-} finally { await browser.close() }
+  throw new Error(`preview did not start: ${output.trim()}`)
+}
 
 function diagnose(step) {
   const result = []

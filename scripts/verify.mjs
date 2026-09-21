@@ -1,9 +1,10 @@
 import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
-const root = new URL('..', import.meta.url).pathname
+const root = fileURLToPath(new URL('..', import.meta.url))
 const sampleSlug = 'how-to-make-a-presentation'
 const titles = ['You have a topic', 'The skill interviews you', 'Answers become steps', 'The deck grows', 'You set the depth', 'It assembles the scene', 'It checks its own work', 'Changed your mind? Loop it.', "You're looking at one"]
 const captions = ['It starts with you, a topic, and mild overconfidence.', 'One question at a time: the topic, the look, then each beat of the story.', 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.', 'Same shapes, new beats. Every answer extends the story without redrawing it.', 'Spell out every step, or sketch a few and see how it looks. You hold the gate.', 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.', 'Before saying done, it builds and renders every step — and fixes what breaks.', 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.', 'This presentation was built exactly this way. Thanks for watching.']
@@ -22,7 +23,7 @@ try {
   try {
     await waitForPreview(preview)
     const browser = await chromium.launch({ headless: true })
-    try { await verifySample(browser) } finally { await browser.close() }
+    try { await verifySample(browser, preview) } finally { await browser.close() }
   } finally {
     if (preview.pid && process.platform !== 'win32') { try { process.kill(-preview.pid, 'SIGTERM') } catch {} }
     preview.kill('SIGTERM')
@@ -38,16 +39,19 @@ function run(command, args) { return new Promise((resolve, reject) => { const ch
 async function waitForPreview(child) {
   const deadline = Date.now() + 15_000
   let output = ''
-  child.stdout.on('data', (chunk) => { output += chunk.toString() })
+  let started = false
+  child.stdout.on('data', (chunk) => { output += chunk.toString(); started ||= output.includes('127.0.0.1:4173') })
   child.stderr.on('data', (chunk) => { output += chunk.toString() })
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`preview exited before startup: ${output.trim()}`)
-    try { const response = await fetch('http://127.0.0.1:4173/'); await response.body?.cancel(); if (response.ok) return } catch {}
+    if (started) {
+      try { const response = await fetch('http://127.0.0.1:4173/'); await response.body?.cancel(); if (response.ok) return } catch {}
+    }
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
   throw new Error(`preview did not start: ${output.trim()}`)
 }
-async function verifySample(browser) {
+async function verifySample(browser, preview) {
   const page = await browser.newPage()
   const errors = []
   page.on('console', (message) => { if (message.type() === 'error') errors.push(`console: ${message.text()}`) })
@@ -58,6 +62,7 @@ async function verifySample(browser) {
     const count = await page.locator('[data-presentation]').getAttribute('data-step-count')
     assert(Number(count) === 9, `reference sample reports ${count} steps, expected 9`)
     for (let index = 0; index < 9; index += 1) {
+      assert(preview.exitCode === null, `preview exited during browser verification at step ${index + 1}`)
       await page.waitForTimeout(700)
       assert(errors.length === 0, `browser error at step ${index + 1}: ${errors.join('; ')}`)
       assert(await page.locator('[data-step-index="' + index + '"]').count() === 1, `step ${index + 1} did not render`)

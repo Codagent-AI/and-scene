@@ -14,6 +14,10 @@ function LazyPresentation({ load }: { load: () => Promise<{ default: React.Compo
   const [failed, setFailed] = React.useState(false)
   React.useEffect(() => {
     let active = true
+    // Reset the view when the route's loader changes; this effect owns the loader lifecycle.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFailed(false)
+    setComponent(null)
     void Promise.resolve()
       .then(load)
       .then((module) => {

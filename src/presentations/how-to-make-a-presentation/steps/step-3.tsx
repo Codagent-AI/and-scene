@@ -1,0 +1,3 @@
+import { entities } from '../entities'
+import { makeStep } from './shared'
+export const step3 = makeStep({ id: 'step-3', era: 'the gathering', title: 'Answers become steps', caption: 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.', payload: { prompt: true, skill: true, tray: true, cards: [{ id: entities.cardOne, title: 'title', detail: 'caption · visual' }], ghost: false, depth: false, kit: false, verify: false, modify: false, reveal: false }, entityIds: [entities.you, entities.prompt, entities.skill, entities.question, entities.tray, entities.cardOne] })

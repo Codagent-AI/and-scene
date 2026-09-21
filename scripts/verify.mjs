@@ -1,9 +1,8 @@
-import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-import { previewStarted } from './preview.mjs'
+import { PREVIEW_URL, run, startPreview } from './preview.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const sampleSlug = 'how-to-make-a-presentation'
@@ -19,19 +18,16 @@ try {
   titles.forEach((title, index) => assert(sample.indexOf(title) >= 0 && (index === 0 || sample.indexOf(title) > sample.indexOf(titles[index - 1])), `reference title ${index + 1} is missing or out of order`))
   captions.forEach((caption) => assert(sample.includes(caption), `reference caption is missing: ${caption}`))
 
-  await run('npm', ['run', 'build'])
-  const preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', shell: process.platform === 'win32' })
-  const previewMonitor = monitorPreview(preview)
+  await run('npm', ['run', 'build'], root)
+  const preview = await startPreview(root)
   try {
-    await waitForPreview(preview, previewMonitor.failure)
     const browser = await chromium.launch({ headless: true })
     try {
-      await Promise.race([verifySample(browser, preview), previewMonitor.failure])
+      await Promise.race([verifySample(browser, preview), preview.failure])
       assertPreviewAlive(preview, 'after browser verification')
     } finally { await browser.close() }
   } finally {
-    previewMonitor.dispose()
-    await terminatePreview(preview)
+    await preview.stop()
   }
   console.log('VERIFY PASS: build and nine-step reference render passed')
 } catch (error) {
@@ -40,49 +36,8 @@ try {
 }
 
 function assert(condition, message) { if (!condition) throw new Error(message) }
-function run(command, args) { return new Promise((resolve, reject) => { const child = spawn(command, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' }); child.on('error', reject); child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited with ${code}`))) }) }
-async function waitForPreview(child, failure) {
-  const deadline = Date.now() + 15_000
-  let output = ''
-  let started = false
-  child.stdout.on('data', (chunk) => { output += chunk.toString(); started ||= previewStarted(output) })
-  child.stderr.on('data', (chunk) => { output += chunk.toString() })
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null) throw new Error(`preview exited before startup: ${output.trim()}`)
-    if (started) {
-      try { const response = await fetch('http://127.0.0.1:4173/'); await response.body?.cancel(); if (response.ok) return } catch {}
-    }
-    await Promise.race([new Promise((resolve) => setTimeout(resolve, 100)), failure])
-  }
-  throw new Error(`preview did not start: ${output.trim()}`)
-}
-function monitorPreview(preview) {
-  let onError
-  let onExit
-  const failure = new Promise((_, reject) => {
-    onError = (error) => reject(error)
-    onExit = (code, signal) => reject(new Error(`preview exited: ${code ?? signal}`))
-    preview.once('error', onError)
-    preview.once('exit', onExit)
-  })
-  return { failure, dispose: () => { preview.off('error', onError); preview.off('exit', onExit) } }
-}
 function assertPreviewAlive(preview, phase) {
-  assert(preview.exitCode === null && preview.signalCode === null, `preview exited ${phase}`)
-}
-async function terminatePreview(preview) {
-  const parentExited = preview.exitCode !== null || preview.signalCode !== null
-  if (process.platform !== 'win32' && preview.pid) {
-    try { process.kill(-preview.pid, 'SIGTERM') } catch (error) { if (error.code !== 'ESRCH') throw error }
-  }
-  if (process.platform === 'win32') {
-    if (preview.pid) await run('taskkill', ['/PID', String(preview.pid), '/T', '/F'])
-    return
-  }
-  if (!parentExited) {
-    preview.kill('SIGTERM')
-    await new Promise((resolve) => preview.once('close', resolve))
-  }
+  assert(preview.alive(), `preview exited ${phase}`)
 }
 async function verifySample(browser, preview) {
   const page = await browser.newPage()
@@ -90,12 +45,12 @@ async function verifySample(browser, preview) {
   page.on('console', (message) => { if (message.type() === 'error') errors.push(`console: ${message.text()}`) })
   page.on('pageerror', (error) => errors.push(`page: ${error.message}`))
   try {
-    await page.goto(`http://127.0.0.1:4173/${sampleSlug}`, { waitUntil: 'networkidle' })
+    await page.goto(new URL(sampleSlug, PREVIEW_URL).href, { waitUntil: 'networkidle' })
     await page.locator('[data-presentation]').waitFor()
     const count = await page.locator('[data-presentation]').getAttribute('data-step-count')
     assert(Number(count) === 9, `reference sample reports ${count} steps, expected 9`)
     for (let index = 0; index < 9; index += 1) {
-      assert(preview.exitCode === null, `preview exited during browser verification at step ${index + 1}`)
+      assert(preview.alive(), `preview exited during browser verification at step ${index + 1}`)
       await page.waitForTimeout(700)
       assert(errors.length === 0, `browser error at step ${index + 1}: ${errors.join('; ')}`)
       assert(await page.locator('[data-step-index="' + index + '"]').count() === 1, `step ${index + 1} did not render`)

@@ -22,7 +22,7 @@ function Scene({ payload }: SceneProps<Payload>) {
       <Box entityId={ENTITIES.you} className="how-to-node how-to-you" style={{ left: 54, top: 34 }}>you</Box>
       <Box entityId={ENTITIES.prompt} className="how-to-bubble" style={{ left: 210, top: 25 }}>a topic</Box>
       {payload.showSkill && <Box entityId={ENTITIES.skill} className="how-to-node how-to-skill" style={{ left: 650, top: 34 }}>skill</Box>}
-      {payload.showSkill && <Arrow entityId={ENTITIES.conversation} className="how-to-arrow how-to-conversation" data-presentation-overlap-allowed="connector" style={{ left: 155, top: 62, width: 500 }} />}
+      {payload.showSkill && <Arrow entityId={ENTITIES.conversation} className="how-to-arrow how-to-conversation" style={{ left: 155, top: 62, width: 500 }} />}
       {payload.showQuestion && <SymbolChip entityId={ENTITIES.question} className="how-to-chip" style={{ left: 378, top: 4 }}>?</SymbolChip>}
       {payload.showTray && <div className="how-to-tray" data-presentation-overlap-allowed="step-cards">
         {Array.from({ length: payload.cards }, (_, index) => (
@@ -36,7 +36,7 @@ function Scene({ payload }: SceneProps<Payload>) {
       {payload.showDepth && <>
         <Box entityId={ENTITIES.ghost} className="how-to-card how-to-ghost" style={{ left: 606, top: 174 }}>…</Box>
         <Box entityId={ENTITIES.depth} className="how-to-depth" style={{ left: 54, top: 284 }}>partial ↔ full</Box>
-        <Arrow entityId={ENTITIES.depth + ':link'} className="how-to-arrow how-to-depth-arrow" data-presentation-overlap-allowed="connector" style={{ left: 112, top: 252, width: 40 }} />
+        <Arrow entityId={ENTITIES.depth + ':link'} className="how-to-arrow how-to-depth-arrow" style={{ left: 112, top: 252, width: 40 }} />
       </>}
       {payload.showKit && <>
         <Box entityId={ENTITIES.kit} className="how-to-socket" style={{ left: 354, top: 300 }}>scene kit</Box>
@@ -44,13 +44,13 @@ function Scene({ payload }: SceneProps<Payload>) {
       </>}
       {payload.showVerify && <>
         <Box entityId={ENTITIES.verify} className="how-to-verify" style={{ left: 738, top: 174 }}>verify <span aria-label="passed">✓</span></Box>
-        <Arrow entityId={ENTITIES.verify + ':link'} className="how-to-arrow how-to-verify-arrow" data-presentation-overlap-allowed="connector" style={{ left: 605, top: 214, width: 124 }} />
+        <Arrow entityId={ENTITIES.verify + ':link'} className="how-to-arrow how-to-verify-arrow" style={{ left: 605, top: 214, width: 124 }} />
       </>}
       {payload.showModify && <>
-        <Emphasis entityId={ENTITIES.modify} className="how-to-arc" data-presentation-overlap-allowed="emphasis-arc" style={{ left: 248, top: 90, width: 360, height: 150 }} />
+        <Emphasis entityId={ENTITIES.modify} className="how-to-arc" style={{ left: 248, top: 90, width: 360, height: 150 }} />
         <Label entityId={ENTITIES.route} className="how-to-route" style={{ left: 326, top: 116 }}>edit in place</Label>
       </>}
-      {payload.showReveal && <Frame entityId={ENTITIES.reveal} className="how-to-reveal" data-presentation-overlap-allowed="reveal-frame" style={{ left: 22, top: 0, width: 816, height: 360 }}><span>self-reference</span></Frame>}
+      {payload.showReveal && <Frame entityId={ENTITIES.reveal} className="how-to-reveal" style={{ left: 22, top: 0, width: 816, height: 360 }}><span>self-reference</span></Frame>}
     </SceneLayer>
   )
 }

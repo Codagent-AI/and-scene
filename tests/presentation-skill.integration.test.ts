@@ -33,17 +33,23 @@ describe('presentation bootstrap integration contract', () => {
   it('resolves the screenshot helper from its own project path', async () => {
     const helper = await readFile(join(bootstrap, 'scripts/inspect-presentation.mjs'), 'utf8')
     expect(helper).toContain("new URL('../package.json', import.meta.url)")
-    expect(helper).toContain('127.0.0.1')
+    expect(helper).toContain("fileURLToPath(new URL('..', import.meta.url))")
+    expect(await readFile(join(bootstrap, 'scripts/preview.mjs'), 'utf8')).toContain('127.0.0.1')
   })
 
   it('ships a screenshot helper that owns its preview and captures every step', async () => {
     const helper = await readFile(join(bootstrap, 'scripts/inspect-presentation.mjs'), 'utf8')
-    expect(helper).toContain("['run', 'build']")
-    expect(helper).toContain('waitForPreview(preview, previewMonitor.failure)')
-    expect(helper).toContain('await terminatePreview(preview)')
+    expect(helper).toContain("run('npm', ['run', 'build'], root)")
+    expect(helper).toContain('await startPreview(root)')
+    expect(helper).toContain('await preview.stop()')
     expect(helper).toContain("getAttribute('data-step-count')")
-    expect(helper).toContain('page.waitForTimeout(700)')
-    expect(helper).toContain('${slug}-${index}.png')
-    expect(await readFile(join(bootstrap, 'scripts/diagnose.mjs'), 'utf8')).toBe(await readFile(join(root, 'scripts/diagnose.mjs'), 'utf8'))
+    expect(helper).toContain('page.screenshot')
+    expect(helper).toContain('page.evaluate(diagnose, index)')
+  })
+
+  it('keeps the shared script modules byte-aligned with the canonical copies', async () => {
+    for (const module of ['scripts/diagnose.mjs', 'scripts/preview.mjs']) {
+      expect(await readFile(join(bootstrap, module), 'utf8')).toBe(await readFile(join(root, module), 'utf8'))
+    }
   })
 })

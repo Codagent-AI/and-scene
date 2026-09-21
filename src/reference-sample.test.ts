@@ -1,6 +1,15 @@
+import { isValidElement, type ReactNode } from 'react'
 import { describe, expect, it } from 'vitest'
 import { presentations } from './presentations'
+import { ReferenceScene } from './presentations/how-to-make-a-presentation/scene'
 import { referenceSteps } from './presentations/how-to-make-a-presentation/steps'
+
+/** Every entity id the scene actually renders for a step. */
+function renderedEntityIds(node: ReactNode): string[] {
+  if (!isValidElement(node)) return Array.isArray(node) ? node.flatMap(renderedEntityIds) : []
+  const { entityId, children } = node.props as { entityId?: string; children?: ReactNode }
+  return [...(entityId ? [entityId] : []), ...renderedEntityIds(children)]
+}
 
 const canonical = [
   ['the ask', 'You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
@@ -22,6 +31,20 @@ describe('reference presentation contract', () => {
     })
     expect(referenceSteps).toHaveLength(9)
     expect(referenceSteps.map(({ era, title, caption }) => [era, title, caption])).toEqual(canonical)
+  })
+
+  it('declares exactly the entities its scene renders for each step', () => {
+    for (const step of referenceSteps) {
+      expect([...step.entityIds].sort(), `step ${step.id}`)
+        .toEqual([...new Set(renderedEntityIds(ReferenceScene({ payload: step.payload })))].sort())
+    }
+  })
+
+  it('never removes an entity, so the scene only accumulates', () => {
+    for (let i = 0; i < referenceSteps.length - 1; i += 1) {
+      const next = new Set(referenceSteps[i + 1].entityIds)
+      expect(referenceSteps[i].entityIds.filter((id) => !next.has(id)), `step ${referenceSteps[i].id}`).toEqual([])
+    }
   })
 
   it('keeps the reference as one accumulating grouped scene with stable entities', () => {

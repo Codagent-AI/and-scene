@@ -26,7 +26,7 @@
 .reference-tray { position: absolute; left: 52px; top: 160px; width: 776px; height: 166px; border-top: 1px solid #475052; border-bottom: 1px solid #475052; }
 .reference-card { top: 188px; width: 210px; height: 104px; padding: 14px; align-content: center; justify-items: start; gap: 8px; border-radius: 6px; }.reference-card-1 { left: 64px; }.reference-card-2 { left: 291px; }.reference-card-3 { left: 518px; }
 .reference-card strong { color: var(--ink); }.reference-card small { color: var(--muted); }.reference-card-number { color: var(--gold); font-size: 10px; }
-.reference-ghost { left: 518px; top: 307px; height: 36px; border-style: dashed; color: var(--muted); }.reference-depth { left: 64px; top: 316px; color: var(--teal); border-color: var(--teal); }
+.reference-ghost { left: 518px; top: 35px; height: 36px; border-style: dashed; color: var(--muted); }.reference-depth { left: 64px; top: 316px; color: var(--teal); border-color: var(--teal); }
 .reference-kit { left: 315px; top: 328px; width: 250px; height: 42px; border-color: var(--teal); color: var(--teal); }.reference-kit small { margin-left: 8px; color: var(--muted); }
 .reference-kit-arrow, .reference-verify-arrow { position: absolute; top: 326px; border-top: 1px solid var(--teal); width: 34px; }.reference-kit-arrow { left: 275px; }.reference-verify-arrow { left: 566px; }
 .reference-verify { left: 604px; top: 328px; height: 42px; padding: 0 12px; border-color: #8de39f; color: #8de39f; border-radius: 6px; }.reference-modify { position: absolute; left: 25px; top: 118px; color: var(--gold); font-size: 38px; }.reference-edited { left: 650px; top: 118px; width: 160px; height: 42px; border-color: var(--gold); color: var(--gold); }

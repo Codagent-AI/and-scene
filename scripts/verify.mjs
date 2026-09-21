@@ -27,7 +27,7 @@ try {
   const sample = readFileSync('src/presentations/how-to-make-a-presentation/steps/index.ts', 'utf8')
   if (!sample.includes('step9')) fail('reference sample does not contain nine ordered steps')
 
-  const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port)], { detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
+  const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
   let previewOutput = ''
   preview.stdout.on('data', (chunk) => { previewOutput += chunk })
   preview.stderr.on('data', (chunk) => { previewOutput += chunk })
@@ -39,8 +39,11 @@ try {
   try {
     const deadline = Date.now() + 15_000
     while (Date.now() < deadline) {
-      try { await fetch(`http://${host}:${port}${route}`); break } catch { await new Promise((resolve) => setTimeout(resolve, 100)) }
       if (preview.exitCode !== null) fail(`preview exited early: ${previewOutput}`)
+      if (previewOutput.includes(`127.0.0.1:${port}`)) {
+        try { await fetch(`http://${host}:${port}${route}`); break } catch { /* wait for the server socket */ }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100))
     }
     if (Date.now() >= deadline) fail(`preview did not become ready on ${host}:${port}`)
     const browser = await chromium.launch()

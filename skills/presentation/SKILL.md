@@ -102,7 +102,9 @@ report completion while build, render, or visual checks fail.
 The project-local helper is preferred because it uses local browser dependencies
 and settled captures. Run `npm run verify -- <slug>` to verify the selected
 presentation (or all registered presentations when no slug is supplied), and
-run `npm run inspect -- <slug>` while its preview is running to capture the
-selected presentation's representative screenshots. A successful completion
+run `npm run inspect -- <slug>` to capture the selected presentation's
+per-step settled screenshots and advisory warnings. The inspection helper
+builds, starts its own `127.0.0.1` preview, and shuts it down again, so no
+preview needs to be running first. A successful completion
 report names the route, build, render, and visual inspection results, plus any
 advisory warnings that remain.

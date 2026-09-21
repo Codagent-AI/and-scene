@@ -1,48 +1,108 @@
-import { readFile, mkdir } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
+import { spawn } from 'node:child_process'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import { chromium } from 'playwright'
+import { previewStarted } from './preview.mjs'
+import { diagnose } from './diagnose.mjs'
 
-const here = dirname(fileURLToPath(import.meta.url))
-const packageUrl = new URL('../package.json', import.meta.url)
-const packageJson = JSON.parse(await readFile(packageUrl, 'utf8'))
-const root = join(here, '..')
-const requestedSlug = process.argv[2]
-const slugs = requestedSlug ? [validateSlug(requestedSlug)] : await registeredSlugs()
-if (slugs.length === 0) throw new Error('inspect: no registered presentations found')
+const root = fileURLToPath(new URL('..', import.meta.url))
+const slug = await resolveSlug(process.argv[2])
 const output = join(root, 'artifacts/inspection')
-const browser = await chromium.launch({ headless: true })
+const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
+const warnings = []
+await run('npm', ['run', 'build'])
+const preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', shell: process.platform === 'win32' })
+const previewMonitor = monitorPreview(preview)
 try {
-  for (const slug of slugs) await inspectRoute(browser, slug)
+  await waitForPreview(preview, previewMonitor.failure)
+  const browser = await chromium.launch({ headless: true })
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+    const errors = []
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto(`http://127.0.0.1:4173/${slug}`, { waitUntil: 'networkidle' })
+    await page.locator('[data-presentation]').waitFor()
+    const count = Number(await page.locator('[data-presentation]').getAttribute('data-step-count'))
+    await mkdir(output, { recursive: true })
+    for (let index = 0; index < count; index += 1) {
+      if (preview.exitCode !== null || preview.signalCode !== null) throw new Error(`preview exited during inspection at step ${index + 1}`)
+      await page.waitForTimeout(700)
+      await page.screenshot({ path: join(output, `${slug}-${index}.png`), fullPage: true })
+      warnings.push(...await page.evaluate(diagnose, index))
+      if (index < count - 1) await page.keyboard.press('ArrowRight')
+    }
+    for (const error of errors) warnings.push(`step runtime error: ${error}`)
+    console.log(`inspect: captured ${count} settled steps for ${packageJson.name}`)
+  } finally { await browser.close() }
 } finally {
-  await browser.close()
+  previewMonitor.dispose()
+  await terminatePreview(preview)
 }
-console.log(`inspect: captured settled steps for ${packageJson.name}: ${slugs.join(', ')}`)
+
+if (warnings.length) for (const warning of warnings) console.warn(`inspect warning [${slug}]: ${warning}`)
+
+async function resolveSlug(requested) {
+  if (requested) return validateSlug(requested)
+  const source = await readFile(join(root, 'src/presentations/index.ts'), 'utf8')
+  const [first] = [...source.matchAll(/slug:\s*['"]([a-z0-9-]+)['"]/g)].map((match) => validateSlug(match[1]))
+  if (!first) throw new Error('inspect: no registered presentations found')
+  return first
+}
 
 function validateSlug(slug) {
   if (!/^[a-z0-9-]+$/.test(slug)) throw new Error(`inspect: invalid presentation slug "${slug}"`)
   return slug
 }
 
-async function registeredSlugs() {
-  const source = await readFile(join(root, 'src/presentations/index.ts'), 'utf8')
-  return [...source.matchAll(/slug:\s*['"]([a-z0-9-]+)['"]/g)].map((match) => validateSlug(match[1]))
+function run(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' })
+    child.on('error', reject)
+    child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited with ${code}`)))
+  })
 }
 
-async function inspectRoute(browser, slug) {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
-  const warnings = []
-  page.on('console', (message) => { if (message.type() === 'error') warnings.push(`console error: ${message.text()}`) })
-  try {
-    await page.goto(`http://127.0.0.1:4173/${slug}`, { waitUntil: 'networkidle' })
-    await page.locator('[data-presentation]').waitFor()
-    await page.waitForTimeout(800)
-    await mkdir(output, { recursive: true })
-    await page.screenshot({ path: join(output, `${slug}-0.png`), fullPage: true })
-    if (!(await page.locator('[data-presentation-attribution]').isVisible())) warnings.push('attribution is missing or hidden')
-    if (!(await page.locator('[data-presentation-progress-item][aria-current="step"]').isVisible())) warnings.push('active progress state is indistinct or missing')
-  } finally {
-    await page.close()
+async function waitForPreview(child, failure) {
+  const deadline = Date.now() + 15_000
+  let output = ''
+  let started = false
+  child.stdout.on('data', (chunk) => { output += chunk.toString(); started ||= previewStarted(output) })
+  child.stderr.on('data', (chunk) => { output += chunk.toString() })
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) throw new Error(`preview exited before startup: ${output.trim()}`)
+    if (started) {
+      try { const response = await fetch('http://127.0.0.1:4173/'); await response.body?.cancel(); if (response.ok) return } catch {}
+    }
+    await Promise.race([new Promise((resolve) => setTimeout(resolve, 100)), failure])
   }
-  for (const warning of warnings) console.warn(`inspect warning [${slug}]: ${warning}`)
+  throw new Error(`preview did not start: ${output.trim()}`)
+}
+
+function monitorPreview(preview) {
+  let onError
+  let onExit
+  const failure = new Promise((_, reject) => {
+    onError = (error) => reject(error)
+    onExit = (code, signal) => reject(new Error(`preview exited: ${code ?? signal}`))
+    preview.once('error', onError)
+    preview.once('exit', onExit)
+  })
+  return { failure, dispose: () => { preview.off('error', onError); preview.off('exit', onExit) } }
+}
+
+async function terminatePreview(preview) {
+  const parentExited = preview.exitCode !== null || preview.signalCode !== null
+  if (process.platform !== 'win32' && preview.pid) {
+    try { process.kill(-preview.pid, 'SIGTERM') } catch (error) { if (error.code !== 'ESRCH') throw error }
+  }
+  if (process.platform === 'win32') {
+    if (preview.pid) await run('taskkill', ['/PID', String(preview.pid), '/T', '/F'])
+    return
+  }
+  if (!parentExited) {
+    preview.kill('SIGTERM')
+    await new Promise((resolve) => preview.once('close', resolve))
+  }
 }

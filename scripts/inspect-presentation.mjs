@@ -3,6 +3,8 @@ import { spawn } from 'node:child_process'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import { previewStarted } from './preview.mjs'
+import { diagnose } from './diagnose.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const slug = process.argv[2] || 'how-to-make-a-presentation'
@@ -53,7 +55,7 @@ async function waitForPreview(child, failure) {
   const deadline = Date.now() + 15_000
   let output = ''
   let started = false
-  child.stdout.on('data', (chunk) => { output += chunk.toString(); started ||= output.includes('127.0.0.1:4173') })
+  child.stdout.on('data', (chunk) => { output += chunk.toString(); started ||= previewStarted(output) })
   child.stderr.on('data', (chunk) => { output += chunk.toString() })
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`preview exited before startup: ${output.trim()}`)
@@ -90,24 +92,4 @@ async function terminatePreview(preview) {
     preview.kill('SIGTERM')
     await new Promise((resolve) => preview.once('close', resolve))
   }
-}
-
-function diagnose(step) {
-  const result = []
-  const visible = [...document.querySelectorAll('[data-presentation-caption], [data-presentation-header], [data-presentation-controls], [data-presentation-toc], [data-presentation-node]:not(.how-to-arrow):not(.how-to-arc):not(.how-to-reveal), [data-presentation-attribution]')].filter((element) => {
-    const box = element.getBoundingClientRect(); return box.width > 0 && box.height > 0 && getComputedStyle(element).visibility !== 'hidden'
-  })
-  const allowed = (element) => element.closest('[data-presentation-overlap-allowed]')
-  for (let i = 0; i < visible.length; i += 1) for (let j = i + 1; j < visible.length; j += 1) {
-    const a = visible[i].getBoundingClientRect(); const b = visible[j].getBoundingClientRect()
-    if (!allowed(visible[i]) && !allowed(visible[j]) && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top) result.push(`step ${step + 1}: visible chrome/text overlap between ${visible[i].className} and ${visible[j].className}`)
-  }
-  const active = document.querySelector('[data-presentation-progress-item][aria-current="step"], [data-presentation-toc-item][aria-current="step"]')
-  const inactive = document.querySelector('[data-presentation-progress-item]:not([aria-current="step"]), [data-presentation-toc-item]:not([aria-current="step"])')
-  if (!active) result.push(`step ${step + 1}: active navigation state is missing`)
-  else if (inactive && getComputedStyle(active).color === getComputedStyle(inactive).color && getComputedStyle(active).backgroundColor === getComputedStyle(inactive).backgroundColor) result.push(`step ${step + 1}: active navigation state is visually indistinct`)
-  const attribution = document.querySelector('[data-presentation-attribution]')
-  if (!attribution) result.push(`step ${step + 1}: attribution is missing`)
-  else if (parseFloat(getComputedStyle(attribution).fontSize) < 11 || getComputedStyle(attribution).color === 'rgb(0, 0, 238)') result.push(`step ${step + 1}: attribution is too small or browser-default; style [data-presentation-attribution]`)
-  return result
 }

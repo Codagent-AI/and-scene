@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { readFile } from 'node:fs/promises'
 import { chromium } from 'playwright'
+import { previewStarted } from './preview.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
@@ -18,20 +19,20 @@ const buildStatus = await new Promise((resolve) => build.on('close', resolve))
 if (buildStatus !== 0) process.exit(buildStatus ?? 1)
 
 const preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32', detached: process.platform !== 'win32' })
+const previewMonitor = monitorPreview(preview)
 try {
-  await waitForPreview(preview)
+  await waitForPreview(preview, previewMonitor.failure)
   const browser = await chromium.launch({ headless: true })
   try {
-    for (const slug of slugs) await verifyRoute(browser, slug)
+    for (const slug of slugs) await Promise.race([verifyRoute(browser, slug), previewMonitor.failure])
+    if (preview.exitCode !== null || preview.signalCode !== null) throw new Error('verify: preview exited during browser verification')
   } finally {
     await browser.close()
   }
   console.log(`verify: build and browser render passed for ${slugs.join(', ')}`)
 } finally {
-  if (preview.pid && process.platform !== 'win32') {
-    try { process.kill(-preview.pid, 'SIGTERM') } catch {}
-  }
-  preview.kill('SIGTERM')
+  previewMonitor.dispose()
+  await terminatePreview(preview)
 }
 
 function validateSlug(slug) {
@@ -44,11 +45,11 @@ async function registeredSlugs() {
   return [...source.matchAll(/slug:\s*['"]([a-z0-9-]+)['"]/g)].map((match) => validateSlug(match[1]))
 }
 
-async function waitForPreview(child) {
+async function waitForPreview(child, failure) {
   const deadline = Date.now() + 15_000
   let started = false
   let output = ''
-  child.stdout.on('data', (chunk) => { output += chunk.toString(); started ||= output.includes('127.0.0.1:4173') })
+  child.stdout.on('data', (chunk) => { output += chunk.toString(); started ||= previewStarted(output) })
   child.stderr.on('data', (chunk) => { output += chunk.toString() })
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`verify: preview exited before startup${output ? `: ${output.trim()}` : ''}`)
@@ -59,7 +60,7 @@ async function waitForPreview(child) {
         if (response.ok) return
       } catch {}
     }
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await Promise.race([new Promise((resolve) => setTimeout(resolve, 100)), failure])
   }
   throw new Error(`verify: preview did not start${output ? `: ${output.trim()}` : ''}`)
 }
@@ -77,3 +78,32 @@ async function verifyRoute(browser, slug) {
     await page.close()
   }
 }
+
+function monitorPreview(preview) {
+  let onError
+  let onExit
+  const failure = new Promise((_, reject) => {
+    onError = (error) => reject(error)
+    onExit = (code, signal) => reject(new Error(`preview exited: ${code ?? signal}`))
+    preview.once('error', onError)
+    preview.once('exit', onExit)
+  })
+  return { failure, dispose: () => { preview.off('error', onError); preview.off('exit', onExit) } }
+}
+
+async function terminatePreview(preview) {
+  const parentExited = preview.exitCode !== null || preview.signalCode !== null
+  if (process.platform !== 'win32' && preview.pid) {
+    try { process.kill(-preview.pid, 'SIGTERM') } catch (error) { if (error.code !== 'ESRCH') throw error }
+  }
+  if (process.platform === 'win32') {
+    if (preview.pid) await run('taskkill', ['/PID', String(preview.pid), '/T', '/F'])
+    return
+  }
+  if (!parentExited) {
+    preview.kill('SIGTERM')
+    await new Promise((resolve) => preview.once('close', resolve))
+  }
+}
+
+function run(command, args) { return new Promise((resolve, reject) => { const child = spawn(command, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' }); child.on('error', reject); child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited with ${code}`))) }) }

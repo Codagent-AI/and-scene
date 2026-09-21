@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import { previewStarted } from './preview.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const sampleSlug = 'how-to-make-a-presentation'
@@ -44,7 +45,7 @@ async function waitForPreview(child, failure) {
   const deadline = Date.now() + 15_000
   let output = ''
   let started = false
-  child.stdout.on('data', (chunk) => { output += chunk.toString(); started ||= output.includes('127.0.0.1:4173') })
+  child.stdout.on('data', (chunk) => { output += chunk.toString(); started ||= previewStarted(output) })
   child.stderr.on('data', (chunk) => { output += chunk.toString() })
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`preview exited before startup: ${output.trim()}`)

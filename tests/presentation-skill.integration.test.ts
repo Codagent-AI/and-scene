@@ -35,4 +35,15 @@ describe('presentation bootstrap integration contract', () => {
     expect(helper).toContain("new URL('../package.json', import.meta.url)")
     expect(helper).toContain('127.0.0.1')
   })
+
+  it('ships a screenshot helper that owns its preview and captures every step', async () => {
+    const helper = await readFile(join(bootstrap, 'scripts/inspect-presentation.mjs'), 'utf8')
+    expect(helper).toContain("['run', 'build']")
+    expect(helper).toContain('waitForPreview(preview, previewMonitor.failure)')
+    expect(helper).toContain('await terminatePreview(preview)')
+    expect(helper).toContain("getAttribute('data-step-count')")
+    expect(helper).toContain('page.waitForTimeout(700)')
+    expect(helper).toContain('${slug}-${index}.png')
+    expect(await readFile(join(bootstrap, 'scripts/diagnose.mjs'), 'utf8')).toBe(await readFile(join(root, 'scripts/diagnose.mjs'), 'utf8'))
+  })
 })

@@ -16,7 +16,7 @@ function waitForServer(url, timeout = 15_000) {
       if (response.statusCode && response.statusCode < 500) return resolve()
       retry()
     }).on('error', retry).end()
-    const retry = () => Date.now() - started > timeout ? reject(new Error(`preview did not become ready at ${url}`)) : setTimeout(probe, 100)
+    const retry = () => serverExited ? reject(new Error(`preview exited before becoming ready at ${url}`)) : Date.now() - started > timeout ? reject(new Error(`preview did not become ready at ${url}`)) : setTimeout(probe, 100)
     probe()
   })
 }
@@ -27,9 +27,12 @@ if (routes.length === 0) {
   process.exit(0)
 }
 
-const server = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port)], { stdio: ['ignore', 'pipe', 'pipe'] })
-const browser = await chromium.launch()
+const server = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
+let serverExited = false
+server.once('exit', () => { serverExited = true })
+let browser
 try {
+  browser = await chromium.launch()
   await waitForServer(`http://${host}:${port}/`)
   const page = await browser.newPage()
   for (const slug of routes) {
@@ -45,6 +48,9 @@ try {
     console.log(`PASS: ${slug} rendered step 1/${count} on http://${host}:${port}/${slug}`)
   }
 } finally {
-  await browser.close()
-  server.kill('SIGTERM')
+  try { await browser?.close() } finally {
+    if (!serverExited && server.pid) {
+      try { process.kill(-server.pid, 'SIGTERM') } catch { server.kill('SIGTERM') }
+    }
+  }
 }

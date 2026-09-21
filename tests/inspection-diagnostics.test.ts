@@ -82,6 +82,11 @@ describe('inspection diagnostics contract', () => {
     expect(run([], [activeChrome, { ...inactiveChrome, style: undefined }, attribution])).toEqual([expect.stringContaining('visually indistinct')])
   })
 
+  it('reports attribution hidden by visibility or a collapsed box', () => {
+    expect(run([], [activeChrome, inactiveChrome, { ...attribution, style: { visibility: 'hidden' } }])).toEqual([expect.stringContaining('attribution is hidden')])
+    expect(run([], [activeChrome, inactiveChrome, { ...attribution, rect: { left: 0, top: 0, right: 0, bottom: 0 } }])).toEqual([expect.stringContaining('attribution is hidden')])
+  })
+
   it('reports undersized or browser-default attribution', () => {
     expect(run([], [activeChrome, inactiveChrome, { ...attribution, style: { fontSize: '9px' } }])).toEqual([expect.stringContaining('attribution')])
     expect(run([], [activeChrome, inactiveChrome, { ...attribution, style: { color: 'rgb(0, 0, 238)' } }])).toEqual([expect.stringContaining('attribution')])

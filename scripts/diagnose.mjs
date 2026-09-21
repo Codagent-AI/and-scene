@@ -27,7 +27,9 @@ export function diagnose(step, doc = document, computedStyle = getComputedStyle)
   if (!attribution) result.push(`${at}: attribution is missing`)
   else {
     const attributionStyle = computedStyle(attribution)
-    if (parseFloat(attributionStyle.fontSize) < 11 || attributionStyle.color === 'rgb(0, 0, 238)') result.push(`${at}: attribution is too small or browser-default; style [data-presentation-attribution]`)
+    const attributionBox = attribution.getBoundingClientRect()
+    if (attributionBox.width === 0 || attributionBox.height === 0 || attributionStyle.visibility === 'hidden' || attributionStyle.visibility === 'collapse') result.push(`${at}: attribution is hidden; it must stay visible`)
+    else if (parseFloat(attributionStyle.fontSize) < 11 || attributionStyle.color === 'rgb(0, 0, 238)') result.push(`${at}: attribution is too small or browser-default; style [data-presentation-attribution]`)
   }
   return result
 }

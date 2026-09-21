@@ -1,21 +1,18 @@
-/** Stable layoutId namespace — entities morph across steps when ids match. */
 export const ENTITIES = {
-  you: 'you',
-  prompt: 'prompt',
-  questionChip: 'question-chip',
-  convoArrow: 'convo-arrow',
-  skill: 'skill',
-  stepCard1: 'step-card-1',
-  stepCard2: 'step-card-2',
-  stepCard3: 'step-card-3',
-  ghostCard: 'ghost-card',
-  depthChip: 'depth-chip',
-  tray: 'tray',
-  kitSocket: 'kit-socket',
-  verifyArrow: 'verify-arrow',
-  verifyNode: 'verify-node',
-  greenCheck: 'green-check',
-  editBadge: 'edit-badge',
+  you: 'how-to:you',
+  prompt: 'how-to:prompt',
+  skill: 'how-to:skill',
+  conversation: 'how-to:conversation',
+  question: 'how-to:question',
+  tray: 'how-to:tray',
+  ghost: 'how-to:ghost',
+  depth: 'how-to:depth',
+  kit: 'how-to:kit',
+  verify: 'how-to:verify',
+  modify: 'how-to:modify',
+  route: 'how-to:route',
+  reveal: 'how-to:reveal',
 } as const
 
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]
+export const cardId = (index: number) => `how-to:step-card:${index}`
+export const cardLinkId = (index: number) => `how-to:step-link:${index}`

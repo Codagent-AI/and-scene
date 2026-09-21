@@ -9,6 +9,14 @@ export function Router() {
 }
 function LazyPresentation({ load }: { load: () => Promise<{ default: React.ComponentType }> }) {
   const [Component, setComponent] = React.useState<React.ComponentType | null>(null)
-  React.useEffect(() => { let active = true; void load().then((module) => { if (active) setComponent(() => module.default) }); return () => { active = false } }, [load])
+  const [error, setError] = React.useState<Error | null>(null)
+  React.useEffect(() => {
+    let active = true
+    void load()
+      .then((module) => { if (active) setComponent(() => module.default) })
+      .catch((cause: unknown) => { if (active) setError(cause instanceof Error ? cause : new Error(String(cause))) })
+    return () => { active = false }
+  }, [load])
+  if (error) return <p role="alert">Unable to load presentation. <button type="button" onClick={() => window.location.reload()}>Retry</button></p>
   return Component ? <Component /> : <p data-presentation-loading>Loading presentation…</p>
 }

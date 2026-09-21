@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create and modify browser presentations as one evolving scene.
+description: Creates and modifies browser presentations as evolving scenes. Activates for requests to create a browser presentation, edit presentation steps, or animate a diagram using the scene kit.
 ---
 
 # Presentation skill
@@ -100,5 +100,9 @@ readable intentional overlap. Re-run failed checks after fixing them. Do not
 report completion while build, render, or visual checks fail.
 
 The project-local helper is preferred because it uses local browser dependencies
-and settled captures. A successful completion report names the route, build,
-render, and visual inspection results, plus any advisory warnings that remain.
+and settled captures. Run `npm run verify -- <slug>` to verify the selected
+presentation (or all registered presentations when no slug is supplied), and
+run `npm run inspect -- <slug>` while its preview is running to capture the
+selected presentation's representative screenshots. A successful completion
+report names the route, build, render, and visual inspection results, plus any
+advisory warnings that remain.

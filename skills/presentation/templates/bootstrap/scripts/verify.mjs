@@ -1,27 +1,79 @@
 import { spawn } from 'node:child_process'
-import { request } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { readFile } from 'node:fs/promises'
 import { chromium } from 'playwright'
+
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
 const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 if (!pkg.scripts?.build) throw new Error('verify: missing build script')
+
+const requestedSlug = process.argv[2]
+const slugs = requestedSlug ? [validateSlug(requestedSlug)] : await registeredSlugs()
+if (slugs.length === 0) throw new Error('verify: no registered presentations found')
+
 const build = spawn('npm', ['run', 'build'], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' })
-const status = await new Promise((resolve) => build.on('close', resolve))
-if (status !== 0) process.exit(status ?? 1)
-const preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1'], { cwd: root, stdio: 'ignore', shell: process.platform === 'win32' })
+const buildStatus = await new Promise((resolve) => build.on('close', resolve))
+if (buildStatus !== 0) process.exit(buildStatus ?? 1)
+
+const preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32', detached: process.platform !== 'win32' })
 try {
-  await new Promise((resolve, reject) => { const deadline = setTimeout(() => reject(new Error('verify: preview did not start')), 15_000); const poll = () => request('http://127.0.0.1:4173/starter', (res) => { clearTimeout(deadline); res.resume(); resolve() }).on('error', () => setTimeout(poll, 100)).end(); poll() })
+  await waitForPreview(preview)
   const browser = await chromium.launch({ headless: true })
+  try {
+    for (const slug of slugs) await verifyRoute(browser, slug)
+  } finally {
+    await browser.close()
+  }
+  console.log(`verify: build and browser render passed for ${slugs.join(', ')}`)
+} finally {
+  if (preview.pid && process.platform !== 'win32') {
+    try { process.kill(-preview.pid, 'SIGTERM') } catch {}
+  }
+  preview.kill('SIGTERM')
+}
+
+function validateSlug(slug) {
+  if (!/^[a-z0-9-]+$/.test(slug)) throw new Error(`verify: invalid presentation slug "${slug}"`)
+  return slug
+}
+
+async function registeredSlugs() {
+  const source = await readFile(join(root, 'src/presentations/index.ts'), 'utf8')
+  return [...source.matchAll(/slug:\s*['"]([a-z0-9-]+)['"]/g)].map((match) => validateSlug(match[1]))
+}
+
+async function waitForPreview(child) {
+  const deadline = Date.now() + 15_000
+  let started = false
+  let output = ''
+  child.stdout.on('data', (chunk) => { output += chunk.toString(); started ||= output.includes('127.0.0.1:4173') })
+  child.stderr.on('data', (chunk) => { output += chunk.toString() })
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) throw new Error(`verify: preview exited before startup${output ? `: ${output.trim()}` : ''}`)
+    if (started) {
+      try {
+        const response = await fetch('http://127.0.0.1:4173/', { signal: AbortSignal.timeout(1000) })
+        await response.body?.cancel()
+        if (response.ok) return
+      } catch {}
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  throw new Error(`verify: preview did not start${output ? `: ${output.trim()}` : ''}`)
+}
+
+async function verifyRoute(browser, slug) {
   const page = await browser.newPage()
   const errors = []
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto('http://127.0.0.1:4173/starter', { waitUntil: 'networkidle' })
-  await page.locator('[data-presentation]').waitFor()
-  if (errors.length) throw new Error(`verify: browser errors on starter: ${errors.join('; ')}`)
-  await browser.close()
-  console.log('verify: build, browser render, and starter route passed')
-} finally { preview.kill('SIGTERM') }
+  try {
+    await page.goto(`http://127.0.0.1:4173/${slug}`, { waitUntil: 'networkidle' })
+    await page.locator('[data-presentation]').waitFor()
+    if (errors.length) throw new Error(`verify: browser errors on ${slug}: ${errors.join('; ')}`)
+  } finally {
+    await page.close()
+  }
+}

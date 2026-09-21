@@ -5,7 +5,16 @@ import { presentations } from './presentations'
 
 function Loader({ load }: { load: () => Promise<{ default: ComponentType }> }) {
   const [Component, setComponent] = useState<ComponentType | null>(null)
-  useEffect(() => { void load().then((module) => setComponent(() => module.default)) }, [load])
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    let active = true
+    void load().then(
+      (module) => { if (active) setComponent(() => module.default) },
+      (reason: unknown) => { if (active) setError(String(reason)) },
+    )
+    return () => { active = false }
+  }, [load])
+  if (error) return <main data-presentation-load-error><p>Unable to load this presentation: {error}</p><button type="button" onClick={() => window.location.reload()}>Reload</button></main>
   return Component ? <Component /> : <div data-presentation-loading>Loading presentation…</div>
 }
 

@@ -14,7 +14,7 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse', c
   if (!step) return null
   return (
     <main className={className} style={style} data-presentation-root data-presentation-mode={mode} data-step-count={steps.length} data-step-index={index} onTouchStart={nav.onTouchStart} onTouchEnd={nav.onTouchEnd}>
-      <Header step={step} mode={mode} title={title} />
+      <Header step={step} index={index} mode={mode} title={title} />
       <button type="button" data-presentation-mode-toggle onClick={nav.toggleMode}>{mode === 'browse' ? 'Present' : 'Browse'}</button>
       {mode === 'browse' && <Toc steps={steps} index={index} onJump={setIndex} />}
       <Stage step={step} mode={mode} />

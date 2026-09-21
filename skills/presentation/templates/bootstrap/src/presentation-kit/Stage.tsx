@@ -20,6 +20,7 @@ export function Stage<TPayload>({ step, mode, className }: Props<TPayload>) {
             <motion.div
               key={step.groupKey ?? step.id}
               data-presentation-scene
+              style={{ position: 'relative', width: '100%', height: '100%' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

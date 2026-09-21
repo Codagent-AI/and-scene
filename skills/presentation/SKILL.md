@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create and modify browser presentations as one evolving scene.
+description: Creates and modifies browser presentations as evolving scenes. Activates for requests to create a browser presentation, animate a diagram across story beats, or edit an existing scene-based talk.
 ---
 
 # Presentation skill
@@ -8,6 +8,12 @@ description: Create and modify browser presentations as one evolving scene.
 Create a browser-based presentation from a topic. A presentation is one
 evolving diagram: named steps change a shared scene, while the presentation
 kit supplies navigation, motion, and chrome.
+
+## Out of scope
+
+This skill does not edit PowerPoint or Keynote files and does not export PDF,
+video, or image decks. Redirect those requests to the appropriate office,
+document, or media tools.
 
 ## Gather requirements
 
@@ -94,6 +100,13 @@ From the target app directory:
    explicit allow-overlap hook when it is intentional and readable.
 
 Do not report completion while any build, render, or visual check is failing.
-Report the route, steps checked, commands run, and any remaining advisory
-warnings. Temporary browser processes and screenshots stay out of source
-control.
+Use this compact completion report:
+
+```text
+Route: <local route or none>
+Steps Checked: <count and representative steps, or none>
+Commands and Results: <command> — PASS|FAIL|SKIPPED; ...
+Advisory Warnings: <warning summary, or none>
+```
+
+Temporary browser processes and screenshots stay out of source control.

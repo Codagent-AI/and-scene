@@ -2,7 +2,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { chromium, type Browser, type Page } from 'playwright'
 import { collectVisualDiagnostics } from '../visual-diagnostics.mjs'
 
-const chrome = (extra: string) => `
+const DISTINCT_PROGRESS = '[data-presentation-progress-item="active"] { background-color: rgb(255,255,255); }'
+const DISTINCT_TOC = '[data-presentation-toc-item="active"] { background-color: rgb(255,255,255); }'
+const ALL_DISTINCT = DISTINCT_PROGRESS + DISTINCT_TOC
+
+const chrome = ({ extra = '', attributionSize = '12px' } = {}) => `
   <nav data-presentation-progress>
     <button data-presentation-progress-item="active">1</button>
     <button>2</button>
@@ -11,17 +15,24 @@ const chrome = (extra: string) => `
     <button data-presentation-toc-item="active">the ask</button>
     <button>the build</button>
   </nav>
-  <a data-presentation-attribution href="#" style="font-size:12px">made by and-scene</a>
+  <a data-presentation-attribution href="#" style="font-size:${attributionSize}">made by and-scene</a>
   ${extra}
+`
+
+const OVERLAPPING = `
+  <div style="position:absolute;top:400px;left:40px"><span data-presentation-label>Alpha</span></div>
+  <div style="position:absolute;top:400px;left:44px"><span data-presentation-label>Beta</span></div>
 `
 
 let browser: Browser
 let page: Page
 
-async function diagnose(html: string, css = '') {
+async function diagnose(html: string, css = ALL_DISTINCT) {
   await page.setContent(`<style>${css}</style>${html}`)
   return page.evaluate(collectVisualDiagnostics)
 }
+
+const containing = (fragment: string) => expect.arrayContaining([expect.stringContaining(fragment)])
 
 beforeAll(async () => {
   browser = await chromium.launch()
@@ -32,36 +43,36 @@ afterAll(async () => { await browser?.close() })
 
 describe('visual composition diagnostics', () => {
   it('stays silent on a well-formed, distinct composition', async () => {
-    const css = '[data-presentation-progress-item="active"], [data-presentation-toc-item="active"] { background-color: rgb(255,255,255); }'
-    expect(await diagnose(chrome(''), css)).toEqual([])
+    expect(await diagnose(chrome())).toEqual([])
   })
 
   it('reports an indistinct active progress indicator', async () => {
-    const css = '[data-presentation-toc-item="active"] { background-color: rgb(255,255,255); }'
-    expect(await diagnose(chrome(''), css)).toContain('active progress may be visually indistinct')
+    expect(await diagnose(chrome(), DISTINCT_TOC)).toContain('active progress may be visually indistinct')
   })
 
   it('reports an indistinct active table-of-contents entry', async () => {
-    const css = '[data-presentation-progress-item="active"] { background-color: rgb(255,255,255); }'
-    expect(await diagnose(chrome(''), css)).toContain('active table-of-contents entry may be visually indistinct')
+    expect(await diagnose(chrome(), DISTINCT_PROGRESS)).toContain('active table-of-contents entry may be visually indistinct')
   })
 
   it('reports undersized attribution', async () => {
-    const html = chrome('').replace('font-size:12px', 'font-size:8px')
-    const css = '[data-presentation-progress-item="active"], [data-presentation-toc-item="active"] { background-color: rgb(255,255,255); }'
-    expect(await diagnose(html, css)).toContain('attribution is missing or undersized; style [data-presentation-attribution]')
+    expect(await diagnose(chrome({ attributionSize: '8px' }))).toContain('attribution is missing or undersized; style [data-presentation-attribution]')
   })
 
   it('reports an unmarked overlap and exempts a marked one', async () => {
-    const overlapping = `
-      <div style="position:absolute;top:400px;left:40px"><span data-presentation-label>Alpha</span></div>
-      <div style="position:absolute;top:400px;left:44px"><span data-presentation-label>Beta</span></div>
-    `
-    const css = '[data-presentation-progress-item="active"], [data-presentation-toc-item="active"] { background-color: rgb(255,255,255); }'
-    const unmarked = await diagnose(chrome(overlapping), css)
-    expect(unmarked.some((warning) => warning.startsWith('unmarked overlap:'))).toBe(true)
+    expect(await diagnose(chrome({ extra: OVERLAPPING }))).toEqual(containing('unmarked overlap:'))
+    expect(await diagnose(chrome({ extra: `<div data-allow-overlap>${OVERLAPPING}</div>` }))).not.toEqual(containing('unmarked overlap:'))
+  })
 
-    const marked = await diagnose(chrome(`<div data-allow-overlap>${overlapping}</div>`), css)
-    expect(marked.some((warning) => warning.startsWith('unmarked overlap:'))).toBe(false)
+  it('reports scene content that escapes the fixed canvas', async () => {
+    const canvas = `
+      <div data-presentation-canvas style="position:absolute;top:0;left:0;width:300px;height:200px">
+        <div data-presentation-box data-entity-id="runaway" style="position:absolute;top:0;left:400px;width:80px;height:40px">out</div>
+      </div>
+    `
+    expect(await diagnose(chrome({ extra: canvas }))).toEqual(containing('content outside fixed canvas: runaway'))
+  })
+
+  it('stays silent about canvas fit when the page has no canvas', async () => {
+    expect(await diagnose(chrome())).toEqual([])
   })
 })

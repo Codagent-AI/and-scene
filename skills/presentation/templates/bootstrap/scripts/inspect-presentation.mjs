@@ -33,21 +33,8 @@ try {
     const actual = Number(await page.locator('[data-presentation-root]').getAttribute('data-step-index'))
     if (actual !== index) throw new Error(`${slug}: failed to settle on step ${index + 1}`)
     // Visual composition findings are advisory inspection artifacts, not pass/fail evidence.
-    const fit = await page.evaluate(() => {
-      const canvas = document.querySelector('[data-presentation-canvas]')?.getBoundingClientRect()
-      if (!canvas) return ['scene canvas is missing']
-      const selectors = '[data-presentation-box],[data-presentation-label],[data-presentation-arrow],[data-presentation-frame],[data-presentation-emphasis],[data-presentation-symbol-chip]'
-      const issues = []
-      for (const element of document.querySelectorAll(selectors)) {
-        const rect = element.getBoundingClientRect()
-        if (rect.width === 0 || rect.height === 0) continue
-        const label = element.getAttribute('data-entity-id') || element.textContent?.trim().slice(0, 40) || element.tagName
-        if (rect.left < canvas.left - 1 || rect.top < canvas.top - 1 || rect.right > canvas.right + 1 || rect.bottom > canvas.bottom + 1) issues.push(`content outside fixed canvas: ${label}`)
-        if (element instanceof HTMLElement && (element.scrollWidth > element.clientWidth + 1 || element.scrollHeight > element.clientHeight + 1)) issues.push(`clipped text: ${label}`)
-      }
-      return issues
-    })
-    for (const warning of [...fit, ...await page.evaluate(collectVisualDiagnostics)]) console.warn(`ADVISORY step ${index + 1}: ${warning}`)
+    const warnings = await page.evaluate(collectVisualDiagnostics)
+    for (const warning of warnings) console.warn(`ADVISORY step ${index + 1}: ${warning}`)
     await page.screenshot({ path: `${outputDir}/${slug}-step-${index + 1}.png`, fullPage: true })
   }
   if (errors.length) throw new Error(errors.join('; '))

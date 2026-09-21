@@ -51,8 +51,12 @@ describe('canonical app dogfoods the template import convention', () => {
 
   it('imports the kit through the alias in the committed reference sample', () => {
     const sampleRoot = join(process.cwd(), 'src/presentations/how-to-make-a-presentation')
-    for (const file of filesUnder(sampleRoot).filter((name) => name.endsWith('.ts') || name.endsWith('.tsx'))) {
-      expect(readFileSync(join(sampleRoot, file), 'utf8')).not.toMatch(/from '\.\.[./]*\/presentation-kit'/)
-    }
+    const kitImporters = filesUnder(sampleRoot)
+      .filter((name) => name.endsWith('.ts') || name.endsWith('.tsx'))
+      .map((name) => readFileSync(join(sampleRoot, name), 'utf8'))
+      .filter((source) => source.includes('presentation-kit'))
+
+    expect(kitImporters.length).toBeGreaterThan(0)
+    for (const source of kitImporters) expect(source).toMatch(/from '@presentation-kit'/)
   })
 })

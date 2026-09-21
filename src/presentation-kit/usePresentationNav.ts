@@ -15,24 +15,29 @@ export function isNavigationKey(key: string): NavigationDirection {
   return false
 }
 
+export function shouldHandleNavigationKey(event: Pick<KeyboardEvent, 'key' | 'defaultPrevented' | 'ctrlKey' | 'metaKey' | 'altKey'>): boolean {
+  return !event.defaultPrevented && !event.ctrlKey && !event.metaKey && !event.altKey && Boolean(isNavigationKey(event.key))
+}
+
 const isInteractive = (target: EventTarget | null) => {
   if (!(target instanceof HTMLElement)) return false
   return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A'].includes(target.tagName)
 }
 
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
-  const [index, setIndex] = useState(0)
+  const [rawIndex, setRawIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
   const touchStart = useRef<number | null>(null)
+  const index = clampStepIndex(rawIndex, stepCount)
 
-  const goTo = useCallback((nextIndex: number) => setIndex(clampStepIndex(nextIndex, stepCount)), [stepCount])
+  const goTo = useCallback((nextIndex: number) => setRawIndex(clampStepIndex(nextIndex, stepCount)), [stepCount])
   const next = useCallback(() => goTo(index + 1), [goTo, index])
   const previous = useCallback(() => goTo(index - 1), [goTo, index])
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isInteractive(event.target)) return
+      if (!shouldHandleNavigationKey(event) || isInteractive(event.target)) return
       const action = isNavigationKey(event.key)
       if (!action) return
       event.preventDefault()

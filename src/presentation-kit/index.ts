@@ -4,4 +4,4 @@ export { DESIGN_H, DESIGN_W, EASE, ENTER_DELAY, ENTER_T, LAYOUT_T, MIN_SCALE, ST
 export * from './nodes'
 export type { PresentationMode, PresentationProps, SceneComponent, SceneProps, Step, StepMeta } from './types'
 export { calculateFitScale, useFitScale } from './useFitScale'
-export { clampStepIndex, isNavigationKey, usePresentationNav } from './usePresentationNav'
+export { clampStepIndex, isNavigationKey, shouldHandleNavigationKey, usePresentationNav } from './usePresentationNav'

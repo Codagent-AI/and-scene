@@ -1,4 +1,4 @@
-import { Presentation } from '../../presentation-kit'
+import { Presentation } from '@presentation-kit'
 import { STEPS } from './steps'
 import './presentation.css'
 

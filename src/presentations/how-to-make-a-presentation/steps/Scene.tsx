@@ -1,4 +1,4 @@
-import { Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip } from '../../../presentation-kit'
+import { Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip } from '@presentation-kit'
 import { ENTITY_IDS, stepCardId } from '../entities'
 import '../presentation.css'
 

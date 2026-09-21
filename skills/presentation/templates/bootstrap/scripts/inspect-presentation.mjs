@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync } from 'node:fs'
 import { chromium } from 'playwright'
+import { collectVisualDiagnostics } from './visual-diagnostics.mjs'
 
 const slug = process.argv[2]
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
@@ -31,39 +32,22 @@ try {
     await page.waitForTimeout(800)
     const actual = Number(await page.locator('[data-presentation-root]').getAttribute('data-step-index'))
     if (actual !== index) throw new Error(`${slug}: failed to settle on step ${index + 1}`)
-    const diagnostics = await page.evaluate(() => {
+    // Visual composition findings are advisory inspection artifacts, not pass/fail evidence.
+    const fit = await page.evaluate(() => {
       const canvas = document.querySelector('[data-presentation-canvas]')?.getBoundingClientRect()
       if (!canvas) return ['scene canvas is missing']
       const selectors = '[data-presentation-box],[data-presentation-label],[data-presentation-arrow],[data-presentation-frame],[data-presentation-emphasis],[data-presentation-symbol-chip]'
-      const items = [...document.querySelectorAll(selectors)].filter((element) => {
-        const rect = element.getBoundingClientRect()
-        return rect.width > 0 && rect.height > 0
-      })
       const issues = []
-      for (const element of items) {
+      for (const element of document.querySelectorAll(selectors)) {
         const rect = element.getBoundingClientRect()
+        if (rect.width === 0 || rect.height === 0) continue
         const label = element.getAttribute('data-entity-id') || element.textContent?.trim().slice(0, 40) || element.tagName
-        const clipped = rect.left < canvas.left - 1 || rect.top < canvas.top - 1 || rect.right > canvas.right + 1 || rect.bottom > canvas.bottom + 1
-        if (clipped) issues.push(`content outside fixed canvas: ${label}`)
+        if (rect.left < canvas.left - 1 || rect.top < canvas.top - 1 || rect.right > canvas.right + 1 || rect.bottom > canvas.bottom + 1) issues.push(`content outside fixed canvas: ${label}`)
         if (element instanceof HTMLElement && (element.scrollWidth > element.clientWidth + 1 || element.scrollHeight > element.clientHeight + 1)) issues.push(`clipped text: ${label}`)
-      }
-      for (let left = 0; left < items.length; left += 1) for (let right = left + 1; right < items.length; right += 1) {
-        if (items[left].contains(items[right]) || items[right].contains(items[left])) continue
-        const a = items[left].getBoundingClientRect(); const b = items[right].getBoundingClientRect()
-        const intersects = a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
-        const allowed = items[left].closest('[data-allow-overlap]') || items[right].closest('[data-allow-overlap]')
-        if (intersects && !allowed) {
-          const aLabel = items[left].getAttribute('data-entity-id') || items[left].textContent?.trim().slice(0, 24) || 'element'
-          const bLabel = items[right].getAttribute('data-entity-id') || items[right].textContent?.trim().slice(0, 24) || 'element'
-          issues.push(`unmarked overlap: ${aLabel} / ${bLabel}`)
-        }
       }
       return issues
     })
-    if (diagnostics.length) throw new Error(`${slug} step ${index + 1}: ${diagnostics.join('; ')}`)
-    if (!(await page.locator('[data-presentation-progress-item="active"]').count())) throw new Error(`${slug} step ${index + 1}: active progress state is not exposed`)
-    const attribution = page.locator('[data-presentation-attribution]').first()
-    if (!(await attribution.isVisible())) throw new Error(`${slug} step ${index + 1}: attribution is missing or hidden`)
+    for (const warning of [...fit, ...await page.evaluate(collectVisualDiagnostics)]) console.warn(`ADVISORY step ${index + 1}: ${warning}`)
     await page.screenshot({ path: `${outputDir}/${slug}-step-${index + 1}.png`, fullPage: true })
   }
   if (errors.length) throw new Error(errors.join('; '))

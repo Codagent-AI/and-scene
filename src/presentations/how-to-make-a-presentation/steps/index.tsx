@@ -1,4 +1,4 @@
-import type { Step } from '../../../presentation-kit'
+import type { Step } from '@presentation-kit'
 import { Scene, type Payload } from './Scene'
 
 const canonical = [

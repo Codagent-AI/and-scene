@@ -33,8 +33,26 @@ describe('presentation skill bootstrap contract', () => {
     }
   })
 
+  it('keeps the shared visual diagnostics byte-aligned with the root helper', () => {
+    expect(readFileSync(join(bootstrap, 'scripts/visual-diagnostics.mjs'), 'utf8')).toBe(readFileSync(join(process.cwd(), 'scripts/visual-diagnostics.mjs'), 'utf8'))
+  })
+
   it('does not put a styling system or visual defaults in the reusable kit', () => {
     const source = filesUnder(templateKit).map((file) => readFileSync(join(templateKit, file), 'utf8')).join('\n')
     expect(source).not.toMatch(/tailwind|theme-|#[0-9a-f]{3,8}|font-family|box-shadow/i)
+  })
+})
+
+describe('canonical app dogfoods the template import convention', () => {
+  it('resolves the @presentation-kit alias like the bootstrap template does', () => {
+    expect(readFileSync(join(process.cwd(), 'vite.config.ts'), 'utf8')).toMatch(/'@presentation-kit':/)
+    expect(readFileSync(join(process.cwd(), 'tsconfig.app.json'), 'utf8')).toMatch(/"@presentation-kit"/)
+  })
+
+  it('imports the kit through the alias in the committed reference sample', () => {
+    const sampleRoot = join(process.cwd(), 'src/presentations/how-to-make-a-presentation')
+    for (const file of filesUnder(sampleRoot).filter((name) => name.endsWith('.ts') || name.endsWith('.tsx'))) {
+      expect(readFileSync(join(sampleRoot, file), 'utf8')).not.toMatch(/from '\.\.[./]*\/presentation-kit'/)
+    }
   })
 })

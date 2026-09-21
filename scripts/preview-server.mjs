@@ -1,5 +1,10 @@
 import { spawn } from 'node:child_process'
 
+// Vite colorizes its startup banner, so the readiness probe must compare plain text:
+// the port is wrapped in SGR escapes and a raw substring match never sees "127.0.0.1:4173".
+const ANSI = /[\u001B\u009B][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-PR-TZcf-ntqry=><]/g
+export function stripAnsi(value) { return value.replace(ANSI, '') }
+
 export async function startPreview(host, port) {
   const child = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] })
   const address = `http://${host}:${port}`
@@ -14,7 +19,7 @@ export async function startPreview(host, port) {
       reject(error)
     }
     const onOutput = (chunk) => {
-      output += chunk.toString()
+      output += stripAnsi(chunk.toString())
       if (!settled && output.includes(address)) {
         settled = true
         clearTimeout(timer)

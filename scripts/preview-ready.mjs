@@ -9,7 +9,9 @@ export async function waitForPreview({ url, isAlive = () => true, timeoutMs = 30
   while (Date.now() < deadline) {
     if (!isAlive()) return { ready: false, reason: 'preview exited early' }
     try {
-      const response = await fetch(url)
+      // Bound each probe by the remaining deadline: a server that accepts the
+      // connection but never sends headers would otherwise hang past `timeoutMs`.
+      const response = await fetch(url, { signal: AbortSignal.timeout(deadline - Date.now()) })
       // Release the socket back to the pool; an undrained body holds it open.
       await response.body?.cancel()
       if (response.ok) return { ready: true }

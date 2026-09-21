@@ -1,6 +1,5 @@
-import { execFileSync, spawn } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
-import { request } from 'node:http'
 import { chromium } from 'playwright'
 
 const host = '127.0.0.1'
@@ -8,32 +7,18 @@ const port = 4173
 const registry = readFileSync('src/presentations/index.ts', 'utf8')
 const routes = [...registry.matchAll(/slug\s*:\s*['"]([^'"]+)['"]/g)].map((match) => match[1])
 
-function waitForServer(url, timeout = 15_000) {
-  const started = Date.now()
-  return new Promise((resolve, reject) => {
-    const probe = () => request(url, { method: 'HEAD' }, (response) => {
-      response.resume()
-      if (response.statusCode && response.statusCode < 500) return resolve()
-      retry()
-    }).on('error', retry).end()
-    const retry = () => serverExited ? reject(new Error(`preview exited before becoming ready at ${url}`)) : Date.now() - started > timeout ? reject(new Error(`preview did not become ready at ${url}`)) : setTimeout(probe, 100)
-    probe()
-  })
-}
-
 execFileSync('npm', ['run', 'build'], { stdio: 'inherit' })
 if (routes.length === 0) {
   console.log('SKIPPED: build passed but no registered presentations exist for browser verification.')
   process.exit(0)
 }
 
-const server = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
-let serverExited = false
-server.once('exit', () => { serverExited = true })
+const { preview } = await import('vite')
+let server
 let browser
 try {
+  server = await preview({ preview: { host, port, strictPort: true } })
   browser = await chromium.launch()
-  await waitForServer(`http://${host}:${port}/`)
   const page = await browser.newPage()
   for (const slug of routes) {
     const errors = []
@@ -49,8 +34,6 @@ try {
   }
 } finally {
   try { await browser?.close() } finally {
-    if (!serverExited && server.pid) {
-      try { process.kill(-server.pid, 'SIGTERM') } catch { server.kill('SIGTERM') }
-    }
+    if (server?.httpServer.listening) await new Promise((resolve, reject) => server.httpServer.close((error) => error ? reject(error) : resolve()))
   }
 }

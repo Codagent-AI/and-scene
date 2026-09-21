@@ -1,6 +1,4 @@
 import { mkdirSync, readFileSync } from 'node:fs'
-import { request } from 'node:http'
-import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
 
 const slug = process.argv[2]
@@ -13,20 +11,12 @@ const host = '127.0.0.1'
 const port = 4174
 const outputDir = 'artifacts/inspection'
 mkdirSync(outputDir, { recursive: true })
-const waitForServer = (url) => new Promise((resolve, reject) => {
-  const started = Date.now()
-  const probe = () => request(url, { method: 'HEAD' }, (response) => { response.resume(); response.statusCode < 500 ? resolve() : retry() }).on('error', retry).end()
-  const retry = () => serverExited ? reject(new Error(`preview exited before becoming ready at ${url}`)) : Date.now() - started > 15_000 ? reject(new Error(`preview did not become ready at ${url}`)) : setTimeout(probe, 100)
-  probe()
-})
-
-const server = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
-let serverExited = false
-server.once('exit', () => { serverExited = true })
+const { preview } = await import('vite')
+let server
 let browser
 try {
+  server = await preview({ preview: { host, port, strictPort: true } })
   browser = await chromium.launch()
-  await waitForServer(`http://${host}:${port}/`)
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   const errors = []
   page.on('console', (message) => { if (message.type() === 'error') errors.push(`console.error: ${message.text()}`) })
@@ -80,8 +70,6 @@ try {
   console.log(`PASS: captured ${indices.length} settled screenshots in ${outputDir}`)
 } finally {
   try { await browser?.close() } finally {
-    if (!serverExited && server.pid) {
-      try { process.kill(-server.pid, 'SIGTERM') } catch { server.kill('SIGTERM') }
-    }
+    if (server?.httpServer.listening) await new Promise((resolve, reject) => server.httpServer.close((error) => error ? reject(error) : resolve()))
   }
 }

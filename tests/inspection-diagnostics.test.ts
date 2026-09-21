@@ -36,6 +36,8 @@ const decoration = (kind: string, rect: Rect): ElementSpec => ({ selectors: [`[d
 const activeChrome: ElementSpec = { selectors: ['[data-presentation-progress-item][aria-current="step"]'], className: 'progress active', rect: { left: 0, top: 500, right: 20, bottom: 510 } }
 const inactiveChrome: ElementSpec = { selectors: ['[data-presentation-progress-item]:not([aria-current="step"])'], className: 'progress', rect: { left: 30, top: 500, right: 50, bottom: 510 }, style: { color: 'rgb(9, 9, 9)', backgroundColor: 'rgb(8, 8, 8)' } }
 const attribution: ElementSpec = { selectors: ['[data-presentation-attribution]'], className: 'attribution', rect: { left: 700, top: 700, right: 800, bottom: 715 } }
+const activeToc: ElementSpec = { selectors: ['[data-presentation-toc-item][aria-current="step"]'], className: 'toc active', rect: { left: 0, top: 100, right: 80, bottom: 116 }, style: { color: 'rgb(240, 179, 91)' } }
+const inactiveToc: ElementSpec = { selectors: ['[data-presentation-toc-item]:not([aria-current="step"])'], className: 'toc', rect: { left: 0, top: 120, right: 80, bottom: 136 }, style: { color: 'rgb(133, 131, 149)' } }
 
 // Everything routes through here so each test states only what it varies from a
 // clean step: distinct active chrome and legible attribution.
@@ -78,8 +80,22 @@ describe('inspection diagnostics contract', () => {
     expect(run([caption({ left: 0, top: 0, right: 100, bottom: 50 }, { style: { visibility: 'hidden' } }), controls({ left: 50, top: 20, right: 150, bottom: 70 })])).toEqual([])
   })
 
-  it('reports indistinct active navigation chrome', () => {
-    expect(run([], [activeChrome, { ...inactiveChrome, style: undefined }, attribution])).toEqual([expect.stringContaining('visually indistinct')])
+  it('reports an indistinct active progress indicator', () => {
+    expect(run([], [activeChrome, { ...inactiveChrome, style: undefined }, attribution])).toEqual([expect.stringContaining('active progress state is visually indistinct')])
+  })
+
+  it('reports an indistinct active progress indicator even when the table of contents is distinct', () => {
+    expect(run([], [activeToc, inactiveToc, activeChrome, { ...inactiveChrome, style: undefined }, attribution])).toEqual([expect.stringContaining('active progress state is visually indistinct')])
+  })
+
+  it('reports an indistinct active table-of-contents entry even when the progress bar is distinct', () => {
+    expect(run([], [activeToc, { ...inactiveToc, style: { color: 'rgb(240, 179, 91)' } }, activeChrome, inactiveChrome, attribution])).toEqual([expect.stringContaining('active table-of-contents state is visually indistinct')])
+  })
+
+  it('ignores a control family that is not rendered', () => {
+    const hiddenActiveToc = { ...activeToc, rect: { left: 0, top: 0, right: 0, bottom: 0 }, style: { color: 'rgb(1, 1, 1)' } }
+    const hiddenInactiveToc = { ...inactiveToc, rect: { left: 0, top: 0, right: 0, bottom: 0 }, style: { color: 'rgb(1, 1, 1)' } }
+    expect(run([], [hiddenActiveToc, hiddenInactiveToc, activeChrome, inactiveChrome, attribution])).toEqual([])
   })
 
   it('reports attribution hidden by visibility or a collapsed box', () => {

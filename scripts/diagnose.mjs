@@ -16,13 +16,22 @@ export function diagnose(step, doc = document, computedStyle = getComputedStyle)
       if (!candidates[j].allowed && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top) result.push(`${at}: visible chrome/text overlap between ${candidates[i].element.className} and ${candidates[j].element.className}`)
     }
   }
-  const active = doc.querySelector('[data-presentation-progress-item][aria-current="step"], [data-presentation-toc-item][aria-current="step"]')
-  const inactive = doc.querySelector('[data-presentation-progress-item]:not([aria-current="step"]), [data-presentation-toc-item]:not([aria-current="step"])')
-  if (!active) result.push(`${at}: active navigation state is missing`)
-  else if (inactive) {
+  // Each control family is checked on its own: sampling whichever matches first
+  // would hide an indistinct progress bar behind a distinct table of contents.
+  const families = [['progress', '[data-presentation-progress-item]'], ['table-of-contents', '[data-presentation-toc-item]']]
+  let anyActive = false
+  for (const [name, hook] of families) {
+    const active = doc.querySelector(`${hook}[aria-current="step"]`)
+    const inactive = doc.querySelector(`${hook}:not([aria-current="step"])`)
+    if (!active) continue
+    anyActive = true
+    // A family the presentation does not render at this viewport says nothing.
+    const box = active.getBoundingClientRect()
+    if (box.width === 0 || box.height === 0 || !inactive) continue
     const activeStyle = computedStyle(active); const inactiveStyle = computedStyle(inactive)
-    if (activeStyle.color === inactiveStyle.color && activeStyle.backgroundColor === inactiveStyle.backgroundColor) result.push(`${at}: active navigation state is visually indistinct`)
+    if (activeStyle.color === inactiveStyle.color && activeStyle.backgroundColor === inactiveStyle.backgroundColor) result.push(`${at}: active ${name} state is visually indistinct`)
   }
+  if (!anyActive) result.push(`${at}: active navigation state is missing`)
   const attribution = doc.querySelector('[data-presentation-attribution]')
   if (!attribution) result.push(`${at}: attribution is missing`)
   else {

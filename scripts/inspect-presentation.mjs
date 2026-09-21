@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync } from 'node:fs'
 import { chromium } from 'playwright'
-import { spawn } from 'node:child_process'
+import { startPreview, stopPreview } from './preview-server.mjs'
 
 const slug = process.argv[2]
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
@@ -8,9 +8,9 @@ const registry = readFileSync('src/presentations/index.ts', 'utf8')
 if (!registry.includes(`slug: '${slug}'`)) throw new Error(`Unknown presentation slug: ${slug}`)
 const host = '127.0.0.1'; const port = 4174; const outputDir = 'artifacts/inspection'
 mkdirSync(outputDir, { recursive: true })
-const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'ignore' })
+let preview
 try {
-  for (let attempt = 0; attempt < 50; attempt += 1) { try { if ((await fetch(`http://${host}:${port}/`)).ok) break } catch {} await new Promise((resolve) => setTimeout(resolve, 100)) }
+  preview = await startPreview(host, port)
   const browser = await chromium.launch()
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
@@ -42,4 +42,4 @@ try {
     }
     console.log(`PASS: captured ${count} settled screenshots in ${outputDir}`)
   } finally { await browser.close() }
-} finally { preview.kill('SIGTERM') }
+} finally { await stopPreview(preview) }

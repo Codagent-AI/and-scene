@@ -1,6 +1,7 @@
-import { execFileSync, spawn } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { chromium } from 'playwright'
+import { startPreview, stopPreview } from './preview-server.mjs'
 
 const host = '127.0.0.1'
 const port = 4173
@@ -13,8 +14,7 @@ try {
   execFileSync('npm', ['run', 'build'], { stdio: 'inherit' })
   const registry = readFileSync('src/presentations/index.ts', 'utf8')
   if (!registry.includes(`slug: '${slug}'`) || !registry.includes('How to Use This Skill to Make a Presentation')) throw new Error('reference sample is missing from the presentation registry')
-  preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] })
-  await waitForPreview(`http://${host}:${port}/`)
+  preview = await startPreview(host, port)
   const browser = await chromium.launch()
   try {
     const page = await browser.newPage()
@@ -41,13 +41,5 @@ try {
   console.error(`FAIL: verification — ${error instanceof Error ? error.message : String(error)}`)
   process.exitCode = 1
 } finally {
-  preview?.kill('SIGTERM')
-}
-
-async function waitForPreview(url) {
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    try { if ((await fetch(url)).ok) return } catch {}
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-  throw new Error(`preview did not become ready at ${url}`)
+  await stopPreview(preview)
 }

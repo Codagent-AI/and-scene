@@ -30,7 +30,7 @@
 .reference-kit { left: 315px; top: 328px; width: 250px; height: 42px; border-color: var(--teal); color: var(--teal); }.reference-kit small { margin-left: 8px; color: var(--muted); }
 .reference-kit-arrow, .reference-verify-arrow { position: absolute; top: 326px; border-top: 1px solid var(--teal); width: 34px; }.reference-kit-arrow { left: 275px; }.reference-verify-arrow { left: 566px; }
 .reference-verify { left: 604px; top: 328px; height: 42px; padding: 0 12px; border-color: #8de39f; color: #8de39f; border-radius: 6px; }.reference-modify { position: absolute; left: 25px; top: 118px; color: var(--gold); font-size: 38px; }.reference-edited { left: 650px; top: 118px; width: 160px; height: 42px; border-color: var(--gold); color: var(--gold); }
-.reference-reveal { position: absolute; inset: 8px 28px 2px; border: 1px solid var(--gold); border-radius: 14px; pointer-events: none; }.reference-reveal label { position: absolute; right: 18px; top: -10px; padding: 0 8px; background: #101517; color: var(--gold); }
+.reference-reveal { position: absolute; inset: 8px 28px 2px; border: 1px solid var(--gold); border-radius: 14px; pointer-events: none; }.reference-reveal-label { position: absolute; right: 18px; top: -10px; padding: 0 8px; background: #101517; color: var(--gold); }
 @media (max-width: 700px) {
   .reference-presentation [data-presentation-toc] { display: none; }
   .reference-presentation [data-presentation-footer] { display: grid; gap: 12px; }

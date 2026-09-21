@@ -11,7 +11,7 @@ export function Stage<TPayload>({ step, mode, stepIndex }: { step: Step<TPayload
   return <div data-presentation-stage="true" data-scene-group={grouped} style={{ width: DESIGN_W * scale, height: DESIGN_H * scale }}>
     <div data-presentation-canvas="true" style={{ width: DESIGN_W, height: DESIGN_H, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
       <LayoutGroup id={stageId}>
-        <AnimatePresence mode="popLayout" initial={false} custom={stepIndex}>
+        <AnimatePresence mode="popLayout" custom={stepIndex}>
           <motion.div key={step.groupKey ? step.groupKey : step.id} data-presentation-scene="true" style={{ width: DESIGN_W, height: DESIGN_H }} transition={{ duration: LAYOUT_T, ease: EASE }}>
             <step.Scene payload={step.payload} step={step} />
           </motion.div>

@@ -1,6 +1,7 @@
 import { execFileSync, spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { chromium } from 'playwright'
+import { waitForPreview } from './preview-ready.mjs'
 
 const host = '127.0.0.1'
 const port = 4173
@@ -37,15 +38,12 @@ try {
   }
   process.on('exit', stopPreview)
   try {
-    const deadline = Date.now() + 15_000
-    while (Date.now() < deadline) {
-      if (preview.exitCode !== null) fail(`preview exited early: ${previewOutput}`)
-      if (previewOutput.includes(`127.0.0.1:${port}`)) {
-        try { await fetch(`http://${host}:${port}${route}`); break } catch { /* wait for the server socket */ }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    }
-    if (Date.now() >= deadline) fail(`preview did not become ready on ${host}:${port}`)
+    const ready = await waitForPreview({
+      url: `http://${host}:${port}${route}`,
+      isAlive: () => preview.exitCode === null,
+      timeoutMs: 30_000,
+    })
+    if (!ready.ready) fail(`${ready.reason} on ${host}:${port}: ${previewOutput}`)
     const browser = await chromium.launch()
     try {
       const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })

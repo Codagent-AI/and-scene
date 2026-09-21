@@ -41,4 +41,11 @@ describe('presentation kit contract', () => {
   it('keeps the stage layout namespace stable when steps have no group key', () => {
     expect(readFileSync(new URL('./Stage.tsx', import.meta.url), 'utf8')).toMatch(/useId/)
   })
+
+  it('lets newcomers animate in once a grouped scene is mounted', () => {
+    // `initial={false}` on AnimatePresence is inherited through presence context by
+    // every descendant, which silently disables `Appear` for entities a later step
+    // introduces. Keep it off so newcomers can enter after persisting ones settle.
+    expect(readFileSync(new URL('./Stage.tsx', import.meta.url), 'utf8')).not.toContain('initial={false}')
+  })
 })

@@ -89,6 +89,11 @@ canvas in mind, and use the kit primitives with presentation-owned classes.
 Every step needs a title, caption, era, scene, and payload. Captions should
 explain the beat in browse mode; present mode should remain concise.
 
+Entities that persist across steps keep their `entityId` and morph in place on
+their own. Wrap each entity a step *introduces* in `Appear` so newcomers fade in
+only after the persisting entities have finished moving; an unwrapped newcomer
+pops in on top of an in-flight morph.
+
 ## Verify before reporting success
 
 Before claiming completion, run the project's build, then render the first step

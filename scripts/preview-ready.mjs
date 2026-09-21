@@ -10,6 +10,8 @@ export async function waitForPreview({ url, isAlive = () => true, timeoutMs = 30
     if (!isAlive()) return { ready: false, reason: 'preview exited early' }
     try {
       const response = await fetch(url)
+      // Release the socket back to the pool; an undrained body holds it open.
+      await response.body?.cancel()
       if (response.ok) return { ready: true }
     } catch { /* wait for the server socket */ }
     await new Promise((resolve) => setTimeout(resolve, intervalMs))

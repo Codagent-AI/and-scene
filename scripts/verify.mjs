@@ -38,12 +38,12 @@ try {
   }
   process.on('exit', stopPreview)
   try {
-    const ready = await waitForPreview({
+    const { ready, reason } = await waitForPreview({
       url: `http://${host}:${port}${route}`,
       isAlive: () => preview.exitCode === null,
       timeoutMs: 30_000,
     })
-    if (!ready.ready) fail(`${ready.reason} on ${host}:${port}: ${previewOutput}`)
+    if (!ready) fail(`${reason} on ${host}:${port}: ${previewOutput}`)
     const browser = await chromium.launch()
     try {
       const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })

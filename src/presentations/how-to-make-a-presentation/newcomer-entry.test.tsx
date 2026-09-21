@@ -1,22 +1,17 @@
+import { isValidElement, type ReactNode } from 'react'
 import { describe, expect, it } from 'vitest'
-import { renderToStaticMarkup } from 'react-dom/server'
+import { Appear } from '../../presentation-kit'
 import { ENTER_DELAY, LAYOUT_T } from '../../presentation-kit/constants'
 import { ReferenceScene } from './scene'
 import { referenceSteps } from './steps'
 
-const VOID_TAGS = new Set(['br', 'hr', 'img', 'input'])
-
-/** Entity ids in `html` that are not nested inside an `Appear` wrapper. */
-function entitiesOutsideAppear(html: string): string[] {
-  const outside: string[] = []
-  const stack: boolean[] = []
-  for (const [, closing, tag, attrs] of html.matchAll(/<(\/?)([a-z]+)([^>]*)>/g)) {
-    if (closing) { stack.pop(); continue }
-    const entityId = attrs.match(/data-entity-id="([^"]+)"/)?.[1]
-    if (entityId && !stack.some(Boolean)) outside.push(entityId)
-    if (!VOID_TAGS.has(tag)) stack.push(attrs.includes('data-scene-node="appear"'))
-  }
-  return outside
+/** Entity ids in the tree that are not nested inside an `Appear`. */
+function entitiesOutsideAppear(node: ReactNode, inAppear = false): string[] {
+  if (!isValidElement(node)) return Array.isArray(node) ? node.flatMap((child) => entitiesOutsideAppear(child, inAppear)) : []
+  const { entityId, children } = node.props as { entityId?: string; children?: ReactNode }
+  const nested = inAppear || node.type === Appear
+  const self = entityId && !nested ? [entityId] : []
+  return [...self, ...entitiesOutsideAppear(children, nested)]
 }
 
 describe('reference scene newcomer entry', () => {
@@ -26,8 +21,8 @@ describe('reference scene newcomer entry', () => {
 
   it('wraps every entity introduced after the anchor in an Appear', () => {
     for (const step of referenceSteps) {
-      const html = renderToStaticMarkup(<ReferenceScene payload={step.payload} />)
-      expect(entitiesOutsideAppear(html), `step ${step.id}`).toEqual(['reference:you'])
+      expect(entitiesOutsideAppear(ReferenceScene({ payload: step.payload })), `step ${step.id}`)
+        .toEqual(['reference:you'])
     }
   })
 })

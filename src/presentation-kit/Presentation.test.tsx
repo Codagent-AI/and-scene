@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Presentation } from './Presentation'
-import { Box } from './nodes'
+import { Appear, Box } from './nodes'
 import { calculateFitScale } from './useFitScale'
 
 const steps = [
@@ -43,9 +43,11 @@ describe('presentation kit contract', () => {
   })
 
   it('lets newcomers animate in once a grouped scene is mounted', () => {
-    // `initial={false}` on AnimatePresence is inherited through presence context by
-    // every descendant, which silently disables `Appear` for entities a later step
-    // introduces. Keep it off so newcomers can enter after persisting ones settle.
-    expect(readFileSync(new URL('./Stage.tsx', import.meta.url), 'utf8')).not.toContain('initial={false}')
+    // A suppressed initial state (e.g. `initial={false}` on the stage's AnimatePresence)
+    // is inherited through presence context by every descendant, which silently disables
+    // `Appear` for entities a later step introduces. Assert the entry state survives.
+    const scene = () => <Appear><Box entityId="newcomer">new</Box></Appear>
+    const html = renderToStaticMarkup(<Presentation steps={[{ ...steps[0], Scene: scene }]} title="Typed scene" />)
+    expect(html).toContain('data-scene-node="appear" style="opacity:0"')
   })
 })

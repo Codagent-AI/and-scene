@@ -40,4 +40,9 @@ describe('presentation skill bootstrap contract', () => {
     const kitText = canonicalFiles.map((file) => readFileSync(join(bootstrapKitRoot, file), 'utf8')).join('\n')
     expect(kitText).not.toMatch(/tailwind|#[0-9a-f]{3,8}|font-family|box-shadow|border:/i)
   })
+
+  it('vendors the inspection script byte-identically', () => {
+    expect(readFileSync(join(bootstrapRoot, 'scripts', 'inspect-presentation.mjs'), 'utf8'))
+      .toBe(readFileSync(join(process.cwd(), 'scripts', 'inspect-presentation.mjs'), 'utf8'))
+  })
 })

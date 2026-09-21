@@ -13,7 +13,7 @@ type StageProps<TPayload> = {
 export function Stage<TPayload>({ step, mode, hostRef }: StageProps<TPayload>) {
   const scale = useFitScale(hostRef, mode)
   const Scene = step.Scene
-  const stageStyle = { width: DESIGN_W, height: DESIGN_H, transform: `scale(${scale})`, transformOrigin: 'center center' } satisfies CSSProperties
+  const stageStyle = { width: DESIGN_W, height: DESIGN_H, transform: `scale(${scale})`, transformOrigin: 'top left' } satisfies CSSProperties
   return (
     <div className="presentation-stage" data-presentation-stage data-presentation-mode={mode}>
       <div className="presentation-stage__viewport" style={{ width: DESIGN_W * scale, height: DESIGN_H * scale }}>

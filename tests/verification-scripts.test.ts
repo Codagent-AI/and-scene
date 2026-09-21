@@ -18,7 +18,7 @@ describe('browser verification script contracts', () => {
     const inspect = await readFile(join(root, 'scripts/inspect-presentation.mjs'), 'utf8')
     expect(inspect).toContain("spawn('npm'")
     expect(inspect).toContain("['run', 'build']")
-    expect(inspect).toContain('waitForPreview(preview)')
+    expect(inspect).toContain('waitForPreview(preview, previewMonitor.failure)')
     expect(inspect).toContain('preview.kill')
   })
 
@@ -27,5 +27,20 @@ describe('browser verification script contracts', () => {
     expect(verify).toContain("started ||= output.includes('127.0.0.1:4173')")
     expect(verify).toContain('if (started)')
     expect(verify).toContain('preview.exitCode')
+  })
+
+  it('verification monitors preview failures through the final browser assertion', async () => {
+    const verify = await readFile(join(root, 'scripts/verify.mjs'), 'utf8')
+    expect(verify).toContain("preview.once('error'")
+    expect(verify).toContain("preview.once('exit'")
+    expect(verify).toContain('Promise.race')
+    expect(verify).toContain('preview.signalCode')
+  })
+
+  it('inspection terminates the complete preview process tree on Windows', async () => {
+    const inspect = await readFile(join(root, 'scripts/inspect-presentation.mjs'), 'utf8')
+    expect(inspect).toContain("taskkill")
+    expect(inspect).toContain("['/PID', String(preview.pid), '/T', '/F']")
+    expect(inspect).toContain('await terminatePreview(preview)')
   })
 })

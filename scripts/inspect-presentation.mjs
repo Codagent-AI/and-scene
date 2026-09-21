@@ -11,8 +11,9 @@ const packageJson = JSON.parse(await readFile(new URL('../package.json', import.
 const warnings = []
 await run('npm', ['run', 'build'])
 const preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', shell: process.platform === 'win32' })
+const previewMonitor = monitorPreview(preview)
 try {
-  await waitForPreview(preview)
+  await waitForPreview(preview, previewMonitor.failure)
   const browser = await chromium.launch({ headless: true })
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
@@ -24,7 +25,7 @@ try {
     const count = Number(await page.locator('[data-presentation]').getAttribute('data-step-count'))
     await mkdir(output, { recursive: true })
     for (let index = 0; index < count; index += 1) {
-      if (preview.exitCode !== null) throw new Error(`preview exited during inspection at step ${index + 1}`)
+      if (preview.exitCode !== null || preview.signalCode !== null) throw new Error(`preview exited during inspection at step ${index + 1}`)
       await page.waitForTimeout(700)
       await page.screenshot({ path: join(output, `${slug}-${index}.png`), fullPage: true })
       warnings.push(...await page.evaluate(diagnose, index))
@@ -34,8 +35,8 @@ try {
     console.log(`inspect: captured ${count} settled steps for ${packageJson.name}`)
   } finally { await browser.close() }
 } finally {
-  if (preview.pid && process.platform !== 'win32') { try { process.kill(-preview.pid, 'SIGTERM') } catch {} }
-  preview.kill('SIGTERM')
+  previewMonitor.dispose()
+  await terminatePreview(preview)
 }
 
 if (warnings.length) for (const warning of warnings) console.warn(`inspect warning [${slug}]: ${warning}`)
@@ -48,7 +49,7 @@ function run(command, args) {
   })
 }
 
-async function waitForPreview(child) {
+async function waitForPreview(child, failure) {
   const deadline = Date.now() + 15_000
   let output = ''
   let started = false
@@ -59,9 +60,32 @@ async function waitForPreview(child) {
     if (started) {
       try { const response = await fetch('http://127.0.0.1:4173/'); await response.body?.cancel(); if (response.ok) return } catch {}
     }
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await Promise.race([new Promise((resolve) => setTimeout(resolve, 100)), failure])
   }
   throw new Error(`preview did not start: ${output.trim()}`)
+}
+
+function monitorPreview(preview) {
+  let onError
+  let onExit
+  const failure = new Promise((_, reject) => {
+    onError = (error) => reject(error)
+    onExit = (code, signal) => reject(new Error(`preview exited: ${code ?? signal}`))
+    preview.once('error', onError)
+    preview.once('exit', onExit)
+  })
+  return { failure, dispose: () => { preview.off('error', onError); preview.off('exit', onExit) } }
+}
+
+async function terminatePreview(preview) {
+  if (preview.exitCode !== null || preview.signalCode !== null) return
+  if (process.platform === 'win32') {
+    await run('taskkill', ['/PID', String(preview.pid), '/T', '/F'])
+    return
+  }
+  if (preview.pid) { try { process.kill(-preview.pid, 'SIGTERM') } catch {} }
+  preview.kill('SIGTERM')
+  await new Promise((resolve) => preview.once('close', resolve))
 }
 
 function diagnose(step) {

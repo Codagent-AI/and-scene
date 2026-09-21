@@ -20,13 +20,17 @@ try {
 
   await run('npm', ['run', 'build'])
   const preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', shell: process.platform === 'win32' })
+  const previewMonitor = monitorPreview(preview)
   try {
-    await waitForPreview(preview)
+    await waitForPreview(preview, previewMonitor.failure)
     const browser = await chromium.launch({ headless: true })
-    try { await verifySample(browser, preview) } finally { await browser.close() }
+    try {
+      await Promise.race([verifySample(browser, preview), previewMonitor.failure])
+      assertPreviewAlive(preview, 'after browser verification')
+    } finally { await browser.close() }
   } finally {
-    if (preview.pid && process.platform !== 'win32') { try { process.kill(-preview.pid, 'SIGTERM') } catch {} }
-    preview.kill('SIGTERM')
+    previewMonitor.dispose()
+    await terminatePreview(preview)
   }
   console.log('VERIFY PASS: build and nine-step reference render passed')
 } catch (error) {
@@ -36,7 +40,7 @@ try {
 
 function assert(condition, message) { if (!condition) throw new Error(message) }
 function run(command, args) { return new Promise((resolve, reject) => { const child = spawn(command, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' }); child.on('error', reject); child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited with ${code}`))) }) }
-async function waitForPreview(child) {
+async function waitForPreview(child, failure) {
   const deadline = Date.now() + 15_000
   let output = ''
   let started = false
@@ -47,9 +51,33 @@ async function waitForPreview(child) {
     if (started) {
       try { const response = await fetch('http://127.0.0.1:4173/'); await response.body?.cancel(); if (response.ok) return } catch {}
     }
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await Promise.race([new Promise((resolve) => setTimeout(resolve, 100)), failure])
   }
   throw new Error(`preview did not start: ${output.trim()}`)
+}
+function monitorPreview(preview) {
+  let onError
+  let onExit
+  const failure = new Promise((_, reject) => {
+    onError = (error) => reject(error)
+    onExit = (code, signal) => reject(new Error(`preview exited: ${code ?? signal}`))
+    preview.once('error', onError)
+    preview.once('exit', onExit)
+  })
+  return { failure, dispose: () => { preview.off('error', onError); preview.off('exit', onExit) } }
+}
+function assertPreviewAlive(preview, phase) {
+  assert(preview.exitCode === null && preview.signalCode === null, `preview exited ${phase}`)
+}
+async function terminatePreview(preview) {
+  if (preview.exitCode !== null || preview.signalCode !== null) return
+  if (process.platform === 'win32') {
+    await run('taskkill', ['/PID', String(preview.pid), '/T', '/F'])
+    return
+  }
+  if (preview.pid) { try { process.kill(-preview.pid, 'SIGTERM') } catch {} }
+  preview.kill('SIGTERM')
+  await new Promise((resolve) => preview.once('close', resolve))
 }
 async function verifySample(browser, preview) {
   const page = await browser.newPage()
@@ -72,5 +100,6 @@ async function verifySample(browser, preview) {
       }
     }
     assert(errors.length === 0, `browser errors after final step: ${errors.join('; ')}`)
+    assertPreviewAlive(preview, 'after final step')
   } finally { await page.close() }
 }

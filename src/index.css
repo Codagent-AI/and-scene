@@ -30,3 +30,15 @@ textarea,
 select {
   font: inherit;
 }
+
+.landing {
+  width: min(900px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 12vh 0;
+}
+
+.landing__eyebrow { letter-spacing: .14em; text-transform: uppercase; }
+.landing__summary { max-width: 42rem; margin-top: 1rem; }
+.landing__list { display: grid; gap: .75rem; margin-top: 3rem; }
+.landing__list a { color: inherit; padding: 1rem 0; }
+.landing__empty { margin-top: 3rem; opacity: .7; }

@@ -6,7 +6,9 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // validator_logs and artifacts hold generated logs and inspection screenshots. Walking
+  // them races with the writer: a lockfile can vanish mid-scan and crash ESLint with ENOENT.
+  globalIgnores(['dist', 'validator_logs', 'artifacts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

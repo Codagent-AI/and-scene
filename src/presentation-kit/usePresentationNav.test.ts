@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampStepIndex, isNavigationKey, shouldHandleNavigationKey } from './usePresentationNav'
+import { clampStepIndex, isNavigationKey, shouldHandleNavigationKey, shouldHandleSwipe } from './usePresentationNav'
 
 describe('presentation navigation helpers', () => {
   it('clamps movement at both ends without wrapping', () => {
@@ -21,5 +21,11 @@ describe('presentation navigation helpers', () => {
     expect(shouldHandleNavigationKey({ key: 'p', defaultPrevented: false, ctrlKey: true, metaKey: false, altKey: false })).toBe(false)
     expect(shouldHandleNavigationKey({ key: 'ArrowRight', defaultPrevented: false, ctrlKey: false, metaKey: false, altKey: false })).toBe(true)
     expect(shouldHandleNavigationKey({ key: 'ArrowRight', defaultPrevented: true, ctrlKey: false, metaKey: false, altKey: false })).toBe(false)
+  })
+
+  it('only treats predominantly horizontal swipes as navigation', () => {
+    expect(shouldHandleSwipe({ dx: 60, dy: 12 })).toBe(true)
+    expect(shouldHandleSwipe({ dx: 60, dy: 80 })).toBe(false)
+    expect(shouldHandleSwipe({ dx: 43, dy: 0 })).toBe(false)
   })
 })

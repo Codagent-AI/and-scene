@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Presentation } from './Presentation'
 import { Box } from './nodes'
@@ -35,5 +36,9 @@ describe('presentation kit contract', () => {
     expect(html).not.toContain('data-presentation-caption="true"')
     expect(html).not.toContain('data-presentation-progress="true"')
     expect(html).not.toContain('data-presentation-toc="true"')
+  })
+
+  it('keeps the stage layout namespace stable when steps have no group key', () => {
+    expect(readFileSync(new URL('./Stage.tsx', import.meta.url), 'utf8')).toMatch(/useId/)
   })
 })

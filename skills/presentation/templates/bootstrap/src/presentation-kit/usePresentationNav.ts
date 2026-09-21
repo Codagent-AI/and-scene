@@ -4,6 +4,10 @@ import type { PresentationMode } from './types'
 
 export type NavigationDirection = 'next' | 'previous' | 'toggle-mode' | false
 
+export function shouldHandleSwipe({ dx, dy }: { dx: number; dy: number }): boolean {
+  return Math.abs(dx) >= 44 && Math.abs(dx) > Math.abs(dy)
+}
+
 export function clampStepIndex(index: number, stepCount: number): number {
   return Math.max(0, Math.min(Math.max(stepCount - 1, 0), index))
 }
@@ -27,7 +31,7 @@ const isInteractive = (target: EventTarget | null) => {
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
   const [rawIndex, setRawIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
-  const touchStart = useRef<number | null>(null)
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
   const index = clampStepIndex(rawIndex, stepCount)
 
   const goTo = useCallback((nextIndex: number) => setRawIndex(clampStepIndex(nextIndex, stepCount)), [stepCount])
@@ -50,13 +54,21 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
   }, [next, previous, toggleMode])
 
   const touchHandlers = {
-    onTouchStart: (event: TouchEvent) => { touchStart.current = event.changedTouches[0]?.clientX ?? null },
+    onTouchStart: (event: TouchEvent) => {
+      const touch = event.changedTouches[0]
+      touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null
+    },
     onTouchEnd: (event: TouchEvent) => {
       if (touchStart.current === null) return
-      const distance = (event.changedTouches[0]?.clientX ?? touchStart.current) - touchStart.current
+      const touch = event.changedTouches[0]
+      const start = touchStart.current
       touchStart.current = null
-      if (Math.abs(distance) >= 44) (distance < 0 ? next : previous)()
+      if (!touch) return
+      const dx = touch.clientX - start.x
+      const dy = touch.clientY - start.y
+      if (shouldHandleSwipe({ dx, dy })) (dx < 0 ? next : previous)()
     },
+    onTouchCancel: () => { touchStart.current = null },
   }
 
   return { index, mode, goTo, next, previous, toggleMode, touchHandlers }

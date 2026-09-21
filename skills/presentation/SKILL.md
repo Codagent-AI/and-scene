@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify browser presentations as one evolving scene.
+description: Creates and modifies browser presentations as one evolving scene. Activates for requests to create a browser presentation, animate a diagram through steps, or edit an existing scene presentation.
 ---
 
 # Presentation skill
@@ -9,6 +9,13 @@ Use this skill to create or modify a routed browser presentation. A presentation
 is one diagram that evolves through named steps: entities keep stable IDs,
 continuing entities morph in place, and each step owns its narrative caption and
 visual intent.
+
+## Out of scope
+
+This skill creates browser-based presentations only. It does not export
+PowerPoint, Keynote, PDF, image, or video decks. Redirect those requests to an
+appropriate document, slide-authoring, or video workflow instead of pretending
+that the browser artifact is an export.
 
 ## Gather requirements one question at a time
 
@@ -66,6 +73,12 @@ card/button, and theme defaults. Put visual design in the presentation's CSS or
 host CSS.
 
 ## Create or modify
+
+Before editing an existing presentation, read its `Talk.tsx`, `entities.ts`,
+relevant `steps/` files, presentation-owned styles, the presentation registry,
+and the scene-kit types. Identify and preserve the existing import structure,
+component patterns, entity naming namespace, and styling conventions. For a new
+presentation, read the kit types and the selected templates before writing.
 
 Create each new presentation in its own directory with `entities.ts`, a
 `steps/` directory, and `Talk.tsx`; add one explicit lazy entry to the registry.

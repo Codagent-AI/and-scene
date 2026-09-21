@@ -4,11 +4,15 @@ import { createConnection } from 'node:net'
 const READY_TIMEOUT_MS = 10000
 const POLL_INTERVAL_MS = 100
 const POLL_REQUEST_TIMEOUT_MS = 1000
+// --strictPort makes a vite that loses the port exit instead of sharing it, so a
+// child still alive across consecutive successful probes is proof that the server
+// answering us is the one we spawned.
+const REQUIRED_CONFIRMATIONS = 2
 
 export async function startPreview(host, port) {
-  // --strictPort makes vite exit rather than pick another port, so a port that is
-  // already served would otherwise answer the readiness poll and pass verification
-  // against an unrelated application.
+  // Fail fast and clearly when something already holds the port. This does not by
+  // itself establish ownership (two starts can race), which is why readiness below
+  // also requires our own child to stay alive.
   await assertPortIsFree(host, port)
 
   const child = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] })
@@ -18,8 +22,9 @@ export async function startPreview(host, port) {
   child.stdout.on('data', record)
   child.stderr.on('data', record)
 
-  // A served request is the only proof of readiness that does not depend on the
-  // wording, stream, or ANSI coloring of vite's startup banner.
+  // A served request plus a living child is the proof of readiness. Matching vite's
+  // startup banner would be neither: its wording, stream, and ANSI coloring are all
+  // incidental, and parsing it is what previously broke `npm run verify` outright.
   const cancelPolling = new AbortController()
   const crashed = new Promise((resolve, reject) => {
     child.once('error', reject)
@@ -28,7 +33,8 @@ export async function startPreview(host, port) {
   crashed.catch(() => {})
 
   try {
-    await Promise.race([crashed, pollUntilServing(address, () => output, cancelPolling.signal)])
+    const isAlive = () => child.exitCode === null && child.signalCode === null
+    await Promise.race([crashed, pollUntilServing(address, isAlive, () => output, cancelPolling.signal)])
     return child
   } catch (error) {
     await stopPreview(child)
@@ -49,18 +55,27 @@ function assertPortIsFree(host, port) {
   })
 }
 
-async function pollUntilServing(address, getOutput, signal) {
+async function pollUntilServing(address, isAlive, getOutput, signal) {
   const deadline = Date.now() + READY_TIMEOUT_MS
+  let confirmations = 0
   for (;;) {
     // Each attempt is bounded so a connection that accepts but never responds
     // cannot outlive the readiness deadline.
     const attempt = AbortSignal.any([signal, AbortSignal.timeout(POLL_REQUEST_TIMEOUT_MS)])
+    let served = false
     try {
       const response = await fetch(`${address}/`, { signal: attempt })
       await response.arrayBuffer()
-      if (response.ok) return
+      served = response.ok
     } catch {
       if (signal.aborted) throw new Error(`preview readiness polling for ${address} was cancelled`)
+    }
+    if (served) {
+      if (!isAlive()) throw new Error(`preview exited while ${address} was answered by another process; the port is not ours`)
+      confirmations += 1
+      if (confirmations >= REQUIRED_CONFIRMATIONS) return
+    } else {
+      confirmations = 0
     }
     if (Date.now() >= deadline) throw new Error(`preview did not serve ${address} within ${READY_TIMEOUT_MS}ms: ${getOutput().trim()}`)
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))

@@ -63,6 +63,22 @@ describe('visual composition diagnostics', () => {
     expect(await diagnose(chrome({ extra: `<div data-allow-overlap>${OVERLAPPING}</div>` }))).not.toEqual(containing('unmarked overlap:'))
   })
 
+  it('reports a partial overlap between scene entities, not just text', async () => {
+    const entities = `
+      <div data-presentation-arrow data-entity-id="link" style="position:absolute;top:500px;left:40px;width:120px;height:30px"></div>
+      <div data-presentation-box data-entity-id="card" style="position:absolute;top:510px;left:120px;width:120px;height:60px"></div>
+    `
+    expect(await diagnose(chrome({ extra: entities }))).toEqual(containing('unmarked overlap: link / card'))
+  })
+
+  it('treats a frame that fully encloses an entity as composition, not collision', async () => {
+    const framed = `
+      <div data-presentation-frame data-entity-id="outer" style="position:absolute;top:500px;left:40px;width:300px;height:200px"></div>
+      <div data-presentation-box data-entity-id="inner" style="position:absolute;top:540px;left:80px;width:100px;height:60px"></div>
+    `
+    expect(await diagnose(chrome({ extra: framed }))).not.toEqual(containing('unmarked overlap:'))
+  })
+
   it('reports scene content that escapes the fixed canvas', async () => {
     const canvas = `
       <div data-presentation-canvas style="position:absolute;top:0;left:0;width:300px;height:200px">

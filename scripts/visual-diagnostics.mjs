@@ -11,6 +11,13 @@ export function collectVisualDiagnostics() {
     .map((node) => ({ node, rect: node.getBoundingClientRect() }))
     .filter(({ rect }) => rect.width > 0 && rect.height > 0)
 
+  const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+  // A Frame draws around the diagram by design, so content it fully surrounds is
+  // composition rather than collision. Any other full cover still obscures content.
+  const frames = (outer, inner) => outer.node.matches('[data-presentation-frame]')
+    && outer.rect.left <= inner.rect.left && outer.rect.top <= inner.rect.top
+    && outer.rect.right >= inner.rect.right && outer.rect.bottom >= inner.rect.bottom
+
   const checkActiveState = (label, activeSelector, inactiveSelector) => {
     const active = document.querySelector(activeSelector)
     const inactive = document.querySelector(inactiveSelector)
@@ -35,13 +42,14 @@ export function collectVisualDiagnostics() {
     }
   }
 
-  const nodes = visible(TEXT_AND_CHROME).map((entry) => ({ ...entry, allowed: !!entry.node.closest('[data-allow-overlap]') }))
+  const nodes = visible(`${TEXT_AND_CHROME},${SCENE_ENTITIES}`).map((entry) => ({ ...entry, allowed: !!entry.node.closest('[data-allow-overlap]') }))
   for (let left = 0; left < nodes.length; left += 1) {
     for (let right = left + 1; right < nodes.length; right += 1) {
       const a = nodes[left]
       const b = nodes[right]
       if (a.allowed || b.allowed || a.node.contains(b.node) || b.node.contains(a.node)) continue
-      if (a.rect.left < b.rect.right && a.rect.right > b.rect.left && a.rect.top < b.rect.bottom && a.rect.bottom > b.rect.top) result.push(`unmarked overlap: ${labelFor(a.node)} / ${labelFor(b.node)}`)
+      if (!intersects(a.rect, b.rect) || frames(a, b) || frames(b, a)) continue
+      result.push(`unmarked overlap: ${labelFor(a.node)} / ${labelFor(b.node)}`)
     }
   }
 

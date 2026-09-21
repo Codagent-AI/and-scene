@@ -23,7 +23,7 @@ export function usePresentationNav({ index, count, mode, setIndex, setMode }: Op
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isInteractiveTarget(event.target)) return
+      if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || isInteractiveTarget(event.target)) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') {
         event.preventDefault()
         go('next')

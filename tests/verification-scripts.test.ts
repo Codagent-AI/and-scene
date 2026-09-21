@@ -43,4 +43,14 @@ describe('browser verification script contracts', () => {
     expect(inspect).toContain("['/PID', String(preview.pid), '/T', '/F']")
     expect(inspect).toContain('await terminatePreview(preview)')
   })
+
+  it('kills the POSIX preview process group even after the parent exits', async () => {
+    const verify = await readFile(join(root, 'scripts/verify.mjs'), 'utf8')
+    const inspect = await readFile(join(root, 'scripts/inspect-presentation.mjs'), 'utf8')
+    for (const script of [verify, inspect]) {
+      expect(script).toContain("if (process.platform !== 'win32' && preview.pid)")
+      expect(script).toContain("process.kill(-preview.pid, 'SIGTERM')")
+      expect(script).toContain("error.code !== 'ESRCH'")
+    }
+  })
 })

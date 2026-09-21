@@ -78,14 +78,18 @@ function monitorPreview(preview) {
 }
 
 async function terminatePreview(preview) {
-  if (preview.exitCode !== null || preview.signalCode !== null) return
+  const parentExited = preview.exitCode !== null || preview.signalCode !== null
+  if (process.platform !== 'win32' && preview.pid) {
+    try { process.kill(-preview.pid, 'SIGTERM') } catch (error) { if (error.code !== 'ESRCH') throw error }
+  }
   if (process.platform === 'win32') {
-    await run('taskkill', ['/PID', String(preview.pid), '/T', '/F'])
+    if (preview.pid) await run('taskkill', ['/PID', String(preview.pid), '/T', '/F'])
     return
   }
-  if (preview.pid) { try { process.kill(-preview.pid, 'SIGTERM') } catch {} }
-  preview.kill('SIGTERM')
-  await new Promise((resolve) => preview.once('close', resolve))
+  if (!parentExited) {
+    preview.kill('SIGTERM')
+    await new Promise((resolve) => preview.once('close', resolve))
+  }
 }
 
 function diagnose(step) {

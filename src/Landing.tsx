@@ -1,39 +1,16 @@
-import { Sparkles } from 'lucide-react'
+import { Link } from './router'
 import { presentations } from './presentations'
+import './App.css'
 
-export function Landing() {
-  return (
-    <main>
-      <div>
-        <p>and-scene</p>
-        <h1>Presentations as evolving diagrams.</h1>
-        <p>
-          One shared canvas holds the talk together. Each step changes positions,
-          labels, focus, or connections while the audience follows one idea as it
-          develops.
-        </p>
-
-        <section aria-labelledby="presentations-heading">
-          <h2 id="presentations-heading">Presentations</h2>
-          {presentations.length === 0 ? (
-            <p>
-              No presentations registered yet. Add one under{' '}
-              <code>src/presentations/</code> and register it in{' '}
-              <code>index.ts</code>.
-            </p>
-          ) : (
-            <ul>
-              {presentations.map((entry) => (
-                <li key={entry.slug}>
-                  <a href={`/${entry.slug}`}>
-                    <Sparkles size={18} aria-hidden /> {entry.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-    </main>
-  )
+export default function Landing() {
+  return <main className="shell" data-landing="true">
+    <section className="intro" aria-labelledby="page-title">
+      <p className="eyebrow">and-scene</p>
+      <h1 id="page-title">Presentations as evolving diagrams.</h1>
+      <p className="summary">A small, reusable scene engine for browser-based presentations where each step changes one shared composition.</p>
+    </section>
+    <section className="beats" aria-label="Presentations">
+      {presentations.length ? presentations.map((presentation) => <Link className="beat" key={presentation.slug} href={`/${presentation.slug}`}><span className="beat-number">open</span><h2>{presentation.title}</h2><p>Explore this evolving scene.</p></Link>) : <p className="summary">No presentations have been registered yet.</p>}
+    </section>
+  </main>
 }

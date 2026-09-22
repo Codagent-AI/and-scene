@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+
+.sample-presentation { --ink:#182c2a; --muted:#66807a; --paper:#f3f5ee; --line:#cbd8ce; --accent:#e16c46; --green:#1e6c5d; background: radial-gradient(ellipse at 50% 44%,#fffdf6 0,#f2f5ed 62%,#e9f0e9 100%); color:var(--ink); font-family:'DM Sans',sans-serif; }
+.sample-presentation .presentation-header,.sample-presentation .presentation-footer { color:var(--ink); }
+.sample-presentation .presentation-brand { font:700 12px 'DM Mono',monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--green); }
+.sample-presentation .presentation-heading [data-presentation-marker] { color:var(--accent); font:500 10px 'DM Mono',monospace; letter-spacing:.12em; text-transform:uppercase; }
+.sample-presentation .presentation-heading strong { font:700 13px Manrope,sans-serif; }
+.sample-presentation [data-presentation-mode-toggle],.sample-presentation .presentation-controls button,.sample-presentation .presentation-toc button { border:1px solid var(--line); border-radius:999px; background:#fffdf8; color:var(--ink); padding:8px 13px; font:600 11px 'DM Sans',sans-serif; }
+.sample-presentation .presentation-toc button[aria-current],.sample-presentation .presentation-controls button:not(:disabled):hover { background:var(--green); color:white; border-color:var(--green); }
+.sample-presentation .presentation-progress button { width:8px; height:8px; border:0; border-radius:99px; background:#bdcbc1; padding:0; transition:all .2s; }
+.sample-presentation .presentation-progress button[aria-current] { width:25px; background:var(--accent); box-shadow:0 0 0 4px #e16c4620; }
+.sample-presentation .presentation-narration strong { font:800 22px Manrope,sans-serif; letter-spacing:-.035em; }
+.sample-presentation .presentation-narration p { max-width:610px; color:#526b64; font-size:13px; line-height:1.5; }
+.sample-presentation .presentation-attribution { color:#47675f; font:500 10px 'DM Mono',monospace; text-decoration:none; }
+.sample-scene { position:relative; width:880px; height:380px; overflow:visible; }
+.conversation { position:absolute; top:35px; left:154px; width:570px; height:105px; display:flex; align-items:center; justify-content:space-between; }
+.person { width:176px; height:82px; border-radius:18px; padding:13px 16px; display:flex; flex-direction:column; justify-content:center; box-sizing:border-box; box-shadow:0 9px 24px #23493b12; }
+.person strong { font:800 20px Manrope,sans-serif; letter-spacing:-.04em; }.person small { color:var(--muted); font-size:10px; margin-top:2px; }
+.you { background:#fffdf7; border:1px solid #dfd6c4; }.skill { background:#1e6c5d; color:white; border:1px solid #1e6c5d; }.skill small { color:#c1e0d4; }
+.eyebrow,.card-number,.step-card small,.verify-node span,.reveal-frame>span { font:500 8px 'DM Mono',monospace; letter-spacing:.1em; text-transform:uppercase; color:#788e84; }
+.conversation-arrow { position:absolute; left:236px; top:29px; width:90px; text-align:center; color:var(--accent); font-size:25px; }
+.question-chip { position:absolute; z-index:2; left:254px; top:3px; padding:5px 10px; background:#fff1e9; border:1px solid #f0c2ac; border-radius:99px; color:#ac4e31; font:500 8px 'DM Mono',monospace; letter-spacing:.06em; }
+.prompt { position:absolute; left:208px; top:78px; color:#9b6c44; font:italic 13px Manrope,sans-serif; }
+.depth-control { position:absolute; top:88px; left:-120px; display:grid; gap:4px; padding:7px 10px; background:#fffdf8; border:1px solid var(--line); border-radius:9px; color:#7e5e48; font:500 7px 'DM Mono',monospace; }
+.depth-control b { color:var(--green); font-weight:500; }.modify-arc { position:absolute; left:104px; top:106px; transform:rotate(-18deg); color:var(--accent); font:500 9px 'DM Mono',monospace; }
+.step-tray { position:absolute; top:166px; left:32px; display:flex; align-items:flex-start; gap:6px; width:max-content; }
+.card-slot { width:72px; position:relative; padding-top:12px; }.step-card { height:106px; box-sizing:border-box; border:1px solid #d5ded2; border-radius:11px; padding:9px 7px; display:flex; flex-direction:column; gap:5px; background:#fffef9; box-shadow:0 5px 14px #2948370d; }
+.step-card strong { font:700 10px Manrope,sans-serif; }.step-card>span:not(.card-number) { font-size:8px; color:#536e65; }.step-card small { margin-top:auto; font-size:7px; }
+.new-card { border-color:#de8c6e; box-shadow:0 0 0 2px #e16c4612,0 7px 18px #29483712; }.card-number { color:var(--accent); }
+.morph-link { position:absolute; top:-10px; left:31px; color:#7ba295; font-size:15px; }.edited-card { border-color:var(--accent); transform:rotate(-2deg); }
+.ghost-card { width:72px; height:106px; margin-top:12px; border:1px dashed #b9c6ba; border-radius:11px; color:#83958b; display:grid; place-items:center; text-align:center; padding:8px; box-sizing:border-box; font-size:9px; background:#f8f9f3aa; }
+.kit-socket { position:absolute; left:359px; top:290px; display:flex; align-items:center; gap:4px; }.kit-plug { color:var(--green); font-size:20px; }.kit-label { padding:8px 12px; display:flex; align-items:center; gap:9px; border-radius:10px; background:#e0efe5; border:1px solid #b8d2c2; color:var(--green); }.kit-label i { font-style:normal; font-size:18px; }.kit-label span { display:grid; gap:2px; }.kit-label b { font:500 9px 'DM Mono',monospace; letter-spacing:.08em; }.kit-label small { color:#55786b; font-size:8px; }
+.verify-node { position:absolute; left:590px; top:186px; width:100px; height:78px; padding:9px; box-sizing:border-box; display:flex; flex-direction:column; gap:3px; border-radius:12px; background:#edf6eb; border:1px solid #bfd8bd; }.verify-node b { position:absolute; right:9px; top:23px; color:#27825c; font-size:22px; }.verify-node strong { font:700 11px Manrope,sans-serif; }.verify-node span { font-size:7px; }
+.reveal-frame { position:absolute; inset:12px 14px 24px; border:1px solid #de8c6e; border-radius:24px; pointer-events:none; }.reveal-frame>span { position:absolute; right:24px; bottom:-7px; background:#f3f5ee; padding:0 8px; color:#bd593a; }
+.scene-footnote { position:absolute; right:30px; bottom:4px; color:#91a198; font:9px 'DM Mono',monospace; }
+@media(max-width:700px) { .sample-presentation .presentation-heading strong { display:none; } .sample-presentation .presentation-narration strong { font-size:17px; }.sample-presentation .presentation-narration p { font-size:11px; }.sample-presentation .presentation-toc { display:none; } }

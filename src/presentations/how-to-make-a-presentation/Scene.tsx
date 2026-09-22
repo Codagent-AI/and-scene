@@ -22,7 +22,7 @@ export function Scene({ payload }: SceneProps<SamplePayload>) {
     {n >= 2 && <div className="step-tray" aria-label="Steps accumulate">
       {cards.slice(0, n - 1).map(([num, title, caption, visual], i) => <div className="card-slot" key={num}>
         {i > 0 && <Arrow id={`morph-${num}`} className="morph-link">↗</Arrow>}
-        <Box id={`card-${num}`} className={`step-card ${i === n ? 'new-card' : ''} ${n >= 7 && i === 2 ? 'edited-card' : ''}`}>
+        <Box id={`card-${num}`} className={`step-card ${i === n - 2 ? 'new-card' : ''} ${n >= 7 && i === 2 ? 'edited-card' : ''}`}>
           <span className="card-number">{num}</span><strong>{title}</strong><span>{caption}</span><small>{visual}</small>
         </Box>
       </div>)}

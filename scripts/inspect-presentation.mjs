@@ -80,5 +80,5 @@ try {
   process.exitCode = 1
 } finally {
   await browser?.close()
-  await server?.close()
+  if (server?.httpServer) await new Promise((resolve, reject) => server.httpServer.close((error) => error ? reject(error) : resolve()))
 }

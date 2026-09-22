@@ -1,4 +1,5 @@
-import { Arrow, Box, Emphasis, Frame, Label, SymbolChip } from '../../presentation-kit'
+import { AnimatePresence } from 'motion/react'
+import { Appear, Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip } from '../../presentation-kit'
 import type { SceneProps } from '../../presentation-kit'
 
 export type SamplePayload = { index: number }
@@ -11,26 +12,35 @@ const cards = [
 
 export function Scene({ payload }: SceneProps<SamplePayload>) {
   const n = payload.index
+  // Newcomers wait in <Appear> until continuing entities finish their layout morph;
+  // AnimatePresence/SceneLayer keep departing entities mounted long enough to fade out.
   return <section className="sample-scene" aria-label="An evolving presentation scene">
-    <div className="conversation">
-      <Box id="you" className="person you"><span className="eyebrow">THE AUTHOR</span><strong>You</strong><small>one good question</small></Box>
-      {n >= 1 && <><Arrow id="conversation-arrow" className="conversation-arrow">↔</Arrow><SymbolChip id="question" className="question-chip">QUESTION {n > 1 ? '· ANSWERED' : '· ASKED'}</SymbolChip><Box id="skill" className="person skill"><span className="eyebrow">YOUR CO-PILOT</span><strong>The skill</strong><small>asks, builds, checks</small></Box></>}
-      {n === 0 && <Box id="prompt" className="prompt">“I have a topic…”</Box>}
-      {n >= 7 && <Arrow id="modify-arc" className="modify-arc">↘ modify</Arrow>}
-      {n >= 4 && <Box id="depth-control" className="depth-control">YOU SET THE DEPTH <b>partial ↔ full</b></Box>}
-    </div>
-    {n >= 2 && <div className="step-tray" aria-label="Steps accumulate">
-      {cards.slice(0, n - 1).map(([num, title, caption, visual], i) => <div className="card-slot" key={num}>
-        {i > 0 && <Arrow id={`morph-${num}`} className="morph-link">↗</Arrow>}
-        <Box id={`card-${num}`} className={`step-card ${i === n - 2 ? 'new-card' : ''} ${n >= 7 && i === 2 ? 'edited-card' : ''}`}>
-          <span className="card-number">{num}</span><strong>{title}</strong><span>{caption}</span><small>{visual}</small>
-        </Box>
-      </div>)}
-      {n === 4 && <Emphasis id="ghost-card" className="ghost-card">… room for your next idea</Emphasis>}
-    </div>}
-    {n >= 5 && <div className="kit-socket"><Arrow id="kit-plug" className="kit-plug">↓</Arrow><Box id="kit" className="kit-label"><i>✳</i><span><b>SCENE KIT</b><small>boxes · arrows · motion</small></span></Box></div>}
-    {n >= 6 && <Box id="verify" className="verify-node"><span>BUILD + RENDER</span><b>✓</b><strong>All clear</strong></Box>}
-    {n >= 8 && <div data-presentation-allow-overlap=""><Frame id="reveal-frame" className="reveal-frame"><span>MADE WITH THE SKILL</span></Frame></div>}
-    <Label className="scene-footnote">A story that keeps its shape while the idea grows.</Label>
+    <SceneLayer>
+      <div key="conversation" className="conversation">
+        <Box id="you" className="person you"><span className="eyebrow">THE AUTHOR</span><strong>You</strong><small>one good question</small></Box>
+        <AnimatePresence initial={false}>
+          {n >= 1 && <Appear key="exchange" className="entry-layer"><Arrow id="conversation-arrow" className="conversation-arrow">↔</Arrow><SymbolChip id="question" className="question-chip">QUESTION {n > 1 ? '· ANSWERED' : '· ASKED'}</SymbolChip></Appear>}
+          {n >= 1 && <Appear key="skill"><Box id="skill" className="person skill"><span className="eyebrow">YOUR CO-PILOT</span><strong>The skill</strong><small>asks, builds, checks</small></Box></Appear>}
+          {n === 0 && <Appear key="prompt" className="entry-layer"><Box id="prompt" className="prompt">“I have a topic…”</Box></Appear>}
+          {n >= 7 && <Appear key="modify" className="entry-layer"><Arrow id="modify-arc" className="modify-arc">↘ modify</Arrow></Appear>}
+          {n >= 4 && <Appear key="depth" className="entry-layer"><Box id="depth-control" className="depth-control">YOU SET THE DEPTH <b>partial ↔ full</b></Box></Appear>}
+        </AnimatePresence>
+      </div>
+      {n >= 2 && <Appear key="tray"><div className="step-tray" aria-label="Steps accumulate">
+        <AnimatePresence initial={false}>
+          {cards.slice(0, n - 1).map(([num, title, caption, visual], i) => <Appear key={num}><div className="card-slot">
+            {i > 0 && <Arrow id={`morph-${num}`} className="morph-link">↗</Arrow>}
+            <Box id={`card-${num}`} className={`step-card ${i === n - 2 ? 'new-card' : ''} ${n >= 7 && i === 2 ? 'edited-card' : ''}`}>
+              <span className="card-number">{num}</span><strong>{title}</strong><span>{caption}</span><small>{visual}</small>
+            </Box>
+          </div></Appear>)}
+          {n === 4 && <Appear key="ghost"><Emphasis id="ghost-card" className="ghost-card">… room for your next idea</Emphasis></Appear>}
+        </AnimatePresence>
+      </div></Appear>}
+      {n >= 5 && <Appear key="kit"><div className="kit-socket"><Arrow id="kit-plug" className="kit-plug">↓</Arrow><Box id="kit" className="kit-label"><i>✳</i><span><b>SCENE KIT</b><small>boxes · arrows · motion</small></span></Box></div></Appear>}
+      {n >= 6 && <Appear key="verify"><Box id="verify" className="verify-node"><span>BUILD + RENDER</span><b>✓</b><strong>All clear</strong></Box></Appear>}
+      {n >= 8 && <Appear key="reveal"><div data-presentation-allow-overlap=""><Frame id="reveal-frame" className="reveal-frame"><span>MADE WITH THE SKILL</span></Frame></div></Appear>}
+      <Label key="footnote" className="scene-footnote">A story that keeps its shape while the idea grows.</Label>
+    </SceneLayer>
   </section>
 }

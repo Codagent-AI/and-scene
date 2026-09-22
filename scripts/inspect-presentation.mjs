@@ -36,12 +36,11 @@ try {
     })
     await page.screenshot({ path: resolve(artifacts, `step-${String(step + 1).padStart(2, '0')}.png`), fullPage: true })
     const diagnostics = await page.evaluate(() => {
-      const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
       const visible = (el) => {
         const rect = el.getBoundingClientRect(), style = getComputedStyle(el)
         return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0
       }
-      const describe = (el) => `${el.getAttribute('aria-label') || el.textContent?.trim().replace(/\\s+/g, ' ').slice(0, 36) || el.tagName}.${typeof el.className === 'string' ? el.className.trim().replace(/\\s+/g, '.') : ''}`
+      const describe = (el) => `${el.getAttribute('aria-label') || el.textContent?.trim().replace(/\s+/g, ' ').slice(0, 36) || el.tagName}.${typeof el.className === 'string' ? el.className.trim().replace(/\s+/g, '.') : ''}`
       const candidates = [...document.querySelectorAll('main [data-presentation-label],main [data-presentation-box],main [data-presentation-symbol-chip],main [data-presentation-emphasis],main [data-presentation-frame],main [data-presentation-header],main [data-presentation-footer],main [data-presentation-progress] button,main [data-presentation-toc] button,main [data-presentation-attribution]')].filter(visible)
       const collisions = []
       for (let i = 0; i < candidates.length; i++) for (let j = i + 1; j < candidates.length; j++) {
@@ -49,7 +48,7 @@ try {
         if (a.contains(b) || b.contains(a) || a.closest('[data-presentation-allow-overlap]') || b.closest('[data-presentation-allow-overlap]')) continue
         const ar = a.getBoundingClientRect(), br = b.getBoundingClientRect()
         const area = Math.max(0, Math.min(ar.right, br.right) - Math.max(ar.left, br.left)) * Math.max(0, Math.min(ar.bottom, br.bottom) - Math.max(ar.top, br.top))
-        if (area > 16 && intersects(ar, br) && (a.textContent?.trim() || b.textContent?.trim())) collisions.push(`${describe(a)} / ${describe(b)}`)
+        if (area > 16 && (a.textContent?.trim() || b.textContent?.trim())) collisions.push(`${describe(a)} / ${describe(b)}`)
       }
       const indistinct = []
       for (const [name, selector] of [['progress', '[data-presentation-progress]'], ['table of contents', '[data-presentation-toc]']]) {

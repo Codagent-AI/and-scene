@@ -13,7 +13,6 @@
 .sample-presentation .presentation-narration p { max-width:610px; color:#526b64; font-size:13px; line-height:1.5; }
 .sample-presentation .presentation-attribution { color:#47675f; font:500 10px 'DM Mono',monospace; text-decoration:none; }
 .sample-scene { position:relative; width:880px; height:380px; overflow:visible; }
-.entry-layer { position:absolute; inset:0; pointer-events:none; }
 .conversation { position:absolute; top:35px; left:154px; width:570px; height:105px; display:flex; align-items:center; justify-content:space-between; }
 .person { width:176px; height:82px; border-radius:18px; padding:13px 16px; display:flex; flex-direction:column; justify-content:center; box-sizing:border-box; box-shadow:0 9px 24px #23493b12; }
 .person strong { font:800 20px Manrope,sans-serif; letter-spacing:-.04em; }.person small { color:var(--muted); font-size:10px; margin-top:2px; }

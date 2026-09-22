@@ -19,12 +19,15 @@ export function Scene({ payload }: SceneProps<SamplePayload>) {
       <div key="conversation" className="conversation">
         <Box id="you" className="person you"><span className="eyebrow">THE AUTHOR</span><strong>You</strong><small>one good question</small></Box>
         <AnimatePresence initial={false}>
-          {n >= 1 && <Appear key="exchange" className="entry-layer"><Arrow id="conversation-arrow" className="conversation-arrow">↔</Arrow><SymbolChip id="question" className="question-chip">QUESTION {n > 1 ? '· ANSWERED' : '· ASKED'}</SymbolChip></Appear>}
           {n >= 1 && <Appear key="skill"><Box id="skill" className="person skill"><span className="eyebrow">YOUR CO-PILOT</span><strong>The skill</strong><small>asks, builds, checks</small></Box></Appear>}
-          {n === 0 && <Appear key="prompt" className="entry-layer"><Box id="prompt" className="prompt">“I have a topic…”</Box></Appear>}
-          {n >= 7 && <Appear key="modify" className="entry-layer"><Arrow id="modify-arc" className="modify-arc">↘ modify</Arrow></Appear>}
-          {n >= 4 && <Appear key="depth" className="entry-layer"><Box id="depth-control" className="depth-control">YOU SET THE DEPTH <b>partial ↔ full</b></Box></Appear>}
         </AnimatePresence>
+        {/* Absolutely positioned overlays stay out of the flex row. */}
+        <SceneLayer>
+          {n >= 1 && <Appear key="exchange"><Arrow id="conversation-arrow" className="conversation-arrow">↔</Arrow><SymbolChip id="question" className="question-chip">QUESTION {n > 1 ? '· ANSWERED' : '· ASKED'}</SymbolChip></Appear>}
+          {n === 0 && <Appear key="prompt"><Box id="prompt" className="prompt">“I have a topic…”</Box></Appear>}
+          {n >= 7 && <Appear key="modify"><Arrow id="modify-arc" className="modify-arc">↘ modify</Arrow></Appear>}
+          {n >= 4 && <Appear key="depth"><Box id="depth-control" className="depth-control">YOU SET THE DEPTH <b>partial ↔ full</b></Box></Appear>}
+        </SceneLayer>
       </div>
       {n >= 2 && <Appear key="tray"><div className="step-tray" aria-label="Steps accumulate">
         <AnimatePresence initial={false}>

@@ -6,8 +6,8 @@ export function useFitScale(mode: PresentationMode) {
   const [scale, setScale] = useState(1)
   useEffect(() => {
     const update = () => {
-      const { top: header, bottom: footer } = STAGE_LAYOUT[mode]
-      const width = Math.max(0, window.innerWidth - 64)
+      const { top: header, bottom: footer, side } = STAGE_LAYOUT[mode]
+      const width = Math.max(0, window.innerWidth - 2 * side)
       const height = Math.max(0, window.innerHeight - header - footer)
       setScale(Math.max(MIN_SCALE, Math.min(width / DESIGN_W, height / DESIGN_H)))
     }

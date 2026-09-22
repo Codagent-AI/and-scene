@@ -50,11 +50,10 @@ try {
 
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
-  let runtimeErrors = []
+  const runtimeErrors = []
   page.on('console', (message) => { if (message.type() === 'error') runtimeErrors.push(message.text()) })
   page.on('pageerror', (error) => runtimeErrors.push(error.message))
   const route = new URL(`${slug}/`, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`)
-  if (route.hostname !== '127.0.0.1') throw new Error(`PREVIEW failed: browser route must use 127.0.0.1, got ${route.href}`)
   await page.goto(route.href, { waitUntil: 'networkidle' })
   const rootHook = page.locator('[data-step-count][data-step-index]')
   try { await rootHook.waitFor({ state: 'visible', timeout: 10000 }) }

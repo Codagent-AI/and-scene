@@ -72,4 +72,22 @@ describe('Presentation', () => {
     fireEvent.keyDown(button, { key: 'ArrowRight' })
     expect(screen.getByText('typed payload')).toBeTruthy()
   })
+
+  it('clamps the active step when the steps array shrinks', async () => {
+    const { rerender } = render(<Presentation steps={steps} title="Test deck" />)
+    fireEvent.click(screen.getByRole('button', { name: '2: Second' }))
+    expect(document.querySelector('[data-step-index="1"]')).toBeTruthy()
+    rerender(<Presentation steps={steps.slice(0, 1)} title="Test deck" />)
+    await waitFor(() => expect(document.querySelector('[data-step-index="0"]')).toBeTruthy())
+    expect(screen.getByText('typed payload')).toBeTruthy()
+  })
+
+  it('leaves modified shortcuts to the browser', () => {
+    render(<Presentation steps={steps} title="Test deck" />)
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowRight', metaKey: true })
+    fireEvent.keyDown(window, { key: 'PageDown', altKey: true })
+    expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+    expect(document.querySelector('[data-presentation-mode="browse"]')).toBeTruthy()
+  })
 })

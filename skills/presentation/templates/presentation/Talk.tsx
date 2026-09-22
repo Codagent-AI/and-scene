@@ -4,7 +4,7 @@ import './presentation.css'
 
 type Model = { label: string }
 function Scene({ payload }: { payload: Model }) {
-  return <section className="scene" data-presentation-allow-overlap="">
+  return <section className="scene">
     <p className="scene-label">{payload.label}</p>
   </section>
 }

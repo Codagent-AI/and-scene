@@ -1,27 +1,23 @@
 import { mkdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
-import { spawn } from 'node:child_process'
-import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { preview } from 'vite'
 
 const slug = process.argv[2]
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
 const root = fileURLToPath(new URL('../', import.meta.url))
 const artifacts = resolve(root, 'artifacts/presentations', slug)
 await mkdir(artifacts, { recursive: true })
-const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', '4180', '--strictPort'], { cwd: root, stdio: 'ignore' })
+let server
 let browser
 try {
-  let ready = false
-  for (let i = 0; i < 60; i++) {
-    try { ready = (await fetch('http://127.0.0.1:4180')).ok; if (ready) break } catch {}
-    await delay(250)
-  }
-  if (!ready) throw new Error('preview did not become ready at 127.0.0.1:4180')
+  server = await preview({ root, preview: { host: '127.0.0.1', port: 0, strictPort: true } })
+  const baseUrl = server.resolvedUrls?.local?.[0]
+  if (!baseUrl) throw new Error('Vite preview did not expose a local URL')
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-  await page.goto(`http://127.0.0.1:4180/${slug}`, { waitUntil: 'networkidle' })
+  await page.goto(new URL(slug, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).href, { waitUntil: 'networkidle' })
   const total = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
   if (!total) throw new Error(`No presentation found at /${slug}`)
   for (let step = 0; step < total; step++) {
@@ -55,5 +51,5 @@ try {
   console.log(`Captured ${total} settled steps in ${artifacts}`)
 } finally {
   await browser?.close()
-  server.kill('SIGTERM')
+  await server?.close()
 }

@@ -1,11 +1,15 @@
 ---
 name: presentation
-description: Create or modify browser presentations as one evolving, navigable scene. Use when a user wants to make a presentation from a topic, build a scene based presentation, or change an existing presentation.
+description: Creates or modifies navigable browser presentations with evolving scenes. Activates for requests to make a presentation from a topic, build a scene-based presentation, or change an existing presentation.
 ---
 
 # Presentation
 
 Create browser based presentations as one diagrammatic scene that evolves through named steps. The reusable kit owns behavior, geometry, and stable hooks; a presentation or its host owns the visual design. Work in the user's project and verify the result before reporting completion.
+
+## Out of scope
+
+This skill creates browser-based evolving-scene presentations. It does not create PowerPoint or Keynote files, export PDFs, or author conventional slide decks. Route those requests to an available slide or document authoring workflow that supports the requested format; if none is available, explain the limitation and offer the browser presentation format instead.
 
 ## 1. Gather the brief
 

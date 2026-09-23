@@ -1,0 +1,29 @@
+.reference-scene { color: #eaf0e9; }
+.reference-scene .scene-box, .reference-scene .scene-symbol-chip, .reference-scene .scene-emphasis { box-sizing: border-box; position: absolute; display: flex; align-items: center; justify-content: center; }
+.reference-scene .conversation { position: absolute; inset: 0; }
+.reference-scene .ref-appear { position: absolute; inset: 0; pointer-events: none; }
+.reference-scene .ref-person { width: 92px; height: 54px; border: 1px solid #8db6a3; border-radius: 18px; background: #213d39; color: #eaf5e9; font-weight: 750; font-size: 20px; }
+.reference-scene .ref-you { background: #355748; }
+.reference-scene .ref-prompt { width: 204px; height: 42px; border-radius: 18px 18px 18px 4px; background: #e4bd72; color: #2d2820; font-size: 14px; }
+.reference-scene .ref-link { position: absolute; color: #c4d6cb; font-size: 32px; }
+.reference-scene .ref-question { width: 152px; height: 25px; border-radius: 99px; background: #304b49; color: #d9e9db; font-size: 11px; letter-spacing: .02em; }
+.reference-scene .step-tray { position: absolute; inset: 0; }
+.reference-scene .ref-card { width: 190px; height: 58px; align-items: flex-start; flex-direction: column; padding: 7px 11px 7px 38px; border: 1px solid #536e63; border-radius: 12px; background: #1a2b30; box-shadow: 0 5px 12px #07101466; }
+.reference-scene .ref-card-current { border-color: #edb85b; box-shadow: 0 0 0 2px #edb85b55, 0 5px 12px #07101466; }
+.reference-scene .ref-card .scene-box-content { display: flex; flex-direction: column; gap: 3px; }
+.reference-scene .ref-card strong { color: #f2dfb7; font-size: 13px; }
+.reference-scene .ref-card small { margin-top: 3px; color: #b9cbc0; font-size: 10px; }
+.reference-scene .ref-card-number { position: absolute; left: 11px; top: 10px; color: #edb85b; font: 700 11px ui-monospace, monospace; }
+.reference-scene .ref-morph-link { position: absolute; color: #edb85b; font-size: 23px; }
+.reference-scene .ref-ghost { width: 190px; height: 58px; border: 1px dashed #a5c9b6; border-radius: 12px; color: #afc1b7; font-size: 12px; }
+.reference-scene .ref-depth { width: 100px; height: 24px; border-radius: 8px; background: #8d6240; color: #fff1d7; font-size: 10px; }
+.reference-scene .ref-plug { position: absolute; color: #81c0a0; font-size: 22px; }
+.reference-scene .ref-kit { width: 142px; height: 30px; border: 1px solid #81c0a0; border-radius: 8px; background: #1a453a; color: #c5f2d3; font-size: 12px; white-space: nowrap; }
+.reference-scene .verify-node { position: absolute; }
+.reference-scene .ref-verify { width: 164px; height: 34px; border: 1px solid #81c0a0; border-radius: 9px; background: #214b3a; color: #e2f7e6; font-size: 12px; gap: 8px; }
+.reference-scene .ref-verify b { color: #9de5a8; font-size: 18px; }
+.reference-scene .ref-modify { position: absolute; color: #e5a6a1; font-size: 28px; }
+.reference-scene .ref-edited { width: 54px; height: 20px; border-radius: 99px; background: #8d5048; color: #fff0e8; font-size: 10px; }
+.reference-scene .ref-reveal { position: absolute; inset: 2px 12px 1px; border: 2px solid #edb85b; border-radius: 22px; pointer-events: none; }
+.reference-scene .scene-frame-label { position: absolute; top: -10px; left: 24px; padding: 0 10px; background: #101a22; color: #f4cf7d; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.reference-scene .scene-label { position: absolute; left: 18px; right: auto; bottom: 8px; color: #9eb6a9; font-size: 10px; }

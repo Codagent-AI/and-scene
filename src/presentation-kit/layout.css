@@ -1,0 +1,21 @@
+/* Structural layout only. All visual styling belongs to the host or presentation. */
+.presentation { position: relative; min-height: 100vh; overflow: hidden; }
+.presentation-header { position: absolute; inset: 0 0 auto; min-height: 3rem; }
+.presentation-header-brand { position: absolute; inset: 0 auto auto 0; }
+.presentation-header-marker { position: absolute; inset: 1rem auto auto 1rem; }
+.presentation-header-title { position: absolute; inset: 1rem 1rem auto auto; }
+.presentation-stage-region { position: absolute; inset-inline: 0; display: grid; place-items: center; overflow: hidden; }
+.presentation-stage-viewport { max-width: 100%; max-height: 100%; }
+.presentation-stage-space { position: relative; }
+.presentation-stage { position: absolute; inset: 0 auto auto 0; }
+.presentation-scene { position: absolute; inset: 0; }
+.presentation-footer { position: absolute; inset: auto 0 0; min-height: 5rem; }
+.presentation-footer-narration { position: absolute; inset: auto auto 1rem 1rem; }
+.presentation-footer-controls { position: absolute; inset: auto 50% 1rem auto; display: flex; align-items: center; transform: translateX(50%); }
+.presentation-toc { position: absolute; inset: 50% auto auto 1rem; display: grid; transform: translateY(-50%); }
+.presentation-attribution { position: absolute; inset: auto 1rem 1rem auto; }
+.presentation--present .presentation-footer { display: flex; align-items: end; justify-content: center; }
+.presentation--present .presentation-mode-toggle { position: absolute; inset: auto auto 1rem 1rem; }
+.presentation-progress { display: flex; align-items: center; }
+.scene-layer { position: absolute; inset: 0; }
+@media (max-width: 900px) { .presentation-toc { display: none; } }

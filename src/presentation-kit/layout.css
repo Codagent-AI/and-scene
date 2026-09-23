@@ -12,7 +12,7 @@
 .presentation-footer { position: absolute; inset: auto 0 0; min-height: 5rem; }
 .presentation-footer-narration { position: absolute; inset: auto auto 1rem 1rem; }
 .presentation-footer-controls { position: absolute; inset: auto 50% 1rem auto; display: flex; align-items: center; transform: translateX(50%); }
-.presentation-toc { position: absolute; inset: 50% auto auto 1rem; display: grid; transform: translateY(-50%); }
+.presentation-toc { position: absolute; z-index: 1; inset: 50% auto auto 1rem; display: grid; transform: translateY(-50%); }
 .presentation-attribution { position: absolute; inset: auto 1rem 1rem auto; }
 .presentation--present .presentation-footer { display: flex; align-items: end; justify-content: center; }
 .presentation--present .presentation-mode-toggle { position: absolute; inset: auto auto 1rem 1rem; }

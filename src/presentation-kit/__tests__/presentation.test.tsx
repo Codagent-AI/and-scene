@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
+import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Presentation } from '../Presentation'
 import type { Step } from '../types'
 import { getFitScale } from '../useFitScale'
-import kitCss from '../layout.css?raw'
+import { Arrow } from '../nodes/Arrow'
 
 afterEach(cleanup)
 
@@ -46,7 +47,23 @@ describe('Presentation runtime', () => {
   })
 
   it('keeps the kit stylesheet structural and free of visual styling defaults', () => {
+    const kitCss = readFileSync('src/presentation-kit/layout.css', 'utf8')
     expect(kitCss).not.toMatch(/(?:^|[;{])\s*(?:color|background(?:-color)?|font(?:-family|-size|-weight)?|border(?:-color|-style|-width)?|box-shadow|gap|padding|margin)\s*:/m)
+  })
+
+  it('renders the arrow glyph that matches its declared direction', () => {
+    const { container } = render(<Arrow id="upstream" direction="up" />)
+    expect(container.querySelector('[data-direction="up"]')?.textContent).toBe('↑')
+  })
+
+  it('keeps the visible table of contents above the mounted scene stage', () => {
+    render(<Presentation steps={steps} title="Typed" initialMode="browse" />)
+    const kitCss = readFileSync('src/presentation-kit/layout.css', 'utf8')
+    const toc = document.querySelector('.presentation-toc')
+    expect(toc).toBeTruthy()
+    expect(kitCss).toMatch(/\.presentation-toc\s*\{[^}]*z-index:\s*1/m)
+    fireEvent.click(screen.getByRole('button', { name: 'middle' }))
+    expect(document.querySelector('[data-step-index="1"]')).toBeTruthy()
   })
 
   it('keeps controls in charge of focused navigation keys', () => {

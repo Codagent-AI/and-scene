@@ -101,4 +101,10 @@ describe('bootstrap inspection and skill workflow contracts', () => {
     expect(skill).toContain("load: () => import('./<slug>/Talk')")
     expect(skill).toContain('{{step-id}}')
   })
+
+  it('tells authors how newcomers and departing entities animate', async () => {
+    const skill = await readFile(join(repo, 'skills/presentation/SKILL.md'), 'utf8')
+    expect(skill).toMatch(/newcomer[^\n]*`Appear`/i)
+    expect(skill).toMatch(/`AnimatePresence`[^\n]*depart/i)
+  })
 })

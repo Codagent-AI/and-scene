@@ -41,7 +41,7 @@ describe('Presentation runtime', () => {
   it('renders the default attribution and no default brand link', () => {
     render(<Presentation steps={steps} title="Typed" />)
     const attribution = screen.getByRole('link', { name: 'made by and-scene' })
-    expect(attribution.getAttribute('href')).toContain('github.com')
+    expect(attribution.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene')
     expect(attribution.hasAttribute('data-presentation-attribution')).toBe(true)
     expect(screen.queryByRole('link', { name: 'and-scene' })).toBeNull()
   })

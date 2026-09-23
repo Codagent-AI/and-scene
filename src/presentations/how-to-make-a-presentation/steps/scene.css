@@ -1,6 +1,7 @@
 .reference-scene { color: #eaf0e9; }
 .reference-scene .scene-box, .reference-scene .scene-symbol-chip, .reference-scene .scene-emphasis { box-sizing: border-box; position: absolute; display: flex; align-items: center; justify-content: center; }
 .reference-scene .conversation { position: absolute; inset: 0; }
+.reference-scene .ref-appear { position: absolute; inset: 0; pointer-events: none; }
 .reference-scene .ref-person { width: 92px; height: 54px; border: 1px solid #8db6a3; border-radius: 18px; background: #213d39; color: #eaf5e9; font-weight: 750; font-size: 20px; }
 .reference-scene .ref-you { background: #355748; }
 .reference-scene .ref-prompt { width: 204px; height: 42px; border-radius: 18px 18px 18px 4px; background: #e4bd72; color: #2d2820; font-size: 14px; }

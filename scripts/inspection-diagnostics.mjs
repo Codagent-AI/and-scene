@@ -10,7 +10,7 @@ export function collectDiagnostics(doc = document) {
     return x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top
   }
   const textNodes = [...doc.querySelectorAll('[data-inspect-text], [data-presentation-stage-region] *, [data-presentation-narration] *, [data-presentation-title], [data-presentation-marker], [data-presentation-attribution]')]
-    .filter((element) => visible(element) && element.children.length === 0 && element.textContent?.trim())
+    .filter((element) => visible(element) && [...element.childNodes].some((node) => node.nodeType === 3 && node.textContent.trim()))
   const chrome = [...doc.querySelectorAll('[data-inspect-chrome], [data-presentation-controls], [data-presentation-toc], [data-presentation-header], [data-presentation-attribution]')].filter(visible)
   const checked = new Set()
   const allElements = [...doc.querySelectorAll('*')]

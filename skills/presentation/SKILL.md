@@ -39,7 +39,7 @@ Ensure runtime dependencies `react`, `react-dom`, `motion`, and `lucide-react`, 
 
 ## 3. Create or modify
 
-Create each new presentation in its own directory with presentation-local entity IDs, step scene components, and styling. Give every step a meaningful title and caption. Compose generic kit primitives, keep a consistent fixed-canvas composition, and reuse entity IDs for continuing concepts. Add one explicit registry entry and route; preserve every existing presentation and route.
+Create each new presentation in its own directory with presentation-local entity IDs, step scene components, and styling. Give every step a meaningful title and caption. Compose generic kit primitives, keep a consistent fixed-canvas composition, and reuse entity IDs for continuing concepts. Wrap each newcomer (an entity absent from the previous step) in the kit's `Appear` so it enters after continuing entities settle; never wrap continuing entities in a newcomer fade. Render conditional entities inside `AnimatePresence` from `motion/react` so departing entities animate out instead of vanishing. Add one explicit registry entry and route; preserve every existing presentation and route.
 
 For a modification, edit only the selected presentation and the necessary registry or verification references. Keep unrelated presentation files and entries intact. Use stable `data-presentation-*` hooks supplied by the kit for active state and inspection.
 

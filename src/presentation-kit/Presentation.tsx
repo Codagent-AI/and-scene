@@ -31,7 +31,7 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'present', 
       <Stage step={step} scale={scale} mode={nav.mode} stepNumber={nav.index + 1} />
     </section>
     <Footer steps={steps} index={nav.index} mode={nav.mode} next={nav.next} prev={nav.prev} goTo={nav.goTo} title={title} toggleMode={nav.toggleMode} />
-    {attribution === false ? null : attribution ?? <a className="presentation-attribution" data-presentation-attribution href="https://github.com/and-scene/and-scene">made by and-scene</a>}
+    {attribution === false ? null : attribution ?? <a className="presentation-attribution" data-presentation-attribution href="https://github.com/Codagent-AI/and-scene">made by and-scene</a>}
     <span hidden data-presentation-design-width={DESIGN_W} data-presentation-design-height={DESIGN_H} />
   </main>
 }

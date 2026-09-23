@@ -25,6 +25,11 @@ describe('inspection diagnostics', () => {
     const warnings = collectDiagnostics(document)
     expect(warnings.some((warning) => warning.includes('intentional'))).toBe(false)
   })
+  it('checks text that shares its element with nested markup', () => {
+    document.querySelector('#text')!.innerHTML = 'build + render <b>✓</b>'
+    const warnings = collectDiagnostics(document)
+    expect(warnings.some((warning) => warning.includes('build + render') && warning.includes('footer control'))).toBe(true)
+  })
   it('warns when active navigation looks the same as its peers', () => {
     document.querySelector('#inactive')!.setAttribute('style', 'color: red; background: yellow; font-weight: bold')
     expect(collectDiagnostics(document).some((warning) => warning.toLowerCase().includes('active progress indicator'))).toBe(true)

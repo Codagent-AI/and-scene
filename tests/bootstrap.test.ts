@@ -74,18 +74,23 @@ describe('presentation bootstrap template (INT-001)', () => {
 describe('bootstrap inspection and skill workflow contracts', () => {
   it('waits for settled steps and diagnoses every capture before advancing', async () => {
     const inspect = await readFile(join(bootstrap, 'scripts/inspect-presentation.mjs'), 'utf8')
-    expect(inspect).toMatch(/waitForTimeout\(1100\)/)
+    expect(inspect).toMatch(/const settleMs = Number\(process\.env\.INSPECT_SETTLE_MS \|\| 1100\)/)
+    expect(inspect).toMatch(/waitForTimeout\(settleMs\)/)
     expect(inspect).toMatch(/const warnings = await page\.evaluate\(collectDiagnostics\)/)
     expect(inspect).toMatch(/Step \$\{index \+ 1\}:/)
     expect(inspect.indexOf('page.evaluate(collectDiagnostics)')).toBeLessThan(inspect.indexOf("page.keyboard.press('ArrowRight')"))
   })
 
-  it('launches and awaits cleanup of Vite directly in both browser helpers', async () => {
-    for (const filename of ['verify.mjs', 'inspect-presentation.mjs']) {
-      const script = await readFile(join(bootstrap, 'scripts', filename), 'utf8')
-      expect(script).toContain("spawn(process.execPath, [resolve('node_modules/vite/bin/vite.js')")
+  it('shares a production preview runner with reliable process cleanup', async () => {
+    const verify = await readFile(join(bootstrap, 'scripts/verify.mjs'), 'utf8')
+    const runner = await readFile(join(bootstrap, 'scripts/verification-runner.mjs'), 'utf8')
+    const inspect = await readFile(join(bootstrap, 'scripts/inspect-presentation.mjs'), 'utf8')
+    expect(verify).toContain("runRenderVerification({ route })")
+    for (const script of [runner, inspect]) {
+      expect(script).toContain("spawn(process.execPath, [resolve(")
       expect(script).toContain('await stopPreview()')
       expect(script).toContain("once(server, 'exit')")
+      expect(script).toContain("'127.0.0.1'")
     }
   })
 

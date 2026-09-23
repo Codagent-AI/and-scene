@@ -1,0 +1,26 @@
+.how-to-presentation { background: #101a22; color: #eef2e9; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.how-to-presentation .presentation-header-marker { color: #a5c9b6; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.how-to-presentation .presentation-header-title { color: #d5ded7; font-size: 14px; }
+.how-to-presentation .presentation-caption { max-width: 400px; color: #d6dfd8; font-size: 15px; line-height: 1.45; }
+.how-to-presentation .presentation-footer-controls button,
+.how-to-presentation .presentation-toc-item,
+.how-to-presentation .presentation-mode-toggle { border: 1px solid #52645f; border-radius: 999px; background: #1a2a31; color: #eaf1e9; padding: 8px 13px; font: inherit; cursor: pointer; }
+.how-to-presentation .presentation-progress-item { width: 10px; height: 10px; margin: 0 4px; padding: 0; border: 1px solid #a5c9b6; border-radius: 50%; background: transparent; cursor: pointer; }
+.how-to-presentation .presentation-progress-item[data-active="true"] { background: #edb85b; border: 2px solid #fff1c9; box-shadow: 0 0 0 3px #edb85b55; transform: scale(1.2); }
+.how-to-presentation .presentation-toc-item { margin: 4px 0; text-align: left; font-size: 12px; }
+.how-to-presentation .presentation-toc-item[data-active="true"] { color: #17221f; background: #edb85b; border-color: #edb85b; font-weight: 750; }
+.how-to-presentation .presentation-attribution { color: #aabbb2; font: 12px/1.3 ui-sans-serif, system-ui, sans-serif; text-decoration: none; border-bottom: 1px solid #52645f; }
+.how-to-presentation .presentation-attribution:hover { color: #fff1c9; }
+
+@media (max-width: 600px) {
+  .how-to-presentation .presentation-header-title { display: none; }
+  .how-to-presentation .presentation-footer-narration { left: 16px; right: 16px; bottom: 100px; }
+  .how-to-presentation .presentation-caption { max-width: calc(100vw - 32px); margin: 0; font-size: 12px; line-height: 1.25; }
+  .how-to-presentation .presentation-footer-controls { bottom: 42px; gap: 3px; }
+  .how-to-presentation .presentation-footer-controls > button { padding: 5px 7px; font-size: 11px; }
+  .how-to-presentation .presentation-footer-controls .presentation-progress-item { width: 7px; height: 7px; flex: 0 0 7px; margin: 0 2px; padding: 0; }
+  .how-to-presentation .presentation-attribution { right: 12px; bottom: 5px; }
+  .reference-scene .ref-card strong { font-size: 16px; }
+  .reference-scene .ref-card small { font-size: 12px; }
+  .reference-scene .ref-person { font-size: 24px; }
+}

@@ -44,4 +44,22 @@ describe('project inspection browser integration', () => {
     expect(captures.every((image) => image.length > 1000)).toBe(true)
     expect(result.output).toContain('Captured settled step 2/2')
   }, 30000)
+
+  it('rejects a missing active-step hook even when there is only one step', async () => {
+    fixtureRoot = await mkdtemp(join(tmpdir(), 'and-scene-inspect-index-'))
+    await symlink(join(process.cwd(), 'node_modules'), join(fixtureRoot, 'node_modules'), 'dir')
+    await mkdir(join(fixtureRoot, 'dist'), { recursive: true })
+    await writeFile(join(fixtureRoot, 'dist/index.html'), '<!doctype html><html><body><main data-step-count="1">single step</main></body></html>')
+    const result = await new Promise<{ code: number | null; output: string }>((resolveResult, reject) => {
+      const child = spawn(process.execPath, [resolve('scripts/inspect-presentation.mjs'), 'fixture'], { cwd: process.cwd(), env: { ...process.env, AND_SCENE_PROJECT_ROOT: fixtureRoot, INSPECT_SETTLE_MS: '0', PORT: '43085' }, stdio: ['ignore', 'pipe', 'pipe'] })
+      let output = ''
+      child.stdout.on('data', (chunk) => { output += chunk })
+      child.stderr.on('data', (chunk) => { output += chunk })
+      child.once('error', reject)
+      child.once('close', (code) => resolveResult({ code, output }))
+    })
+    expect(result.code).not.toBe(0)
+    expect(result.output).toContain('step 1: missing or invalid data-step-index')
+  }, 30000)
+
 })

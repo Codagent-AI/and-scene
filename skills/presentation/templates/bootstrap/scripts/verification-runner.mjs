@@ -3,6 +3,7 @@ import { once } from 'node:events'
 import { resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { parseActiveStepIndex } from './active-step-index.mjs'
 
 export async function runRenderVerification({ route, expectedSteps, root = process.cwd(), port = Number(process.env.PORT || 4178) }) {
   const host = '127.0.0.1'
@@ -47,7 +48,7 @@ export async function runRenderVerification({ route, expectedSteps, root = proce
     for (currentStep = 1; currentStep <= count; currentStep++) {
       await page.waitForTimeout(1050)
       if (errors.length) throw new Error(`step ${currentStep}: ${errors.join('; ')}`)
-      const index = Number(await presentation.getAttribute('data-step-index'))
+      const index = parseActiveStepIndex(await presentation.getAttribute('data-step-index'), currentStep)
       if (index !== currentStep - 1) throw new Error(`step ${currentStep}: expected data-step-index=${currentStep - 1}, found ${index}`)
       if (currentStep < count) {
         await page.keyboard.press('ArrowRight')

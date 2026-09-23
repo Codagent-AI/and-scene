@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 import { collectDiagnostics } from './inspection-diagnostics.mjs'
+import { parseActiveStepIndex } from './active-step-index.mjs'
 
 const host = '127.0.0.1'
 const projectRoot = resolve(process.env.AND_SCENE_PROJECT_ROOT || process.cwd())
@@ -50,7 +51,7 @@ try {
     await page.screenshot({ path: resolve(artifactDir, `step-${String(index + 1).padStart(2, '0')}.png`), fullPage: true })
     const warnings = await page.evaluate(collectDiagnostics)
     warnings.forEach((warning) => console.log(`Step ${index + 1}: Visual advisory: ${warning}`))
-    const current = Number(await presentation.getAttribute('data-step-index'))
+    const current = parseActiveStepIndex(await presentation.getAttribute('data-step-index'), index + 1)
     if (current !== index) throw new Error(`capture ${index + 1}: expected active step index ${index}, found ${current}`)
     console.log(`Captured settled step ${current + 1}/${count}`)
     if (index < count - 1) {

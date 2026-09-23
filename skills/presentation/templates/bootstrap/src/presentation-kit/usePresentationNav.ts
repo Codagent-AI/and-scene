@@ -6,9 +6,10 @@ const isInteractive = (target: EventTarget | null) => target instanceof HTMLElem
 export function usePresentationNav(count: number, initialMode: PresentationMode = 'present') {
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
-  const goTo = useCallback((next: number) => setIndex(Math.max(0, Math.min(Math.max(0, count - 1), next))), [count])
-  const next = useCallback(() => goTo(index + 1), [goTo, index])
-  const prev = useCallback(() => goTo(index - 1), [goTo, index])
+  const clamp = useCallback((target: number) => Math.max(0, Math.min(count - 1, target)), [count])
+  const goTo = useCallback((target: number) => setIndex(clamp(target)), [clamp])
+  const next = useCallback(() => setIndex((current) => clamp(current + 1)), [clamp])
+  const prev = useCallback(() => setIndex((current) => clamp(current - 1)), [clamp])
   const toggleMode = useCallback(() => setMode((current) => current === 'present' ? 'browse' : 'present'), [])
 
   useEffect(() => {

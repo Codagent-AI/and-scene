@@ -4,7 +4,7 @@ import type { PresentationMode } from './types'
 
 export function getFitScale(width: number, height: number, mode: PresentationMode) {
   const layout = STAGE_LAYOUT[mode]
-  return Math.max(0, Math.min(1, width / DESIGN_W, Math.max(0, height - layout.top - layout.bottom) / DESIGN_H))
+  return Math.max(0, Math.min(1, width / DESIGN_W, (height - layout.top - layout.bottom) / DESIGN_H))
 }
 
 export function useFitScale(mode: PresentationMode) {

@@ -13,9 +13,12 @@ const cards = [
   ['Edit in place', 'preserve stable entities'], ['Reveal', 'made with the skill'],
 ]
 
+/** Step cards visible in the tray at each of the nine steps. */
+const cardCounts = [0, 0, 1, 3, 5, 6, 6, 7, 8]
+
 export function ReferenceScene({ payload }: SceneProps<ReferencePayload>) {
   const through = payload.through
-  const cardCount = through < 2 ? 0 : through === 2 ? 1 : through === 3 ? 3 : through === 4 ? 5 : through <= 6 ? 6 : through === 7 ? 7 : 8
+  const cardCount = cardCounts[through]
   return <SceneLayer className="reference-scene">
     <div className="conversation">
       <Box id={entity('you')} className="ref-person ref-you" style={{ left: 36, top: 22 }}>you</Box>

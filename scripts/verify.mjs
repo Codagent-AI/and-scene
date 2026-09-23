@@ -17,10 +17,9 @@ try {
   const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
   const steps = await loadReferenceSteps(root)
   const errors = []
-  const route = "slug: 'how-to-make-a-presentation'"
-  if (!registry.includes(route) || !registry.includes("import('./how-to-make-a-presentation/Talk')")) errors.push('reference sample is not registered and reachable')
+  const registryEntry = "slug: 'how-to-make-a-presentation'"
+  if (!registry.includes(registryEntry) || !registry.includes("import('./how-to-make-a-presentation/Talk')")) errors.push('reference sample is not registered and reachable')
   errors.push(...validateReferenceOutline(steps))
-  if (steps.length !== referenceOutline.length) errors.push(`expected ${referenceOutline.length} exported steps, found ${steps.length}`)
   if (errors.length) throw new Error(errors.join('; '))
   console.log('PASS: registered canonical nine-step reference outline')
 } catch (error) {
@@ -28,10 +27,10 @@ try {
   process.exit(1)
 }
 
-const outcome = await runRenderVerification({ route: '/how-to-make-a-presentation', expectedSteps: 9 })
+const outcome = await runRenderVerification({ route: '/how-to-make-a-presentation', expectedSteps: referenceOutline.length })
 if (!outcome.ok) {
   console.error(`FAIL: render check: ${outcome.error}`)
   process.exit(1)
 }
-console.log('PASS: production browser rendered all 9 steps on 127.0.0.1')
+console.log(`PASS: production browser rendered all ${referenceOutline.length} steps on 127.0.0.1`)
 console.log('PASS: verification complete')

@@ -13,7 +13,7 @@ export const referenceOutline = [
 export function validateReferenceOutline(actual) {
   const errors = []
   if (!Array.isArray(actual)) return ['reference sample step list is missing']
-  if (actual.length !== referenceOutline.length) errors.push(`expected 9 steps, found ${actual.length}`)
+  if (actual.length !== referenceOutline.length) errors.push(`expected ${referenceOutline.length} steps, found ${actual.length}`)
   for (let index = 0; index < Math.min(actual.length, referenceOutline.length); index++) {
     const [era, title, caption] = referenceOutline[index]
     const step = actual[index]

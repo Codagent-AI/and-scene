@@ -1,5 +1,5 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
-import { DESIGN_H, DESIGN_W, ENTER_DELAY, ENTER_T, LAYOUT_T } from './constants'
+import { DESIGN_H, DESIGN_W, LAYOUT_T } from './constants'
 import type { PresentationMode, Step } from './types'
 
 export function Stage<TPayload>({ step, scale, mode, stepNumber, className }: { step: Step<TPayload>; scale: number; mode: PresentationMode; stepNumber: number; className?: string }) {
@@ -21,5 +21,3 @@ export function Stage<TPayload>({ step, scale, mode, stepNumber, className }: { 
     <span className="presentation-stage-mode" data-presentation-mode={mode} hidden />
   </div>
 }
-
-export { DESIGN_H, DESIGN_W, ENTER_DELAY, ENTER_T }

@@ -1,11 +1,15 @@
 ---
 name: presentation
-description: Create or modify browser-based presentations as one evolving, diagrammatic scene. Use when asked to make, build, or change a presentation from a topic.
+description: Creates or modifies browser-based presentations as one evolving, diagrammatic scene. Activates for requests to make, build, or change a presentation from a topic.
 ---
 
 # Presentation skill
 
 Create browser presentations as one scene evolving through named steps. Keep stable entity IDs across steps so continuing entities can move, change, appear, and leave. Use the reusable scene kit for behavior; the presentation owns its visual design.
+
+## Out of scope
+
+This skill creates browser-based presentations. It does not create or edit native PowerPoint or Keynote files, PDFs, or image exports. Redirect those requests to an appropriate slide-authoring or document workflow.
 
 ## 1. Understand the request
 
@@ -38,6 +42,14 @@ Ensure runtime dependencies `react`, `react-dom`, `motion`, and `lucide-react`, 
 Create each new presentation in its own directory with presentation-local entity IDs, step scene components, and styling. Give every step a meaningful title and caption. Compose generic kit primitives, keep a consistent fixed-canvas composition, and reuse entity IDs for continuing concepts. Add one explicit registry entry and route; preserve every existing presentation and route.
 
 For a modification, edit only the selected presentation and the necessary registry or verification references. Keep unrelated presentation files and entries intact. Use stable `data-presentation-*` hooks supplied by the kit for active state and inspection.
+
+### Materialize the templates
+
+Use a URL or filesystem path resolved from this skill directory to read the templates; never build template paths from the caller's working directory. Choose a route slug containing only lowercase ASCII letters and digits separated by single hyphens (`^[a-z0-9]+(?:-[a-z0-9]+)*$`). Copy the presentation templates to `src/presentations/<slug>/`: `Talk.tsx`, `entities.ts`, `steps.tsx`, and `style.css`. In `steps.tsx`, replace `{{slug}}`, `{{step-id}}`, `{{section}}`, `{{step title}}`, and `{{step caption}}`; use unique stable step IDs, and safely escape inserted text for its TypeScript/JSX context. Replace `{{title}}` in `Talk.tsx` with the safely escaped presentation title. Keep the `entities.ts` namespace derived from the slug.
+
+For individually maintained step components, copy `templates/step/Step.tsx` to `src/presentations/<slug>/steps/<step-name>.tsx`. Its `../../../presentation-kit` imports are correct at this depth. Replace the same step placeholders, rename `ExampleStep` to a valid component name, then import the component into the presentation's step list in order. Do not place this template directly in the presentation root because its relative imports assume the `steps/` directory.
+
+Register the route once in `src/presentations/index.ts`, preserving existing entries. For example: `{ slug: '<slug>', title: '<escaped title>', load: () => import('./<slug>/Talk') }`. Escape quotes in the title as a TypeScript string literal.
 
 ## 4. Verify, inspect, repair
 

@@ -70,3 +70,30 @@ describe('presentation bootstrap template (INT-001)', () => {
     expect(skill).toMatch(/templates\/presentation/)
   })
 })
+
+describe('bootstrap inspection and skill workflow contracts', () => {
+  it('waits for settled steps and diagnoses every capture before advancing', async () => {
+    const inspect = await readFile(join(bootstrap, 'scripts/inspect-presentation.mjs'), 'utf8')
+    expect(inspect).toMatch(/waitForTimeout\(1100\)/)
+    expect(inspect).toMatch(/const warnings = await page\.evaluate\(collectDiagnostics\)/)
+    expect(inspect).toMatch(/Step \$\{index \+ 1\}:/)
+    expect(inspect.indexOf('page.evaluate(collectDiagnostics)')).toBeLessThan(inspect.indexOf("page.keyboard.press('ArrowRight')"))
+  })
+
+  it('launches and awaits cleanup of Vite directly in both browser helpers', async () => {
+    for (const filename of ['verify.mjs', 'inspect-presentation.mjs']) {
+      const script = await readFile(join(bootstrap, 'scripts', filename), 'utf8')
+      expect(script).toContain("spawn(process.execPath, [resolve('node_modules/vite/bin/vite.js')")
+      expect(script).toContain('await stopPreview()')
+      expect(script).toContain("once(server, 'exit')")
+    }
+  })
+
+  it('documents scope and exact template destinations and substitutions', async () => {
+    const skill = await readFile(join(repo, 'skills/presentation/SKILL.md'), 'utf8')
+    expect(skill).toContain('## Out of scope')
+    expect(skill).toContain('src/presentations/<slug>/steps/<step-name>.tsx')
+    expect(skill).toContain("load: () => import('./<slug>/Talk')")
+    expect(skill).toContain('{{step-id}}')
+  })
+})

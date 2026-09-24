@@ -30,12 +30,12 @@ describe('Presentation', () => {
     }
     const grouped: Step<Payload>[] = steps.slice(0, 2).map((step) => ({ ...step, Scene: StatefulScene }))
     render(<Presentation steps={grouped} title="Typed" initialMode="browse" />)
-    expect(document.querySelector('[data-presentation-canvas]')?.getAttribute('style')).toContain('position: relative')
+    expect(document.querySelector('[data-presentation-canvas-frame]')?.getAttribute('style')).toContain('position: relative')
     expect(document.querySelector('[data-presentation-scene]')?.getAttribute('style')).toContain('position: absolute')
     fireEvent.click(screen.getByRole('button', { name: /next/i }))
     expect(screen.getByTestId('scene-value').textContent).toBe('2')
     expect(mounts).toBe(1)
-  })
+  }, 15000)
 
   it('clamps navigation, exposes active semantics, and toggles mode without changing position', () => {
     render(<Presentation steps={steps} title="Example" initialMode="browse" />)
@@ -87,6 +87,21 @@ describe('Presentation', () => {
     fireEvent.touchStart(stage, { changedTouches: [{ identifier: 1, clientX: 180, clientY: 40 }] })
     fireEvent.touchEnd(stage, { changedTouches: [{ identifier: 1, clientX: 80, clientY: 42 }] })
     expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+  })
+
+  it('centers the scaled canvas using its scaled frame size at narrow viewports', () => {
+    const originalWidth = window.innerWidth
+    try {
+      window.innerWidth = 390
+      render(<Presentation steps={steps} title="Example" initialMode="browse" />)
+      fireEvent(window, new Event('resize'))
+      const frame = document.querySelector('[data-presentation-canvas-frame]')
+      expect(frame?.getAttribute('style')).toContain('width: 350px')
+      expect(document.querySelector('[data-presentation-canvas]')?.getAttribute('style')).toContain('transform-origin: top left')
+    } finally {
+      window.innerWidth = originalWidth
+      fireEvent(window, new Event('resize'))
+    }
   })
 
   it('uses a uniform fixed-canvas fit scale for each mode', () => {

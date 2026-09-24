@@ -1,0 +1,37 @@
+.howto-presentation { background: #f4f0e8; color: #192a27; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.howto-presentation .presentation-header, .howto-presentation .presentation-footer { padding-inline: clamp(20px, 5vw, 72px); }
+.howto-presentation .presentation-header { color: #49645c; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; }
+.howto-presentation .presentation-footer { color: #203b34; border-top: 1px solid #c9d1c8; background: #f4f0e8; }
+.howto-presentation .presentation-footer__narration strong { font-family: Georgia, serif; font-size: 22px; font-weight: 500; }
+.howto-presentation .presentation-footer__narration p { max-width: 650px; line-height: 1.45; color: #52615a; }
+.howto-presentation .presentation-progress button, .howto-presentation .presentation-toc button { border: 1px solid #a8b5aa; border-radius: 999px; background: transparent; color: #334e44; padding: 8px 12px; cursor: pointer; }
+.howto-presentation [data-presentation-active="true"] { color: #fff !important; background: #28594a !important; border-color: #28594a !important; font-weight: 700; }
+.howto-presentation [data-presentation-attribution] a { color: #49645c; font-size: 12px; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.howto-scene { position: absolute; inset: 0; color: #173c32; }
+.howto-scene .entity { position: absolute; box-sizing: border-box; }
+.howto-scene .you { font: 700 15px/1 ui-monospace, monospace; letter-spacing: .12em; padding: 13px 16px; border-radius: 50%; background: #d4e5d6; }
+.howto-scene .prompt, .howto-scene .skill { min-width: 178px; padding: 14px 17px; border-radius: 10px; background: #fffdf7; border: 1px solid #c6d0c6; box-shadow: 0 4px 12px #173c3215; font-size: 14px; }
+.howto-scene .skill { background: #28594a; border-color: #28594a; color: #fff; font: 700 12px ui-monospace, monospace; letter-spacing: .04em; }
+.howto-scene .conversation { color: #548b73; text-align: center; font-size: 24px; }
+.howto-scene .question { background: #f2d47c; padding: 5px 12px; border-radius: 999px; font: 11px ui-monospace, monospace; }
+.howto-scene .card-tray { position: absolute; inset: 0; }
+.howto-scene .step-card { width: 150px; min-height: 91px; padding: 11px 12px; display: flex; flex-direction: column; gap: 5px; border-radius: 8px; background: #fffdf7; border: 1px solid #b8c9bd; box-shadow: 0 5px 14px #173c3212; }
+.howto-scene .step-card small { color: #70877a; font: 10px ui-monospace, monospace; }
+.howto-scene .step-card strong { font: 600 15px Georgia, serif; }
+.howto-scene .step-card span { color: #52615a; font-size: 10px; }
+.howto-scene .step-card em { color: #a36f21; font: 9px ui-monospace, monospace; }
+.howto-scene .ghost { left: 696px !important; top: 116px !important; justify-content: center; color: #77867b; background: transparent; border: 1px dashed #809689; box-shadow: none; font: 11px ui-monospace, monospace; }
+.howto-scene .depth-control { color: #28594a; font: 11px ui-monospace, monospace; background: #e1eade; padding: 8px 12px; border-radius: 5px; }
+.howto-scene .kit-connector { color: #b88a32; border-left: 2px dashed #b88a32; width: 1px; }
+.howto-scene .kit-socket { top: 250px !important; left: 330px !important; padding: 13px 22px; border: 1px solid #bc963f; border-radius: 7px; background: #f5e8c2; font: 700 12px ui-monospace, monospace; letter-spacing: .06em; }
+.howto-scene .verify-arrow { color: #418260; font-size: 22px; }
+.howto-scene .verify-node { top: 128px !important; left: 755px !important; width: 119px; padding: 11px 8px; border-radius: 7px; background: #d9edda; border: 1px solid #78aa83; font: 700 8px ui-monospace, monospace; }
+.howto-scene .edited { border-color: #d98e4d; box-shadow: 0 0 0 3px #e8bd7d; }
+.howto-scene .modify-arc { left: 352px !important; top: 314px !important; color: #9c5e36; font: 12px ui-monospace, monospace; }
+.howto-scene .reveal-frame { position: absolute; inset: 0; border: 2px solid #28594a; border-radius: 26px; pointer-events: none; }
+.howto-scene .reveal-frame span { position: absolute; left: 50%; bottom: -11px; transform: translateX(-50%); white-space: nowrap; padding: 5px 14px; background: #28594a; color: white; border-radius: 999px; font: 700 10px ui-monospace, monospace; letter-spacing: .1em; }
+.scene-baseline { position: absolute; top: 218px; left: 28px; right: 28px; border-top: 1px solid #d7ded4; z-index: -1; }
+@media (max-width: 700px) { .howto-presentation .presentation-footer { gap: 10px; } .howto-presentation .presentation-progress button { padding: 6px; } }
+.howto-scene .step-card { width: 116px; }
+
+.howto-scene .morph-link { width: 22px; color: #a36f21; font: 700 15px/1 ui-monospace, monospace; text-align: center; pointer-events: none; }

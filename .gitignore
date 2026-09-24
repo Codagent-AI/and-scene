@@ -23,3 +23,5 @@ validator_logs
 *.njsproj
 *.sln
 *.sw?
+
+artifacts/inspection/

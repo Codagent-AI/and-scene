@@ -23,7 +23,7 @@ export function EvolvingScene({ payload }: { payload: ReferencePayload }) {
     {through >= 7 && <Box key="ref-verify" entityId="ref-verify" className="verify-node" style={{ left: 625, top: 277 }}><span className="node-kicker">SELF CHECK</span><strong>build + render <b>✓ PASS</b></strong></Box>}
     {through >= 7 && <Arrow key="ref-verify-link" entityId="ref-verify-link" className="verify-link" style={{ left: 568, top: 302, width: 57 }} />}
     {through >= 7 && <Label key="ref-verify-label" entityId="ref-verify-label" className="verify-label" style={{ left: 585, top: 280 }}>pipeline</Label>}
-    {through >= 8 && <path key="ref-modify-arc" className="modify-arc" d="M152 103 C220 144 290 157 365 165" fill="none" />}
+    {through >= 8 && <svg key="ref-modify-arc" className="modify-arc" viewBox="0 0 390 188" aria-hidden="true"><path d="M152 103 C220 144 290 157 365 165" fill="none" /></svg>}
     {through >= 8 && <SymbolChip key="ref-edit" entityId="ref-edit" className="edit-chip" style={{ left: 570, top: 130 }}>edit in place ↺</SymbolChip>}
     {through >= 8 && <Label key="ref-flag" entityId="ref-flag" className="edited-flag" style={{ left: 670, top: 177 }}>EDITED</Label>}
     {through >= 9 && <Frame key="ref-reveal-frame" entityId="ref-reveal-frame" className="reveal-frame" data-presentation-allow-overlap=""><span>ONE EVOLVING SCENE · MADE WITH THE PRESENTATION SKILL</span></Frame>}

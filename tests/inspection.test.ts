@@ -21,7 +21,7 @@ describe('presentation screenshot diagnostics (INT-002)', () => {
         .presentation-progress button,.presentation-toc button{color:#222;background:white;border:1px solid #aaa;font-weight:400}
         .presentation-attribution{font-size:10px;text-decoration:underline}
       </style></head><body><main data-presentation=""><header data-presentation-header><span>Fixture</span></header>
-      <nav class="presentation-toc"><button aria-current="step" data-presentation-toc-item data-presentation-active="true">Era</button><button data-presentation-toc-item data-presentation-active="false">Other</button></nav><section data-presentation-scene><div class="card">Unmarked collision</div><div class="overlap">Collision partner</div><div data-presentation-allow-overlap><span class="allowed">Intentional overlap</span></div></section>
+      <nav class="presentation-toc"><button data-presentation-toc-item data-presentation-active="false">Era</button><button data-presentation-toc-item data-presentation-active="false">Other</button></nav><section data-presentation-scene><div class="card">Unmarked collision</div><div class="overlap">Collision partner</div><div data-presentation-allow-overlap><span class="allowed">Intentional overlap</span></div></section>
       <footer data-presentation-footer><div class="presentation-navigation"><nav class="presentation-progress"><button aria-current="step" data-presentation-progress-item data-presentation-active="true">1</button><button data-presentation-progress-item data-presentation-active="false">2</button></nav><span data-step-count="2" data-step-index="0">Step</span><button aria-label="Next step" id="next">Next</button></div><a data-presentation-attribution href="#">made by fixture</a></footer>
       <script>document.querySelector('#next').onclick=()=>document.querySelector('[data-step-count]').setAttribute('data-step-index','1');</script></main></body></html>`)
 
@@ -34,7 +34,7 @@ describe('presentation screenshot diagnostics (INT-002)', () => {
       expect(output).toContain('overlapping visible text: Unmarked collision / Collision partner')
       expect(output).not.toContain('Intentional overlap')
       expect(output).toContain('active progress state is missing or visually indistinct')
-      expect(output).toContain('active table-of-contents state is visually indistinct')
+      expect(output).toContain('active table-of-contents state is missing or visually indistinct')
       expect(output).toContain('attribution is missing, browser-default, or undersized')
       expect(output).toContain('Captured 2 settled step screenshots')
       expect(readdirSync(join(fixture, 'artifacts/inspection'))).toEqual(['fixture-01.png', 'fixture-02.png'])

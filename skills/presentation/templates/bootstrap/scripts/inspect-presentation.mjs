@@ -47,7 +47,7 @@ try {
       }
       const distinct = (selector) => {
         const active = document.querySelector(`${selector}[aria-current="step"]`)
-        if (!active) return { present: false, distinct: false }
+        if (!active) return { present: Boolean(document.querySelector(selector)), distinct: false }
         const inactive = document.querySelector(`${selector}:not([aria-current="step"])`)
         if (!inactive) return { present: true, distinct: true }
         const activeStyle = getComputedStyle(active)
@@ -71,7 +71,7 @@ try {
     })
     for (const overlap of diagnostics.overlaps) console.warn(`WARN step ${index + 1}: overlapping visible text: ${overlap}`)
     if (!diagnostics.progress.present || !diagnostics.progress.distinct) console.warn(`WARN step ${index + 1}: active progress state is missing or visually indistinct`)
-    if (diagnostics.toc.present && !diagnostics.toc.distinct) console.warn(`WARN step ${index + 1}: active table-of-contents state is visually indistinct`)
+    if (diagnostics.toc.present && !diagnostics.toc.distinct) console.warn(`WARN step ${index + 1}: active table-of-contents state is missing or visually indistinct`)
     if (!diagnostics.attributionPresent || !diagnostics.attributionStyled) console.warn(`WARN step ${index + 1}: attribution is missing, browser-default, or undersized`)
     if (index + 1 < count) await page.getByRole('button', { name: 'Next step' }).click()
   }

@@ -30,6 +30,8 @@ describe('Presentation', () => {
     }
     const grouped: Step<Payload>[] = steps.slice(0, 2).map((step) => ({ ...step, Scene: StatefulScene }))
     render(<Presentation steps={grouped} title="Typed" initialMode="browse" />)
+    expect(document.querySelector('[data-presentation-canvas]')?.getAttribute('style')).toContain('position: relative')
+    expect(document.querySelector('[data-presentation-scene]')?.getAttribute('style')).toContain('position: absolute')
     fireEvent.click(screen.getByRole('button', { name: /next/i }))
     expect(screen.getByTestId('scene-value').textContent).toBe('2')
     expect(mounts).toBe(1)
@@ -116,5 +118,13 @@ describe('Presentation', () => {
     expect(screen.queryByRole('navigation', { name: 'Table of contents' })).toBeNull()
     window.innerWidth = 1024
     fireEvent(window, new Event('resize'))
+  })
+
+  it('clamps the active step when the steps array shrinks', () => {
+    const view = render(<Presentation steps={steps} title="Example" initialMode="browse" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Step 3' }))
+    view.rerender(<Presentation steps={steps.slice(0, 2)} title="Example" initialMode="browse" />)
+    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    expect(screen.getByTestId('scene-value').textContent).toBe('2')
   })
 })

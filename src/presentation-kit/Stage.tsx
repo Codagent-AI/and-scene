@@ -9,10 +9,10 @@ export function Stage<TPayload>({ step, index, mode, touchHandlers, showAttribut
   const identity = step.groupKey ? `group:${step.groupKey}:${Scene.name}` : `step:${step.id}`
   return <div className="presentation-stage" data-presentation-stage style={{ position: 'relative', minHeight: 0, overflow: 'hidden' }} {...touchHandlers}>
     <div className="presentation-stage__viewport" data-presentation-stage-viewport style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
-      <motion.div className="presentation-stage__canvas" data-presentation-canvas style={{ width: DESIGN_W, height: DESIGN_H, scale }}>
+      <motion.div className="presentation-stage__canvas" data-presentation-canvas style={{ width: DESIGN_W, height: DESIGN_H, scale, position: 'relative' }}>
         <LayoutGroup id={layoutGroupId}>
           <AnimatePresence mode="sync" initial={false}>
-            <motion.div key={identity} className="presentation-stage__scene" data-presentation-scene style={{ width: DESIGN_W, height: DESIGN_H }} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.15 } }} exit={{ opacity: 0, transition: { duration: 0.15 } }} transition={LAYOUT_T}>
+            <motion.div key={identity} className="presentation-stage__scene" data-presentation-scene style={{ width: DESIGN_W, height: DESIGN_H, position: 'absolute', inset: 0 }} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.15 } }} exit={{ opacity: 0, transition: { duration: 0.15 } }} transition={LAYOUT_T}>
               <Scene payload={step.payload} step={step} index={index} />
             </motion.div>
           </AnimatePresence>

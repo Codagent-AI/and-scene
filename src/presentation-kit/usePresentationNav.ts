@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PresentationMode } from './types'
 
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
-  const [index, setIndex] = useState(0)
+  const [storedIndex, setStoredIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
-  const goTo = useCallback((next: number) => setIndex(Math.max(0, Math.min(Math.max(0, stepCount - 1), next))), [stepCount])
+  const index = Math.max(0, Math.min(storedIndex, stepCount - 1))
+  const goTo = useCallback((next: number) => setStoredIndex(Math.max(0, Math.min(Math.max(0, stepCount - 1), next))), [stepCount])
   const next = useCallback(() => goTo(index + 1), [goTo, index])
   const prev = useCallback(() => goTo(index - 1), [goTo, index])
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])

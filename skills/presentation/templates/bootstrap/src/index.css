@@ -1,0 +1,16 @@
+/* Host-owned geometry and reset only; presentation styling belongs to each presentation. */
+* { box-sizing: border-box; }
+html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
+body { min-height: 100vh; }
+button, input, textarea, select { font: inherit; }
+.presentation { position: fixed; inset: 0; }
+.presentation-stage { position: absolute; inset: 0; }
+.presentation-header { position: absolute; z-index: 2; inset: 0 0 auto; min-height: 4rem; display: flex; align-items: center; justify-content: space-between; }
+.presentation-toc { position: absolute; z-index: 2; inset: 5rem auto 7rem 1rem; display: flex; flex-direction: column; }
+.presentation-footer { position: absolute; z-index: 2; inset: auto 0 0; min-height: 6rem; }
+.presentation-narration { position: absolute; left: 50%; bottom: 100%; width: min(60rem, 90vw); transform: translateX(-50%); }
+.presentation-navigation { display: flex; align-items: center; justify-content: center; gap: 1rem; }
+.presentation-progress { display: flex; gap: .4rem; }
+.presentation-live-title { position: absolute; bottom: 100%; }
+.presentation-attribution { position: absolute; right: 1rem; bottom: 1rem; }
+@media (max-width: 800px) { .presentation-toc { display: none; } }

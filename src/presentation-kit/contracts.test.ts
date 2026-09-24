@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { clampStepIndex, getFitScale } from './utils'
 import { DEFAULT_ATTRIBUTION_URL, DESIGN_H, DESIGN_W } from './constants'
 import type { Step } from './types'
+import type { BoxProps } from './nodes/Box'
 
 const requiredPayload: Step<{ message: string }> = {
   id: 'required-payload', era: 'Test', title: 'Test', caption: 'Test', Scene: () => null,
@@ -11,8 +12,13 @@ const requiredPayload: Step<{ message: string }> = {
 const invalidMissingPayload: Step<{ message: string }> = {
   id: 'missing-payload', era: 'Test', title: 'Test', caption: 'Test', Scene: () => null,
 }
+const articleBox: BoxProps = { entityId: 'card', as: 'article' }
+// @ts-expect-error Box keeps its public contract of omitting `id` in favor of `entityId`
+const invalidBoxId: BoxProps = { entityId: 'card', id: 'card' }
 void requiredPayload
 void invalidMissingPayload
+void articleBox
+void invalidBoxId
 
 describe('scene kit contracts', () => {
   it('clamps navigation at both ends', () => {

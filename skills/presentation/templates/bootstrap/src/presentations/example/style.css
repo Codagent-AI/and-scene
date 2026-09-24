@@ -1,0 +1,4 @@
+/* Example presentation owns its visual treatment. */
+.example-idea { position: absolute; left: 330px; top: 140px; padding: 1rem 1.5rem; border: 1px solid currentColor; border-radius: .75rem; }
+.presentation-progress [aria-current="step"] { outline: 2px solid currentColor; outline-offset: 2px; }
+.presentation-attribution { font-size: .875rem; text-decoration: none; }

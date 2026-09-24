@@ -1,0 +1,18 @@
+.landing {
+  min-height: 100vh;
+  max-width: none;
+  padding: clamp(3rem, 9vw, 8rem) max(2rem, calc((100vw - 68rem) / 2));
+  color: #f1eee8;
+  background: radial-gradient(ellipse at 76% 10%, #34443d 0, transparent 28rem), #101311;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.landing header { max-width: 54rem; }
+.landing-kicker { color: #b8c8b2; font-size: .75rem; font-weight: 700; letter-spacing: .16em; }
+.landing h1 { margin: 3.5rem 0 1.25rem; font-size: clamp(3.5rem, 8vw, 7rem); line-height: .98; letter-spacing: -.065em; }
+.landing h1 span { color: #b9c9a7; }
+.landing-summary { max-width: 34rem; color: #c2c9c1; font-size: 1.2rem; line-height: 1.6; }
+.landing section { max-width: 54rem; margin-top: 6rem; }
+.landing-empty, .landing [data-presentation-link] { border-top: 1px solid #566057; padding: 1.25rem 0; color: #d7ddd5; }
+.landing [data-presentation-link] { display: flex; justify-content: space-between; text-decoration: none; font-size: 1.1rem; }
+.landing [data-presentation-link]:hover { color: #b9c9a7; }
+@media (max-width: 600px) { .landing h1 { margin-top: 2.5rem; } .landing section { margin-top: 4rem; } }

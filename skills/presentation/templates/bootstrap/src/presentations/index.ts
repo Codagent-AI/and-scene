@@ -1,12 +1,11 @@
 import type { ComponentType } from 'react'
 
-export interface PresentationEntry {
+export interface PresentationRegistration {
   slug: string
   title: string
   load: () => Promise<{ default: ComponentType }>
 }
 
-/** Explicit registry — add a folder + one line here for each presentation. */
-export const presentations: PresentationEntry[] = []
-
-export const presentationSlugs = new Set(presentations.map((p) => p.slug))
+export const presentations: PresentationRegistration[] = [
+  { slug: 'example', title: 'A first evolving scene', load: () => import('./example/Talk') },
+]

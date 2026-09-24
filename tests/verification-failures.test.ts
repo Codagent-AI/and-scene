@@ -7,35 +7,25 @@ import { describe, expect, it } from 'vitest'
 const root = path.resolve(import.meta.dirname, '..')
 const files = ['package.json', 'package-lock.json', 'index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'eslint.config.js', 'src', 'scripts']
 
-async function runFaultyVerification(fault: 'build' | 'sample' | 'browser' | 'transition' | 'step-count') {
+const scene = 'src/presentations/how-to-make-a-presentation/steps/Scene.tsx'
+const outline = 'src/presentations/how-to-make-a-presentation/steps/index.tsx'
+const kitRoot = 'src/presentation-kit/Presentation.tsx'
+const faults = {
+  build: [scene, (source: string) => `${source}\nthis is invalid TypeScript !!!\n`],
+  sample: [outline, (source: string) => source.replace('You have a topic', 'A different first beat')],
+  browser: [scene, (source: string) => `console.error('injected browser error')\n${source}`],
+  'step-count': [kitRoot, (source: string) => source.replace('data-step-count={steps.length}', 'data-step-count="invalid"')],
+  transition: [kitRoot, (source: string) => source.replace('data-step-index={nav.index}', 'data-step-index={0}')],
+} as const
+
+async function runFaultyVerification(fault: keyof typeof faults) {
   const directory = await mkdtemp(path.join(tmpdir(), 'and-scene-e2e-'))
   try {
-    for (const file of files) await cp(path.join(root, file), path.join(directory, file), { recursive: true })
+    await Promise.all(files.map((file) => cp(path.join(root, file), path.join(directory, file), { recursive: true })))
     await symlink(path.join(root, 'node_modules'), path.join(directory, 'node_modules'), 'dir')
-    const pathFor = (file: string) => path.join(directory, file)
-    if (fault === 'build') {
-      const file = pathFor('src/presentations/how-to-make-a-presentation/steps/Scene.tsx')
-      await writeFile(file, `${await readFile(file, 'utf8')}\nthis is invalid TypeScript !!!\n`)
-    }
-    if (fault === 'sample') {
-      const file = pathFor('src/presentations/how-to-make-a-presentation/steps/index.tsx')
-      const source = await readFile(file, 'utf8')
-      await writeFile(file, source.replace('You have a topic', 'A different first beat'))
-    }
-    if (fault === 'browser') {
-      const file = pathFor('src/presentations/how-to-make-a-presentation/steps/Scene.tsx')
-      await writeFile(file, `console.error('injected browser error')\n${await readFile(file, 'utf8')}`)
-    }
-    if (fault === 'step-count') {
-      const file = pathFor('src/presentation-kit/Presentation.tsx')
-      const source = await readFile(file, 'utf8')
-      await writeFile(file, source.replace('data-step-count={steps.length}', 'data-step-count="invalid"'))
-    }
-    if (fault === 'transition') {
-      const file = pathFor('src/presentation-kit/Presentation.tsx')
-      const source = await readFile(file, 'utf8')
-      await writeFile(file, source.replace('data-step-index={nav.index}', 'data-step-index={0}'))
-    }
+    const [target, inject] = faults[fault]
+    const file = path.join(directory, target)
+    await writeFile(file, inject(await readFile(file, 'utf8')))
     const result = spawnSync('npm', ['run', 'verify'], { cwd: directory, encoding: 'utf8', timeout: 90_000 })
     return { status: result.status, output: `${result.stdout}\n${result.stderr}` }
   } finally {

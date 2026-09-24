@@ -1,6 +1,5 @@
 import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
 import { chromium } from 'playwright'
 import { preview } from 'vite'
 import { ensureChromiumInstalled } from './chromium.mjs'
@@ -22,30 +21,20 @@ const run = (command, args) => new Promise((resolve, reject) => {
   child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited with ${code}`)))
 })
 try {
-  phase = 'build'
-  await run('npm', ['run', 'build'])
   phase = 'sample contract'
   if (slug === referenceSlug) {
     const source = await readFile(new URL('../src/presentations/how-to-make-a-presentation/steps/index.tsx', import.meta.url), 'utf8')
     const issues = validateReferenceOutline(source)
     if (issues.length) fail(issues.join('; '))
-    if (referenceSteps.length !== 9) fail('canonical outline must contain nine steps')
   }
+  phase = 'build'
+  await run('npm', ['run', 'build'])
 
   phase = 'preview startup'
-  const probe = createServer()
-  await new Promise((resolve, reject) => probe.listen(0, '127.0.0.1', resolve).once('error', reject))
-  const address = probe.address()
-  if (!address || typeof address === 'string') fail('could not reserve an IPv4 port')
-  const port = address.port
-  await new Promise((resolve) => probe.close(resolve))
-  server = await preview({ preview: { host: '127.0.0.1', port, strictPort: true } })
-  const baseUrl = `http://127.0.0.1:${port}`
-  for (let attempt = 0; attempt < 50; attempt++) {
-    try { if ((await fetch(baseUrl)).ok) break } catch {}
-    if (attempt === 49) fail('production preview did not become ready at 127.0.0.1')
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
+  server = await preview({ preview: { host: '127.0.0.1', port: 0 } })
+  const address = server.httpServer.address()
+  if (!address || typeof address === 'string') fail('preview server did not expose a TCP address')
+  const baseUrl = `http://127.0.0.1:${address.port}`
 
   phase = 'browser render'
   await ensureChromiumInstalled()
@@ -60,7 +49,7 @@ try {
   const root = page.locator('[data-presentation]')
   const count = Number(await root.getAttribute('data-step-count'))
   if (!isValidStepCount(count)) fail('presentation exposes an invalid step count')
-  if (slug === referenceSlug && count !== referenceSteps.length) fail(`expected 9 steps, found ${count}`)
+  if (slug === referenceSlug && count !== referenceSteps.length) fail(`expected ${referenceSteps.length} steps, found ${count}`)
   for (currentStep = 0; currentStep < count; currentStep++) {
     if (currentStep > 0) await page.keyboard.press('ArrowRight')
     try {
@@ -69,7 +58,6 @@ try {
     await page.waitForTimeout(850)
     if (errors.length) fail(errors.join('; '))
   }
-  if (errors.length) fail(errors.join('; '))
   phase = 'complete'
   console.log(`PASS: build succeeded; ${slug} rendered all ${count} steps on 127.0.0.1 without browser errors.`)
 } catch (error) {

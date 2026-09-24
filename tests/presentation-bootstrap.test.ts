@@ -19,19 +19,8 @@ async function filesUnder(directory: string): Promise<string[]> {
   return files.flat().sort()
 }
 
-async function copyTemplate(source: string, destination: string): Promise<void> {
-  const entries = await readdir(source, { withFileTypes: true })
-  await Promise.all(entries.filter((entry) => entry.name !== 'node_modules' && entry.name !== 'dist').map(async (entry) => {
-    const from = path.join(source, entry.name)
-    const to = path.join(destination, entry.name)
-    if (entry.isDirectory()) {
-      const { mkdir } = await import('node:fs/promises')
-      await mkdir(to, { recursive: true })
-      await copyTemplate(from, to)
-    } else {
-      await cp(from, to)
-    }
-  }))
+function copyTemplate(source: string, destination: string): Promise<void> {
+  return cp(source, destination, { recursive: true, filter: (file) => !['node_modules', 'dist'].includes(path.basename(file)) })
 }
 
 describe('presentation bootstrap template', () => {

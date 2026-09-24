@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import { chromium } from 'playwright'
 import { collectVisualDiagnostics } from './inspection-diagnostics.mjs'
+import { isValidStepCount } from './reference-contract.mjs'
 import { preview } from 'vite'
 
 const slug = process.argv[2]
@@ -19,7 +20,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   await page.goto(`${baseUrl}/${encodeURIComponent(slug)}`, { waitUntil: 'networkidle' })
   const count = Number(await page.locator('[data-presentation]').getAttribute('data-step-count'))
-  if (!Number.isInteger(count) || count < 1) throw new Error(`Route ${slug} did not expose a valid step count`)
+  if (!isValidStepCount(count)) throw new Error(`Route ${slug} did not expose a valid step count`)
   for (let index = 0; index < count; index++) {
     if (index > 0) {
       await page.keyboard.press('ArrowRight')

@@ -9,9 +9,8 @@ export interface StepMeta {
 }
 export interface SceneProps<TPayload = undefined> { payload: TPayload; step: StepMeta; index: number }
 export type Scene<TPayload = undefined> = ComponentType<SceneProps<TPayload>>
-export interface Step<TPayload = undefined> extends StepMeta {
+export type Step<TPayload = undefined> = StepMeta & {
   groupKey?: string
-  payload?: TPayload
   Scene: Scene<TPayload>
   content?: ReactNode
-}
+} & (undefined extends TPayload ? { payload?: TPayload } : { payload: TPayload })

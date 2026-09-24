@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { clampStepIndex, getFitScale } from './utils'
 import { DEFAULT_ATTRIBUTION_URL, DESIGN_H, DESIGN_W } from './constants'
+import type { Step } from './types'
+
+const requiredPayload: Step<{ message: string }> = {
+  id: 'required-payload', era: 'Test', title: 'Test', caption: 'Test', Scene: () => null,
+  payload: { message: 'present' },
+}
+// @ts-expect-error payload is mandatory when the scene requires a concrete payload type
+const invalidMissingPayload: Step<{ message: string }> = {
+  id: 'missing-payload', era: 'Test', title: 'Test', caption: 'Test', Scene: () => null,
+}
+void requiredPayload
+void invalidMissingPayload
 
 describe('scene kit contracts', () => {
   it('clamps navigation at both ends', () => {

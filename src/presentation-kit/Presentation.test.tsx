@@ -53,4 +53,13 @@ describe('Presentation', () => {
     fireEvent.keyDown(next, { key: 'ArrowLeft' })
     expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
   })
+
+  it('clamps the active step immediately when the step list shrinks', () => {
+    const view = render(<Presentation steps={steps} title="A title" />)
+    fireEvent.click(screen.getByRole('button', { name: /go to step 2/i }))
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    view.rerender(<Presentation steps={steps.slice(0, 1)} title="A title" />)
+    expect(screen.getByText('First explanation')).toBeTruthy()
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+  })
 })

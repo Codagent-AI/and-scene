@@ -3,10 +3,11 @@ import type { PresentationMode } from './types'
 import { clampStepIndex } from './utils'
 
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
-  const [index, setIndex] = useState(0)
+  const [rawIndex, setRawIndex] = useState(0)
+  const index = clampStepIndex(rawIndex, stepCount)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
   const touch = useRef<number | null>(null)
-  const goTo = useCallback((next: number) => setIndex(clampStepIndex(next, stepCount)), [stepCount])
+  const goTo = useCallback((next: number) => setRawIndex(clampStepIndex(next, stepCount)), [stepCount])
   const next = useCallback(() => goTo(index + 1), [goTo, index])
   const prev = useCallback(() => goTo(index - 1), [goTo, index])
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])

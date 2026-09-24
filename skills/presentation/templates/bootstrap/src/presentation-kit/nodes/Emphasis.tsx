@@ -1,6 +1,5 @@
-import { motion } from 'motion/react'
-import type { CSSProperties, ReactNode } from 'react'
-import { ENTER_DELAY, ENTER_T, LAYOUT_T } from '../constants'
-export function Emphasis({ id, children, className = '', style, ...props }: { id: string; children: ReactNode; className?: string; style?: CSSProperties; [key: `data-${string}`]: string | undefined }) {
-  return <motion.div layout layoutId={id} className={`scene-emphasis ${className}`.trim()} data-presentation-node="emphasis" data-entity-id={id} style={style} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { opacity: { duration: ENTER_T, delay: ENTER_DELAY } } }} exit={{ opacity: 0, transition: { duration: ENTER_T } }} transition={{ layout: LAYOUT_T }} {...props}>{children}</motion.div>
+import type { EntityNodeProps } from '../types'
+import { MotionNode } from './MotionNode'
+export function Emphasis({ className = '', ...props }: EntityNodeProps) {
+  return <MotionNode kind="emphasis" className={`scene-emphasis ${className}`.trim()} {...props} />
 }

@@ -10,6 +10,8 @@ import type { SceneProps, Step } from './types'
 
 type Payload = { value: number }
 
+const stepIndex = () => document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')
+
 function Scene({ payload }: SceneProps<Payload>) {
   return <div data-testid="scene-value">{payload.value}</div>
 }
@@ -40,18 +42,18 @@ describe('Presentation', () => {
   it('clamps navigation, exposes active semantics, and toggles mode without changing position', () => {
     render(<Presentation steps={steps} title="Example" initialMode="browse" />)
     expect(document.querySelector('[data-presentation][data-step-count]')?.getAttribute('data-step-count')).toBe('3')
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    expect(stepIndex()).toBe('0')
     expect(screen.getByRole('link', { name: 'made by and-scene' }).getAttribute('href')).toBe('https://github.com/and-scene')
     expect(document.querySelector('[data-presentation-brand]')).toBeNull()
     expect(screen.getByRole('button', { name: 'Step 1' }).getAttribute('aria-current')).toBe('step')
     expect(screen.getByRole('button', { name: 'Step 1' }).getAttribute('data-presentation-active')).toBe('true')
     fireEvent.click(screen.getByRole('button', { name: /next/i }))
     fireEvent.click(screen.getByRole('button', { name: /present mode/i }))
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    expect(stepIndex()).toBe('1')
     expect(screen.getByText('Second')).not.toBeNull()
     expect(screen.queryByText('Second caption')).toBeNull()
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    expect(stepIndex()).toBe('0')
   })
 
   it('supports direct navigation and does not capture navigation keys from controls', () => {
@@ -60,33 +62,33 @@ describe('Presentation', () => {
     document.body.append(input)
     input.focus()
     fireEvent.keyDown(input, { key: 'ArrowRight' })
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    expect(stepIndex()).toBe('0')
     fireEvent.click(screen.getByRole('button', { name: 'Step 3' }))
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('2')
+    expect(stepIndex()).toBe('2')
     fireEvent.keyDown(window, { key: 'ArrowRight' })
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('2')
+    expect(stepIndex()).toBe('2')
     input.remove()
   })
 
   it('clamps keyboard and touch navigation at both ends and exposes section jump state', () => {
     render(<Presentation steps={steps} title="Example" initialMode="browse" />)
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    expect(stepIndex()).toBe('0')
     const tocEnd = screen.getByRole('button', { name: 'End' })
     expect(tocEnd.getAttribute('aria-current')).toBeNull()
     fireEvent.click(tocEnd)
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('2')
+    expect(stepIndex()).toBe('2')
     expect(tocEnd.getAttribute('aria-current')).toBe('location')
     fireEvent.keyDown(window, { key: 'ArrowRight' })
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('2')
+    expect(stepIndex()).toBe('2')
     fireEvent.click(screen.getByRole('button', { name: 'Step 2' }))
     const stage = document.querySelector('[data-presentation-stage]')!
     fireEvent.touchStart(stage, { changedTouches: [{ identifier: 1, clientX: 80, clientY: 40 }] })
     fireEvent.touchEnd(stage, { changedTouches: [{ identifier: 1, clientX: 180, clientY: 42 }] })
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    expect(stepIndex()).toBe('0')
     fireEvent.touchStart(stage, { changedTouches: [{ identifier: 1, clientX: 180, clientY: 40 }] })
     fireEvent.touchEnd(stage, { changedTouches: [{ identifier: 1, clientX: 80, clientY: 42 }] })
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    expect(stepIndex()).toBe('1')
   })
 
   it('centers the scaled canvas using its scaled frame size at narrow viewports', () => {
@@ -139,7 +141,7 @@ describe('Presentation', () => {
     const view = render(<Presentation steps={steps} title="Example" initialMode="browse" />)
     fireEvent.click(screen.getByRole('button', { name: 'Step 3' }))
     view.rerender(<Presentation steps={steps.slice(0, 2)} title="Example" initialMode="browse" />)
-    expect(document.querySelector('[data-presentation][data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    expect(stepIndex()).toBe('1')
     expect(screen.getByTestId('scene-value').textContent).toBe('2')
   })
 })

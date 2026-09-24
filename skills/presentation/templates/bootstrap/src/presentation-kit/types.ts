@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react'
+import type { ComponentType, CSSProperties, ReactNode } from 'react'
 
 export type PresentationMode = 'browse' | 'present'
 
@@ -25,3 +25,12 @@ export type PresentationProps<TPayload> = {
   className?: string
   showAttribution?: boolean
 }
+
+export type NodeProps = {
+  children: ReactNode
+  className?: string
+  style?: CSSProperties
+  [key: `data-${string}`]: string | undefined
+}
+
+export type EntityNodeProps = NodeProps & { id: string }

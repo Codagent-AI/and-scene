@@ -1,18 +1,19 @@
-import { spawn } from 'node:child_process'
-import { resolve } from 'node:path'
-import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { preview } from 'vite'
 
 const slug = process.argv[2]
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
 const settleMs = Number(process.env.PRESENTATION_SETTLE_MS ?? 1400)
-const server = spawn(process.execPath, [resolve('node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1', '--port', '4178', '--strictPort'], { stdio: 'ignore' })
+const server = await preview({ preview: { host: '127.0.0.1', port: 0 } })
+let baseUrl
 let browser
 try {
-  for (let i = 0; i < 60; i++) { try { await fetch('http://127.0.0.1:4178'); break } catch { await delay(250) } }
+  const address = server.httpServer.address()
+  if (!address || typeof address === 'string') throw new Error('Preview server did not expose a TCP address')
+  baseUrl = `http://127.0.0.1:${address.port}`
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-  await page.goto(`http://127.0.0.1:4178/${slug}`, { waitUntil: 'networkidle' })
+  await page.goto(`${baseUrl}/${encodeURIComponent(slug)}`, { waitUntil: 'networkidle' })
   const count = Number(await page.locator('[data-presentation]').getAttribute('data-step-count'))
   for (let index = 0; index < count; index++) {
     await page.waitForTimeout(settleMs)
@@ -49,4 +50,8 @@ try {
     if (index + 1 < count) await page.keyboard.press('ArrowRight')
   }
   console.log(`Captured ${count} settled steps. Review screenshots for scene and chrome collisions.`)
-} finally { await browser?.close(); server.kill('SIGTERM') }
+} finally {
+  await browser?.close()
+  server.httpServer.closeAllConnections()
+  await new Promise((resolve) => server.httpServer.close(resolve))
+}

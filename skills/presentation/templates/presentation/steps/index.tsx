@@ -1,6 +1,5 @@
 import type { Step } from '../../../presentation-kit/types'
 import { Scene } from './Scene'
-import './presentation.css'
 
 type Payload = { message: string }
 export const STEPS: readonly Step<Payload>[] = [

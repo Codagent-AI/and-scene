@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify browser presentations as evolving diagrammatic scenes. Use when a user wants a presentation generated or changed in this app.
+description: Creates and modifies browser presentations with evolving diagrammatic scenes. Activates for requests to create a presentation, edit presentation steps, or animate a diagram.
 ---
 
 # Create or modify a presentation
@@ -9,6 +9,12 @@ Treat a presentation as one scene that evolves through named states. Stable
 entities keep their IDs across steps; each step has a title and an explanatory
 caption. Use the shared React scene kit for behavior and geometry. A presentation
 owns its visual design in its own plain CSS.
+
+## Out of scope
+
+This skill creates browser-based scene presentations; it does not produce
+PowerPoint or Keynote decks, PDFs, or videos. For those deliverables, use the
+appropriate document, slide-deck, or video workflow.
 
 ## 1. Gather the brief
 
@@ -80,12 +86,13 @@ change to the requested steps, entities, or style.
 
 ## 4. Verify and inspect
 
-From the app root, run `npm run build` and `npm run verify`. Fix failures and
-repeat; never report success while either fails. `verify` must at least open the
-new or changed route in a browser and confirm its first step renders without
-console or runtime errors. If the project-local screenshot helper is available,
-run `npm run inspect -- <slug>` after the build. Otherwise create any temporary
-Playwright helper under the project root and remove it when finished.
+From the app root, run `npm run build` and
+`npm run verify -- <slug>` for the new or changed presentation. Fix failures
+and repeat; never report success while either fails. `verify` builds the app and
+opens the requested route in a browser to confirm its first step renders
+without console or runtime errors. If the project-local screenshot helper is
+available, run `npm run inspect -- <slug>` after the build. Otherwise create any
+temporary Playwright helper under the project root and remove it when finished.
 
 Inspect settled browser screenshots of the first and last steps and every dense
 or key step. Use a narrow viewport too when the composition is responsive
@@ -99,3 +106,12 @@ After a visual fix, rebuild and repeat the relevant render and inspection checks
 
 Summarize the created or changed presentation and route, the checks run, and any
 remaining advisory warnings. Report only checks actually completed.
+
+Use this concise format:
+
+```text
+Presentation: <name> (<route>)
+Changes: <brief summary>
+Checks: <commands and results>
+Advisory warnings: <None or remaining warnings>
+```

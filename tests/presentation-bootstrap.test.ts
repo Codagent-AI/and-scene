@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -48,6 +48,20 @@ describe('presentation bootstrap template', () => {
       for (const dependency of ['react', 'react-dom', 'motion', 'lucide-react']) expect(packageJson.dependencies[dependency]).toBeTruthy()
       for (const dependency of ['vite', '@vitejs/plugin-react', 'typescript', '@types/react', '@types/react-dom', '@types/node', 'eslint', 'playwright']) expect(packageJson.devDependencies[dependency]).toBeTruthy()
 
+      const presentationTemplate = path.join(root, 'skills/presentation/templates/presentation')
+      for (const source of ['Talk.tsx', 'steps/Scene.tsx', 'steps/index.tsx']) {
+        const code = await readFile(path.join(presentationTemplate, source), 'utf8')
+        for (const [, imported] of code.matchAll(/import ['"](.+\.css)['"]/g)) {
+          expect(await readFile(path.resolve(presentationTemplate, path.dirname(source), imported), 'utf8')).toBeTruthy()
+        }
+      }
+      const verifySource = await readFile(path.join(bootstrap, 'scripts/verify.mjs'), 'utf8')
+      const inspectSource = await readFile(path.join(bootstrap, 'scripts/inspect-presentation.mjs'), 'utf8')
+      expect(verifySource).toMatch(/process\.argv\[2\]/)
+      expect(verifySource).toMatch(/encodeURIComponent\(slug\)/)
+      expect(verifySource).toMatch(/import\s*\{\s*preview\s*\}\s*from\s*['"]vite['"]/)
+      expect(inspectSource).toMatch(/import\s*\{\s*preview\s*\}\s*from\s*['"]vite['"]/)
+
       for (const anchor of ['vite.config.ts', 'src/presentation-kit/index.ts', 'src/presentations/index.ts']) {
         expect(await readFile(path.join(temp, anchor), 'utf8')).toBeTruthy()
       }
@@ -64,14 +78,18 @@ describe('presentation bootstrap template', () => {
       const skill = await readFile(path.join(root, 'skills/presentation/SKILL.md'), 'utf8')
       expect(skill).toMatch(/templates\/bootstrap/)
       expect(skill).toMatch(/SKILL\.md.*relative|relative.*SKILL\.md/is)
+      expect(skill).toMatch(/npm run verify -- <slug>/)
       await execFileAsync('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: temp })
+      const registry = path.join(temp, 'src/presentations/index.ts')
+      const registrySource = await readFile(registry, 'utf8')
+      await writeFile(registry, registrySource.replace("slug: 'starter'", "slug: 'contract-check'"))
       try {
         await execFileAsync('npm', ['run', 'build'], { cwd: temp })
       } catch (error) {
         const detail = error as Error & { stdout?: string; stderr?: string }
         throw new Error(`${detail.message}\n${detail.stdout ?? ''}\n${detail.stderr ?? ''}`, { cause: error })
       }
-      await execFileAsync('npm', ['run', 'verify'], { cwd: temp })
+      await execFileAsync('npm', ['run', 'verify', '--', 'contract-check'], { cwd: temp })
     } finally {
       await rm(temp, { recursive: true, force: true })
     }

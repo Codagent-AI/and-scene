@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { DESIGN_H, DESIGN_W } from './constants'
 import { getFitScale } from './utils'
 
-export function useFitScale(ref: { current: HTMLElement | null }, width = 880, height = 380): number {
+export function useFitScale(ref: { current: HTMLElement | null }, width = DESIGN_W, height = DESIGN_H): number {
   const [scale, setScale] = useState(1)
   useEffect(() => {
     const element = ref.current

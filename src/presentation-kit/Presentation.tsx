@@ -3,9 +3,9 @@ import { Footer } from './chrome/Footer'
 import { Header } from './chrome/Header'
 import { Toc } from './chrome/Toc'
 import { usePresentationNav } from './usePresentationNav'
-import type { PresentationMode, Step } from './types'
+import type { Attribution, PresentationMode, Step } from './types'
 
-export interface PresentationProps<T> { steps: Step<T>[]; title: string; initialMode?: PresentationMode; attribution?: false | { label?: string; href?: string }; brand?: React.ReactNode }
+export interface PresentationProps<T> { steps: Step<T>[]; title: string; initialMode?: PresentationMode; attribution?: Attribution; brand?: React.ReactNode }
 export function Presentation<T>({ steps, title, initialMode = 'browse', attribution, brand }: PresentationProps<T>) {
   const nav = usePresentationNav(steps.length, initialMode)
   if (!steps.length) return null

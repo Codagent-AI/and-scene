@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { spawnSync } from 'node:child_process'
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { REFERENCE_STEPS } from '../src/presentations/how-to-make-a-presentation/steps'
 
 const root = process.cwd()
 let nextPort = 43000 + (process.pid % 1000)
@@ -19,8 +20,8 @@ function isolatedCopy(fault: (copy: string) => void, buildCommand = 'node -e "pr
   return copy
 }
 function browserFixture({ errorAt, blocked = false }: { errorAt?: number; blocked?: boolean }): string {
-  const titles = ['You have a topic', 'The skill interviews you', 'Answers become steps', 'The deck grows', 'You set the depth', 'It assembles the scene', 'It checks its own work', 'Changed your mind? Loop it.', "You're looking at one"]
-  const captions = ['It starts with you, a topic, and mild overconfidence.', 'One question at a time: the topic, the look, then each beat of the story.', 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.', 'Same shapes, new beats. Every answer extends the story without redrawing it.', 'Spell out every step, or sketch a few and see how it looks. You hold the gate.', 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.', 'Before saying done, it builds and renders every step — and fixes what breaks.', 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.', 'This presentation was built exactly this way. Thanks for watching.']
+  const titles = REFERENCE_STEPS.map((step) => step.title)
+  const captions = REFERENCE_STEPS.map((step) => step.caption)
   return `<!doctype html><html><head><meta charset="utf-8"></head><body><main data-presentation-mode="browse"><div class="presentation-narration"><h2>${titles[0]}</h2><p>${captions[0]}</p></div><span data-step-count="9" data-step-index="0"></span><button aria-label="Next step" id="next">Next</button></main><script>const titles=${JSON.stringify(titles)};const captions=${JSON.stringify(captions)};let index=0;document.querySelector('#next').onclick=()=>{${blocked ? '' : "index++;document.querySelector('[data-step-count]').setAttribute('data-step-index',index);document.querySelector('.presentation-narration h2').textContent=titles[index];document.querySelector('.presentation-narration p').textContent=captions[index];"}${errorAt ? `if(index===${errorAt - 1})console.error('injected browser console failure');` : ''}}</script></body></html>`
 }
 function runVerifier(copy: string) {

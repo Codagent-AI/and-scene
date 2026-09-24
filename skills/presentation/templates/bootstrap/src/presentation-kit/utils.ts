@@ -7,3 +7,7 @@ export function clampStepIndex(index: number, stepCount: number): number {
 export function getFitScale(width: number, height: number, designWidth = DESIGN_W, designHeight = DESIGN_H): number {
   return Math.max(MIN_SCALE, Math.min(width / designWidth, height / designHeight))
 }
+
+export function cx(...classNames: (string | false | null | undefined)[]): string {
+  return classNames.filter(Boolean).join(' ')
+}

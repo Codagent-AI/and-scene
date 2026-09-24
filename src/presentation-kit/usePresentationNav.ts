@@ -8,8 +8,9 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
   const [mode, setMode] = useState<PresentationMode>(initialMode)
   const touch = useRef<number | null>(null)
   const goTo = useCallback((next: number) => setRawIndex(clampStepIndex(next, stepCount)), [stepCount])
-  const next = useCallback(() => goTo(index + 1), [goTo, index])
-  const prev = useCallback(() => goTo(index - 1), [goTo, index])
+  const stepBy = useCallback((delta: number) => setRawIndex((current) => clampStepIndex(clampStepIndex(current, stepCount) + delta, stepCount)), [stepCount])
+  const next = useCallback(() => stepBy(1), [stepBy])
+  const prev = useCallback(() => stepBy(-1), [stepBy])
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

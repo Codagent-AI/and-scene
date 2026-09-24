@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { readFile } from 'node:fs/promises'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 
@@ -26,9 +27,9 @@ let preview, browser
 let activeStep = 'build'
 try {
   await run('npm', ['run', 'build'])
-  const registry = await (await import('node:fs/promises')).readFile('src/presentations/index.ts', 'utf8')
+  const registry = await readFile('src/presentations/index.ts', 'utf8')
   if (!registry.includes(`slug: '${slug}'`) || !registry.includes(`./${slug}/Talk`)) throw new Error('reference sample is missing from the presentation registry')
-  const source = await (await import('node:fs/promises')).readFile(`src/presentations/${slug}/steps/index.tsx`, 'utf8')
+  const source = await readFile(`src/presentations/${slug}/steps/index.tsx`, 'utf8')
   for (const [index, [title, caption]] of expected.entries()) {
     if (!source.includes(title) || !source.includes(caption)) throw new Error(`canonical sample outline is missing title or caption at step ${index + 1}`)
   }
@@ -44,7 +45,7 @@ try {
   const page = await browser.newPage()
   page.setDefaultTimeout(Number(process.env.AND_SCENE_VERIFY_ACTION_TIMEOUT_MS ?? 10000))
   page.setDefaultNavigationTimeout(30000)
-  let browserErrors = []
+  const browserErrors = []
   page.on('pageerror', error => browserErrors.push(error.message))
   page.on('console', message => { if (message.type() === 'error') browserErrors.push(message.text()) })
   activeStep = 'route'

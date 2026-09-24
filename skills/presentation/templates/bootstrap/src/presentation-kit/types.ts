@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from 'react'
 
 export type PresentationMode = 'browse' | 'present'
+export type Attribution = false | { label?: string; href?: string }
 export interface StepMeta {
   id: string
   era: string

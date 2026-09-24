@@ -63,7 +63,6 @@ describe('presentation bootstrap template (INT-001)', () => {
       writeFileSync(registryPath, readFileSync(registryPath, 'utf8').replace(/\]\s*$/, "  { slug: 'broken', title: 'Broken', load: () => import('./broken/Talk') },\n]"))
       mkdirSync(join(materialized, 'src/presentations/broken'), { recursive: true })
       writeFileSync(join(materialized, 'src/presentations/broken/Talk.tsx'), "export default function Broken(): import('react').ReactNode { throw new Error('intentional verification fault') }\n")
-      execFileSync('npm', ['run', 'build'], { cwd: materialized, stdio: 'pipe' })
       expect(() => execFileSync('npm', ['run', 'verify'], { cwd: materialized, stdio: 'pipe' })).toThrow('No presentation rendered at http://127.0.0.1:4178/broken')
     } finally {
       rmSync(materialized, { recursive: true, force: true })

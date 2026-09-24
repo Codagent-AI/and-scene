@@ -6,6 +6,7 @@ import { Presentation } from './Presentation'
 import type { SceneProps, Step } from './types'
 
 interface State { message: string }
+const activeIndex = () => document.querySelector('[data-step-index]')?.getAttribute('data-step-index')
 function Scene({ payload }: SceneProps<State>) { return <div>{payload.message}</div> }
 const steps: Step<State>[] = [
   { id: 'one', era: 'Start', title: 'First', caption: 'First explanation', groupKey: 'same', payload: { message: 'one' }, Scene },
@@ -43,15 +44,15 @@ describe('Presentation', () => {
   it('supports keyboard navigation, clamps at each end, and leaves focused controls in control', () => {
     render(<Presentation steps={steps} title="A title" />)
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
-    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    expect(activeIndex()).toBe('0')
     fireEvent.keyDown(window, { key: 'ArrowRight' })
-    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    expect(activeIndex()).toBe('1')
     fireEvent.keyDown(window, { key: 'PageDown' })
-    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    expect(activeIndex()).toBe('1')
     const next = screen.getByRole('button', { name: 'Next step' })
     next.focus()
     fireEvent.keyDown(next, { key: 'ArrowLeft' })
-    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    expect(activeIndex()).toBe('0')
   })
 
   it('keeps arrow navigation available while a mode button retains focus, without hijacking its activation keys', () => {
@@ -61,7 +62,7 @@ describe('Presentation', () => {
     fireEvent.click(presentButton)
 
     fireEvent.keyDown(presentButton, { key: 'ArrowRight' })
-    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    expect(activeIndex()).toBe('1')
 
     for (const key of [' ', 'Enter']) {
       const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
@@ -75,16 +76,16 @@ describe('Presentation', () => {
     const input = document.createElement('input')
     document.body.append(input)
     fireEvent.keyDown(input, { key: 'ArrowRight' })
-    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    expect(activeIndex()).toBe('0')
     input.remove()
   })
 
   it('clamps the active step immediately when the step list shrinks', () => {
     const view = render(<Presentation steps={steps} title="A title" />)
     fireEvent.click(screen.getByRole('button', { name: /go to step 2/i }))
-    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    expect(activeIndex()).toBe('1')
     view.rerender(<Presentation steps={steps.slice(0, 1)} title="A title" />)
     expect(screen.getByText('First explanation')).toBeTruthy()
-    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    expect(activeIndex()).toBe('0')
   })
 })

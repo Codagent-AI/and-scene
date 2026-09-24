@@ -1,11 +1,15 @@
 ---
 name: presentation
-description: Create or modify browser based presentations as one evolving scene. Use when asked to make, build, create, or change a presentation.
+description: Creates and modifies browser-based presentations as one evolving scene. Activates for requests to make, build, create, or change an interactive presentation.
 ---
 
 # Presentation skill
 
 Create an interactive browser presentation as one diagrammatic scene that changes through named steps. Keep content and visual styling in the presentation; the reusable scene kit supplies behavior and geometry only.
+
+## Scope
+
+This skill produces browser-based presentations. It does not create native PowerPoint or Keynote files, PDF decks, or other exported slide formats. For those deliverables, use an appropriate slide or document-generation workflow instead of scaffolding a browser app.
 
 ## 1. Identify the request and gather details
 
@@ -63,11 +67,23 @@ For a modification, edit only the selected presentation and the registry or shar
 Do not report success until all checks pass; diagnose and fix failures, then rerun affected checks.
 
 1. Run `npm run build` from the app root and resolve all type/build failures.
-2. Run `npm run verify` when available. It should open the route in a real browser and confirm the first step renders without console or runtime errors. If no verify script exists yet, run a project-local Playwright smoke check against the app's preview and check the route and browser console.
+2. Run `npm run verify` when available. It should open every registered route in a real browser, exercise each route's steps, and confirm they render without console or runtime errors. If no verify script exists yet, run a project-local Playwright smoke check against the target route and check the browser console.
 3. Run `npm run inspect -- <slug>` when the project-local screenshot helper exists. Otherwise create any temporary Playwright inspection script under the app root and remove it after use. Do not put temporary helpers in `/tmp`.
 4. Inspect settled screenshots or equivalent browser views of the first, last, and densest/key steps. At narrow width, inspect representative steps if the layout is responsive-sensitive. Review overlap, active-state, and attribution warnings. Fix accidental collisions and polish chrome; allow an overlap only when it is intentional and remains readable.
 5. When iterating a long sequence, use browser snapshots before screenshots. Report the build/render/visual checks actually completed and any advisory findings remaining.
 
 ## Completion report
 
-Summarize the created or modified presentation, its route, and the build, render, and visual checks. Never claim a check passed unless it ran successfully.
+Use this compact report and mark each check `passed`, `failed`, or `not run`:
+
+```text
+Presentation: <title>
+Route: <route>
+Changes: <short summary>
+Build: <passed | failed | not run>
+Render: <passed | failed | not run>
+Visual inspection: <passed | failed | not run>
+Remaining findings: <none or concise list>
+```
+
+Never claim a check passed unless it ran successfully.

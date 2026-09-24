@@ -17,16 +17,35 @@ try {
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
-  await page.goto('http://127.0.0.1:4178/example', { waitUntil: 'networkidle' })
-  const state = page.locator('[data-step-count]')
-  if (await state.getAttribute('data-step-count') !== '2') throw new Error('example route did not render two steps')
-  for (let index = 0; index < 2; index++) {
-    if (Number(await state.getAttribute('data-step-index')) !== index) throw new Error(`step ${index} did not render`)
-    if (!(await page.locator('[data-presentation-narration], .presentation-narration').count())) throw new Error(`step ${index} has no caption region`)
-    if (index === 0) await page.getByRole('button', { name: 'Next step' }).click()
+  const base = 'http://127.0.0.1:4178'
+  await page.goto(base, { waitUntil: 'networkidle' })
+  const routes = await page.locator('[data-presentation-landing] a[data-presentation-link]').evaluateAll((links) => links.map((link) => link.href))
+  if (!routes.length) throw new Error('No registered presentation routes were found on the landing page')
+
+  for (const route of routes) {
+    errors.length = 0
+    await page.goto(route, { waitUntil: 'networkidle' })
+    const state = page.locator('[data-step-count]').first()
+    await state.waitFor({ state: 'attached', timeout: 10000 }).catch(() => { throw new Error(`No presentation rendered at ${route}`) })
+    const count = Number(await state.getAttribute('data-step-count'))
+    if (!Number.isInteger(count) || count < 1) throw new Error(`No steps rendered at ${route}`)
+    if (await page.locator('[data-presentation-mode="present"]').count()) {
+      await page.getByRole('button', { name: 'Switch to browse mode' }).click()
+    }
+
+    for (let index = 0; index < count; index++) {
+      const current = Number(await state.getAttribute('data-step-index'))
+      if (current !== index) throw new Error(`Step ${index} did not render at ${route}; found index ${current}`)
+      const caption = await page.locator('.presentation-narration p').textContent()
+      if (!caption?.trim()) throw new Error(`Step ${index} has no caption at ${route}`)
+      if (index < count - 1) {
+        await page.getByRole('button', { name: 'Next step' }).click()
+        await page.waitForFunction((expected) => Number(document.querySelector('[data-step-count]')?.getAttribute('data-step-index')) === expected, index + 1)
+      }
+    }
+    if (errors.length) throw new Error(`Browser errors at ${route}: ${errors.join('; ')}`)
+    console.log(`PASS: ${route} rendered ${count} step${count === 1 ? '' : 's'} without browser errors`)
   }
-  if (errors.length) throw new Error(`browser errors: ${errors.join('; ')}`)
-  console.log('PASS: example route rendered both steps without browser errors')
 } catch (error) {
   console.error(`FAIL: browser render verification: ${error.message}`)
   process.exitCode = 1

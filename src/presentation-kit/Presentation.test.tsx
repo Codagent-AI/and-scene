@@ -51,7 +51,32 @@ describe('Presentation', () => {
     const next = screen.getByRole('button', { name: 'Next step' })
     next.focus()
     fireEvent.keyDown(next, { key: 'ArrowLeft' })
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+  })
+
+  it('keeps arrow navigation available while a mode button retains focus, without hijacking its activation keys', () => {
+    render(<Presentation steps={steps} title="A title" />)
+    const presentButton = screen.getByRole('button', { name: 'Switch to present mode' })
+    presentButton.focus()
+    fireEvent.click(presentButton)
+
+    fireEvent.keyDown(presentButton, { key: 'ArrowRight' })
     expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+
+    for (const key of [' ', 'Enter']) {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+      presentButton.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(false)
+    }
+  })
+
+  it('does not handle presentation shortcuts from editable controls', () => {
+    render(<Presentation steps={steps} title="A title" />)
+    const input = document.createElement('input')
+    document.body.append(input)
+    fireEvent.keyDown(input, { key: 'ArrowRight' })
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    input.remove()
   })
 
   it('clamps the active step immediately when the step list shrinks', () => {

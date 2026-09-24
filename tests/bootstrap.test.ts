@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -47,11 +47,24 @@ describe('presentation bootstrap template (INT-001)', () => {
       const hostStyles = readFileSync(join(materialized, 'src/index.css'), 'utf8')
       expect(hostStyles).not.toMatch(/@theme|--(?:color|font|space|shadow)-/i)
       expect(hostStyles).not.toMatch(/(?:^|[;\n])\s*(?:background|color|font-family|box-shadow|border)\s*:/m)
+
+      const starterDirectory = join(materialized, 'src/presentations/starter')
+      execFileSync(process.execPath, [copyHelper, 'presentation', starterDirectory], { cwd: tmpdir(), stdio: 'pipe' })
+      const registryPath = join(materialized, 'src/presentations/index.ts')
+      const registry = readFileSync(registryPath, 'utf8').replace(/\]\s*$/, "  { slug: 'starter', title: 'Starter', load: () => import('./starter/Talk') },\n]")
+      writeFileSync(registryPath, registry)
+
       execFileSync('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: materialized, stdio: 'pipe' })
       execFileSync('npm', ['run', 'lint'], { cwd: materialized, stdio: 'pipe' })
       execFileSync('npm', ['run', 'verify'], { cwd: materialized, stdio: 'pipe' })
       execFileSync('npm', ['run', 'inspect', '--', 'example'], { cwd: materialized, stdio: 'pipe' })
       expect(statSync(join(materialized, 'artifacts/inspection/example-01.png')).isFile()).toBe(true)
+
+      writeFileSync(registryPath, readFileSync(registryPath, 'utf8').replace(/\]\s*$/, "  { slug: 'broken', title: 'Broken', load: () => import('./broken/Talk') },\n]"))
+      mkdirSync(join(materialized, 'src/presentations/broken'), { recursive: true })
+      writeFileSync(join(materialized, 'src/presentations/broken/Talk.tsx'), "export default function Broken(): import('react').ReactNode { throw new Error('intentional verification fault') }\n")
+      execFileSync('npm', ['run', 'build'], { cwd: materialized, stdio: 'pipe' })
+      expect(() => execFileSync('npm', ['run', 'verify'], { cwd: materialized, stdio: 'pipe' })).toThrow('No presentation rendered at http://127.0.0.1:4178/broken')
     } finally {
       rmSync(materialized, { recursive: true, force: true })
     }

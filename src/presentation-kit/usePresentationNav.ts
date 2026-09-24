@@ -13,8 +13,9 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null
-      if (target && 'matches' in target && (target.isContentEditable || target.matches('input, textarea, select, button, a, [role="button"], [tabindex]:not([tabindex="-1"])'))) return
+      const target = event.target instanceof HTMLElement ? event.target : null
+      if (target?.isContentEditable || target?.closest('input, textarea, select')) return
+      if ((event.key === ' ' || event.key === 'Enter') && target?.closest('button, a, [role="button"]')) return
       if (['ArrowRight', ' ', 'PageDown'].includes(event.key)) { event.preventDefault(); next() }
       else if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') toggleMode()

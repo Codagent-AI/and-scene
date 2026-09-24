@@ -1,4 +1,4 @@
-import type { Step } from '../../../../presentation-kit'
+import type { Step } from '../../../presentation-kit'
 import OpeningScene from './OpeningScene'
 
 export const steps: Step[] = [

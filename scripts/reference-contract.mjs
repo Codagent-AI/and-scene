@@ -23,3 +23,7 @@ export function validateReferenceOutline(source) {
   }
   return errors
 }
+
+export function isValidStepCount(count) {
+  return Number.isSafeInteger(count) && count > 0
+}

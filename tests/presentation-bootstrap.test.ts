@@ -82,7 +82,7 @@ describe('presentation bootstrap template', () => {
       await execFileAsync('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: temp })
       const registry = path.join(temp, 'src/presentations/index.ts')
       const registrySource = await readFile(registry, 'utf8')
-      await writeFile(registry, registrySource.replace("slug: 'starter'", "slug: 'contract-check'"))
+      await writeFile(registry, registrySource.replace("slug: 'starter'", 'slug : "contract-check"'))
       try {
         await execFileAsync('npm', ['run', 'build'], { cwd: temp })
       } catch (error) {

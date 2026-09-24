@@ -2,9 +2,11 @@ import { readFile, rm } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import { chromium } from 'playwright'
 import { collectVisualDiagnostics } from '../scripts/inspection-diagnostics.mjs'
+import { ensureChromiumInstalled } from '../scripts/chromium.mjs'
 
 describe('inspection diagnostics against a controlled browser composition', () => {
   it('captures after a step settles and warns on collisions, weak chrome, and attribution while exempting allowed overlap', async () => {
+    await ensureChromiumInstalled()
     const browser = await chromium.launch({ headless: true })
     try {
       const page = await browser.newPage({ viewport: { width: 800, height: 600 } })

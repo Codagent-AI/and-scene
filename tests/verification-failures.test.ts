@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 const root = path.resolve(import.meta.dirname, '..')
 const files = ['package.json', 'package-lock.json', 'index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'eslint.config.js', 'src', 'scripts']
 
-async function runFaultyVerification(fault: 'build' | 'sample' | 'browser' | 'transition') {
+async function runFaultyVerification(fault: 'build' | 'sample' | 'browser' | 'transition' | 'step-count') {
   const directory = await mkdtemp(path.join(tmpdir(), 'and-scene-e2e-'))
   try {
     for (const file of files) await cp(path.join(root, file), path.join(directory, file), { recursive: true })
@@ -25,6 +25,11 @@ async function runFaultyVerification(fault: 'build' | 'sample' | 'browser' | 'tr
     if (fault === 'browser') {
       const file = pathFor('src/presentations/how-to-make-a-presentation/steps/Scene.tsx')
       await writeFile(file, `console.error('injected browser error')\n${await readFile(file, 'utf8')}`)
+    }
+    if (fault === 'step-count') {
+      const file = pathFor('src/presentation-kit/Presentation.tsx')
+      const source = await readFile(file, 'utf8')
+      await writeFile(file, source.replace('data-step-count={steps.length}', 'data-step-count="invalid"'))
     }
     if (fault === 'transition') {
       const file = pathFor('src/presentation-kit/Presentation.tsx')
@@ -55,6 +60,12 @@ describe('verification failure contract in isolated project copies', () => {
     const result = await runFaultyVerification('browser')
     expect(result.status).not.toBe(0)
     expect(result.output).toContain('FAIL: browser render: step 1: injected browser error')
+  }, 90_000)
+
+  it('rejects a nonnumeric step count instead of reporting a pass', async () => {
+    const result = await runFaultyVerification('step-count')
+    expect(result.status).not.toBe(0)
+    expect(result.output).toContain('FAIL: browser render: presentation exposes an invalid step count')
   }, 90_000)
 
   it('reports a stalled transition with its expected step', async () => {

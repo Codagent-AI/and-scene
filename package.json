@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run --no-file-parallelism",
-    "verify": "node scripts/verify.mjs",
+    "test": "node scripts/install-chromium.mjs && vitest run --no-file-parallelism",
+    "verify": "node scripts/verify.mjs how-to-make-a-presentation",
     "inspect": "node scripts/inspect-presentation.mjs"
   },
   "dependencies": {

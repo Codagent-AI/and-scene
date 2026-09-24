@@ -3,11 +3,15 @@ import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { chromium } from 'playwright'
 import { preview } from 'vite'
-import { referenceSteps, validateReferenceOutline } from './reference-contract.mjs'
+import { ensureChromiumInstalled } from './chromium.mjs'
+import { isValidStepCount, referenceSteps, validateReferenceOutline } from './reference-contract.mjs'
 
-const requestedSlug = process.argv[2]
+const slug = process.argv[2]
 const referenceSlug = 'how-to-make-a-presentation'
-const slug = requestedSlug ?? referenceSlug
+if (!slug) {
+  console.error('Usage: node scripts/verify.mjs <presentation-slug>')
+  process.exit(1)
+}
 let server
 let browser
 let phase = 'preflight'
@@ -21,9 +25,7 @@ try {
   phase = 'build'
   await run('npm', ['run', 'build'])
   phase = 'sample contract'
-  const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-  if (!registry.includes(`slug: '${slug}'`)) fail(`presentation ${slug} is missing from the registry`)
-  if (!requestedSlug) {
+  if (slug === referenceSlug) {
     const source = await readFile(new URL('../src/presentations/how-to-make-a-presentation/steps/index.tsx', import.meta.url), 'utf8')
     const issues = validateReferenceOutline(source)
     if (issues.length) fail(issues.join('; '))
@@ -46,6 +48,7 @@ try {
   }
 
   phase = 'browser render'
+  await ensureChromiumInstalled()
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
   const errors = []
@@ -56,8 +59,8 @@ try {
   if (!response?.ok()) fail(`sample route returned ${response?.status() ?? 'no response'}`)
   const root = page.locator('[data-presentation]')
   const count = Number(await root.getAttribute('data-step-count'))
-  if (!requestedSlug && count !== referenceSteps.length) fail(`expected 9 steps, found ${count}`)
-  if (count < 1) fail('presentation exposes no steps')
+  if (!isValidStepCount(count)) fail('presentation exposes an invalid step count')
+  if (slug === referenceSlug && count !== referenceSteps.length) fail(`expected 9 steps, found ${count}`)
   for (currentStep = 0; currentStep < count; currentStep++) {
     if (currentStep > 0) await page.keyboard.press('ArrowRight')
     try {

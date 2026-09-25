@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { useEffect } from 'react'
 import { describe, expect, it } from 'vitest'
-import { Box, DESIGN_H, DESIGN_W, Presentation, type SceneProps, type Step } from '../src/presentation-kit'
+import { Box, DESIGN_H, DESIGN_W, Presentation, type PresentationProps, type SceneProps, type Step } from '../src/presentation-kit'
 import { setWideViewport } from './setup'
 
 interface Payload { label: string; count: number }
@@ -25,7 +25,7 @@ const steps: Step<Payload>[] = [
   { id: 'four', era: 'ending', title: 'Fourth', caption: 'Fourth caption', Scene: SoloScene, payload: { label: 'delta', count: 4 } },
 ]
 
-function renderDeck(props: Partial<Parameters<typeof Presentation<Payload>>[0]> = {}) {
+function renderDeck(props: Partial<PresentationProps<Payload>> = {}) {
   const result = render(<Presentation steps={steps} title="Fixture deck" {...props} />)
   const root = () => result.container.querySelector('[data-presentation]') as HTMLElement
   const index = () => Number(root().getAttribute('data-step-index'))
@@ -120,8 +120,8 @@ describe('navigation', () => {
     const { container, index } = renderDeck()
     fireEvent.click(screen.getByRole('button', { name: 'Go to step 3: Third' }))
     expect(index()).toBe(2)
-    const ending = [...container.querySelectorAll('[data-presentation-toc-item]')].find((item) => item.textContent === 'opening')!
-    fireEvent.click(ending)
+    const opening = [...container.querySelectorAll('[data-presentation-toc-item]')].find((item) => item.textContent === 'opening')!
+    fireEvent.click(opening)
     expect(index()).toBe(0)
   })
 

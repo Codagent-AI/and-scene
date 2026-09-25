@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises'
 import { chromium } from 'playwright'
-import { startPreview } from '../skills/presentation/templates/bootstrap/scripts/preview-server.mjs'
+import { startPreview } from './preview-server.mjs'
 const slug=process.argv[2]; if(!slug)throw Error('Usage: npm run inspect -- <presentation-slug>')
 const output=`artifacts/inspection/${slug}`;await mkdir(output,{recursive:true});let preview,browser
 try{preview=await startPreview(4179);browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1440,height:1000}});await page.goto(`http://127.0.0.1:4179/${slug}`,{waitUntil:'networkidle'});const count=Number(await page.locator('[data-step-count]').getAttribute('data-step-count'));if(!count)throw Error(`No presentation found at /${slug}`);const warnings=[]

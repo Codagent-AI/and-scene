@@ -30,6 +30,7 @@
 .howto-scene .reveal-frame { position: absolute; inset: 0; border: 2px solid #28594a; border-radius: 26px; pointer-events: none; }
 .howto-scene .reveal-frame span { position: absolute; left: 50%; bottom: -11px; transform: translateX(-50%); white-space: nowrap; padding: 5px 14px; background: #28594a; color: white; border-radius: 999px; font: 700 10px ui-monospace, monospace; letter-spacing: .1em; }
 .scene-baseline { position: absolute; top: 218px; left: 28px; right: 28px; border-top: 1px solid #d7ded4; z-index: -1; }
-@media (max-width: 700px) { .howto-presentation .presentation-footer { gap: 10px; padding-bottom: 40px; } .howto-presentation .presentation-progress button { padding: 6px; } }
+@media (max-width: 700px) { .howto-presentation .presentation-footer { gap: 10px; } .howto-presentation .presentation-progress button { padding: 6px; } }
 
 .howto-scene .morph-link { width: 18px; color: #a36f21; font: 700 15px/1 ui-monospace, monospace; text-align: center; pointer-events: none; }
+@media (max-width: 959px) { .howto-presentation .presentation-footer { padding-bottom: 40px; } }

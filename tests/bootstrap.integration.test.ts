@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:f
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { STAGE_LAYOUT } from '../src/presentation-kit/constants'
 
 const repo = resolve(import.meta.dirname, '..')
 const template = join(repo, 'skills/presentation/templates/bootstrap')
@@ -19,6 +20,16 @@ function filesUnder(root: string, relative = ''): string[] {
 }
 
 describe('presentation bootstrap integration', () => {
+  it('sizes the starter stage to the geometry the kit uses for fit scaling', () => {
+    const starterCss = readFileSync(join(template, 'src/presentations/starter/presentation.css'), 'utf8')
+    const { browse, present } = STAGE_LAYOUT
+    expect(starterCss).toContain(`.presentation-stage { position: absolute; inset: ${browse.top}px 0 ${browse.bottom}px; }`)
+    expect(starterCss).toContain(`[data-presentation-mode="present"] .presentation-stage { inset-block: ${present.top}px; }`)
+    expect(starterCss).toMatch(/\.presentation-header \{[^}]*height: 64px;/)
+    const narrow = starterCss.slice(starterCss.indexOf('@media (max-width: 720px)'))
+    expect(narrow).toContain('.presentation-stage { bottom: 180px; }')
+  })
+
   it('materializes outside the repository, builds, and keeps the kit in parity', () => {
     expect(statSync(template).isDirectory()).toBe(true)
     const temp = mkdtempSync(join(tmpdir(), 'and-scene-bootstrap-'))

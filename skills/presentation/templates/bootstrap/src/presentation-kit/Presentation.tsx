@@ -22,7 +22,7 @@ export default function Presentation<T>({ steps, title, initialMode = 'browse', 
     return () => query.removeEventListener('change', update)
   }, [])
   if (!step) return <main className={`presentation ${className}`} style={{ position: 'fixed', inset: 0, ...style }}>No presentation steps available.</main>
-  return <main className={`presentation presentation--${mode} ${className}`} style={{ position: 'fixed', inset: 0, ...style }} data-presentation="" data-presentation-mode={mode} data-step-count={steps.length} data-step-index={index} onTouchStart={(event) => { touch.current = { x: event.touches[0].clientX, y: event.touches[0].clientY } }} onTouchEnd={(event) => {
+  return <main className={`presentation presentation--${mode} ${className}`} style={{ position: 'fixed', inset: 0, ...style }} data-presentation="" data-presentation-mode={mode} data-step-count={steps.length} data-step-index={index} data-step-title={step.title} data-step-caption={step.caption} onTouchStart={(event) => { touch.current = { x: event.touches[0].clientX, y: event.touches[0].clientY } }} onTouchEnd={(event) => {
     if (!touch.current) return
     const dx = event.changedTouches[0].clientX - touch.current.x
     const dy = event.changedTouches[0].clientY - touch.current.y

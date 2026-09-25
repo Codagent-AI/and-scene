@@ -22,7 +22,7 @@ function runCapture(command, args, cwd, label) {
   process.stdout.write(result.stdout ?? '')
   process.stderr.write(result.stderr ?? '')
   assert.equal(result.status, 0, `${label} failed with status ${result.status}`)
-  return result.stdout ?? ''
+  return `${result.stdout ?? ''}\n${result.stderr ?? ''}`
 }
 
 async function files(dir, prefix = '') {
@@ -54,13 +54,25 @@ try {
   const registryPath = path.join(app, 'src/presentations/index.ts')
   const registry = await readFile(registryPath, 'utf8')
   await writeFile(registryPath, registry.replace("  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },", "  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },\n  { slug: 'second', title: 'Second presentation', load: () => import('./starter/Talk') },"))
+  const openingPath = path.join(app, 'src/presentations/starter/steps/Opening.tsx')
+  const opening = await readFile(openingPath, 'utf8')
+  await writeFile(openingPath, opening.replace('<Box id="starter:opening" className="starter-box">{payload.label}</Box>', '<Box id="starter:opening" className="starter-box" data-allow-overlap="">intentional fixture overlap {payload.label}</Box><Box id="fixture:unmarked" className="fixture-unmarked">unmarked fixture overlap</Box>'))
+  const kitPresentation = path.join(app, 'src/presentation-kit/Presentation.tsx')
+  const kitSource = await readFile(kitPresentation, 'utf8')
+  await writeFile(kitPresentation, kitSource.replace('data-presentation-progress=""', 'data-presentation-progress="" data-allow-overlap=""'))
+  const starterStyle = path.join(app, 'src/presentations/starter/style.css')
+  await writeFile(starterStyle, `${await readFile(starterStyle, 'utf8')}\n.starter [data-presentation-caption], .starter [data-presentation-attribution] { position: absolute !important; right: 0 !important; bottom: 0 !important; width: 220px !important; height: 30px !important; }\n.starter [data-presentation-progress-item], .starter [data-presentation-progress-item][data-presentation-active="true"] { color: #555 !important; background: transparent !important; border-color: transparent !important; font-weight: 400 !important; outline: none !important; box-shadow: none !important; text-decoration: none !important; }\n.starter [data-presentation-footer] button[aria-current] { outline: none !important; }\n`)
   run('npm', ['ci'], app, 'bootstrap dependency install')
   // Invoke the project scripts while the caller's cwd is outside the materialized app.
   run('npm', ['--prefix', app, 'run', 'lint'], outside, 'bootstrap lint')
   run('npm', ['--prefix', app, 'run', 'build'], outside, 'bootstrap build')
   const verifyOutput = runCapture('node', [path.join(app, 'scripts/verify.mjs')], outside, 'bootstrap production route verification')
   assert.match(verifyOutput, /rendered 2 registered presentation/)
-  run('npm', ['--prefix', app, 'run', 'inspect', '--', 'starter'], outside, 'bootstrap screenshot helper')
+  const inspectOutput = runCapture('npm', ['--prefix', app, 'run', 'inspect', '--', 'starter'], outside, 'bootstrap screenshot helper')
+  assert.match(inspectOutput, /WARN step 1: possible unmarked visible text\/chrome overlap: data-presentation-caption ↔ data-presentation-attribution/)
+  assert.doesNotMatch(inspectOutput, /WARN step 1: possible unmarked visible text\/chrome overlap: data-presentation-caption ↔ data-presentation-progress/)
+  assert.match(inspectOutput, /WARN step 1: active progress or contents state may be indistinct/)
+  assert.match(inspectOutput, /WARN step 1: attribution is missing, browser-default, or undersized/)
   assert.ok((await stat(path.join(app, 'artifacts/presentation-inspection/starter/step-01.png'))).size > 0, 'screenshot helper did not write its step image')
   console.log('PASS: materialized bootstrap dependencies, anchors, kit parity, style boundary, build, and route render')
 } finally {

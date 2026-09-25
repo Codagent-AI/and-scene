@@ -31,6 +31,34 @@ function run(command, args, options = {}) {
     child.once('exit', (code) => code === 0 ? resolveRun() : reject(new Error(`${command} exited with code ${code}`)))
   })
 }
+function startPreview() {
+  const child = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--host', host, '--port', String(port), '--strictPort'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
+  let announced = false
+  let output = ''
+  let rejectFailure
+  const failed = new Promise((_, reject) => { rejectFailure = reject })
+  const ready = new Promise((resolveReady, rejectReady) => {
+    child.stdout.on('data', (chunk) => {
+      const text = chunk.toString()
+      process.stdout.write(text)
+      output += text.replace(/\u001b\[[0-9;]*m/g, '')
+      if (output.includes(`${origin}/`)) { announced = true; resolveReady() }
+    })
+    child.stderr.on('data', (chunk) => process.stderr.write(chunk))
+    child.once('error', (error) => { rejectReady(error); rejectFailure(error) })
+    child.once('exit', (code, signal) => {
+      const error = new Error(`vite preview exited ${announced ? 'unexpectedly' : 'before readiness'} (code ${code ?? 'none'}, signal ${signal ?? 'none'})`)
+      rejectFailure(error)
+      if (!announced) rejectReady(error)
+    })
+  })
+  return {
+    child,
+    ready: Promise.race([ready, failed]),
+    failed,
+    assertAlive() { if (child.exitCode !== null) throw new Error(`vite preview exited unexpectedly with code ${child.exitCode}`) },
+  }
+}
 try {
   console.log('VERIFY: checking registered reference sample')
   const registry = await readFile(resolve(root, 'src/presentations/index.ts'), 'utf8')
@@ -44,37 +72,12 @@ try {
   }
   console.log('VERIFY: building whole application')
   await run('npm', ['run', 'build'])
-  preview = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--host', host, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit' })
-  let ready = false
-  for (let attempt = 0; attempt < 80; attempt++) {
-    if (preview.exitCode !== null) throw new Error('preview failed before readiness')
-    try { if ((await fetch(origin)).ok) { ready = true; break } } catch {}
-    await delay(250)
-  }
-  if (!ready) throw new Error(`preview readiness probe failed at ${origin}`)
-  browser = await chromium.launch({ headless: true })
-  const page = await browser.newPage()
-  const errors = []
-  page.on('console', (message) => { if (message.type() === 'error') errors.push(`step ${activeStep}: console ${message.text()}`) })
-  page.on('pageerror', (error) => errors.push(`step ${activeStep}: uncaught ${error.message}`))
-  await page.goto(`${origin}${route}`, { waitUntil: 'networkidle' })
-  const rootNode = page.locator('[data-presentation-root]')
-  await rootNode.waitFor({ state: 'visible' })
-  const count = Number(await rootNode.getAttribute('data-step-count'))
-  if (count !== expected.length) throw new Error(`sample must expose ${expected.length} steps; found ${count}`)
-  for (activeStep = 0; activeStep < count; activeStep++) {
-    if (activeStep > 0) {
-      await page.keyboard.press('ArrowRight')
-      try { await page.waitForFunction((wanted) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === wanted, activeStep, { timeout: 3000 }) }
-      catch { throw new Error(`step ${activeStep} transition failed; expected data-step-index=${activeStep}`) }
-    }
-    await page.waitForTimeout(800)
-    const actual = Number(await rootNode.getAttribute('data-step-index'))
-    if (actual !== activeStep) throw new Error(`step ${activeStep} rendered with index ${actual}`)
-    if (errors.length) throw new Error(errors[0])
-  }
-  if (errors.length) throw new Error(errors[0])
-  console.log(`PASS: built app and rendered all ${count} reference steps at ${origin}${route}`)
+  const startup = startPreview()
+  preview = startup.child
+  await startup.ready
+  startup.assertAlive()
+  await Promise.race([verifyBrowser(startup), startup.failed])
+
 } catch (error) {
   console.error(`VERIFY FAILED: ${error.message}`)
   process.exitCode = 1
@@ -85,4 +88,32 @@ try {
     await Promise.race([new Promise((resolveExit) => preview.once('exit', resolveExit)), delay(3000)])
     if (preview.exitCode === null) preview.kill('SIGKILL')
   }
+}
+
+async function verifyBrowser(startup) {
+    const readiness = await fetch(origin)
+    if (!readiness.ok) throw new Error(`preview readiness probe failed at ${origin}: HTTP ${readiness.status}`)
+    browser = await chromium.launch({ headless: true })
+    const page = await browser.newPage()
+    const errors = []
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(`step ${activeStep}: console ${message.text()}`) })
+    page.on('pageerror', (error) => errors.push(`step ${activeStep}: uncaught ${error.message}`))
+    await page.goto(`${origin}${route}`, { waitUntil: 'networkidle' })
+    const rootNode = page.locator('[data-presentation-root]')
+    await rootNode.waitFor({ state: 'visible' })
+    const count = Number(await rootNode.getAttribute('data-step-count'))
+    if (count !== expected.length) throw new Error(`sample must expose ${expected.length} steps; found ${count}`)
+    for (activeStep = 0; activeStep < count; activeStep++) {
+      if (activeStep > 0) {
+        await page.keyboard.press('ArrowRight')
+        try { await page.waitForFunction((wanted) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === wanted, activeStep, { timeout: 3000 }) }
+        catch { throw new Error(`step ${activeStep} transition failed; expected data-step-index=${activeStep}`) }
+      }
+      await page.waitForTimeout(800)
+      const actual = Number(await rootNode.getAttribute('data-step-index'))
+      if (actual !== activeStep) throw new Error(`step ${activeStep} rendered with index ${actual}`)
+      if (errors.length) throw new Error(errors[0])
+    }
+    if (errors.length) throw new Error(errors[0])
+    console.log(`PASS: built app and rendered all ${count} reference steps at ${origin}${route}`)
 }

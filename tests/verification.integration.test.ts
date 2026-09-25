@@ -2,7 +2,7 @@ import { cp, mkdtemp, rm, symlink, readFile, writeFile, readdir } from 'node:fs/
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 
@@ -16,9 +16,9 @@ async function materialize(temp: string) {
   return app
 }
 
-async function command(app: string, args: string[]) {
+async function command(app: string, args: string[], chosenPort?: number) {
   try {
-    const port = String(5000 + Math.floor(Math.random() * 20000))
+    const port = String(chosenPort ?? (5000 + Math.floor(Math.random() * 20000)))
     const result = await exec('node', args, { cwd: app, timeout: 120_000, maxBuffer: 8 * 1024 * 1024, env: { ...process.env, PORT: port } })
     return { code: 0, output: `${result.stdout}\n${result.stderr}` }
   } catch (error) {
@@ -48,8 +48,39 @@ describe('project browser verification (INT-002, E2E-002)', () => {
       expect(result.output).toContain('active progress state is visually indistinct')
       expect(result.output).toContain('attribution is undersized')
       expect(result.output).not.toContain('intentional overlap”')
+
+      const component = join(app, 'src/presentation-kit/Presentation.tsx')
+      await writeFile(component, (await readFile(component, 'utf8')).replace('data-step-count={steps.length}', 'data-step-count={0}'))
+      await exec('npm', ['run', 'build'], { cwd: app, timeout: 120_000, maxBuffer: 4 * 1024 * 1024 })
+      const invalidCount = await command(app, [join(app, 'scripts/inspect-presentation.mjs'), '/how-to-make-a-presentation'])
+      expect(invalidCount.code, invalidCount.output).not.toBe(0)
+      expect(invalidCount.output).toContain('Invalid data-step-count: 0')
     } finally { await rm(temp, { recursive: true, force: true }) }
   }, 240_000)
+
+  it('rejects a stale compatible server that owns the configured preview port', async () => {
+    const temp = await mkdtemp(join(tmpdir(), 'and-scene-stale-preview-'))
+    const port = 25000 + Math.floor(Math.random() * 10000)
+    let stale: ReturnType<typeof spawn> | undefined
+    try {
+      const app = await materialize(temp)
+      const fake = `const http=require('node:http');const server=http.createServer((req,res)=>{res.setHeader('content-type','text/html');res.end("<main data-presentation-root data-step-count='9' data-step-index='0' style='position:fixed;inset:0'></main><script>window.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){const n=document.querySelector('[data-step-index]');n.dataset.stepIndex=String(Math.min(8,Number(n.dataset.stepIndex)+1))}})</script>")});server.listen(${port},'127.0.0.1')`
+      stale = spawn(process.execPath, ['-e', fake], { stdio: 'ignore' })
+      let occupied = false
+      for (let attempt = 0; attempt < 40; attempt++) {
+        try { occupied = (await fetch(`http://127.0.0.1:${port}`)).ok; if (occupied) break } catch { occupied = false }
+        await new Promise((resolveWait) => setTimeout(resolveWait, 100))
+      }
+      expect(occupied).toBe(true)
+      const result = await command(app, [join(app, 'scripts/verify.mjs')], port)
+      expect(result.code).not.toBe(0)
+      expect(result.output).toMatch(/vite preview exited before readiness|EADDRINUSE/)
+      expect(result.output).not.toContain('PASS: built app')
+    } finally {
+      stale?.kill('SIGTERM')
+      await rm(temp, { recursive: true, force: true })
+    }
+  }, 180_000)
 
   it.each([
     ['build failure', async (app: string) => writeFile(join(app, 'src/fault.ts'), 'const invalid: number = "broken"; export default invalid;'), /building whole application|build/i],

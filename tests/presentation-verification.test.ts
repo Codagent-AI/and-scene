@@ -14,16 +14,27 @@ const run = (cwd: string, script = 'verify') => new Promise<{ code: number | nul
   child.once('exit', (code) => resolve({ code, output }))
 })
 
-async function isolatedFault(name: string, edit: (directory: string) => Promise<void>) {
+const sample = 'src/presentations/how-to-make-a-presentation'
+
+async function isolatedCopy<T>(name: string, edit: (directory: string) => Promise<void>, action: (directory: string) => Promise<T>) {
   const directory = await mkdtemp(path.join(tmpdir(), `and-scene-${name}-`))
   try {
     await cp(root, directory, { recursive: true, filter: (source) => !['.git', 'node_modules', 'dist', 'artifacts'].includes(path.basename(source)) })
     await symlink(path.join(root, 'node_modules'), path.join(directory, 'node_modules'), 'dir')
     await edit(directory)
-    return await run(directory)
+    return await action(directory)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
+}
+
+const isolatedFault = (name: string, edit: (directory: string) => Promise<void>) => isolatedCopy(name, edit, (directory) => run(directory))
+
+async function buildAndInspect(directory: string) {
+  expect((await run(directory, 'build')).code).toBe(0)
+  const result = await run(directory, 'inspect')
+  expect(result.code).toBe(0)
+  return result
 }
 
 const editFile = (relative: string, change: (source: string) => string) => async (directory: string) => {
@@ -34,44 +45,23 @@ const editFile = (relative: string, change: (source: string) => string) => async
 describe('production verification failure contract', () => {
 
   it('captures controlled visual warning fixtures and exempts marked overlap', async () => {
-    const directory = await mkdtemp(path.join(tmpdir(), 'and-scene-inspect-fixture-'))
-    try {
-      await cp(root, directory, { recursive: true, filter: (source) => !['.git', 'node_modules', 'dist', 'artifacts'].includes(path.basename(source)) })
-      await symlink(path.join(root, 'node_modules'), path.join(directory, 'node_modules'), 'dir')
-      const scenePath = path.join(directory, 'src/presentations/how-to-make-a-presentation/steps/shared.tsx')
-      const scene = await readFile(scenePath, 'utf8')
-      await writeFile(scenePath, scene.replace('<Box entityId="howto-ghost"', '<div data-presentation-allow-overlap=""><Box entityId="howto-ghost"').replace('… open step</Box><Box entityId="howto-depth"', '… open step</Box></div><Box entityId="howto-depth"'))
-      const cssPath = path.join(directory, 'src/presentations/how-to-make-a-presentation/style.css')
-      await writeFile(cssPath, `${await readFile(cssPath, 'utf8')}\n.howto-ghost{left:35px;top:170px}.howto-depth{left:445px;top:170px}[data-presentation-progress-step][data-presentation-active="true"],[data-presentation-toc-entry][data-presentation-active="true"]{color:#b8c7c3;background:#14272e;border:1px solid #49616a;font-weight:400;box-shadow:none}[data-presentation-attribution]{font:8px Arial,sans-serif;color:#000}\n`)
-      const build = await run(directory, 'build')
-      expect(build.code).toBe(0)
-      const result = await run(directory, 'inspect')
-      expect(result.code).toBe(0)
+    await isolatedCopy('inspect-fixture', async (directory) => {
+      await editFile(`${sample}/steps/shared.tsx`, (scene) => scene.replace('<Box entityId="howto-ghost"', '<div data-presentation-allow-overlap=""><Box entityId="howto-ghost"').replace('… open step</Box><Box entityId="howto-depth"', '… open step</Box></div><Box entityId="howto-depth"'))(directory)
+      await editFile(`${sample}/style.css`, (css) => `${css}\n.howto-ghost{left:35px;top:170px}.howto-depth{left:445px;top:170px}[data-presentation-progress-step][data-presentation-active="true"],[data-presentation-toc-entry][data-presentation-active="true"]{color:#b8c7c3;background:#14272e;border:1px solid #49616a;font-weight:400;box-shadow:none}[data-presentation-attribution]{font:8px Arial,sans-serif;color:#000}\n`)(directory)
+    }, async (directory) => {
+      const result = await buildAndInspect(directory)
       expect(result.output).toContain('step 5: overlapping visible nodes')
       expect(result.output).toContain('active progress/contents state is indistinct')
       expect(result.output).toContain('attribution missing, browser-default, or undersized')
       expect(result.output).not.toContain('… open step /')
       const screenshots = await readdir(path.join(directory, 'artifacts/inspection/how-to-make-a-presentation'))
       expect(screenshots).toHaveLength(9)
-    } finally {
-      await rm(directory, { recursive: true, force: true })
-    }
+    })
   }, 180_000)
 
   it('reports scene content colliding with presentation chrome', async () => {
-    const directory = await mkdtemp(path.join(tmpdir(), 'and-scene-inspect-chrome-'))
-    try {
-      await cp(root, directory, { recursive: true, filter: (source) => !['.git', 'node_modules', 'dist', 'artifacts'].includes(path.basename(source)) })
-      await symlink(path.join(root, 'node_modules'), path.join(directory, 'node_modules'), 'dir')
-      const cssPath = path.join(directory, 'src/presentations/how-to-make-a-presentation/style.css')
-      await writeFile(cssPath, `${await readFile(cssPath, 'utf8')}\n.presentation__attribution-slot{inset:0}[data-presentation-attribution]{display:block;width:100%;height:100%}\n`)
-      expect((await run(directory, 'build')).code).toBe(0)
-      const result = await run(directory, 'inspect')
-      expect(result.code).toBe(0)
-      expect(result.output).toMatch(/step 1: overlapping visible nodes: (YOU \/ made by and-scene|made by and-scene \/ YOU)/)
-    } finally {
-      await rm(directory, { recursive: true, force: true })
-    }
+    const result = await isolatedCopy('inspect-chrome', editFile(`${sample}/style.css`, (css) => `${css}\n.presentation__attribution-slot{inset:0}[data-presentation-attribution]{display:block;width:100%;height:100%}\n`), buildAndInspect)
+    expect(result.output).toMatch(/step 1: overlapping visible nodes: (YOU \/ made by and-scene|made by and-scene \/ YOU)/)
   }, 180_000)
 
   it('rejects a build fault with a build phase failure', async () => {

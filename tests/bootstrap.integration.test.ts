@@ -22,12 +22,12 @@ function filesUnder(root: string, relative = ''): string[] {
 describe('presentation bootstrap integration', () => {
   it('sizes the starter stage to the geometry the kit uses for fit scaling', () => {
     const starterCss = readFileSync(join(template, 'src/presentations/starter/presentation.css'), 'utf8')
-    const { browse, present } = STAGE_LAYOUT
+    const { browse, present, narrowBrowse } = STAGE_LAYOUT
     expect(starterCss).toContain(`.presentation-stage { position: absolute; inset: ${browse.top}px 0 ${browse.bottom}px; }`)
     expect(starterCss).toContain(`[data-presentation-mode="present"] .presentation-stage { inset-block: ${present.top}px; }`)
-    expect(starterCss).toMatch(/\.presentation-header \{[^}]*height: 64px;/)
-    const narrow = starterCss.slice(starterCss.indexOf('@media (max-width: 720px)'))
-    expect(narrow).toContain('.presentation-stage { bottom: 180px; }')
+    expect(starterCss).toMatch(new RegExp(`\\.presentation-header \\{[^}]*height: ${browse.top}px;`))
+    const narrow = starterCss.slice(starterCss.indexOf(`@media (max-width: ${narrowBrowse.maxWidth}px)`))
+    expect(narrow).toContain(`.presentation-stage { bottom: ${narrowBrowse.bottom}px; }`)
   })
 
   it('materializes outside the repository, builds, and keeps the kit in parity', () => {
@@ -58,8 +58,8 @@ describe('presentation bootstrap integration', () => {
       const starterCss = readFileSync(join(app, 'src/presentations/starter/presentation.css'), 'utf8')
       expect(starterCss).toContain('[data-presentation-active="true"]')
       expect(starterCss).toContain('.presentation-attribution')
-      expect(readFileSync(join(app, 'scripts/verify.mjs'), 'utf8')).toContain('127.0.0.1')
       const verifyScript = readFileSync(join(app, 'scripts/verify.mjs'), 'utf8')
+      expect(verifyScript).toContain('127.0.0.1')
       const inspectScript = readFileSync(join(app, 'scripts/inspect-presentation.mjs'), 'utf8')
       const diagnosticsScript = readFileSync(join(app, 'scripts/visual-diagnostics.mjs'), 'utf8')
       const skill = readFileSync(join(repo, 'skills/presentation/SKILL.md'), 'utf8')

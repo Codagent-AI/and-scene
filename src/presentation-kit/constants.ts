@@ -8,4 +8,6 @@ export const ENTER_DELAY = LAYOUT_T
 export const STAGE_LAYOUT = {
   browse: { top: 64, bottom: 132, horizontal: 32 },
   present: { top: 64, bottom: 64, horizontal: 32 },
+  /** Browse geometry at or below `maxWidth`, where the footer stacks and needs more room. */
+  narrowBrowse: { maxWidth: 720, top: 64, bottom: 180, horizontal: 32 },
 } as const

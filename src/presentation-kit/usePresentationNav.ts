@@ -6,14 +6,18 @@ function isInteractive(target: EventTarget | null) {
   return target instanceof Element && Boolean(target.closest('button, a, input, textarea, select, [contenteditable="true"], [role="textbox"]'))
 }
 
+function clampIndex(index: number, stepCount: number) {
+  return Math.min(Math.max(0, index), Math.max(0, stepCount - 1))
+}
+
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
   const [navigation, setNavigation] = useState({ stepCount, index: 0 })
   if (navigation.stepCount !== stepCount) {
-    setNavigation({ stepCount, index: Math.min(navigation.index, Math.max(0, stepCount - 1)) })
+    setNavigation({ stepCount, index: clampIndex(navigation.index, stepCount) })
   }
-  const index = Math.min(navigation.index, Math.max(0, stepCount - 1))
+  const index = clampIndex(navigation.index, stepCount)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
-  const goTo = useCallback((target: number) => setNavigation({ stepCount, index: Math.min(Math.max(0, target), Math.max(0, stepCount - 1)) }), [stepCount])
+  const goTo = useCallback((target: number) => setNavigation({ stepCount, index: clampIndex(target, stepCount) }), [stepCount])
   const next = useCallback(() => goTo(index + 1), [goTo, index])
   const prev = useCallback(() => goTo(index - 1), [goTo, index])
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])

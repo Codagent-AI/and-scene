@@ -1,5 +1,4 @@
 export const referenceSlug = 'how-to-make-a-presentation'
-export const referenceTitle = 'How to Use This Skill to Make a Presentation'
 export const canonicalSteps = [
   ['the ask', 'You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
   ['the ask', 'The skill interviews you', 'One question at a time: the topic, the look, then each beat of the story.'],

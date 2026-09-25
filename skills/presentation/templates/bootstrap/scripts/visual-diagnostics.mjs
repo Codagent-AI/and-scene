@@ -2,6 +2,8 @@
 export function inspectVisualComposition() {
   const allowed = (element) => Boolean(element.closest('[data-presentation-allow-overlap]'))
   const describe = (element) => `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}${typeof element.className === 'string' && element.className ? `.${element.className.trim().split(/\s+/).join('.')}` : ''}`
+  const hasArea = (rect) => rect.width > 0 && rect.height > 0
+  const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
   const isVisibleText = (element) => {
     const style = getComputedStyle(element)
     return element.childElementCount === 0 && style.visibility !== 'hidden' && style.display !== 'none' && Boolean(element.textContent?.trim())
@@ -13,7 +15,8 @@ export function inspectVisualComposition() {
   const overlaps = []
   for (const a of sceneText) for (const b of chromeText) {
     const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect()
-    if (ra.width && ra.height && rb.width && rb.height && ra.left < rb.right && ra.right > rb.left && ra.top < rb.bottom && ra.bottom > rb.top && !allowed(a) && !allowed(b)) overlaps.push(`${describe(a)} overlaps ${describe(b)}`)
+    if (allowed(a) || allowed(b)) continue
+    if (hasArea(ra) && hasArea(rb) && intersects(ra, rb)) overlaps.push(`${describe(a)} overlaps ${describe(b)}`)
   }
   const activeControls = [...document.querySelectorAll('[data-presentation-progress] [data-presentation-active="true"], [data-presentation-toc] [data-presentation-active="true"]')]
   const indistinct = []

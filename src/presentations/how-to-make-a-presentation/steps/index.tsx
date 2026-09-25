@@ -8,15 +8,18 @@ import '../presentation.css'
 
 type Payload = { beat: number }
 
+// Step cards reuse the titles of the first five beats.
 const cardContent = [
-  ['01', 'You have a topic', 'title · caption · visual'],
-  ['02', 'The skill interviews you', 'questions become answers'],
-  ['03', 'Answers become steps', 'one scene, shared kit'],
-  ['04', 'The deck grows', 'same shapes · new beats'],
-  ['05', 'You set the depth', 'partial or complete'],
-]
+  ['01', 'title · caption · visual'],
+  ['02', 'questions become answers'],
+  ['03', 'one scene, shared kit'],
+  ['04', 'same shapes · new beats'],
+  ['05', 'partial or complete'],
+].map(([number, detail], index) => ({ number, title: beats[index][1], detail }))
 
 function Scene({ payload: { beat } }: SceneProps<Payload>) {
+  const cardCount = Math.min(beat - 1, 4)
+  const currentCard = beat >= 7 ? 1 : beat - 2
   return <SceneLayer className="sample-scene">
     <Box key={entity('you')} id={entity('you')} className="person you"><span className="eyebrow">YOUR SIDE</span><strong>You</strong><small>one good topic</small>{beat >= 4 && <SymbolChip id={entity('depth-control')} className="depth-control">◐ partial ↔ full</SymbolChip>}</Box>
     <Box key={entity('prompt')} id={entity('prompt')} className="prompt"><span className="eyebrow">THE ASK</span><strong>“How do I explain this?”</strong></Box>
@@ -26,11 +29,11 @@ function Scene({ payload: { beat } }: SceneProps<Payload>) {
       <SymbolChip id={entity('question')} className="question-chip">one question at a time</SymbolChip>
     </Fragment>}
     {beat >= 2 && <div key={entity('route')} className="route" data-presentation-route="">
-      {cardContent.slice(0, Math.min(beat - 1, 4)).map(([number, title, detail], index) => <div className="card-slot" key={number}>
-        <Box id={entity(`step-${number}`)} className={`step-card ${index === (beat >= 7 ? 1 : beat - 2) ? 'current-card' : ''}`}>
+      {cardContent.slice(0, cardCount).map(({ number, title, detail }, index) => <div className="card-slot" key={number}>
+        <Box id={entity(`step-${number}`)} className={`step-card ${index === currentCard ? 'current-card' : ''}`}>
           <span className="card-number">{number}</span><strong>{title}</strong><small>{detail}</small>
         </Box>
-        {index < Math.min(beat - 1, 4) - 1 && <div className="card-link"><Arrow id={entity(`link-${number}`)}>→</Arrow><small>morph</small></div>}
+        {index < cardCount - 1 && <div className="card-link"><Arrow id={entity(`link-${number}`)}>→</Arrow><small>morph</small></div>}
       </div>)}
       {beat >= 4 && <Box id={entity('ghost')} className="step-card ghost-card"><span className="card-number">…</span><strong>Next beat</strong><small>still yours to shape</small></Box>}
       {beat >= 5 && <>

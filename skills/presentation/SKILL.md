@@ -1,11 +1,15 @@
 ---
 name: presentation
-description: Create or modify a browser presentation as one evolving scene with named steps.
+description: Creates and modifies browser presentations as evolving scenes with named steps. Activates for requests to create a browser presentation, build an interactive talk, or edit presentation steps.
 ---
 
 # Presentation skill
 
 Create and maintain a browser presentation as a single scene that changes through named steps. Follow the user's requested scope and keep each presentation self-contained.
+
+## Out of Scope
+
+This skill creates browser-based, interactive presentations. It does not create PowerPoint files, PDF exports, or conventional static slide decks. For those requests, use an appropriate document or slide-generation workflow and preserve the requested output format.
 
 ## 1. Gather what is missing
 

@@ -46,6 +46,7 @@ export function Stage<TPayload>({ steps, index, mode, designWidth = DESIGN_W, de
               className="presentation-scene"
               data-presentation-scene=""
               data-step-id={step.id}
+              style={{ position: 'absolute', inset: 0 }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

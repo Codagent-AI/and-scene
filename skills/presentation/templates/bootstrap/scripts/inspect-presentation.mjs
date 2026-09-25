@@ -1,25 +1,17 @@
-import { spawn } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
-import { setTimeout as delay } from 'node:timers/promises'
 import { resolve } from 'node:path'
 import { chromium } from 'playwright'
+import { preview as startPreview } from 'vite'
 
 const slug = process.argv[2]
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
 const output = resolve('inspection', slug)
 const base = 'http://127.0.0.1:4173'
-let preview
+let previewServer
 let browser
 try {
   await mkdir(output, { recursive: true })
-  preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { stdio: 'ignore', shell: process.platform === 'win32' })
-  let ready = false
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    if (preview.exitCode !== null) throw new Error('Preview server exited before becoming ready')
-    try { if ((await fetch(base)).ok) { ready = true; break } } catch { /* server is still starting */ }
-    await delay(250)
-  }
-  if (!ready) throw new Error(`Preview did not become ready at ${base}`)
+  previewServer = await startPreview({ preview: { host: '127.0.0.1', port: 4173, strictPort: true } })
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   await page.goto(`${base}/${slug}`)
@@ -27,7 +19,7 @@ try {
   const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
   const warnings = []
   for (let index = 0; index < count; index += 1) {
-    await page.waitForTimeout(900)
+    await page.waitForTimeout(1200)
     await page.screenshot({ path: resolve(output, `step-${String(index + 1).padStart(2, '0')}.png`), fullPage: true })
     const diagnostics = await page.evaluate(() => {
       const overlap = []
@@ -63,6 +55,9 @@ try {
   for (const warning of warnings) console.warn(`WARNING: ${warning}`)
   console.log(`Captured ${count} settled step screenshots in ${output}`)
 } finally {
-  await browser?.close()
-  if (preview && preview.exitCode === null) preview.kill('SIGTERM')
+  try {
+    await browser?.close()
+  } finally {
+    if (previewServer) await new Promise((resolve, reject) => previewServer.httpServer.close((error) => error ? reject(error) : resolve()))
+  }
 }

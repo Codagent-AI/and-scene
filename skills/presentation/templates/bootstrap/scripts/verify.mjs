@@ -1,10 +1,10 @@
 import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
-import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { preview as startPreview } from 'vite'
 
 const base = 'http://127.0.0.1:4173'
-let preview
+let previewServer
 let browser
 try {
   const build = spawn('npm', ['run', 'build'], { stdio: 'inherit', shell: process.platform === 'win32' })
@@ -14,14 +14,7 @@ try {
   })
   if (buildCode !== 0) throw new Error(`Build failed with exit code ${buildCode}`)
 
-  preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { stdio: 'ignore', shell: process.platform === 'win32' })
-  let ready = false
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    if (preview.exitCode !== null) throw new Error('Preview server exited before becoming ready')
-    try { if ((await fetch(base)).ok) { ready = true; break } } catch { /* server is still starting */ }
-    await delay(250)
-  }
-  if (!ready) throw new Error(`Preview did not become ready at ${base}`)
+  previewServer = await startPreview({ preview: { host: '127.0.0.1', port: 4173, strictPort: true } })
 
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
@@ -47,6 +40,9 @@ try {
   console.error(`VERIFY FAILED: ${error instanceof Error ? error.message : error}`)
   process.exitCode = 1
 } finally {
-  await browser?.close()
-  if (preview && preview.exitCode === null) preview.kill('SIGTERM')
+  try {
+    await browser?.close()
+  } finally {
+    if (previewServer) await new Promise((resolve, reject) => previewServer.httpServer.close((error) => error ? reject(error) : resolve()))
+  }
 }

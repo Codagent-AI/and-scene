@@ -1,0 +1,18 @@
+/* Presentation-owned design. The shared scene kit intentionally has no theme. */
+.{{CLASS_NAME}} {
+  color: #f4efe5;
+  background: #171817;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.{{CLASS_NAME}} [data-presentation-stage] {
+  color: inherit;
+}
+
+.{{CLASS_NAME}} .scene-box {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  padding: 1rem;
+}

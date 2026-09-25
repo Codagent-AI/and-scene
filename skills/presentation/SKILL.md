@@ -1,11 +1,15 @@
 ---
 name: presentation
-description: Create or modify browser presentations as one evolving, navigable scene. Use when asked to make, build, create, or change a presentation in this repository or another project.
+description: Creates and modifies browser presentations as evolving, navigable scenes. Activates for requests to make, build, create, or change browser presentations.
 ---
 
 # Presentation skill
 
 Create browser-based presentations as one diagrammatic scene that changes through named steps. Stable entities should persist and move; new entities enter and obsolete entities leave. Each presentation owns its visual design. The shared scene kit owns behavior and geometry only.
+
+## Out of scope
+
+This skill creates browser applications; it does not author or edit native PowerPoint, Keynote, or Google Slides files, and it does not export presentations to slide files, PDF, or images. Route native Google Slides editing requests to the Google Slides workflow and other document-format requests to the appropriate document workflow. If those workflows are unavailable, explain the limitation and offer a browser presentation instead.
 
 ## 1. Understand the request
 

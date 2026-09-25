@@ -1,18 +1,15 @@
-import { spawn } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
-import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from '@playwright/test'
+import { startPreview } from './preview-server.mjs'
 
 const slug = process.argv[2]
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
 const output = `artifacts/inspection/${slug}`
 await mkdir(output, { recursive: true })
-const server = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4179', '--strictPort'], { stdio: 'ignore' })
+let preview
 let browser
 try {
-  let ready = false
-  for (let i = 0; i < 50; i++) { try { ready = (await fetch('http://127.0.0.1:4179/')).ok; if (ready) break } catch {} await delay(200) }
-  if (!ready) throw new Error('Run npm run build first; preview did not start')
+  preview = await startPreview(4179)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   await page.goto(`http://127.0.0.1:4179/${slug}`, { waitUntil: 'networkidle' })
@@ -30,17 +27,25 @@ try {
         const x = nodes[a].getBoundingClientRect(), y = nodes[b].getBoundingClientRect()
         if (x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top && !nodes[a].closest('[data-presentation-allow-overlap]') && !nodes[b].closest('[data-presentation-allow-overlap]')) collisions.push(`${nodes[a].textContent?.trim()} / ${nodes[b].textContent?.trim()}`)
       }
-      const active = [...document.querySelectorAll('[data-presentation-active="true"]')]
+      const groups = ['[data-presentation-progress-step]', '[data-presentation-toc-entry]'].map((selector) => {
+        const entries = [...document.querySelectorAll(selector)]
+        const signature = (el) => {
+          const style = getComputedStyle(el)
+          return [style.color, style.backgroundColor, style.fontWeight, style.border, style.outline, style.textDecorationLine].join('|')
+        }
+        const active = entries.find((el) => el.getAttribute('data-presentation-active') === 'true' || el.getAttribute('aria-current'))
+        return { hasInactive: entries.some((el) => el !== active), distinct: Boolean(active) && entries.filter((el) => el !== active).every((el) => signature(active) !== signature(el)) }
+      }).filter((group) => group.hasInactive)
       const attribution = document.querySelector('[data-presentation-attribution]')
       const attrStyle = attribution && getComputedStyle(attribution)
-      return { collisions, active: active.map((el) => ({ color: getComputedStyle(el).color, background: getComputedStyle(el).backgroundColor, weight: getComputedStyle(el).fontWeight })), attribution: attribution ? { text: attribution.textContent, color: attrStyle.color, background: attrStyle.backgroundColor, size: parseFloat(attrStyle.fontSize), href: attribution.getAttribute('href') } : null }
+      return { collisions, groups, attribution: attribution ? { text: attribution.textContent, color: attrStyle.color, background: attrStyle.backgroundColor, size: parseFloat(attrStyle.fontSize), href: attribution.getAttribute('href') } : null }
     })
     for (const collision of checks.collisions) warnings.push(`step ${index + 1}: overlapping visible nodes: ${collision}`)
-    if (!checks.active.some(({ color, background, weight }) => color !== 'rgba(0, 0, 0, 0)' || background !== 'rgba(0, 0, 0, 0)' || Number(weight) >= 600)) warnings.push(`step ${index + 1}: active navigation state may not be visually distinct`)
+    if (checks.groups.some((group) => !group.distinct)) warnings.push(`step ${index + 1}: active navigation state may not be visually distinct from inactive entries`)
     if (!checks.attribution || !checks.attribution.href?.startsWith('https://') || checks.attribution.size < 10 || checks.attribution.text?.trim() !== 'made by and-scene') warnings.push(`step ${index + 1}: attribution is missing or may be browser-default/undersized`)
     if (index + 1 < count) { await page.keyboard.press('ArrowRight'); await page.waitForFunction((expected) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === expected, index + 1) }
   }
   console.log(`Screenshots: ${output}/`)
   if (warnings.length) console.warn(`Advisory visual warnings:\n${warnings.map((item) => `- ${item}`).join('\n')}`)
   else console.log('No advisory visual warnings.')
-} finally { await browser?.close(); server.kill('SIGTERM') }
+} finally { await browser?.close(); await preview?.stop() }

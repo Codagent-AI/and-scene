@@ -1,6 +1,6 @@
-import type { SceneProps, Step } from '../../../src/presentation-kit'
-import { Box, SceneLayer } from '../../../src/presentation-kit'
-import './presentation.css'
+import type { SceneProps, Step } from '../../../presentation-kit'
+import { Box, SceneLayer } from '../../../presentation-kit'
+import '../presentation.css'
 
 type Payload = { subject: string }
 function Scene({ payload }: SceneProps<Payload>) {

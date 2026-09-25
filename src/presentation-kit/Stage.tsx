@@ -20,10 +20,10 @@ export function Stage<TPayload>({ steps, index, mode, className, onTouchStart, o
   const key = step.groupKey ? `group:${step.groupKey}` : `step:${step.id}`
   return <div className={['presentation-stage', className].filter(Boolean).join(' ')} data-presentation-stage="" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
     <div className="presentation-stage__viewport" data-presentation-stage-viewport="">
-      <motion.div className="presentation-stage__canvas" data-presentation-canvas="" style={{ width: DESIGN_W, height: DESIGN_H, scale }}>
+      <motion.div className="presentation-stage__canvas" data-presentation-canvas="" style={{ width: DESIGN_W, height: DESIGN_H, scale, position: 'relative' }}>
         <LayoutGroup id="presentation-scene">
           <AnimatePresence mode="sync" initial={false}>
-            <motion.div key={key} className="presentation-scene" data-presentation-scene="" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            <motion.div key={key} className="presentation-scene" data-presentation-scene="" style={{ position: 'absolute', inset: 0 }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
               <Scene {...props} />
             </motion.div>
           </AnimatePresence>

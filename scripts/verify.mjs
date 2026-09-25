@@ -18,6 +18,8 @@ try {
  const page=await browser.newPage(); let index=0; const errors=[]
  page.on('console',m=>{if(m.type()==='error')errors.push({step:index+1,message:m.text()})}); page.on('pageerror',e=>errors.push({step:index+1,message:e.message}))
  phase='route render'; await page.goto(`http://127.0.0.1:4179/${slug}`,{waitUntil:'networkidle'})
+ await page.waitForSelector('[data-step-count]',{timeout:5000}).catch(()=>{})
+ if(errors.length)throw Error(`Browser error on step 1: ${errors[0].message}`)
  const count=Number(await page.locator('[data-step-count]').getAttribute('data-step-count')); if(count!==9)throw Error(`Expected 9 steps, found ${count}`)
  for(index=0;index<count;index++) { await page.waitForFunction(i=>Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index'))===i,index); if(errors.length)throw Error(`Browser error on step ${index+1}: ${errors[0].message}`); if(index+1<count){await page.keyboard.press('ArrowRight');try{await page.waitForFunction(i=>Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index'))===i,index+1,{timeout:2500})}catch{throw Error(`Failed transition at step ${index+1} to ${index+2}`)}} }
  if(errors.length)throw Error(`Browser error on step ${errors[0].step}: ${errors[0].message}`)

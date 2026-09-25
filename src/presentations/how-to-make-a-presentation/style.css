@@ -1,6 +1,4 @@
 .how-to-presentation { color: #edf1ec; background: #101714; font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; }
-.how-to-presentation [data-presentation-stage] { color: inherit; }
-.how-to-presentation .sample-scene { color: inherit; }
 .how-to-presentation [data-presentation-header] { position: absolute; z-index: 2; inset: 18px 28px auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .how-to-presentation [data-presentation-title] { margin: 0; color: #edf1ec; font: 600 14px/1.3 ui-sans-serif, system-ui, sans-serif; letter-spacing: .02em; }
 .how-to-presentation [data-presentation-mode-toggle], .how-to-presentation [data-presentation-prev], .how-to-presentation [data-presentation-next], .how-to-presentation [data-presentation-toc-toggle], .how-to-presentation [data-presentation-progress-item], .how-to-presentation [data-presentation-toc-item] { border: 1px solid #44574a; border-radius: 6px; padding: 6px 10px; color: #dce8de; background: #19231d; cursor: pointer; font: 11px ui-sans-serif, system-ui, sans-serif; }
@@ -9,7 +7,7 @@
 .how-to-presentation [data-presentation-progress] { display: flex; gap: 4px; }
 .how-to-presentation [data-presentation-progress-item] { min-width: 26px; padding: 5px; }
 .how-to-presentation [data-presentation-toc] { position: absolute; right: 0; bottom: 45px; display: flex; gap: 4px; }
-.how-to-presentation [data-presentation-attribution] { margin-left: auto; white-space: nowrap; }
+.how-to-presentation [data-presentation-attribution] { margin-left: auto; white-space: nowrap; font: 12px/1.4 ui-sans-serif, system-ui, sans-serif; }
 .how-to-presentation [data-presentation-prev]:disabled { opacity: .45; }
 .how-to-presentation .conversation-node { position: absolute; top: 20px; width: 164px; height: 60px; border: 1px solid #52665c; border-radius: 12px; background: #18231e; display: flex; flex-direction: column; justify-content: center; padding: 0 14px; }
 .how-to-presentation .you-node { left: 225px; }
@@ -34,11 +32,10 @@
 .how-to-presentation .pass-check { position: absolute; right: 10px; top: 8px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: #0e1a11; background: #9cdaa8; font: 700 12px sans-serif; }
 .how-to-presentation .modify-arc { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .how-to-presentation .modify-arc path { fill: none; stroke: #e4bd75; stroke-width: 1.5; stroke-dasharray: 4 4; }
-.how-to-presentation .modify-label { position: absolute; left: 15px; top: 119px; color: #e4bd75; font-size: 8px; letter-spacing: .08em; }
+.how-to-presentation .modify-label { position: absolute; left: 15px; top: 92px; color: #e4bd75; font-size: 8px; letter-spacing: .08em; }
 .how-to-presentation .reveal-frame { position: absolute; inset: 5px 8px 9px; border: 1px solid #9ed5b0; border-radius: 18px; pointer-events: none; }
 .how-to-presentation .reveal-frame span { position: absolute; right: 18px; top: -7px; padding: 0 8px; color: #bde5c5; background: #101714; font-size: 8px; letter-spacing: .14em; }
 .how-to-presentation [data-presentation-progress-item][data-presentation-active="true"], .how-to-presentation [data-presentation-toc-item][data-presentation-active="true"] { color: #101714; background: #a5dcb1; border-color: #a5dcb1; font-weight: 800; }
-.how-to-presentation [data-presentation-attribution] { font: 12px/1.4 ui-sans-serif, system-ui, sans-serif; }
 .how-to-presentation [data-presentation-attribution] a { color: #bddfc4; text-decoration: none; }
 @media (max-width: 700px) {
   .how-to-presentation [data-presentation-header] { inset: 12px 12px auto; gap: 8px; }
@@ -48,6 +45,5 @@
   .how-to-presentation [data-presentation-caption] { flex: 1 0 100%; max-width: none; font-size: 11px; }
   .how-to-presentation [data-presentation-progress] { flex: 1 0 100%; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding-bottom: 3px; }
   .how-to-presentation [data-presentation-progress-item] { flex: 0 0 26px; }
-  .how-to-presentation [data-presentation-attribution] { margin-left: auto; }
   .how-to-presentation [data-presentation-toc] { position: fixed; left: 12px; right: 12px; bottom: 104px; flex-wrap: wrap; justify-content: flex-end; }
 }

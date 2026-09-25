@@ -33,4 +33,38 @@ describe('visual inspection diagnostics', () => {
       await browser.close()
     }
   }, 30_000)
+
+  it('compares active and inactive controls across the whole navigation when each control is wrapped', async () => {
+    const browser = await chromium.launch({ headless: true })
+    try {
+      const page = await browser.newPage()
+      await page.setContent(`
+        <footer data-presentation-footer>
+          <nav data-presentation-progress><ul><li><button data-presentation-active="true">•</button></li><li><button data-presentation-active="false">•</button></li></ul></nav>
+        </footer>
+      `)
+      const diagnostics = await page.evaluate(inspectVisualComposition)
+      expect(diagnostics.indistinct).toEqual(['button'])
+    } finally {
+      await browser.close()
+    }
+  }, 30_000)
+
+  it('does not flag a styled single-control navigation that has no inactive control to compare', async () => {
+    const browser = await chromium.launch({ headless: true })
+    try {
+      const page = await browser.newPage()
+      await page.setContent(`
+        <style>[data-presentation-active="true"] { color: rgb(161, 62, 38); }</style>
+        <footer data-presentation-footer>
+          <nav data-presentation-progress><button data-presentation-active="true">•</button></nav>
+          <nav data-presentation-toc><button data-presentation-active="true">Start</button></nav>
+        </footer>
+      `)
+      const diagnostics = await page.evaluate(inspectVisualComposition)
+      expect(diagnostics.indistinct).toEqual([])
+    } finally {
+      await browser.close()
+    }
+  }, 30_000)
 })

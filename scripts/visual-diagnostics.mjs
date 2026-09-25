@@ -24,9 +24,12 @@ export function inspectVisualComposition() {
     if (!nav.querySelector('[data-presentation-active="true"]')) indistinct.push(`${describe(nav)}: missing active control`)
   }
   indistinct.push(...activeControls.filter((active) => {
-    const inactive = active.parentElement?.querySelector('[data-presentation-active="false"]')
-    const a = getComputedStyle(active), b = inactive && getComputedStyle(inactive)
-    return !b || (a.color === b.color && a.backgroundColor === b.backgroundColor && a.opacity === b.opacity && a.fontWeight === b.fontWeight && a.textDecorationLine === b.textDecorationLine && a.outlineStyle === b.outlineStyle)
+    const navigation = active.closest('[data-presentation-progress], [data-presentation-toc]')
+    const inactive = navigation?.querySelector('[data-presentation-active="false"]')
+    // A single-control navigation has no inactive control to compare against.
+    if (!inactive) return false
+    const a = getComputedStyle(active), b = getComputedStyle(inactive)
+    return (a.color === b.color && a.backgroundColor === b.backgroundColor && a.opacity === b.opacity && a.fontWeight === b.fontWeight && a.textDecorationLine === b.textDecorationLine && a.outlineStyle === b.outlineStyle)
   }).map(describe))
   const attribution = document.querySelector('[data-presentation-attribution]')
   const style = attribution && getComputedStyle(attribution)

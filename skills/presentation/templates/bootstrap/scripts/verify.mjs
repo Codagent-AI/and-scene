@@ -17,25 +17,29 @@ try {
   previewServer = await startPreview({ preview: { host: '127.0.0.1', port: 4173, strictPort: true } })
 
   browser = await chromium.launch({ headless: true })
-  const page = await browser.newPage()
-  const errors = []
-  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
-  page.on('pageerror', (error) => errors.push(error.message))
   const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-  const slug = registry.match(/slug:\s*['"]([^'"]+)['"]/)?.[1]
-  if (!slug) throw new Error('No presentation is registered in src/presentations/index.ts')
-  await page.goto(`${base}/${slug}`)
-  await page.locator('[data-step-count]').waitFor()
-  const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
-  if (!count) throw new Error('Registered presentation exposes no steps')
-  for (let index = 0; index < count; index += 1) {
-    const observed = Number(await page.locator('[data-step-index]').getAttribute('data-step-index'))
-    if (observed !== index) throw new Error(`Step transition failed: expected ${index}, observed ${observed}`)
-    await page.waitForTimeout(800)
-    if (index + 1 < count) await page.keyboard.press('ArrowRight')
+  const slugs = [...registry.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((match) => match[1])
+  if (!slugs.length) throw new Error('No presentation is registered in src/presentations/index.ts')
+  // Render every registered presentation so a newly generated route is always checked.
+  for (const slug of slugs) {
+    const page = await browser.newPage()
+    const errors = []
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto(`${base}/${slug}`)
+    await page.locator('[data-step-count]').waitFor()
+    const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
+    if (!count) throw new Error(`${base}/${slug}: registered presentation exposes no steps`)
+    for (let index = 0; index < count; index += 1) {
+      const observed = Number(await page.locator('[data-step-index]').getAttribute('data-step-index'))
+      if (observed !== index) throw new Error(`${base}/${slug}: step transition failed: expected ${index}, observed ${observed}`)
+      await page.waitForTimeout(800)
+      if (index + 1 < count) await page.keyboard.press('ArrowRight')
+    }
+    if (errors.length) throw new Error(`${base}/${slug}: browser errors: ${errors.join('; ')}`)
+    console.log(`PASS: built and rendered ${count} step(s) at ${base}/${slug}`)
+    await page.close()
   }
-  if (errors.length) throw new Error(`Browser errors: ${errors.join('; ')}`)
-  console.log(`PASS: built and rendered ${count} step(s) at ${base}/${slug}`)
 } catch (error) {
   console.error(`VERIFY FAILED: ${error instanceof Error ? error.message : error}`)
   process.exitCode = 1

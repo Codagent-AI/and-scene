@@ -8,3 +8,5 @@ export const STAGE_LAYOUT = {
   browse: { top: 88, bottom: 154, side: 40 },
   present: { top: 72, bottom: 76, side: 40 },
 } as const
+export const EXIT = { opacity: 0, transition: { duration: ENTER_T } }
+export const TOC_MIN_WIDTH = 768

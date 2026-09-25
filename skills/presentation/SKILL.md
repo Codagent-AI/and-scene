@@ -106,7 +106,9 @@ stable IDs and one ordered `Step` per narrative beat. Each step needs a stable
 `id`, `era`, `title`, `caption`, `payload`, and `scene`, following the host kit's
 types. Use stable IDs for entities that persist across steps so layout
 projection can express continuity. Group steps only when their scene component
-should persist and update through its typed payload. Compose generic kit nodes;
+should persist and update through its typed payload. Inside a grouped scene, wrap
+entities that can leave between steps in the kit's `Presence` node so they
+animate out instead of vanishing. Compose generic kit nodes;
 keep scene-specific labels, positions, decorations, and CSS in the presentation.
 Give every step a useful caption and support a coherent beginning-to-end story.
 
@@ -136,7 +138,9 @@ Do not report completion until the checks pass. From the app root:
    Use `127.0.0.1` for local preview URLs.
 3. Prefer the project-local `npm run inspect -- /<slug>` helper. It captures
    settled screenshots for every step and reports advisory text/chrome overlap,
-   active-navigation contrast, and attribution warnings. Review every cited
+   active-navigation contrast, and attribution warnings. When a presentation's
+   transitions run longer than the kit defaults, raise `INSPECT_SETTLE_MS`
+   (default 1100) so captures are settled. Review every cited
    warning; fix accidental collisions, indistinct active state, and poor
    attribution, then inspect again. Retain an allow-overlap marker only for a
    deliberate readable overlap.

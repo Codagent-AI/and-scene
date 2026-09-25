@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, cleanup, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { act, fireEvent, render, screen, cleanup, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Presentation } from './Presentation'
 import type { SceneProps, Step } from './types'
+import { Box } from './nodes/Box'
+import { Presence } from './nodes/Presence'
 
 afterEach(cleanup)
 
@@ -15,7 +17,33 @@ const steps: Step<Payload>[] = [
   { id: 'two', era: 'Continue', title: 'Second', caption: 'Second caption', scene: Diagram, groupKey: 'story', payload: { label: 'B' } },
 ]
 
+type Departure = { showSkill: boolean }
+function DepartureScene({ payload }: SceneProps<Departure>) {
+  return <Presence>{payload.showSkill && <Box id="skill">skill</Box>}</Presence>
+}
+const departureSteps: Step<Departure>[] = [
+  { id: 'with', era: 'Start', title: 'With', caption: 'With skill', scene: DepartureScene, groupKey: 'story', payload: { showSkill: true } },
+  { id: 'without', era: 'Start', title: 'Without', caption: 'Without skill', scene: DepartureScene, groupKey: 'story', payload: { showSkill: false } },
+]
+
 describe('Presentation', () => {
+  it('animates a departing entity out of a persistent grouped scene before removing it', async () => {
+    vi.useFakeTimers({ toFake: ['performance', 'Date'] })
+    try {
+      const { container } = render(<Presentation<Departure> title="Example" steps={departureSteps} />)
+      const skill = () => container.querySelector('[data-entity-id="skill"]')
+      fireEvent.keyDown(window, { key: 'ArrowRight' })
+      vi.advanceTimersByTime(150)
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      expect(screen.getByRole('main').getAttribute('data-step-index')).toBe('1')
+      expect(skill()).toBeTruthy()
+      vi.advanceTimersByTime(1000)
+      await waitFor(() => expect(skill()).toBeNull(), { timeout: 5000 })
+    } finally {
+      vi.useRealTimers()
+    }
+  }, 15000)
+
   it('accepts a strongly typed grouped payload and updates the persistent scene', async () => {
     const { getByTestId } = render(<Presentation<Payload> title="Example" steps={steps} />)
     const before = getByTestId('diagram')
@@ -56,6 +84,20 @@ describe('Presentation', () => {
     expect(screen.getByRole('link', { name: 'made by and-scene' }).getAttribute('data-presentation-attribution')).not.toBeNull()
     expect(document.querySelector('[data-presentation-title]')).not.toBeNull()
     expect(document.querySelector('[data-presentation-toc-item][data-presentation-active="true"]')).not.toBeNull()
+  })
+
+  it('shows the browse table of contents only on wide viewports', () => {
+    const wide = window.innerWidth
+    try {
+      window.innerWidth = 390
+      render(<Presentation title="Example" steps={steps} />)
+      expect(screen.getByText('First caption')).toBeTruthy()
+      expect(screen.queryByRole('navigation', { name: 'Table of contents' })).toBeNull()
+      act(() => { window.innerWidth = wide; window.dispatchEvent(new Event('resize')) })
+      expect(screen.getByRole('navigation', { name: 'Table of contents' })).toBeTruthy()
+    } finally {
+      window.innerWidth = wide
+    }
   })
 
   it('keeps the TOC era active while moving within that era', () => {

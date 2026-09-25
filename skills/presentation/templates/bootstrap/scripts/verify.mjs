@@ -5,43 +5,75 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const run = (command, args) => new Promise((resolve, reject) => {
-  const child = spawn(command, args, { stdio: 'inherit', shell: process.platform === 'win32' })
+const vite = path.join(project, 'node_modules/vite/bin/vite.js')
+const run = (command, args, cwd) => new Promise((resolve, reject) => {
+  const child = spawn(command, args, { cwd, stdio: 'inherit', shell: command === 'npm' && process.platform === 'win32' })
   child.once('error', reject)
   child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
 })
+function stop(child, exited) {
+  if (child.exitCode !== null || child.signalCode !== null) return exited
+  child.kill('SIGTERM')
+  return Promise.race([exited.then(() => true), delay(3000).then(() => false)]).then(async (stopped) => {
+    if (!stopped && child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+    await exited
+  })
+}
+
 let server
+let serverError
 let browser
+let serverExited
 try {
-  await run('npm', ['--prefix', project, 'run', 'build'])
-  server = spawn('npm', ['--prefix', project, 'run', 'preview', '--', '--host', '127.0.0.1', '--port', '4178', '--strictPort'], { stdio: 'ignore', shell: process.platform === 'win32' })
+  await run('npm', ['run', 'build'], project)
+  server = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', '4178', '--strictPort'], { cwd: project, stdio: 'ignore' })
+  serverExited = new Promise((resolve) => server.once('exit', (code, signal) => resolve({ code, signal })))
+  server.once('error', (error) => { serverError = error })
   const url = 'http://127.0.0.1:4178'
   let ready = false
   for (let i = 0; i < 60; i++) {
+    if (serverError) throw serverError
+    if (server.exitCode !== null) throw new Error(`preview exited before readiness (code ${server.exitCode})`)
     try { if ((await fetch(url)).ok) { ready = true; break } } catch {}
     await delay(250)
   }
   if (!ready) throw new Error('render check: preview did not become ready at 127.0.0.1:4178')
   browser = await chromium.launch({ headless: true })
-  const page = await browser.newPage()
-  const errors = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
-  await page.goto(`${url}/starter`)
-  try { await page.locator('[data-step-count]').waitFor({ timeout: 10000 }) } catch {
-    throw new Error(`render check: route /starter did not mount a presentation${errors.length ? `: ${errors.join('; ')}` : ''}`)
+  const landing = await browser.newPage()
+  await landing.goto(url)
+  const routes = await landing.locator('main li a').evaluateAll((links) => links.map((link) => link.getAttribute('href')).filter(Boolean))
+  await landing.close()
+  if (!routes.length) throw new Error('render check: landing page has no registered presentation routes')
+
+  for (const route of routes) {
+    const page = await browser.newPage()
+    const errors = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
+    try {
+      await page.goto(new URL(route, url).href)
+      try { await page.locator('[data-step-count]').waitFor({ timeout: 10000 }) } catch {
+        throw new Error(`route ${route} did not mount a presentation${errors.length ? `: ${errors.join('; ')}` : ''}`)
+      }
+      const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
+      if (!Number.isInteger(count) || count < 1) throw new Error(`route ${route} reports invalid step count ${count}`)
+      for (let index = 0; index < count; index++) {
+        await page.waitForFunction((expected) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === expected, index)
+        if (errors.length) throw new Error(`step ${index}: ${errors.join('; ')}`)
+        if (index + 1 < count) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(800) }
+      }
+      console.log(`PASS: rendered ${count} step(s) at ${route}`)
+    } catch (error) {
+      throw new Error(`render check failed for ${route}: ${error.message}`)
+    } finally {
+      await page.close()
+    }
   }
-  const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
-  for (let index = 0; index < count; index++) {
-    await page.waitForFunction((expected) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === expected, index)
-    if (errors.length) throw new Error(`render check at step ${index}: ${errors.join('; ')}`)
-    if (index + 1 < count) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(800) }
-  }
-  console.log(`PASS: build and rendered ${count} step(s) on 127.0.0.1`)
+  console.log(`PASS: build and rendered ${routes.length} registered presentation(s) on 127.0.0.1`)
 } catch (error) {
   console.error(`FAIL: ${error.message}`)
   process.exitCode = 1
 } finally {
   await browser?.close()
-  server?.kill('SIGTERM')
+  if (server && serverExited) await stop(server, serverExited)
 }

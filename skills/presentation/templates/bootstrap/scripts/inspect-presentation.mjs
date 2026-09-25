@@ -9,19 +9,28 @@ const slug = process.argv[2]
 if (!slug) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const port = 4179
-const server = spawn('npm', ['--prefix', project, 'run', 'preview', '--', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'ignore', shell: process.platform === 'win32' })
+const vite = path.join(project, 'node_modules/vite/bin/vite.js')
+const server = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: project, stdio: 'ignore' })
+let serverError
+const serverExited = new Promise((resolve) => server.once('exit', (code, signal) => resolve({ code, signal })))
+server.once('error', (error) => { serverError = error })
 let browser
 try {
   const url = `http://127.0.0.1:${port}`
   let ready = false
-  for (let i = 0; i < 60; i++) { try { if ((await fetch(url)).ok) { ready = true; break } } catch {} await delay(250) }
+  for (let i = 0; i < 60; i++) {
+    if (serverError) throw serverError
+    if (server.exitCode !== null) throw new Error(`Preview exited before readiness (code ${server.exitCode})`)
+    try { if ((await fetch(url)).ok) { ready = true; break } } catch {}
+    await delay(250)
+  }
   if (!ready) throw new Error('Preview did not become ready on 127.0.0.1')
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   await page.goto(`${url}/${encodeURIComponent(slug)}`)
   await page.locator('[data-step-count]').waitFor()
   const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
-  const output = path.resolve('artifacts/presentation-inspection', slug)
+  const output = path.join(project, 'artifacts/presentation-inspection', slug)
   await mkdir(output, { recursive: true })
   for (let index = 0; index < count; index++) {
     await page.waitForFunction((expected) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === expected, index)
@@ -48,4 +57,11 @@ try {
   }
   console.log(`Captured ${count} settled step screenshots in ${output}`)
 } catch (error) { console.error(`Inspection failed: ${error.message}`); process.exitCode = 1 }
-finally { await browser?.close(); server.kill('SIGTERM') }
+finally {
+  await browser?.close()
+  if (server.exitCode === null && server.signalCode === null) {
+    server.kill('SIGTERM')
+    const stopped = await Promise.race([serverExited.then(() => true), delay(3000).then(() => false)])
+    if (!stopped) { server.kill('SIGKILL'); await serverExited }
+  }
+}

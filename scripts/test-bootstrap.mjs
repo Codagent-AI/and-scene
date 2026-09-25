@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { cp, mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -16,6 +16,13 @@ await mkdir(outside)
 function run(command, args, cwd, label) {
   const result = spawnSync(command, args, { cwd, encoding: 'utf8', stdio: 'inherit', env: process.env })
   assert.equal(result.status, 0, `${label} failed with status ${result.status}`)
+}
+function runCapture(command, args, cwd, label) {
+  const result = spawnSync(command, args, { cwd, encoding: 'utf8', env: process.env })
+  process.stdout.write(result.stdout ?? '')
+  process.stderr.write(result.stderr ?? '')
+  assert.equal(result.status, 0, `${label} failed with status ${result.status}`)
+  return result.stdout ?? ''
 }
 
 async function files(dir, prefix = '') {
@@ -44,11 +51,17 @@ try {
     assert.doesNotMatch(source, /#[0-9a-f]{3,8}\b|\b(font-family|box-shadow|border|background-color|--[\w-]+)\s*:/i, `visual default in kit file ${file}`)
   }
   await readFile(path.join(app, 'package-lock.json'))
+  const registryPath = path.join(app, 'src/presentations/index.ts')
+  const registry = await readFile(registryPath, 'utf8')
+  await writeFile(registryPath, registry.replace("  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },", "  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },\n  { slug: 'second', title: 'Second presentation', load: () => import('./starter/Talk') },"))
   run('npm', ['ci'], app, 'bootstrap dependency install')
   // Invoke the project scripts while the caller's cwd is outside the materialized app.
   run('npm', ['--prefix', app, 'run', 'lint'], outside, 'bootstrap lint')
   run('npm', ['--prefix', app, 'run', 'build'], outside, 'bootstrap build')
-  run('node', [path.join(app, 'scripts/verify.mjs')], outside, 'bootstrap production route verification')
+  const verifyOutput = runCapture('node', [path.join(app, 'scripts/verify.mjs')], outside, 'bootstrap production route verification')
+  assert.match(verifyOutput, /rendered 2 registered presentation/)
+  run('npm', ['--prefix', app, 'run', 'inspect', '--', 'starter'], outside, 'bootstrap screenshot helper')
+  assert.ok((await stat(path.join(app, 'artifacts/presentation-inspection/starter/step-01.png'))).size > 0, 'screenshot helper did not write its step image')
   console.log('PASS: materialized bootstrap dependencies, anchors, kit parity, style boundary, build, and route render')
 } finally {
   await rm(temp, { recursive: true, force: true })

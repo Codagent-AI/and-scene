@@ -1,11 +1,15 @@
 ---
 name: presentation
-description: Create or modify browser presentations as one evolving, navigable scene with a reusable React scene kit.
+description: Creates and modifies evolving React browser presentations. Activates for requests to create a browser presentation, build an interactive scene, or edit an existing presentation.
 ---
 
 # Presentation
 
 Create a routed browser presentation from a topic, or make a scoped change to an existing presentation. Presentations use ordered named states that evolve one diagram: entities keep stable IDs and positions while new entities enter and removed entities exit.
+
+## Out of Scope
+
+This skill creates browser-based scene presentations. It does not create PowerPoint files, PDF decks, or video exports; use a document or media workflow for those deliverables.
 
 ## Gather the request
 
@@ -44,7 +48,7 @@ Represent continuing things with stable entity IDs and compose the scene from th
 From the app root:
 
 1. Run `npm run build`; resolve type and build errors.
-2. Run the project's render verification (`npm run verify` when available). At minimum open the new route in a real browser and confirm its first step renders without console or runtime errors. Visit each step when the verification command supports it.
+2. Run the project's render verification (`npm run verify` when available). Confirm that the created or modified route is included and that its first step renders without console or runtime errors. Visit each step when the verification command supports it.
 3. Use the project-local screenshot helper (`npm run inspect -- <slug>` when available). Otherwise write any temporary browser helper under the project root. Wait for transitions to settle, then inspect the first, last, and densest or most important steps. Check a narrow viewport when the design may be responsive-sensitive.
 4. Review visual warnings and screenshots. Fix accidental collisions, unreadable content, indistinct active navigation, and poor attribution. Mark overlap as intentional only when it is readable and compositionally deliberate. Re-run affected checks after fixes.
 

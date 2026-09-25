@@ -31,7 +31,7 @@ If all are present, preserve them and continue. If only some are present, add on
 
 The bootstrap is a complete snapshot at `templates/bootstrap/`; copy it from the skill-relative path. Its `src/presentation-kit/` is kept byte-aligned with this repository's canonical kit. For partial scaffolds, use the relevant bootstrap files as references and merge only missing anchors.
 
-Install the dependencies the app needs even if you believe some are already installed: React, React DOM, Vite, React plugin, TypeScript and React/Node types, Motion, Lucide React, ESLint and its configured plugins, and Playwright. Install using the host package manager/lockfile where appropriate. Do not add Tailwind or another styling framework unless already used by the host or explicitly requested.
+Install the dependencies the app needs even if you believe some are already installed: React, React DOM, Vite, React plugin, TypeScript and React/Node types, Motion, Lucide React, ESLint and its configured plugins, and Playwright. Install using the host package manager/lockfile where appropriate. The Playwright package does not bundle a browser, so also run `npx playwright install chromium` (add `--with-deps` when the host lacks Chromium's system libraries) before any render check. Do not add Tailwind or another styling framework unless already used by the host or explicitly requested.
 
 ## 3. Create or update
 

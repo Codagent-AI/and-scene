@@ -58,6 +58,22 @@ describe('production verification failure contract', () => {
     }
   }, 180_000)
 
+  it('reports scene content colliding with presentation chrome', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'and-scene-inspect-chrome-'))
+    try {
+      await cp(root, directory, { recursive: true, filter: (source) => !['.git', 'node_modules', 'dist', 'artifacts'].includes(path.basename(source)) })
+      await symlink(path.join(root, 'node_modules'), path.join(directory, 'node_modules'), 'dir')
+      const cssPath = path.join(directory, 'src/presentations/how-to-make-a-presentation/style.css')
+      await writeFile(cssPath, `${await readFile(cssPath, 'utf8')}\n.presentation__attribution-slot{inset:0}[data-presentation-attribution]{display:block;width:100%;height:100%}\n`)
+      expect((await run(directory, 'build')).code).toBe(0)
+      const result = await run(directory, 'inspect')
+      expect(result.code).toBe(0)
+      expect(result.output).toMatch(/step 1: overlapping visible nodes: (YOU \/ made by and-scene|made by and-scene \/ YOU)/)
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  }, 180_000)
+
   it('rejects a build fault with a build phase failure', async () => {
     const result = await isolatedFault('build-fault', editFile('src/presentations/how-to-make-a-presentation/Talk.tsx', (source) => `${source}\nthis is not valid TypeScript`))
     expect(result.code).not.toBe(0)

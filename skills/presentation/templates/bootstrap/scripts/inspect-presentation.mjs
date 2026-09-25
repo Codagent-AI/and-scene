@@ -9,6 +9,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const host = '127.0.0.1'
 const port = Number(process.env.PORT || 4173)
 const route = process.argv[2] || process.env.PRESENTATION_ROUTE || '/'
+const pathname = `/${route.replace(/^\/+/, '')}`
 const output = resolve(root, process.env.SCREENSHOT_DIR || 'artifacts/presentation-inspection')
 const origin = `http://${host}:${port}`
 const preview = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--host', host, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit' })
@@ -27,10 +28,10 @@ try {
   const errors = []
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto(`${origin}${route}`, { waitUntil: 'networkidle' })
+  await page.goto(new URL(pathname, origin).href, { waitUntil: 'networkidle' })
   const count = Number(await page.locator('[data-step-count]').first().getAttribute('data-step-count')) || 1
   for (let index = 0; index < count; index++) {
-    await page.waitForTimeout(Number(process.env.INSPECT_SETTLE_MS || 700))
+    await page.waitForTimeout(Number(process.env.INSPECT_SETTLE_MS || 1100))
     const actual = Number(await page.locator('[data-step-index]').first().getAttribute('data-step-index')) || 0
     if (actual !== index) throw new Error(`expected step ${index}, found ${actual}`)
     const path = `${output}/step-${String(index + 1).padStart(2, '0')}.png`

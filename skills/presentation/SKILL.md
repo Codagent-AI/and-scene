@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify browser presentations as one evolving, navigable scene. Use when a user asks for a presentation, talk, or changes to an existing presentation.
+description: Creates or modifies browser presentations as one evolving, navigable scene. Applies when users request a browser presentation, talk, or changes to an existing scene-based presentation.
 ---
 
 # Presentation skill
@@ -8,6 +8,14 @@ description: Create or modify browser presentations as one evolving, navigable s
 Create a browser-based presentation as one diagrammatic scene that changes
 through named steps. The scene kit owns behavior and geometry; each presentation
 owns its visual design. The generated artifact is called a **presentation**.
+
+## Scope
+
+This skill creates browser-based presentations; it does not create or convert
+native PowerPoint files, PDF decks, or other slide-deck formats. For those
+requests, direct the user to the appropriate slide-generation, document, or
+conversion workflow instead of presenting a browser scene as an equivalent
+file.
 
 ## 1. Understand the request
 

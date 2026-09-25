@@ -32,8 +32,10 @@ try {
   const errors = []
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto(`${origin}${route}`, { waitUntil: 'networkidle' })
-  if (await page.locator('[data-presentation-landing], [data-presentation-stage]').count() === 0) throw new Error(`route ${route} rendered neither landing nor presentation`)
+  const pathname = new URL(route, origin).pathname
+  await page.goto(new URL(pathname, origin).href, { waitUntil: 'networkidle' })
+  const selector = pathname === '/' ? '[data-presentation-landing]' : '[data-presentation-stage]'
+  await page.locator(selector).first().waitFor({ state: 'visible' })
   if (errors.length) throw new Error(`browser errors on ${route}: ${errors.join('; ')}`)
   console.log(`PASS: build and browser render ${origin}${route}`)
 } catch (error) {

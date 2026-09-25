@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, readdir, cp, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, cp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest'
 
 const execFileAsync = promisify(execFile)
 const repository = process.cwd()
-const bootstrap = join(repository, 'skills/presentation/templates/bootstrap')
+const skillDirectory = join(repository, 'skills/presentation')
+const bootstrap = join(skillDirectory, 'templates/bootstrap')
 const canonicalKit = join(repository, 'src/presentation-kit')
 
 async function filesUnder(root: string): Promise<string[]> {
@@ -44,7 +45,14 @@ describe('INT-001 materialized bootstrap', () => {
       const kitSources = await Promise.all(canonicalFiles.filter((file) => /\.(tsx?|css)$/.test(file)).map((file) => readFile(join(templateKit, file), 'utf8')))
       expect(kitSources.join('\n')).not.toMatch(/tailwind|#[0-9a-f]{3,8}\b|font-family|box-shadow|border-radius|--(?:color|space|font)-/i)
 
+      const skill = await readFile(join(skillDirectory, 'SKILL.md'), 'utf8')
+      expect(skill).toContain('relative to this `SKILL.md`')
+      const templateReferences = new Set(skill.match(/templates\/[\w-]+\//g))
+      expect([...templateReferences].sort()).toEqual(['templates/bootstrap/', 'templates/presentation/', 'templates/step/'])
+      for (const reference of templateReferences) expect((await stat(join(skillDirectory, reference))).isDirectory()).toBe(true)
+
       await execFileAsync('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: project, timeout: 180_000 })
+      await execFileAsync('npm', ['--prefix', project, 'run', 'lint'], { cwd: outside, timeout: 180_000 })
       await execFileAsync('npm', ['--prefix', project, 'run', 'verify'], { cwd: outside, timeout: 180_000 })
     } finally {
       await rm(scratch, { recursive: true, force: true })

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 export function usePresentationNav(count: number, initialMode: 'browse' | 'present' = 'browse') {
-  const [index, setIndex] = useState(0)
+  const [requestedIndex, setRequestedIndex] = useState(0)
   const [mode, setMode] = useState(initialMode)
   const start = useRef<{ x: number; y: number } | null>(null)
-  const goTo = useCallback((next: number) => setIndex(Math.max(0, Math.min(count - 1, next))), [count])
+  const index = Math.max(0, Math.min(count - 1, requestedIndex))
+  const goTo = useCallback((next: number) => setRequestedIndex(Math.max(0, Math.min(count - 1, next))), [count])
   const next = useCallback(() => goTo(index + 1), [goTo, index])
   const prev = useCallback(() => goTo(index - 1), [goTo, index])
   useEffect(() => {

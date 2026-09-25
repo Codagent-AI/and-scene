@@ -57,4 +57,26 @@ describe('Presentation', () => {
     expect(document.querySelector('[data-presentation-title]')).not.toBeNull()
     expect(document.querySelector('[data-presentation-toc-item][data-presentation-active="true"]')).not.toBeNull()
   })
+
+  it('keeps the TOC era active while moving within that era', () => {
+    const sameEra: Step<Payload>[] = [
+      steps[0],
+      steps[1],
+      { ...steps[1], id: 'three', title: 'Third', payload: { label: 'C' } },
+    ]
+    render(<Presentation title="Example" steps={sameEra} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 3' }))
+    const tocItems = document.querySelectorAll('[data-presentation-toc-item]')
+    expect(tocItems[1].getAttribute('aria-current')).toBe('step')
+    expect(tocItems[1].getAttribute('data-presentation-active')).toBe('true')
+  })
+
+  it('keeps a valid step and chrome when the steps list shrinks', () => {
+    const { rerender } = render(<Presentation title="Example" steps={steps} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 2' }))
+    rerender(<Presentation title="Example" steps={[steps[0]]} />)
+    expect(screen.getByRole('main').getAttribute('data-step-index')).toBe('0')
+    expect(screen.getByText('First caption')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Next step' })).toBeTruthy()
+  })
 })

@@ -16,7 +16,7 @@ export function Presentation<T>({ steps, title, initialMode = 'browse', attribut
   return <main className={className} style={{ position: 'fixed', inset: 0, overflow: 'hidden', ...style }} data-presentation-root data-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.index}>
     <Header title={title} mode={nav.mode} />
     <Stage step={step} index={nav.index} total={steps.length} mode={nav.mode} width={designWidth} height={designHeight} touchHandlers={nav.touchHandlers} />
-    {nav.mode === 'browse' && <Toc eras={eras} index={nav.index} onSelect={nav.goTo} />}
+    {nav.mode === 'browse' && <Toc eras={eras} activeEra={step.era} onSelect={nav.goTo} />}
     <Footer title={step.title} caption={step.caption} mode={nav.mode} index={nav.index} count={steps.length} goTo={nav.goTo} prev={nav.prev} next={nav.next} attribution={credit} />
     <button type="button" data-presentation-mode-toggle aria-label={`Switch to ${nav.mode === 'browse' ? 'present' : 'browse'} mode`} style={{ position: 'absolute', zIndex: 3, right: 24, top: 24 }} onClick={() => nav.setMode(nav.mode === 'browse' ? 'present' : 'browse')}>{nav.mode === 'browse' ? 'Present' : 'Browse'}</button>
   </main>

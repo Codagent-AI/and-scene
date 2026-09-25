@@ -88,17 +88,32 @@ describe('Presentation', () => {
     expect(document.querySelector('[data-presentation-toc-item][data-presentation-active="true"]')).not.toBeNull()
   })
 
-  it('shows the browse table of contents only on wide viewports', () => {
-    const wide = window.innerWidth
+  it('shows the browse table of contents only when it fits beside the scaled canvas', () => {
+    const { innerWidth: width, innerHeight: height } = window
+    const rect = HTMLElement.prototype.getBoundingClientRect
+    const resize = (nextWidth: number, nextHeight: number) => act(() => {
+      window.innerWidth = nextWidth
+      window.innerHeight = nextHeight
+      window.dispatchEvent(new Event('resize'))
+    })
+    HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+      return this.hasAttribute('data-presentation-toc') ? DOMRect.fromRect({ x: 24, y: 0, width: 122, height: 200 }) : rect.call(this)
+    }
     try {
-      window.innerWidth = 390
+      window.innerWidth = 1024
+      window.innerHeight = 768
       render(<Presentation title="Example" steps={steps} />)
+      const toc = () => screen.queryByRole('navigation', { name: 'Table of contents' })
       expect(screen.getByText('First caption')).toBeTruthy()
-      expect(screen.queryByRole('navigation', { name: 'Table of contents' })).toBeNull()
-      act(() => { window.innerWidth = wide; window.dispatchEvent(new Event('resize')) })
-      expect(screen.getByRole('navigation', { name: 'Table of contents' })).toBeTruthy()
+      expect(toc()).toBeNull()
+      resize(1440, 900)
+      expect(toc()).toBeTruthy()
+      resize(390, 844)
+      expect(toc()).toBeNull()
     } finally {
-      window.innerWidth = wide
+      HTMLElement.prototype.getBoundingClientRect = rect
+      window.innerWidth = width
+      window.innerHeight = height
     }
   })
 

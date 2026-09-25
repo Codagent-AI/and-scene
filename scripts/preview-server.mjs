@@ -11,8 +11,9 @@ export async function startPreview(port) {
   ], { stdio: ['ignore', 'pipe', 'pipe'] })
 
   let output = ''
-  // CI/FORCE_COLOR make vite colorize its banner, splitting the URL with ANSI codes.
-  const append = (chunk) => { output += chunk.toString().replace(ANSI_PATTERN, '') }
+  // CI/FORCE_COLOR make vite colorize its banner, splitting the URL with ANSI codes. Strip after
+  // concatenating so a sequence split across stdout chunks is still removed.
+  const append = (chunk) => { output = (output + chunk.toString()).replace(ANSI_PATTERN, '') }
   child.stderr.on('data', append)
 
   const stop = async () => {

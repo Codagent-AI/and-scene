@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -24,7 +24,7 @@ describe('presentation bootstrap snapshot (INT-001)', () => {
     const caller = join(temp, 'outside-caller')
     try {
       await cp(bootstrap, app, { recursive: true })
-      await import('node:fs/promises').then(({ mkdir }) => mkdir(caller))
+      await mkdir(caller)
       const pkg = JSON.parse(await readFile(join(app, 'package.json'), 'utf8')) as { dependencies: Record<string, string>; devDependencies: Record<string, string>; scripts: Record<string, string> }
       for (const dependency of ['react', 'react-dom', 'motion', 'lucide-react']) expect(pkg.dependencies[dependency]).toBeTruthy()
       for (const dependency of ['vite', '@vitejs/plugin-react', 'typescript', '@types/react', '@types/react-dom', '@types/node', 'eslint', '@playwright/test']) expect(pkg.devDependencies[dependency]).toBeTruthy()
@@ -50,6 +50,20 @@ describe('presentation bootstrap snapshot (INT-001)', () => {
       await exec('npm', ['run', 'lint'], { cwd: app, timeout: 120_000, maxBuffer: 4 * 1024 * 1024 })
       // Invoke the project-local helper by absolute path from a different cwd.
       await exec('node', [join(app, 'scripts/verify.mjs')], { cwd: caller, timeout: 120_000, maxBuffer: 4 * 1024 * 1024 })
+
+      // Default verification must render registered presentations, not just the landing page.
+      await mkdir(join(app, 'src/presentations/faulty'))
+      await writeFile(join(app, 'src/presentations/faulty/Talk.tsx'), [
+        "import { Presentation } from '../../presentation-kit/Presentation'",
+        "import type { Step } from '../../presentation-kit/types'",
+        "function Scene() { console.error('seeded scene fault'); return <div /> }",
+        "const steps: Step<null>[] = [{ id: 'one', era: 'one', title: 'One', caption: 'One', payload: null, scene: Scene }]",
+        "export default function Talk() { return <Presentation steps={steps} title=\"Faulty\" /> }",
+      ].join('\n'))
+      const registry = join(app, 'src/presentations/index.ts')
+      await writeFile(registry, (await readFile(registry, 'utf8')).replace('PresentationEntry[] = []', "PresentationEntry[] = [{ slug: 'faulty', title: 'Faulty', load: () => import('./faulty/Talk') }]"))
+      const failure = await exec('node', [join(app, 'scripts/verify.mjs')], { cwd: caller, timeout: 120_000, maxBuffer: 4 * 1024 * 1024 }).then(() => null, (error: { stdout?: string; stderr?: string }) => `${error.stdout ?? ''}${error.stderr ?? ''}`)
+      expect(failure ?? 'verify passed').toContain('browser errors on /faulty: seeded scene fault')
     } finally {
       await rm(temp, { recursive: true, force: true })
     }

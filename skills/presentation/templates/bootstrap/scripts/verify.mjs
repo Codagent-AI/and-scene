@@ -7,7 +7,7 @@ import { chromium } from '@playwright/test'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const host = '127.0.0.1'
 const port = Number(process.env.PORT || 4173)
-const route = process.env.PRESENTATION_ROUTE || '/'
+const route = process.env.PRESENTATION_ROUTE
 const origin = `http://${host}:${port}`
 const run = (command, args, options = {}) => new Promise((resolve, reject) => {
   const child = spawn(command, args, { cwd: root, stdio: 'inherit', ...options })
@@ -32,12 +32,22 @@ try {
   const errors = []
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', (error) => errors.push(error.message))
-  const pathname = new URL(route, origin).pathname
-  await page.goto(new URL(pathname, origin).href, { waitUntil: 'networkidle' })
-  const selector = pathname === '/' ? '[data-presentation-landing]' : '[data-presentation-stage]'
-  await page.locator(selector).first().waitFor({ state: 'visible' })
-  if (errors.length) throw new Error(`browser errors on ${route}: ${errors.join('; ')}`)
-  console.log(`PASS: build and browser render ${origin}${route}`)
+  const checked = []
+  const check = async (pathname) => {
+    errors.length = 0
+    await page.goto(new URL(pathname, origin).href, { waitUntil: 'networkidle' })
+    await page.locator(pathname === '/' ? '[data-presentation-landing]' : '[data-presentation-stage]').first().waitFor({ state: 'visible' })
+    if (errors.length) throw new Error(`browser errors on ${pathname}: ${errors.join('; ')}`)
+    checked.push(pathname)
+  }
+  if (route) await check(new URL(route, origin).pathname)
+  else {
+    // Without an explicit route, check the landing page and every presentation it registers.
+    await check('/')
+    const registered = await page.locator('[data-presentation-landing] a[href^="/"]').evaluateAll((links) => links.map((link) => link.getAttribute('href')))
+    for (const pathname of registered) await check(pathname)
+  }
+  console.log(`PASS: build and browser render ${origin}: ${checked.join(', ')}`)
 } catch (error) {
   console.error(`VERIFY FAILED: ${error.message}`)
   process.exitCode = 1

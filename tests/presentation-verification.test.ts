@@ -70,6 +70,18 @@ describe('production verification failure contract', () => {
     expect(result.output).toContain('step 1: You have a topic')
   }, 120_000)
 
+  it('rejects an out-of-order canonical outline before browser startup', async () => {
+    const first = "['the ask','You have a topic','It starts with you, a topic, and mild overconfidence.']"
+    const second = "['the ask','The skill interviews you','One question at a time: the topic, the look, then each beat of the story.']"
+    const result = await isolatedFault('order-fault', editFile('src/presentations/how-to-make-a-presentation/steps/index.tsx', (source) => {
+      expect(source).toContain(`${first},${second}`)
+      return source.replace(`${first},${second}`, `${second},${first}`)
+    }))
+    expect(result.code).not.toBe(0)
+    expect(result.output).toContain('FAIL [sample validation]')
+    expect(result.output).toContain('step 2: The skill interviews you')
+  }, 120_000)
+
   it('names the step that emits a browser error', async () => {
     const result = await isolatedFault('runtime-fault', editFile('src/presentations/how-to-make-a-presentation/steps/shared.tsx', (source) => source.replace('return <SceneLayer', 'throw new Error("injected runtime fault")\n return <SceneLayer')))
     expect(result.code).not.toBe(0)

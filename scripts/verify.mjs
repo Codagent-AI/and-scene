@@ -11,7 +11,7 @@ let phase='sample validation', preview, browser
 try {
  const registry=await readFile('src/presentations/index.ts','utf8'); const talk=await readFile(`src/presentations/${slug}/steps/index.tsx`,'utf8')
  if(!registry.includes(`slug: '${slug}'`)||!registry.includes(`import('./${slug}/Talk')`)) throw Error('Reference sample is missing or not registered')
- for(let i=0;i<titles.length;i++) if(!talk.includes(titles[i])||!talk.includes(captions[i])) throw Error(`Reference sample outline mismatch at step ${i+1}: ${titles[i]}`)
+ let cursor=0; for(let i=0;i<titles.length;i++){const title=talk.indexOf(titles[i],cursor),caption=title<0?-1:talk.indexOf(captions[i],title);if(caption<0)throw Error(`Reference sample outline missing or out of order at step ${i+1}: ${titles[i]}`);cursor=caption+captions[i].length}
  phase='build'; await run('npm',['run','build'])
  phase='preview startup'; preview=await startPreview(4179)
  phase='browser launch'; browser=await chromium.launch({headless:true})

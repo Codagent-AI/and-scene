@@ -1,10 +1,12 @@
 import { cp, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { spawn } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
+import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 
 const root = process.cwd()
+const execFileAsync = promisify(execFile)
 const run = (cwd: string, script = 'verify') => new Promise<{ code: number | null; output: string }>((resolve, reject) => {
   const child = spawn('npm', ['run', script, ...(script === 'inspect' ? ['--', 'how-to-make-a-presentation'] : [])], { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
   let output = ''
@@ -62,6 +64,36 @@ describe('production verification failure contract', () => {
   it('reports scene content colliding with presentation chrome', async () => {
     const result = await isolatedCopy('inspect-chrome', editFile(`${sample}/style.css`, (css) => `${css}\n.presentation__attribution-slot{inset:0}[data-presentation-attribution]{display:block;width:100%;height:100%}\n`), buildAndInspect)
     expect(result.output).toMatch(/step 1: overlapping visible nodes: (YOU \/ made by and-scene|made by and-scene \/ YOU)/)
+  }, 180_000)
+
+  it('keeps the reference header title clear of its step marker at a narrow viewport', async () => {
+    const collisions = await isolatedCopy('narrow-header', async () => {}, async (directory) => {
+      expect((await run(directory, 'build')).code).toBe(0)
+      const script = `const { chromium } = await import('playwright')
+const { startPreview } = await import(${JSON.stringify(path.join(directory, 'scripts/preview-server.mjs'))})
+const preview = await startPreview(4188)
+const browser = await chromium.launch()
+const collisions = []
+try {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+  await page.goto('http://127.0.0.1:4188/${sample.split('/').pop()}', { waitUntil: 'networkidle' })
+  const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
+  for (let index = 0; index < count; index++) {
+    await page.waitForFunction((i) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(i), index)
+    await page.waitForTimeout(300)
+    const overlaps = await page.evaluate(() => {
+      const [a, b] = ['[data-presentation-title]', '[data-presentation-marker]'].map((selector) => document.querySelector(selector).getBoundingClientRect())
+      return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+    })
+    if (overlaps) collisions.push(index + 1)
+    await page.keyboard.press('ArrowRight')
+  }
+} finally { await browser.close(); await preview.stop() }
+console.log(JSON.stringify(collisions))`
+      const { stdout } = await execFileAsync(process.execPath, ['--input-type=module', '-e', script], { cwd: directory, timeout: 90_000 })
+      return JSON.parse(stdout.trim().split('\n').pop() ?? '[]')
+    })
+    expect(collisions).toEqual([])
   }, 180_000)
 
   it('rejects a build fault with a build phase failure', async () => {

@@ -28,6 +28,8 @@ const departureSteps: Step<Departure>[] = [
 
 describe('Presentation', () => {
   it('animates a departing entity out of a persistent grouped scene before removing it', async () => {
+    // Motion captures requestAnimationFrame at import but reads time from performance.now, so faking
+    // only the clock keeps real frames running while the exit cannot finish until time is advanced.
     vi.useFakeTimers({ toFake: ['performance', 'Date'] })
     try {
       const { container } = render(<Presentation<Departure> title="Example" steps={departureSteps} />)

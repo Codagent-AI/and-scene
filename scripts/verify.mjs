@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { chromium } from 'playwright'
 import { preview as startPreview } from 'vite'
+import { beats } from '../src/presentations/how-to-make-a-presentation/beats.mjs'
 import { canonicalSteps, referenceSlug, validateReferenceContract } from './verification-contract.mjs'
 
 const base = 'http://127.0.0.1:4173'
@@ -11,8 +12,7 @@ let activeStep = 'preflight'
 
 try {
   const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-  const stepSource = await readFile(new URL('../src/presentations/how-to-make-a-presentation/steps/index.tsx', import.meta.url), 'utf8')
-  validateReferenceContract(registry, stepSource)
+  validateReferenceContract(registry, beats)
   console.log('PASS: canonical reference sample contract')
 
   const build = spawn('npm', ['run', 'build'], { stdio: 'inherit', shell: process.platform === 'win32' })
@@ -42,6 +42,9 @@ try {
       throw new Error(`Render transition failed at ${activeStep}: expected index ${index}`)
     }
     await page.waitForTimeout(800)
+    const [visibleTitle, visibleCaption] = await page.locator('[data-presentation-narration]').evaluate((element) => [element.querySelector('h1')?.textContent?.trim(), element.querySelector('p')?.textContent?.trim()])
+    const [, expectedTitle, expectedCaption] = canonicalSteps[index]
+    if (visibleTitle !== expectedTitle || visibleCaption !== expectedCaption) throw new Error(`Content verification failed at ${activeStep}: expected "${expectedTitle}" with its canonical caption`)
     const observed = Number(await page.locator('[data-step-index]').getAttribute('data-step-index'))
     if (observed !== index) throw new Error(`Render transition failed at ${activeStep}: expected index ${index}, observed ${observed}`)
     if (errors.length) throw new Error(`Browser render failed at ${activeStep}: ${errors.join('; ')}`)

@@ -16,11 +16,15 @@ export function inspectVisualComposition() {
     if (ra.width && ra.height && rb.width && rb.height && ra.left < rb.right && ra.right > rb.left && ra.top < rb.bottom && ra.bottom > rb.top && !allowed(a) && !allowed(b)) overlaps.push(`${describe(a)} overlaps ${describe(b)}`)
   }
   const activeControls = [...document.querySelectorAll('[data-presentation-progress] [data-presentation-active="true"], [data-presentation-toc] [data-presentation-active="true"]')]
-  const indistinct = activeControls.filter((active) => {
+  const indistinct = []
+  for (const nav of document.querySelectorAll('[data-presentation-progress], [data-presentation-toc]')) {
+    if (!nav.querySelector('[data-presentation-active="true"]')) indistinct.push(`${describe(nav)}: missing active control`)
+  }
+  indistinct.push(...activeControls.filter((active) => {
     const inactive = active.parentElement?.querySelector('[data-presentation-active="false"]')
     const a = getComputedStyle(active), b = inactive && getComputedStyle(inactive)
     return !b || (a.color === b.color && a.backgroundColor === b.backgroundColor && a.opacity === b.opacity && a.fontWeight === b.fontWeight && a.textDecorationLine === b.textDecorationLine && a.outlineStyle === b.outlineStyle)
-  }).map(describe)
+  }).map(describe))
   const attribution = document.querySelector('[data-presentation-attribution]')
   const style = attribution && getComputedStyle(attribution)
   const browserDefault = attribution instanceof HTMLAnchorElement && (style?.color === 'rgb(0, 0, 238)' || style?.textDecorationLine.includes('underline'))

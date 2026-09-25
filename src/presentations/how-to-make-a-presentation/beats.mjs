@@ -1,6 +1,4 @@
-export const referenceSlug = 'how-to-make-a-presentation'
-export const referenceTitle = 'How to Use This Skill to Make a Presentation'
-export const canonicalSteps = [
+export const beats = [
   ['the ask', 'You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
   ['the ask', 'The skill interviews you', 'One question at a time: the topic, the look, then each beat of the story.'],
   ['the gathering', 'Answers become steps', 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.'],
@@ -11,12 +9,3 @@ export const canonicalSteps = [
   ['the loop', 'Changed your mind? Loop it.', 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.'],
   ['the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ]
-
-export function validateReferenceContract(registrySource, actualBeats) {
-  if (!registrySource.includes(`slug: '${referenceSlug}'`) || !registrySource.includes(`import('./how-to-make-a-presentation/Talk')`)) {
-    throw new Error(`Sample registration check failed: ${referenceSlug} is not registered to its presentation route`)
-  }
-  if (JSON.stringify(actualBeats) !== JSON.stringify(canonicalSteps)) {
-    throw new Error('Sample contract mismatch: registered reference beats differ from the canonical order')
-  }
-}

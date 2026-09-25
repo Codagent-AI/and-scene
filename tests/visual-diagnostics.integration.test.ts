@@ -16,12 +16,14 @@ describe('visual inspection diagnostics', () => {
         <div data-presentation-stage><div data-presentation-scene><span id="scene-copy" style="position:absolute;left:5px;top:5px">Scene text</span></div></div>
         <footer data-presentation-footer>
           <nav data-presentation-progress><button data-presentation-active="true">•</button><button data-presentation-active="false">•</button></nav>
+          <nav data-presentation-toc class="presentation-toc"><button data-presentation-active="false">Section</button></nav>
           <a data-presentation-attribution href="#">made by and-scene</a>
         </footer>
       `)
       const first = await page.evaluate(inspectVisualComposition)
       expect(first.overlaps.some((warning: string) => warning.includes('scene-copy'))).toBe(true)
       expect(first.indistinct).toContain('button')
+      expect(first.indistinct).toContain('nav.presentation-toc: missing active control')
       expect(first.polishedAttribution).toBe(false)
 
       await page.locator('#scene-copy').evaluate((element) => element.setAttribute('data-presentation-allow-overlap', ''))

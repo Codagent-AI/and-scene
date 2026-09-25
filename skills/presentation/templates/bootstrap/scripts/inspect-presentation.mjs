@@ -4,8 +4,9 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { startPreview, stopPreview } from './preview.mjs'
 
-// Covers the kit's layout morph plus the delayed newcomer fade (0.62s + 0.35s).
-const SETTLE_MS = 1000
+// Covers a scene swap: the outgoing scene's exit (0.6s), then the incoming
+// scene's delayed newcomer fade (0.62s + 0.35s), with headroom.
+const SETTLE_MS = 1800
 const CHROME_HOOKS = ['data-presentation-caption', 'data-presentation-title', 'data-presentation-attribution', 'data-presentation-progress', 'data-presentation-toc']
 
 const slug = process.argv[2]

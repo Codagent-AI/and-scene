@@ -23,7 +23,7 @@ export function Scene({ index }: { index: number }) {
         <small>{number} / STEP</small><strong>{title}</strong><span>{detail}</span>
         <em>title · caption · visual</em>
       </Box>)}
-      {count >= 2 && cards.slice(0, count - 1).map(([, title], i) => <SymbolChip key={`morph-${i}`} className="entity morph-link" style={{ left: 136 + i * 138, top: 154 }} data-presentation-morph-link="true" data-morph-label={`Morph link between consecutive steps ${title}`}>↝</SymbolChip>)}
+      {count >= 2 && cards.slice(0, count - 1).map(([, title], i) => <SymbolChip key={`morph-${i}`} className="entity morph-link" style={{ left: 138 + i * 138, top: 154 }} data-presentation-morph-link="true" data-morph-label={`Morph link between consecutive steps ${title}`}>↝</SymbolChip>)}
     </SceneLayer>}
     {index === 4 && <Fragment key="depth">
       <Box id="howto-ghost" className="step-card ghost entity" style={{ left: 696, top: 116 }}>… your next beat</Box>

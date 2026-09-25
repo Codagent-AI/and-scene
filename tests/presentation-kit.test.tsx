@@ -68,6 +68,18 @@ describe('presentation scene kit', () => {
     act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })) })
     expect(root.getAttribute('data-step-index')).toBe('1')
   })
+
+  it('clamps the active step when steps are removed and renders an empty state for no steps', () => {
+    const { rerender } = render(<Presentation steps={steps} title="Changing" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 2: Second' }))
+    const shortened = [steps[0]]
+    rerender(<Presentation steps={shortened} title="Changing" />)
+    expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+    expect(screen.getByText('First')).toBeTruthy()
+    rerender(<Presentation steps={[]} title="Changing" />)
+    expect(screen.getByText('No steps available.')).toBeTruthy()
+    expect(document.querySelector('[data-step-count="0"][data-step-index="0"]')).toBeTruthy()
+  })
 })
 
 describe('pathname registry', () => {

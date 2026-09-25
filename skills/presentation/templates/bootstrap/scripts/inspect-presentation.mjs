@@ -8,23 +8,41 @@ import { chromium } from 'playwright'
 const slug = process.argv[2]
 if (!slug) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const port = 4179
 const vite = path.join(project, 'node_modules/vite/bin/vite.js')
-const server = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: project, stdio: 'ignore' })
-let serverError
-const serverExited = new Promise((resolve) => server.once('exit', (code, signal) => resolve({ code, signal })))
-server.once('error', (error) => { serverError = error })
+function launchPreview() {
+  const child = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', '0', '--strictPort'], { cwd: project, stdio: ['ignore', 'pipe', 'pipe'] })
+  let output = ''
+  let stderr = ''
+  const exited = new Promise((resolve) => child.once('exit', (code, signal) => resolve({ code, signal })))
+  const ready = new Promise((resolve, reject) => {
+    let settled = false
+    child.stdout.setEncoding('utf8').on('data', (chunk) => {
+      output += chunk
+      const match = output.match(/Local:\s+(https?:\/\/127\.0\.0\.1:\d+)/)
+      if (match && !settled) { settled = true; resolve(match[1]) }
+    })
+    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk })
+    child.once('error', (error) => { if (!settled) { settled = true; reject(new Error(`Preview failed to start: ${error.message}`)) } })
+    child.once('exit', (code, signal) => {
+      if (!settled) { settled = true; reject(new Error(`Preview exited before listening (code ${code}, signal ${signal})${stderr ? `: ${stderr.trim()}` : ''}`)) }
+    })
+  })
+  return { child, exited, ready }
+}
+let server, serverExited
 let browser
 try {
-  const url = `http://127.0.0.1:${port}`
+  const preview = launchPreview()
+  server = preview.child
+  serverExited = preview.exited
+  const url = await preview.ready
   let ready = false
   for (let i = 0; i < 60; i++) {
-    if (serverError) throw serverError
     if (server.exitCode !== null) throw new Error(`Preview exited before readiness (code ${server.exitCode})`)
     try { if ((await fetch(url)).ok) { ready = true; break } } catch {}
     await delay(250)
   }
-  if (!ready) throw new Error('Preview did not become ready on 127.0.0.1')
+  if (!ready) throw new Error(`Spawned preview did not respond at ${url}`)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   await page.goto(`${url}/${encodeURIComponent(slug)}`)
@@ -71,7 +89,7 @@ try {
 } catch (error) { console.error(`Inspection failed: ${error.message}`); process.exitCode = 1 }
 finally {
   await browser?.close()
-  if (server.exitCode === null && server.signalCode === null) {
+  if (server && serverExited && server.exitCode === null && server.signalCode === null) {
     server.kill('SIGTERM')
     const stopped = await Promise.race([serverExited.then(() => true), delay(3000).then(() => false)])
     if (!stopped) { server.kill('SIGKILL'); await serverExited }

@@ -40,3 +40,14 @@
 .how-to-presentation [data-presentation-progress-item][data-presentation-active="true"], .how-to-presentation [data-presentation-toc-item][data-presentation-active="true"] { color: #101714; background: #a5dcb1; border-color: #a5dcb1; font-weight: 800; }
 .how-to-presentation [data-presentation-attribution] { font: 12px/1.4 ui-sans-serif, system-ui, sans-serif; }
 .how-to-presentation [data-presentation-attribution] a { color: #bddfc4; text-decoration: none; }
+@media (max-width: 700px) {
+  .how-to-presentation [data-presentation-header] { inset: 12px 12px auto; gap: 8px; }
+  .how-to-presentation [data-presentation-title] { max-width: calc(100vw - 100px); font-size: 12px; }
+  .how-to-presentation [data-presentation-mode-toggle], .how-to-presentation [data-presentation-prev], .how-to-presentation [data-presentation-next], .how-to-presentation [data-presentation-toc-toggle] { padding: 6px 8px; }
+  .how-to-presentation [data-presentation-footer] { left: 12px; right: 12px; bottom: 10px; min-height: 0; flex-wrap: wrap; gap: 6px; }
+  .how-to-presentation [data-presentation-caption] { flex: 1 0 100%; max-width: none; font-size: 11px; }
+  .how-to-presentation [data-presentation-progress] { flex: 1 0 100%; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding-bottom: 3px; }
+  .how-to-presentation [data-presentation-progress-item] { flex: 0 0 26px; }
+  .how-to-presentation [data-presentation-attribution] { margin-left: auto; }
+  .how-to-presentation [data-presentation-toc] { position: fixed; left: 12px; right: 12px; bottom: 104px; flex-wrap: wrap; justify-content: flex-end; }
+}

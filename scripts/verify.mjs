@@ -33,31 +33,49 @@ function stop(child, exited) {
     await exited
   })
 }
+function launchPreview() {
+  const child = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', '0', '--strictPort'], { cwd: project, stdio: ['ignore', 'pipe', 'pipe'] })
+  let output = ''
+  let stderr = ''
+  const exited = new Promise(resolve => child.once('exit', (code, signal) => resolve({ code, signal })))
+  const ready = new Promise((resolve, reject) => {
+    let settled = false
+    child.stdout.setEncoding('utf8').on('data', chunk => {
+      output += chunk
+      const match = output.match(/Local:\s+(https?:\/\/127\.0\.0\.1:\d+)/)
+      if (match && !settled) { settled = true; resolve(match[1]) }
+    })
+    child.stderr.setEncoding('utf8').on('data', chunk => { stderr += chunk })
+    child.once('error', error => { if (!settled) { settled = true; reject(new Error(`preview check failed: ${error.message}`)) } })
+    child.once('exit', (code, signal) => {
+      if (!settled) { settled = true; reject(new Error(`preview check failed: server exited before listening (code ${code}, signal ${signal})${stderr ? `: ${stderr.trim()}` : ''}`)) }
+    })
+  })
+  return { child, exited, ready }
+}
 let server, browser, serverExited
 try {
   await runBuild()
   const registry = await readFile(path.join(project, 'src/presentations/index.ts'), 'utf8')
   if (!registry.includes(`slug: '${slug}'`) || !registry.includes(`title: '${title}'`) || !registry.includes(`import('./${slug}/Talk')`)) throw new Error('sample check failed: canonical reference route is missing or not registered')
-  server = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', '4178', '--strictPort'], { cwd: project, stdio: 'ignore' })
-  serverExited = new Promise(resolve => server.once('exit', (code, signal) => resolve({ code, signal })))
-  let serverError
-  server.once('error', error => { serverError = error })
-  const base = 'http://127.0.0.1:4178'
+  const preview = launchPreview()
+  server = preview.child
+  serverExited = preview.exited
+  const base = await preview.ready
   let ready = false
   for (let i = 0; i < 60; i++) {
-    if (serverError) throw new Error(`preview check failed: ${serverError.message}`)
     if (server.exitCode !== null) throw new Error(`preview check failed: server exited with ${server.exitCode}`)
     try { if ((await fetch(base)).ok) { ready = true; break } } catch {}
     await delay(250)
   }
-  if (!ready) throw new Error('preview check failed: server did not become ready at 127.0.0.1:4178')
+  if (!ready) throw new Error(`preview check failed: spawned server did not respond at ${base}`)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
   let expectedIndex = 0
   const errors = []
   page.on('pageerror', error => errors.push({ index: expectedIndex, message: error.message }))
   page.on('console', message => { if (message.type() === 'error') errors.push({ index: expectedIndex, message: message.text() }) })
-  const route = `http://127.0.0.1:4178/${slug}`
+  const route = new URL(`/${slug}`, base).href
   await page.goto(route)
   const root = page.locator('[data-presentation]')
   try { await root.waitFor({ timeout: 10000 }) } catch { throw new Error(`render check failed at step 1: sample route ${route} did not mount`) }

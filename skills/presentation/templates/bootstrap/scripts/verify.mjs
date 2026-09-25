@@ -19,25 +19,43 @@ function stop(child, exited) {
     await exited
   })
 }
+function launchPreview() {
+  const child = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', '0', '--strictPort'], { cwd: project, stdio: ['ignore', 'pipe', 'pipe'] })
+  let output = ''
+  let stderr = ''
+  const exited = new Promise((resolve) => child.once('exit', (code, signal) => resolve({ code, signal })))
+  const ready = new Promise((resolve, reject) => {
+    let settled = false
+    child.stdout.setEncoding('utf8').on('data', (chunk) => {
+      output += chunk
+      const match = output.match(/Local:\s+(https?:\/\/127\.0\.0\.1:\d+)/)
+      if (match && !settled) { settled = true; resolve(match[1]) }
+    })
+    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk })
+    child.once('error', (error) => { if (!settled) { settled = true; reject(error) } })
+    child.once('exit', (code, signal) => {
+      if (!settled) { settled = true; reject(new Error(`preview exited before listening (code ${code}, signal ${signal})${stderr ? `: ${stderr.trim()}` : ''}`)) }
+    })
+  })
+  return { child, exited, ready }
+}
 
 let server
-let serverError
 let browser
 let serverExited
 try {
   await run('npm', ['run', 'build'], project)
-  server = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', '4178', '--strictPort'], { cwd: project, stdio: 'ignore' })
-  serverExited = new Promise((resolve) => server.once('exit', (code, signal) => resolve({ code, signal })))
-  server.once('error', (error) => { serverError = error })
-  const url = 'http://127.0.0.1:4178'
+  const preview = launchPreview()
+  server = preview.child
+  serverExited = preview.exited
+  const url = await preview.ready
   let ready = false
   for (let i = 0; i < 60; i++) {
-    if (serverError) throw serverError
     if (server.exitCode !== null) throw new Error(`preview exited before readiness (code ${server.exitCode})`)
     try { if ((await fetch(url)).ok) { ready = true; break } } catch {}
     await delay(250)
   }
-  if (!ready) throw new Error('render check: preview did not become ready at 127.0.0.1:4178')
+  if (!ready) throw new Error(`render check: spawned preview did not respond at ${url}`)
   browser = await chromium.launch({ headless: true })
   const landing = await browser.newPage()
   await landing.goto(url)

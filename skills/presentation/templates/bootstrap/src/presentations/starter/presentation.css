@@ -1,0 +1,129 @@
+.presentation {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #192c34;
+  background: #f3f5ef;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.presentation-header {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #d8dfd9;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.presentation-header-title { margin-right: auto; font-weight: 650; }
+.presentation-marker { color: #526970; font-variant-numeric: tabular-nums; }
+.presentation-era { color: #526970; }
+.presentation-header button,
+.presentation-controls > button {
+  border: 1px solid #9aaea9;
+  border-radius: 999px;
+  padding: 0.65rem 1rem;
+  color: #192c34;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.presentation-toc {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: 2rem;
+  display: grid;
+  gap: 0.5rem;
+  transform: translateY(-50%);
+}
+
+.presentation-toc button {
+  border: 0;
+  padding: 0.5rem 0.75rem;
+  color: #526970;
+  background: transparent;
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+}
+
+.presentation-toc [data-presentation-active="true"] {
+  color: #a13e26;
+  font-weight: 700;
+}
+
+.presentation-stage { position: absolute; inset: 4.5rem 0 10rem; }
+.presentation-canvas { position: absolute; top: 50%; left: 50%; transform-origin: center; }
+.presentation-scene { width: 100%; height: 100%; }
+
+.starter-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  padding: 1.25rem 1.75rem;
+  border: 1px solid #c4d1c7;
+  border-radius: 1rem;
+  color: #315448;
+  background: #e2ebe2;
+  font-size: 1.1rem;
+  font-weight: 650;
+  transform: translate(-50%, -50%);
+}
+
+.presentation-footer {
+  position: absolute;
+  right: 2rem;
+  bottom: 1.5rem;
+  left: 2rem;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d8dfd9;
+}
+
+.presentation-narration h1 { margin: 0 0 0.4rem; font-size: 1.25rem; }
+.presentation-narration p { max-width: 34rem; margin: 0; color: #526970; line-height: 1.5; }
+.presentation-controls { display: flex; align-items: center; gap: 0.75rem; }
+.presentation-progress { display: flex; align-items: center; gap: 0.4rem; }
+.presentation-progress button {
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 1px solid #849a94;
+  border-radius: 50%;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.presentation-progress [data-presentation-active="true"] {
+  border-color: #a13e26;
+  background: #a13e26;
+  transform: scale(1.25);
+}
+
+.presentation-attribution {
+  justify-self: end;
+  color: #526970;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .presentation-header { gap: 0.5rem; padding: 1rem; }
+  .presentation-toc { display: none; }
+  .presentation-stage { bottom: 12rem; }
+  .presentation-footer { right: 1rem; bottom: 1rem; left: 1rem; grid-template-columns: 1fr; }
+  .presentation-controls { justify-content: space-between; }
+  .presentation-attribution { justify-self: start; }
+}

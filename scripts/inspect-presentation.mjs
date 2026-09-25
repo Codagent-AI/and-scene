@@ -1,63 +1,33 @@
-import { spawn } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
-import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
-import { stripVTControlCharacters } from 'node:util'
 import { chromium } from 'playwright'
+import { startPreview, stopPreview } from './preview.mjs'
+
+// Covers the kit's layout morph plus the delayed newcomer fade (0.62s + 0.35s).
+const SETTLE_MS = 1000
+const CHROME_HOOKS = ['data-presentation-caption', 'data-presentation-title', 'data-presentation-attribution', 'data-presentation-progress', 'data-presentation-toc']
 
 const slug = process.argv[2]
 if (!slug) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const vite = path.join(project, 'node_modules/vite/bin/vite.js')
-function launchPreview() {
-  const child = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', '0', '--strictPort'], { cwd: project, stdio: ['ignore', 'pipe', 'pipe'] })
-  let output = ''
-  let stderr = ''
-  const exited = new Promise((resolve) => child.once('exit', (code, signal) => resolve({ code, signal })))
-  const ready = new Promise((resolve, reject) => {
-    let settled = false
-    const timeout = setTimeout(() => {
-      if (!settled) { settled = true; reject(new Error(`Preview timed out waiting for Vite to announce its listening URL${stderr ? `: ${stderr.trim()}` : ''}`)) }
-    }, 15000)
-    child.stdout.setEncoding('utf8').on('data', (chunk) => {
-      output = (output + chunk).slice(-8192)
-      const match = stripVTControlCharacters(output).match(/Local:\s+(https?:\/\/127\.0\.0\.1:\d+)/)
-      if (match && !settled) { settled = true; clearTimeout(timeout); resolve(match[1]) }
-    })
-    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk })
-    child.once('error', (error) => { if (!settled) { settled = true; clearTimeout(timeout); reject(new Error(`Preview failed to start: ${error.message}`)) } })
-    child.once('exit', (code, signal) => {
-      if (!settled) { settled = true; clearTimeout(timeout); reject(new Error(`Preview exited before listening (code ${code}, signal ${signal})${stderr ? `: ${stderr.trim()}` : ''}`)) }
-    })
-  })
-  return { child, exited, ready }
-}
-let server, serverExited
+let preview
 let browser
 try {
-  const preview = launchPreview()
-  server = preview.child
-  serverExited = preview.exited
+  preview = startPreview(project)
   const url = await preview.ready
-  let ready = false
-  for (let i = 0; i < 60; i++) {
-    if (server.exitCode !== null) throw new Error(`Preview exited before readiness (code ${server.exitCode})`)
-    try { if ((await fetch(url)).ok) { ready = true; break } } catch {}
-    await delay(250)
-  }
-  if (!ready) throw new Error(`Spawned preview did not respond at ${url}`)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   await page.goto(`${url}/${encodeURIComponent(slug)}`)
-  await page.locator('[data-step-count]').waitFor()
-  const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
+  const root = page.locator('[data-step-count]')
+  await root.waitFor()
+  const count = Number(await root.getAttribute('data-step-count'))
   const output = path.join(project, 'artifacts/presentation-inspection', slug)
   await mkdir(output, { recursive: true })
   for (let index = 0; index < count; index++) {
     await page.waitForFunction((expected) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === expected, index)
-    await page.waitForTimeout(900)
-    const warnings = await page.evaluate(() => {
+    await page.waitForTimeout(SETTLE_MS)
+    const warnings = await page.evaluate((chromeHooks) => {
       const visible = (el) => { const rect = el.getBoundingClientRect(); const style = getComputedStyle(el); return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none' }
       const active = [...document.querySelectorAll('[data-presentation-progress-item], [data-presentation-toc-item]')].filter((el) => visible(el) && el.getAttribute('data-presentation-active') === 'true')
       const weakActive = active.some((el) => {
@@ -70,32 +40,33 @@ try {
         return peers.length === 0 || !visiblyMarked
       })
       const attribution = document.querySelector('[data-presentation-attribution]')
-      const attributionStyle = attribution && getComputedStyle(attribution)
       const attributionLink = attribution?.querySelector('a')
-      const linkStyle = attributionLink && getComputedStyle(attributionLink)
-      const weakAttribution = !attribution || !attributionLink || !attributionStyle || !linkStyle || parseFloat(attributionStyle.fontSize) < 12 || linkStyle.textDecorationLine === 'underline' || linkStyle.color === 'rgb(0, 0, 238)'
-      const candidates = [...document.querySelectorAll('[data-presentation-caption], [data-presentation-title], [data-presentation-node], [data-presentation-attribution], [data-presentation-progress], [data-presentation-toc]')]
-      const describe = (el) => el.hasAttribute('data-presentation-node') ? `${el.getAttribute('data-presentation-node')}.${typeof el.className === 'string' ? el.className : ''}` : ['data-presentation-caption', 'data-presentation-title', 'data-presentation-attribution', 'data-presentation-progress', 'data-presentation-toc'].find((name) => el.hasAttribute(name)) ?? el.className ?? el.tagName.toLowerCase()
+      const isWeakAttribution = () => {
+        if (!attribution || !attributionLink) return true
+        const linkStyle = getComputedStyle(attributionLink)
+        return parseFloat(getComputedStyle(attribution).fontSize) < 12 || linkStyle.textDecorationLine === 'underline' || linkStyle.color === 'rgb(0, 0, 238)'
+      }
+      const candidates = [...document.querySelectorAll(['data-presentation-node', ...chromeHooks].map((hook) => `[${hook}]`).join(', '))]
+      const describe = (el) => {
+        if (!el.hasAttribute('data-presentation-node')) return chromeHooks.find((hook) => el.hasAttribute(hook))
+        return `${el.getAttribute('data-presentation-node')}.${typeof el.className === 'string' ? el.className : ''}`
+      }
       const overlaps = candidates.filter(visible).flatMap((a, i, all) => all.slice(i + 1).flatMap((b) => {
         if (a.closest('[data-allow-overlap]') || b.closest('[data-allow-overlap]')) return []
         const x = a.getBoundingClientRect(), y = b.getBoundingClientRect()
         return x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top ? [`${describe(a)} ↔ ${describe(b)}`] : []
-      })).filter(Boolean)
-      return { weakActive, weakAttribution, overlaps }
-    })
+      }))
+      return { weakActive, weakAttribution: isWeakAttribution(), overlaps }
+    }, CHROME_HOOKS)
     for (const pair of warnings.overlaps) console.warn(`WARN step ${index + 1}: possible unmarked visible text/chrome overlap: ${pair}`)
     if (warnings.weakActive) console.warn(`WARN step ${index + 1}: active progress or contents state may be indistinct`)
     if (warnings.weakAttribution) console.warn(`WARN step ${index + 1}: attribution is missing, browser-default, or undersized; style [data-presentation-attribution]`)
     await page.screenshot({ path: path.join(output, `step-${String(index + 1).padStart(2, '0')}.png`), fullPage: true })
-    if (index + 1 < count) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(900) }
+    if (index + 1 < count) await page.keyboard.press('ArrowRight')
   }
   console.log(`Captured ${count} settled step screenshots in ${output}`)
 } catch (error) { console.error(`Inspection failed: ${error.message}`); process.exitCode = 1 }
 finally {
   await browser?.close()
-  if (server && serverExited && server.exitCode === null && server.signalCode === null) {
-    server.kill('SIGTERM')
-    const stopped = await Promise.race([serverExited.then(() => true), delay(3000).then(() => false)])
-    if (!stopped) { server.kill('SIGKILL'); await serverExited }
-  }
+  if (preview) await stopPreview(preview)
 }

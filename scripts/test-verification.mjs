@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { cp, mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -8,9 +8,9 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const temp = await mkdtemp(path.join(os.tmpdir(), 'and-scene-verification-'))
 const faults = [
-  ['build', 'src/presentations/how-to-make-a-presentation/steps/index.tsx', source => source.replace('function Scene(', 'function Scene(').replace('return <SceneLayer className="sample-scene">', 'return <SceneLayer className="sample-scene">{broken') , /build check failed/],
+  ['build', 'src/verify-build-fault.ts', () => "export const fault: number = 'not a number'\n", /build check failed/],
   ['sample', 'src/presentations/index.ts', source => source.replace("  { slug: 'how-to-make-a-presentation', title: 'How to Use This Skill to Make a Presentation', load: () => import('./how-to-make-a-presentation/Talk') },", ''), /sample check failed/],
-  ['console', 'src/presentations/how-to-make-a-presentation/steps/index.tsx', source => source.replace('function Scene({ payload }', 'function Scene({ payload }').replace('return <SceneLayer className="sample-scene">', 'console.error("injected browser fault"); return <SceneLayer className="sample-scene">'), /step 1.*injected browser fault/s],
+  ['console', 'src/presentations/how-to-make-a-presentation/steps/index.tsx', source => source.replace('return <SceneLayer className="sample-scene">', 'console.error("injected browser fault"); return <SceneLayer className="sample-scene">'), /step 1.*injected browser fault/s],
   ['transition', 'src/presentation-kit/Presentation.tsx', source => source.replace('data-step-index={index}', 'data-step-index={0}'), /step 2.*Timeout|step 2.*timeout/s],
 ]
 try {
@@ -18,12 +18,12 @@ try {
     const project = path.join(temp, name)
     await mkdir(project)
     await cp(root, project, { recursive: true, filter: (source) => {
-      const relative = path.relative(root, source)
-      return !['node_modules', '.git', 'dist', 'artifacts'].some((excluded) => relative === excluded || relative.startsWith(`${excluded}${path.sep}`))
+      const copied = path.relative(root, source)
+      return !['node_modules', '.git', 'dist', 'artifacts'].some((excluded) => copied === excluded || copied.startsWith(`${excluded}${path.sep}`))
     } })
     await symlink(path.join(root, 'node_modules'), path.join(project, 'node_modules'), 'dir')
     const file = path.join(project, relative)
-    const source = await (await import('node:fs/promises')).readFile(file, 'utf8')
+    const source = await readFile(file, 'utf8').catch(() => '')
     const changed = inject(source)
     assert.notEqual(changed, source, `${name} injection did not change ${relative}`)
     await writeFile(file, changed)

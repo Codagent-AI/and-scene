@@ -1,65 +1,16 @@
-import { spawn } from 'node:child_process'
-import { setTimeout as delay } from 'node:timers/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { stripVTControlCharacters } from 'node:util'
 import { chromium } from 'playwright'
+import { run, startPreview, stopPreview } from './preview.mjs'
 
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const vite = path.join(project, 'node_modules/vite/bin/vite.js')
-const run = (command, args, cwd) => new Promise((resolve, reject) => {
-  const child = spawn(command, args, { cwd, stdio: 'inherit', shell: command === 'npm' && process.platform === 'win32' })
-  child.once('error', reject)
-  child.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`${command} ${args.join(' ')} exited ${code}`)))
-})
-function stop(child, exited) {
-  if (child.exitCode !== null || child.signalCode !== null) return exited
-  child.kill('SIGTERM')
-  return Promise.race([exited.then(() => true), delay(3000).then(() => false)]).then(async (stopped) => {
-    if (!stopped && child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
-    await exited
-  })
-}
-function launchPreview() {
-  const child = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', '0', '--strictPort'], { cwd: project, stdio: ['ignore', 'pipe', 'pipe'] })
-  let output = ''
-  let stderr = ''
-  const exited = new Promise((resolve) => child.once('exit', (code, signal) => resolve({ code, signal })))
-  const ready = new Promise((resolve, reject) => {
-    let settled = false
-    const timeout = setTimeout(() => {
-      if (!settled) { settled = true; reject(new Error(`preview timed out waiting for Vite to announce its listening URL${stderr ? `: ${stderr.trim()}` : ''}`)) }
-    }, 15000)
-    child.stdout.setEncoding('utf8').on('data', (chunk) => {
-      output = (output + chunk).slice(-8192)
-      const match = stripVTControlCharacters(output).match(/Local:\s+(https?:\/\/127\.0\.0\.1:\d+)/)
-      if (match && !settled) { settled = true; clearTimeout(timeout); resolve(match[1]) }
-    })
-    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk })
-    child.once('error', (error) => { if (!settled) { settled = true; clearTimeout(timeout); reject(error) } })
-    child.once('exit', (code, signal) => {
-      if (!settled) { settled = true; clearTimeout(timeout); reject(new Error(`preview exited before listening (code ${code}, signal ${signal})${stderr ? `: ${stderr.trim()}` : ''}`)) }
-    })
-  })
-  return { child, exited, ready }
-}
 
-let server
+let preview
 let browser
-let serverExited
 try {
   await run('npm', ['run', 'build'], project)
-  const preview = launchPreview()
-  server = preview.child
-  serverExited = preview.exited
+  preview = startPreview(project)
   const url = await preview.ready
-  let ready = false
-  for (let i = 0; i < 60; i++) {
-    if (server.exitCode !== null) throw new Error(`preview exited before readiness (code ${server.exitCode})`)
-    try { if ((await fetch(url)).ok) { ready = true; break } } catch {}
-    await delay(250)
-  }
-  if (!ready) throw new Error(`render check: spawned preview did not respond at ${url}`)
   browser = await chromium.launch({ headless: true })
   const landing = await browser.newPage()
   await landing.goto(url)
@@ -97,5 +48,5 @@ try {
   process.exitCode = 1
 } finally {
   await browser?.close()
-  if (server && serverExited) await stop(server, serverExited)
+  if (preview) await stopPreview(preview)
 }

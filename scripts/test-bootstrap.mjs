@@ -14,11 +14,11 @@ await cp(bootstrap, app, { recursive: true })
 await mkdir(outside)
 
 function run(command, args, cwd, label) {
-  const result = spawnSync(command, args, { cwd, encoding: 'utf8', stdio: 'inherit', env: process.env })
+  const result = spawnSync(command, args, { cwd, stdio: 'inherit' })
   assert.equal(result.status, 0, `${label} failed with status ${result.status}`)
 }
 function runCapture(command, args, cwd, label) {
-  const result = spawnSync(command, args, { cwd, encoding: 'utf8', env: process.env })
+  const result = spawnSync(command, args, { cwd, encoding: 'utf8' })
   process.stdout.write(result.stdout ?? '')
   process.stderr.write(result.stderr ?? '')
   assert.equal(result.status, 0, `${label} failed with status ${result.status}`)
@@ -40,20 +40,22 @@ try {
   const deps = { ...packageJson.dependencies, ...packageJson.devDependencies }
   for (const name of ['react', 'react-dom', 'motion', 'lucide-react', 'vite', '@vitejs/plugin-react', 'typescript', '@types/react', '@types/react-dom', '@types/node', 'eslint', 'eslint-plugin-react-hooks', 'eslint-plugin-react-refresh', 'globals', 'typescript-eslint', 'playwright']) assert.ok(deps[name], `missing dependency ${name}`)
   assert.ok(!Object.keys(deps).some((name) => /tailwind|styled-components|emotion/.test(name)), 'bootstrap unexpectedly requires a styling framework')
-  for (const anchor of ['vite.config.ts', 'src/presentation-kit/types.ts', 'src/presentation-kit/Stage.tsx', 'src/presentation-kit/Presentation.tsx', 'src/presentations/index.ts']) assert.ok((await files(app)).includes(anchor), `missing bootstrap anchor ${anchor}`)
+  const appFiles = await files(app)
+  for (const anchor of ['vite.config.ts', 'src/presentation-kit/types.ts', 'src/presentation-kit/Stage.tsx', 'src/presentation-kit/Presentation.tsx', 'src/presentations/index.ts']) assert.ok(appFiles.includes(anchor), `missing bootstrap anchor ${anchor}`)
   const sourceKit = path.join(root, 'src/presentation-kit')
   const copiedKit = path.join(app, 'src/presentation-kit')
   const canonicalFiles = await files(sourceKit)
   assert.deepEqual(await files(copiedKit), canonicalFiles, 'bootstrap kit file set differs from canonical kit')
-  for (const file of canonicalFiles) assert.equal(await readFile(path.join(copiedKit, file), 'utf8'), await readFile(path.join(sourceKit, file), 'utf8'), `bootstrap kit drift: ${file}`)
-  for (const file of canonicalFiles.filter((name) => /\.(css|tsx?)$/.test(name))) {
-    const source = await readFile(path.join(copiedKit, file), 'utf8')
-    assert.doesNotMatch(source, /#[0-9a-f]{3,8}\b|\b(font-family|box-shadow|border|background-color|--[\w-]+)\s*:/i, `visual default in kit file ${file}`)
+  for (const file of canonicalFiles) {
+    const copied = await readFile(path.join(copiedKit, file), 'utf8')
+    assert.equal(copied, await readFile(path.join(sourceKit, file), 'utf8'), `bootstrap kit drift: ${file}`)
+    if (/\.(css|tsx?)$/.test(file)) assert.doesNotMatch(copied, /#[0-9a-f]{3,8}\b|\b(font-family|box-shadow|border|background-color|--[\w-]+)\s*:/i, `visual default in kit file ${file}`)
   }
   await readFile(path.join(app, 'package-lock.json'))
   const registryPath = path.join(app, 'src/presentations/index.ts')
   const registry = await readFile(registryPath, 'utf8')
-  await writeFile(registryPath, registry.replace("  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },", "  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },\n  { slug: 'second', title: 'Second presentation', load: () => import('./starter/Talk') },"))
+  const starterEntry = "  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },"
+  await writeFile(registryPath, registry.replace(starterEntry, `${starterEntry}\n  { slug: 'second', title: 'Second presentation', load: () => import('./starter/Talk') },`))
   const openingPath = path.join(app, 'src/presentations/starter/steps/Opening.tsx')
   const opening = await readFile(openingPath, 'utf8')
   await writeFile(openingPath, opening.replace('<Box id="starter:opening" className="starter-box">{payload.label}</Box>', '<Box id="starter:opening" className="starter-box" data-allow-overlap="">intentional fixture overlap {payload.label}</Box><Box id="fixture:unmarked" className="fixture-unmarked">unmarked fixture overlap</Box>'))

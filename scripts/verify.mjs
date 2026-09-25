@@ -1,10 +1,8 @@
-import { spawn } from 'node:child_process'
-import { setTimeout as delay } from 'node:timers/promises'
 import { readFile } from 'node:fs/promises'
-import { stripVTControlCharacters } from 'node:util'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import { run, startPreview, stopPreview } from './preview.mjs'
 
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const slug = 'how-to-make-a-presentation'
@@ -20,59 +18,13 @@ const outline = [
   ['Changed your mind? Loop it.', 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.'],
   ["You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ]
-const vite = path.join(project, 'node_modules/vite/bin/vite.js')
-const runBuild = () => new Promise((resolve, reject) => {
-  const child = spawn('npm', ['run', 'build'], { cwd: project, stdio: 'inherit' })
-  child.once('error', reject)
-  child.once('exit', code => code === 0 ? resolve() : reject(new Error(`build check failed: npm run build exited ${code}`)))
-})
-function stop(child, exited) {
-  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve()
-  child.kill('SIGTERM')
-  return Promise.race([exited.then(() => true), delay(3000).then(() => false)]).then(async stopped => {
-    if (!stopped && child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
-    await exited
-  })
-}
-function launchPreview() {
-  const child = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', '0', '--strictPort'], { cwd: project, stdio: ['ignore', 'pipe', 'pipe'] })
-  let output = ''
-  let stderr = ''
-  const exited = new Promise(resolve => child.once('exit', (code, signal) => resolve({ code, signal })))
-  const ready = new Promise((resolve, reject) => {
-    let settled = false
-    const timeout = setTimeout(() => {
-      if (!settled) { settled = true; reject(new Error(`preview check failed: timed out waiting for Vite to announce its listening URL${stderr ? `: ${stderr.trim()}` : ''}`)) }
-    }, 15000)
-    child.stdout.setEncoding('utf8').on('data', chunk => {
-      output = (output + chunk).slice(-8192)
-      const match = stripVTControlCharacters(output).match(/Local:\s+(https?:\/\/127\.0\.0\.1:\d+)/)
-      if (match && !settled) { settled = true; clearTimeout(timeout); resolve(match[1]) }
-    })
-    child.stderr.setEncoding('utf8').on('data', chunk => { stderr += chunk })
-    child.once('error', error => { if (!settled) { settled = true; clearTimeout(timeout); reject(new Error(`preview check failed: ${error.message}`)) } })
-    child.once('exit', (code, signal) => {
-      if (!settled) { settled = true; clearTimeout(timeout); reject(new Error(`preview check failed: server exited before listening (code ${code}, signal ${signal})${stderr ? `: ${stderr.trim()}` : ''}`)) }
-    })
-  })
-  return { child, exited, ready }
-}
-let server, browser, serverExited
+let preview, browser
 try {
-  await runBuild()
+  try { await run('npm', ['run', 'build'], project) } catch (error) { throw new Error(`build check failed: ${error.message}`) }
   const registry = await readFile(path.join(project, 'src/presentations/index.ts'), 'utf8')
   if (!registry.includes(`slug: '${slug}'`) || !registry.includes(`title: '${title}'`) || !registry.includes(`import('./${slug}/Talk')`)) throw new Error('sample check failed: canonical reference route is missing or not registered')
-  const preview = launchPreview()
-  server = preview.child
-  serverExited = preview.exited
+  preview = startPreview(project)
   const base = await preview.ready
-  let ready = false
-  for (let i = 0; i < 60; i++) {
-    if (server.exitCode !== null) throw new Error(`preview check failed: server exited with ${server.exitCode}`)
-    try { if ((await fetch(base)).ok) { ready = true; break } } catch {}
-    await delay(250)
-  }
-  if (!ready) throw new Error(`preview check failed: spawned server did not respond at ${base}`)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
   let expectedIndex = 0
@@ -87,7 +39,6 @@ try {
   if (count !== outline.length) throw new Error(`sample check failed: expected ${outline.length} steps, found ${count}`)
   for (let index = 0; index < count; index++) {
     expectedIndex = index
-    let failureStep = index + 1
     try {
       await page.waitForFunction(i => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === i, index, { timeout: 5000 })
       const actualTitle = await root.getAttribute('data-step-title')
@@ -99,11 +50,10 @@ try {
       console.log(`PASS: step ${index + 1}/${count} — ${actualTitle}`)
       if (index + 1 < count) {
         expectedIndex = index + 1
-        failureStep = index + 2
         await page.keyboard.press('ArrowRight')
         await page.waitForFunction(i => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === i, index + 1, { timeout: 5000 })
       }
-    } catch (error) { throw new Error(`render check failed at step ${failureStep}: ${error.message}`) }
+    } catch (error) { throw new Error(`render check failed at step ${expectedIndex + 1}: ${error.message}`) }
   }
   console.log(`PASS: build, canonical sample, and all ${count} rendered steps on 127.0.0.1`)
 } catch (error) {
@@ -111,5 +61,5 @@ try {
   process.exitCode = 1
 } finally {
   await browser?.close()
-  if (server && serverExited) await stop(server, serverExited)
+  if (preview) await stopPreview(preview)
 }

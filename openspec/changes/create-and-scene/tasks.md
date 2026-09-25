@@ -6,4 +6,4 @@ script delivered in 03 is the command the skill's self-verify step references).
 
 - [ ] [Scene kit + app shell](tasks/01-scene-kit-app-shell.md)
 - [ ] [Presentation skill](tasks/02-presentation-skill.md) — depends on 01
-- [ ] [Reference sample (via the skill) + verification](tasks/03-reference-sample-verification.md) — depends on 02
+- [x] [Reference sample (via the skill) + verification](tasks/03-reference-sample-verification.md) — depends on 02

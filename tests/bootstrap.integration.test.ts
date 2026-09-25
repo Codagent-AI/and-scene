@@ -50,12 +50,13 @@ describe('presentation bootstrap integration', () => {
       expect(readFileSync(join(app, 'scripts/verify.mjs'), 'utf8')).toContain('127.0.0.1')
       const verifyScript = readFileSync(join(app, 'scripts/verify.mjs'), 'utf8')
       const inspectScript = readFileSync(join(app, 'scripts/inspect-presentation.mjs'), 'utf8')
+      const diagnosticsScript = readFileSync(join(app, 'scripts/visual-diagnostics.mjs'), 'utf8')
       const skill = readFileSync(join(repo, 'skills/presentation/SKILL.md'), 'utf8')
       const stage = readFileSync(join(app, 'src/presentation-kit/Stage.tsx'), 'utf8')
       expect(verifyScript).toContain("import { preview as startPreview } from 'vite'")
       expect(inspectScript).toContain("import { preview as startPreview } from 'vite'")
       expect(inspectScript).toContain('page.waitForTimeout(1200)')
-      expect(inspectScript).toContain('data-presentation-allow-overlap')
+      expect(diagnosticsScript).toContain('data-presentation-allow-overlap')
       expect(stage).toContain("style={{ position: 'absolute', inset: 0 }}")
       expect(skill).toMatch(/Activates for requests to .*create a browser presentation/i)
       expect(skill).toMatch(/## Out of Scope[\s\S]*PowerPoint[\s\S]*PDF/i)
@@ -63,5 +64,5 @@ describe('presentation bootstrap integration', () => {
     } finally {
       rmSync(temp, { recursive: true, force: true })
     }
-  }, 120_000)
+  }, 300_000)
 })

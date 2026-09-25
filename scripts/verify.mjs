@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { readFile } from 'node:fs/promises'
+import { stripVTControlCharacters } from 'node:util'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
@@ -40,15 +41,18 @@ function launchPreview() {
   const exited = new Promise(resolve => child.once('exit', (code, signal) => resolve({ code, signal })))
   const ready = new Promise((resolve, reject) => {
     let settled = false
+    const timeout = setTimeout(() => {
+      if (!settled) { settled = true; reject(new Error(`preview check failed: timed out waiting for Vite to announce its listening URL${stderr ? `: ${stderr.trim()}` : ''}`)) }
+    }, 15000)
     child.stdout.setEncoding('utf8').on('data', chunk => {
-      output += chunk
-      const match = output.match(/Local:\s+(https?:\/\/127\.0\.0\.1:\d+)/)
-      if (match && !settled) { settled = true; resolve(match[1]) }
+      output = (output + chunk).slice(-8192)
+      const match = stripVTControlCharacters(output).match(/Local:\s+(https?:\/\/127\.0\.0\.1:\d+)/)
+      if (match && !settled) { settled = true; clearTimeout(timeout); resolve(match[1]) }
     })
     child.stderr.setEncoding('utf8').on('data', chunk => { stderr += chunk })
-    child.once('error', error => { if (!settled) { settled = true; reject(new Error(`preview check failed: ${error.message}`)) } })
+    child.once('error', error => { if (!settled) { settled = true; clearTimeout(timeout); reject(new Error(`preview check failed: ${error.message}`)) } })
     child.once('exit', (code, signal) => {
-      if (!settled) { settled = true; reject(new Error(`preview check failed: server exited before listening (code ${code}, signal ${signal})${stderr ? `: ${stderr.trim()}` : ''}`)) }
+      if (!settled) { settled = true; clearTimeout(timeout); reject(new Error(`preview check failed: server exited before listening (code ${code}, signal ${signal})${stderr ? `: ${stderr.trim()}` : ''}`)) }
     })
   })
   return { child, exited, ready }

@@ -11,7 +11,8 @@ export async function startPreview(port) {
   ], { stdio: ['ignore', 'pipe', 'pipe'] })
 
   let output = ''
-  const append = (chunk) => { output += chunk.toString() }
+  // CI/FORCE_COLOR make vite colorize its banner, splitting the URL with ANSI codes.
+  const append = (chunk) => { output += chunk.toString().replace(ANSI_PATTERN, '') }
   child.stderr.on('data', append)
 
   const stop = async () => {
@@ -30,14 +31,14 @@ export async function startPreview(port) {
   try {
     await new Promise((resolve, reject) => {
       let settled = false
-      const fail = (error) => { if (!settled) { settled = true; clearTimeout(timeoutId); reject(error) } }
+      const settle = (callback, value) => { if (!settled) { settled = true; clearTimeout(timeoutId); callback(value) } }
+      const fail = (error) => settle(reject, error)
       const timeoutId = setTimeout(() => fail(new Error(`Preview did not report ${expectedUrl} within ${STARTUP_TIMEOUT_MS}ms: ${output}`)), STARTUP_TIMEOUT_MS)
       child.once('error', fail)
       child.once('exit', (code, signal) => fail(new Error(`Preview exited before startup (code ${code}, signal ${signal}): ${output}`)))
       child.stdout.on('data', (chunk) => {
         append(chunk)
-        // CI/FORCE_COLOR make vite colorize its banner, splitting the URL with ANSI codes.
-        if (!settled && output.replace(ANSI_PATTERN, '').includes(expectedUrl)) { settled = true; clearTimeout(timeoutId); resolve() }
+        if (output.includes(expectedUrl)) settle(resolve)
       })
     })
     if (child.exitCode !== null || child.signalCode !== null) throw new Error(`Preview exited during startup: ${output}`)

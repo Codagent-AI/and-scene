@@ -16,10 +16,10 @@ async function materialize(temp: string) {
   return app
 }
 
-async function command(app: string, args: string[], chosenPort?: number) {
+async function command(app: string, args: string[], chosenPort?: number, extraEnv: Record<string, string> = {}) {
   try {
     const port = String(chosenPort ?? (5000 + Math.floor(Math.random() * 20000)))
-    const result = await exec('node', args, { cwd: app, timeout: 120_000, maxBuffer: 8 * 1024 * 1024, env: { ...process.env, PORT: port } })
+    const result = await exec('node', args, { cwd: app, timeout: 120_000, maxBuffer: 8 * 1024 * 1024, env: { ...process.env, PORT: port, ...extraEnv } })
     return { code: 0, output: `${result.stdout}\n${result.stderr}` }
   } catch (error) {
     const failure = error as { code?: number; stdout?: string; stderr?: string; message: string }
@@ -80,6 +80,37 @@ describe('project browser verification (INT-002, E2E-002)', () => {
       stale?.kill('SIGTERM')
       await rm(temp, { recursive: true, force: true })
     }
+  }, 180_000)
+
+  it('closes a Chromium launch that resolves after the preview exits', async () => {
+    const temp = await mkdtemp(join(tmpdir(), 'and-scene-late-browser-'))
+    try {
+      const app = await materialize(temp)
+      const verify = join(app, 'scripts/verify.mjs')
+      const source = (await readFile(verify, 'utf8'))
+        .replace("import { chromium } from '@playwright/test'", "import { chromium } from './late-browser.mjs'")
+        .replace('browserLaunch = chromium.launch({ headless: true })', "browserLaunch = chromium.launch({ headless: true }); setTimeout(() => preview.kill('SIGTERM'), 10)")
+      await writeFile(verify, source)
+      await writeFile(join(app, 'scripts/late-browser.mjs'), `export const chromium={launch:()=>new Promise(resolve=>setTimeout(()=>resolve({close:async()=>{(await import('node:fs/promises')).writeFile(process.env.CLEANUP_MARKER,'closed')}}),300))}`)
+      const marker = join(temp, 'late-browser-closed')
+      const result = await command(app, [verify], undefined, { CLEANUP_MARKER: marker })
+      expect(result.code).not.toBe(0)
+      expect(result.output).toContain('vite preview exited unexpectedly')
+      expect(await readFile(marker, 'utf8')).toBe('closed')
+    } finally { await rm(temp, { recursive: true, force: true }) }
+  }, 180_000)
+
+  it('times out and cleans up when Vite stays alive without announcing readiness', async () => {
+    const temp = await mkdtemp(join(tmpdir(), 'and-scene-silent-preview-'))
+    try {
+      const app = await materialize(temp)
+      const config = join(app, 'vite.config.ts')
+      await writeFile(config, (await readFile(config, 'utf8')).replace('plugins: [react()]', "plugins: [react()], logLevel: 'silent'"))
+      const result = await command(app, [join(app, 'scripts/verify.mjs')], undefined, { PREVIEW_READINESS_TIMEOUT_MS: '250' })
+      expect(result.code).not.toBe(0)
+      expect(result.output).toContain('Preview readiness timed out after 250ms')
+      expect(result.output).not.toContain('PASS: built app')
+    } finally { await rm(temp, { recursive: true, force: true }) }
   }, 180_000)
 
   it.each([

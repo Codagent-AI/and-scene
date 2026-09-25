@@ -23,6 +23,7 @@ const expected = [
 ]
 let preview
 let browser
+let browserLaunch
 let activeStep = 0
 function run(command, args, options = {}) {
   return new Promise((resolveRun, reject) => {
@@ -38,15 +39,23 @@ function startPreview() {
   let rejectFailure
   const failed = new Promise((_, reject) => { rejectFailure = reject })
   const ready = new Promise((resolveReady, rejectReady) => {
+    const readinessTimeout = Number(process.env.PREVIEW_READINESS_TIMEOUT_MS || 20000)
+    const timer = setTimeout(() => {
+      const error = new Error(`Preview readiness timed out after ${readinessTimeout}ms`)
+      rejectReady(error)
+      rejectFailure(error)
+    }, readinessTimeout)
+    const clearReadinessTimer = () => clearTimeout(timer)
     child.stdout.on('data', (chunk) => {
       const text = chunk.toString()
       process.stdout.write(text)
       output += text.replace(/\u001b\[[0-9;]*m/g, '')
-      if (output.includes(`${origin}/`)) { announced = true; resolveReady() }
+      if (output.includes(`${origin}/`)) { announced = true; clearReadinessTimer(); resolveReady() }
     })
     child.stderr.on('data', (chunk) => process.stderr.write(chunk))
-    child.once('error', (error) => { rejectReady(error); rejectFailure(error) })
+    child.once('error', (error) => { clearReadinessTimer(); rejectReady(error); rejectFailure(error) })
     child.once('exit', (code, signal) => {
+      clearReadinessTimer()
       const error = new Error(`vite preview exited ${announced ? 'unexpectedly' : 'before readiness'} (code ${code ?? 'none'}, signal ${signal ?? 'none'})`)
       rejectFailure(error)
       if (!announced) rejectReady(error)
@@ -82,7 +91,8 @@ try {
   console.error(`VERIFY FAILED: ${error.message}`)
   process.exitCode = 1
 } finally {
-  await browser?.close()
+  const launchedBrowser = browser ?? await browserLaunch?.catch(() => undefined)
+  await launchedBrowser?.close()
   if (preview && preview.exitCode === null) {
     preview.kill('SIGTERM')
     await Promise.race([new Promise((resolveExit) => preview.once('exit', resolveExit)), delay(3000)])
@@ -93,7 +103,8 @@ try {
 async function verifyBrowser(startup) {
     const readiness = await fetch(origin)
     if (!readiness.ok) throw new Error(`preview readiness probe failed at ${origin}: HTTP ${readiness.status}`)
-    browser = await chromium.launch({ headless: true })
+    browserLaunch = chromium.launch({ headless: true })
+    browser = await browserLaunch
     const page = await browser.newPage()
     const errors = []
     page.on('console', (message) => { if (message.type() === 'error') errors.push(`step ${activeStep}: console ${message.text()}`) })

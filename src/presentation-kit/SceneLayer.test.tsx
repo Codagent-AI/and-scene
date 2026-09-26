@@ -18,4 +18,11 @@ describe('SceneLayer', () => {
     rerender(<SceneLayer><Box id="new">New</Box><Box id="left">Left</Box><Box id="right">Right</Box></SceneLayer>)
     expect(container.querySelector('[data-entity-id="right"]')).toBe(right)
   })
+
+  it('preserves entities with repeated explicit keys in distinct nested arrays', () => {
+    const { container, rerender } = render(<SceneLayer>{[[<Box key="item" id="a">A</Box>], [<Box key="item" id="b">B</Box>]]}</SceneLayer>)
+    const entityB = container.querySelector('[data-entity-id="b"]')
+    rerender(<SceneLayer>{[[<Box key="item" id="b">B</Box>]]}</SceneLayer>)
+    expect(container.querySelector('[data-entity-id="b"]')).toBe(entityB)
+  })
 })

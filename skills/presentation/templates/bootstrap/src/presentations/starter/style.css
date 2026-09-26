@@ -1,0 +1,4 @@
+[data-presentation-root] { color: #182a3a; font-family: system-ui, sans-serif; background: #f3f0e9; }
+[data-presentation-header], [data-presentation-footer] { padding: 1.25rem; }
+.starter-scene { position: relative; width: 100%; height: 100%; }
+.starter-topic { position: absolute; inset: 35% 30%; padding: 2rem; border: 2px solid #182a3a; background: #fff; }

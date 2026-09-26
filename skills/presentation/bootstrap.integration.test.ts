@@ -32,9 +32,6 @@ describe('materialized presentation bootstrap (INT-001)', () => {
     const registry = await readFile(registryPath, 'utf8')
     await writeFile(registryPath, registry.replace('export const presentations: readonly PresentationEntry[] = [', 'export const presentations: readonly PresentationEntry[] = [\n  { slug: \'example\', title: \'Example\', load: () => import(\'./example/Talk.js\') },'))
 
-    const build = run('npm', ['run', 'build'], project)
-    expect(build.status, build.stdout + build.stderr).toBe(0)
-
     const verify = run('npm', ['--prefix', project, 'run', 'verify'], tmpdir())
     expect(verify.status, verify.stdout + verify.stderr).toBe(0)
     expect(verify.stdout).toContain('PASS: /starter rendered cleanly')

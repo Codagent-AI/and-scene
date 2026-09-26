@@ -3,6 +3,7 @@ import { cloneElement, isValidElement } from 'react'
 import type { CSSProperties, HTMLAttributes, ReactNode } from 'react'
 type Props = HTMLAttributes<HTMLDivElement> & { className?: string; style?: CSSProperties }
 type IdentityProps = { id?: string; layoutId?: string; children?: ReactNode }
+const isNodeIterable = (node: ReactNode): node is Iterable<ReactNode> & object => Boolean(node) && typeof node !== 'string' && Symbol.iterator in Object(node) && !isValidElement(node)
 
 function keyed(children: ReactNode, scope = 'scene'): ReactNode {
   const result: ReactNode[] = []
@@ -11,8 +12,8 @@ function keyed(children: ReactNode, scope = 'scene'): ReactNode {
       appendList(child, `${arrayScope}:array:${index}`)
       return
     }
-    if (child && typeof child !== 'string' && Symbol.iterator in Object(child) && !isValidElement(child)) {
-      appendList(Array.from(child as Iterable<ReactNode>), `${arrayScope}:iterable:${index}`)
+    if (isNodeIterable(child)) {
+      appendList(Array.from(child), `${arrayScope}:iterable:${index}`)
       return
     }
     if (!isValidElement<IdentityProps>(child)) {
@@ -33,8 +34,8 @@ function keyed(children: ReactNode, scope = 'scene'): ReactNode {
   }
   if (Array.isArray(children)) {
     appendList(children, scope)
-  } else if (children && typeof children !== 'string' && Symbol.iterator in Object(children) && !isValidElement(children)) {
-    appendList(Array.from(children as Iterable<ReactNode>), scope)
+  } else if (isNodeIterable(children)) {
+    appendList(Array.from(children), scope)
   } else {
     append(children, 0, scope)
   }

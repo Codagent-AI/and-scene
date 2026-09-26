@@ -13,17 +13,16 @@ export function inspectVisiblePresentation() {
   }
   const candidates = [...document.querySelectorAll('h1,h2,h3,p,a,button,[data-presentation-node="box"],[data-presentation-node="label"],[data-presentation-node="symbol-chip"],[data-presentation-attribution]')].filter(visible)
   const label = (element) => (element.getAttribute('aria-label') || element.textContent || element.tagName).trim().replace(/\s+/g, ' ').slice(0, 48)
-  for (let leftIndex = 0; leftIndex < candidates.length; leftIndex += 1) for (let rightIndex = leftIndex + 1; rightIndex < candidates.length; rightIndex += 1) {
-    const left = candidates[leftIndex], right = candidates[rightIndex]
-    if (left.contains(right) || right.contains(left)) continue
-    const leftAllowance = left.closest('[data-presentation-allow-overlap]')
-    const rightAllowance = right.closest('[data-presentation-allow-overlap]')
-    const allowed = leftAllowance && leftAllowance === rightAllowance
-    const a = left.getBoundingClientRect(), b = right.getBoundingClientRect()
-    const overlapWidth = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
-    const overlapHeight = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
-    if (overlapWidth * overlapHeight > 16 && !allowed) warnings.push(`overlap: “${label(left)}” / “${label(right)}”`)
-  }
+  const measured = candidates.map((element) => ({ element, rect: element.getBoundingClientRect(), allowance: element.closest('[data-presentation-allow-overlap]') }))
+  measured.forEach((left, leftIndex) => {
+    for (const right of measured.slice(leftIndex + 1)) {
+      if (left.element.contains(right.element) || right.element.contains(left.element)) continue
+      const allowed = left.allowance && left.allowance === right.allowance
+      const overlapWidth = Math.max(0, Math.min(left.rect.right, right.rect.right) - Math.max(left.rect.left, right.rect.left))
+      const overlapHeight = Math.max(0, Math.min(left.rect.bottom, right.rect.bottom) - Math.max(left.rect.top, right.rect.top))
+      if (overlapWidth * overlapHeight > 16 && !allowed) warnings.push(`overlap: “${label(left.element)}” / “${label(right.element)}”`)
+    }
+  })
   const activeControls = [...document.querySelectorAll('[data-presentation-progress-item][data-presentation-active="true"], [data-presentation-toc-item][data-presentation-active="true"]')]
   for (const active of activeControls) {
     const group = active.hasAttribute('data-presentation-progress-item') ? '[data-presentation-progress-item][data-presentation-active="false"]' : '[data-presentation-toc-item][data-presentation-active="false"]'

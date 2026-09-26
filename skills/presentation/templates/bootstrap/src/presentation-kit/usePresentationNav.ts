@@ -7,20 +7,21 @@ export function usePresentationNav(count: number, initialMode: 'browse' | 'prese
   const [mode, setMode] = useState(initialMode)
   const touch = useRef<{ x: number; y: number } | null>(null)
   const goTo = useCallback((next: number) => setIndex(clampStepIndex(next, count)), [count])
-  const next = useCallback(() => goTo(index + 1), [goTo, index])
-  const prev = useCallback(() => goTo(index - 1), [goTo, index])
+  const move = useCallback((delta: number) => setIndex(current => clampStepIndex(clampStepIndex(current, count) + delta, count)), [count])
+  const next = useCallback(() => move(1), [move])
+  const prev = useCallback(() => move(-1), [move])
   const toggleMode = useCallback(() => setMode(current => current === 'browse' ? 'present' : 'browse'), [])
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
       if (target?.isContentEditable || (target && /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(target.tagName))) return
-      if (['ArrowRight', ' ', 'PageDown'].includes(event.key)) { event.preventDefault(); setIndex(i => clampStepIndex(clampStepIndex(i, count) + 1, count)) }
-      else if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); setIndex(i => clampStepIndex(clampStepIndex(i, count) - 1, count)) }
-      else if (event.key.toLowerCase() === 'p') setMode(m => m === 'browse' ? 'present' : 'browse')
+      if (['ArrowRight', ' ', 'PageDown'].includes(event.key)) { event.preventDefault(); move(1) }
+      else if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); move(-1) }
+      else if (event.key.toLowerCase() === 'p') toggleMode()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [count])
+  }, [move, toggleMode])
   const touchStart = (event: React.TouchEvent) => { touch.current = { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY } }
   const touchEnd = (event: React.TouchEvent) => {
     if (!touch.current) return

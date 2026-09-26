@@ -23,13 +23,19 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse', d
   }
   if (!step) return null
   const showBrowse = mode === 'browse'
+  const eras = [...new Set(steps.map((item) => item.era))]
   const attributionNode = attribution === undefined ? <a data-presentation-attribution="" href="https://github.com/and-scene/and-scene">made by and-scene</a> : attribution
   return <main className={className} style={{ position: 'relative', minHeight: '100vh', ...style }} data-presentation-root="" data-mode={mode} data-step-count={steps.length} data-step-index={index} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
     <header data-presentation-header="">
       <span data-presentation-marker="">{String(index + 1).padStart(2, '0')} / {String(steps.length).padStart(2, '0')}</span>
       <h1 data-presentation-title="">{showBrowse ? title : step.title}</h1>
     </header>
-    {showBrowse && <nav aria-label="Presentation sections" data-presentation-toc="">{Array.from(new Set(steps.map((item) => item.era))).map((era) => { const target = steps.findIndex((item) => item.era === era); const active = step.era === era; return <button key={era} type="button" aria-current={active ? 'location' : undefined} data-presentation-toc-item="" data-presentation-active={active ? 'true' : 'false'} onClick={() => go(target)}>{era}</button> })}</nav>}
+    {showBrowse && <nav aria-label="Presentation sections" data-presentation-toc="">
+      {eras.map((era) => {
+        const active = step.era === era
+        return <button key={era} type="button" aria-current={active ? 'location' : undefined} data-presentation-toc-item="" data-presentation-active={String(active)} onClick={() => go(steps.findIndex((item) => item.era === era))}>{era}</button>
+      })}
+    </nav>}
     <section aria-label="Presentation scene" data-presentation-stage="" style={{ width: size.width * scale, height: size.height * scale, margin: 'auto' }}>
       <div style={{ width: size.width, height: size.height, transform: `scale(${scale})`, transformOrigin: 'top left' }} data-presentation-canvas="">
         <LayoutGroup id="and-scene">
@@ -41,7 +47,9 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse', d
     </section>
     {showBrowse && <footer data-presentation-footer="">
       <p data-presentation-caption="">{step.caption}</p>
-      <nav aria-label="Step progress" data-presentation-progress="">{steps.map((item, i) => <button key={item.id} type="button" aria-label={`${item.title}, step ${i + 1}`} aria-current={i === index ? 'step' : undefined} data-presentation-progress-item="" data-presentation-active={i === index ? 'true' : 'false'} onClick={() => go(i)}>{i + 1}</button>)}</nav>
+      <nav aria-label="Step progress" data-presentation-progress="">
+        {steps.map((item, i) => <button key={item.id} type="button" aria-label={`${item.title}, step ${i + 1}`} aria-current={i === index ? 'step' : undefined} data-presentation-progress-item="" data-presentation-active={String(i === index)} onClick={() => go(i)}>{i + 1}</button>)}
+      </nav>
       <button type="button" onClick={prev} disabled={index === 0} aria-label="Previous step">Previous</button>
       <button type="button" onClick={next} disabled={index === steps.length - 1} aria-label="Next step">Next</button>
     </footer>}

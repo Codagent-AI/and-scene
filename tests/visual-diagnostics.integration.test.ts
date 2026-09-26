@@ -1,18 +1,15 @@
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, symlinkSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { existsSync, readdirSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { chromium, type Browser } from 'playwright'
+import type { Browser } from 'playwright'
+import { launchChromium } from '../scripts/browser.mjs'
 import { collectVisualWarnings } from '../scripts/visual-diagnostics.mjs'
+import { isolatedCopy } from './helpers/isolated-copy'
 
 let browser: Browser
 
-beforeAll(async () => {
-  const systemChromium = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-  const bundledChromium = existsSync('/ms-playwright') ? readdirSync('/ms-playwright').filter((name) => name.startsWith('chromium-')).map((name) => `/ms-playwright/${name}/chrome-linux64/chrome`).find(existsSync) : undefined
-  browser = await chromium.launch({ headless: true, ...((systemChromium || bundledChromium) ? { executablePath: systemChromium || bundledChromium } : {}) })
-})
+beforeAll(async () => { browser = await launchChromium() })
 afterAll(async () => { await browser?.close() })
 
 describe('INT-002 browser visual diagnostics', () => {
@@ -57,11 +54,8 @@ describe('INT-002 browser visual diagnostics', () => {
   })
 
   it('runs the project helper and writes one settled artifact for each registered step', () => {
-    const root = resolve(import.meta.dirname, '..')
-    const temp = mkdtempSync(join(tmpdir(), 'and-scene-inspect-'))
+    const temp = isolatedCopy('inspect')
     try {
-      cpSync(root, temp, { recursive: true, filter: (source) => !source.slice(root.length).split('/').some((part) => ['node_modules', 'dist', '.git', 'artifacts'].includes(part)) })
-      symlinkSync(join(root, 'node_modules'), join(temp, 'node_modules'), 'dir')
       const build = spawnSync('npm', ['run', 'build'], { cwd: temp, encoding: 'utf8' })
       expect(build.status, build.stderr).toBe(0)
       const capture = spawnSync(process.execPath, ['scripts/inspect-presentation.mjs', 'how-to-make-a-presentation'], {

@@ -10,20 +10,18 @@ export async function collectVisualWarnings(page) {
     const textNodes = [...(document.querySelector('[data-presentation-root]') ?? document).querySelectorAll('*')]
       .filter((element) => element.children.length === 0 && element.textContent?.trim() && visible(element))
       .filter((element) => element.closest('[data-presentation-scene], [data-presentation-header], [data-presentation-footer], [data-presentation-toc]'))
-      .map((element) => ({ element, label: element.textContent.trim().replace(/\s+/g, ' ').slice(0, 70) }))
+      .filter((element) => !element.closest('[data-allow-overlap]'))
+      .map((element) => ({ rect: element.getBoundingClientRect(), label: element.textContent.trim().replace(/\s+/g, ' ').slice(0, 70) }))
     const warnings = []
     for (let a = 0; a < textNodes.length; a++) for (let b = a + 1; b < textNodes.length; b++) {
       const first = textNodes[a], second = textNodes[b]
-      if (first.element.closest('[data-allow-overlap]') || second.element.closest('[data-allow-overlap]')) continue
-      const x = first.element.getBoundingClientRect(), y = second.element.getBoundingClientRect()
+      const x = first.rect, y = second.rect
       if (x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top) warnings.push(`text overlap: “${first.label}” / “${second.label}”`)
     }
-    for (const [selector, label] of [['[data-presentation-progress-item][data-presentation-active="true"]', 'active progress'], ['[data-presentation-toc-item][data-presentation-active="true"]', 'active table of contents']]) {
-      const active = document.querySelector(selector)
-      if (!active) continue
-      const siblingSelector = selector.replace('[data-presentation-active="true"]', '[data-presentation-active="false"]')
-      const inactive = document.querySelector(siblingSelector)
-      if (!inactive) continue
+    for (const [item, label] of [['[data-presentation-progress-item]', 'active progress'], ['[data-presentation-toc-item]', 'active table of contents']]) {
+      const active = document.querySelector(`${item}[data-presentation-active="true"]`)
+      const inactive = document.querySelector(`${item}[data-presentation-active="false"]`)
+      if (!active || !inactive) continue
       const a = getComputedStyle(active), b = getComputedStyle(inactive)
       if (a.color === b.color && a.backgroundColor === b.backgroundColor && a.borderColor === b.borderColor && a.fontWeight === b.fontWeight) warnings.push(`${label} state may be visually indistinct`)
     }

@@ -1,7 +1,5 @@
 import { spawn } from 'node:child_process'
-import { existsSync, readdirSync } from 'node:fs'
-import { chromium } from 'playwright'
-import { preview } from 'vite'
+import { launchChromium, startPreview } from './browser.mjs'
 
 const run = (command, args) => new Promise((resolve, reject) => {
   const child = spawn(command, args, { stdio: 'inherit', shell: process.platform === 'win32' })
@@ -12,13 +10,10 @@ let server
 let browser
 try {
   await run('npm', ['run', 'build'])
-  server = await preview({ preview: { host: '127.0.0.1', port: 0, strictPort: true } })
-  const address = server.httpServer.address()
-  if (!address || typeof address === 'string') throw new Error('preview did not bind a TCP port')
-  const url = `http://127.0.0.1:${address.port}/`
-  const systemChromium = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-  const bundledChromium = existsSync('/ms-playwright') ? readdirSync('/ms-playwright').filter((name) => name.startsWith('chromium-')).map((name) => `/ms-playwright/${name}/chrome-linux64/chrome`).find(existsSync) : undefined
-  browser = await chromium.launch({ headless: true, ...((systemChromium || bundledChromium) ? { executablePath: systemChromium || bundledChromium } : {}) })
+  const preview = await startPreview()
+  server = preview.server
+  const url = `${preview.base}/`
+  browser = await launchChromium()
   const page = await browser.newPage()
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))

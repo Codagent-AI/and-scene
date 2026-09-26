@@ -20,7 +20,10 @@ describe('INT-001 materialized presentation bootstrap', () => {
       cpSync(join(root, 'skills/presentation/templates/step/step.ts'), join(generated, 'steps/step.ts'))
       cpSync(join(root, 'skills/presentation/templates/step/Scene.tsx'), join(generated, 'steps/Scene.tsx'))
       const registry = join(app, 'src/presentations/index.ts')
-      writeFileSync(registry, readFileSync(registry, 'utf8').replace("  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },", "  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },\n  { slug: 'template-example', title: 'Template example', load: () => import('./template-example/Talk') },"))
+      const registrySource = readFileSync(registry, 'utf8')
+      const registered = registrySource.replace(/^]/m, "  { slug: 'template-example', title: 'Template example', load: () => import('./template-example/Talk') },\n]")
+      expect(registered).not.toBe(registrySource)
+      writeFileSync(registry, registered)
       const pkg = JSON.parse(readFileSync(join(app, 'package.json'), 'utf8')) as { dependencies: Record<string, string>; devDependencies: Record<string, string>; scripts: Record<string, string> }
       for (const name of ['react', 'react-dom', 'motion', 'lucide-react']) expect(pkg.dependencies[name]).toBeTruthy()
       for (const name of ['vite', '@vitejs/plugin-react', 'typescript', '@types/react', '@types/react-dom', '@types/node', '@eslint/js', 'eslint', 'eslint-plugin-react-hooks', 'eslint-plugin-react-refresh', 'globals', 'typescript-eslint', 'playwright']) expect(pkg.devDependencies[name]).toBeTruthy()
@@ -34,7 +37,6 @@ describe('INT-001 materialized presentation bootstrap', () => {
       const kit = readdirSync(join(app, 'src/presentation-kit')).filter((name) => !name.endsWith('.test.tsx')).map((name) => readFileSync(join(app, 'src/presentation-kit', name), 'utf8')).join('\n')
       expect(kit).not.toMatch(/tailwind|#[0-9a-f]{3,8}\b|box-shadow|font-family/i)
       execFileSync('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: app, stdio: 'pipe' })
-      execFileSync('npm', ['run', 'build', '--prefix', app], { cwd: caller, stdio: 'pipe' })
       execFileSync('npm', ['run', 'lint', '--prefix', app], { cwd: caller, stdio: 'inherit' })
       execFileSync('npm', ['run', 'verify', '--prefix', app], { cwd: caller, stdio: 'pipe' })
     } finally {

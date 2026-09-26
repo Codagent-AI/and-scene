@@ -3,12 +3,13 @@ import { useCallback, useEffect, useState } from 'react'
 export function usePresentationNav(count: number, initialMode: 'present' | 'browse' = 'browse') {
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState(initialMode)
-  const go = useCallback((next: number) => setIndex(Math.max(0, Math.min(count - 1, next))), [count])
-  const next = useCallback(() => go(index + 1), [go, index])
-  const prev = useCallback(() => go(index - 1), [go, index])
+  const clamp = useCallback((position: number) => Math.max(0, Math.min(count - 1, position)), [count])
+  const go = useCallback((position: number) => setIndex(clamp(position)), [clamp])
+  const next = useCallback(() => setIndex((current) => clamp(current + 1)), [clamp])
+  const prev = useCallback(() => setIndex((current) => clamp(current - 1)), [clamp])
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null
+      const target = event.target
       if (target instanceof HTMLElement) {
         if (target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return
         if (event.key === ' ' && target.closest('button, a')) return

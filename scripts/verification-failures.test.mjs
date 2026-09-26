@@ -52,6 +52,13 @@ describe('E2E-002 isolated verification failure contract', () => {
     expect(result.output).toContain('SAMPLE CONTRACT: missing or out-of-order step: You have a topic')
   }, 60000)
 
+  it('rejects rendered steps that diverge from the canonical outline', async () => {
+    const dir = await createCopy('rendered-outline-fault', async (cwd) => replace(cwd, 'src/presentations/how-to-make-a-presentation/Talk.tsx', 'steps={STEPS}', 'steps={[...STEPS].reverse()}'))
+    const result = await verify(dir)
+    expect(result.code).not.toBe(0)
+    expect(result.output).toContain('SAMPLE CONTRACT: step 1 rendered "You\'re looking at one", expected "You have a topic"')
+  }, 60000)
+
   it('identifies the sample step that throws in the browser', async () => {
     const dir = await createCopy('runtime-fault', async (cwd) => replace(cwd, 'src/presentations/how-to-make-a-presentation/Scene.tsx', 'function Scene({ payload }: SceneProps<Payload>) {', 'function Scene({ payload }: SceneProps<Payload>) { console.error("injected browser fault");'))
     const result = await verify(dir)

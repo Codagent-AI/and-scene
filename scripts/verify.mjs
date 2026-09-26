@@ -91,6 +91,12 @@ async function main() {
       }
       await page.waitForTimeout(150)
       if (errors.length) sayFail('RENDER', `step ${currentStep}: ${errors.join('; ')}`)
+      const [expectedTitle, expectedCaption] = outline[index]
+      const footer = page.locator('[data-presentation-footer]')
+      const renderedTitle = (await footer.locator('.presentation-step-title').textContent())?.trim()
+      const renderedCaption = (await footer.locator('.presentation-caption').textContent())?.trim()
+      if (renderedTitle !== expectedTitle) sayFail('SAMPLE CONTRACT', `step ${currentStep} rendered "${renderedTitle}", expected "${expectedTitle}"`)
+      if (renderedCaption !== expectedCaption) sayFail('SAMPLE CONTRACT', `step ${currentStep} rendered caption "${renderedCaption}", expected "${expectedCaption}"`)
       console.log(`PASS: reference step ${currentStep}/${count} rendered`)
     }
     console.log(`PASS: npm run verify completed on ${origin}${route}`)

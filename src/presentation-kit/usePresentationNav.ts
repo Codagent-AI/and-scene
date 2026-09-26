@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { clampStepIndex } from './navigation.js'
 
 export function usePresentationNav(count: number, initialMode: 'browse' | 'present' = 'browse') {
-  const [index, setIndex] = useState(0)
+  const [storedIndex, setIndex] = useState(0)
+  const index = clampStepIndex(storedIndex, count)
   const [mode, setMode] = useState(initialMode)
   const touch = useRef<{ x: number; y: number } | null>(null)
   const goTo = useCallback((next: number) => setIndex(clampStepIndex(next, count)), [count])
@@ -13,8 +14,8 @@ export function usePresentationNav(count: number, initialMode: 'browse' | 'prese
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
       if (target?.isContentEditable || (target && /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(target.tagName))) return
-      if (['ArrowRight', ' ', 'PageDown'].includes(event.key)) { event.preventDefault(); setIndex(i => clampStepIndex(i + 1, count)) }
-      else if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); setIndex(i => clampStepIndex(i - 1, count)) }
+      if (['ArrowRight', ' ', 'PageDown'].includes(event.key)) { event.preventDefault(); setIndex(i => clampStepIndex(clampStepIndex(i, count) + 1, count)) }
+      else if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); setIndex(i => clampStepIndex(clampStepIndex(i, count) - 1, count)) }
       else if (event.key.toLowerCase() === 'p') setMode(m => m === 'browse' ? 'present' : 'browse')
     }
     window.addEventListener('keydown', onKey)

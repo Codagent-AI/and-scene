@@ -16,7 +16,7 @@ describe('Presentation', () => {
     expect(screen.getByText('one')).toBeTruthy()
     expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Go to step 2: Second' }))
-    expect(screen.getByText('two')).toBeTruthy()
+    expect(document.querySelector('[data-step-index="1"] .presentation-step-scene')?.textContent).toContain('two')
     expect(screen.getByRole('button', { name: 'Go to step 2: Second' }).getAttribute('aria-current')).toBe('step')
     fireEvent.click(screen.getByRole('button', { name: 'Switch to present mode' }))
     expect(document.querySelector('[data-presentation-mode="present"][data-step-index="1"]')).toBeTruthy()
@@ -34,5 +34,13 @@ describe('Presentation', () => {
     fireEvent.click(next)
     fireEvent.click(next)
     expect(document.querySelector('[data-step-index="1"]')).toBeTruthy()
+  })
+
+  it('keeps the active index in range when the step list shrinks', () => {
+    const { rerender } = render(<Presentation steps={[...steps, { ...steps[1], id: 'c', title: 'Third' }]} title="Demo" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 3: Third' }))
+    rerender(<Presentation steps={steps} title="Demo" />)
+    expect(document.querySelector('[data-step-index="1"]')).toBeTruthy()
+    expect(document.querySelector('[data-step-index="1"] .presentation-step-scene')?.textContent).toContain('two')
   })
 })

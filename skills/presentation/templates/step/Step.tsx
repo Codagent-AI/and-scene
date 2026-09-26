@@ -1,5 +1,7 @@
-import type { Step } from '../../../presentation-kit'
-import { SceneLayer, Label } from '../../../presentation-kit'
+// This standalone example is copied into src/presentations/<slug>/steps/.
+// Its imports therefore go up three levels to src/presentation-kit.
+import type { Step } from '../../../presentation-kit/index.js'
+import { SceneLayer, Label } from '../../../presentation-kit/index.js'
 
 export const step: Step = {
   id: 'step-id',
@@ -8,7 +10,7 @@ export const step: Step = {
   caption: 'What this beat tells the audience.',
   scene: () => (
     <SceneLayer>
-      <Label id="stable-entity-id" x={80} y={90}>Scene entity</Label>
+      <Label id="stable-entity-id" style={{ position: 'absolute', left: 80, top: 90 }}>Scene entity</Label>
     </SceneLayer>
   ),
   payload: undefined,

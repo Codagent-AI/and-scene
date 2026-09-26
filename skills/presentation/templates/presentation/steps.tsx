@@ -1,5 +1,5 @@
-import type { Step } from '../../../presentation-kit'
-import { SceneLayer, Label } from '../../../presentation-kit'
+import type { Step } from '../../presentation-kit/index.js'
+import { SceneLayer, Label } from '../../presentation-kit/index.js'
 
 export const steps: Step[] = [
   {
@@ -9,7 +9,7 @@ export const steps: Step[] = [
     caption: 'A concise sentence that explains what changes in this scene.',
     scene: () => (
       <SceneLayer className="example-scene">
-        <Label id="example-topic" x={80} y={90}>Your topic</Label>
+        <Label id="example-topic" style={{ position: 'absolute', left: 80, top: 90 }}>Your topic</Label>
       </SceneLayer>
     ),
     payload: undefined,

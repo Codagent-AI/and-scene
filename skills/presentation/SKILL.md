@@ -1,11 +1,15 @@
 ---
 name: presentation
-description: Create, scaffold, and modify browser presentations as evolving scenes. Use when a user asks for a presentation, visual explainer, or a change to one.
+description: Creates, scaffolds, and modifies browser presentations as evolving scenes. Activates for requests to create a presentation, build a visual explainer, or modify an existing browser presentation.
 ---
 
 # Presentation skill
 
 Create browser-based presentations as one diagrammatic scene that evolves through named steps. Read scaffold files from paths relative to this `SKILL.md` (resolve the skill directory first); never locate templates relative to the caller's working directory.
+
+## Scope
+
+This skill creates interactive browser presentations. It does not create PowerPoint, Keynote, PDF, or image exports. For those deliverables, use an appropriate slide or document generation workflow.
 
 ## 1. Gather requirements
 

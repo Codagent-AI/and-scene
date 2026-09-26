@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -24,11 +24,25 @@ describe('materialized presentation bootstrap (INT-001)', () => {
 
     const install = run('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], project)
     expect(install.status, install.stdout + install.stderr).toBe(0)
+    const exampleDir = path.join(project, 'src/presentations/example')
+    await mkdir(exampleDir, { recursive: true })
+    await cp(path.join(skillRoot, 'templates/presentation/Talk.tsx'), path.join(exampleDir, 'Talk.tsx'))
+    await cp(path.join(skillRoot, 'templates/presentation/steps.tsx'), path.join(exampleDir, 'steps.tsx'))
+    const registryPath = path.join(project, 'src/presentations/index.ts')
+    const registry = await readFile(registryPath, 'utf8')
+    await writeFile(registryPath, registry.replace('export const presentations: readonly PresentationEntry[] = [', 'export const presentations: readonly PresentationEntry[] = [\n  { slug: \'example\', title: \'Example\', load: () => import(\'./example/Talk.js\') },'))
+
     const build = run('npm', ['run', 'build'], project)
     expect(build.status, build.stdout + build.stderr).toBe(0)
 
     const verify = run('npm', ['--prefix', project, 'run', 'verify'], tmpdir())
     expect(verify.status, verify.stdout + verify.stderr).toBe(0)
-    expect(verify.stdout).toContain('PASS: build and presentation index route rendered cleanly')
+    expect(verify.stdout).toContain('PASS: /starter rendered cleanly')
+    expect(verify.stdout).toContain('PASS: /example rendered cleanly')
+    expect(verify.stdout).toContain('PASS: build and all 2 registered presentation routes rendered cleanly')
+
+    const inspect = run('npm', ['--prefix', project, 'run', 'inspect', '--', 'example'], tmpdir())
+    expect(inspect.status, inspect.stdout + inspect.stderr).toBe(0)
+    expect(await stat(path.join(project, 'artifacts/presentation-inspection/example/step-01.png'))).toBeDefined()
   }, 240_000)
 })

@@ -32,8 +32,19 @@ describe('presentation skill distribution', () => {
 
   it('documents interactive gathering, safe target resolution, scoped edits, and verification', async () => {
     const skill = await readFile(path.join(root, 'SKILL.md'), 'utf8')
-    for (const phrase of ['one question at a time', 'partial detail', 'monorepo', 'confirm', 'templates/bootstrap', 'modify', 'npm run build', 'npm run inspect', '127.0.0.1']) {
+    for (const phrase of ['one question at a time', 'partial detail', 'monorepo', 'confirm', 'templates/bootstrap', 'modify', 'npm run build', 'npm run inspect', '127.0.0.1', 'PowerPoint']) {
       expect(skill.toLowerCase()).toContain(phrase.toLowerCase())
     }
+  })
+
+  it('uses bootstrap-relative imports and supported style positioning in presentation examples', async () => {
+    const talk = await readFile(path.join(root, 'templates/presentation/Talk.tsx'), 'utf8')
+    const steps = await readFile(path.join(root, 'templates/presentation/steps.tsx'), 'utf8')
+    const standaloneStep = await readFile(path.join(root, 'templates/step/Step.tsx'), 'utf8')
+    expect(talk).toContain("from '../../presentation-kit/index.js'")
+    expect(steps).toContain("from '../../presentation-kit/index.js'")
+    expect(standaloneStep).toContain("from '../../../presentation-kit/index.js'")
+    expect(`${steps}\n${standaloneStep}`).toContain('style={{ position: \'absolute\', left: 80, top: 90 }}')
+    expect(`${steps}\n${standaloneStep}`).not.toMatch(/\bx=\{80\}|\by=\{90\}/)
   })
 })

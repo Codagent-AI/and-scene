@@ -1,0 +1,3 @@
+/* Host-level reset only. Presentation visuals belong to each presentation. */
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; margin: 0; }

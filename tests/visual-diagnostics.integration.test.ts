@@ -22,17 +22,21 @@ describe('INT-002 browser visual diagnostics', () => {
       <section data-presentation-scene>
         <span class="collision a">collision A</span><span class="collision b">collision B</span>
         <div data-allow-overlap><span class="intentional a">intent A</span><span class="intentional b">intent B</span></div>
+        <div class="hidden-group"><span class="hidden a">hidden A</span><span class="hidden b">hidden B</span></div>
       </section>
       <nav><button data-presentation-progress-item data-presentation-active="true">1</button><button data-presentation-progress-item data-presentation-active="false">2</button></nav>
       <footer data-presentation-footer></footer>
     </main><style>
       .collision,.intentional { position:absolute; left:40px; top:40px; width:100px; height:30px; }
       .intentional { top:100px; }
+      .hidden-group { position:absolute; opacity:0; }
+      .hidden { position:absolute; left:40px; top:160px; width:100px; height:30px; }
       [data-presentation-progress-item] { color:rgb(0,0,0); background:transparent; border-color:transparent; font-weight:400; }
     </style>`)
     const warnings = await collectVisualWarnings(page)
     expect(warnings.some((warning) => warning.includes('collision A') && warning.includes('collision B'))).toBe(true)
     expect(warnings.some((warning) => warning.includes('intent A') || warning.includes('intent B'))).toBe(false)
+    expect(warnings.some((warning) => warning.includes('hidden A') && warning.includes('hidden B'))).toBe(false)
     expect(warnings.some((warning) => warning.includes('active progress'))).toBe(true)
     expect(warnings.some((warning) => warning.includes('missing attribution'))).toBe(true)
     await page.close()
@@ -63,7 +67,7 @@ describe('INT-002 browser visual diagnostics', () => {
       const capture = spawnSync(process.execPath, ['scripts/inspect-presentation.mjs', 'how-to-make-a-presentation'], {
         cwd: temp,
         encoding: 'utf8',
-        env: { ...process.env, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? {} : { PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: '/ms-playwright/chromium-1228/chrome-linux64/chrome' }), INSPECT_SETTLE_MS: '50' },
+        env: { ...process.env, INSPECT_SETTLE_MS: '50' },
       })
       expect(capture.status, capture.stderr).toBe(0)
       expect(capture.stdout).toContain('Captured 9 settled steps')

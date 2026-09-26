@@ -3,7 +3,9 @@ export async function collectVisualWarnings(page) {
     const visible = (element) => {
       const rect = element.getBoundingClientRect()
       const style = getComputedStyle(element)
-      return rect.width > 1 && rect.height > 1 && style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0.05
+      let opacity = 1
+      for (let node = element; node; node = node.parentElement) opacity *= Number(getComputedStyle(node).opacity)
+      return rect.width > 1 && rect.height > 1 && style.visibility !== 'hidden' && style.display !== 'none' && opacity > 0.05
     }
     const textNodes = [...(document.querySelector('[data-presentation-root]') ?? document).querySelectorAll('*')]
       .filter((element) => element.children.length === 0 && element.textContent?.trim() && visible(element))

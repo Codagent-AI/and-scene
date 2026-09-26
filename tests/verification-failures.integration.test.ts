@@ -5,7 +5,6 @@ import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const root = resolve(import.meta.dirname, '..')
-const chromiumPath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? '/ms-playwright/chromium-1228/chrome-linux64/chrome'
 
 function isolatedCopy(label: string) {
   const temp = mkdtempSync(join(tmpdir(), `and-scene-${label}-`))
@@ -15,7 +14,7 @@ function isolatedCopy(label: string) {
 }
 
 function runVerifier(temp: string) {
-  return spawnSync(process.execPath, ['scripts/verify.mjs'], { cwd: temp, encoding: 'utf8', env: { ...process.env, PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: chromiumPath } })
+  return spawnSync(process.execPath, ['scripts/verify.mjs'], { cwd: temp, encoding: 'utf8', env: { ...process.env } })
 }
 
 describe('E2E-002 actionable verifier failures', () => {

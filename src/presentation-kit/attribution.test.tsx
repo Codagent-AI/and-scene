@@ -7,7 +7,7 @@ describe('default attribution', () => {
   it('links to the project with a stable style hook', () => {
     render(<Attribution />)
     const link = screen.getByRole('link', { name: 'made by and-scene' })
-    expect(link.getAttribute('href')).toBe('https://github.com/and-scene/and-scene')
+    expect(link.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene')
     expect(link.hasAttribute('data-presentation-attribution')).toBe(true)
   })
 })

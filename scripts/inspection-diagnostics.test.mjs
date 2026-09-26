@@ -49,4 +49,15 @@ describe('INT-002 presentation inspection diagnostics', () => {
     expect(warnings.some((warning) => warning.includes('active navigation is visually indistinct'))).toBe(true)
     expect(warnings.some((warning) => warning.includes('attribution is undersized or browser-default'))).toBe(true)
   }, 30000)
+
+  it('treats scene content and attribution inside transparent ancestors as invisible', async () => {
+    await page.setContent(`<main><section style="opacity:0">
+      <div data-presentation-node="box" style="position:absolute;left:10px;top:10px;width:100px;height:40px">hidden alpha</div>
+      <div data-presentation-node="box" style="position:absolute;left:10px;top:10px;width:100px;height:40px">hidden beta</div>
+      <a data-presentation-attribution href="#">hidden attribution</a>
+    </section></main>`)
+    const warnings = await page.evaluate(inspectVisiblePresentation)
+    expect(warnings.some((warning) => warning.startsWith('overlap:'))).toBe(false)
+    expect(warnings).toContain('attribution is missing; style the data-presentation-attribution hook')
+  })
 })

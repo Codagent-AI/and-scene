@@ -3,7 +3,13 @@ export function inspectVisiblePresentation() {
   const visible = (element) => {
     const style = getComputedStyle(element)
     const rect = element.getBoundingClientRect()
-    return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0.05 && rect.width > 0 && rect.height > 0
+    let opacity = 1
+    for (let node = element; node; node = node.parentElement) {
+      const ancestorStyle = getComputedStyle(node)
+      if (ancestorStyle.display === 'none') return false
+      opacity *= Number(ancestorStyle.opacity)
+    }
+    return style.visibility === 'visible' && opacity > 0.05 && rect.width > 0 && rect.height > 0
   }
   const candidates = [...document.querySelectorAll('h1,h2,h3,p,a,button,[data-presentation-node="box"],[data-presentation-node="label"],[data-presentation-node="symbol-chip"],[data-presentation-attribution]')].filter(visible)
   const label = (element) => (element.getAttribute('aria-label') || element.textContent || element.tagName).trim().replace(/\s+/g, ' ').slice(0, 48)

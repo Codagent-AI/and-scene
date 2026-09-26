@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 import { inspectVisiblePresentation } from './inspection-diagnostics.mjs'
+import { watchBrowserErrors } from './browser-errors.mjs'
 
 const slug = process.argv[2]
 if (!slug) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
@@ -33,6 +34,7 @@ try {
   if (!ready) throw new Error(`preview did not become ready at ${origin}; run npm run build first\n${serverOutput}`)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width, height } })
+  const assertNoBrowserErrors = watchBrowserErrors(page)
   await page.goto(origin, { waitUntil: 'networkidle' })
   const root = page.locator('[data-presentation-root]')
   await root.waitFor()
@@ -46,11 +48,13 @@ try {
       await page.waitForFunction((expected) => Number(document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index')) === expected, index)
     }
     await page.waitForTimeout(settleMs)
+    assertNoBrowserErrors()
     const diagnostics = await page.evaluate(inspectVisiblePresentation)
     await page.screenshot({ path: `${output}/step-${String(index + 1).padStart(2, '0')}.png`, fullPage: true })
     for (const warning of diagnostics) console.warn(`WARN step ${index + 1}: ${warning}`)
     console.log(`Captured step ${index + 1}/${count} after ${settleMs}ms in ${output}`)
   }
+  assertNoBrowserErrors()
   console.log(`Inspection complete: ${count} screenshots at ${width}x${height}`)
 } catch (error) {
   console.error(`FAIL: ${error.message}`)

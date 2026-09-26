@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, existsSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, existsSync, cpSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -15,6 +15,12 @@ describe('INT-001 materialized presentation bootstrap', () => {
     try {
       mkdirSync(caller)
       execFileSync(process.execPath, [join(root, 'skills/presentation/materialize-bootstrap.mjs'), app], { cwd: caller, stdio: 'pipe' })
+      const generated = join(app, 'src/presentations/template-example')
+      cpSync(join(root, 'skills/presentation/templates/presentation'), generated, { recursive: true })
+      cpSync(join(root, 'skills/presentation/templates/step/step.ts'), join(generated, 'steps/step.ts'))
+      cpSync(join(root, 'skills/presentation/templates/step/Scene.tsx'), join(generated, 'steps/Scene.tsx'))
+      const registry = join(app, 'src/presentations/index.ts')
+      writeFileSync(registry, readFileSync(registry, 'utf8').replace("  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },", "  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },\n  { slug: 'template-example', title: 'Template example', load: () => import('./template-example/Talk') },"))
       const pkg = JSON.parse(readFileSync(join(app, 'package.json'), 'utf8')) as { dependencies: Record<string, string>; devDependencies: Record<string, string>; scripts: Record<string, string> }
       for (const name of ['react', 'react-dom', 'motion', 'lucide-react']) expect(pkg.dependencies[name]).toBeTruthy()
       for (const name of ['vite', '@vitejs/plugin-react', 'typescript', '@types/react', '@types/react-dom', '@types/node', '@eslint/js', 'eslint', 'eslint-plugin-react-hooks', 'eslint-plugin-react-refresh', 'globals', 'typescript-eslint', 'playwright']) expect(pkg.devDependencies[name]).toBeTruthy()
@@ -29,7 +35,7 @@ describe('INT-001 materialized presentation bootstrap', () => {
       expect(kit).not.toMatch(/tailwind|#[0-9a-f]{3,8}\b|box-shadow|font-family/i)
       execFileSync('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: app, stdio: 'pipe' })
       execFileSync('npm', ['run', 'build', '--prefix', app], { cwd: caller, stdio: 'pipe' })
-      execFileSync('npm', ['run', 'lint', '--prefix', app], { cwd: caller, stdio: 'pipe' })
+      execFileSync('npm', ['run', 'lint', '--prefix', app], { cwd: caller, stdio: 'inherit' })
       execFileSync('npm', ['run', 'verify', '--prefix', app], { cwd: caller, stdio: 'pipe' })
     } finally {
       rmSync(temp, { recursive: true, force: true })

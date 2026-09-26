@@ -1,27 +1,17 @@
-import { spawn } from 'node:child_process'
 import { existsSync, readdirSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
-import { resolve } from 'node:path'
-import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
+import { preview } from 'vite'
 
 const slug = process.argv[2]
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
-const server = spawn(process.execPath, [resolve('node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1', '--port', '4174', '--strictPort'], { stdio: 'ignore' })
+let server
 let browser
-const stop = (child) => new Promise((resolve) => {
-  if (child.exitCode !== null) return resolve()
-  child.once('close', resolve)
-  child.kill('SIGTERM')
-})
 try {
-  const base = 'http://127.0.0.1:4174'
-  let ready = false
-  for (let i = 0; i < 60; i++) {
-    try { ready = (await fetch(base)).ok; if (ready) break } catch {}
-    await delay(250)
-  }
-  if (!ready) throw new Error('preview did not become ready at 127.0.0.1:4174')
+  server = await preview({ preview: { host: '127.0.0.1', port: 0, strictPort: true } })
+  const address = server.httpServer.address()
+  if (!address || typeof address === 'string') throw new Error('preview did not bind a TCP port')
+  const base = `http://127.0.0.1:${address.port}`
   const systemChromium = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   const bundledChromium = existsSync('/ms-playwright') ? readdirSync('/ms-playwright').filter((name) => name.startsWith('chromium-')).map((name) => `/ms-playwright/${name}/chrome-linux64/chrome`).find(existsSync) : undefined
   browser = await chromium.launch({ headless: true, ...((systemChromium || bundledChromium) ? { executablePath: systemChromium || bundledChromium } : {}) })
@@ -66,5 +56,5 @@ try {
   console.log(`Captured ${count} settled steps in artifacts/inspection/`)
 } finally {
   await browser?.close()
-  await stop(server)
+  await server?.close()
 }

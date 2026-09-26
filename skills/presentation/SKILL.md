@@ -1,11 +1,15 @@
 ---
 name: presentation
-description: Create or modify browser presentations as one evolving diagrammatic scene. Use when a user asks to make, build, create, or change a presentation, talk, or narrated visual explanation.
+description: Creates or modifies browser presentations as evolving diagrammatic scenes. Activates for requests to make, build, create, or change a presentation, talk, or narrated visual explanation.
 ---
 
 # Presentation skill
 
 Create one browser presentation as a scene that evolves through named steps. Keep entities stable across steps so they can move, change, enter, or leave in place. Work in the user's project and use its local scene kit and verification tools.
+
+## Out of scope
+
+This skill creates browser-based presentations. It does not produce PowerPoint or Keynote files, PDF exports, rendered video, or narrated audio. For those deliverables, use the appropriate document, slide-deck, or video tooling.
 
 ## 1. Gather the brief
 
@@ -37,7 +41,7 @@ For a modification, edit only the selected presentation and the smallest require
 
 ## 4. Verify and inspect
 
-Run the app's build. Then run its `npm run verify` when available; otherwise open the generated route in a local browser and confirm the first step renders without runtime or console errors. Fix failures and rerun checks before reporting completion.
+Run the app's build. Then run its `npm run verify` when available; the bootstrap verifier visits every registered presentation route and traverses its steps. Otherwise open the generated route in a local browser and confirm the first step renders without runtime or console errors. Fix failures and rerun checks before reporting completion.
 
 Run the project-local `npm run inspect -- <slug>` helper when available. If no helper exists, create any temporary Playwright inspection script inside the project. Inspect settled screenshots of the first and last steps and every dense/key step; use a narrow viewport when the composition is responsive-sensitive. Review overlap, active navigation, and attribution warnings. Fix accidental collisions, make active controls visibly distinct and attribution legible, and use an explicit allow-overlap marker only for intentional readable overlaps. Do not report visual verification from a build alone.
 

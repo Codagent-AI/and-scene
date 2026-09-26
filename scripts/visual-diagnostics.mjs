@@ -10,11 +10,11 @@ export async function collectVisualWarnings(page) {
     const textNodes = [...(document.querySelector('[data-presentation-root]') ?? document).querySelectorAll('*')]
       .filter((element) => element.children.length === 0 && element.textContent?.trim() && visible(element))
       .filter((element) => element.closest('[data-presentation-scene], [data-presentation-header], [data-presentation-footer], [data-presentation-toc]'))
-      .filter((element) => !element.closest('[data-allow-overlap]'))
-      .map((element) => ({ rect: element.getBoundingClientRect(), label: element.textContent.trim().replace(/\s+/g, ' ').slice(0, 70) }))
+      .map((element) => ({ rect: element.getBoundingClientRect(), allowOverlap: Boolean(element.closest('[data-allow-overlap]')), label: element.textContent.trim().replace(/\s+/g, ' ').slice(0, 70) }))
     const warnings = []
     for (let a = 0; a < textNodes.length; a++) for (let b = a + 1; b < textNodes.length; b++) {
       const first = textNodes[a], second = textNodes[b]
+      if (first.allowOverlap && second.allowOverlap) continue
       const x = first.rect, y = second.rect
       if (x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top) warnings.push(`text overlap: “${first.label}” / “${second.label}”`)
     }

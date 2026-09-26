@@ -39,6 +39,22 @@ describe('INT-002 browser visual diagnostics', () => {
     await page.close()
   })
 
+  it('reports an unmarked label that collides with text inside an allow-overlap subtree', async () => {
+    const page = await browser.newPage({ viewport: { width: 800, height: 600 } })
+    await page.setContent(`<main data-presentation-root>
+      <section data-presentation-scene>
+        <span class="stray">stray label</span>
+        <div data-allow-overlap><span class="layer">layer A</span><span class="layer">layer B</span></div>
+      </section>
+    </main><style>
+      .stray,.layer { position:absolute; left:40px; top:40px; width:100px; height:30px; }
+    </style>`)
+    const warnings = await collectVisualWarnings(page)
+    expect(warnings.some((warning) => warning.includes('stray label') && warning.includes('layer A'))).toBe(true)
+    expect(warnings.some((warning) => warning.includes('layer A') && warning.includes('layer B'))).toBe(false)
+    await page.close()
+  })
+
   it('captures sequential fixture states after the configured settle interval', async () => {
     const page = await browser.newPage({ viewport: { width: 800, height: 600 } })
     await page.setContent('<main data-presentation-root data-step-count="2" data-step-index="0"><p>fixture</p></main>')

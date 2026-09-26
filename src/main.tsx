@@ -9,7 +9,7 @@ const entry = presentations.find(item => item.slug === slug)
 const RoutedPresentation = entry ? lazy(entry.load) : null
 
 export function AppRouter() {
-  if (!slug || !RoutedPresentation) return <Landing />
+  if (!RoutedPresentation) return <Landing />
   return <Suspense fallback={<main data-presentation-loading="">Loading presentation…</main>}><RoutedPresentation /></Suspense>
 }
 

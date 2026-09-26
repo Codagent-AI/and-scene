@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { useEffect } from 'react'
 import { Presentation } from './Presentation'
 import { Box } from './nodes'
+import { useFitScale } from './useFitScale'
 import type { Step } from './types'
 
 type Payload = { readonly message: string }
@@ -18,6 +19,9 @@ function PersistentScene({ payload }: { payload: Payload }) {
   return <div data-scene-message="">{payload.message}</div>
 }
 const groupedSteps: Step<Payload>[] = steps.map((step) => ({ ...step, scene: PersistentScene }))
+function ScaleProbe({ width, height }: { width: number; height: number }) {
+  return <output data-testid="scale">{useFitScale(width, height, 'browse')}</output>
+}
 
 describe('presentation kit contract', () => {
   afterEach(cleanup)
@@ -68,5 +72,32 @@ describe('presentation kit contract', () => {
     expect(document.querySelector('[data-step-index="1"]')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /switch to browse/i }))
     expect(screen.getByText('Second caption')).toBeTruthy()
+  })
+
+  it('continues keyboard navigation while the mode toggle has focus', () => {
+    render(<Presentation steps={steps} title="Focused navigation" />)
+    const toggle = screen.getByRole('button', { name: /switch to present/i })
+    fireEvent.click(toggle)
+    const focusedToggle = screen.getByRole('button', { name: /switch to browse/i })
+    focusedToggle.focus()
+    fireEvent.keyDown(focusedToggle, { key: 'ArrowRight' })
+    expect(document.querySelector('[data-step-index="1"]')).toBeTruthy()
+  })
+
+  it('keeps fit scale positive in viewports shorter than the chrome', () => {
+    const originalHeight = window.innerHeight
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 })
+    try {
+      render(<ScaleProbe width={880} height={380} />)
+      expect(Number(screen.getByTestId('scale').textContent)).toBeGreaterThan(0)
+    } finally {
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalHeight })
+    }
+  })
+
+  it('rejects invalid design dimensions before calculating fit scale', () => {
+    expect(() => render(<ScaleProbe width={0} height={380} />)).toThrow(RangeError)
+    cleanup()
+    expect(() => render(<ScaleProbe width={880} height={Number.POSITIVE_INFINITY} />)).toThrow(RangeError)
   })
 })

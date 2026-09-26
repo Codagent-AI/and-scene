@@ -9,7 +9,10 @@ export function usePresentationNav(count: number, initialMode: 'present' | 'brow
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
-      if (target instanceof HTMLElement && target.closest('input, textarea, select, button, a, [contenteditable="true"]')) return
+      if (target instanceof HTMLElement) {
+        if (target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return
+        if (event.key === ' ' && target.closest('button, a')) return
+      }
       if (['ArrowRight', ' ', 'PageDown'].includes(event.key)) { event.preventDefault(); next() }
       if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); prev() }
       if (event.key.toLowerCase() === 'p') setMode((current) => current === 'present' ? 'browse' : 'present')

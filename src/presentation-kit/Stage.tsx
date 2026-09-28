@@ -48,15 +48,22 @@ export function Stage<TPayload>({ steps, stepIndex, scale }: StageProps<TPayload
       <div
         className="and-scene-stage-scaler"
         data-presentation-stage-scaler=""
-        style={{ width: DESIGN_W, height: DESIGN_H, transform: `scale(${scale})` }}
+        style={{ position: 'relative', width: DESIGN_W, height: DESIGN_H, transform: `scale(${scale})` }}
       >
         <LayoutGroup>
-          <AnimatePresence mode="wait">
+          {/*
+            mode="sync" keeps the outgoing and incoming canvases mounted at
+            the same time (both absolutely positioned over the scaler) so
+            entities sharing a layoutId across the two render keys can
+            participate in the same layout projection and morph instead of
+            fading out and back in.
+          */}
+          <AnimatePresence mode="sync">
             <motion.div
               key={renderKey}
               className="and-scene-canvas"
               data-presentation-canvas=""
-              style={{ position: 'relative', width: DESIGN_W, height: DESIGN_H }}
+              style={{ position: 'absolute', inset: 0, width: DESIGN_W, height: DESIGN_H }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

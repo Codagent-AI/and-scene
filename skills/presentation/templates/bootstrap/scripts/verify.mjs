@@ -4,48 +4,26 @@
  *
  * 1. `npm run build` over the whole app.
  * 2. Reads the presentation registry and, for each registered presentation,
- *    starts a production preview on 127.0.0.1 and steps through every step
- *    with Playwright/Chromium, failing on console errors, page errors, or a
- *    step index that does not advance.
+ *    starts a production preview it owns exclusively (an OS-assigned port on
+ *    127.0.0.1, via Vite's programmatic `preview()` API rather than a spawned
+ *    CLI process) and steps through every step with Playwright/Chromium,
+ *    failing on console errors, page errors, or a step index that does not
+ *    advance.
  * 3. If no presentations are registered yet, opens the landing route instead
  *    so a freshly scaffolded (pre-content) app still gets a real render check.
  *
  * Exits non-zero on any failure and names the failing phase/step.
  */
 import { spawn } from 'node:child_process'
-import { once } from 'node:events'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-
-/** Kills a spawned process (and its group) without hanging if it ignores the signal. */
-async function killProcess(child) {
-  if (child.exitCode !== null || child.signalCode !== null) return
-  try {
-    process.kill(-child.pid, 'SIGTERM')
-  } catch {
-    child.kill('SIGTERM')
-  }
-  const exited = await Promise.race([
-    once(child, 'exit').then(() => true),
-    new Promise((resolve) => setTimeout(() => resolve(false), 3000)),
-  ])
-  if (!exited) {
-    try {
-      process.kill(-child.pid, 'SIGKILL')
-    } catch {
-      child.kill('SIGKILL')
-    }
-    await once(child, 'exit').catch(() => {})
-  }
-}
+import { preview } from 'vite'
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const HOST = '127.0.0.1'
-const PORT = 4735
-const BASE_URL = `http://${HOST}:${PORT}`
 const SETTLE_MS = 400
 
 function fail(message) {
@@ -64,18 +42,22 @@ function run(command, args, options = {}) {
   })
 }
 
-async function waitForServer(url, timeoutMs = 30_000) {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url)
-      if (response.ok || response.status < 500) return
-    } catch {
-      // not up yet
-    }
-    await new Promise((resolve) => setTimeout(resolve, 200))
+/**
+ * Starts a preview server this process exclusively owns, on an OS-assigned
+ * port (`port: 0`), so a stale server left on a fixed port by another run
+ * can never be mistaken for the build just produced.
+ */
+async function startOwnedPreview() {
+  const server = await preview({
+    root: ROOT,
+    logLevel: 'silent',
+    preview: { host: HOST, port: 0, strictPort: false },
+  })
+  const address = server.httpServer.address()
+  if (!address || typeof address !== 'object') {
+    throw new Error('Preview server did not report a bound port')
   }
-  throw new Error(`Preview server did not become ready at ${url} within ${timeoutMs}ms`)
+  return { server, baseUrl: `http://${HOST}:${address.port}` }
 }
 
 /** Reads the registered presentation slugs without executing app code. */
@@ -86,7 +68,7 @@ function readRegisteredSlugs() {
   return slugs
 }
 
-async function checkRoute(page, routePath, { requireSteps }) {
+async function checkRoute(page, baseUrl, routePath, { requireSteps }) {
   const consoleErrors = []
   const pageErrors = []
   const onConsole = (message) => {
@@ -96,7 +78,7 @@ async function checkRoute(page, routePath, { requireSteps }) {
   page.on('console', onConsole)
   page.on('pageerror', onPageError)
 
-  const url = `${BASE_URL}${routePath}`
+  const url = `${baseUrl}${routePath}`
   await page.goto(url, { waitUntil: 'networkidle' })
   await page.waitForTimeout(SETTLE_MS)
 
@@ -151,27 +133,20 @@ async function main() {
       : '[verify] no presentations registered yet; checking the landing route only',
   )
 
-  console.log(`[verify] starting preview on ${BASE_URL}...`)
-  const viteBin = path.join(ROOT, 'node_modules', '.bin', 'vite')
-  const preview = spawn(
-    viteBin,
-    ['preview', '--host', HOST, '--port', String(PORT), '--strictPort'],
-    { cwd: ROOT, stdio: 'pipe', detached: true },
-  )
-  preview.stdout.on('data', () => {})
-  preview.stderr.on('data', () => {})
+  console.log(`[verify] starting an owned preview on ${HOST}...`)
+  const { server, baseUrl } = await startOwnedPreview()
+  console.log(`[verify] preview listening at ${baseUrl}`)
 
   let browser
   try {
-    await waitForServer(`${BASE_URL}/`)
     browser = await chromium.launch()
     const page = await browser.newPage()
 
     if (slugs.length === 0) {
-      await checkRoute(page, '/', { requireSteps: false })
+      await checkRoute(page, baseUrl, '/', { requireSteps: false })
     } else {
       for (const slug of slugs) {
-        await checkRoute(page, `/${slug}`, { requireSteps: true })
+        await checkRoute(page, baseUrl, `/${slug}`, { requireSteps: true })
       }
     }
 
@@ -180,7 +155,7 @@ async function main() {
     fail(error.message)
   } finally {
     if (browser) await browser.close()
-    await killProcess(preview)
+    await server.close()
   }
 }
 

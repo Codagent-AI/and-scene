@@ -31,16 +31,25 @@ export function usePresentationNav(stepCount: number, initialMode: Mode = 'brows
   const [mode, setMode] = useState<Mode>(initialMode)
   const touchStartX = useRef<number | null>(null)
 
+  // Adjust stored state during render (not in an effect) when stepCount
+  // shrinks past it, so a later expansion can't resurrect a stale index —
+  // see https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [prevStepCount, setPrevStepCount] = useState(stepCount)
+  if (stepCount !== prevStepCount) {
+    setPrevStepCount(stepCount)
+    setStepIndex((current) => clampIndex(current, stepCount))
+  }
+
   const goTo = useCallback((index: number) => {
     setStepIndex(clampIndex(index, stepCount))
   }, [stepCount])
 
   const next = useCallback(() => {
-    setStepIndex((current) => clampIndex(current + 1, stepCount))
+    setStepIndex((current) => clampIndex(clampIndex(current, stepCount) + 1, stepCount))
   }, [stepCount])
 
   const prev = useCallback(() => {
-    setStepIndex((current) => clampIndex(current - 1, stepCount))
+    setStepIndex((current) => clampIndex(clampIndex(current, stepCount) - 1, stepCount))
   }, [stepCount])
 
   const toggleMode = useCallback(() => {

@@ -73,23 +73,45 @@ byte-identical files — cosmetic differences don't trigger re-scaffolding):
 **Non-empty project missing anchors:** state the resolved target (e.g. "I'll
 scaffold into `presentations/`") and proceed only after the user confirms.
 
+**Discovery (before writing anything into an existing app):** read the
+project's entry point (`src/main.tsx` or equivalent), any existing router
+(React Router, a framework router, a custom pathname switch, or none), and
+`package.json` scripts. A registry with no route reaching it is a dead end —
+adding the scene kit and `src/presentations/index.ts` is not enough by
+itself.
+
 **Scaffolding steps** (skip entirely if all anchors are present):
 
 1. Copy whatever anchors are missing from `templates/bootstrap/` **in this
    skill's own directory** — resolve that path relative to this `SKILL.md`
    file, never relative to the caller's working directory.
-2. Never assume dependencies exist. Ensure the full set: runtime `react`,
+2. **Wire routing to match what discovery found**, rather than overwriting the
+   host's entry point:
+   - No router yet (fresh scaffold, or an app with a single unrouted root
+     component): copy the bootstrap's zero-dependency pathname router
+     (`main.tsx`/`Router.tsx`/`Landing.tsx`) as-is.
+   - An existing router (React Router, framework file-based routing, a custom
+     switch): add one route per the host's own convention that resolves a
+     slug to `presentations/index.ts`'s registry entry — do not replace the
+     host's router with the bootstrap's.
+   - Merge `package.json` scripts (`dev`/`build`/`lint`/`preview`/`verify`/
+     `inspect`) into the existing file; never overwrite unrelated host
+     scripts or config.
+3. Never assume dependencies exist. Ensure the full set: runtime `react`,
    `react-dom`, `motion`, `lucide-react`; dev/build `vite`,
    `@vitejs/plugin-react`, `typescript`, `@types/react`, `@types/react-dom`,
    `@types/node`, the eslint stack, and `playwright` (render checks). Do
    **not** add Tailwind or another styling framework unless the host already
    uses one or the user explicitly asks for it — the bootstrap ships zero
    presentation styling defaults on purpose.
-3. Run `npm install` in the resolved target directory. If scaffolding into a
+4. Run `npm install` in the resolved target directory. If scaffolding into a
    monorepo subdirectory, rename the copied `package.json`'s `name` field to
    suit the host (the template ships a neutral `presentation-app`).
-4. If Chromium isn't available for Playwright, run
+5. If Chromium isn't available for Playwright, run
    `npx playwright install chromium` in the target directory.
+6. After scaffolding, open the new presentation's route (once step 3 creates
+   one) to confirm it is actually reachable through whatever routing now
+   exists — a registered-but-unreachable presentation fails self-verify.
 
 ### 3. Generate or modify
 

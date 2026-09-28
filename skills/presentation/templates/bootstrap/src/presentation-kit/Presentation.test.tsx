@@ -95,7 +95,13 @@ describe('Presentation', () => {
     await waitFor(() => {
       expect(screen.getByTestId('solo-scene')).toHaveTextContent('b')
     })
-    expect(screen.queryByTestId('grouped-scene')).not.toBeInTheDocument()
+    // The outgoing canvas stays mounted alongside the incoming one for the
+    // duration of its own exit animation (concurrent presence keeps shared
+    // layoutId entities eligible for layout projection); it is removed once
+    // that exit completes.
+    await waitFor(() => {
+      expect(screen.queryByTestId('grouped-scene')).not.toBeInTheDocument()
+    })
   })
 
   it('renders default bottom-right attribution with a stable hook', () => {

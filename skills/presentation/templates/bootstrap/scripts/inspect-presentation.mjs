@@ -5,48 +5,27 @@
  * Usage: node scripts/inspect-presentation.mjs <slug> [--settle-ms <ms>] [--viewport <width>x<height>]
  * (or: npm run inspect -- <slug> [--settle-ms <ms>] [--viewport <width>x<height>])
  *
- * Builds the app, serves a production preview on 127.0.0.1, and steps through
- * every step of the requested presentation, writing one screenshot per step
- * under `presentation-inspection/<slug>/` after transitions settle. Prints
- * advisory warnings (not pass/fail) for unmarked text/chrome overlap,
- * indistinct active navigation, and unpolished attribution.
+ * Builds the app, serves a production preview it owns exclusively (an
+ * OS-assigned port on 127.0.0.1, via Vite's programmatic `preview()` API),
+ * and steps through every step of the requested presentation, writing one
+ * screenshot per step under `presentation-inspection/<slug>/` after
+ * transitions settle. Prints advisory warnings (not pass/fail) for unmarked
+ * text/chrome overlap, indistinct active navigation, and unpolished
+ * attribution.
  */
 import { spawn } from 'node:child_process'
-import { once } from 'node:events'
 import { mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-
-/** Kills a spawned process (and its group) without hanging if it ignores the signal. */
-async function killProcess(child) {
-  if (child.exitCode !== null || child.signalCode !== null) return
-  try {
-    process.kill(-child.pid, 'SIGTERM')
-  } catch {
-    child.kill('SIGTERM')
-  }
-  const exited = await Promise.race([
-    once(child, 'exit').then(() => true),
-    new Promise((resolve) => setTimeout(() => resolve(false), 3000)),
-  ])
-  if (!exited) {
-    try {
-      process.kill(-child.pid, 'SIGKILL')
-    } catch {
-      child.kill('SIGKILL')
-    }
-    await once(child, 'exit').catch(() => {})
-  }
-}
+import { preview } from 'vite'
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const HOST = '127.0.0.1'
-const PORT = 4736
-const BASE_URL = `http://${HOST}:${PORT}`
 const DEFAULT_SETTLE_MS = 900
 const DEFAULT_VIEWPORT = { width: 1280, height: 800 }
+const STEP_ADVANCE_TIMEOUT_MS = 5000
 
 function parseArgs(argv) {
   const args = { slug: undefined, settleMs: DEFAULT_SETTLE_MS, viewport: DEFAULT_VIEWPORT }
@@ -79,18 +58,39 @@ function run(command, args, options = {}) {
   })
 }
 
-async function waitForServer(url, timeoutMs = 30_000) {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url)
-      if (response.ok || response.status < 500) return
-    } catch {
-      // not up yet
-    }
-    await new Promise((resolve) => setTimeout(resolve, 200))
+/**
+ * Starts a preview server this process exclusively owns, on an OS-assigned
+ * port (`port: 0`), so a stale server left on a fixed port by another run
+ * can never be mistaken for the build just produced.
+ */
+async function startOwnedPreview() {
+  const server = await preview({
+    root: ROOT,
+    logLevel: 'silent',
+    preview: { host: HOST, port: 0, strictPort: false },
+  })
+  const address = server.httpServer.address()
+  if (!address || typeof address !== 'object') {
+    throw new Error('Preview server did not report a bound port')
   }
-  throw new Error(`Preview server did not become ready at ${url} within ${timeoutMs}ms`)
+  return { server, baseUrl: `http://${HOST}:${address.port}` }
+}
+
+/**
+ * Waits until the chrome's `data-step-index` hook reports `expectedIndex`,
+ * rather than trusting a fixed timeout to mean navigation succeeded. Throws
+ * naming the step that failed to advance if it never does.
+ */
+async function waitForStepIndex(page, expectedIndex) {
+  try {
+    await page.waitForFunction(
+      (expected) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === expected,
+      String(expectedIndex),
+      { timeout: STEP_ADVANCE_TIMEOUT_MS },
+    )
+  } catch {
+    throw new Error(`step ${expectedIndex + 1} did not become active within ${STEP_ADVANCE_TIMEOUT_MS}ms`)
+  }
 }
 
 /** Runs in the browser: collects bounding boxes for visible text/chrome nodes, minus allow-overlap subtrees. */
@@ -195,23 +195,16 @@ async function main() {
   console.log('[inspect] building application...')
   await run('npm', ['run', 'build'])
 
-  console.log(`[inspect] starting preview on ${BASE_URL}...`)
-  const viteBin = path.join(ROOT, 'node_modules', '.bin', 'vite')
-  const preview = spawn(
-    viteBin,
-    ['preview', '--host', HOST, '--port', String(PORT), '--strictPort'],
-    { cwd: ROOT, stdio: 'pipe', detached: true },
-  )
-  preview.stdout.on('data', () => {})
-  preview.stderr.on('data', () => {})
+  console.log(`[inspect] starting an owned preview on ${HOST}...`)
+  const { server, baseUrl } = await startOwnedPreview()
+  console.log(`[inspect] preview listening at ${baseUrl}`)
 
   let browser
   try {
-    await waitForServer(`${BASE_URL}/`)
     browser = await chromium.launch()
     const page = await browser.newPage({ viewport })
-    await page.goto(`${BASE_URL}/${slug}`, { waitUntil: 'networkidle' })
-    await page.waitForTimeout(settleMs)
+    await page.goto(`${baseUrl}/${slug}`, { waitUntil: 'networkidle' })
+    await waitForStepIndex(page, 0)
 
     const stepCount = Number(await page.locator('[data-step-count]').first().getAttribute('data-step-count'))
     if (!Number.isFinite(stepCount) || stepCount < 1) {
@@ -221,6 +214,12 @@ async function main() {
     const warnings = []
 
     for (let step = 0; step < stepCount; step += 1) {
+      // Navigation (below) already confirmed data-step-index === step via
+      // waitForStepIndex; wait for the transition to visually settle before
+      // capturing so the screenshot reflects the arrived-at step, not a
+      // mid-animation frame of it.
+      await page.waitForTimeout(settleMs)
+
       const screenshotPath = path.join(outDir, `step-${String(step + 1).padStart(2, '0')}.png`)
       await page.screenshot({ path: screenshotPath })
       console.log(`[inspect] wrote ${path.relative(ROOT, screenshotPath)}`)
@@ -261,7 +260,7 @@ async function main() {
 
       if (step < stepCount - 1) {
         await page.keyboard.press('ArrowRight')
-        await page.waitForTimeout(settleMs)
+        await waitForStepIndex(page, step + 1)
       }
     }
 
@@ -273,7 +272,7 @@ async function main() {
     }
   } finally {
     if (browser) await browser.close()
-    await killProcess(preview)
+    await server.close()
   }
 }
 

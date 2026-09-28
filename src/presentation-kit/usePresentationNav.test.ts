@@ -60,4 +60,26 @@ describe('usePresentationNav', () => {
     act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p' })))
     expect(result.current.mode).toBe('present')
   })
+
+  it('prev moves from the clamped index after stepCount shrinks below it', () => {
+    const { result, rerender } = renderHook(({ stepCount }) => usePresentationNav(stepCount), {
+      initialProps: { stepCount: 5 },
+    })
+    act(() => result.current.goTo(4))
+    rerender({ stepCount: 3 })
+    expect(result.current.stepIndex).toBe(2)
+    act(() => result.current.prev())
+    expect(result.current.stepIndex).toBe(1)
+  })
+
+  it('does not resurrect a stale index when stepCount later expands again', () => {
+    const { result, rerender } = renderHook(({ stepCount }) => usePresentationNav(stepCount), {
+      initialProps: { stepCount: 5 },
+    })
+    act(() => result.current.goTo(4))
+    rerender({ stepCount: 3 })
+    expect(result.current.stepIndex).toBe(2)
+    rerender({ stepCount: 5 })
+    expect(result.current.stepIndex).toBe(2)
+  })
 })

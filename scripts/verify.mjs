@@ -1,21 +1,23 @@
 #!/usr/bin/env node
 /**
- * Generic deterministic build + browser-render verification for a
- * presentation-app bootstrapped from the `presentation` skill.
+ * Deterministic build + browser-render verification for this repository.
  *
- * Unlike the polished, project-specific verification script this template's
- * host repository may eventually add for a canonical sample, this script
- * makes NO assumption about which presentations are registered, their
- * titles, or their step counts. It only assumes the presentation-kit
- * contract: `[data-presentation-root]` exposing `data-step-count` and
- * `data-step-index`, and that ArrowRight advances the active step by
- * exactly one with no wrap-around past the last step.
+ * Unlike the generic bootstrap template's `scripts/verify.mjs` (which makes
+ * no assumption about which presentations exist), this script additionally
+ * knows about the committed reference sample — "How to Use This Skill to
+ * Make a Presentation" — and asserts it is registered and implements the
+ * canonical nine-step outline from
+ * `openspec/changes/create-and-scene/specs/presentation-verification/spec.md`
+ * in order.
  *
  * Phases (any failure exits non-zero and names the phase):
- *   1. build   - `npm run build` (tsc -b && vite build)
- *   2. registry - src/presentations/index.ts must declare at least one slug
- *   3. render  - `vite preview` on 127.0.0.1, then Playwright Chromium opens
- *                every registered route and steps through it end to end
+ *   1. build    - `npm run build` (tsc -b && vite build)
+ *   2. registry - src/presentations/index.ts must register the canonical
+ *                 sample slug, in canonical position/order
+ *   3. render   - `vite preview` on 127.0.0.1, then Playwright Chromium
+ *                 opens the sample route and steps through all nine steps,
+ *                 asserting each step's title/caption match the canonical
+ *                 outline in order, with no console/page errors
  */
 import { spawn, spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -25,6 +27,47 @@ import process from 'node:process'
 
 const ROOT = process.cwd()
 const isWindows = process.platform === 'win32'
+
+const CANONICAL_SLUG = 'how-to-make-a-presentation'
+
+/** The nine-step outline is normative (titles/captions/order); see the spec cited above. */
+const CANONICAL_STEPS = [
+  { title: 'You have a topic', caption: 'It starts with you, a topic, and mild overconfidence.' },
+  {
+    title: 'The skill interviews you',
+    caption: 'One question at a time: the topic, the look, then each beat of the story.',
+  },
+  {
+    title: 'Answers become steps',
+    caption:
+      'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.',
+  },
+  {
+    title: 'The deck grows',
+    caption: 'Same shapes, new beats. Every answer extends the story without redrawing it.',
+  },
+  {
+    title: 'You set the depth',
+    caption: 'Spell out every step, or sketch a few and see how it looks. You hold the gate.',
+  },
+  {
+    title: 'It assembles the scene',
+    caption:
+      'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.',
+  },
+  {
+    title: 'It checks its own work',
+    caption: 'Before saying done, it builds and renders every step — and fixes what breaks.',
+  },
+  {
+    title: 'Changed your mind? Loop it.',
+    caption: 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.',
+  },
+  {
+    title: "You're looking at one",
+    caption: 'This presentation was built exactly this way. Thanks for watching.',
+  },
+]
 
 function fail(phase, message) {
   console.error(`\n[verify] FAILED (${phase}): ${message}\n`)
@@ -59,10 +102,12 @@ function readRegisteredSlugs() {
     slugs.push(match[1])
   }
   if (slugs.length === 0) {
+    fail('registry', 'src/presentations/index.ts has zero registered presentations')
+  }
+  if (!slugs.includes(CANONICAL_SLUG)) {
     fail(
       'registry',
-      'src/presentations/index.ts has zero registered presentations - nothing to render-check. ' +
-        'Register at least one presentation before running verify.',
+      `the committed reference sample "${CANONICAL_SLUG}" is not registered in src/presentations/index.ts`,
     )
   }
   console.log(`[verify] registry: found ${slugs.length} presentation(s): ${slugs.join(', ')}`)
@@ -111,7 +156,7 @@ function terminate(child) {
   })
 }
 
-async function checkSlug(browser, baseUrl, slug) {
+async function checkGenericSlug(browser, baseUrl, slug) {
   const page = await browser.newPage()
   const errors = []
   page.on('console', (msg) => {
@@ -185,6 +230,86 @@ async function checkSlug(browser, baseUrl, slug) {
   }
 }
 
+/**
+ * Renders the canonical reference sample and asserts, at every one of its
+ * nine steps, that the title/caption match the normative outline in order,
+ * in addition to the generic step-count/transition/no-console-error checks.
+ */
+async function checkCanonicalSample(browser, baseUrl) {
+  const page = await browser.newPage()
+  const errors = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(`console.error: ${msg.text()}`)
+  })
+  page.on('pageerror', (err) => {
+    errors.push(`pageerror: ${err.message}`)
+  })
+
+  try {
+    await page.goto(`${baseUrl}/${CANONICAL_SLUG}`, { waitUntil: 'networkidle' })
+    const root = page.locator('[data-presentation-root]')
+    await root.waitFor({ state: 'attached', timeout: 10000 })
+
+    const stepCount = Number(await root.getAttribute('data-step-count'))
+    if (stepCount !== CANONICAL_STEPS.length) {
+      return {
+        ok: false,
+        reason: `expected the canonical sample to have ${CANONICAL_STEPS.length} steps, found ${stepCount}`,
+      }
+    }
+
+    let checkedErrorCount = 0
+    for (let index = 0; index < CANONICAL_STEPS.length; index += 1) {
+      if (index > 0) {
+        await page.keyboard.press('ArrowRight')
+        await page.waitForTimeout(150)
+      }
+
+      const observedIndex = Number(await root.getAttribute('data-step-index'))
+      if (observedIndex !== index) {
+        return {
+          ok: false,
+          reason: `step transition did not advance by one: expected data-step-index=${index}, got ${observedIndex}`,
+          stepIndex: index,
+        }
+      }
+      if (errors.length > checkedErrorCount) {
+        return { ok: false, reason: errors.slice(checkedErrorCount).join('; '), stepIndex: index }
+      }
+      checkedErrorCount = errors.length
+
+      const expected = CANONICAL_STEPS[index]
+      const title = (await page.locator('[data-presentation-title]').textContent())?.trim()
+      const caption = (await page.locator('[data-presentation-caption]').textContent())?.trim()
+
+      if (title !== expected.title) {
+        return {
+          ok: false,
+          reason: `step ${index} title mismatch: expected "${expected.title}", got "${title}"`,
+          stepIndex: index,
+        }
+      }
+      if (caption !== expected.caption) {
+        return {
+          ok: false,
+          reason: `step ${index} caption mismatch: expected "${expected.caption}", got "${caption}"`,
+          stepIndex: index,
+        }
+      }
+    }
+
+    if (errors.length > 0) {
+      return { ok: false, reason: errors.join('; ') }
+    }
+
+    return { ok: true, stepCount }
+  } catch (err) {
+    return { ok: false, reason: err instanceof Error ? err.message : String(err) }
+  } finally {
+    await page.close()
+  }
+}
+
 async function main() {
   runBuild()
   const slugs = readRegisteredSlugs()
@@ -217,7 +342,8 @@ async function main() {
     const browser = await chromium.launch()
     try {
       for (const slug of slugs) {
-        const result = await checkSlug(browser, baseUrl, slug)
+        const result =
+          slug === CANONICAL_SLUG ? await checkCanonicalSample(browser, baseUrl) : await checkGenericSlug(browser, baseUrl, slug)
         if (result.ok) {
           console.log(`[verify] render: OK "${slug}" (${result.stepCount} steps, no console/page errors)`)
         } else {
@@ -238,10 +364,7 @@ async function main() {
   }
 
   if (failures.length > 0) {
-    fail(
-      'render',
-      `${failures.length} presentation(s) failed: ${failures.map((f) => f.slug).join(', ')}`,
-    )
+    fail('render', `${failures.length} presentation(s) failed: ${failures.map((f) => f.slug).join(', ')}`)
   }
 
   console.log('\n[verify] All checks passed (build, registry, render).\n')

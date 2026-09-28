@@ -1,0 +1,289 @@
+/* Presentation-owned styling for "How to Use This Skill to Make a
+   Presentation". The scene kit supplies no visual defaults; every color,
+   spacing, and typography decision below belongs to this presentation. */
+
+[data-presentation-root] {
+  --htmap-ink: #f8f3e6;
+  --htmap-muted: #b8ae9a;
+  --htmap-accent: #c7a755;
+  --htmap-panel: #1b1815;
+  --htmap-panel-border: rgba(199, 167, 85, 0.35);
+  color: var(--htmap-ink);
+}
+
+[data-presentation-header] h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+[data-presentation-marker] {
+  color: var(--htmap-accent);
+  font-variant-numeric: tabular-nums;
+  margin-right: 0.75rem;
+}
+
+[data-presentation-caption] {
+  color: var(--htmap-muted);
+  max-width: 42rem;
+}
+
+[data-presentation-progress-item] {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+}
+
+[data-presentation-progress-item] [data-presentation-progress-dot] {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(248, 243, 230, 0.25);
+}
+
+[data-presentation-progress-item][data-presentation-active] {
+  background: rgba(199, 167, 85, 0.25);
+  border-radius: 999px;
+}
+
+[data-presentation-progress-item][data-presentation-active] [data-presentation-progress-dot] {
+  background: var(--htmap-accent);
+  box-shadow: 0 0 0 3px rgba(199, 167, 85, 0.25);
+}
+
+[data-presentation-toc-item] {
+  color: var(--htmap-muted);
+  background: none;
+  border: none;
+  padding: 0.25rem 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+[data-presentation-toc-item][data-presentation-active] {
+  color: var(--htmap-accent);
+  font-weight: 700;
+}
+
+[data-presentation-prev],
+[data-presentation-next] {
+  background: var(--htmap-panel);
+  color: var(--htmap-ink);
+  border: 1px solid var(--htmap-panel-border);
+  border-radius: 6px;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+}
+
+[data-presentation-prev]:disabled,
+[data-presentation-next]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+[data-presentation-attribution] {
+  font-size: 12px;
+  color: var(--htmap-muted);
+  text-decoration: none;
+}
+
+[data-presentation-attribution]:hover {
+  color: var(--htmap-accent);
+}
+
+/* --- the scene itself --- */
+
+.htmap-scene {
+  font-size: 13px;
+}
+
+.htmap-node,
+.htmap-bubble,
+.htmap-chip {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--htmap-panel-border);
+  border-radius: 10px;
+  background: var(--htmap-panel);
+  padding: 0.5rem 0.65rem;
+  line-height: 1.25;
+}
+
+.htmap-node svg,
+.htmap-chip svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: var(--htmap-accent);
+}
+
+.htmap-you {
+  left: 24px;
+  top: 24px;
+  width: 96px;
+  height: 56px;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.htmap-prompt {
+  left: 130px;
+  top: 0;
+  width: 190px;
+  height: 40px;
+  color: var(--htmap-muted);
+  font-style: italic;
+}
+
+.htmap-skill {
+  left: 760px;
+  top: 24px;
+  width: 96px;
+  height: 56px;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.htmap-question-chip {
+  left: 385px;
+  top: 0;
+  width: 160px;
+  height: 28px;
+  color: var(--htmap-muted);
+}
+
+.htmap-depth-control {
+  left: 24px;
+  top: 88px;
+  width: 190px;
+  height: 24px;
+  color: var(--htmap-muted);
+}
+
+.htmap-arrow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.htmap-arrow path {
+  fill: none;
+  stroke: var(--htmap-panel-border);
+  stroke-width: 2;
+}
+
+.htmap-card {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.15rem;
+  width: 140px;
+  height: 90px;
+  top: 130px;
+}
+
+.htmap-card-title {
+  font-weight: 700;
+}
+
+.htmap-card-caption,
+.htmap-card-visual {
+  color: var(--htmap-muted);
+  font-size: 11px;
+}
+
+.htmap-card-1 {
+  left: 40px;
+}
+
+.htmap-card-2 {
+  left: 210px;
+}
+
+.htmap-ghost-card {
+  left: 380px;
+  border-style: dashed;
+  color: var(--htmap-muted);
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.htmap-scene-kit-socket {
+  left: 40px;
+  top: 230px;
+  width: 310px;
+  height: 40px;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.htmap-verify-node {
+  left: 550px;
+  top: 130px;
+  width: 120px;
+  height: 90px;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.htmap-verify-node svg {
+  color: #7cd68a;
+}
+
+.htmap-route {
+  left: 670px;
+  top: 290px;
+  width: 160px;
+  height: 40px;
+  justify-content: center;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+}
+
+.htmap-edited-flag {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: var(--htmap-accent);
+  color: #1b1815;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.htmap-edited-flag svg {
+  width: 12px;
+  height: 12px;
+  color: #1b1815;
+}
+
+.htmap-reveal-frame {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 864px;
+  height: 364px;
+  border: 1px dashed var(--htmap-accent);
+  border-radius: 16px;
+}
+
+.htmap-reveal-label {
+  position: absolute;
+  left: 300px;
+  top: 338px;
+  width: 280px;
+  text-align: center;
+  color: var(--htmap-accent);
+  font-weight: 600;
+}

@@ -76,6 +76,13 @@ async function startOwnedPreview() {
   return { server, baseUrl: `http://${HOST}:${address.port}` }
 }
 
+/** Closes the underlying HTTP server directly, not via PreviewServer.close(). */
+function closePreviewServer(server) {
+  return new Promise((resolve, reject) => {
+    server.httpServer.close((error) => (error ? reject(error) : resolve()))
+  })
+}
+
 /**
  * Waits until the chrome's `data-step-index` hook reports `expectedIndex`,
  * rather than trusting a fixed timeout to mean navigation succeeded. Throws
@@ -271,8 +278,11 @@ async function main() {
       console.log('\n[inspect] no advisory warnings')
     }
   } finally {
-    if (browser) await browser.close()
-    await server.close()
+    try {
+      if (browser) await browser.close()
+    } finally {
+      await closePreviewServer(server)
+    }
   }
 }
 

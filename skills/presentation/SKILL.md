@@ -87,9 +87,16 @@ itself.
    file, never relative to the caller's working directory.
 2. **Wire routing to match what discovery found**, rather than overwriting the
    host's entry point:
-   - No router yet (fresh scaffold, or an app with a single unrouted root
-     component): copy the bootstrap's zero-dependency pathname router
+   - Fresh/empty scaffold (no existing `src/main.tsx` or entry point at all):
+     copy the bootstrap's zero-dependency pathname router
      (`main.tsx`/`Router.tsx`/`Landing.tsx`) as-is.
+   - An existing app with no router yet, but a real root component,
+     providers, or other existing UI at its entry point: do **not** overwrite
+     that entry point with the bootstrap's. Instead add presentation route
+     handling alongside the existing root — e.g. check the pathname before
+     rendering the existing root and render the matched presentation instead
+     when it matches a registry slug — so the host's existing default route,
+     providers, and UI keep rendering unchanged for every other path.
    - An existing router (React Router, framework file-based routing, a custom
      switch): add one route per the host's own convention that resolves a
      slug to `presentations/index.ts`'s registry entry — do not replace the

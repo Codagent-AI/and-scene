@@ -60,6 +60,13 @@ async function startOwnedPreview() {
   return { server, baseUrl: `http://${HOST}:${address.port}` }
 }
 
+/** Closes the underlying HTTP server directly, not via PreviewServer.close(). */
+function closePreviewServer(server) {
+  return new Promise((resolve, reject) => {
+    server.httpServer.close((error) => (error ? reject(error) : resolve()))
+  })
+}
+
 /** Reads the registered presentation slugs without executing app code. */
 function readRegisteredSlugs() {
   const indexPath = path.join(ROOT, 'src', 'presentations', 'index.ts')
@@ -154,8 +161,11 @@ async function main() {
   } catch (error) {
     fail(error.message)
   } finally {
-    if (browser) await browser.close()
-    await server.close()
+    try {
+      if (browser) await browser.close()
+    } finally {
+      await closePreviewServer(server)
+    }
   }
 }
 

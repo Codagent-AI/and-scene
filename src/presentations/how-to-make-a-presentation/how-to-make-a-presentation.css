@@ -17,13 +17,13 @@
 }
 
 /* Present-mode marker: era + per-step title, otherwise rendered flush together. */
-[data-presentation-marker] {
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-marker] {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
 }
 
-[data-presentation-era] {
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-era] {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
@@ -68,7 +68,7 @@
 }
 
 /* Boxes: You / Skill / step cards / ghost card / verify node. */
-[data-presentation-node='box'] {
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-node='box'] {
   border: 1px solid var(--htmasp-accent);
   background: var(--htmasp-surface);
   border-radius: 0.5rem;
@@ -190,7 +190,7 @@
   color: var(--htmasp-dim);
 }
 
-[data-presentation-node='emphasis'][data-active='true'].htmasp-verify-check {
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-node='emphasis'][data-active='true'].htmasp-verify-check {
   color: #7fd97f;
   font-weight: 700;
 }
@@ -230,7 +230,7 @@
 }
 
 /* Active-state distinctness: required so the current step is unambiguous. */
-[data-presentation-progress-dot] {
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-progress-dot] {
   width: 8px;
   height: 8px;
   border-radius: 999px;
@@ -238,32 +238,32 @@
   border: none;
 }
 
-[data-presentation-progress-dot][data-active='true'] {
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-progress-dot][data-active='true'] {
   background: var(--htmasp-accent);
 }
 
-[data-presentation-toc-entry] {
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-toc-entry] {
   opacity: 0.6;
   color: var(--htmasp-ink);
   background: none;
   border: none;
 }
 
-[data-presentation-toc-entry][data-active='true'] {
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-toc-entry][data-active='true'] {
   opacity: 1;
   font-weight: 700;
   color: var(--htmasp-accent);
 }
 
 /* Attribution polish: required so the link isn't a raw browser-default anchor. */
-[data-presentation-attribution] {
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-attribution] {
   font-size: 0.75rem;
   color: var(--htmasp-dim);
   opacity: 0.85;
   text-decoration: none;
 }
 
-[data-presentation-attribution]:hover {
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-attribution]:hover {
   opacity: 1;
   color: var(--htmasp-accent);
 }

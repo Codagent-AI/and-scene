@@ -15,12 +15,11 @@
  * Exits non-zero on any failure and names the failing phase/step.
  */
 import { spawn } from 'node:child_process'
-import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-import { preview } from 'vite'
+import { createServer, preview } from 'vite'
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const HOST = '127.0.0.1'
@@ -67,12 +66,21 @@ function closePreviewServer(server) {
   })
 }
 
-/** Reads the registered presentation slugs without executing app code. */
-function readRegisteredSlugs() {
-  const indexPath = path.join(ROOT, 'src', 'presentations', 'index.ts')
-  const source = readFileSync(indexPath, 'utf8')
-  const slugs = [...source.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((match) => match[1])
-  return slugs
+/**
+ * Reads the registered presentation slugs by loading the actual exported
+ * `presentations` registry through Vite's SSR module loader, rather than
+ * regex-matching the source text — a registry entry built from a variable or
+ * shorthand (e.g. `const slug = 'x'; { slug, ... }`) has no `slug: '...'`
+ * text for a regex to match, so it would silently go unchecked.
+ */
+async function readRegisteredSlugs() {
+  const loader = await createServer({ root: ROOT, server: { middlewareMode: true }, logLevel: 'silent' })
+  try {
+    const { presentations } = await loader.ssrLoadModule('/src/presentations/index.ts')
+    return presentations.map((entry) => entry.slug)
+  } finally {
+    await loader.close()
+  }
 }
 
 async function checkRoute(page, baseUrl, routePath, { requireSteps }) {
@@ -133,7 +141,7 @@ async function main() {
   console.log('[verify] building application...')
   await run('npm', ['run', 'build'])
 
-  const slugs = readRegisteredSlugs()
+  const slugs = await readRegisteredSlugs()
   console.log(
     slugs.length > 0
       ? `[verify] found ${slugs.length} registered presentation(s): ${slugs.join(', ')}`

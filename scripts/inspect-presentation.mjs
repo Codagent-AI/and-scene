@@ -14,12 +14,12 @@
  * attribution.
  */
 import { spawn } from 'node:child_process'
-import { mkdirSync, readFileSync } from 'node:fs'
+import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-import { preview } from 'vite'
+import { createServer, preview } from 'vite'
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const HOST = '127.0.0.1'
@@ -44,10 +44,21 @@ function parseArgs(argv) {
   return args
 }
 
-function readRegisteredSlugs() {
-  const indexPath = path.join(ROOT, 'src', 'presentations', 'index.ts')
-  const source = readFileSync(indexPath, 'utf8')
-  return [...source.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((match) => match[1])
+/**
+ * Reads the registered presentation slugs by loading the actual exported
+ * `presentations` registry through Vite's SSR module loader, rather than
+ * regex-matching the source text — a registry entry built from a variable or
+ * shorthand (e.g. `const slug = 'x'; { slug, ... }`) has no `slug: '...'`
+ * text for a regex to match, so it would silently go unchecked.
+ */
+async function readRegisteredSlugs() {
+  const loader = await createServer({ root: ROOT, server: { middlewareMode: true }, logLevel: 'silent' })
+  try {
+    const { presentations } = await loader.ssrLoadModule('/src/presentations/index.ts')
+    return presentations.map((entry) => entry.slug)
+  } finally {
+    await loader.close()
+  }
 }
 
 function run(command, args, options = {}) {
@@ -191,7 +202,7 @@ async function checkAttribution(page) {
 
 async function main() {
   const { slug: requestedSlug, settleMs, viewport } = parseArgs(process.argv.slice(2))
-  const slugs = readRegisteredSlugs()
+  const slugs = await readRegisteredSlugs()
   const slug = requestedSlug ?? slugs[0]
 
   if (!slug) {

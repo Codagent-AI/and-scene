@@ -68,6 +68,12 @@ scaffold requires, matching `templates/bootstrap/package.json`:
   `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`,
   `typescript-eslint`, `playwright`.
 
+Installing the `playwright` package does not download a browser. After
+installing dependencies, run `npx playwright install chromium` so
+`npm run verify` and `npm run inspect` can launch Chromium (it's a no-op
+when a matching browser is already cached, e.g. via
+`PLAYWRIGHT_BROWSERS_PATH`).
+
 Do not add Tailwind, a Tailwind Vite plugin, or any other styling framework
 unless the host project already depends on one or the user explicitly asks
 for it. The scaffold ships zero palette/typography/spacing/border/shadow/

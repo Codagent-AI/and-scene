@@ -2,11 +2,11 @@
 cli:
   default_preference:
     - codex
-  # Recommended settings (see docs/eval-results.md)
   adapters:
     codex:
+      model: gpt-6-sol
       allow_tool_use: false
-      thinking_budget: medium
+      thinking_budget: low
 
 # entry_points configured by /validator-setup
 entry_points:

@@ -33,7 +33,7 @@ test('materialized bootstrap installs, builds, renders its route, and matches th
 
     execFileSync('npm', ['ci'], { cwd: project, stdio: 'inherit', timeout: 180_000 })
     execFileSync('npm', ['run', 'lint'], { cwd: project, stdio: 'inherit', timeout: 30_000 })
-    execFileSync('npm', ['run', 'verify'], { cwd: project, stdio: 'inherit', timeout: 90_000, env: { ...process.env, PRESENTATION_PREVIEW_PORT: '4188' } })
+    execFileSync('npm', ['run', 'verify', '--', 'starter'], { cwd: project, stdio: 'inherit', timeout: 90_000, env: { ...process.env, PRESENTATION_PREVIEW_PORT: '4188' } })
     const canonical = path.join(repo, 'src/presentation-kit')
     const copied = path.join(project, 'src/presentation-kit')
     const canonicalFiles = (await filesBelow(canonical)).filter((file) => !file.endsWith('.test.tsx'))

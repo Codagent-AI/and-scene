@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify browser-based presentations as evolving scenes using the local scene kit.
+description: Creates or modifies browser-based presentations as evolving scenes. Activates for requests such as “create a browser presentation,” “animate a diagram through steps,” or “update an existing scene presentation.”
 ---
 
 # Presentation skill
@@ -13,6 +13,9 @@ slides that redraw the whole composition.
 ## 1. Identify the request
 
 Decide whether the user wants a new presentation or a change to an existing one.
+This skill supports browser-based presentations in the local React scene kit. It
+does not author native PowerPoint or Google Slides files; direct those requests
+to the relevant native presentation workflow.
 For a modification, inspect the registry and list the available titles/routes if
 the target is missing or ambiguous. Ask which presentation to change before
 editing. Once selected, ask only about the requested change; do not repeat the
@@ -116,10 +119,11 @@ the presentation or host.
 
 ## 6. Build, render, and inspect before reporting completion
 
-Run the app's `npm run build`. Then use the project's verification command if
-available (`npm run verify`); at minimum, use its local Playwright tooling or a
-temporary helper inside the project root to open the new/modified route and
-assert its first step renders without console or runtime errors. Do not report
+Run the app's `npm run build`. Then verify the intended route explicitly with
+`npm run verify -- <slug>` when that command is available; at minimum, use its
+local Playwright tooling or a temporary helper inside the project root to open
+the new/modified route and assert its first step renders without console or
+runtime errors. Do not verify only an unrelated starter route. Do not report
 success while a check fails: diagnose, fix, and rerun the affected checks.
 
 Use `npm run inspect -- <slug>` whenever the project-local screenshot helper is
@@ -134,6 +138,14 @@ files.
 
 ## 7. Report completion
 
-Summarize the route, key files, design choices, build/render/visual checks run,
-and any remaining advisory warnings or decisions made after an explicit partial-
-detail choice. Report failures plainly; do not claim checks that were not run.
+Use this compact report and give each check one of the statuses **passed**,
+**failed**, or **not run**. Report failures plainly; do not claim checks that
+were not run.
+
+```text
+Route: /<slug>
+Files: <key presentation and registry files>
+Design decisions: <visual direction and any choices made after partial-detail opt-in>
+Checks: build — <status>; route render — <status>; visual inspection — <status>
+Remaining issues: <advisories or none>
+```

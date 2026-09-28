@@ -1,7 +1,6 @@
 import { mkdir } from 'node:fs/promises'
-import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
-import { spawn } from 'node:child_process'
+import { preview as startPreview } from 'vite'
 
 const slug = process.argv[2]
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
@@ -10,15 +9,10 @@ const port = Number(process.env.PRESENTATION_INSPECT_PORT ?? 4179)
 const origin = `http://${host}:${port}`
 const output = `artifacts/presentation-inspection/${slug}`
 await mkdir(output, { recursive: true })
-const preview = spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'ignore' })
+let preview
 let browser
 try {
-  let ready = false
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    try { ready = (await fetch(origin)).ok; if (ready) break } catch {}
-    await delay(250)
-  }
-  if (!ready) throw new Error(`preview did not become ready at ${origin}; run npm run build first`)
+  preview = await startPreview({ preview: { host, port, strictPort: true } })
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   await page.goto(`${origin}/${encodeURIComponent(slug)}`, { waitUntil: 'networkidle' })
@@ -51,5 +45,5 @@ try {
   console.log(`Captured ${count} settled steps in ${output}`)
 } finally {
   await browser?.close()
-  preview.kill('SIGTERM')
+  if (preview?.httpServer.listening) await new Promise((resolve, reject) => preview.httpServer.close((error) => error ? reject(error) : resolve()))
 }

@@ -30,6 +30,19 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse', b
 
   const showToc = nav.mode === 'browse' && viewportWidth >= TOC_MIN_WIDTH
 
+  if (!activeStep) {
+    return (
+      <div
+        className="and-scene-presentation"
+        data-presentation-root=""
+        data-presentation-mode={nav.mode}
+        data-step-count={0}
+        data-step-index={0}
+        data-presentation-empty=""
+      />
+    )
+  }
+
   return (
     <div
       className="and-scene-presentation"

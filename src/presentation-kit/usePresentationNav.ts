@@ -49,6 +49,8 @@ export function usePresentationNav(stepCount: number, initialMode: Mode = 'brows
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented) return
+      if (event.ctrlKey || event.metaKey || event.altKey) return
       if (isInteractiveTarget(event.target)) return
       switch (event.key) {
         case 'ArrowRight':

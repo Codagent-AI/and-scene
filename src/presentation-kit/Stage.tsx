@@ -1,11 +1,29 @@
-import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { AnimatePresence, LayoutGroup, motion, useIsPresent } from 'motion/react'
+import type { ComponentType } from 'react'
 import { DESIGN_H, DESIGN_W, EASE } from './constants'
-import type { Step } from './types'
+import type { SceneProps, Step } from './types'
 
 export interface StageProps<TPayload> {
   steps: Array<Step<TPayload>>
   stepIndex: number
   scale: number
+}
+
+interface ActiveSceneProps<TPayload> {
+  Scene: ComponentType<SceneProps<TPayload>>
+  payload: TPayload
+  stepId: string
+  stepIndex: number
+}
+
+/**
+ * Derives `isActive` from AnimatePresence's presence state rather than a
+ * literal `true`, so an outgoing scene knows it is exiting instead of
+ * continuing to believe it is still active during its exit animation.
+ */
+function ActiveScene<TPayload>({ Scene, payload, stepId, stepIndex }: ActiveSceneProps<TPayload>) {
+  const isPresent = useIsPresent()
+  return <Scene payload={payload} stepId={stepId} stepIndex={stepIndex} isActive={isPresent} />
 }
 
 /**
@@ -44,7 +62,7 @@ export function Stage<TPayload>({ steps, stepIndex, scale }: StageProps<TPayload
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: EASE }}
             >
-              <Scene payload={step.payload} stepId={step.id} stepIndex={stepIndex} isActive />
+              <ActiveScene Scene={Scene} payload={step.payload} stepId={step.id} stepIndex={stepIndex} />
             </motion.div>
           </AnimatePresence>
         </LayoutGroup>

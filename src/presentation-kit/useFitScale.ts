@@ -34,7 +34,10 @@ export function useFitScale(mode: Mode): number {
     window.addEventListener('resize', scheduleMeasure)
     return () => {
       window.removeEventListener('resize', scheduleMeasure)
-      if (frameRef.current != null) window.cancelAnimationFrame(frameRef.current)
+      if (frameRef.current != null) {
+        window.cancelAnimationFrame(frameRef.current)
+        frameRef.current = null
+      }
     }
   }, [mode])
 

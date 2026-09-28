@@ -123,6 +123,22 @@ describe('E2E-002: verification failures are actionable', () => {
     expectSourceUnchanged(relativePath, before)
   }, 120_000)
 
+  it('fails and names the step when a step title drifts from the canonical outline', () => {
+    const relativePath = 'src/presentations/how-to-make-a-presentation/steps/04-the-deck-grows.tsx'
+    const before = readFileSync(path.join(REPO_ROOT, relativePath), 'utf8')
+    const appDir = makeDisposableCopy()
+    const drifted = before.replace("title: 'The deck grows'", "title: 'The deck expands'")
+    expect(drifted).not.toBe(before)
+    writeFileSync(path.join(appDir, relativePath), drifted)
+
+    const { status, output } = runVerify(appDir)
+
+    expect(status).not.toBe(0)
+    expect(output).toContain('step 3')
+    expect(output).toContain('The deck expands')
+    expectSourceUnchanged(relativePath, before)
+  }, 120_000)
+
   it('fails on a console error emitted while stepping through the sample', () => {
     const relativePath = 'src/presentations/how-to-make-a-presentation/steps/scene.tsx'
     const before = readFileSync(path.join(REPO_ROOT, relativePath), 'utf8')

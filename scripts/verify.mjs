@@ -179,6 +179,17 @@ async function checkRoute(page, baseUrl, routePath, { requireSteps, expectedStep
             `route ${routePath} step ${step} ("${expected.title}") has caption "${caption?.trim()}", expected "${expected.caption}"`,
           )
         }
+        // The per-step title is only rendered in present mode's marker, so
+        // toggle there (mode switches preserve the step) and back to browse.
+        await page.keyboard.press('p')
+        const title = await page
+          .locator('[data-presentation-marker] [data-presentation-title]')
+          .first()
+          .textContent()
+        await page.keyboard.press('p')
+        if (title?.trim() !== expected.title) {
+          throw new Error(`route ${routePath} step ${step} has title "${title?.trim()}", expected "${expected.title}"`)
+        }
       }
 
       if (step < count - 1) {

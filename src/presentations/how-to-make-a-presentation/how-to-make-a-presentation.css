@@ -1,0 +1,169 @@
+/*
+ * "How to Use This Skill to Make a Presentation" — presentation-owned styling.
+ * Palette: ink paper, cream type, amber for the conversation, teal for what gets verified.
+ */
+.presentation {
+  --hw-ink: #14110f;
+  --hw-panel: #1f1b17;
+  --hw-line: #4a4238;
+  --hw-cream: #f6efdf;
+  --hw-dim: #b9ae99;
+  --hw-amber: #e6b450;
+  --hw-teal: #5fd1b0;
+  --hw-rose: #f08a7a;
+  color: var(--hw-cream);
+  background: var(--hw-ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* ---- Chrome ---- */
+.presentation-header { padding: 14px 28px 0; gap: 16px; }
+.presentation-deck-title { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.04em; color: var(--hw-dim); }
+.presentation-marker { font-size: 13px; color: var(--hw-dim); font-variant-numeric: tabular-nums; }
+.presentation-marker [data-presentation-marker-number] { color: var(--hw-amber); font-weight: 700; }
+.presentation-body { padding: 0 8px; }
+
+.presentation-toc { align-self: center; padding: 0 8px 0 12px; }
+.presentation-toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.presentation-toc-item {
+  width: 132px; padding: 6px 10px; border: 0; border-left: 3px solid transparent; border-radius: 0 6px 6px 0;
+  background: none; color: var(--hw-dim); font-size: 13px; text-align: left; cursor: pointer;
+}
+.presentation-toc-item[data-presentation-active='true'] { color: var(--hw-ink); background: var(--hw-amber); border-left-color: var(--hw-cream); font-weight: 700; }
+
+.presentation-footer { display: grid; justify-items: center; gap: 6px; padding: 4px 190px 34px 28px; text-align: center; }
+.presentation-step-title { margin: 0; font-size: 26px; line-height: 1.15; }
+.presentation-caption { margin: 0; max-width: 62ch; font-size: 15px; line-height: 1.45; color: var(--hw-dim); }
+.presentation-controls { gap: 12px; margin-top: 6px; }
+.presentation-prev, .presentation-next {
+  padding: 6px 14px; border: 1px solid var(--hw-line); border-radius: 999px;
+  background: var(--hw-panel); color: var(--hw-cream); font-size: 13px; cursor: pointer;
+}
+.presentation-prev:disabled, .presentation-next:disabled { opacity: 0.35; cursor: default; }
+.presentation-progress { list-style: none; gap: 6px; margin: 0; padding: 0; align-items: center; }
+.presentation-progress-item {
+  display: block; width: 10px; height: 10px; padding: 0; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--hw-dim); background: transparent; opacity: 0.55;
+}
+.presentation-progress-item[data-presentation-active='true'] {
+  width: 26px; border-radius: 6px; border-color: var(--hw-amber); background: var(--hw-amber); opacity: 1;
+}
+
+.presentation-attribution {
+  padding: 8px 14px; font-size: 12px; color: var(--hw-dim); text-decoration: none; letter-spacing: 0.02em;
+}
+.presentation-attribution:hover { color: var(--hw-amber); }
+
+/* ---- Scene ---- */
+.hw-slot { position: absolute; }
+.presentation-scene { font-size: 12px; line-height: 1.2; }
+.presentation-box, .presentation-symbol-chip, .presentation-frame, .presentation-arrow, .presentation-emphasis { box-sizing: border-box; }
+.presentation-box {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; height: 100%; border: 1.5px solid var(--hw-line); border-radius: 12px; background: var(--hw-panel);
+}
+.presentation-label { display: block; text-align: center; white-space: nowrap; }
+.presentation-symbol-chip {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 100%;
+  border: 1px solid var(--hw-amber); border-radius: 999px; background: rgba(230, 180, 80, 0.12); color: var(--hw-amber); font-size: 12px; white-space: nowrap;
+}
+.presentation-symbol-chip svg, .presentation-box > svg { width: 14px; height: 14px; flex: none; }
+
+.hw-slot-you { left: 30px; top: 24px; width: 120px; height: 52px; }
+.hw-slot-you .presentation-box { border-color: var(--hw-amber); font-size: 16px; font-weight: 700; }
+.hw-slot-prompt { left: 30px; top: 84px; width: 150px; height: 30px; }
+.hw-slot-prompt .presentation-box { border-radius: 14px 14px 14px 3px; color: var(--hw-dim); font-style: italic; }
+.hw-slot-skill { left: 720px; top: 24px; width: 130px; height: 52px; }
+.hw-slot-skill .presentation-box { border-color: var(--hw-teal); color: var(--hw-teal); font-size: 16px; font-weight: 700; }
+.hw-slot-question { left: 435px; top: 6px; width: 170px; height: 26px; }
+
+/* Two-way arrow you <-> skill: a rule with a head at each end. */
+.hw-slot-talk { left: 296px; top: 42px; width: 414px; height: 20px; }
+.hw-slot-talk .presentation-arrow { position: relative; width: 100%; height: 100%; }
+.hw-slot-talk .presentation-arrow::before { content: ''; position: absolute; left: 6px; right: 6px; top: 9px; height: 2px; background: var(--hw-cream); }
+.hw-slot-talk .presentation-arrow::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    linear-gradient(to bottom right, transparent 50%, var(--hw-cream) 50%) left 0 top 4px / 6px 6px no-repeat,
+    linear-gradient(to top right, transparent 50%, var(--hw-cream) 50%) left 0 bottom 4px / 6px 6px no-repeat,
+    linear-gradient(to bottom left, transparent 50%, var(--hw-cream) 50%) right 0 top 4px / 6px 6px no-repeat,
+    linear-gradient(to top left, transparent 50%, var(--hw-cream) 50%) right 0 bottom 4px / 6px 6px no-repeat;
+}
+
+.hw-slot-tray { left: 14px; top: 132px; width: 852px; height: 132px; }
+.hw-slot-tray .presentation-box { border: 0; border-radius: 16px; background: rgba(246, 239, 223, 0.05); }
+
+.hw-slot-card-1 { left: 30px; top: 150px; width: 90px; height: 92px; }
+.hw-slot-card-2 { left: 170px; top: 150px; width: 90px; height: 92px; }
+.hw-slot-card-3 { left: 310px; top: 150px; width: 90px; height: 92px; }
+.hw-slot-card-4 { left: 450px; top: 150px; width: 90px; height: 92px; }
+.hw-slot-ghost { left: 590px; top: 150px; width: 90px; height: 92px; }
+.hw-slot-verify { left: 730px; top: 150px; width: 120px; height: 92px; }
+[class*='hw-slot-card-'] .presentation-box { flex-direction: column; gap: 6px; padding: 8px 6px; justify-content: flex-start; font-size: 11px; }
+[class*='hw-slot-card-'] .presentation-label:nth-child(1) { font-weight: 700; color: var(--hw-cream); }
+[class*='hw-slot-card-'] .presentation-label:nth-child(2) { color: var(--hw-dim); }
+[class*='hw-slot-card-'] .presentation-label:nth-child(3) { width: 100%; padding: 8px 0; border-radius: 6px; background: rgba(230, 180, 80, 0.18); color: var(--hw-amber); }
+.hw-slot-ghost .presentation-box { border: 1.5px dashed var(--hw-dim); background: transparent; color: var(--hw-dim); }
+
+/* Links between consecutive cards carry what morphs. */
+.hw-slot-link-1 { left: 120px; } .hw-slot-link-2 { left: 260px; } .hw-slot-link-3 { left: 400px; } .hw-slot-link-4 { left: 540px; }
+[class*='hw-slot-link-'] { top: 184px; width: 50px; height: 16px; }
+.hw-slot-link-5 { left: 680px; top: 192px; width: 50px; height: 16px; }
+.presentation-arrow { position: relative; width: 100%; height: 100%; }
+[class*='hw-slot-link-'] .presentation-arrow::before {
+  content: ''; position: absolute; left: 4px; right: 6px; bottom: 0; height: 2px; background: var(--hw-cream);
+}
+[class*='hw-slot-link-'] .presentation-arrow::after {
+  content: ''; position: absolute; right: 2px; bottom: -4px; border: 5px solid transparent; border-left: 8px solid var(--hw-cream); border-right: 0;
+}
+[class*='hw-slot-link-'] .presentation-label { position: absolute; left: 0; right: 0; bottom: 6px; font-size: 10px; color: var(--hw-dim); }
+.hw-slot-link-5 .presentation-arrow::before { bottom: 6px; }
+.hw-slot-link-5 .presentation-arrow::after { bottom: 2px; }
+
+.hw-slot-depth { left: 160px; top: 30px; width: 128px; height: 40px; }
+.hw-slot-depth .presentation-symbol-chip { border-radius: 12px; }
+
+/* Scene-kit socket plugs into the bottom edge of the (unframed) tray. */
+.hw-slot-socket { left: 300px; top: 264px; width: 280px; height: 42px; }
+.hw-slot-socket .presentation-box { position: relative; border-color: var(--hw-teal); border-radius: 0 0 12px 12px; border-top-width: 0; color: var(--hw-teal); }
+.hw-slot-socket .presentation-box::before {
+  content: ''; position: absolute; left: 50%; top: -8px; width: 26px; height: 8px; margin-left: -13px;
+  background: var(--hw-teal); border-radius: 4px 4px 0 0;
+}
+
+.hw-slot-verify .presentation-box { flex-wrap: wrap; align-content: flex-start; gap: 4px 6px; padding: 8px 6px; border-color: var(--hw-teal); }
+.hw-slot-verify .presentation-label { flex: 0 0 auto; padding: 1px 6px; border-radius: 4px; background: rgba(95, 209, 176, 0.14); color: var(--hw-teal); font-size: 10px; }
+.hw-slot-verify .presentation-label:nth-child(2) { flex-basis: 100%; background: none; font-size: 13px; font-weight: 700; }
+.hw-slot-pass { left: 758px; top: 214px; width: 64px; height: 22px; }
+.hw-slot-pass .presentation-symbol-chip { border-color: var(--hw-teal); background: var(--hw-teal); color: var(--hw-ink); font-weight: 700; font-size: 11px; }
+
+/* Modify arc: from the conversation down into the route, ending on the edited card. */
+.hw-slot-modify { left: 180px; top: 99px; width: 175px; height: 51px; }
+.hw-slot-modify .presentation-emphasis {
+  width: 100%; height: 100%; border-top: 2px dashed var(--hw-rose); border-right: 2px dashed var(--hw-rose); border-top-right-radius: 26px; position: relative;
+}
+.hw-slot-modify .presentation-emphasis::after {
+  content: ''; position: absolute; right: -6px; bottom: -2px; border: 5px solid transparent; border-top: 8px solid var(--hw-rose); border-bottom: 0;
+}
+.hw-slot-modify-label { left: 196px; top: 106px; width: 110px; height: 16px; }
+.hw-slot-modify-label .presentation-label { color: var(--hw-rose); font-size: 11px; }
+.hw-slot-edited { left: 315px; top: 246px; width: 80px; height: 16px; }
+.hw-slot-edited .presentation-symbol-chip { border-color: var(--hw-rose); background: rgba(240, 138, 122, 0.16); color: var(--hw-rose); font-size: 10px; gap: 4px; }
+.hw-slot-edited .presentation-symbol-chip svg { width: 10px; height: 10px; }
+
+/* Reveal: a frame drawn around everything already on screen. */
+.hw-slot-frame { left: 6px; top: 2px; width: 868px; height: 374px; pointer-events: none; }
+.hw-slot-frame .presentation-frame { position: relative; width: 100%; height: 100%; border: 2px solid var(--hw-amber); border-radius: 22px; }
+.hw-slot-frame .presentation-label {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); padding: 4px 14px; border-radius: 999px;
+  background: var(--hw-amber); color: var(--hw-ink); font-size: 14px; font-weight: 700;
+}
+
+/* ---- Narrow viewports: stack the chrome and give the stage more room ---- */
+@media (max-width: 720px) {
+  .presentation-header { padding: 10px 16px 0; }
+  .presentation-footer { padding: 4px 16px 36px; }
+  .presentation-step-title { font-size: 20px; }
+  .presentation-caption { font-size: 13px; }
+  .presentation-body { padding: 0; }
+}

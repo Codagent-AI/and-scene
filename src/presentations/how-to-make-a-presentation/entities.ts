@@ -1,0 +1,23 @@
+/** Stable entity ids — the `layoutId` namespace shared by every step of this talk. */
+export const E = {
+  frame: 'howto:frame',
+  frameLabel: 'howto:frame:label',
+  tray: 'howto:tray',
+  you: 'howto:you',
+  prompt: 'howto:prompt',
+  skill: 'howto:skill',
+  talk: 'howto:talk',
+  question: 'howto:question',
+  depth: 'howto:depth',
+  ghost: 'howto:ghost',
+  socket: 'howto:socket',
+  verify: 'howto:verify',
+  build: 'howto:verify:build',
+  render: 'howto:verify:render',
+  pass: 'howto:verify:pass',
+  modify: 'howto:modify',
+  modifyLabel: 'howto:modify:label',
+  edited: 'howto:edited',
+  card: (n: number) => `howto:card:${n}`,
+  link: (n: number) => `howto:link:${n}`,
+} as const

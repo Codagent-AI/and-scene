@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import type { CSSProperties, ReactNode } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
+import { LAYOUT_TRANSITION } from '../constants'
 
 export interface LabelProps {
   layoutId?: string
@@ -18,7 +18,7 @@ export function Label({ layoutId, className, style, children }: LabelProps) {
       className={className}
       data-presentation-node="label"
       style={style}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
+      transition={LAYOUT_TRANSITION}
     >
       {children}
     </motion.span>

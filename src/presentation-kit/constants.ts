@@ -12,6 +12,9 @@ export const EASE = [0.22, 1, 0.36, 1] as const
 /** Duration for layout-projection morphs of persisting entities. */
 export const LAYOUT_T = 0.5
 
+/** Transition shared by every morphing node primitive. */
+export const LAYOUT_TRANSITION = { duration: LAYOUT_T, ease: EASE }
+
 /** Duration for a newcomer entity's enter animation. */
 export const ENTER_T = 0.4
 

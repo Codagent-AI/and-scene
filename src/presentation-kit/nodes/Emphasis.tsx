@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import type { CSSProperties, ReactNode } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
+import { LAYOUT_TRANSITION } from '../constants'
 
 export interface EmphasisProps {
   layoutId?: string
@@ -21,7 +21,7 @@ export function Emphasis({ layoutId, className, style, active, children }: Empha
       data-presentation-node="emphasis"
       data-active={active}
       style={style}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
+      transition={LAYOUT_TRANSITION}
     >
       {children}
     </motion.div>

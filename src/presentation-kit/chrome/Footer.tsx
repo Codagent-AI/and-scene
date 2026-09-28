@@ -1,8 +1,8 @@
-import type { Mode, Step } from '../types'
+import type { Mode, StepMeta } from '../types'
 
-export interface FooterProps<TPayload> {
+export interface FooterProps {
   mode: Mode
-  activeStep: Step<TPayload>
+  activeStep: StepMeta
   stepIndex: number
   stepCount: number
   onNext: () => void
@@ -13,7 +13,7 @@ export interface FooterProps<TPayload> {
 
 export const AND_SCENE_REPO_URL = 'https://github.com/Codagent-AI/and-scene'
 
-export function Footer<TPayload>({
+export function Footer({
   mode,
   activeStep,
   stepIndex,
@@ -22,7 +22,7 @@ export function Footer<TPayload>({
   onPrev,
   onGoTo,
   onToggleMode,
-}: FooterProps<TPayload>) {
+}: FooterProps) {
   return (
     <footer
       className="and-scene-footer"

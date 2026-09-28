@@ -45,11 +45,11 @@ export function usePresentationNav(stepCount: number, initialMode: Mode = 'brows
   }, [stepCount])
 
   const next = useCallback(() => {
-    setStepIndex((current) => clampIndex(clampIndex(current, stepCount) + 1, stepCount))
+    setStepIndex((current) => clampIndex(current + 1, stepCount))
   }, [stepCount])
 
   const prev = useCallback(() => {
-    setStepIndex((current) => clampIndex(clampIndex(current, stepCount) - 1, stepCount))
+    setStepIndex((current) => clampIndex(current - 1, stepCount))
   }, [stepCount])
 
   const toggleMode = useCallback(() => {
@@ -111,5 +111,5 @@ export function usePresentationNav(stepCount: number, initialMode: Mode = 'brows
     }
   }, [next, prev])
 
-  return { stepIndex: clampIndex(stepIndex, stepCount), mode, stepCount, next, prev, goTo, toggleMode, setMode }
+  return { stepIndex, mode, stepCount, next, prev, goTo, toggleMode, setMode }
 }

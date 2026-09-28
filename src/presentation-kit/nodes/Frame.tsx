@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import type { CSSProperties, ReactNode } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
+import { LAYOUT_TRANSITION } from '../constants'
 
 export interface FrameProps {
   layoutId: string
@@ -18,7 +18,7 @@ export function Frame({ layoutId, className, style, children }: FrameProps) {
       className={className}
       data-presentation-node="frame"
       style={style}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
+      transition={LAYOUT_TRANSITION}
     >
       {children}
     </motion.div>

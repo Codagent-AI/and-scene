@@ -1,15 +1,15 @@
 import type { ReactNode } from 'react'
-import type { Mode, Step } from '../types'
+import type { Mode, StepMeta } from '../types'
 
-export interface HeaderProps<TPayload> {
+export interface HeaderProps {
   mode: Mode
   title: string
-  activeStep: Step<TPayload>
+  activeStep: StepMeta
   /** Host-provided top-left brand slot; the kit renders no default brand here. */
   brand?: ReactNode
 }
 
-export function Header<TPayload>({ mode, title, activeStep, brand }: HeaderProps<TPayload>) {
+export function Header({ mode, title, activeStep, brand }: HeaderProps) {
   return (
     <header className="and-scene-header" data-presentation-header="" data-presentation-mode={mode}>
       <div className="and-scene-brand-slot" data-presentation-brand-slot="">

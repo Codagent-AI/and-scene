@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import type { CSSProperties } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
+import { LAYOUT_TRANSITION } from '../constants'
 
 export interface ArrowProps {
   layoutId: string
@@ -19,7 +19,7 @@ export function Arrow({ layoutId, className, style, rotate = 0 }: ArrowProps) {
       className={className}
       data-presentation-node="arrow"
       style={{ ...style, rotate }}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
+      transition={LAYOUT_TRANSITION}
     />
   )
 }

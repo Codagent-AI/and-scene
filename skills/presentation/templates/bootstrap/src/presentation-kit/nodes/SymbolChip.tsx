@@ -1,29 +1,8 @@
-import { motion } from 'motion/react'
-import type { ComponentType, CSSProperties, ReactNode } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
+import { IconNode, type IconNodeProps } from './IconNode'
 
-export interface SymbolChipProps {
-  layoutId: string
-  className?: string
-  style?: CSSProperties
-  Icon?: ComponentType<{ size?: number; className?: string }>
-  iconClassName?: string
-  children?: ReactNode
-}
+export type SymbolChipProps = IconNodeProps
 
 /** Generalized icon+label chip primitive; no size, color, or pill-shape defaults. */
-export function SymbolChip({ layoutId, className, style, Icon, iconClassName, children }: SymbolChipProps) {
-  return (
-    <motion.div
-      layoutId={layoutId}
-      layout
-      className={className}
-      data-presentation-node="symbol-chip"
-      style={style}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
-    >
-      {Icon ? <Icon size={16} className={iconClassName} /> : null}
-      {children}
-    </motion.div>
-  )
+export function SymbolChip(props: SymbolChipProps) {
+  return <IconNode node="symbol-chip" iconSize={16} {...props} />
 }

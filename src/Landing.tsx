@@ -32,5 +32,3 @@ export function Landing() {
     </main>
   )
 }
-
-export default Landing

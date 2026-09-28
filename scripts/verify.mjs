@@ -13,11 +13,11 @@
  * Phases (any failure exits non-zero and names the phase):
  *   1. build    - `npm run build` (tsc -b && vite build)
  *   2. registry - src/presentations/index.ts must register the canonical
- *                 sample slug, in canonical position/order
+ *                 sample slug
  *   3. render   - `vite preview` on 127.0.0.1, then Playwright Chromium
- *                 opens the sample route and steps through all nine steps,
- *                 asserting each step's title/caption match the canonical
- *                 outline in order, with no console/page errors
+ *                 opens every registered route and steps through it end to
+ *                 end with no console/page errors; for the canonical sample
+ *                 it also asserts all nine titles/captions in order
  */
 import { spawn, spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -162,7 +162,25 @@ function terminate(child) {
   })
 }
 
-async function checkGenericSlug(browser, baseUrl, slug) {
+/** Returns a failure reason if the visible title/caption do not match the expected narration. */
+async function checkNarration(page, index, expected) {
+  const title = (await page.locator('[data-presentation-title]').textContent())?.trim()
+  const caption = (await page.locator('[data-presentation-caption]').textContent())?.trim()
+  if (title !== expected.title) {
+    return `step ${index} title mismatch: expected "${expected.title}", got "${title}"`
+  }
+  if (caption !== expected.caption) {
+    return `step ${index} caption mismatch: expected "${expected.caption}", got "${caption}"`
+  }
+  return null
+}
+
+/**
+ * Steps through a registered route end to end. When `expectedSteps` is given
+ * (the canonical sample), additionally asserts the step count and each
+ * step's title/caption against that normative outline, in order.
+ */
+async function checkSlug(browser, baseUrl, slug, expectedSteps) {
   const page = await browser.newPage()
   const errors = []
   page.on('console', (msg) => {
@@ -182,6 +200,12 @@ async function checkGenericSlug(browser, baseUrl, slug) {
     if (!Number.isFinite(stepCount) || stepCount < 1) {
       return { ok: false, reason: `invalid data-step-count on route /${slug}` }
     }
+    if (expectedSteps && stepCount !== expectedSteps.length) {
+      return {
+        ok: false,
+        reason: `expected the canonical sample to have ${expectedSteps.length} steps, found ${stepCount}`,
+      }
+    }
 
     const initialIndex = Number(await root.getAttribute('data-step-index'))
     if (initialIndex !== 0) {
@@ -196,21 +220,28 @@ async function checkGenericSlug(browser, baseUrl, slug) {
       return { ok: false, reason: errors.join('; '), stepIndex: initialIndex }
     }
 
-    for (let expected = 1; expected < stepCount; expected += 1) {
-      await page.keyboard.press('ArrowRight')
-      await page.waitForTimeout(SETTLE_MS)
-      const next = Number(await root.getAttribute('data-step-index'))
-      if (next !== expected) {
-        return {
-          ok: false,
-          reason: `step transition did not advance by one: expected data-step-index=${expected}, got ${next}`,
-          stepIndex: expected,
+    for (let expected = 0; expected < stepCount; expected += 1) {
+      if (expected > 0) {
+        await page.keyboard.press('ArrowRight')
+        await page.waitForTimeout(SETTLE_MS)
+        const next = Number(await root.getAttribute('data-step-index'))
+        if (next !== expected) {
+          return {
+            ok: false,
+            reason: `step transition did not advance by one: expected data-step-index=${expected}, got ${next}`,
+            stepIndex: expected,
+          }
         }
+        if (errors.length > checkedErrorCount) {
+          return { ok: false, reason: errors.slice(checkedErrorCount).join('; '), stepIndex: expected }
+        }
+        checkedErrorCount = errors.length
       }
-      if (errors.length > checkedErrorCount) {
-        return { ok: false, reason: errors.slice(checkedErrorCount).join('; '), stepIndex: expected }
+
+      if (expectedSteps) {
+        const mismatch = await checkNarration(page, expected, expectedSteps[expected])
+        if (mismatch) return { ok: false, reason: mismatch, stepIndex: expected }
       }
-      checkedErrorCount = errors.length
     }
 
     // One more press past the last step must not wrap or overshoot.
@@ -227,87 +258,6 @@ async function checkGenericSlug(browser, baseUrl, slug) {
 
     if (errors.length > checkedErrorCount) {
       return { ok: false, reason: errors.slice(checkedErrorCount).join('; '), stepIndex: afterLast }
-    }
-
-    return { ok: true, stepCount }
-  } catch (err) {
-    return { ok: false, reason: err instanceof Error ? err.message : String(err) }
-  } finally {
-    await page.close()
-  }
-}
-
-/**
- * Renders the canonical reference sample and asserts, at every one of its
- * nine steps, that the title/caption match the normative outline in order,
- * in addition to the generic step-count/transition/no-console-error checks.
- */
-async function checkCanonicalSample(browser, baseUrl) {
-  const page = await browser.newPage()
-  const errors = []
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') errors.push(`console.error: ${msg.text()}`)
-  })
-  page.on('pageerror', (err) => {
-    errors.push(`pageerror: ${err.message}`)
-  })
-
-  try {
-    await page.goto(`${baseUrl}/${CANONICAL_SLUG}`, { waitUntil: 'networkidle' })
-    const root = page.locator('[data-presentation-root]')
-    await root.waitFor({ state: 'attached', timeout: 10000 })
-    await page.waitForTimeout(SETTLE_MS)
-
-    const stepCount = Number(await root.getAttribute('data-step-count'))
-    if (stepCount !== CANONICAL_STEPS.length) {
-      return {
-        ok: false,
-        reason: `expected the canonical sample to have ${CANONICAL_STEPS.length} steps, found ${stepCount}`,
-      }
-    }
-
-    let checkedErrorCount = 0
-    for (let index = 0; index < CANONICAL_STEPS.length; index += 1) {
-      if (index > 0) {
-        await page.keyboard.press('ArrowRight')
-        await page.waitForTimeout(SETTLE_MS)
-      }
-
-      const observedIndex = Number(await root.getAttribute('data-step-index'))
-      if (observedIndex !== index) {
-        return {
-          ok: false,
-          reason: `step transition did not advance by one: expected data-step-index=${index}, got ${observedIndex}`,
-          stepIndex: index,
-        }
-      }
-      if (errors.length > checkedErrorCount) {
-        return { ok: false, reason: errors.slice(checkedErrorCount).join('; '), stepIndex: index }
-      }
-      checkedErrorCount = errors.length
-
-      const expected = CANONICAL_STEPS[index]
-      const title = (await page.locator('[data-presentation-title]').textContent())?.trim()
-      const caption = (await page.locator('[data-presentation-caption]').textContent())?.trim()
-
-      if (title !== expected.title) {
-        return {
-          ok: false,
-          reason: `step ${index} title mismatch: expected "${expected.title}", got "${title}"`,
-          stepIndex: index,
-        }
-      }
-      if (caption !== expected.caption) {
-        return {
-          ok: false,
-          reason: `step ${index} caption mismatch: expected "${expected.caption}", got "${caption}"`,
-          stepIndex: index,
-        }
-      }
-    }
-
-    if (errors.length > 0) {
-      return { ok: false, reason: errors.join('; ') }
     }
 
     return { ok: true, stepCount }
@@ -350,8 +300,7 @@ async function main() {
     const browser = await chromium.launch()
     try {
       for (const slug of slugs) {
-        const result =
-          slug === CANONICAL_SLUG ? await checkCanonicalSample(browser, baseUrl) : await checkGenericSlug(browser, baseUrl, slug)
+        const result = await checkSlug(browser, baseUrl, slug, slug === CANONICAL_SLUG ? CANONICAL_STEPS : undefined)
         if (result.ok) {
           console.log(`[verify] render: OK "${slug}" (${result.stepCount} steps, no console/page errors)`)
         } else {

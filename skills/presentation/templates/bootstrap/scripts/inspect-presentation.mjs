@@ -95,45 +95,39 @@ async function waitForStepIndex(page, expected, timeoutMs = 10000) {
   )
 }
 
-function rectsIntersect(a, b) {
-  if (!a || !b) return false
-  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
-}
-
 /** Advisory: does individual step content visually collide with header/footer/toc chrome? */
 async function checkOverlap(page) {
-  const chromeSelectors = ['[data-presentation-header]', '[data-presentation-footer]', '[data-presentation-toc]']
-  const chromeBoxes = []
-  for (const selector of chromeSelectors) {
-    const box = await page.locator(selector).boundingBox().catch(() => null)
-    if (box) chromeBoxes.push({ selector, box })
-  }
-  if (chromeBoxes.length === 0) return []
+  // Measured in one in-page pass so each step costs a single round trip
+  // regardless of how many scene nodes are on stage.
+  const collisions = await page.evaluate(() => {
+    const intersects = (a, b) =>
+      a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+    const chrome = ['[data-presentation-header]', '[data-presentation-footer]', '[data-presentation-toc]']
+      .map((selector) => ({ selector, el: document.querySelector(selector) }))
+      .filter(({ el }) => el && el.getClientRects().length > 0)
+      .map(({ selector, el }) => ({ selector, rect: el.getBoundingClientRect() }))
+    if (chrome.length === 0) return []
 
-  const contentHandles = await page.locator('[data-presentation-stage] [data-presentation-node]').all()
-  const warnings = []
-  for (const content of contentHandles) {
-    const isAllowed = await content
-      .evaluate((el) => el.closest('[data-presentation-allow-overlap="true"]') !== null)
-      .catch(() => false)
-    if (isAllowed) continue
-
-    const contentBox = await content.boundingBox().catch(() => null)
-    if (!contentBox) continue
-
-    for (const { selector, box } of chromeBoxes) {
-      if (rectsIntersect(contentBox, box)) {
-        const description = await content
-          .evaluate((el) => el.getAttribute('data-presentation-node') ?? el.tagName.toLowerCase())
-          .catch(() => 'content')
-        warnings.push(
-          `stage content (${description}) overlaps ${selector}; mark it with data-presentation-allow-overlap="true" if intentional`,
-        )
-        break
+    const found = []
+    for (const el of document.querySelectorAll('[data-presentation-stage] [data-presentation-node]')) {
+      if (el.closest('[data-presentation-allow-overlap="true"]')) continue
+      if (el.getClientRects().length === 0) continue
+      const rect = el.getBoundingClientRect()
+      const hit = chrome.find((c) => intersects(rect, c.rect))
+      if (hit) {
+        found.push({
+          description: el.getAttribute('data-presentation-node') ?? el.tagName.toLowerCase(),
+          selector: hit.selector,
+        })
       }
     }
-  }
-  return warnings
+    return found
+  })
+
+  return collisions.map(
+    ({ description, selector }) =>
+      `stage content (${description}) overlaps ${selector}; mark it with data-presentation-allow-overlap="true" if intentional`,
+  )
 }
 
 /** Advisory: is the active nav item visually indistinct from an inactive sibling? */
@@ -188,7 +182,7 @@ async function checkAttribution(page) {
 
   const style = await attribution.evaluate((el) => {
     const s = window.getComputedStyle(el)
-    return { fontSize: parseFloat(s.fontSize), color: s.color, textDecorationLine: s.textDecorationLine }
+    return { fontSize: parseFloat(s.fontSize), color: s.color }
   })
 
   if (Number.isFinite(style.fontSize) && style.fontSize < 10) {
@@ -225,6 +219,7 @@ async function main() {
   )
 
   const summary = []
+  const consoleErrors = []
   try {
     await waitForServer(baseUrl)
 
@@ -232,7 +227,6 @@ async function main() {
     const browser = await chromium.launch()
     try {
       const page = await browser.newPage({ viewport: VIEWPORT })
-      const consoleErrors = []
       page.on('console', (msg) => {
         if (msg.type() === 'error') consoleErrors.push(msg.text())
       })
@@ -280,15 +274,11 @@ async function main() {
           await stage.screenshot({ path: path.join(outDir, stageFileName) }).catch(() => {})
         }
 
-        summary.push({ step, filePath, warnings })
+        summary.push({ filePath, warnings })
 
         if (step < stepCount - 1) {
           await page.keyboard.press('ArrowRight')
         }
-      }
-
-      if (consoleErrors.length > 0) {
-        summary.push({ step: 'console', filePath: null, warnings: consoleErrors.map((e) => `console/page error: ${e}`) })
       }
     } finally {
       await browser.close()
@@ -297,12 +287,17 @@ async function main() {
     await terminate(preview)
   }
 
-  console.log(`\n[inspect] Captured ${summary.filter((s) => s.filePath).length} screenshot(s) for "${slug}":\n`)
-  for (const entry of summary) {
-    const label = entry.filePath ? entry.filePath : `(${entry.step})`
-    console.log(`  ${label}`)
-    for (const warning of entry.warnings) {
+  console.log(`\n[inspect] Captured ${summary.length} screenshot(s) for "${slug}":\n`)
+  for (const { filePath, warnings } of summary) {
+    console.log(`  ${filePath}`)
+    for (const warning of warnings) {
       console.log(`    - WARNING: ${warning}`)
+    }
+  }
+  if (consoleErrors.length > 0) {
+    console.log('  (console)')
+    for (const error of consoleErrors) {
+      console.log(`    - WARNING: console/page error: ${error}`)
     }
   }
   console.log('')

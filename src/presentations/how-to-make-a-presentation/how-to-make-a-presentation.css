@@ -4,20 +4,12 @@
  * every visual decision below belongs to this talk.
  */
 
-.htmap-scene {
-  color: #f8f3e6;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-}
-
 /*
- * Structural layout: the scene kit already stacks header/body/footer to fill
- * the viewport and fits the stage to the body; these rules add this talk's
- * padding and the ToC column around that arrangement.
+ * The scene kit already stacks header/body/footer to fill the viewport, fits
+ * the stage to the body, and pins attribution bottom-right; these rules add
+ * this talk's padding and the ToC column around that arrangement.
  */
 .htmap-talk {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
   overflow: hidden;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   color: #f8f3e6;
@@ -60,18 +52,7 @@
 }
 
 .htmap-talk [data-presentation-body] {
-  flex: 1 1 auto;
-  display: flex;
-  min-height: 0;
   position: relative;
-}
-
-.htmap-talk [data-presentation-stage] {
-  flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
 }
 
 .htmap-talk [data-presentation-toc] {
@@ -296,9 +277,6 @@
   color: rgba(248, 243, 230, 0.55);
   font-size: 0.75rem;
   text-decoration: none;
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
 }
 
 .htmap-talk [data-presentation-attribution]:hover {

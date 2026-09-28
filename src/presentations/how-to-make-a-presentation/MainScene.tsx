@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { MessageCircle, User, Wrench, CheckCircle2, Pencil } from 'lucide-react'
 import { Arrow, Box, Frame, Label, SceneLayer } from '../../presentation-kit'
 import type { SceneProps } from '../../presentation-kit'
@@ -6,6 +7,33 @@ import { entities } from './entities'
 export interface ScenePayload {
   /** Steps accumulate monotonically: step N implies every effect from step < N is still on screen. */
   step: number
+}
+
+const CARD_TOP = 150
+
+/** A tray step-card showing the parts every step carries. */
+function StepCard({ layoutId, left, children }: { layoutId: string; left: number; children?: ReactNode }) {
+  return (
+    <Box
+      layoutId={layoutId}
+      className="htmap-card"
+      style={{ position: 'absolute', left, top: CARD_TOP, width: 84, height: 80 }}
+    >
+      <Label className="htmap-card-title">title</Label>
+      <Label className="htmap-card-caption">caption</Label>
+      <Label className="htmap-card-visual">visual</Label>
+      {children}
+    </Box>
+  )
+}
+
+/** The "what morphs" marker drawn on the link between two consecutive cards. */
+function MorphLink({ layoutId, left }: { layoutId: string; left: number }) {
+  return (
+    <Label layoutId={layoutId} className="htmap-morph-link" style={{ position: 'absolute', left, top: 182, width: 26 }}>
+      ↺
+    </Label>
+  )
 }
 
 /**
@@ -18,16 +46,16 @@ export function MainScene({ payload }: SceneProps<ScenePayload>) {
 
   const showSkill = step >= 2
   const showTray = step >= 3
-  const showCard2 = step >= 4
-  const showCard3 = step >= 4
+  const showCards = step >= 4
+  const showDepthControl = step >= 5
   const showGhost = step >= 5
   const showSceneKit = step >= 6
   const showVerify = step >= 7
   const showModify = step >= 8
   const showReveal = step >= 9
 
-  const diagram = (
-    <>
+  return (
+    <SceneLayer className="htmap-scene">
       {/* Conversation row */}
       <Box
         layoutId={entities.you}
@@ -77,7 +105,7 @@ export function MainScene({ payload }: SceneProps<ScenePayload>) {
         full detail — the overlap with the "you" box corner is intentional
         (it reads as attached to it), so it carries the allow-overlap marker.
       */}
-      {step >= 5 ? (
+      {showDepthControl ? (
         <Box
           layoutId={entities.depthToggle}
           className="htmap-chip htmap-depth-toggle"
@@ -89,70 +117,26 @@ export function MainScene({ payload }: SceneProps<ScenePayload>) {
       ) : null}
 
       {/* Tray of accumulating step-cards */}
-      {showTray ? (
-        <Box
-          layoutId={entities.card1}
-          className="htmap-card"
-          style={{ position: 'absolute', left: 40, top: 150, width: 84, height: 80 }}
-        >
-          <Label className="htmap-card-title">title</Label>
-          <Label className="htmap-card-caption">caption</Label>
-          <Label className="htmap-card-visual">visual</Label>
-        </Box>
-      ) : null}
+      {showTray ? <StepCard layoutId={entities.card1} left={40} /> : null}
 
-      {showCard2 ? (
-        <Label
-          layoutId={entities.morphLink1}
-          className="htmap-morph-link"
-          style={{ position: 'absolute', left: 124, top: 182, width: 26, textAlign: 'center' }}
-        >
-          ↺
-        </Label>
-      ) : null}
-
-      {showCard2 ? (
-        <Box
-          layoutId={entities.card2}
-          className="htmap-card"
-          style={{ position: 'absolute', left: 150, top: 150, width: 84, height: 80 }}
-        >
-          <Label className="htmap-card-title">title</Label>
-          <Label className="htmap-card-caption">caption</Label>
-          <Label className="htmap-card-visual">visual</Label>
-          {showModify ? (
-            <Box layoutId={entities.flagBadge} icon={Pencil} className="htmap-flag-badge" data-presentation-allow-overlap="" />
-          ) : null}
-        </Box>
-      ) : null}
-
-      {showCard3 ? (
-        <Label
-          layoutId={entities.morphLink2}
-          className="htmap-morph-link"
-          style={{ position: 'absolute', left: 234, top: 182, width: 26, textAlign: 'center' }}
-        >
-          ↺
-        </Label>
-      ) : null}
-
-      {showCard3 ? (
-        <Box
-          layoutId={entities.card3}
-          className="htmap-card"
-          style={{ position: 'absolute', left: 260, top: 150, width: 84, height: 80 }}
-        >
-          <Label className="htmap-card-title">title</Label>
-          <Label className="htmap-card-caption">caption</Label>
-          <Label className="htmap-card-visual">visual</Label>
-        </Box>
+      {showCards ? (
+        <>
+          <MorphLink layoutId={entities.morphLink1} left={124} />
+          <StepCard layoutId={entities.card2} left={150}>
+            {showModify ? (
+              <Box layoutId={entities.flagBadge} icon={Pencil} className="htmap-flag-badge" data-presentation-allow-overlap="" />
+            ) : null}
+          </StepCard>
+          <MorphLink layoutId={entities.morphLink2} left={234} />
+          <StepCard layoutId={entities.card3} left={260} />
+        </>
       ) : null}
 
       {showGhost ? (
         <Box
           layoutId={entities.ghostCard}
           className="htmap-card htmap-ghost-card"
-          style={{ position: 'absolute', left: 370, top: 150, width: 84, height: 80 }}
+          style={{ position: 'absolute', left: 370, top: CARD_TOP, width: 84, height: 80 }}
         >
           <Label className="htmap-card-visual">tbd…</Label>
         </Box>
@@ -191,7 +175,7 @@ export function MainScene({ payload }: SceneProps<ScenePayload>) {
           layoutId={entities.verifyCard}
           icon={CheckCircle2}
           className="htmap-card htmap-verify-card"
-          style={{ position: 'absolute', left: 480, top: 150, width: 84, height: 80 }}
+          style={{ position: 'absolute', left: 480, top: CARD_TOP, width: 84, height: 80 }}
         >
           <Label className="htmap-card-title">verify</Label>
         </Box>
@@ -238,8 +222,6 @@ export function MainScene({ payload }: SceneProps<ScenePayload>) {
           you're looking at one
         </Label>
       ) : null}
-    </>
+    </SceneLayer>
   )
-
-  return <SceneLayer className="htmap-scene">{diagram}</SceneLayer>
 }

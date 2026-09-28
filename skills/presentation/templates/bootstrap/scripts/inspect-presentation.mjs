@@ -9,6 +9,7 @@
  * indistinct active navigation state, and unpolished attribution. Warnings
  * are advisory only — they do not fail the process.
  */
+import { spawnSync } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { readRegistrySlugs, startPreviewServer, PROJECT_ROOT } from './lib/preview-server.mjs'
@@ -117,36 +118,42 @@ async function collectWarnings(page, stepIndex) {
 
 async function inspectSlug(chromium, baseUrl, entry, outDir, options) {
   const browser = await chromium.launch()
-  const page = await browser.newPage({ viewport: { width: options.width, height: options.height } })
-  const warnings = []
+  try {
+    const page = await browser.newPage({ viewport: { width: options.width, height: options.height } })
+    const warnings = []
 
-  await page.goto(`${baseUrl}/${entry.slug}`, { waitUntil: 'networkidle' })
-  const root = page.locator('[data-presentation-root]')
-  await root.waitFor({ state: 'visible', timeout: 10_000 })
-  const stepCount = Number(await root.getAttribute('data-step-count'))
-
-  const slugDir = path.join(outDir, entry.slug)
-  await mkdir(slugDir, { recursive: true })
-
-  for (let index = 0; index < stepCount; index += 1) {
-    await page.waitForTimeout(options.settleMs)
-    const shotPath = path.join(slugDir, `step-${index}.png`)
-    await page.screenshot({ path: shotPath })
-    console.log(`[inspect] wrote ${path.relative(PROJECT_ROOT, shotPath)}`)
-    warnings.push(...(await collectWarnings(page, index)))
-
-    if (index < stepCount - 1) {
-      await page.keyboard.press('ArrowRight')
-      await page.waitForFunction(
-        (expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(expected),
-        index + 1,
-        { timeout: 5_000 },
-      )
+    await page.goto(`${baseUrl}/${entry.slug}`, { waitUntil: 'networkidle' })
+    const root = page.locator('[data-presentation-root]')
+    await root.waitFor({ state: 'visible', timeout: 10_000 })
+    const stepCount = Number(await root.getAttribute('data-step-count'))
+    if (!Number.isSafeInteger(stepCount) || stepCount < 1) {
+      throw new Error(`Invalid data-step-count for "${entry.slug}": ${await root.getAttribute('data-step-count')}`)
     }
-  }
 
-  await browser.close()
-  return warnings
+    const slugDir = path.join(outDir, entry.slug)
+    await mkdir(slugDir, { recursive: true })
+
+    for (let index = 0; index < stepCount; index += 1) {
+      await page.waitForTimeout(options.settleMs)
+      const shotPath = path.join(slugDir, `step-${index}.png`)
+      await page.screenshot({ path: shotPath })
+      console.log(`[inspect] wrote ${path.relative(PROJECT_ROOT, shotPath)}`)
+      warnings.push(...(await collectWarnings(page, index)))
+
+      if (index < stepCount - 1) {
+        await page.keyboard.press('ArrowRight')
+        await page.waitForFunction(
+          (expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(expected),
+          index + 1,
+          { timeout: 5_000 },
+        )
+      }
+    }
+
+    return warnings
+  } finally {
+    await browser.close()
+  }
 }
 
 async function main() {
@@ -157,6 +164,12 @@ async function main() {
   if (targets.length === 0) {
     console.error(slug ? `[inspect] no registered presentation matches "${slug}"` : '[inspect] no presentations registered')
     process.exit(1)
+  }
+
+  console.log('[inspect] building...')
+  const build = spawnSync('npm', ['run', 'build'], { cwd: PROJECT_ROOT, stdio: 'inherit' })
+  if (build.status !== 0) {
+    throw new Error('Inspection build failed')
   }
 
   const { chromium } = await import('playwright')

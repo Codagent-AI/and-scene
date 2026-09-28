@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { createServer as createNetServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { createServer as createViteServer } from 'vite'
+import { build as viteBuild } from 'vite'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export const PROJECT_ROOT = path.resolve(__dirname, '..', '..')
@@ -25,36 +25,53 @@ export function getFreePort() {
 }
 
 /**
- * Reads the registered { slug, title } entries by actually running
- * `src/presentations/index.ts` through Vite's SSR module runner, rather than
+ * Reads the registered { slug, title } entries by actually bundling
+ * `src/presentations/index.ts` through Vite's production build pipeline
+ * (in memory, `write: false`) and evaluating the result, rather than
  * pattern-matching its source. This handles every valid registry entry shape
  * (shorthand properties, computed values, spread, helper functions building
- * the array, etc.) the same way the real app would, so no entry can silently
- * fail to be picked up by verification.
+ * the array, etc.) the same way the real app would.
+ *
+ * A production build — not a dev server — matters here: `import.meta.env.PROD`
+ * is only `true` under a production build/mode, so a registry entry gated on
+ * it (a production-only presentation) would silently vanish if this were
+ * evaluated through a dev-mode SSR module runner instead.
  */
 export async function readRegistrySlugs() {
-  const server = await createViteServer({
+  const result = await viteBuild({
     root: PROJECT_ROOT,
-    server: { middlewareMode: true },
     logLevel: 'silent',
+    build: {
+      ssr: true,
+      write: false,
+      minify: false,
+      target: 'esnext',
+      rollupOptions: {
+        input: path.join(PROJECT_ROOT, 'src', 'presentations', 'index.ts'),
+        output: { format: 'es' },
+      },
+    },
   })
 
-  try {
-    const mod = await server.ssrLoadModule('/src/presentations/index.ts')
-    const presentations = mod.presentations
-    if (!Array.isArray(presentations)) {
-      throw new Error('src/presentations/index.ts must export a "presentations" array')
-    }
-
-    return presentations.map(({ slug, title }, index) => {
-      if (typeof slug !== 'string' || typeof title !== 'string') {
-        throw new Error(`presentations[${index}] must have string "slug" and "title" fields, got: ${JSON.stringify({ slug, title })}`)
-      }
-      return { slug, title }
-    })
-  } finally {
-    await server.close()
+  const output = (Array.isArray(result) ? result[0] : result).output
+  const entryChunk = output.find((item) => item.type === 'chunk' && item.isEntry)
+  if (!entryChunk) {
+    throw new Error('Failed to bundle src/presentations/index.ts for registry inspection')
   }
+
+  const moduleUrl = `data:text/javascript;base64,${Buffer.from(entryChunk.code, 'utf8').toString('base64')}`
+  const mod = await import(moduleUrl)
+  const presentations = mod.presentations
+  if (!Array.isArray(presentations)) {
+    throw new Error('src/presentations/index.ts must export a "presentations" array')
+  }
+
+  return presentations.map(({ slug, title }, index) => {
+    if (typeof slug !== 'string' || typeof title !== 'string') {
+      throw new Error(`presentations[${index}] must have string "slug" and "title" fields, got: ${JSON.stringify({ slug, title })}`)
+    }
+    return { slug, title }
+  })
 }
 
 async function waitForReady(url, timeoutMs = 30_000) {

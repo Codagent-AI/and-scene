@@ -56,4 +56,22 @@ describe('Presentation', () => {
     expect(screen.getByRole('button', { name: 'Local 1' })).toBeInTheDocument()
     expect(document.querySelector('[data-presentation-box]')).toHaveAttribute('data-entity-id', 'stable-box')
   })
+
+  it('returns keyboard focus to the presentation after switching modes', () => {
+    render(<Presentation steps={steps} title="Typed story" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to present mode' }))
+    expect(document.activeElement).toBe(document.querySelector('[data-presentation-root]'))
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(document.querySelector('[data-presentation-root]')).toHaveAttribute('data-step-index', '1')
+  })
+
+  it('keeps fit dimensions nonnegative when the available viewport is shorter than the chrome', () => {
+    const previous = { width: window.innerWidth, height: window.innerHeight }
+    render(<Presentation steps={steps} title="Typed story" />)
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 })
+    fireEvent(window, new Event('resize'))
+    const stage = document.querySelector('[data-presentation-stage]')
+    expect(parseFloat(stage?.getAttribute('style')?.match(/height: ([\d.-]+)px/)?.[1] ?? '-1')).toBeGreaterThanOrEqual(0)
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: previous.height })
+  })
 })

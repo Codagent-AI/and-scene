@@ -7,7 +7,7 @@ button, input, textarea, select { font: inherit; }
 .presentation-header { position: absolute; inset: 0 0 auto; display: flex; justify-content: space-between; align-items: start; padding: 1rem; }
 .presentation-heading { width: 100%; display: flex; justify-content: space-between; align-items: center; }
 .presentation-mode-tools { display: flex; gap: .75rem; align-items: center; }
-.presentation-toc { position: absolute; inset: 50% auto auto 1rem; display: flex; flex-direction: column; transform: translateY(-50%); }
+.presentation-toc { position: absolute; z-index: 1; inset: 50% auto auto 1rem; display: flex; flex-direction: column; transform: translateY(-50%); }
 .presentation-viewport { position: absolute; inset: 0; display: grid; place-items: center; touch-action: pan-y; }
 .presentation--browse .presentation-viewport { top: 92px; bottom: 170px; }
 .presentation--present .presentation-viewport { top: 72px; bottom: 112px; }

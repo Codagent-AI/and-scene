@@ -10,6 +10,7 @@ export function useFitScale(width: number, height: number, mode: PresentationMod
     return () => window.removeEventListener('resize', update)
   }, [])
   const geometry = STAGE_LAYOUT[mode]
-  return Math.min(1, (viewport.width - geometry.side * 2) / width,
-    (viewport.height - geometry.top - geometry.bottom) / height)
+  if (width <= 0 || height <= 0) return 0
+  return Math.min(1, Math.max(0, viewport.width - geometry.side * 2) / width,
+    Math.max(0, viewport.height - geometry.top - geometry.bottom) / height)
 }

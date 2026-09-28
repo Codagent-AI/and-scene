@@ -10,15 +10,19 @@ export function Presentation<T>({ steps, title, initialMode = 'browse', designSi
   const current = steps[nav.index]
   const scale = useFitScale(designSize?.width ?? DESIGN_W, designSize?.height ?? DESIGN_H, nav.mode)
   const touchStart = useRef<number | null>(null)
+  const rootRef = useRef<HTMLElement | null>(null)
   const eras = useMemo(() => [...new Set(steps.map((step) => step.era))], [steps])
+  if (designSize && (designSize.width <= 0 || designSize.height <= 0)) {
+    throw new RangeError('Presentation design dimensions must be positive numbers.')
+  }
   if (!current) return null
-  return <main className={`presentation presentation--${nav.mode}${className ? ` ${className}` : ''}`} data-presentation-root="" data-mode={nav.mode}
+  return <main ref={rootRef} tabIndex={-1} className={`presentation presentation--${nav.mode}${className ? ` ${className}` : ''}`} data-presentation-root="" data-mode={nav.mode}
     data-step-count={steps.length} data-step-index={nav.index}>
     <header className="presentation-header" data-presentation-header="">
       <div className="presentation-brand" data-presentation-brand="">{renderBrand}</div>
       <div className="presentation-heading">{nav.mode === 'browse' && <h1 data-presentation-title="">{title}</h1>}
         <div className="presentation-mode-tools"><span data-presentation-marker="">{String(nav.index + 1).padStart(2, '0')} / {String(steps.length).padStart(2, '0')}</span>
-          <button type="button" data-presentation-mode-toggle="" aria-label={`Switch to ${nav.mode === 'browse' ? 'present' : 'browse'} mode`} onClick={nav.toggleMode}>{nav.mode === 'browse' ? 'Present' : 'Browse'}</button></div>
+          <button type="button" data-presentation-mode-toggle="" aria-label={`Switch to ${nav.mode === 'browse' ? 'present' : 'browse'} mode`} onClick={() => { nav.toggleMode(); rootRef.current?.focus() }}>{nav.mode === 'browse' ? 'Present' : 'Browse'}</button></div>
       </div>
     </header>
     {nav.mode === 'browse' && <nav className="presentation-toc" data-presentation-toc="" aria-label="Table of contents">

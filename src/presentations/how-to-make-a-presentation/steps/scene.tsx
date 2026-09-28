@@ -1,5 +1,4 @@
-import { Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip } from '../../../presentation-kit'
-import { Appear } from '../../../presentation-kit'
+import { Appear, Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip } from '../../../presentation-kit'
 import type { SceneProps } from '../../../presentation-kit'
 import { ENTITIES } from '../entities'
 
@@ -116,14 +115,12 @@ export function Scene({ payload }: SceneProps<ScenePayload>) {
 
       {payload.cardCount > 0 ? (
         <div className="htmasp-tray-row">
-          {payload.cardCount >= 1 ? (
-            <StepCard
-              layoutId={ENTITIES.card1}
-              cardTitle="You have a topic"
-              cardCaption="the ask"
-              cardVisual="you + prompt"
-            />
-          ) : null}
+          <StepCard
+            layoutId={ENTITIES.card1}
+            cardTitle="You have a topic"
+            cardCaption="the ask"
+            cardVisual="you + prompt"
+          />
           {payload.cardCount >= 2 ? (
             <StepCard
               layoutId={ENTITIES.card2}

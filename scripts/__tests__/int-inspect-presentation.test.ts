@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
-import { createIsolatedRepoCopy, removeIsolatedRepoCopy, REPO_ROOT } from './helpers/isolated-copy'
+import { createIsolatedRepoCopy, playwrightEnv, removeIsolatedRepoCopy, REPO_ROOT } from './helpers/isolated-copy'
 
 /**
  * INT-002: the project-local screenshot helper (`scripts/inspect-presentation.mjs`)
@@ -74,11 +74,6 @@ function registerFixture(tempDir: string) {
   )
 }
 
-function playwrightEnv() {
-  const browsersPath = statSync('/ms-playwright', { throwIfNoEntry: false })?.isDirectory() ? '/ms-playwright' : undefined
-  return { ...process.env, ...(browsersPath ? { PLAYWRIGHT_BROWSERS_PATH: browsersPath } : {}) }
-}
-
 describe('INT-002: screenshot helper emits faithful artifacts and advisory warnings', () => {
   let tempDir: string
 
@@ -90,9 +85,6 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     tempDir = createIsolatedRepoCopy('and-scene-int-002-')
     expect(tempDir).not.toContain(REPO_ROOT)
     registerFixture(tempDir)
-
-    const build = spawnSync('npm', ['run', 'build'], { cwd: tempDir, encoding: 'utf8' })
-    expect(build.status, `build failed:\n${build.stdout}\n${build.stderr}`).toBe(0)
 
     const result = spawnSync('npm', ['run', 'inspect', '--', FIXTURE_SLUG], {
       cwd: tempDir,

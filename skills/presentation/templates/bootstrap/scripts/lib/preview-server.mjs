@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { createServer as createNetServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -6,6 +6,37 @@ import { build as viteBuild } from 'vite'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export const PROJECT_ROOT = path.resolve(__dirname, '..', '..')
+
+/** Runs `npm run build` in the project, streaming its output; returns whether it succeeded. */
+export function runProjectBuild() {
+  return spawnSync('npm', ['run', 'build'], { cwd: PROJECT_ROOT, stdio: 'inherit' }).status === 0
+}
+
+/**
+ * Opens a registered presentation route and waits for its chrome, returning
+ * the root locator and its validated `data-step-count`.
+ */
+export async function openPresentation(page, baseUrl, slug) {
+  await page.goto(`${baseUrl}/${slug}`, { waitUntil: 'networkidle' })
+  const root = page.locator('[data-presentation-root]')
+  await root.waitFor({ state: 'visible', timeout: 10_000 })
+  const rawStepCount = await root.getAttribute('data-step-count')
+  const stepCount = Number(rawStepCount)
+  if (!Number.isSafeInteger(stepCount) || stepCount < 1) {
+    throw new Error(`invalid data-step-count for "${slug}": ${rawStepCount}`)
+  }
+  return { root, stepCount }
+}
+
+/** Presses ArrowRight and waits for `data-step-index` to become `index`. */
+export async function advanceToStep(page, index) {
+  await page.keyboard.press('ArrowRight')
+  await page.waitForFunction(
+    (expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(expected),
+    index,
+    { timeout: 5_000 },
+  )
+}
 
 /** Finds a free TCP port on 127.0.0.1 for the preview server to bind to. */
 export function getFreePort() {

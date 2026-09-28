@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { runVerify } from '../../scripts/__tests__/helpers/isolated-copy'
 
 /**
  * INT-001: materializes the distributable `skills/presentation/templates/bootstrap/`
@@ -160,12 +161,7 @@ describe('INT-001: materialized bootstrap template', () => {
   }, 60_000)
 
   it('opens its registered route through its local verification entry point', () => {
-    const browsersPath = statSync('/ms-playwright', { throwIfNoEntry: false })?.isDirectory() ? '/ms-playwright' : undefined
-    const verify = spawnSync('npm', ['run', 'verify'], {
-      cwd: tempDir,
-      encoding: 'utf8',
-      env: { ...process.env, ...(browsersPath ? { PLAYWRIGHT_BROWSERS_PATH: browsersPath } : {}) },
-    })
+    const verify = runVerify(tempDir)
     expect(verify.status, `verify failed:\n${verify.stdout}\n${verify.stderr}`).toBe(0)
     expect(verify.stdout).toMatch(/\[verify\] PASS/)
   }, 120_000)

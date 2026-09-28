@@ -1,18 +1,11 @@
-import { spawnSync } from 'node:child_process'
-import { statSync } from 'node:fs'
 import { afterAll, describe, expect, it } from 'vitest'
-import { createIsolatedRepoCopy, removeIsolatedRepoCopy, REPO_ROOT } from './helpers/isolated-copy'
+import { createIsolatedRepoCopy, removeIsolatedRepoCopy, REPO_ROOT, runVerify } from './helpers/isolated-copy'
 
 /**
  * E2E-001: `npm run verify` builds the whole app, starts `vite preview` on
  * 127.0.0.1, opens the registered nine-step reference sample, and steps
  * through it end to end — the successful production verification journey.
  */
-
-function playwrightEnv() {
-  const browsersPath = statSync('/ms-playwright', { throwIfNoEntry: false })?.isDirectory() ? '/ms-playwright' : undefined
-  return { ...process.env, ...(browsersPath ? { PLAYWRIGHT_BROWSERS_PATH: browsersPath } : {}) }
-}
 
 describe('E2E-001: reference presentation passes production verification', () => {
   let tempDir: string
@@ -25,7 +18,7 @@ describe('E2E-001: reference presentation passes production verification', () =>
     tempDir = createIsolatedRepoCopy('and-scene-e2e-success-')
     expect(tempDir).not.toContain(REPO_ROOT)
 
-    const result = spawnSync('npm', ['run', 'verify'], { cwd: tempDir, encoding: 'utf8', env: playwrightEnv() })
+    const result = runVerify(tempDir)
 
     expect(result.status, `verify failed:\n${result.stdout}\n${result.stderr}`).toBe(0)
     expect(result.stdout).toMatch(/\[verify\] PASS/)

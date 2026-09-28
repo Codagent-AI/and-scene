@@ -1,8 +1,7 @@
-import { spawnSync } from 'node:child_process'
-import { readFileSync, statSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { createIsolatedRepoCopy, removeIsolatedRepoCopy, REPO_ROOT } from './helpers/isolated-copy'
+import { createIsolatedRepoCopy, removeIsolatedRepoCopy, REPO_ROOT, runVerify } from './helpers/isolated-copy'
 
 /**
  * E2E-002: verification failures are actionable. Each test injects one fault
@@ -10,15 +9,6 @@ import { createIsolatedRepoCopy, removeIsolatedRepoCopy, REPO_ROOT } from './hel
  * then asserts `npm run verify` exits non-zero, names the failing phase (and
  * offending step, where applicable), and never reports success.
  */
-
-function playwrightEnv() {
-  const browsersPath = statSync('/ms-playwright', { throwIfNoEntry: false })?.isDirectory() ? '/ms-playwright' : undefined
-  return { ...process.env, ...(browsersPath ? { PLAYWRIGHT_BROWSERS_PATH: browsersPath } : {}) }
-}
-
-function runVerify(cwd: string) {
-  return spawnSync('npm', ['run', 'verify'], { cwd, encoding: 'utf8', env: playwrightEnv() })
-}
 
 let tempDir: string | undefined
 

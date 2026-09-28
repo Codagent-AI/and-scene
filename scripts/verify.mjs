@@ -13,8 +13,7 @@
  *
  * Exits non-zero and names the failing phase/step on any failure.
  */
-import { spawnSync } from 'node:child_process'
-import { readRegistrySlugs, startPreviewServer, PROJECT_ROOT } from './lib/preview-server.mjs'
+import { advanceToStep, openPresentation, readRegistrySlugs, runProjectBuild, startPreviewServer } from './lib/preview-server.mjs'
 
 /** Slug of the committed reference sample this project must always ship. */
 const REFERENCE_SLUG = 'how-to-make-a-presentation'
@@ -66,8 +65,7 @@ function fail(message) {
 
 function runBuild() {
   console.log('[verify] building...')
-  const result = spawnSync('npm', ['run', 'build'], { cwd: PROJECT_ROOT, stdio: 'inherit' })
-  if (result.status !== 0) {
+  if (!runProjectBuild()) {
     fail('npm run build did not succeed')
     return false
   }
@@ -87,9 +85,9 @@ function assertReferenceSampleRegistered(registry) {
 /** Bounded pause after a step becomes current, so delayed entrances/timers/animation-completion errors surface before it's checked. */
 const STEP_SETTLE_MS = 500
 
-async function verifyRoute(chromium, baseUrl, entry) {
-  const browser = await chromium.launch()
-  const page = await browser.newPage()
+async function verifyRoute(browser, baseUrl, entry) {
+  const context = await browser.newContext()
+  const page = await context.newPage()
   const errors = []
   page.on('pageerror', (error) => errors.push(`page error: ${error.message}`))
   page.on('console', (message) => {
@@ -100,14 +98,7 @@ async function verifyRoute(chromium, baseUrl, entry) {
   const observedSteps = []
 
   try {
-    await page.goto(`${baseUrl}/${entry.slug}`, { waitUntil: 'networkidle' })
-    const root = page.locator('[data-presentation-root]')
-    await root.waitFor({ state: 'visible', timeout: 10_000 })
-
-    const stepCount = Number(await root.getAttribute('data-step-count'))
-    if (!Number.isFinite(stepCount) || stepCount < 1) {
-      return { ok: false, reason: `missing or invalid data-step-count for "${entry.slug}"` }
-    }
+    const { root, stepCount } = await openPresentation(page, baseUrl, entry.slug)
 
     if (isReferenceSample && stepCount !== CANONICAL_STEPS.length) {
       return {
@@ -115,13 +106,6 @@ async function verifyRoute(chromium, baseUrl, entry) {
         reason: `"${entry.slug}" must implement all ${CANONICAL_STEPS.length} canonical steps, found data-step-count=${stepCount}`,
       }
     }
-
-    // Errors already attributed to an earlier step. A step's own error window
-    // opens the moment its `data-step-index` becomes current (which may be
-    // synchronously, during the very render that flips the attribute) and
-    // stays open through its settle wait, so nothing slips through
-    // unattributed between two snapshots taken only after arrival.
-    let attributedErrorCount = 0
 
     for (let index = 0; index < stepCount; index += 1) {
       const current = Number(await root.getAttribute('data-step-index'))
@@ -137,25 +121,19 @@ async function verifyRoute(chromium, baseUrl, entry) {
 
       // Let this step's own entrances/timers/animation-completion callbacks
       // run (and any error they throw) before checking errors or advancing —
-      // including the last step, which otherwise never gets this wait.
+      // including the last step, which otherwise never gets this wait. Any
+      // error fails immediately, so every error seen here belongs to this step.
       await page.waitForTimeout(STEP_SETTLE_MS)
-      if (errors.length > attributedErrorCount) {
-        const newErrors = errors.slice(attributedErrorCount)
+      if (errors.length > 0) {
         return {
           ok: false,
-          reason: `"${entry.slug}" step ${index} reported ${newErrors.length} browser error(s):\n  ${newErrors.join('\n  ')}`,
+          reason: `"${entry.slug}" step ${index} reported ${errors.length} browser error(s):\n  ${errors.join('\n  ')}`,
         }
       }
-      attributedErrorCount = errors.length
 
       if (index < stepCount - 1) {
-        await page.keyboard.press('ArrowRight')
         try {
-          await page.waitForFunction(
-            (expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(expected),
-            index + 1,
-            { timeout: 5_000 },
-          )
+          await advanceToStep(page, index + 1)
         } catch {
           const stalledAt = await root.getAttribute('data-step-index')
           return {
@@ -164,10 +142,6 @@ async function verifyRoute(chromium, baseUrl, entry) {
           }
         }
       }
-    }
-
-    if (errors.length > 0) {
-      return { ok: false, reason: `"${entry.slug}" reported ${errors.length} browser error(s):\n  ${errors.join('\n  ')}` }
     }
 
     if (isReferenceSample) {
@@ -190,7 +164,7 @@ async function verifyRoute(chromium, baseUrl, entry) {
   } catch (error) {
     return { ok: false, reason: `"${entry.slug}" failed to render: ${error.message}` }
   } finally {
-    await browser.close()
+    await context.close()
   }
 }
 
@@ -208,12 +182,14 @@ async function runRenderChecks() {
   const { chromium } = await import('playwright')
   const server = await startPreviewServer()
   console.log(`[verify] preview server ready at ${server.baseUrl}`)
+  let browser
 
   try {
+    browser = await chromium.launch()
     let allOk = true
     for (const entry of registry) {
       console.log(`[verify] rendering "${entry.slug}"...`)
-      const result = await verifyRoute(chromium, server.baseUrl, entry)
+      const result = await verifyRoute(browser, server.baseUrl, entry)
       if (!result.ok) {
         fail(result.reason)
         allOk = false
@@ -223,6 +199,7 @@ async function runRenderChecks() {
     }
     return allOk
   } finally {
+    await browser?.close()
     await server.stop()
   }
 }

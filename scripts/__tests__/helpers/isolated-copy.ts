@@ -1,4 +1,5 @@
-import { cpSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { cpSync, mkdtempSync, rmSync, statSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -30,4 +31,15 @@ export function createIsolatedRepoCopy(prefix: string): string {
 
 export function removeIsolatedRepoCopy(tempDir: string): void {
   rmSync(tempDir, { recursive: true, force: true })
+}
+
+/** Process env that points Playwright at the sandbox's pre-cached browsers when present. */
+export function playwrightEnv(): NodeJS.ProcessEnv {
+  const browsersPath = statSync('/ms-playwright', { throwIfNoEntry: false })?.isDirectory() ? '/ms-playwright' : undefined
+  return { ...process.env, ...(browsersPath ? { PLAYWRIGHT_BROWSERS_PATH: browsersPath } : {}) }
+}
+
+/** Runs `npm run verify` in `cwd` with the Playwright browser env. */
+export function runVerify(cwd: string) {
+  return spawnSync('npm', ['run', 'verify'], { cwd, encoding: 'utf8', env: playwrightEnv() })
 }

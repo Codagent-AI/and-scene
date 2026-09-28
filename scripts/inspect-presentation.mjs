@@ -9,10 +9,16 @@
  * indistinct active navigation state, and unpolished attribution. Warnings
  * are advisory only — they do not fail the process.
  */
-import { spawnSync } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
-import { readRegistrySlugs, startPreviewServer, PROJECT_ROOT } from './lib/preview-server.mjs'
+import {
+  advanceToStep,
+  openPresentation,
+  readRegistrySlugs,
+  runProjectBuild,
+  startPreviewServer,
+  PROJECT_ROOT,
+} from './lib/preview-server.mjs'
 
 const ALLOW_OVERLAP_ATTR = 'data-presentation-allow-overlap'
 const TEXT_SELECTOR = [
@@ -44,36 +50,30 @@ function parseArgs(argv) {
   return { slug, options }
 }
 
-function rectsOverlap(a, b) {
-  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
-}
-
 async function collectWarnings(page, stepIndex) {
   return page.evaluate(
     ({ selector, allowAttr, index }) => {
       const warnings = []
-      const nodes = Array.from(document.querySelectorAll(selector)).filter((el) => {
-        const style = window.getComputedStyle(el)
-        return style.visibility !== 'hidden' && style.display !== 'none' && el.textContent?.trim()
-      })
+      // Measure each visible, unexempt text/chrome node once, then compare pairs.
+      const nodes = Array.from(document.querySelectorAll(selector))
+        .filter((el) => {
+          const style = window.getComputedStyle(el)
+          return style.visibility !== 'hidden' && style.display !== 'none' && el.textContent?.trim()
+        })
+        .filter((el) => el.closest(`[${allowAttr}]`) === null)
+        .map((el) => ({ el, rect: el.getBoundingClientRect(), text: el.textContent.trim().slice(0, 30) }))
 
-      function allowsOverlap(el) {
-        return el.closest(`[${allowAttr}]`) !== null
+      function rectsOverlap(a, b) {
+        return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
       }
 
       for (let i = 0; i < nodes.length; i += 1) {
         for (let j = i + 1; j < nodes.length; j += 1) {
           const a = nodes[i]
           const b = nodes[j]
-          if (a.contains(b) || b.contains(a)) continue
-          if (allowsOverlap(a) || allowsOverlap(b)) continue
-          const rectA = a.getBoundingClientRect()
-          const rectB = b.getBoundingClientRect()
-          const overlaps = rectA.left < rectB.right && rectA.right > rectB.left && rectA.top < rectB.bottom && rectA.bottom > rectB.top
-          if (overlaps) {
-            warnings.push(
-              `step ${index}: unmarked overlap between "${a.textContent?.trim().slice(0, 30)}" and "${b.textContent?.trim().slice(0, 30)}"`,
-            )
+          if (a.el.contains(b.el) || b.el.contains(a.el)) continue
+          if (rectsOverlap(a.rect, b.rect)) {
+            warnings.push(`step ${index}: unmarked overlap between "${a.text}" and "${b.text}"`)
           }
         }
       }
@@ -116,19 +116,12 @@ async function collectWarnings(page, stepIndex) {
   )
 }
 
-async function inspectSlug(chromium, baseUrl, entry, outDir, options) {
-  const browser = await chromium.launch()
+async function inspectSlug(browser, baseUrl, entry, outDir, options) {
+  const context = await browser.newContext({ viewport: { width: options.width, height: options.height } })
   try {
-    const page = await browser.newPage({ viewport: { width: options.width, height: options.height } })
+    const page = await context.newPage()
     const warnings = []
-
-    await page.goto(`${baseUrl}/${entry.slug}`, { waitUntil: 'networkidle' })
-    const root = page.locator('[data-presentation-root]')
-    await root.waitFor({ state: 'visible', timeout: 10_000 })
-    const stepCount = Number(await root.getAttribute('data-step-count'))
-    if (!Number.isSafeInteger(stepCount) || stepCount < 1) {
-      throw new Error(`Invalid data-step-count for "${entry.slug}": ${await root.getAttribute('data-step-count')}`)
-    }
+    const { stepCount } = await openPresentation(page, baseUrl, entry.slug)
 
     const slugDir = path.join(outDir, entry.slug)
     await mkdir(slugDir, { recursive: true })
@@ -141,18 +134,13 @@ async function inspectSlug(chromium, baseUrl, entry, outDir, options) {
       warnings.push(...(await collectWarnings(page, index)))
 
       if (index < stepCount - 1) {
-        await page.keyboard.press('ArrowRight')
-        await page.waitForFunction(
-          (expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(expected),
-          index + 1,
-          { timeout: 5_000 },
-        )
+        await advanceToStep(page, index + 1)
       }
     }
 
     return warnings
   } finally {
-    await browser.close()
+    await context.close()
   }
 }
 
@@ -167,20 +155,21 @@ async function main() {
   }
 
   console.log('[inspect] building...')
-  const build = spawnSync('npm', ['run', 'build'], { cwd: PROJECT_ROOT, stdio: 'inherit' })
-  if (build.status !== 0) {
+  if (!runProjectBuild()) {
     throw new Error('Inspection build failed')
   }
 
   const { chromium } = await import('playwright')
   const server = await startPreviewServer()
   const outDir = path.join(PROJECT_ROOT, 'inspection')
+  let browser
 
   try {
+    browser = await chromium.launch()
     let allWarnings = []
     for (const entry of targets) {
       console.log(`[inspect] capturing "${entry.slug}"...`)
-      const warnings = await inspectSlug(chromium, server.baseUrl, entry, outDir, options)
+      const warnings = await inspectSlug(browser, server.baseUrl, entry, outDir, options)
       allWarnings = allWarnings.concat(warnings)
     }
 
@@ -191,6 +180,7 @@ async function main() {
       console.log('\n[inspect] no advisory warnings')
     }
   } finally {
+    await browser?.close()
     await server.stop()
   }
 }

@@ -28,7 +28,7 @@
 .card-1 { left: 100px; }.card-2 { left: 250px; }.card-3 { left: 400px; }
 .ghost { left: 550px; top: 237px; width: 132px; height: 62px; align-items: center; border: 1px dashed #718278; border-radius: 7px; color: #9ca99e; font-size: 10px; text-align: center; }
 .depth { left: 25px; top: 83px; color: #a6b79f; font-size: 8px; }.depth span { color: #d7ed9c; font-size: 17px; }
-.kit-wire { left: 330px; top: 307px; height: 20px; background: #9abd7f; }.kit { left: 253px; top: 327px; width: 162px; height: 47px; padding: 6px 9px; border: 1px solid #78956c; border-radius: 6px; background: #26372c; gap: 3px; }.kit b { font-size: 9px; }
+.kit-wire { left: 330px; top: 307px; width: 2px; height: 20px; background: #9abd7f; }.kit { left: 253px; top: 327px; width: 162px; height: 47px; padding: 6px 9px; border: 1px solid #78956c; border-radius: 6px; background: #26372c; gap: 3px; }.kit b { font-size: 9px; }
 .verify { left: 700px; top: 239px; width: 124px; height: 59px; border: 1px solid #71a889; border-radius: 6px; align-items: center; background: #203a30; gap: 4px; }.verify small { font-size: 7px; }.verify b { color: #a9e6b4; font-size: 10px; }
 .modify { left: 605px; top: 151px; color: #d7e99b; font-size: 12px; transform: rotate(15deg); }.edited { left: 445px; top: 237px; border: 1px solid #e2bd73; border-radius: 4px; padding: 3px 5px; color: #f4d994; font-size: 7px; }
 .reveal { inset: 18px 45px 2px 45px; justify-content: start; padding: 12px; border: 1px solid #d1e697; border-radius: 20px; pointer-events: none; }.reveal span { color: #e1f1a8; font-size: 8px; letter-spacing: .2em; }

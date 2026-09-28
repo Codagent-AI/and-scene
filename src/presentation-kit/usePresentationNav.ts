@@ -24,13 +24,18 @@ export function usePresentationNav(
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
   const last = Math.max(0, count - 1)
+  // Normalize stored state when the step count shrinks.
+  if (index > last) setIndex(last)
 
   const goTo = useCallback(
     (i: number) => setIndex(Math.min(last, Math.max(0, i))),
     [last],
   )
   const next = useCallback(() => setIndex((i) => Math.min(last, i + 1)), [last])
-  const prev = useCallback(() => setIndex((i) => Math.max(0, i - 1)), [])
+  const prev = useCallback(
+    () => setIndex((i) => Math.max(0, Math.min(i, last) - 1)),
+    [last],
+  )
   const toggleMode = useCallback(
     () => setMode((m) => (m === 'present' ? 'browse' : 'present')),
     [],
@@ -65,8 +70,14 @@ export function usePresentationNav(
   const touchStart = useRef<{ x: number; y: number } | null>(null)
   useEffect(() => {
     const onStart = (e: TouchEvent) => {
+      touchStart.current = null
+      if (e.defaultPrevented || isInteractive(e.target)) return
+      if (e.touches && e.touches.length > 1) return
       const t = e.changedTouches[0]
-      touchStart.current = t ? { x: t.clientX, y: t.clientY } : null
+      if (t) touchStart.current = { x: t.clientX, y: t.clientY }
+    }
+    const onCancel = () => {
+      touchStart.current = null
     }
     const onEnd = (e: TouchEvent) => {
       const start = touchStart.current
@@ -81,9 +92,11 @@ export function usePresentationNav(
     }
     window.addEventListener('touchstart', onStart, { passive: true })
     window.addEventListener('touchend', onEnd, { passive: true })
+    window.addEventListener('touchcancel', onCancel, { passive: true })
     return () => {
       window.removeEventListener('touchstart', onStart)
       window.removeEventListener('touchend', onEnd)
+      window.removeEventListener('touchcancel', onCancel)
     }
   }, [next, prev])
 

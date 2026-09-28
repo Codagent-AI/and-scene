@@ -5,7 +5,8 @@
  * repository, each with one representative fault injected, and asserts
  * every copy exits non-zero, names the failed phase (and, for
  * browser/transition faults, the offending step), never reports success,
- * and leaves the source checkout untouched.
+ * leaves no `vite preview` subprocess running, and leaves the source
+ * checkout untouched.
  *
  * Each copy reuses this repo's installed `node_modules` via a symlink
  * (already proven complete/correct by INT-001) instead of a fresh
@@ -65,6 +66,21 @@ function runVerify(dir: string): { status: number; output: string } {
   }
 }
 
+/** Returns any still-running `vite preview` subprocess launched from `dir`'s installed vite. */
+function lingeringPreviewProcesses(dir: string): string[] {
+  const viteBin = path.join(dir, 'node_modules', 'vite', 'bin', 'vite.js')
+  return execFileSync('ps', ['-eo', 'pid=,args='], { encoding: 'utf8' })
+    .split('\n')
+    .filter((line) => line.includes(viteBin) && line.includes('preview'))
+}
+
+/** Runs verify in `dir` and asserts its preview subprocess was cleaned up before it exited. */
+function runVerifyAndAssertCleanup(dir: string): { status: number; output: string } {
+  const result = runVerify(dir)
+  expect(lingeringPreviewProcesses(dir)).toEqual([])
+  return result
+}
+
 describe('verification failures are actionable (E2E-002)', () => {
   beforeAll(() => {
     try {
@@ -99,7 +115,7 @@ describe('verification failures are actionable (E2E-002)', () => {
         const sceneFile = path.join(dir, 'src', 'presentations', 'how-to-make-a-presentation', 'Scene.tsx')
         fs.appendFileSync(sceneFile, '\nconst brokenSyntax: = ;\n')
 
-        const { status, output } = runVerify(dir)
+        const { status, output } = runVerifyAndAssertCleanup(dir)
 
         expect(status).not.toBe(0)
         expect(output).toMatch(/FAILED \(build\)/)
@@ -125,7 +141,7 @@ describe('verification failures are actionable (E2E-002)', () => {
         expect(retargeted).not.toBe(source)
         fs.writeFileSync(registryPath, retargeted)
 
-        const { status, output } = runVerify(dir)
+        const { status, output } = runVerifyAndAssertCleanup(dir)
 
         expect(status).not.toBe(0)
         expect(output).toMatch(/FAILED \(registry\)/)
@@ -155,7 +171,7 @@ describe('verification failures are actionable (E2E-002)', () => {
         expect(patched).not.toBe(source)
         fs.writeFileSync(sceneFile, patched)
 
-        const { status, output } = runVerify(dir)
+        const { status, output } = runVerifyAndAssertCleanup(dir)
 
         expect(status).not.toBe(0)
         expect(output).toMatch(/FAILED \(render\)/)
@@ -184,7 +200,7 @@ describe('verification failures are actionable (E2E-002)', () => {
         expect(patched).not.toBe(source)
         fs.writeFileSync(navFile, patched)
 
-        const { status, output } = runVerify(dir)
+        const { status, output } = runVerifyAndAssertCleanup(dir)
 
         expect(status).not.toBe(0)
         expect(output).toMatch(/FAILED \(render\)/)
@@ -196,10 +212,4 @@ describe('verification failures are actionable (E2E-002)', () => {
     },
     RUN_TIMEOUT_MS + 15_000,
   )
-
-  // Each case above spawns and terminates its own `vite preview` subprocess
-  // on a freshly allocated port; a preview subprocess left running from a
-  // prior case would surface as an EADDRINUSE/hang failure in the next
-  // case, so the four passing cases above are themselves the proof that
-  // `terminate()` releases the port between runs.
 })

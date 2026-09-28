@@ -102,16 +102,21 @@ async function checkOverlap(page) {
   const collisions = await page.evaluate(() => {
     const intersects = (a, b) =>
       a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+    // Mirrors Playwright's visibility rule: no layout box, or hidden via CSS visibility.
+    const isVisible = (el) => {
+      const { visibility } = window.getComputedStyle(el)
+      return el.getClientRects().length > 0 && visibility !== 'hidden' && visibility !== 'collapse'
+    }
     const chrome = ['[data-presentation-header]', '[data-presentation-footer]', '[data-presentation-toc]']
       .map((selector) => ({ selector, el: document.querySelector(selector) }))
-      .filter(({ el }) => el && el.getClientRects().length > 0)
+      .filter(({ el }) => el && isVisible(el))
       .map(({ selector, el }) => ({ selector, rect: el.getBoundingClientRect() }))
     if (chrome.length === 0) return []
 
     const found = []
     for (const el of document.querySelectorAll('[data-presentation-stage] [data-presentation-node]')) {
       if (el.closest('[data-presentation-allow-overlap="true"]')) continue
-      if (el.getClientRects().length === 0) continue
+      if (!isVisible(el)) continue
       const rect = el.getBoundingClientRect()
       const hit = chrome.find((c) => intersects(rect, c.rect))
       if (hit) {

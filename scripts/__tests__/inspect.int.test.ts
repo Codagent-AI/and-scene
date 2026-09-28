@@ -5,9 +5,10 @@
  * `node_modules` via a symlink rather than a real `npm install`, since the
  * dependency set is already proven by INT-001), registers a controlled
  * two-step fixture presentation that deliberately contains an unmarked text
- * collision, an explicitly allowed overlap, indistinct active chrome (no
- * presentation CSS at all, since the kit ships zero visual defaults), and
- * unpolished (browser-default) attribution, then runs
+ * collision, an explicitly allowed overlap, a visibility-hidden collision,
+ * indistinct active chrome (no presentation CSS at all, since the kit ships
+ * zero visual defaults), and unpolished (browser-default) attribution, then
+ * runs
  * `npm run inspect -- <fixture-slug>` against a production preview and
  * asserts on its screenshots and advisory warnings. A second fixture marks
  * its active chrome only through the progress-dot child hook and opacity,
@@ -24,7 +25,7 @@ const SETUP_TIMEOUT_MS = RUN_TIMEOUT_MS
 
 const FIXTURE_SLUG = 'overlap-fixture'
 
-const FIXTURE_TALK_SOURCE = `import { Box, Frame, Label, Presentation, SceneLayer } from '../../presentation-kit'
+const FIXTURE_TALK_SOURCE = `import { Box, Emphasis, Frame, Label, Presentation, SceneLayer } from '../../presentation-kit'
 import type { SceneProps, Step } from '../../presentation-kit'
 
 interface FixturePayload {
@@ -51,6 +52,10 @@ function UnmarkedOverlapScene({ payload }: SceneProps<FixturePayload>) {
         <Frame layoutId="fixture-allowed-frame" style={{ width: 120, height: 40 }}>
           <Label>allowed</Label>
         </Frame>
+      </div>
+      {/* Same collision, but invisible: it must not be reported. */}
+      <div style={{ position: 'absolute', top: -190, left: 400, visibility: 'hidden' }}>
+        <Emphasis layoutId="fixture-hidden-emphasis">hidden</Emphasis>
       </div>
     </SceneLayer>
   )
@@ -216,6 +221,9 @@ describe('screenshot helper integration (INT-002)', () => {
 
       // The explicitly allowed overlap (a Frame) must NOT be reported.
       expect(output).not.toMatch(/stage content \(frame\) overlaps/)
+
+      // A visibility-hidden collision (an Emphasis) must NOT be reported.
+      expect(output).not.toMatch(/stage content \(emphasis\) overlaps/)
 
       // Indistinct active progress + table-of-contents chrome (no CSS shipped).
       expect(output).toMatch(/\[data-presentation-progress-item\]\[data-presentation-active="true"\] is visually identical/)

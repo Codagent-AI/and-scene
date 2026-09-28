@@ -26,6 +26,12 @@ import process from 'node:process'
 const ROOT = process.cwd()
 const isWindows = process.platform === 'win32'
 
+// Covers the kit's ENTER_DELAY (500ms) + ENTER_T (350ms) newcomer-entry
+// animation plus a margin, so console/page errors raised by an entry
+// animation or an async effect after navigation are observed before the
+// next step advances or the page closes (mirrors scripts/inspect-presentation.mjs).
+const SETTLE_MS = 1000
+
 function fail(phase, message) {
   console.error(`\n[verify] FAILED (${phase}): ${message}\n`)
   process.exit(1)
@@ -125,6 +131,7 @@ async function checkSlug(browser, baseUrl, slug) {
     await page.goto(`${baseUrl}/${slug}`, { waitUntil: 'networkidle' })
     const root = page.locator('[data-presentation-root]')
     await root.waitFor({ state: 'attached', timeout: 10000 })
+    await page.waitForTimeout(SETTLE_MS)
 
     const stepCount = Number(await root.getAttribute('data-step-count'))
     if (!Number.isFinite(stepCount) || stepCount < 1) {
@@ -146,7 +153,7 @@ async function checkSlug(browser, baseUrl, slug) {
 
     for (let expected = 1; expected < stepCount; expected += 1) {
       await page.keyboard.press('ArrowRight')
-      await page.waitForTimeout(150)
+      await page.waitForTimeout(SETTLE_MS)
       const next = Number(await root.getAttribute('data-step-index'))
       if (next !== expected) {
         return {
@@ -163,7 +170,7 @@ async function checkSlug(browser, baseUrl, slug) {
 
     // One more press past the last step must not wrap or overshoot.
     await page.keyboard.press('ArrowRight')
-    await page.waitForTimeout(150)
+    await page.waitForTimeout(SETTLE_MS)
     const afterLast = Number(await root.getAttribute('data-step-index'))
     if (afterLast !== stepCount - 1) {
       return {

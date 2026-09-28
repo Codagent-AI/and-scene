@@ -86,6 +86,15 @@ function terminate(child) {
   })
 }
 
+/** Fails loudly (rejects) if the root's data-step-index never reaches `expected`, instead of silently capturing a stale/repeated step. */
+async function waitForStepIndex(page, expected, timeoutMs = 10000) {
+  await page.waitForFunction(
+    (index) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(index),
+    expected,
+    { timeout: timeoutMs },
+  )
+}
+
 function rectsIntersect(a, b) {
   if (!a || !b) return false
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
@@ -186,6 +195,9 @@ async function main() {
 
   runBuild()
 
+  const outDir = path.join(ROOT, 'screenshots', slug)
+  mkdirSync(outDir, { recursive: true })
+
   const port = await getFreePort()
   const host = '127.0.0.1'
   const baseUrl = `http://${host}:${port}`
@@ -197,9 +209,6 @@ async function main() {
     [viteBin, 'preview', '--host', host, '--port', String(port), '--strictPort'],
     { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] },
   )
-
-  const outDir = path.join(ROOT, 'screenshots', slug)
-  mkdirSync(outDir, { recursive: true })
 
   const summary = []
   try {
@@ -225,6 +234,7 @@ async function main() {
       }
 
       for (let step = 0; step < stepCount; step += 1) {
+        await waitForStepIndex(page, step)
         await page.waitForTimeout(SETTLE_MS)
 
         const warnings = []

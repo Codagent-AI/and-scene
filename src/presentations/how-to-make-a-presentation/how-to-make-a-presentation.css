@@ -1,0 +1,307 @@
+/*
+ * Presentation-owned visual system for "How to Use This Skill to Make a
+ * Presentation". The scene kit ships no palette, borders, or spacing —
+ * every visual decision below belongs to this talk.
+ */
+
+.htmap-scene {
+  color: #f8f3e6;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+/*
+ * Structural layout: the scene kit ships no header/body/footer arrangement
+ * of its own, so this presentation owns fitting them into the viewport (the
+ * geometry `useFitScale` assumes matches these header/footer heights).
+ */
+.htmap-talk {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #f8f3e6;
+}
+
+.htmap-talk [data-presentation-header] {
+  flex: 0 0 auto;
+  padding: 0.75rem 1.5rem;
+}
+
+.htmap-talk [data-presentation-header] p,
+.htmap-talk [data-presentation-header] h1 {
+  margin: 0.15rem 0;
+}
+
+.htmap-talk [data-presentation-deck-title] {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.htmap-talk [data-presentation-marker] {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #c7a755;
+}
+
+.htmap-talk [data-presentation-step-title] {
+  font-size: 1.4rem;
+}
+
+.htmap-talk [data-presentation-mode-toggle] {
+  margin-top: 0.35rem;
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(248, 243, 230, 0.35);
+  border-radius: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+
+.htmap-talk [data-presentation-body] {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  position: relative;
+}
+
+.htmap-talk [data-presentation-stage] {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.htmap-talk [data-presentation-toc] {
+  flex: 0 0 auto;
+  width: 160px;
+  padding: 0.5rem 1rem;
+  overflow-y: auto;
+}
+
+.htmap-talk [data-presentation-toc] ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (max-width: 700px) {
+  .htmap-talk [data-presentation-toc] {
+    display: none;
+  }
+}
+
+.htmap-talk [data-presentation-footer] {
+  flex: 0 0 auto;
+  padding: 0.75rem 1.5rem 1rem;
+}
+
+.htmap-talk [data-presentation-caption] {
+  margin: 0 0 0.6rem;
+  opacity: 0.85;
+  max-width: 60ch;
+}
+
+.htmap-talk [data-presentation-controls] {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.htmap-talk [data-presentation-controls] button {
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(248, 243, 230, 0.35);
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+}
+
+.htmap-talk [data-presentation-controls] button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.htmap-talk [data-presentation-progress] {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.htmap-box,
+.htmap-card,
+.htmap-chip {
+  border-radius: 0.6rem;
+  border: 1px solid rgba(248, 243, 230, 0.35);
+  background: rgba(22, 20, 18, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.72rem;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.htmap-box svg,
+.htmap-card svg,
+.htmap-chip svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex-shrink: 0;
+}
+
+.htmap-you,
+.htmap-skill {
+  border-color: #c7a755;
+  background: rgba(199, 167, 85, 0.14);
+  font-weight: 600;
+}
+
+.htmap-chip {
+  border-radius: 999px;
+  background: rgba(199, 167, 85, 0.1);
+  border-color: rgba(199, 167, 85, 0.5);
+  font-size: 0.66rem;
+}
+
+.htmap-prompt {
+  text-align: left;
+  justify-content: flex-start;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.htmap-card {
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.15rem;
+}
+
+.htmap-card-title,
+.htmap-card-caption,
+.htmap-card-visual {
+  display: block;
+  font-size: 0.62rem;
+}
+
+.htmap-card-title {
+  font-weight: 700;
+  color: #c7a755;
+}
+
+.htmap-card-caption,
+.htmap-card-visual {
+  opacity: 0.75;
+}
+
+.htmap-ghost-card {
+  border-style: dashed;
+  opacity: 0.55;
+  background: transparent;
+}
+
+.htmap-verify-card {
+  border-color: #6fbf73;
+  background: rgba(111, 191, 115, 0.12);
+}
+
+.htmap-flag-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 999px;
+  border-color: #e0a53a;
+  background: #e0a53a;
+  color: #0d0c0b;
+}
+
+.htmap-morph-link {
+  font-size: 0.9rem;
+  opacity: 0.6;
+  text-align: center;
+}
+
+.htmap-arrow {
+  color: rgba(248, 243, 230, 0.5);
+}
+
+.htmap-arrow line {
+  stroke-width: 1.5;
+}
+
+.htmap-modify-arc line {
+  stroke-dasharray: 4 3;
+  color: #e0a53a;
+}
+
+.htmap-reveal-frame {
+  border: 1px dashed rgba(199, 167, 85, 0.7);
+  border-radius: 0.75rem;
+  pointer-events: none;
+}
+
+.htmap-reveal-label {
+  color: #c7a755;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #0d0c0b;
+  padding: 0 0.35rem;
+}
+
+/* Chrome: make the active table-of-contents/progress state clearly distinct. */
+.htmap-talk [data-presentation-toc-item] {
+  color: rgba(248, 243, 230, 0.6);
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0.2rem 0;
+}
+
+.htmap-talk [data-presentation-toc-item][data-presentation-active='true'] {
+  color: #c7a755;
+  font-weight: 700;
+}
+
+.htmap-talk [data-presentation-progress-dot] {
+  border: 1px solid rgba(248, 243, 230, 0.35);
+  background: transparent;
+  color: rgba(248, 243, 230, 0.6);
+  border-radius: 999px;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.htmap-talk [data-presentation-progress-dot][data-presentation-active='true'] {
+  border-color: #c7a755;
+  background: #c7a755;
+  color: #0d0c0b;
+  font-weight: 700;
+}
+
+.htmap-talk [data-presentation-attribution] {
+  color: rgba(248, 243, 230, 0.55);
+  font-size: 0.75rem;
+  text-decoration: none;
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+}
+
+.htmap-talk [data-presentation-attribution]:hover {
+  color: #c7a755;
+  text-decoration: underline;
+}

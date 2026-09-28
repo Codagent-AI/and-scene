@@ -1,5 +1,5 @@
 import { useEffect, useState, type RefObject } from 'react'
-import { DESIGN_H, DESIGN_W, MIN_SCALE } from './constants'
+import { DESIGN_H, DESIGN_W } from './constants'
 
 /**
  * Computes the uniform scale factor that fits the fixed DESIGN_W x DESIGN_H
@@ -17,8 +17,7 @@ export function useFitScale(containerRef: RefObject<HTMLElement | null>): number
 
     function recompute(width: number, height: number) {
       if (width <= 0 || height <= 0) return
-      const next = Math.min(width / DESIGN_W, height / DESIGN_H, 1)
-      setScale(Math.max(next, MIN_SCALE))
+      setScale(Math.min(width / DESIGN_W, height / DESIGN_H, 1))
     }
 
     recompute(node.clientWidth, node.clientHeight)

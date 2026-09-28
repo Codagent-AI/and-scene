@@ -18,7 +18,13 @@ export const DESIGN_W = 880
 /** Fixed design canvas height the diagram is authored against. */
 export const DESIGN_H = 380
 
-/** Floor for the uniform fit scale so the canvas never disappears. */
+/**
+ * Reference floor for the uniform fit scale. `useFitScale` no longer clamps
+ * to this value — allowing the canvas to scale below it lets a genuinely
+ * small viewport show the whole composition rather than clipping it — but
+ * a host or presentation MAY still use this constant to decide when to
+ * offer a scroll/zoom affordance instead of shrinking further.
+ */
 export const MIN_SCALE = 0.35
 
 interface StageLayout {

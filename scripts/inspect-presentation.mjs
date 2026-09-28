@@ -26,12 +26,17 @@ try {
         const rect = element.getBoundingClientRect(), style = getComputedStyle(element)
         return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none'
       })
+      const label = (element) => {
+        const hook = element.getAttributeNames().find((name) => name.startsWith('data-presentation-') && name !== 'data-presentation-active')
+        const text = (element.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 40)
+        return `${hook ? `[${hook}]` : element.tagName.toLowerCase()}${text ? ` "${text}"` : ''}`
+      }
       const overlaps = []
       for (let left = 0; left < visible.length; left++) for (let right = left + 1; right < visible.length; right++) {
         const aEl = visible[left], bEl = visible[right]
         if (aEl.contains(bEl) || bEl.contains(aEl) || aEl.closest('[data-presentation-allow-overlap]') || bEl.closest('[data-presentation-allow-overlap]')) continue
         const a = aEl.getBoundingClientRect(), b = bEl.getBoundingClientRect()
-        if (a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top) overlaps.push(`${aEl.getAttribute('data-presentation-step-title') ?? aEl.getAttribute('data-presentation-caption') ?? aEl.getAttribute('data-presentation-toc-item') ?? aEl.getAttribute('data-presentation-step') ?? aEl.getAttribute('data-presentation-attribution') ?? aEl.tagName} overlaps ${bEl.getAttribute('data-presentation-step-title') ?? bEl.getAttribute('data-presentation-caption') ?? bEl.getAttribute('data-presentation-toc-item') ?? bEl.getAttribute('data-presentation-step') ?? bEl.getAttribute('data-presentation-attribution') ?? bEl.tagName}`)
+        if (a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top) overlaps.push(`${label(aEl)} overlaps ${label(bEl)}`)
       }
       const indistinct = (selector) => {
         const active = document.querySelector(`${selector}[data-presentation-active="true"]`)

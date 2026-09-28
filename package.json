@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "vitest run && node --test tests/*.integration.test.mjs",
+    "test": "vitest run && node --test --test-concurrency=1 tests/*.integration.test.mjs",
     "verify": "node scripts/verify.mjs",
     "inspect": "node scripts/inspect-presentation.mjs",
     "preview": "vite preview"

@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Presentation } from './Presentation'
 import { AND_SCENE_REPO_URL } from './chrome/Footer'
@@ -177,5 +178,38 @@ describe('Presentation', () => {
       nextButton.click()
     })
     expect(container.querySelector('[data-presentation-root]')).toHaveAttribute('data-step-index', '2')
+  })
+
+  it('keeps the active grouped scene mounted when steps shrink below the current index', () => {
+    let mounts = 0
+    function StatefulScene({ payload }: SceneProps<number>) {
+      const [mountId] = useState(() => ++mounts)
+      return <div data-testid="stateful-scene" data-mount-id={mountId}>{payload}</div>
+    }
+    const makeSteps = (count: number): Array<Step<number>> =>
+      Array.from({ length: count }, (_, index) => ({
+        id: `s${index}`,
+        era: 'Only',
+        title: `Step ${index}`,
+        caption: `Caption ${index}`,
+        groupKey: 'shared',
+        Scene: StatefulScene,
+        payload: index,
+      }))
+
+    const { container, rerender } = render(<Presentation steps={makeSteps(5)} title="Demo" />)
+    const nextButton = container.querySelector<HTMLButtonElement>('[data-presentation-next]')!
+    act(() => {
+      for (let press = 0; press < 4; press += 1) nextButton.click()
+    })
+    const root = container.querySelector('[data-presentation-root]')
+    expect(root).toHaveAttribute('data-step-index', '4')
+    const mountId = screen.getByTestId('stateful-scene').dataset.mountId
+
+    rerender(<Presentation steps={makeSteps(2)} title="Demo" />)
+
+    expect(container.querySelector('[data-presentation-empty]')).toBeNull()
+    expect(container.querySelector('[data-presentation-root]')).toHaveAttribute('data-step-index', '1')
+    expect(screen.getByTestId('stateful-scene').dataset.mountId).toBe(mountId)
   })
 })

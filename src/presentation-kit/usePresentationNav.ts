@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TouchEvent as ReactTouchEvent } from 'react'
-import { isFocusedFormControl } from './dom'
+import { focusOwnsNavKey } from './dom'
 import type { PresentationMode } from './types'
 
 export interface UsePresentationNavOptions {
@@ -62,10 +62,7 @@ export function usePresentationNav({
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.defaultPrevented || isFocusedFormControl()) return
-      if (event.key === ' ' && event.target instanceof Element && event.target.closest('button, [role="button"]')) {
-        return
-      }
+      if (event.defaultPrevented || focusOwnsNavKey(event)) return
 
       switch (event.key) {
         case 'ArrowRight':

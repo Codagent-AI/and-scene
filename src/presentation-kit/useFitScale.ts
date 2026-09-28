@@ -36,18 +36,18 @@ export function useFitScale(
     }
 
     computeScale()
+
+    // The container's box already tracks the window, so observe it directly;
+    // fall back to window resizes only where ResizeObserver can't be used.
+    const container = containerRef.current
+    if (typeof ResizeObserver !== 'undefined' && container) {
+      const observer = new ResizeObserver(computeScale)
+      observer.observe(container)
+      return () => observer.disconnect()
+    }
+
     window.addEventListener('resize', computeScale)
-
-    let observer: ResizeObserver | undefined
-    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
-      observer = new ResizeObserver(computeScale)
-      observer.observe(containerRef.current)
-    }
-
-    return () => {
-      window.removeEventListener('resize', computeScale)
-      observer?.disconnect()
-    }
+    return () => window.removeEventListener('resize', computeScale)
   }, [mode, designWidth, designHeight])
 
   return { scale, containerRef }

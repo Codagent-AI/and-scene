@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { EASE, LAYOUT_T } from '../constants'
+import { LAYOUT_TRANSITION } from '../constants'
 
 export interface SymbolChipProps extends Omit<ComponentPropsWithoutRef<typeof motion.div>, 'layout' | 'children'> {
   layoutId: string
@@ -18,7 +18,7 @@ export function SymbolChip({ layoutId, icon: Icon, label, children, className, t
       layoutId={layoutId}
       data-presentation-symbol-chip=""
       className={className}
-      transition={transition ?? { duration: LAYOUT_T, ease: EASE }}
+      transition={transition ?? LAYOUT_TRANSITION}
       {...rest}
     >
       {Icon ? <Icon data-presentation-symbol-chip-icon="" aria-hidden="true" /> : null}

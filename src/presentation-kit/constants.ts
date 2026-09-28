@@ -14,6 +14,9 @@ export const ENTER_T = 0.35
 /** Newcomers wait for persisting entities' layout morph to settle first. */
 export const ENTER_DELAY = LAYOUT_T
 
+/** Default morph transition for persisting entities. */
+export const LAYOUT_TRANSITION = { duration: LAYOUT_T, ease: EASE }
+
 export interface StageChromeGeometry {
   headerHeight: number
   footerHeight: number

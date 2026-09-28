@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import type { ComponentPropsWithoutRef } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
+import { LAYOUT_TRANSITION } from '../constants'
 
 export interface LabelProps extends Omit<ComponentPropsWithoutRef<typeof motion.span>, 'layout'> {
   layoutId?: string
@@ -14,7 +14,7 @@ export function Label({ layoutId, children, className, transition, ...rest }: La
       layoutId={layoutId}
       data-presentation-label=""
       className={className}
-      transition={transition ?? { duration: LAYOUT_T, ease: EASE }}
+      transition={transition ?? LAYOUT_TRANSITION}
       {...rest}
     >
       {children}

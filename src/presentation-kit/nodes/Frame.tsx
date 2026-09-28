@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import type { ComponentPropsWithoutRef } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
+import { LAYOUT_TRANSITION } from '../constants'
 
 export interface FrameProps extends Omit<ComponentPropsWithoutRef<typeof motion.div>, 'layout'> {
   layoutId: string
@@ -14,7 +14,7 @@ export function Frame({ layoutId, children, className, transition, ...rest }: Fr
       layoutId={layoutId}
       data-presentation-frame=""
       className={className}
-      transition={transition ?? { duration: LAYOUT_T, ease: EASE }}
+      transition={transition ?? LAYOUT_TRANSITION}
       {...rest}
     >
       {children}

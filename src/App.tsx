@@ -9,8 +9,7 @@ function renderRoute(pathname: string): ReactNode {
   const route = resolveRoute(pathname, presentations)
   if (route.type !== 'presentation') return <Landing />
 
-  const PresentationComponent = getPresentationComponent(route.entry.slug)
-  if (!PresentationComponent) return <Landing />
+  const PresentationComponent = getPresentationComponent(route.entry)
 
   return (
     <Suspense fallback={null}>

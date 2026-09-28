@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { render } from '@testing-library/react'
 import { Presentation } from '../Presentation'
-import { buildFixtureSteps } from './fixtures'
-
-const VISUAL_STYLE_PATTERN = /color|background|border|box-shadow|font/i
+import { buildFixtureSteps, expectNoVisualStyle } from './fixtures'
 
 describe('kit-owned structural layout', () => {
   it('fills the viewport with header, flexing body, and footer so the stage has a definite fit box', () => {
@@ -24,7 +22,7 @@ describe('kit-owned structural layout', () => {
     expect(stage?.style.minHeight).toBe('0px')
 
     for (const element of [root, body, stage]) {
-      expect(element?.getAttribute('style') ?? '').not.toMatch(VISUAL_STYLE_PATTERN)
+      expectNoVisualStyle(element)
     }
   })
 
@@ -34,6 +32,6 @@ describe('kit-owned structural layout', () => {
     expect(attribution?.style.position).toBe('fixed')
     expect(attribution?.style.right).not.toBe('')
     expect(attribution?.style.bottom).not.toBe('')
-    expect(attribution?.getAttribute('style') ?? '').not.toMatch(VISUAL_STYLE_PATTERN)
+    expectNoVisualStyle(attribution)
   })
 })

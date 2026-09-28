@@ -33,8 +33,11 @@ const WIDGET_ROLE_SELECTOR = [
   .map((role) => `[role="${role}"]`)
   .join(', ')
 
-/** True when the focused element should keep its own keys instead of driving the deck. */
-export function isFocusedFormControl(): boolean {
+/** True when the focused element should keep this key instead of it driving the deck. */
+export function focusOwnsNavKey(event: KeyboardEvent): boolean {
+  if (event.key === ' ' && event.target instanceof Element && event.target.closest('button, [role="button"]')) {
+    return true
+  }
   const active = document.activeElement
   if (!(active instanceof HTMLElement)) return false
   return (

@@ -28,7 +28,10 @@ export function usePresentationNav(
   if (index > last) setIndex(last)
 
   const goTo = useCallback(
-    (i: number) => setIndex(Math.min(last, Math.max(0, i))),
+    (i: number) => {
+      if (!Number.isFinite(i)) return
+      setIndex(Math.min(last, Math.max(0, Math.trunc(i))))
+    },
     [last],
   )
   const next = useCallback(() => setIndex((i) => Math.min(last, i + 1)), [last])

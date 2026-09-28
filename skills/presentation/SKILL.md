@@ -9,6 +9,10 @@ Builds presentations modeled as one evolving diagram: stable entities move throu
 
 **Skill directory** = the directory containing this `SKILL.md`. Resolve `templates/...` relative to it, never the working directory.
 
+## Out of scope
+
+This skill produces browser-based React presentations only. For PowerPoint, Keynote, PDF, image export, Google Slides, hosting, or a visual editor, say so and point the user to a suitable document or slide-generation workflow instead of building here.
+
 ## Procedure
 
 Copy this checklist and complete it in order:
@@ -85,9 +89,10 @@ Evolving-scene rules:
 ### Modify (existing presentation)
 
 1. Identify the target. If it is missing or ambiguous, list the registered presentations and ask which one before changing anything.
-2. Ask only about the requested changes (steps, entities, or style). Do not re-run the create interview.
-3. Edit only that presentation's folder (and its registry line when the slug or title changes). Leave other presentations untouched.
-4. Continue at step 5.
+2. Read the target before editing: its `Talk.tsx`, `entities.ts`, `steps/index.ts`, the scenes you will touch, its CSS, and its registry line. Match the entity-id namespace, import style, and styling approach you find.
+3. Ask only about the requested changes (steps, entities, or style). Do not re-run the create interview.
+4. Edit only that presentation's folder (and its registry line when the slug or title changes). Leave other presentations untouched.
+5. Continue at step 5.
 
 ### 5. Verify and fix
 

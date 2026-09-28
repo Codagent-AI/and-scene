@@ -1,7 +1,6 @@
 // Shared helpers for verify.mjs and inspect-presentation.mjs.
 // Everything binds to the IPv4 loopback so results do not depend on how `localhost` resolves.
 import { spawn, spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,12 +8,23 @@ import { fileURLToPath } from 'node:url'
 export const HOST = '127.0.0.1'
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-/** Slugs registered in src/presentations/index.ts, in registry order. */
-export function readRegisteredSlugs(root = ROOT) {
-  const source = readFileSync(join(root, 'src/presentations/index.ts'), 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '')
-  return [...source.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
+/** Slugs of the evaluated registry in src/presentations/index.ts, in registry order. */
+export async function readRegisteredSlugs(root = ROOT) {
+  const { createServer: createViteServer } = await import('vite')
+  const server = await createViteServer({
+    root,
+    appType: 'custom',
+    logLevel: 'silent',
+    server: { middlewareMode: true, hmr: false, watch: null },
+  })
+  try {
+    const { presentations } = await server.ssrLoadModule('/src/presentations/index.ts')
+    const slugs = presentations.map((entry) => entry.slug)
+    if (!slugs.every((slug) => typeof slug === 'string' && slug)) throw new Error('registry contains an entry without a string slug')
+    return slugs
+  } finally {
+    await server.close()
+  }
 }
 
 export function runBuild(root = ROOT) {

@@ -3,7 +3,7 @@
 //   npm run inspect -- <slug> [--viewport 1440x900] [--settle 1600] [--mode browse|present] [--skip-build]
 // Screenshots land in .inspection/<slug>[-<WxH>]/step-NN.png. Warnings never fail the run.
 import { mkdirSync, rmSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative, isAbsolute } from 'node:path'
 import { chromium } from 'playwright'
 import { ROOT, runBuild, sleep, startPreview } from './lib.mjs'
 
@@ -22,6 +22,10 @@ const [width, height] = viewportArg.split('x').map(Number)
 const settle = Number(flag('settle', 1600))
 const mode = flag('mode', undefined)
 const custom = viewportArg !== '1440x900'
+if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+  console.error(`invalid presentation slug: ${slug}`)
+  process.exit(1)
+}
 const outDir = join(ROOT, '.inspection', custom ? `${slug}-${viewportArg}` : slug)
 
 /** Runs in the page: returns advisory warning strings for the current step. */
@@ -127,12 +131,15 @@ function collectWarnings() {
 
 async function main() {
   if (!args.includes('--skip-build') && !runBuild()) throw new Error('build failed')
+  const rel = relative(join(ROOT, '.inspection'), outDir)
+  if (!rel || rel.startsWith('..') || isAbsolute(rel)) throw new Error(`refusing to clear ${outDir}`)
   rmSync(outDir, { recursive: true, force: true })
   mkdirSync(outDir, { recursive: true })
   const preview = await startPreview()
-  const browser = await chromium.launch()
+  let browser
   const warnings = []
   try {
+    browser = await chromium.launch()
     const page = await browser.newPage({ viewport: { width, height } })
     page.on('console', (m) => m.type() === 'error' && warnings.push(`console error: ${m.text()}`))
     page.on('pageerror', (e) => warnings.push(`page error: ${e.message}`))
@@ -156,7 +163,7 @@ async function main() {
       }
     }
   } finally {
-    await browser.close()
+    await browser?.close()
     preview.stop()
   }
   const unique = [...new Set(warnings)]

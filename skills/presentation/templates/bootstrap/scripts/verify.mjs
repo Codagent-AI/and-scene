@@ -55,9 +55,9 @@ async function renderPresentation(browser, origin, slug) {
 }
 
 async function main() {
-  const slugs = process.argv.slice(2).length ? process.argv.slice(2) : readRegisteredSlugs()
+  const registered = await readRegisteredSlugs()
+  const slugs = process.argv.slice(2).length ? process.argv.slice(2) : registered
   if (slugs.length === 0) throw new CheckFailure('registry', 'no presentations registered in src/presentations/index.ts')
-  const registered = readRegisteredSlugs()
   for (const slug of slugs) {
     if (!registered.includes(slug)) throw new CheckFailure('registry', `${slug} is not registered`)
   }

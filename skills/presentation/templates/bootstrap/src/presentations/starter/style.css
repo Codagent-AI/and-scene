@@ -1,0 +1,11 @@
+.presentation--browse, .presentation--present { color: #f2eee5; background: #17211d; font-family: ui-sans-serif, system-ui, sans-serif; }
+.presentation-header, .presentation-footer { z-index: 2; }
+.presentation-mode-tools button, .presentation-navigation button, .presentation-toc button { color: inherit; background: #26352e; border: 1px solid #77877b; border-radius: 999px; padding: .55rem .9rem; }
+.presentation-navigation button[data-presentation-active="true"], .presentation-toc button[aria-current="step"] { color: #17211d; background: #c8e0aa; }
+.presentation-progress button { width: .65rem; height: .65rem; padding: 0; border: 0; border-radius: 50%; background: #69776d; }
+.presentation-progress button[data-presentation-active="true"] { background: #c8e0aa; transform: scale(1.3); }
+.presentation-attribution { z-index: 3; color: #d7e0d4; font-size: .8rem; }
+.starter-scene { position: absolute; inset: 0; }
+.starter-eyebrow { position: absolute; color: #c8e0aa; font-size: 1rem; letter-spacing: .12em; text-transform: uppercase; }
+.starter-card { position: absolute; width: 22rem; padding: 1.25rem; border: 1px solid #a8baaa; border-radius: 1rem; background: #26352e; font-size: 1.35rem; }
+.starter-card p { margin-bottom: 0; color: #cbd1c9; font-size: 1rem; }

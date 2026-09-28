@@ -9,7 +9,9 @@
  * presentation CSS at all, since the kit ships zero visual defaults), and
  * unpolished (browser-default) attribution, then runs
  * `npm run inspect -- <fixture-slug>` against a production preview and
- * asserts on its screenshots and advisory warnings.
+ * asserts on its screenshots and advisory warnings. A second fixture marks
+ * its active chrome only through the progress-dot child hook and opacity,
+ * which must not be reported as indistinct.
  */
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -92,6 +94,66 @@ export default function Talk() {
 }
 `
 
+const DISTINCT_FIXTURE_SLUG = 'distinct-active-fixture'
+
+/**
+ * Distinguishes the active step only through the kit's child
+ * `[data-presentation-progress-dot]` hook and through opacity — both
+ * legitimate treatments that must not be flagged as indistinct.
+ */
+const DISTINCT_FIXTURE_CSS = `[data-presentation-progress-dot] {
+  display: block;
+  width: 8px;
+  height: 8px;
+  background: rgb(120, 120, 120);
+}
+
+[data-presentation-progress-item][data-presentation-active] [data-presentation-progress-dot] {
+  background: rgb(200, 160, 40);
+}
+
+[data-presentation-toc-item] {
+  opacity: 0.5;
+}
+
+[data-presentation-toc-item][data-presentation-active] {
+  opacity: 1;
+}
+
+[data-presentation-attribution] {
+  color: rgb(90, 90, 90);
+  font-size: 12px;
+}
+`
+
+const DISTINCT_FIXTURE_TALK_SOURCE = `import { Box, Label, Presentation, SceneLayer } from '../../presentation-kit'
+import type { SceneProps, Step } from '../../presentation-kit'
+import './fixture.css'
+
+interface FixturePayload {
+  headline: string
+}
+
+function PlainScene({ payload }: SceneProps<FixturePayload>) {
+  return (
+    <SceneLayer>
+      <Box layoutId="fixture-plain-box">
+        <Label>{payload.headline}</Label>
+      </Box>
+    </SceneLayer>
+  )
+}
+
+const STEPS: Step<FixturePayload>[] = [
+  { id: 'one', era: 'Era A', title: 'One', caption: 'First.', payload: { headline: 'One' }, Scene: PlainScene },
+  { id: 'two', era: 'Era B', title: 'Two', caption: 'Second.', payload: { headline: 'Two' }, Scene: PlainScene },
+]
+
+export default function Talk() {
+  return <Presentation steps={STEPS} title="Distinct Active Fixture" initialMode="browse" />
+}
+`
+
 function run(command: string, args: string[], cwd: string, timeout: number): string {
   return execFileSync(command, args, {
     cwd,
@@ -121,12 +183,18 @@ describe('screenshot helper integration (INT-002)', () => {
       fs.mkdirSync(presentationDir, { recursive: true })
       fs.writeFileSync(path.join(presentationDir, 'Talk.tsx'), FIXTURE_TALK_SOURCE)
 
+      const distinctDir = path.join(tempDir, 'src', 'presentations', DISTINCT_FIXTURE_SLUG)
+      fs.mkdirSync(distinctDir, { recursive: true })
+      fs.writeFileSync(path.join(distinctDir, 'Talk.tsx'), DISTINCT_FIXTURE_TALK_SOURCE)
+      fs.writeFileSync(path.join(distinctDir, 'fixture.css'), DISTINCT_FIXTURE_CSS)
+
       const registryPath = path.join(tempDir, 'src', 'presentations', 'index.ts')
       const registrySource = fs.readFileSync(registryPath, 'utf8')
       const updatedRegistry = registrySource.replace(
         'export const presentations: PresentationRegistryEntry[] = [',
         `export const presentations: PresentationRegistryEntry[] = [\n` +
-          `  { slug: '${FIXTURE_SLUG}', title: 'Overlap Fixture', load: () => import('./${FIXTURE_SLUG}/Talk') },`,
+          `  { slug: '${FIXTURE_SLUG}', title: 'Overlap Fixture', load: () => import('./${FIXTURE_SLUG}/Talk') },\n` +
+          `  { slug: '${DISTINCT_FIXTURE_SLUG}', title: 'Distinct Active Fixture', load: () => import('./${DISTINCT_FIXTURE_SLUG}/Talk') },`,
       )
       if (updatedRegistry === registrySource) {
         throw new Error('could not locate the registry array to append the fixture entry')
@@ -167,6 +235,19 @@ describe('screenshot helper integration (INT-002)', () => {
 
       // Unpolished (browser-default) attribution styling.
       expect(output).toMatch(/attribution appears to use untouched browser-default link styling/)
+    },
+    RUN_TIMEOUT_MS + 15_000,
+  )
+
+  it(
+    'does not report active chrome as indistinct when only a child hook or opacity differs',
+    () => {
+      if (setupError) throw setupError
+
+      const output = run('npm', ['run', 'inspect', '--', DISTINCT_FIXTURE_SLUG], tempDir, RUN_TIMEOUT_MS)
+
+      expect(output).not.toMatch(/is visually identical/)
+      expect(output).not.toMatch(/attribution appears to use untouched browser-default link styling/)
     },
     RUN_TIMEOUT_MS + 15_000,
   )

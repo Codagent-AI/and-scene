@@ -144,24 +144,38 @@ async function checkActiveDistinctness(page, itemSelector) {
   const inactiveCount = await inactiveHandle.count()
   if (activeCount === 0 || inactiveCount === 0) return null
 
-  const [activeStyle, inactiveStyle] = await Promise.all([
-    activeHandle.evaluate((el) => {
-      const s = window.getComputedStyle(el)
-      return { color: s.color, backgroundColor: s.backgroundColor, fontWeight: s.fontWeight }
-    }),
-    inactiveHandle.evaluate((el) => {
-      const s = window.getComputedStyle(el)
-      return { color: s.color, backgroundColor: s.backgroundColor, fontWeight: s.fontWeight }
-    }),
+  // Compares the item and its descendants (e.g. the progress-dot hook) across
+  // the properties presentations commonly use to mark the active state.
+  const visualSignature = (el) => {
+    const properties = [
+      'color',
+      'backgroundColor',
+      'fontWeight',
+      'opacity',
+      'borderColor',
+      'borderWidth',
+      'boxShadow',
+      'outlineColor',
+      'outlineStyle',
+      'outlineWidth',
+      'textDecorationLine',
+      'transform',
+      'filter',
+    ]
+    return [el, ...el.querySelectorAll('*')]
+      .map((node) => {
+        const s = window.getComputedStyle(node)
+        return properties.map((property) => s[property]).join('|')
+      })
+      .join('\n')
+  }
+  const [activeSignature, inactiveSignature] = await Promise.all([
+    activeHandle.evaluate(visualSignature),
+    inactiveHandle.evaluate(visualSignature),
   ])
 
-  const identical =
-    activeStyle.color === inactiveStyle.color &&
-    activeStyle.backgroundColor === inactiveStyle.backgroundColor &&
-    activeStyle.fontWeight === inactiveStyle.fontWeight
-
-  if (identical) {
-    return `${itemSelector}[data-presentation-active="true"] is visually identical to an inactive sibling (same color/background-color/font-weight)`
+  if (activeSignature === inactiveSignature) {
+    return `${itemSelector}[data-presentation-active="true"] is visually identical to an inactive sibling (same computed color, background, weight, opacity, border, shadow, outline, decoration, transform, and filter, including descendants)`
   }
   return null
 }

@@ -153,6 +153,26 @@ describe('navigation', () => {
     act(() => result.current.goTo(-5))
     expect(result.current.index).toBe(0)
   })
+
+  it('never exposes an out-of-range index when the step count shrinks', () => {
+    function Deck({ items }: { items: string[] }) {
+      const nav = usePresentationNav(items.length)
+      return (
+        <>
+          <span data-testid="current">{items[nav.index].toUpperCase()}</span>
+          <button onClick={() => nav.goTo(items.length - 1)}>last</button>
+          <button onClick={nav.prev}>back</button>
+        </>
+      )
+    }
+    const { rerender } = render(<Deck items={['a', 'b', 'c', 'd', 'e']} />)
+    fireEvent.click(screen.getByText('last'))
+    expect(screen.getByTestId('current').textContent).toBe('E')
+    rerender(<Deck items={['a', 'b']} />)
+    expect(screen.getByTestId('current').textContent).toBe('B')
+    fireEvent.click(screen.getByText('back'))
+    expect(screen.getByTestId('current').textContent).toBe('A')
+  })
 })
 
 describe('modes', () => {

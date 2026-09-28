@@ -35,7 +35,10 @@ export function usePresentationNav(
     [last],
   )
   const next = useCallback(() => setIndex((i) => Math.min(last, i + 1)), [last])
-  const prev = useCallback(() => setIndex((i) => Math.max(0, i - 1)), [])
+  const prev = useCallback(
+    () => setIndex((i) => Math.max(0, Math.min(i, last) - 1)),
+    [last],
+  )
   const toggleMode = useCallback(
     () => setMode((m) => (m === 'present' ? 'browse' : 'present')),
     [],
@@ -100,5 +103,6 @@ export function usePresentationNav(
     }
   }, [next, prev])
 
-  return { index, mode, next, prev, goTo, toggleMode }
+  // Clamp what consumers see: the render that queues the normalization above still runs to completion.
+  return { index: Math.min(index, last), mode, next, prev, goTo, toggleMode }
 }

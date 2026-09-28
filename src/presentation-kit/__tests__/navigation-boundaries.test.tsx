@@ -69,6 +69,24 @@ describe('navigation boundaries', () => {
     input.remove()
   })
 
+  it.each(['slider', 'spinbutton', 'tab', 'listbox', 'combobox', 'radio', 'checkbox', 'switch', 'menuitem'])(
+    'leaves navigation keys to a focused custom %s widget',
+    (role) => {
+      const widget = document.createElement('div')
+      widget.setAttribute('role', role)
+      widget.tabIndex = 0
+      document.body.appendChild(widget)
+      widget.focus()
+
+      const { result } = renderHook(() => usePresentationNav({ stepCount: 3 }))
+      act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })))
+      act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })))
+      expect(result.current.stepIndex).toBe(0)
+
+      widget.remove()
+    },
+  )
+
   it('advances on a left swipe and retreats on a right swipe', () => {
     const { result } = renderHook(() => usePresentationNav({ stepCount: 3 }))
     act(() => {

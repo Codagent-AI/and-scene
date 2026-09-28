@@ -10,9 +10,35 @@ evolving diagrammatic scene (stable entities that morph across named steps)
 rather than a slide deck. Read this whole procedure before acting; do not
 invent extra ceremony beyond what it describes, and do not skip steps.
 
+**Scope:** this skill produces browser-based evolving-scene presentations —
+React/TypeScript apps rendered in a browser, not slide documents. It does not
+create or edit native PowerPoint/Keynote/Google Slides files, PDFs, or images.
+If the user specifically wants one of those deliverables, say so and redirect
+them to the appropriate document-editing tool instead of building an
+evolving-scene presentation.
+
 ## Procedure
 
-### 1. Gather
+### 1. Determine create vs. modify
+
+Before anything else, decide whether the request is to create a new
+presentation or modify an existing one:
+
+- Clearly a **create** request (new topic, no existing presentation named or
+  implied) → go to [Gather](#2-gather).
+- Clearly a **modify** request (names or clearly implies an existing
+  presentation, or asks to change/add/remove steps in one) → skip Gather
+  entirely and go straight to the **Modify** flow in
+  [Generate or modify](#5-generate-or-modify): identify the target, then ask
+  only about the requested change.
+- Ambiguous → ask the user directly which they mean before proceeding.
+
+The full Gather phase (topic, style, every step's content and visual
+description) applies to **creation only**. Do not re-run it for a
+modification — that duplicates work the presentation already encodes and
+asks the user questions the request already answered.
+
+### 2. Gather
 
 Ask the user one question at a time, in this order, unless the incoming
 prompt already answers it:
@@ -33,13 +59,13 @@ Rules:
   completeness gate to satisfy first.
 - If the incoming prompt already contains the topic, the style, and every
   step's content and visual description, skip straight to
-  [Resolve target + detect anchors](#2-resolve-target--detect-anchors)
+  [Resolve target + detect anchors](#3-resolve-target--detect-anchors)
   without asking anything.
 - You MAY draw a small ASCII mockup of a step whose layout is key or
   complex, and show it to the user to confirm before building. Do this only
   for steps that actually need it — not as a routine step for every step.
 
-### 2. Resolve target + detect anchors
+### 3. Resolve target + detect anchors
 
 The scaffold a generated presentation depends on has three **contract
 anchors**. Detection is contract-level (structural), not byte-identical —
@@ -83,7 +109,7 @@ const presentationTemplatesDir = path.join(skillDir, 'templates', 'presentation'
 Do not resolve these paths via `process.cwd()` or a relative path typed in
 the shell — the skill may be invoked from any working directory.
 
-### 3. Scaffold if needed
+### 4. Scaffold if needed
 
 If any anchor is missing, copy `templates/bootstrap/` into the resolved
 target for whatever is missing (do not overwrite anchors that already
@@ -101,7 +127,7 @@ Never assume any of these are already installed. Never add Tailwind or any
 other styling framework unless the host project already uses one, or the
 user explicitly asks for it.
 
-### 4. Generate or modify
+### 5. Generate or modify
 
 **Create** (new presentation):
 
@@ -133,10 +159,18 @@ user explicitly asks for it.
 2. Once the target is identified, ask only about the specific change
    requested (steps, entities, or style) — do not re-run the full Gather
    flow.
-3. Make a scoped edit limited to that presentation's files (plus the
-   registry entry, only if the change affects it, e.g. a title change).
+3. Before editing, read the target presentation's existing files
+   (`entities.ts`, `steps/*.tsx`, `Talk.tsx`, its CSS) and the kit
+   interfaces it uses (`src/presentation-kit/` or its scaffolded
+   equivalent). Identify its existing `layoutId`/entity-naming conventions,
+   its `groupKey` structure, and its styling conventions (class names, CSS
+   file organization) so the edit matches the presentation's established
+   patterns instead of introducing an inconsistent style.
+4. Make a scoped edit limited to that presentation's files (plus the
+   registry entry, only if the change affects it, e.g. a title change),
+   following the conventions identified above.
 
-### 5. Self-verify before reporting done
+### 6. Self-verify before reporting done
 
 Before reporting completion:
 

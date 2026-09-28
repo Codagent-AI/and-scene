@@ -26,7 +26,10 @@ import process from 'node:process'
 
 const ROOT = process.cwd()
 const isWindows = process.platform === 'win32'
-const SETTLE_MS = 500
+// Covers the kit's ENTER_DELAY (500ms) + ENTER_T (350ms) newcomer-entry
+// animation plus a margin, so Appear-wrapped content has fully settled
+// before diagnostics run and screenshots are captured.
+const SETTLE_MS = 1000
 const VIEWPORT = { width: 1280, height: 800 }
 
 function usage() {
@@ -68,31 +71,60 @@ async function waitForServer(url, timeoutMs = 30000) {
   throw new Error(`preview server at ${url} did not become ready within ${timeoutMs}ms`)
 }
 
+/** Kills a spawned process and waits for it to actually exit, so the port is released before this script exits. */
+function terminate(child) {
+  return new Promise((resolve) => {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      resolve()
+      return
+    }
+    child.once('exit', () => resolve())
+    child.kill()
+    setTimeout(() => {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+    }, 3000).unref()
+  })
+}
+
 function rectsIntersect(a, b) {
   if (!a || !b) return false
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
 }
 
-/** Advisory: does step content visually collide with header/footer/toc chrome? */
+/** Advisory: does individual step content visually collide with header/footer/toc chrome? */
 async function checkOverlap(page) {
-  const allowOverlap = await page
-    .locator('[data-presentation-allow-overlap="true"]')
-    .count()
-    .then((count) => count > 0)
-    .catch(() => false)
-  if (allowOverlap) return null
-
-  const stageBox = await page.locator('[data-presentation-stage]').boundingBox().catch(() => null)
-  if (!stageBox) return null
-
   const chromeSelectors = ['[data-presentation-header]', '[data-presentation-footer]', '[data-presentation-toc]']
+  const chromeBoxes = []
   for (const selector of chromeSelectors) {
-    const chromeBox = await page.locator(selector).boundingBox().catch(() => null)
-    if (chromeBox && rectsIntersect(stageBox, chromeBox)) {
-      return `stage content bounding box overlaps ${selector}; mark data-presentation-allow-overlap="true" if intentional`
+    const box = await page.locator(selector).boundingBox().catch(() => null)
+    if (box) chromeBoxes.push({ selector, box })
+  }
+  if (chromeBoxes.length === 0) return []
+
+  const contentHandles = await page.locator('[data-presentation-stage] [data-presentation-node]').all()
+  const warnings = []
+  for (const content of contentHandles) {
+    const isAllowed = await content
+      .evaluate((el) => el.closest('[data-presentation-allow-overlap="true"]') !== null)
+      .catch(() => false)
+    if (isAllowed) continue
+
+    const contentBox = await content.boundingBox().catch(() => null)
+    if (!contentBox) continue
+
+    for (const { selector, box } of chromeBoxes) {
+      if (rectsIntersect(contentBox, box)) {
+        const description = await content
+          .evaluate((el) => el.getAttribute('data-presentation-node') ?? el.tagName.toLowerCase())
+          .catch(() => 'content')
+        warnings.push(
+          `stage content (${description}) overlaps ${selector}; mark it with data-presentation-allow-overlap="true" if intentional`,
+        )
+        break
+      }
     }
   }
-  return null
+  return warnings
 }
 
 /** Advisory: is the active nav item visually indistinct from an inactive sibling? */
@@ -159,10 +191,11 @@ async function main() {
   const baseUrl = `http://${host}:${port}`
 
   console.log(`[inspect] starting \`vite preview\` on ${baseUrl} ...`)
+  const viteBin = path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js')
   const preview = spawn(
-    'npx',
-    ['vite', 'preview', '--host', host, '--port', String(port), '--strictPort'],
-    { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], shell: isWindows },
+    process.execPath,
+    [viteBin, 'preview', '--host', host, '--port', String(port), '--strictPort'],
+    { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] },
   )
 
   const outDir = path.join(ROOT, 'screenshots', slug)
@@ -195,8 +228,8 @@ async function main() {
         await page.waitForTimeout(SETTLE_MS)
 
         const warnings = []
-        const overlapWarning = await checkOverlap(page)
-        if (overlapWarning) warnings.push(overlapWarning)
+        const overlapWarnings = await checkOverlap(page)
+        warnings.push(...overlapWarnings)
 
         const progressWarning = await checkActiveDistinctness(page, '[data-presentation-progress-item]')
         if (progressWarning) warnings.push(progressWarning)
@@ -207,13 +240,20 @@ async function main() {
         const attributionWarning = await checkAttribution(page)
         if (attributionWarning) warnings.push(attributionWarning)
 
+        // Full-viewport screenshot is the primary capture: it's the only one
+        // that shows chrome (header, caption, nav, ToC, attribution)
+        // alongside the stage, so clipped captions, unreadable attribution,
+        // and navigation layout defects are actually visible in review.
         const fileName = `step-${String(step).padStart(2, '0')}.png`
         const filePath = path.join(outDir, fileName)
+        await page.screenshot({ path: filePath })
+
+        // Supplementary stage-only crop, useful for close inspection of the
+        // diagram itself.
         const stage = page.locator('[data-presentation-stage]')
         if ((await stage.count()) > 0) {
-          await stage.screenshot({ path: filePath })
-        } else {
-          await page.screenshot({ path: filePath, fullPage: true })
+          const stageFileName = `step-${String(step).padStart(2, '0')}-stage.png`
+          await stage.screenshot({ path: path.join(outDir, stageFileName) }).catch(() => {})
         }
 
         summary.push({ step, filePath, warnings })
@@ -230,7 +270,7 @@ async function main() {
       await browser.close()
     }
   } finally {
-    preview.kill()
+    await terminate(preview)
   }
 
   console.log(`\n[inspect] Captured ${summary.filter((s) => s.filePath).length} screenshot(s) for "${slug}":\n`)

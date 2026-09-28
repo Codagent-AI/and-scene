@@ -96,6 +96,21 @@ async function waitForServer(url, timeoutMs = 30000) {
   throw new Error(`preview server at ${url} did not become ready within ${timeoutMs}ms`)
 }
 
+/** Kills a spawned process and waits for it to actually exit, so the port is released before this script exits. */
+function terminate(child) {
+  return new Promise((resolve) => {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      resolve()
+      return
+    }
+    child.once('exit', () => resolve())
+    child.kill()
+    setTimeout(() => {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+    }, 3000).unref()
+  })
+}
+
 async function checkSlug(browser, baseUrl, slug) {
   const page = await browser.newPage()
   const errors = []
@@ -171,10 +186,11 @@ async function main() {
   const baseUrl = `http://${host}:${port}`
 
   console.log(`[verify] render: starting \`vite preview\` on ${baseUrl} ...`)
+  const viteBin = path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js')
   const preview = spawn(
-    'npx',
-    ['vite', 'preview', '--host', host, '--port', String(port), '--strictPort'],
-    { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], shell: isWindows },
+    process.execPath,
+    [viteBin, 'preview', '--host', host, '--port', String(port), '--strictPort'],
+    { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] },
   )
 
   let previewOutput = ''
@@ -210,7 +226,7 @@ async function main() {
     console.error(previewOutput)
     failures.push({ slug: '(preview startup)', reason: String(err) })
   } finally {
-    preview.kill()
+    await terminate(preview)
   }
 
   if (failures.length > 0) {

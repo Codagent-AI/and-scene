@@ -28,7 +28,19 @@ export function Stage({ steps, stepIndex, mode, designWidth = DESIGN_W, designHe
   const Scene = step.Scene
 
   return (
-    <div className="presentation-stage" data-presentation-stage="" ref={containerRef}>
+    <div
+      className="presentation-stage"
+      data-presentation-stage=""
+      ref={containerRef}
+      style={{
+        display: 'flex',
+        flex: '1 1 auto',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 0,
+        minHeight: 0,
+      }}
+    >
       <div
         className="presentation-stage__viewport"
         data-presentation-stage-viewport=""

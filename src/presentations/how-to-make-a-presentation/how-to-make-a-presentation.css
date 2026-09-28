@@ -10,9 +10,9 @@
 }
 
 /*
- * Structural layout: the scene kit ships no header/body/footer arrangement
- * of its own, so this presentation owns fitting them into the viewport (the
- * geometry `useFitScale` assumes matches these header/footer heights).
+ * Structural layout: the scene kit already stacks header/body/footer to fill
+ * the viewport and fits the stage to the body; these rules add this talk's
+ * padding and the ToC column around that arrangement.
  */
 .htmap-talk {
   display: flex;

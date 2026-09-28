@@ -44,9 +44,15 @@ export function Presentation({
       data-presentation-mode={nav.mode}
       data-step-count={steps.length}
       data-step-index={nav.stepIndex}
+      style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}
     >
       <Header title={title} mode={nav.mode} activeStep={activeStep} brand={brand} onToggleMode={nav.toggleMode} />
-      <div className="presentation-body" data-presentation-body="" {...nav.swipeHandlers}>
+      <div
+        className="presentation-body"
+        data-presentation-body=""
+        style={{ display: 'flex', flex: '1 1 auto', minHeight: 0 }}
+        {...nav.swipeHandlers}
+      >
         <Stage
           steps={steps}
           stepIndex={nav.stepIndex}

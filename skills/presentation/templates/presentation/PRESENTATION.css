@@ -9,7 +9,17 @@
  *   [data-presentation-toc-item][data-presentation-active="true"]
  * And give the attribution link real styling:
  *   [data-presentation-attribution]
+ *
+ * The kit lays out header/body/footer, fits the stage, and pins attribution
+ * bottom-right; it leaves the table-of-contents breakpoint to you. Keep the
+ * ToC to wide viewports (adjust the width to suit this design).
  */
+
+@media (max-width: 700px) {
+  .__SLUG__-talk [data-presentation-toc] {
+    display: none;
+  }
+}
 
 .__SLUG__-box {
   border: 1px solid currentColor;

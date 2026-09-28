@@ -24,12 +24,11 @@ export function Arrow({ layoutId, from, to, className }: ArrowProps) {
       style={{ position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none' }}
       transition={{ duration: LAYOUT_T, ease: EASE }}
     >
-      <line
+      <motion.line
         data-presentation-arrow-line=""
-        x1={from.x}
-        y1={from.y}
-        x2={to.x}
-        y2={to.y}
+        initial={false}
+        animate={{ x1: from.x, y1: from.y, x2: to.x, y2: to.y }}
+        transition={{ duration: LAYOUT_T, ease: EASE }}
         stroke="currentColor"
         fill="none"
       />

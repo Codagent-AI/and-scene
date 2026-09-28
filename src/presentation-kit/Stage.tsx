@@ -30,30 +30,43 @@ export function Stage({ steps, stepIndex, mode, designWidth = DESIGN_W, designHe
   return (
     <div className="presentation-stage" data-presentation-stage="" ref={containerRef}>
       <div
-        className="presentation-stage__canvas"
-        data-presentation-stage-canvas=""
+        className="presentation-stage__viewport"
+        data-presentation-stage-viewport=""
         style={{
           position: 'relative',
-          width: designWidth,
-          height: designHeight,
-          transform: `scale(${scale})`,
+          width: designWidth * scale,
+          height: designHeight * scale,
         }}
       >
-        <LayoutGroup>
-          <AnimatePresence initial={false}>
-            <motion.div
-              key={groupKey}
-              className="presentation-stage__scene"
-              data-presentation-scene={groupKey}
-              style={{ position: 'absolute', inset: 0 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <Scene payload={step.payload} mode={mode} active stepIndex={stepIndex} />
-            </motion.div>
-          </AnimatePresence>
-        </LayoutGroup>
+        <div
+          className="presentation-stage__canvas"
+          data-presentation-stage-canvas=""
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: designWidth,
+            height: designHeight,
+            transformOrigin: 'top left',
+            transform: `scale(${scale})`,
+          }}
+        >
+          <LayoutGroup>
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={groupKey}
+                className="presentation-stage__scene"
+                data-presentation-scene={groupKey}
+                style={{ position: 'absolute', inset: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <Scene payload={step.payload} mode={mode} active stepIndex={stepIndex} />
+              </motion.div>
+            </AnimatePresence>
+          </LayoutGroup>
+        </div>
       </div>
     </div>
   )

@@ -62,7 +62,10 @@ export function usePresentationNav({
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (isFocusedFormControl()) return
+      if (event.defaultPrevented || isFocusedFormControl()) return
+      if (event.key === ' ' && event.target instanceof Element && event.target.closest('button, [role="button"]')) {
+        return
+      }
 
       switch (event.key) {
         case 'ArrowRight':

@@ -41,4 +41,4 @@ export const STAGE_LAYOUT: Record<'present' | 'browse', StageChromeGeometry> = {
 }
 
 export const ATTRIBUTION_LABEL = 'made by and-scene'
-export const ATTRIBUTION_HREF = 'https://github.com/and-scene/and-scene'
+export const ATTRIBUTION_HREF = 'https://github.com/Codagent-AI/and-scene'

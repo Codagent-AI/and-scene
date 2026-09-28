@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Presentation } from '../Presentation'
-import { ATTRIBUTION_HREF, ATTRIBUTION_LABEL } from '../constants'
+import { ATTRIBUTION_LABEL } from '../constants'
 import { buildFixtureSteps } from './fixtures'
 
 describe('kit attribution', () => {
   it('shows a default bottom-right "made by and-scene" link with a stable hook', () => {
     render(<Presentation steps={buildFixtureSteps()} title="Fixture" />)
     const link = screen.getByRole('link', { name: ATTRIBUTION_LABEL })
-    expect(link).toHaveAttribute('href', ATTRIBUTION_HREF)
+    expect(link).toHaveAttribute('href', 'https://github.com/Codagent-AI/and-scene')
     expect(link).toHaveAttribute('data-presentation-attribution')
   })
 

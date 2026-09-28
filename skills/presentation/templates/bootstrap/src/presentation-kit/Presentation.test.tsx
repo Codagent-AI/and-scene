@@ -108,7 +108,8 @@ describe('Presentation', () => {
     const { container } = render(<Presentation steps={buildSteps()} title="Demo" />)
     const attribution = container.querySelector('[data-presentation-attribution]')
     expect(attribution).toHaveTextContent('made by and-scene')
-    expect(attribution).toHaveAttribute('href', AND_SCENE_REPO_URL)
+    expect(attribution).toHaveAttribute('href', 'https://github.com/Codagent-AI/and-scene')
+    expect(AND_SCENE_REPO_URL).toBe('https://github.com/Codagent-AI/and-scene')
   })
 
   it('does not render default top-left brand content', () => {

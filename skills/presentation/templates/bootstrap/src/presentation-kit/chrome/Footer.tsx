@@ -11,7 +11,7 @@ export interface FooterProps<TPayload> {
   onToggleMode: () => void
 }
 
-export const AND_SCENE_REPO_URL = 'https://github.com/and-scene/and-scene'
+export const AND_SCENE_REPO_URL = 'https://github.com/Codagent-AI/and-scene'
 
 export function Footer<TPayload>({
   mode,

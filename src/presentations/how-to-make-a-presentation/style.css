@@ -1,0 +1,35 @@
+.presentation { color: #eee9d9; background: radial-gradient(ellipse at 50% 38%, #24372f, #101713 72%); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.presentation-header { z-index: 3; padding: 22px 32px; }
+.presentation-heading h1 { margin: 0; font-size: 14px; letter-spacing: .04em; font-weight: 600; color: #b9cbb8; }
+.presentation-mode-tools { color: #a8b4a9; font-size: 12px; }
+.presentation button { border: 1px solid #617465; border-radius: 99px; padding: 7px 12px; color: #e7ebdf; background: #202c25; cursor: pointer; }
+.presentation-toc { gap: 9px; left: 25px; }
+.presentation-toc button { border: 0; padding: 4px 8px; background: transparent; color: #849287; font-size: 11px; }
+.presentation-toc button[data-presentation-active="true"] { color: #d9f19e; background: #344532; }
+.presentation-footer { z-index: 3; padding: 0 32px 25px; }
+.presentation-step-title, .presentation-present-title { color: #f0f1e6; font-size: 20px; }
+.presentation-caption { margin: 7px 0 0; max-width: 610px; color: #aab7ad; font-size: 13px; line-height: 1.5; }
+.presentation-navigation { gap: 14px; }
+.presentation-progress button { width: 9px; height: 9px; min-width: 9px; padding: 0; border-color: #758579; background: #758579; }
+.presentation-progress button[data-presentation-active="true"] { width: 24px; border-color: #d4ee92; background: #d4ee92; }
+.presentation-attribution { z-index: 4; right: 28px; bottom: 7px; color: #9aa99d; font-size: 12px; text-decoration: none; }
+.how-scene { position: relative; width: 880px; height: 380px; color: #edf1e5; }
+.entity { position: absolute; display: flex; flex-direction: column; justify-content: center; }
+.entity small, .entity > span:first-child { color: #91a994; font-size: 9px; letter-spacing: .13em; }
+.person, .skill { top: 58px; width: 164px; height: 70px; padding: 13px 16px; border: 1px solid #688074; border-radius: 12px; background: #1c2b25; gap: 5px; }
+.person { left: 175px; }.skill { left: 540px; border-color: #b0c87f; background: #293625; }
+.person b, .skill b { font-size: 16px; }
+.prompt { left: 157px; top: 153px; padding: 9px 13px; border-radius: 15px 15px 15px 3px; color: #c8d4c6; background: #34483c; font-size: 12px; }
+.conversation-link { top: 78px; left: 345px; width: 184px; align-items: center; color: #cde39c; font-size: 23px; }
+.conversation-link span { margin-top: 8px; color: #95a99a; font-size: 9px; }
+.tray { left: 87px; right: 60px; top: 205px; height: 125px; border-top: 1px solid #62796b; align-items: start; padding-top: 9px; font-size: 9px; letter-spacing: .15em; color: #8ca191; }
+.story-card { top: 230px; width: 143px; height: 77px; gap: 5px; padding: 9px; border: 1px solid #728778; border-radius: 7px; background: #1b2922; }
+.story-card small { color: #b7d480; }.story-card b { font-size: 12px; }.story-card span { color: #9eaca0; font-size: 9px; }
+.card-1 { left: 100px; }.card-2 { left: 250px; }.card-3 { left: 400px; }
+.ghost { left: 550px; top: 237px; width: 132px; height: 62px; align-items: center; border: 1px dashed #718278; border-radius: 7px; color: #9ca99e; font-size: 10px; text-align: center; }
+.depth { left: 25px; top: 83px; color: #a6b79f; font-size: 8px; }.depth span { color: #d7ed9c; font-size: 17px; }
+.kit-wire { left: 330px; top: 307px; height: 20px; background: #9abd7f; }.kit { left: 253px; top: 327px; width: 162px; height: 47px; padding: 6px 9px; border: 1px solid #78956c; border-radius: 6px; background: #26372c; gap: 3px; }.kit b { font-size: 9px; }
+.verify { left: 700px; top: 239px; width: 124px; height: 59px; border: 1px solid #71a889; border-radius: 6px; align-items: center; background: #203a30; gap: 4px; }.verify small { font-size: 7px; }.verify b { color: #a9e6b4; font-size: 10px; }
+.modify { left: 605px; top: 151px; color: #d7e99b; font-size: 12px; transform: rotate(15deg); }.edited { left: 445px; top: 237px; border: 1px solid #e2bd73; border-radius: 4px; padding: 3px 5px; color: #f4d994; font-size: 7px; }
+.reveal { inset: 18px 45px 2px 45px; justify-content: start; padding: 12px; border: 1px solid #d1e697; border-radius: 20px; pointer-events: none; }.reveal span { color: #e1f1a8; font-size: 8px; letter-spacing: .2em; }
+@media (max-width: 700px) { .presentation-header { padding: 12px 16px; }.presentation-footer { padding: 0 16px 22px; }.presentation-narration { max-width: 100%; }.presentation-caption { font-size: 12px; } }

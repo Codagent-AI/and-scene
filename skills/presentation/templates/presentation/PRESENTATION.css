@@ -1,0 +1,18 @@
+/*
+ * Rename this file to match the presentation slug (e.g. `my-talk.css`) and
+ * import it from Talk.tsx. Own every visual decision here: palette,
+ * typography, spacing, borders, shadows, and card/button treatments. The
+ * scene kit ships none of these on purpose.
+ *
+ * Style the active-state hooks so the current step reads clearly:
+ *   [data-presentation-progress-dot][data-presentation-active="true"]
+ *   [data-presentation-toc-item][data-presentation-active="true"]
+ * And give the attribution link real styling:
+ *   [data-presentation-attribution]
+ */
+
+.__SLUG__-box {
+  border: 1px solid currentColor;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+}

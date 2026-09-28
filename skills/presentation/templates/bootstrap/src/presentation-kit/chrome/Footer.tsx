@@ -1,6 +1,14 @@
+import type { CSSProperties } from 'react'
 import type { PresentationMode } from '../types'
 
 export const ATTRIBUTION_HREF = 'https://github.com/Codagent-AI/and-scene'
+
+/**
+ * Layout-only placement that keeps the attribution in the bottom-right
+ * corner: it is the footer's last row and hugs the right edge in block or
+ * flex footers. Color, typography, and spacing stay presentation-owned.
+ */
+const ATTRIBUTION_PLACEMENT: CSSProperties = { display: 'block', width: 'fit-content', marginLeft: 'auto' }
 
 export interface FooterProps {
   mode: PresentationMode
@@ -70,6 +78,7 @@ export function Footer({ mode, caption, stepIndex, stepCount, onGoTo, onPrev, on
         href={ATTRIBUTION_HREF}
         target="_blank"
         rel="noreferrer noopener"
+        style={ATTRIBUTION_PLACEMENT}
       >
         made by and-scene
       </a>

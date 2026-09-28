@@ -21,6 +21,25 @@ describe('kit attribution', () => {
     expect(link).toHaveAttribute('href', ATTRIBUTION_HREF)
   })
 
+  it('places the attribution at the right edge of the bottom chrome in both modes, using layout-only styles', () => {
+    for (const initialMode of ['browse', 'present'] as const) {
+      const { unmount } = render(<Presentation steps={steps} title="Attribution" initialMode={initialMode} />)
+
+      const link = screen.getByRole('link', { name: 'made by and-scene' })
+      const footer = document.querySelector('[data-presentation-footer]')
+      // Last element of the footer, which is the last row of the presentation.
+      expect(footer?.lastElementChild).toBe(link)
+      expect(link).toHaveStyle({ display: 'block', width: 'fit-content', marginLeft: 'auto' })
+      // Placement only: no color, font, border, or background defaults.
+      expect(link.style.color).toBe('')
+      expect(link.style.font).toBe('')
+      expect(link.style.border).toBe('')
+      expect(link.style.background).toBe('')
+
+      unmount()
+    }
+  })
+
   it('does not render a default top-left and-scene brand link', () => {
     render(<Presentation steps={steps} title="Attribution" />)
 

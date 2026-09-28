@@ -24,15 +24,40 @@ export function getFreePort() {
   })
 }
 
-/** Extracts registered { slug, title } entries from presentations/index.ts without compiling it. */
+/**
+ * Extracts registered { slug, title } entries from presentations/index.ts
+ * without compiling it. Each array element is matched as a flat `{ ... }`
+ * object (registry entries do not nest braces); `slug`/`title` are read
+ * order-independently within that block so field order in the source
+ * doesn't matter. A `load:` entry with no recognizable slug/title throws
+ * rather than being silently dropped, so an unsupported entry shape (a
+ * shorthand property, a template literal, a spread) fails loudly instead of
+ * letting verification report PASS having skipped a registered route.
+ */
 export async function readRegistrySlugs() {
   const indexPath = path.join(PROJECT_ROOT, 'src', 'presentations', 'index.ts')
   const source = await readFile(indexPath, 'utf8')
-  const entries = []
-  const entryPattern = /slug:\s*['"]([^'"]+)['"][\s\S]*?title:\s*['"]([^'"]+)['"]/g
-  for (const match of source.matchAll(entryPattern)) {
-    entries.push({ slug: match[1], title: match[2] })
+
+  const arrayMatch = source.match(/presentations\s*:\s*PresentationRegistryEntry\[\]\s*=\s*\[([\s\S]*)\]/)
+  if (!arrayMatch) {
+    throw new Error(`Could not locate the "presentations" registry array in ${indexPath}`)
   }
+
+  const blockPattern = /\{[^{}]*\}/g
+  const entries = []
+  for (const [block] of arrayMatch[1].matchAll(blockPattern)) {
+    if (!/load\s*:/.test(block)) continue // not a registry entry (e.g. a stray object literal)
+
+    const slugMatch = block.match(/slug\s*:\s*['"]([^'"]+)['"]/)
+    const titleMatch = block.match(/title\s*:\s*['"]([^'"]+)['"]/)
+    if (!slugMatch || !titleMatch) {
+      throw new Error(
+        `Unsupported registry entry syntax (expected literal "slug"/"title" strings, in either order):\n${block}`,
+      )
+    }
+    entries.push({ slug: slugMatch[1], title: titleMatch[1] })
+  }
+
   return entries
 }
 

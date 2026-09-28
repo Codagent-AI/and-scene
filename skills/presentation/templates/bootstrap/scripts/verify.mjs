@@ -29,6 +29,9 @@ function runBuild() {
   return true
 }
 
+/** Bounded pause after a step becomes current, so delayed entrances/timers/animation-completion errors surface before it's checked. */
+const STEP_SETTLE_MS = 500
+
 async function verifyRoute(chromium, baseUrl, entry) {
   const browser = await chromium.launch()
   const page = await browser.newPage()
@@ -53,6 +56,20 @@ async function verifyRoute(chromium, baseUrl, entry) {
       if (current !== index) {
         return { ok: false, reason: `"${entry.slug}" step ${index}: expected data-step-index=${index}, got ${current}` }
       }
+
+      // Let this step's own entrances/timers/animation-completion callbacks
+      // run (and any error they throw) before checking errors or advancing —
+      // including the last step, which otherwise never gets this wait.
+      const errorsBeforeSettle = errors.length
+      await page.waitForTimeout(STEP_SETTLE_MS)
+      if (errors.length > errorsBeforeSettle) {
+        const newErrors = errors.slice(errorsBeforeSettle)
+        return {
+          ok: false,
+          reason: `"${entry.slug}" step ${index} reported ${newErrors.length} browser error(s):\n  ${newErrors.join('\n  ')}`,
+        }
+      }
+
       if (index < stepCount - 1) {
         await page.keyboard.press('ArrowRight')
         await page.waitForFunction(

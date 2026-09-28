@@ -83,18 +83,23 @@ default. Add one line to `src/presentations/index.ts`:
 `{ slug, title, load: () => import('./<dir>/Talk') }`. Do not touch any other
 registry entry or presentation folder.
 
-**Modify:** edit only the identified presentation's files, scoped to the
-requested change. Keep every other presentation and the registry order
-otherwise untouched.
+**Modify:** before changing anything, read the target presentation's `Talk.tsx`,
+its `steps/` files, `entities.ts`, and its CSS, plus any step it shares a
+`groupKey` with. Note its existing entity/`layoutId` naming, grouping, and
+styling conventions, then implement the requested change matching them —
+don't introduce a different pattern alongside what's already there. Edit only
+the identified presentation's files, scoped to the requested change. Keep
+every other presentation and the registry order otherwise untouched.
 
 ### 5. Self-verify before reporting done
 
 Run, in order, fixing failures and re-running rather than reporting success
 with a failing check:
 1. `npm run build` — no type or build errors.
-2. A render check of at least the new/changed presentation's first step
-   (`npm run verify` covers the full app; prefer it, but a single-route
-   render check is the minimum before reporting done).
+2. A render check of the new/changed presentation's first step while
+   iterating is fine for a quick loop, but `npm run verify` (the full app,
+   every registered route, every step) must pass before reporting done —
+   never report completion on the strength of a partial render check alone.
 3. Visual composition check: screenshot or view the first step, the last
    step, and any dense/key step; also check a narrow viewport if the
    presentation is responsive-sensitive. Prefer the project-local

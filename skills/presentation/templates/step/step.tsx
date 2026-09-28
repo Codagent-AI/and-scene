@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- Step objects and their Scene live together by design. */
-import { Box, SceneLayer } from '../../presentation-kit'
-import type { SceneProps, Step } from '../../presentation-kit'
+import { Box, SceneLayer } from '../../../presentation-kit'
+import type { SceneProps, Step } from '../../../presentation-kit'
 import { entities } from '../entities'
 
 /**

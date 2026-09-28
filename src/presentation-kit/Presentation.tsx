@@ -26,7 +26,7 @@ export function Presentation<T>({ steps, title, initialMode = 'browse', designSi
       </div>
     </header>
     {nav.mode === 'browse' && <nav className="presentation-toc" data-presentation-toc="" aria-label="Table of contents">
-      {eras.map((era) => { const first = steps.findIndex((step) => step.era === era); const active = steps[nav.index]?.era === era
+      {eras.map((era) => { const first = steps.findIndex((step) => step.era === era); const active = current.era === era
         return <button type="button" key={era} onClick={() => nav.goTo(first)} aria-current={active ? 'step' : undefined} data-presentation-toc-item="" data-presentation-active={active ? 'true' : 'false'}>{era}</button> })}
     </nav>}
     <section className="presentation-viewport" data-presentation-viewport="" onTouchStart={(event) => { touchStart.current = event.touches[0]?.clientX ?? null }} onTouchEnd={(event) => {

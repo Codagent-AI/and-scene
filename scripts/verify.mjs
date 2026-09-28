@@ -1,5 +1,6 @@
 import { chromium } from 'playwright'
 import { preview as startPreview } from 'vite'
+import { execFileSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 
 const slug = 'how-to-make-a-presentation'
@@ -13,8 +14,7 @@ let browser
 let stepLabel = 'sample validation'
 try {
   console.log('CHECK build: running npm run build')
-  const build = await import('node:child_process').then(({ execFileSync }) => execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run','build'], { stdio: 'inherit' }))
-  void build
+  execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'build'], { stdio: 'inherit' })
   const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
   const talk = await readFile(new URL('../src/presentations/how-to-make-a-presentation/Talk.tsx', import.meta.url), 'utf8')
   if (!registry.includes(`slug: '${slug}'`) || !registry.includes("import('./how-to-make-a-presentation/Talk')")) throw new Error('sample check: canonical sample is missing or unregistered')
@@ -24,14 +24,13 @@ try {
   preview = await startPreview({ preview: { host, port, strictPort: true } })
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
-  let activeStep = 0
   const errors = []
   page.on('console', (message) => { if (message.type() === 'error') errors.push(`console: ${message.text()}`) })
   page.on('pageerror', (error) => errors.push(`page: ${error.message}`))
   await page.goto(`${origin}/${slug}`, { waitUntil: 'networkidle' })
   const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
   if (count !== 9) throw new Error(`render check: expected 9 steps, found ${count}`)
-  for (activeStep = 0; activeStep < count; activeStep++) {
+  for (let activeStep = 0; activeStep < count; activeStep++) {
     stepLabel = `step ${activeStep + 1}`
     await page.waitForFunction((index) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === index, activeStep)
     await page.locator('[data-presentation-scene]').last().waitFor({ state: 'visible' })
@@ -39,9 +38,8 @@ try {
     if (errors.length) throw new Error(`${stepLabel}: ${errors.join('; ')}`)
     if (activeStep < count - 1) {
       await page.keyboard.press('ArrowRight')
-      await page.waitForFunction((next) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === next, activeStep + 1, { timeout: 4000 }).catch(() => null)
-      const observed = Number(await page.locator('[data-step-index]').getAttribute('data-step-index'))
-      if (observed !== activeStep + 1) throw new Error(`step transition did not advance to ${activeStep + 2}`)
+      await page.waitForFunction((next) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === next, activeStep + 1, { timeout: 4000 })
+        .catch(() => { throw new Error(`step transition did not advance to ${activeStep + 2}`) })
     }
   }
   console.log(`PASS: build and rendered all ${count} steps at ${origin}/${slug}`)

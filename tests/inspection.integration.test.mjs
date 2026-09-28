@@ -1,13 +1,11 @@
 import assert from 'node:assert/strict'
-import { cp, mkdtemp, readFile, readdir, rm, symlink, writeFile, mkdir } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile, readdir, rm, writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import test from 'node:test'
 import { chromium } from 'playwright'
+import { isolatedProject } from './helpers/isolated-project.mjs'
 
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const slug = 'inspection-fixture'
 
 // One presentation, five steps: a clean baseline plus one defect variant per step.
@@ -51,25 +49,22 @@ export const presentations: PresentationEntry[] = [{ slug: '${slug}', title: 'In
 `
 
 async function fixtureProject() {
-  const temporary = await mkdtemp(path.join(tmpdir(), 'and-scene-inspect-'))
-  const project = path.join(temporary, 'app')
-  await cp(path.join(repo, 'src'), path.join(project, 'src'), { recursive: true })
-  await cp(path.join(repo, 'scripts'), path.join(project, 'scripts'), { recursive: true })
-  for (const file of ['package.json', 'package-lock.json', 'index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json']) await cp(path.join(repo, file), path.join(project, file))
-  await symlink(path.join(repo, 'node_modules'), path.join(project, 'node_modules'), 'dir')
+  const copy = await isolatedProject('and-scene-inspect-')
+  const { project } = copy
   await rm(path.join(project, 'src/presentations/how-to-make-a-presentation'), { recursive: true })
   await mkdir(path.join(project, 'src/presentations', slug))
   await writeFile(path.join(project, 'src/presentations/index.ts'), registry)
   await writeFile(path.join(project, `src/presentations/${slug}/Fixture.tsx`), fixtureTsx)
   await writeFile(path.join(project, `src/presentations/${slug}/style.css`), fixtureCss)
-  return { temporary, project }
+  return copy
 }
 
-async function pixelAt(png, x, y) {
+// Reads one pixel from each PNG using a single browser session.
+async function pixelsAt(pngs, x, y) {
   const browser = await chromium.launch({ headless: true })
   try {
     const page = await browser.newPage()
-    return await page.evaluate(async ({ data, x, y }) => {
+    return await page.evaluate(async ({ images, x, y }) => Promise.all(images.map(async (data) => {
       const image = new Image()
       await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = `data:image/png;base64,${data}` })
       const canvas = document.createElement('canvas')
@@ -77,9 +72,14 @@ async function pixelAt(png, x, y) {
       const context = canvas.getContext('2d')
       context.drawImage(image, 0, 0)
       return [...context.getImageData(x, y, 1, 1).data]
-    }, { data: png.toString('base64'), x, y })
+    })), { images: pngs.map((png) => png.toString('base64')), x, y })
   } finally { await browser.close() }
 }
+
+const stepNumbers = [1, 2, 3, 4, 5]
+const stepFile = (n) => `step-0${n}.png`
+// A point inside the stage of the helper's 1440x1000 viewport, covered by the fixture's settle probe.
+const probePoint = { x: 720, y: 520 }
 
 test('screenshot helper captures settled steps and emits step-specific advisory warnings', { timeout: 240_000 }, async () => {
   const { temporary, project } = await fixtureProject()
@@ -93,14 +93,15 @@ test('screenshot helper captures settled steps and emits step-specific advisory 
 
     // One predictable screenshot per step.
     const directory = path.join(project, 'artifacts/presentation-inspection', slug)
-    assert.deepEqual((await readdir(directory)).sort(), [1, 2, 3, 4, 5].map((n) => `step-0${n}.png`))
+    assert.deepEqual((await readdir(directory)).sort(), stepNumbers.map(stepFile))
 
     // Captures happen after the 400ms probe animation finishes: the probe is fully green, never mid-fade red.
-    for (const n of [1, 2, 3, 4, 5]) {
-      const png = await readFile(path.join(directory, `step-0${n}.png`))
-      assert.deepEqual([...png.subarray(0, 4)], [0x89, 0x50, 0x4e, 0x47], `step ${n} is not a PNG`)
-      assert.deepEqual((await pixelAt(png, 720, 60 + 500 - 40)).slice(0, 3), [0, 255, 0], `step ${n} captured before the transition settled`)
-    }
+    const pngs = await Promise.all(stepNumbers.map((n) => readFile(path.join(directory, stepFile(n)))))
+    const pixels = await pixelsAt(pngs, probePoint.x, probePoint.y)
+    stepNumbers.forEach((n, i) => {
+      assert.deepEqual([...pngs[i].subarray(0, 4)], [0x89, 0x50, 0x4e, 0x47], `step ${n} is not a PNG`)
+      assert.deepEqual(pixels[i].slice(0, 3), [0, 255, 0], `step ${n} captured before the transition settled`)
+    })
 
     // Warnings are step-specific; the clean baseline and the marked overlap stay quiet.
     const warnings = output.split('\n').filter((line) => line.startsWith('WARN '))

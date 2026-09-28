@@ -19,7 +19,8 @@ function Scene({ payload }: SceneProps<Story>) {
     {n >= 8 && <><div className="modify entity" data-entity-id="modify">↶ Ask for a change</div><div className="edited entity" data-entity-id="edited">EDITED</div></>}
   </div>
 }
-function Card({ index }: { index: number }) { return <article className={`story-card card-${index} entity`} data-entity-id={`step-${index}`}><small>STEP 0{index}</small><b>{index === 1 ? 'A clear title' : index === 2 ? 'A useful caption' : 'A visual beat'}</b><span>What changes in the scene?</span></article> }
+const cardTitles = ['A clear title', 'A useful caption', 'A visual beat']
+function Card({ index }: { index: number }) { return <article className={`story-card card-${index} entity`} data-entity-id={`step-${index}`}><small>STEP 0{index}</small><b>{cardTitles[index - 1]}</b><span>What changes in the scene?</span></article> }
 const titles = ['You have a topic','The skill interviews you','Answers become steps','The deck grows','You set the depth','It assembles the scene','It checks its own work','Changed your mind? Loop it.','You’re looking at one']
 const captions = [
   'It starts with you, a topic, and mild overconfidence.',

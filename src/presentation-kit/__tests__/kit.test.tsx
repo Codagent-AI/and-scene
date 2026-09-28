@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { useEffect, useState } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
@@ -12,6 +12,7 @@ import {
   SceneLayer,
   type SceneProps,
   type Step,
+  usePresentationNav,
 } from '..'
 
 afterEach(cleanup)
@@ -45,7 +46,7 @@ function OtherScene() {
 const steps: Step<Payload>[] = [
   { id: 'a', era: 'One', title: 'Title A', caption: 'Caption A', groupKey: 'g', Scene: GroupScene, payload: { items: ['x'] } },
   { id: 'b', era: 'One', title: 'Title B', caption: 'Caption B', groupKey: 'g', Scene: GroupScene, payload: { items: ['x', 'y'] } },
-  { id: 'c', era: 'Two', title: 'Title C', caption: 'Caption C', Scene: OtherScene as Step<Payload>['Scene'], payload: { items: [] } },
+  { id: 'c', era: 'Two', title: 'Title C', caption: 'Caption C', Scene: OtherScene, payload: { items: [] } },
 ]
 
 const root = () => document.querySelector('[data-presentation-root]') as HTMLElement
@@ -140,6 +141,20 @@ describe('navigation', () => {
     expect(index()).toBe(2)
     fireEvent.click(screen.getByText('One'))
     expect(index()).toBe(0)
+  })
+
+  it('clamps goTo and ignores non-finite targets', () => {
+    const { result } = renderHook(() => usePresentationNav(3))
+    act(() => result.current.goTo(1.7))
+    expect(result.current.index).toBe(1)
+    act(() => result.current.goTo(Number.NaN))
+    expect(result.current.index).toBe(1)
+    act(() => result.current.goTo(Number.POSITIVE_INFINITY))
+    expect(result.current.index).toBe(1)
+    act(() => result.current.goTo(99))
+    expect(result.current.index).toBe(2)
+    act(() => result.current.goTo(-5))
+    expect(result.current.index).toBe(0)
   })
 })
 

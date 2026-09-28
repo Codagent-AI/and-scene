@@ -64,7 +64,7 @@ describe('INT-001 bootstrap template', () => {
     expect(install.status, install.output).toBe(0)
   }, 500_000)
 
-  afterAll(() => rmSync(app, { recursive: true, force: true }))
+  afterAll(() => rmSync(app, { recursive: true, force: true }), 120_000)
 
   it('provides the three contract anchors and the full dependency set', () => {
     for (const anchor of ['package.json', 'vite.config.ts', 'src/presentation-kit/index.ts', 'src/presentations/index.ts']) {

@@ -46,15 +46,18 @@ export function Stage<TPayload>({ steps, index, mode, canvas }: StageProps<TPayl
           transform: 'translate(-50%, -50%)',
         }}
       >
-        <div
+        {/* Scaled through motion (not a raw CSS transform) so layout projection measures
+            entities in unscaled canvas space and morphs stay in place at any fit scale. */}
+        <motion.div
           className="presentation-canvas"
           data-presentation-canvas=""
           style={{
             position: 'relative',
             width: canvas.width,
             height: canvas.height,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
+            scale,
+            originX: 0,
+            originY: 0,
           }}
         >
           <LayoutGroup>
@@ -73,7 +76,7 @@ export function Stage<TPayload>({ steps, index, mode, canvas }: StageProps<TPayl
               </motion.div>
             </AnimatePresence>
           </LayoutGroup>
-        </div>
+        </motion.div>
       </div>
     </div>
   )

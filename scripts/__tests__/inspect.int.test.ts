@@ -15,13 +15,9 @@
  */
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-
-const TEST_DIR = path.dirname(fileURLToPath(import.meta.url))
-const REPO_ROOT = path.resolve(TEST_DIR, '../..')
+import { copyRepoWithLinkedModules } from './helpers'
 
 const RUN_TIMEOUT_MS = 3 * 60 * 1000
 const SETUP_TIMEOUT_MS = RUN_TIMEOUT_MS
@@ -169,15 +165,7 @@ let setupError: Error | null = null
 describe('screenshot helper integration (INT-002)', () => {
   beforeAll(() => {
     try {
-      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'and-scene-inspect-'))
-      fs.cpSync(REPO_ROOT, tempDir, {
-        recursive: true,
-        filter: (src) => {
-          const relative = path.relative(REPO_ROOT, src)
-          return !/^(node_modules|dist|screenshots|\.git)(\/|$)/.test(relative)
-        },
-      })
-      fs.symlinkSync(path.join(REPO_ROOT, 'node_modules'), path.join(tempDir, 'node_modules'), 'dir')
+      tempDir = copyRepoWithLinkedModules('and-scene-inspect-')
 
       const presentationDir = path.join(tempDir, 'src', 'presentations', FIXTURE_SLUG)
       fs.mkdirSync(presentationDir, { recursive: true })

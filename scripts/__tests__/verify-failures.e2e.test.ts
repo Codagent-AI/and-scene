@@ -14,18 +14,13 @@
  */
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-
-const TEST_DIR = path.dirname(fileURLToPath(import.meta.url))
-const REPO_ROOT = path.resolve(TEST_DIR, '../..')
+import { copyRepoWithLinkedModules, REPO_ROOT } from './helpers'
 
 const RUN_TIMEOUT_MS = 3 * 60 * 1000
 const SETUP_TIMEOUT_MS = RUN_TIMEOUT_MS
 
-let baseDir: string
 let baseRepoStateBefore: string[]
 let setupError: Error | null = null
 
@@ -41,13 +36,6 @@ function listFilesRecursively(dir: string): string[] {
     }
   }
   return files
-}
-
-function makeCopy(label: string): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), `and-scene-verify-${label}-`))
-  fs.cpSync(baseDir, dir, { recursive: true })
-  fs.symlinkSync(path.join(REPO_ROOT, 'node_modules'), path.join(dir, 'node_modules'), 'dir')
-  return dir
 }
 
 /** Runs verify in `dir` and returns { status, output } without throwing on non-zero exit. */
@@ -85,22 +73,12 @@ describe('verification failures are actionable (E2E-002)', () => {
   beforeAll(() => {
     try {
       baseRepoStateBefore = listFilesRecursively(REPO_ROOT).filter((f) => !f.includes(`${path.sep}node_modules${path.sep}`))
-      baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'and-scene-verify-base-'))
-      fs.cpSync(REPO_ROOT, baseDir, {
-        recursive: true,
-        filter: (src) => {
-          const relative = path.relative(REPO_ROOT, src)
-          return !/^(node_modules|dist|screenshots|\.git)(\/|$)/.test(relative)
-        },
-      })
     } catch (err) {
       setupError = err instanceof Error ? err : new Error(String(err))
     }
   }, SETUP_TIMEOUT_MS)
 
   afterAll(() => {
-    if (baseDir) fs.rmSync(baseDir, { recursive: true, force: true })
-
     // The source checkout must be unchanged by any fault-injection copy.
     const after = listFilesRecursively(REPO_ROOT).filter((f) => !f.includes(`${path.sep}node_modules${path.sep}`))
     expect(after.sort()).toEqual(baseRepoStateBefore.sort())
@@ -110,7 +88,7 @@ describe('verification failures are actionable (E2E-002)', () => {
     'fails the build phase on a build-breaking edit',
     () => {
       if (setupError) throw setupError
-      const dir = makeCopy('build')
+      const dir = copyRepoWithLinkedModules('and-scene-verify-build-')
       try {
         const sceneFile = path.join(dir, 'src', 'presentations', 'how-to-make-a-presentation', 'Scene.tsx')
         fs.appendFileSync(sceneFile, '\nconst brokenSyntax: = ;\n')
@@ -131,7 +109,7 @@ describe('verification failures are actionable (E2E-002)', () => {
     'fails the registry phase when the reference sample is missing',
     () => {
       if (setupError) throw setupError
-      const dir = makeCopy('missing-sample')
+      const dir = copyRepoWithLinkedModules('and-scene-verify-missing-sample-')
       try {
         const registryPath = path.join(dir, 'src', 'presentations', 'index.ts')
         const source = fs.readFileSync(registryPath, 'utf8')
@@ -158,7 +136,7 @@ describe('verification failures are actionable (E2E-002)', () => {
     'fails the render phase and names the offending step on a runtime/console error',
     () => {
       if (setupError) throw setupError
-      const dir = makeCopy('console-error')
+      const dir = copyRepoWithLinkedModules('and-scene-verify-console-error-')
       try {
         const sceneFile = path.join(dir, 'src', 'presentations', 'how-to-make-a-presentation', 'Scene.tsx')
         const source = fs.readFileSync(sceneFile, 'utf8')
@@ -189,7 +167,7 @@ describe('verification failures are actionable (E2E-002)', () => {
     'fails the render phase when a step transition does not advance the public step index',
     () => {
       if (setupError) throw setupError
-      const dir = makeCopy('stuck-nav')
+      const dir = copyRepoWithLinkedModules('and-scene-verify-stuck-nav-')
       try {
         const navFile = path.join(dir, 'src', 'presentation-kit', 'usePresentationNav.ts')
         const source = fs.readFileSync(navFile, 'utf8')

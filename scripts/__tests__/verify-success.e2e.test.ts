@@ -7,12 +7,8 @@
  * every step, and an unambiguous success exit code.
  */
 import { execFileSync } from 'node:child_process'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-
-const TEST_DIR = path.dirname(fileURLToPath(import.meta.url))
-const REPO_ROOT = path.resolve(TEST_DIR, '../..')
+import { REPO_ROOT } from './helpers'
 
 const VERIFY_TIMEOUT_MS = 3 * 60 * 1000
 

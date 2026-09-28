@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 validator_logs
+presentation-inspection
 *.local
 
 # Editor directories and files

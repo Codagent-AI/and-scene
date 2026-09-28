@@ -11,6 +11,18 @@
   color: var(--htmap-ink);
 }
 
+/* Chrome keeps a gutter off the viewport edges. The stage stays full-width so
+   the fixed canvas scales as large as the viewport allows. */
+[data-presentation-header],
+[data-presentation-footer] {
+  padding: 0.75rem clamp(1rem, 4vw, 2.5rem);
+}
+
+[data-presentation-toc] {
+  flex: 0 0 auto;
+  padding: 0.75rem 0 0 clamp(1rem, 4vw, 2.5rem);
+}
+
 [data-presentation-header] h1 {
   font-size: 1.1rem;
   font-weight: 600;

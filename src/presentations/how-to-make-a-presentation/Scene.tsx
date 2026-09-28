@@ -10,7 +10,7 @@ import {
   SymbolChip,
   type SceneProps,
 } from '../../presentation-kit'
-import { ArrowLeftRight, CircleCheck, CircleHelp, Hammer, MonitorPlay, Pencil } from 'lucide-react'
+import { ArrowLeftRight, CircleCheck, CircleHelp, Hammer, MonitorPlay, Pencil, type LucideIcon } from 'lucide-react'
 import { E } from './entities'
 
 export interface ScenePayload {
@@ -18,12 +18,8 @@ export interface ScenePayload {
   beat: number
 }
 
-const CARDS = [
-  { title: 'Title', caption: 'Caption', visual: 'Visual' },
-  { title: 'Title', caption: 'Caption', visual: 'Visual' },
-  { title: 'Title', caption: 'Caption', visual: 'Visual' },
-  { title: 'Title', caption: 'Caption', visual: 'Visual' },
-]
+/** Step cards in the tray; each shows the parts every step carries. */
+const CARD_COUNT = 4
 
 /** Positions a newcomer with a CSS slot; the entity inside carries the stable layoutId. */
 function slot(key: string, name: string, node: ReactNode, delay = 0) {
@@ -31,6 +27,15 @@ function slot(key: string, name: string, node: ReactNode, delay = 0) {
     <Appear key={key} className={`hw-slot hw-slot-${name}`} delay={delay}>
       {node}
     </Appear>
+  )
+}
+
+/** A box whose only content is its label. */
+function labeledBox(id: string, text: string, Icon?: LucideIcon) {
+  return (
+    <Box id={id} Icon={Icon}>
+      <Label id={`${id}:label`}>{text}</Label>
+    </Box>
   )
 }
 
@@ -58,34 +63,33 @@ export function Scene({ payload }: SceneProps<ScenePayload>) {
 
   if (beat >= 1) {
     items.push(
-      slot(E.you, 'you', <Box id={E.you}><Label id={`${E.you}:label`}>you</Label></Box>),
-      slot(E.prompt, 'prompt', <Box id={E.prompt}><Label id={`${E.prompt}:label`}>“a talk about…”</Label></Box>, 0.2),
+      slot(E.you, 'you', labeledBox(E.you, 'you')),
+      slot(E.prompt, 'prompt', labeledBox(E.prompt, '“a talk about…”'), 0.2),
     )
   }
   if (beat >= 2) {
     items.push(
-      slot(E.skill, 'skill', <Box id={E.skill}><Label id={`${E.skill}:label`}>skill</Label></Box>),
+      slot(E.skill, 'skill', labeledBox(E.skill, 'skill')),
       slot(E.talk, 'talk', <Arrow id={E.talk} direction="both" />, 0.2),
       slot(E.question, 'question', <SymbolChip id={E.question} Icon={CircleHelp} label="one question at a time" />, 0.4),
     )
   }
 
-  const shown = beat >= 4 ? CARDS.length : beat >= 3 ? 1 : 0
-  CARDS.slice(0, shown).forEach((card, i) => {
-    const n = i + 1
+  const shown = beat >= 4 ? CARD_COUNT : beat >= 3 ? 1 : 0
+  for (let n = 1; n <= shown; n++) {
     items.push(
       slot(
         E.card(n),
         `card-${n}`,
         <Box id={E.card(n)}>
-          <Label id={`${E.card(n)}:title`}>{card.title}</Label>
-          <Label id={`${E.card(n)}:caption`}>{card.caption}</Label>
-          <Label id={`${E.card(n)}:visual`}>{card.visual}</Label>
+          <Label id={`${E.card(n)}:title`}>Title</Label>
+          <Label id={`${E.card(n)}:caption`}>Caption</Label>
+          <Label id={`${E.card(n)}:visual`}>Visual</Label>
         </Box>,
-        i * 0.15,
+        (n - 1) * 0.15,
       ),
     )
-  })
+  }
 
   // What morphs is drawn on the link between consecutive cards, never inside a card.
   // Link 1 exists as soon as the first card lands; link n joins card n to card n+1 (link 4: the ghost).
@@ -110,7 +114,7 @@ export function Scene({ payload }: SceneProps<ScenePayload>) {
     )
   }
   if (beat >= 6) {
-    items.push(slot(E.socket, 'socket', <Box id={E.socket} Icon={Hammer}><Label id={`${E.socket}:label`}>scene kit: boxes, arrows, motion</Label></Box>))
+    items.push(slot(E.socket, 'socket', labeledBox(E.socket, 'scene kit: boxes, arrows, motion', Hammer)))
   }
   if (beat >= 7) {
     items.push(

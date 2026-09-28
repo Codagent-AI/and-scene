@@ -4,7 +4,7 @@ import { useFitScale } from './useFitScale'
 import type { CanvasSize, Step } from './types'
 
 interface StageProps<TPayload> {
-  steps: readonly Step<TPayload>[]
+  step: Step<TPayload>
   index: number
   mode: PresentationMode
   canvas: CanvasSize
@@ -15,10 +15,8 @@ interface StageProps<TPayload> {
  * `groupKey` keep one host key, so React updates the scene in place instead of
  * remounting it; other steps cross-fade.
  */
-export function Stage<TPayload>({ steps, index, mode, canvas }: StageProps<TPayload>) {
+export function Stage<TPayload>({ step, index, mode, canvas }: StageProps<TPayload>) {
   const { ref, scale } = useFitScale(mode, canvas)
-  const step = steps[index]
-  if (!step) return null
   const { Scene } = step
   const hostKey = step.groupKey ? `group:${step.groupKey}` : `step:${step.id}`
 

@@ -4,7 +4,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
-import { HOST, ROOT, readRegisteredSlugs, runBuild, sleep, startPreview } from './lib.mjs'
+import { ROOT, advanceStep, readRegisteredSlugs, readStepCount, runBuild, sleep, startPreview } from './lib.mjs'
 
 const SETTLE_MS = 1200
 
@@ -39,17 +39,15 @@ async function renderPresentation(browser, origin, slug, expected) {
   page.on('console', (msg) => msg.type() === 'error' && errors.push(`console.error: ${msg.text()}`))
   page.on('pageerror', (err) => errors.push(`uncaught: ${err.message}`))
   try {
-    const url = `${origin}/${slug}`
-    if (!url.startsWith(`http://${HOST}:`)) throw new CheckFailure('render', `non-IPv4 URL ${url}`)
-    await page.goto(url)
+    await page.goto(`${origin}/${slug}`)
     const root = page.locator('[data-presentation-root]')
     try {
       await root.waitFor({ timeout: 15_000 })
     } catch {
       throw new CheckFailure('render', `${slug}: first step did not render (${errors.join('; ') || 'no presentation root'})`)
     }
-    const count = Number(await root.getAttribute('data-step-count'))
-    if (!Number.isInteger(count) || count < 1) throw new CheckFailure('render', `${slug}: invalid data-step-count`)
+    const count = await readStepCount(root)
+    if (!count) throw new CheckFailure('render', `${slug}: invalid data-step-count`)
     if (expected && count !== expected.length) {
       throw new CheckFailure('sample', `${slug}: expected ${expected.length} steps, found ${count}`)
     }
@@ -66,19 +64,13 @@ async function renderPresentation(browser, origin, slug, expected) {
       await sleep(SETTLE_MS)
       if (errors.length) throw new CheckFailure('render', `${slug} ${stepLabel(i)}: ${errors[0]}`)
       if (i < count - 1) {
-        await page.keyboard.press('ArrowRight')
         try {
-          await page.waitForFunction(
-            (next) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(next),
-            i + 1,
-            { timeout: 5_000 },
-          )
+          await advanceStep(page, i + 1, { timeout: 5_000 })
         } catch {
           throw new CheckFailure('render', `${slug} ${stepLabel(i)}: transition to ${stepLabel(i + 1)} failed`)
         }
       }
     }
-    if (errors.length) throw new CheckFailure('render', `${slug} ${stepLabel(count - 1)}: ${errors[0]}`)
     return count
   } finally {
     await page.close()
@@ -91,7 +83,8 @@ async function main() {
   if (sample && !registered.includes(sample.slug)) {
     throw new CheckFailure('sample', `reference sample "${sample.slug}" is not registered in src/presentations/index.ts`)
   }
-  const slugs = process.argv.slice(2).length ? process.argv.slice(2) : registered
+  const requested = process.argv.slice(2)
+  const slugs = requested.length ? requested : registered
   if (sample && !slugs.includes(sample.slug)) slugs.push(sample.slug)
   if (slugs.length === 0) throw new CheckFailure('registry', 'no presentations registered in src/presentations/index.ts')
   for (const slug of slugs) {

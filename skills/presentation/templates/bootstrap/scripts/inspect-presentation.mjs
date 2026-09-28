@@ -5,7 +5,7 @@
 import { mkdirSync, rmSync } from 'node:fs'
 import { join, relative, isAbsolute } from 'node:path'
 import { chromium } from 'playwright'
-import { ROOT, runBuild, sleep, startPreview } from './lib.mjs'
+import { ROOT, advanceStep, readStepCount, runBuild, sleep, startPreview } from './lib.mjs'
 
 const args = process.argv.slice(2)
 const flag = (name, fallback) => {
@@ -62,7 +62,7 @@ function collectWarnings() {
     '[data-presentation-progress-item],[data-presentation-toc-item],[data-presentation-prev],[data-presentation-next],[data-presentation-attribution],[data-presentation-marker]'
   const items = []
   for (const el of document.querySelectorAll('body *')) {
-    if (!visible(el)) continue
+    if (!visible(el) || allowed(el)) continue
     const isChrome = el.matches(chromeSel)
     for (const rect of isChrome ? [el.getBoundingClientRect()] : textRects(el)) {
       if (rect.right - rect.left > 0 && rect.bottom - rect.top > 0) items.push({ el, rect })
@@ -74,7 +74,6 @@ function collectWarnings() {
       const a = items[i]
       const b = items[j]
       if (a.el === b.el || a.el.contains(b.el) || b.el.contains(a.el)) continue
-      if (allowed(a.el) || allowed(b.el)) continue
       const w = Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left)
       const h = Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top)
       if (w > 2 && h > 2) {
@@ -148,21 +147,15 @@ async function main() {
     const root = page.locator('[data-presentation-root]')
     await root.waitFor({ timeout: 15_000 })
     if (mode && (await root.getAttribute('data-presentation-mode')) !== mode) await page.keyboard.press('p')
-    const count = Number(await root.getAttribute('data-step-count'))
-    if (!Number.isInteger(count) || count < 1) throw new Error(`${slug}: invalid data-step-count`)
+    const count = await readStepCount(root)
+    if (!count) throw new Error(`${slug}: invalid data-step-count`)
     for (let i = 0; i < count; i++) {
       await sleep(settle)
       const file = join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
       await page.screenshot({ path: file })
       console.log(`step ${i + 1}/${count}: ${file}`)
       for (const w of await page.evaluate(collectWarnings)) warnings.push(`step ${i + 1}: ${w}`)
-      if (i < count - 1) {
-        await page.keyboard.press('ArrowRight')
-        await page.waitForFunction(
-          (next) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(next),
-          i + 1,
-        )
-      }
+      if (i < count - 1) await advanceStep(page, i + 1)
     }
   } finally {
     await browser?.close()

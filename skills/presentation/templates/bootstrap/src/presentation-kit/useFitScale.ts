@@ -19,13 +19,13 @@ export function useFitScale(mode: PresentationMode, canvas: CanvasSize) {
       setScale(Math.min(maxScale, Math.max(MIN_SCALE, fit)))
     }
     measure()
-    window.addEventListener('resize', measure)
-    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
-    ro?.observe(el)
-    return () => {
-      window.removeEventListener('resize', measure)
-      ro?.disconnect()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure)
+      return () => window.removeEventListener('resize', measure)
     }
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
   }, [mode, canvas.width, canvas.height])
 
   return { ref, scale }

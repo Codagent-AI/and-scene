@@ -74,3 +74,19 @@ export async function startPreview(root = ROOT) {
 }
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+/** The chrome's `data-step-count`, or null when it is missing or not a positive integer. */
+export async function readStepCount(root) {
+  const count = Number(await root.getAttribute('data-step-count'))
+  return Number.isInteger(count) && count >= 1 ? count : null
+}
+
+/** Presses ArrowRight and waits until the chrome reports step `next` through `data-step-index`. */
+export async function advanceStep(page, next, options) {
+  await page.keyboard.press('ArrowRight')
+  await page.waitForFunction(
+    (n) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(n),
+    next,
+    options,
+  )
+}

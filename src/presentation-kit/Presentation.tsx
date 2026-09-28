@@ -29,7 +29,7 @@ export function Presentation<TPayload>({
   initialMode = 'present',
   canvas = DEFAULT_CANVAS,
   brand,
-  attribution,
+  attribution = <Attribution />,
 }: PresentationProps<TPayload>) {
   const nav = usePresentationNav(steps.length, initialMode)
   const wide = useWideViewport()
@@ -67,7 +67,7 @@ export function Presentation<TPayload>({
         style={{ display: 'flex', flex: '1 1 0', minHeight: 0 }}
       >
         {browse && wide && <Toc steps={steps} index={nav.index} onGoTo={nav.goTo} />}
-        <Stage steps={steps} index={nav.index} mode={nav.mode} canvas={canvas} />
+        <Stage step={step} index={nav.index} mode={nav.mode} canvas={canvas} />
       </div>
       <Footer
         mode={nav.mode}
@@ -79,7 +79,7 @@ export function Presentation<TPayload>({
         onNext={nav.next}
         onGoTo={nav.goTo}
       />
-      {attribution === undefined ? <Attribution /> : attribution === false ? null : attribution}
+      {attribution}
     </div>
   )
 }

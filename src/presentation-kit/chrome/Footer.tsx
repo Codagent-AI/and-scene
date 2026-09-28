@@ -16,11 +16,11 @@ export function Footer({ mode, steps, index, caption, title, onPrev, onNext, onG
   const browse = mode === 'browse'
   return (
     <footer className="presentation-footer" data-presentation-footer="">
-      {browse ? (
+      <h2 className="presentation-step-title" data-presentation-title="">
+        {title}
+      </h2>
+      {browse && (
         <>
-          <h2 className="presentation-step-title" data-presentation-title="">
-            {title}
-          </h2>
           <p className="presentation-caption" data-presentation-caption="">
             {caption}
           </p>
@@ -71,10 +71,6 @@ export function Footer({ mode, steps, index, caption, title, onPrev, onNext, onG
             </button>
           </nav>
         </>
-      ) : (
-        <h2 className="presentation-step-title" data-presentation-title="">
-          {title}
-        </h2>
       )}
     </footer>
   )

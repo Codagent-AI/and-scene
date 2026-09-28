@@ -30,7 +30,12 @@ interface StageLayout {
   sideMargin: number
 }
 
-/** Per-mode reserved chrome geometry the fit-scale hook fits the stage into. */
+/**
+ * Per-mode reference chrome geometry. `useFitScale` measures the stage
+ * viewport's real box directly, so this is advisory sizing data for chrome
+ * layout (e.g. presentation-owned CSS), not an input to the scale
+ * computation itself.
+ */
 export const STAGE_LAYOUT: Record<PresentationMode, StageLayout> = {
   browse: { headerSpace: 96, footerSpace: 140, sideMargin: 32 },
   present: { headerSpace: 56, footerSpace: 56, sideMargin: 32 },

@@ -33,7 +33,7 @@ export function Presentation({ steps, title, initialMode = 'browse' }: Presentat
       <Header mode={mode} marker={marker} title={step?.title ?? title} />
       <div data-presentation-body="true" style={{ display: 'flex', flex: '1 1 auto', minHeight: 0 }}>
         {mode === 'browse' && isWide ? <Toc steps={steps} activeIndex={index} onGoTo={goTo} /> : null}
-        <Stage steps={steps} activeIndex={index} mode={mode} />
+        <Stage steps={steps} activeIndex={index} />
       </div>
       <Footer
         mode={mode}

@@ -3,13 +3,13 @@ import type { PresentationMode } from './types'
 
 const SWIPE_THRESHOLD_PX = 40
 
-/** Interactive elements that should keep their own key handling. */
+const FOCUSED_CONTROL_SELECTOR =
+  'button, a[href], input, textarea, select, [contenteditable], [role="button"]'
+
+/** Interactive elements (or their descendants) that should keep their own key handling. */
 function isFocusedControl(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  const tag = target.tagName
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true
-  if (target.isContentEditable) return true
-  return false
+  if (!(target instanceof Element)) return false
+  return target.closest(FOCUSED_CONTROL_SELECTOR) !== null
 }
 
 export interface UsePresentationNavOptions {

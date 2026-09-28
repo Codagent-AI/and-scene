@@ -9,20 +9,15 @@
  *    CLI process) and steps through every step with Playwright/Chromium,
  *    failing on console errors, page errors, or a step index that does not
  *    advance.
- * 3. If no presentations are registered yet, opens the landing route instead
- *    so a freshly scaffolded (pre-content) app still gets a real render check.
+ * 3. Fails if the committed reference sample is not registered, and checks
+ *    its steps against the canonical nine-step outline.
  *
  * Exits non-zero on any failure and names the failing phase/step.
  */
-import { spawn } from 'node:child_process'
-import path from 'node:path'
 import process from 'node:process'
-import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-import { createServer, preview } from 'vite'
+import { HOST, closePreviewServer, readRegisteredSlugs, run, startOwnedPreview } from './preview-utils.mjs'
 
-const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
-const HOST = '127.0.0.1'
 const SETTLE_MS = 400
 
 /**
@@ -76,60 +71,7 @@ function fail(message) {
   process.exitCode = 1
 }
 
-function run(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: 'inherit', cwd: ROOT, ...options })
-    child.on('exit', (code) => {
-      if (code === 0) resolve()
-      else reject(new Error(`${command} ${args.join(' ')} exited with code ${code}`))
-    })
-    child.on('error', reject)
-  })
-}
-
-/**
- * Starts a preview server this process exclusively owns, on an OS-assigned
- * port (`port: 0`), so a stale server left on a fixed port by another run
- * can never be mistaken for the build just produced.
- */
-async function startOwnedPreview() {
-  const server = await preview({
-    root: ROOT,
-    logLevel: 'silent',
-    preview: { host: HOST, port: 0, strictPort: false },
-  })
-  const address = server.httpServer.address()
-  if (!address || typeof address !== 'object') {
-    throw new Error('Preview server did not report a bound port')
-  }
-  return { server, baseUrl: `http://${HOST}:${address.port}` }
-}
-
-/** Closes the underlying HTTP server directly, not via PreviewServer.close(). */
-function closePreviewServer(server) {
-  return new Promise((resolve, reject) => {
-    server.httpServer.close((error) => (error ? reject(error) : resolve()))
-  })
-}
-
-/**
- * Reads the registered presentation slugs by loading the actual exported
- * `presentations` registry through Vite's SSR module loader, rather than
- * regex-matching the source text — a registry entry built from a variable or
- * shorthand (e.g. `const slug = 'x'; { slug, ... }`) has no `slug: '...'`
- * text for a regex to match, so it would silently go unchecked.
- */
-async function readRegisteredSlugs() {
-  const loader = await createServer({ root: ROOT, server: { middlewareMode: true }, logLevel: 'silent' })
-  try {
-    const { presentations } = await loader.ssrLoadModule('/src/presentations/index.ts')
-    return presentations.map((entry) => entry.slug)
-  } finally {
-    await loader.close()
-  }
-}
-
-async function checkRoute(page, baseUrl, routePath, { requireSteps, expectedSteps }) {
+async function checkRoute(page, baseUrl, routePath, expectedSteps) {
   const consoleErrors = []
   const pageErrors = []
   const onConsole = (message) => {
@@ -143,59 +85,52 @@ async function checkRoute(page, baseUrl, routePath, { requireSteps, expectedStep
   await page.goto(url, { waitUntil: 'networkidle' })
   await page.waitForTimeout(SETTLE_MS)
 
-  if (requireSteps) {
-    const stepCount = await page
-      .locator('[data-step-count]')
-      .first()
-      .getAttribute('data-step-count')
-      .catch(() => null)
-    const count = Number(stepCount)
-    if (!Number.isFinite(count) || count < 1) {
-      throw new Error(`route ${routePath} has no readable data-step-count hook`)
+  const stepCount = await page
+    .locator('[data-step-count]')
+    .first()
+    .getAttribute('data-step-count')
+    .catch(() => null)
+  const count = Number(stepCount)
+  if (!Number.isFinite(count) || count < 1) {
+    throw new Error(`route ${routePath} has no readable data-step-count hook`)
+  }
+  if (expectedSteps && count !== expectedSteps.length) {
+    throw new Error(
+      `route ${routePath} reports ${count} step(s), expected the canonical ${expectedSteps.length}`,
+    )
+  }
+
+  for (let step = 0; step < count; step += 1) {
+    const indexAttr = await page.locator('[data-step-index]').first().getAttribute('data-step-index')
+    const currentIndex = Number(indexAttr)
+    if (!Number.isFinite(currentIndex) || currentIndex !== step) {
+      throw new Error(`route ${routePath} step ${step} did not report the expected data-step-index`)
     }
-    if (expectedSteps && count !== expectedSteps.length) {
-      throw new Error(
-        `route ${routePath} reports ${count} step(s), expected the canonical ${expectedSteps.length}`,
-      )
+
+    if (expectedSteps) {
+      const expected = expectedSteps[step]
+      const caption = await page.locator('[data-presentation-caption]').first().textContent()
+      if (caption?.trim() !== expected.caption) {
+        throw new Error(
+          `route ${routePath} step ${step} ("${expected.title}") has caption "${caption?.trim()}", expected "${expected.caption}"`,
+        )
+      }
+      // The per-step title is only rendered in present mode's marker, so
+      // toggle there (mode switches preserve the step) and back to browse.
+      await page.keyboard.press('p')
+      const title = await page
+        .locator('[data-presentation-marker] [data-presentation-title]')
+        .first()
+        .textContent()
+      await page.keyboard.press('p')
+      if (title?.trim() !== expected.title) {
+        throw new Error(`route ${routePath} step ${step} has title "${title?.trim()}", expected "${expected.title}"`)
+      }
     }
 
-    let previousIndex = -1
-    for (let step = 0; step < count; step += 1) {
-      const indexAttr = await page.locator('[data-step-index]').first().getAttribute('data-step-index')
-      const currentIndex = Number(indexAttr)
-      if (!Number.isFinite(currentIndex) || currentIndex !== step) {
-        throw new Error(`route ${routePath} step ${step} did not report the expected data-step-index`)
-      }
-      if (currentIndex <= previousIndex && step > 0) {
-        throw new Error(`route ${routePath} step index did not advance past ${previousIndex}`)
-      }
-      previousIndex = currentIndex
-
-      if (expectedSteps) {
-        const expected = expectedSteps[step]
-        const caption = await page.locator('[data-presentation-caption]').first().textContent()
-        if (caption?.trim() !== expected.caption) {
-          throw new Error(
-            `route ${routePath} step ${step} ("${expected.title}") has caption "${caption?.trim()}", expected "${expected.caption}"`,
-          )
-        }
-        // The per-step title is only rendered in present mode's marker, so
-        // toggle there (mode switches preserve the step) and back to browse.
-        await page.keyboard.press('p')
-        const title = await page
-          .locator('[data-presentation-marker] [data-presentation-title]')
-          .first()
-          .textContent()
-        await page.keyboard.press('p')
-        if (title?.trim() !== expected.title) {
-          throw new Error(`route ${routePath} step ${step} has title "${title?.trim()}", expected "${expected.title}"`)
-        }
-      }
-
-      if (step < count - 1) {
-        await page.keyboard.press('ArrowRight')
-        await page.waitForTimeout(SETTLE_MS)
-      }
+    if (step < count - 1) {
+      await page.keyboard.press('ArrowRight')
+      await page.waitForTimeout(SETTLE_MS)
     }
   }
 
@@ -215,11 +150,7 @@ async function main() {
   await run('npm', ['run', 'build'])
 
   const slugs = await readRegisteredSlugs()
-  console.log(
-    slugs.length > 0
-      ? `[verify] found ${slugs.length} registered presentation(s): ${slugs.join(', ')}`
-      : '[verify] no presentations registered yet; checking the landing route only',
-  )
+  console.log(`[verify] found ${slugs.length} registered presentation(s): ${slugs.join(', ')}`)
 
   if (!slugs.includes(CANONICAL_SAMPLE_SLUG)) {
     fail(
@@ -239,7 +170,7 @@ async function main() {
 
     for (const slug of slugs) {
       const expectedSteps = slug === CANONICAL_SAMPLE_SLUG ? CANONICAL_STEPS : undefined
-      await checkRoute(page, baseUrl, `/${slug}`, { requireSteps: true, expectedSteps })
+      await checkRoute(page, baseUrl, `/${slug}`, expectedSteps)
     }
 
     console.log('[verify] PASS: build succeeded and every checked route rendered cleanly')

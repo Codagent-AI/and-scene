@@ -13,16 +13,12 @@
  * text/chrome overlap, indistinct active navigation, and unpolished
  * attribution.
  */
-import { spawn } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-import { createServer, preview } from 'vite'
+import { HOST, ROOT, closePreviewServer, readRegisteredSlugs, run, startOwnedPreview } from './preview-utils.mjs'
 
-const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
-const HOST = '127.0.0.1'
 const DEFAULT_SETTLE_MS = 900
 const DEFAULT_VIEWPORT = { width: 1280, height: 800 }
 const STEP_ADVANCE_TIMEOUT_MS = 5000
@@ -42,56 +38,6 @@ function parseArgs(argv) {
     }
   }
   return args
-}
-
-/**
- * Reads the registered presentation slugs by loading the actual exported
- * `presentations` registry through Vite's SSR module loader, rather than
- * regex-matching the source text — a registry entry built from a variable or
- * shorthand (e.g. `const slug = 'x'; { slug, ... }`) has no `slug: '...'`
- * text for a regex to match, so it would silently go unchecked.
- */
-async function readRegisteredSlugs() {
-  const loader = await createServer({ root: ROOT, server: { middlewareMode: true }, logLevel: 'silent' })
-  try {
-    const { presentations } = await loader.ssrLoadModule('/src/presentations/index.ts')
-    return presentations.map((entry) => entry.slug)
-  } finally {
-    await loader.close()
-  }
-}
-
-function run(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: 'inherit', cwd: ROOT, ...options })
-    child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`${command} exited with ${code}`))))
-    child.on('error', reject)
-  })
-}
-
-/**
- * Starts a preview server this process exclusively owns, on an OS-assigned
- * port (`port: 0`), so a stale server left on a fixed port by another run
- * can never be mistaken for the build just produced.
- */
-async function startOwnedPreview() {
-  const server = await preview({
-    root: ROOT,
-    logLevel: 'silent',
-    preview: { host: HOST, port: 0, strictPort: false },
-  })
-  const address = server.httpServer.address()
-  if (!address || typeof address !== 'object') {
-    throw new Error('Preview server did not report a bound port')
-  }
-  return { server, baseUrl: `http://${HOST}:${address.port}` }
-}
-
-/** Closes the underlying HTTP server directly, not via PreviewServer.close(). */
-function closePreviewServer(server) {
-  return new Promise((resolve, reject) => {
-    server.httpServer.close((error) => (error ? reject(error) : resolve()))
-  })
 }
 
 /**

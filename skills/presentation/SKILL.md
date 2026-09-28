@@ -292,6 +292,7 @@ Every generated or modified presentation must:
 | `templates/bootstrap/` | Full app snapshot for scaffolding a fresh/empty project or monorepo subdirectory |
 | `templates/bootstrap/scripts/verify.mjs` | Build + multi-step render verifier for the scaffolded app |
 | `templates/bootstrap/scripts/inspect-presentation.mjs` | Project-local screenshot + advisory-warning helper |
+| `templates/bootstrap/scripts/preview-utils.mjs` | Build/preview/registry helpers both scripts import — copy it alongside them |
 | `templates/presentation/` | Skeleton for a new presentation folder (`entities.ts`, `steps/`, `style.css`, `Talk.tsx`) |
 | `templates/presentation/steps/step.tsx` | Single non-grouped step skeleton |
 | `templates/presentation/steps/grouped-step.tsx` | Typed-payload grouped-scene step skeleton |

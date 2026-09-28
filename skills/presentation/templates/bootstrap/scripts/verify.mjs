@@ -14,73 +14,15 @@
  *
  * Exits non-zero on any failure and names the failing phase/step.
  */
-import { spawn } from 'node:child_process'
-import path from 'node:path'
 import process from 'node:process'
-import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-import { createServer, preview } from 'vite'
+import { HOST, closePreviewServer, readRegisteredSlugs, run, startOwnedPreview } from './preview-utils.mjs'
 
-const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
-const HOST = '127.0.0.1'
 const SETTLE_MS = 400
 
 function fail(message) {
   console.error(`\n[verify] FAIL: ${message}`)
   process.exitCode = 1
-}
-
-function run(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: 'inherit', cwd: ROOT, ...options })
-    child.on('exit', (code) => {
-      if (code === 0) resolve()
-      else reject(new Error(`${command} ${args.join(' ')} exited with code ${code}`))
-    })
-    child.on('error', reject)
-  })
-}
-
-/**
- * Starts a preview server this process exclusively owns, on an OS-assigned
- * port (`port: 0`), so a stale server left on a fixed port by another run
- * can never be mistaken for the build just produced.
- */
-async function startOwnedPreview() {
-  const server = await preview({
-    root: ROOT,
-    logLevel: 'silent',
-    preview: { host: HOST, port: 0, strictPort: false },
-  })
-  const address = server.httpServer.address()
-  if (!address || typeof address !== 'object') {
-    throw new Error('Preview server did not report a bound port')
-  }
-  return { server, baseUrl: `http://${HOST}:${address.port}` }
-}
-
-/** Closes the underlying HTTP server directly, not via PreviewServer.close(). */
-function closePreviewServer(server) {
-  return new Promise((resolve, reject) => {
-    server.httpServer.close((error) => (error ? reject(error) : resolve()))
-  })
-}
-
-/**
- * Reads the registered presentation slugs by loading the actual exported
- * `presentations` registry through Vite's SSR module loader, rather than
- * regex-matching the source text — a registry entry built from a variable or
- * shorthand (e.g. `const slug = 'x'; { slug, ... }`) has no `slug: '...'`
- * text for a regex to match, so it would silently go unchecked.
- */
-async function readRegisteredSlugs() {
-  const loader = await createServer({ root: ROOT, server: { middlewareMode: true }, logLevel: 'silent' })
-  try {
-    const { presentations } = await loader.ssrLoadModule('/src/presentations/index.ts')
-    return presentations.map((entry) => entry.slug)
-  } finally {
-    await loader.close()
-  }
 }
 
 async function checkRoute(page, baseUrl, routePath, { requireSteps }) {
@@ -108,17 +50,12 @@ async function checkRoute(page, baseUrl, routePath, { requireSteps }) {
       throw new Error(`route ${routePath} has no readable data-step-count hook`)
     }
 
-    let previousIndex = -1
     for (let step = 0; step < count; step += 1) {
       const indexAttr = await page.locator('[data-step-index]').first().getAttribute('data-step-index')
       const currentIndex = Number(indexAttr)
       if (!Number.isFinite(currentIndex) || currentIndex !== step) {
         throw new Error(`route ${routePath} step ${step} did not report the expected data-step-index`)
       }
-      if (currentIndex <= previousIndex && step > 0) {
-        throw new Error(`route ${routePath} step index did not advance past ${previousIndex}`)
-      }
-      previousIndex = currentIndex
       if (step < count - 1) {
         await page.keyboard.press('ArrowRight')
         await page.waitForTimeout(SETTLE_MS)

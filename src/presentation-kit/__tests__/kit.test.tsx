@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   Appear,
@@ -24,9 +24,6 @@ interface Payload {
 let mounts = 0
 function GroupScene({ payload }: SceneProps<Payload>) {
   const [id] = useState(() => ++mounts)
-  useEffect(() => {
-    /* instance identity is tracked through data-instance */
-  }, [])
   return (
     <SceneLayer>
       {payload.items.map((item) => (

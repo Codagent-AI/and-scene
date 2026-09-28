@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { chromium, type Browser } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { startPreview } from '../lib.mjs'
-import { makeCopy, run } from './copy'
+import { buildFixtureApp, makeCopy } from './copy'
 
 const TRAVEL = 600
 /** A slow linear morph keeps frame sampling meaningful even when the machine is loaded. */
@@ -32,17 +32,7 @@ export default function Talk() {
 }
 `,
   )
-  writeFileSync(
-    join(app, 'src/presentations/index.ts'),
-    `import type { ComponentType } from 'react'
-export interface PresentationEntry { slug: string; title: string; load: () => Promise<{ default: ComponentType }> }
-export const presentations: readonly PresentationEntry[] = [
-  { slug: 'fx-morph', title: 'fx-morph', load: () => import('./fx-morph/Talk') },
-]
-`,
-  )
-  rmSync(join(app, 'scripts/reference-sample.json'))
-  const build = run('npm', ['run', 'build'], app, 240_000)
+  const build = buildFixtureApp(app, ['fx-morph'])
   expect(build.status, build.output).toBe(0)
   preview = await startPreview(app)
   browser = await chromium.launch()

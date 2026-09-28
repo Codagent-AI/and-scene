@@ -3,7 +3,7 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { makeCopy, run } from './copy'
+import { buildFixtureApp, makeCopy, run } from './copy'
 
 let app: string
 
@@ -48,7 +48,7 @@ function writeFixture(dir: string, f: Fixture) {
     `import { Presentation, SceneLayer, type SceneProps } from '../../presentation-kit'
 import './fx.css'
 function Scene({ payload }: SceneProps<number>) {
-  return <SceneLayer>{${f.clean ? '' : f.allow ? `payload === 2 && <div key="o" data-presentation-allow-overlap="">${overlap}</div>` : `payload === 2 && <div key="o">${overlap}</div>`}}<div key="t" style={{ position: 'absolute', left: 20, top: 20 }}>Step {payload}</div></SceneLayer>
+  return <SceneLayer>{${f.clean ? '' : `payload === 2 && <div key="o"${f.allow ? ' data-presentation-allow-overlap=""' : ''}>${overlap}</div>`}}<div key="t" style={{ position: 'absolute', left: 20, top: 20 }}>Step {payload}</div></SceneLayer>
 }
 const steps = [1, 2].map((n) => ({ id: 's' + n, era: n === 1 ? 'one' : 'two', title: 'Title ' + n, caption: 'Caption ' + n, groupKey: 'g', Scene, payload: n }))
 export default function Talk() {
@@ -65,17 +65,7 @@ const warnings = (output: string) => output.split('\n').filter((l) => l.startsWi
 beforeAll(() => {
   app = makeCopy('and-scene-inspect')
   for (const f of FIXTURES) writeFixture(app, f)
-  writeFileSync(
-    join(app, 'src/presentations/index.ts'),
-    `import type { ComponentType } from 'react'
-export interface PresentationEntry { slug: string; title: string; load: () => Promise<{ default: ComponentType }> }
-export const presentations: readonly PresentationEntry[] = [
-${FIXTURES.map((f) => `  { slug: '${f.slug}', title: '${f.slug}', load: () => import('./${f.slug}/Talk') },`).join('\n')}
-]
-`,
-  )
-  rmSync(join(app, 'scripts/reference-sample.json'))
-  const build = run('npm', ['run', 'build'], app, 240_000)
+  const build = buildFixtureApp(app, FIXTURES.map((f) => f.slug))
   expect(build.status, build.output).toBe(0)
 }, 300_000)
 

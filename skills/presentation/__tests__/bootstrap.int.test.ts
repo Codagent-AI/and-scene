@@ -1,7 +1,6 @@
 // @vitest-environment node
 // INT-001: the distributable bootstrap snapshot, materialized outside this repo, is complete,
 // builds, renders its registered route, matches the canonical kit, and imposes no style system.
-import { spawnSync } from 'node:child_process'
 import {
   cpSync,
   existsSync,
@@ -15,10 +14,9 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { repo, run } from '../../../scripts/__tests__/copy'
 
-const repo = fileURLToPath(new URL('../../..', import.meta.url))
 const skillDir = join(repo, 'skills/presentation')
 const bootstrapDir = join(skillDir, 'templates/bootstrap')
 const canonicalKit = join(repo, 'src/presentation-kit')
@@ -31,11 +29,6 @@ function files(dir: string): string[] {
 }
 
 const kitFiles = (dir: string) => files(dir).filter((f) => !f.startsWith('__tests__'))
-
-function run(command: string, args: string[], cwd: string, timeout = 240_000) {
-  const result = spawnSync(command, args, { cwd, encoding: 'utf8', timeout })
-  return { status: result.status, output: `${result.stdout}\n${result.stderr}` }
-}
 
 describe('INT-001 bootstrap template', () => {
   let app: string

@@ -1,6 +1,6 @@
 // Disposable copies of this checkout for browser-backed tests; the source tree is never mutated.
 import { spawnSync } from 'node:child_process'
-import { cpSync, mkdtempSync, symlinkSync } from 'node:fs'
+import { cpSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -23,4 +23,22 @@ export function run(command: string, args: string[], cwd: string, timeout = 240_
 /** Preview servers started from a copy carry that copy's path in their command line. */
 export function leftoverPreviews(dir: string): string {
   return spawnSync('pgrep', ['-f', join(dir, 'node_modules/vite/bin/vite.js')], { encoding: 'utf8' }).stdout.trim()
+}
+
+/**
+ * Replaces a copy's registry with fixture presentations at `src/presentations/<slug>/Talk.tsx`,
+ * drops the reference-sample requirement, and builds the copy.
+ */
+export function buildFixtureApp(dir: string, slugs: string[]) {
+  writeFileSync(
+    join(dir, 'src/presentations/index.ts'),
+    `import type { ComponentType } from 'react'
+export interface PresentationEntry { slug: string; title: string; load: () => Promise<{ default: ComponentType }> }
+export const presentations: readonly PresentationEntry[] = [
+${slugs.map((slug) => `  { slug: '${slug}', title: '${slug}', load: () => import('./${slug}/Talk') },`).join('\n')}
+]
+`,
+  )
+  rmSync(join(dir, 'scripts/reference-sample.json'))
+  return run('npm', ['run', 'build'], dir, 240_000)
 }

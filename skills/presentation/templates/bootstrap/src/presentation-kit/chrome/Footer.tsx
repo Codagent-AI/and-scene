@@ -24,7 +24,12 @@ export function Footer<TPayload>({
   onToggleMode,
 }: FooterProps<TPayload>) {
   return (
-    <footer className="and-scene-footer" data-presentation-footer="" data-presentation-mode={mode}>
+    <footer
+      className="and-scene-footer"
+      data-presentation-footer=""
+      data-presentation-mode={mode}
+      style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}
+    >
       {mode === 'browse' ? (
         <>
           <p className="and-scene-caption" data-presentation-caption="">
@@ -83,6 +88,7 @@ export function Footer<TPayload>({
         href={AND_SCENE_REPO_URL}
         target="_blank"
         rel="noreferrer"
+        style={{ position: 'absolute', right: 0, bottom: 0 }}
       >
         made by and-scene
       </a>

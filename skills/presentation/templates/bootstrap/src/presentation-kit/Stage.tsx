@@ -1,5 +1,5 @@
 import { AnimatePresence, LayoutGroup, motion, useIsPresent } from 'motion/react'
-import type { ComponentType } from 'react'
+import type { ComponentType, CSSProperties } from 'react'
 import { DESIGN_H, DESIGN_W, EASE } from './constants'
 import type { SceneProps, Step } from './types'
 
@@ -7,6 +7,8 @@ export interface StageProps<TPayload> {
   steps: Array<Step<TPayload>>
   stepIndex: number
   scale: number
+  /** Layout placement for the stage box (e.g. the gap between chrome bands). */
+  style?: CSSProperties
 }
 
 interface ActiveSceneProps<TPayload> {
@@ -34,7 +36,7 @@ function ActiveScene<TPayload>({ Scene, payload, stepId, stepIndex }: ActiveScen
  * Scene instance persists across the group and only its `payload` prop
  * changes; AnimatePresence only cross-fades when the render key changes.
  */
-export function Stage<TPayload>({ steps, stepIndex, scale }: StageProps<TPayload>) {
+export function Stage<TPayload>({ steps, stepIndex, scale, style }: StageProps<TPayload>) {
   const step = steps[stepIndex]
   const renderKey = step.groupKey ?? step.id
   const Scene = step.Scene
@@ -43,12 +45,25 @@ export function Stage<TPayload>({ steps, stepIndex, scale }: StageProps<TPayload
     <div
       className="and-scene-stage"
       data-presentation-stage=""
-      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', ...style }}
     >
+      {/*
+        A transform scales only what is painted, so negative (or positive)
+        margins shrink (or grow) the scaler's layout footprint to the scaled
+        canvas size; otherwise the unscaled 880px box overflows narrow
+        viewports and misreports its height to surrounding layout.
+      */}
       <div
         className="and-scene-stage-scaler"
         data-presentation-stage-scaler=""
-        style={{ position: 'relative', width: DESIGN_W, height: DESIGN_H, transform: `scale(${scale})` }}
+        style={{
+          position: 'relative',
+          flexShrink: 0,
+          width: DESIGN_W,
+          height: DESIGN_H,
+          margin: `${(DESIGN_H * scale - DESIGN_H) / 2}px ${(DESIGN_W * scale - DESIGN_W) / 2}px`,
+          transform: `scale(${scale})`,
+        }}
       >
         <LayoutGroup>
           {/*

@@ -25,10 +25,13 @@ export const SWIPE_THRESHOLD = 40
 export const TOC_MIN_WIDTH = 960
 
 /**
- * Chrome height reserved above/below the stage per mode, used to fit-scale
- * the fixed design canvas into the remaining viewport space.
+ * Per-mode chrome bands around the stage. The header sits in the top band,
+ * the footer in the bottom band, and the stage fills the gap between them;
+ * when the table of contents is shown, `tocGutter` is reserved on each side
+ * so the centered canvas never covers it. Fixed per mode so the fit scale
+ * stays constant while navigating and layout morphs stay clean.
  */
-export const STAGE_LAYOUT: Record<Mode, { chromeTop: number; chromeBottom: number }> = {
-  browse: { chromeTop: 96, chromeBottom: 132 },
-  present: { chromeTop: 64, chromeBottom: 48 },
+export const STAGE_LAYOUT: Record<Mode, { chromeTop: number; chromeBottom: number; tocGutter: number }> = {
+  browse: { chromeTop: 96, chromeBottom: 132, tocGutter: 160 },
+  present: { chromeTop: 64, chromeBottom: 48, tocGutter: 0 },
 }

@@ -12,7 +12,12 @@ export interface TocProps {
 /** Era-based table of contents. Jumping to an entry lands on that era's first step. */
 export function Toc({ eras, activeIndex, onSelect }: TocProps) {
   return (
-    <nav className="and-scene-toc" data-presentation-toc="" aria-label="Table of contents">
+    <nav
+      className="and-scene-toc"
+      data-presentation-toc=""
+      aria-label="Table of contents"
+      style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)' }}
+    >
       <ul>
         {eras.map((entry, index) => {
           const nextEntry = eras[index + 1]

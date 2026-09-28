@@ -5,16 +5,17 @@ import type { Mode } from './types'
 /**
  * Uniform fit scale for the fixed design canvas within the active mode's
  * stage geometry, so the composition never reflows and layout morphs stay
- * clean across viewport sizes.
+ * clean across viewport sizes. Pass `reserveToc` when the table of contents
+ * is shown so its side gutters are excluded from the available width.
  */
-export function useFitScale(mode: Mode): number {
+export function useFitScale(mode: Mode, reserveToc = false): number {
   const [scale, setScale] = useState(1)
   const frameRef = useRef<number | null>(null)
 
   useEffect(() => {
     function measure() {
       const layout = STAGE_LAYOUT[mode]
-      const availableWidth = window.innerWidth
+      const availableWidth = Math.max(window.innerWidth - (reserveToc ? 2 * layout.tocGutter : 0), 1)
       const availableHeight = Math.max(window.innerHeight - layout.chromeTop - layout.chromeBottom, 1)
       const widthScale = availableWidth / DESIGN_W
       const heightScale = availableHeight / DESIGN_H
@@ -39,7 +40,7 @@ export function useFitScale(mode: Mode): number {
         frameRef.current = null
       }
     }
-  }, [mode])
+  }, [mode, reserveToc])
 
   return scale
 }

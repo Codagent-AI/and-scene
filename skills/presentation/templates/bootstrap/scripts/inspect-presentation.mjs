@@ -149,6 +149,7 @@ async function main() {
     await root.waitFor({ timeout: 15_000 })
     if (mode && (await root.getAttribute('data-presentation-mode')) !== mode) await page.keyboard.press('p')
     const count = Number(await root.getAttribute('data-step-count'))
+    if (!Number.isInteger(count) || count < 1) throw new Error(`${slug}: invalid data-step-count`)
     for (let i = 0; i < count; i++) {
       await sleep(settle)
       const file = join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)

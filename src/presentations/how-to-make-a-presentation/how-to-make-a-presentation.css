@@ -2,6 +2,9 @@
  * "How to Use This Skill to Make a Presentation" — presentation-owned styling.
  * Palette: ink paper, cream type, amber for the conversation, teal for what gets verified.
  */
+
+/* Everything is scoped under .howto-deck so other presentations never inherit these rules. */
+.howto-deck {
 .presentation {
   --hw-ink: #14110f;
   --hw-panel: #1f1b17;
@@ -166,4 +169,5 @@
   .presentation-step-title { font-size: 20px; }
   .presentation-caption { font-size: 13px; }
   .presentation-body { padding: 0; }
+}
 }

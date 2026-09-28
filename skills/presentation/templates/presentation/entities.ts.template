@@ -1,0 +1,18 @@
+/**
+ * __SLUG__'s layoutId namespace.
+ *
+ * Every entity that should morph in place across steps (rather than
+ * remounting) needs a stable `layoutId`. Centralizing those ids here keeps
+ * them consistent across `steps/*.tsx` and makes renames a one-line change.
+ *
+ * Replace the example entries below with the entities this presentation
+ * actually needs. Keep ids kebab-case and namespaced to this presentation
+ * (e.g. prefixed with the slug) so they never collide with another
+ * presentation's layoutIds if steps are ever composed together.
+ */
+export const ENTITY = {
+  // Example: a box that persists across several steps.
+  mainSubject: '__SLUG__-main-subject',
+  // Example: a supporting element introduced partway through.
+  supportingDetail: '__SLUG__-supporting-detail',
+} as const

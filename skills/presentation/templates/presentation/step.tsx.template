@@ -1,0 +1,44 @@
+import { Appear, Box, Label, SceneLayer, type SceneProps, type Step } from '../../../presentation-kit'
+import { ENTITY } from '../entities'
+
+/**
+ * Example step file for src/presentations/__SLUG__/steps/__STEP_FILE__.tsx.
+ *
+ * One file typically defines one Step, though steps that share a `groupKey`
+ * (and therefore the same Scene component) may live together when it's
+ * clearer to keep their payload transitions side by side.
+ *
+ * Replace `__StepPayload__`, `ENTITY.mainSubject`/`ENTITY.supportingDetail`,
+ * and the JSX below with this step's real content. Import additional
+ * primitives (`Arrow`, `Frame`, `Emphasis`, `SymbolChip`) from
+ * `../../../presentation-kit` as needed; give each primitive a
+ * presentation-owned `className` and put the actual visual design in this
+ * presentation's own CSS file, not inline styles or the kit.
+ */
+export interface __StepPayload__ {
+  headline: string
+}
+
+function __StepName__Scene({ payload }: SceneProps<__StepPayload__>) {
+  return (
+    <SceneLayer className="__SLUG__-scene">
+      <Box layoutId={ENTITY.mainSubject} className="__SLUG__-box __SLUG__-box--main">
+        <Label>{payload.headline}</Label>
+      </Box>
+      <Appear>
+        <Box layoutId={ENTITY.supportingDetail} className="__SLUG__-box __SLUG__-box--detail">
+          <Label>Supporting detail</Label>
+        </Box>
+      </Appear>
+    </SceneLayer>
+  )
+}
+
+export const __stepId__: Step<__StepPayload__> = {
+  id: '__STEP_ID__',
+  era: '__ERA__',
+  title: '__STEP_TITLE__',
+  caption: '__STEP_CAPTION__',
+  payload: { headline: '__STEP_HEADLINE__' },
+  Scene: __StepName__Scene,
+}

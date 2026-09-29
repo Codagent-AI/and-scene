@@ -1,22 +1,35 @@
 import assert from 'node:assert/strict'
 import { rm } from 'node:fs/promises'
 import { spawn, spawnSync } from 'node:child_process'
+import net from 'node:net'
 import test from 'node:test'
 import { chromium } from 'playwright'
 import { isolatedProject } from './helpers/isolated-project.mjs'
 
-const port = 4321
-const origin = `http://127.0.0.1:${port}`
-const route = `${origin}/how-to-make-a-presentation`
 const viewports = [{ name: 'wide', width: 1440, height: 1000 }, { name: 'narrow', width: 390, height: 844 }]
 const entity = (name) => `[data-entity-id="how-to:${name}"]`
 
-async function waitForPreview() {
-  for (let attempt = 0; attempt < 50; attempt++) {
-    try { if ((await fetch(origin)).ok) return } catch { /* preview is still starting */ }
-    await new Promise((resolve) => setTimeout(resolve, 200))
-  }
-  throw new Error('vite preview did not become ready')
+// Asks the OS for an unused loopback port so a stale server can never be mistaken for the preview under test.
+const freePort = () => new Promise((resolve, reject) => {
+  const server = net.createServer()
+  server.once('error', reject)
+  server.listen(0, '127.0.0.1', () => { const { port } = server.address(); server.close(() => resolve(port)) })
+})
+
+// Polls the preview until it answers, failing fast if the spawned process exits or startup times out.
+async function waitForPreview(preview, origin) {
+  const exited = new Promise((_, reject) => {
+    preview.once('error', reject)
+    preview.once('exit', (code) => reject(new Error(`vite preview exited before it was ready (code ${code})`)))
+  })
+  const ready = (async () => {
+    for (let attempt = 0; attempt < 50; attempt++) {
+      try { if ((await fetch(origin)).ok) return } catch { /* preview is still starting */ }
+      await new Promise((resolve) => setTimeout(resolve, 200))
+    }
+    throw new Error('vite preview did not become ready')
+  })()
+  await Promise.race([ready, exited])
 }
 
 async function goToStep(page, step) {
@@ -51,8 +64,11 @@ test('reference sample keeps its tray readable, links consecutive cards, and ani
   try {
     const build = spawnSync('npm', ['run', 'build'], { cwd: project, encoding: 'utf8', timeout: 120_000 })
     assert.equal(build.status, 0, build.stdout + build.stderr)
+    const port = await freePort()
+    const origin = `http://127.0.0.1:${port}`
+    const route = `${origin}/how-to-make-a-presentation`
     preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: project, stdio: 'ignore' })
-    await waitForPreview()
+    await waitForPreview(preview, origin)
     browser = await chromium.launch({ headless: true })
 
     for (const { name, ...viewport } of viewports) {

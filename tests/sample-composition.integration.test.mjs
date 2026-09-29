@@ -16,20 +16,30 @@ const freePort = () => new Promise((resolve, reject) => {
   server.listen(0, '127.0.0.1', () => { const { port } = server.address(); server.close(() => resolve(port)) })
 })
 
-// Polls the preview until it answers, failing fast if the spawned process exits or startup times out.
-async function waitForPreview(preview, origin) {
-  const exited = new Promise((_, reject) => {
-    preview.once('error', reject)
-    preview.once('exit', (code) => reject(new Error(`vite preview exited before it was ready (code ${code})`)))
-  })
-  const ready = (async () => {
-    for (let attempt = 0; attempt < 50; attempt++) {
-      try { if ((await fetch(origin)).ok) return } catch { /* preview is still starting */ }
-      await new Promise((resolve) => setTimeout(resolve, 200))
+// Resolves only when the spawned Vite process itself announces the selected origin, so a different
+// server answering on that port can never be mistaken for the preview under test.
+function waitForPreview(preview, origin, timeoutMs = 20_000) {
+  return new Promise((resolve, reject) => {
+    let output = ''
+    const settle = (finish, value) => {
+      clearTimeout(timer)
+      preview.off('error', onError)
+      preview.off('exit', onExit)
+      preview.stdout.off('data', onData)
+      finish(value)
     }
-    throw new Error('vite preview did not become ready')
-  })()
-  await Promise.race([ready, exited])
+    const onError = (error) => settle(reject, error)
+    const onExit = (code) => settle(reject, new Error(`vite preview exited before it was ready (code ${code}):\n${output}`))
+    const onData = (chunk) => {
+      output += chunk.toString()
+      // Strip ANSI colour codes Vite may wrap around the URL.
+      if (output.replace(/\u001b\[[0-9;]*m/g, '').includes(origin)) settle(resolve)
+    }
+    const timer = setTimeout(() => settle(reject, new Error(`vite preview did not announce ${origin} within ${timeoutMs}ms:\n${output}`)), timeoutMs)
+    preview.once('error', onError)
+    preview.once('exit', onExit)
+    preview.stdout.on('data', onData)
+  })
 }
 
 async function goToStep(page, step) {
@@ -67,8 +77,10 @@ test('reference sample keeps its tray readable, links consecutive cards, and ani
     const port = await freePort()
     const origin = `http://127.0.0.1:${port}`
     const route = `${origin}/how-to-make-a-presentation`
-    preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: project, stdio: 'ignore' })
+    preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: project, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, NO_COLOR: '1' } })
+    preview.stderr.resume() // keep the pipe drained; startup failures surface through the exit code
     await waitForPreview(preview, origin)
+    preview.stdout.resume()
     browser = await chromium.launch({ headless: true })
 
     for (const { name, ...viewport } of viewports) {

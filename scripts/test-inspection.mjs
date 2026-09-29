@@ -34,10 +34,10 @@ try {
   if (output.includes('Marked overlap A” with “Marked overlap B')) throw new Error('Allowed overlap was incorrectly reported')
   // Narrow-viewport pass on the real reference sample: its chrome must not collide (browse caption vs. step controls).
   const narrow = run(process.execPath, ['scripts-inspect.mjs', 'how-to-make-a-presentation', '--viewport=390x844'])
-  if (narrow.includes('text/chrome overlap')) throw new Error(`Reference sample chrome collides at a phone viewport\n${narrow}`)
+  if (narrow.includes('Advisory')) throw new Error(`Reference sample has visual advisories at a phone viewport (chrome overlap, undersized attribution, ...)\n${narrow}`)
   const narrowShots = (await readdir(join(app, 'inspection'))).filter(file => file.includes('-390x844-') && file.endsWith('.png'))
   if (narrowShots.length !== 9) throw new Error(`Expected nine narrow-viewport screenshots, found ${narrowShots.length}`)
-  for (const bad of ['--viewport=', '--viewport=wide']) {
+  for (const bad of ['--viewport=', '--viewport=wide', '--viewport=0x844', '--viewport=390x0']) {
     const rejected = spawnSync(process.execPath, ['scripts-inspect.mjs', 'how-to-make-a-presentation', bad], { cwd: app, encoding: 'utf8' })
     if (rejected.status !== 2 || !rejected.stderr.includes('Usage:')) throw new Error(`Invalid ${bad} was not rejected with a usage error (exit ${rejected.status})`)
   }

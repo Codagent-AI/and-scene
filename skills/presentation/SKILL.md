@@ -121,7 +121,8 @@ Prefer the app's local screenshot helper (`npm run inspect -- <slug>` when
 available). Otherwise create any temporary Playwright helper under the project
 root and use the project's installed browser tooling. Capture settled views of
 the first and last steps and every dense or key composition. Check narrow
-viewport screenshots too when the layout is responsive-sensitive. Review the
+viewport screenshots too when the layout is responsive-sensitive
+(`npm run inspect -- <slug> --viewport=390x844`). Review the
 actual images, not only tool output.
 
 Review helper warnings for overlaps, active navigation, and attribution. Fix

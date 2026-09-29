@@ -5,7 +5,11 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 
 const slug = process.argv[2]
-if (!slug) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
+const viewportArg = process.argv.slice(3).find(arg => arg.startsWith('--viewport='))?.slice('--viewport='.length)
+const viewportMatch = viewportArg?.match(/^(\d+)x(\d+)$/)
+if (!slug || (viewportArg && !viewportMatch)) { console.error('Usage: npm run inspect -- <presentation-slug> [--viewport=<width>x<height>]'); process.exit(2) }
+const viewport = viewportMatch ? { width: Number(viewportMatch[1]), height: Number(viewportMatch[2]) } : { width: 1440, height: 900 }
+const suffix = viewportMatch ? `-${viewportArg}` : ''
 let server
 let browser
 try {
@@ -18,7 +22,7 @@ try {
   }
   if (!ready) throw new Error('Preview did not become ready; run npm run build first')
   browser = await chromium.launch({ headless: true })
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  const page = await browser.newPage({ viewport })
   await page.goto(url, { waitUntil: 'networkidle' })
   await mkdir('inspection', { recursive: true })
   const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
@@ -57,7 +61,7 @@ try {
       }
       return [...new Set(result)]
     })
-    await page.screenshot({ path: `inspection/${slug}-${String(index + 1).padStart(2, '0')}.png` })
+    await page.screenshot({ path: `inspection/${slug}${suffix}-${String(index + 1).padStart(2, '0')}.png` })
     console.log(`Captured step ${index + 1}/${count}`)
     for (const warning of warnings) console.warn(`Advisory step ${index}: ${warning}`)
     if (index + 1 < count) {

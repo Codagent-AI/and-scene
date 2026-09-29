@@ -21,7 +21,7 @@
 @media (max-width: 700px) {
  .presentation-header { padding: 18px; }
  .presentation-header-title strong { max-width: 58vw; }
- .presentation-caption { bottom: 70px; width: calc(100vw - 40px); font-size: 12px; }
+ .presentation-caption { bottom: 100px; width: calc(100vw - 40px); font-size: 12px; }
  .presentation-attribution { right: 16px; bottom: 16px; font-size: 10px; }
  .presentation-step-controls { right: 14px; bottom: 48px; }
 }

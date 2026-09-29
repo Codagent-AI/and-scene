@@ -1,5 +1,4 @@
-import { AnimatePresence, LayoutGroup } from 'motion/react'
-import { motion } from 'motion/react'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { useFitScale } from './useFitScale.ts'
 import { EASE, LAYOUT_T } from './constants.ts'
 import type { PresentationMode, Step } from './types.ts'
@@ -44,5 +43,3 @@ export function Stage<T>({ steps, index, mode, width, height, containerRef }: St
     </div>
   )
 }
-
-export { LAYOUT_T, EASE }

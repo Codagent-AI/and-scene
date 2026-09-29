@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TouchEvent } from 'react'
 import type { PresentationMode } from './types.ts'
 
@@ -11,9 +10,10 @@ function isEditable(target: EventTarget | null) {
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
-  const activeIndex = Math.min(index, Math.max(0, stepCount - 1))
+  const lastIndex = Math.max(0, stepCount - 1)
+  const activeIndex = Math.min(index, lastIndex)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
-  const goTo = useCallback((next: number) => setIndex(Math.max(0, Math.min(Math.max(0, stepCount - 1), next))), [stepCount])
+  const goTo = useCallback((next: number) => setIndex(Math.max(0, Math.min(lastIndex, next))), [lastIndex])
   const next = useCallback(() => goTo(activeIndex + 1), [goTo, activeIndex])
   const prev = useCallback(() => goTo(activeIndex - 1), [goTo, activeIndex])
   const toggleMode = useCallback(() => setMode(value => value === 'browse' ? 'present' : 'browse'), [])
@@ -35,8 +35,11 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
     const start = touchStart.current
     const touch = event.changedTouches[0]
     touchStart.current = null
-    if (!start || Math.abs(touch.clientX - start.x) < 48 || Math.abs(touch.clientX - start.x) < Math.abs(touch.clientY - start.y)) return
-    if (touch.clientX < start.x) next()
+    if (!start) return
+    const dx = touch.clientX - start.x
+    const dy = touch.clientY - start.y
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return
+    if (dx < 0) next()
     else prev()
   }, [next, prev])
   return { index: activeIndex, mode, goTo, next, prev, toggleMode, onTouchStart, onTouchEnd }

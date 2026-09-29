@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   // The bootstrap is a separate project with its own TypeScript configs.
-  globalIgnores(['dist', 'skills/presentation/templates/bootstrap/**']),
+  globalIgnores(['dist', 'validator_logs', 'skills/presentation/templates/bootstrap/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

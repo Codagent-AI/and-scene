@@ -1,4 +1,4 @@
-import { mkdtemp, cp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve, relative } from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
@@ -47,7 +47,7 @@ try {
 
   // Add a tiny registered route to prove template imports work from an unrelated cwd.
   const sample = join(app, 'src/presentations/bootstrap-smoke')
-  await (await import('node:fs/promises')).mkdir(join(sample, 'steps'), { recursive: true })
+  await mkdir(join(sample, 'steps'), { recursive: true })
   await writeFile(join(sample, 'Talk.tsx'), `import { Presentation } from '../../presentation-kit/Presentation.tsx'\nimport { Smoke } from './steps/Smoke.tsx'\nexport default function Talk() { return <Presentation title="Smoke" steps={[{ id: 'one', era: 'Start', title: 'One', caption: 'Rendered', Scene: Smoke, payload: undefined }]} /> }\n`)
   await writeFile(join(sample, 'steps/Smoke.tsx'), `import { SceneLayer, Box } from '../../../presentation-kit/nodes/index.ts'\nexport function Smoke() { return <SceneLayer><Box id="smoke">Smoke route</Box></SceneLayer> }\n`)
   const registry = join(app, 'src/presentations/index.ts')

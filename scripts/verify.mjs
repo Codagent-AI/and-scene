@@ -28,9 +28,8 @@ try {
     readFile(resolve('src/presentations/index.ts'), 'utf8'),
     readFile(resolve('src/presentations', slug, 'steps/index.tsx'), 'utf8'),
   ])
-  if (!registry.includes(`slug: '${slug}'`) || !registry.includes(`import('./${slug}/Talk')`)) throw new Error('Sample check failed: canonical reference route is missing from the explicit registry')
   const routes = [...registry.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map(match => match[1])
-  if (!routes.includes(slug)) throw new Error('Sample check failed: canonical reference route is missing from the explicit registry')
+  if (!routes.includes(slug) || !registry.includes(`import('./${slug}/Talk')`)) throw new Error('Sample check failed: canonical reference route is missing from the explicit registry')
   let cursor = -1
   for (const [era, title, caption] of expected) {
     const titleAt = steps.indexOf(title, cursor + 1)
@@ -63,7 +62,7 @@ try {
     if (errors.length) throw new Error(`Browser error on /${route} at step 1: ${errors.map(error => error.message).join('; ')}`)
     const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
     if (!count) throw new Error(`Render check failed for /${route}: no presentation steps rendered`)
-    if (route === slug && count !== expected.length) throw new Error(`Render check failed for /${slug}: expected 9 steps, found ${count}`)
+    if (route === slug && count !== expected.length) throw new Error(`Render check failed for /${slug}: expected ${expected.length} steps, found ${count}`)
     for (let index = 0; index < count; index++) {
       activeIndex = index
       const actual = Number(await page.locator('[data-step-index]').getAttribute('data-step-index'))

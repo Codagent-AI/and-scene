@@ -33,10 +33,10 @@ try {
         return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden'
       }
       const candidates = [...document.querySelectorAll('[data-presentation-node], [data-presentation-header] span, [data-presentation-header] strong, [data-presentation-caption], [data-presentation-attribution], [data-presentation-mode-toggle], [data-presentation-prev], [data-presentation-next], [data-presentation-toc-item]')]
-        .filter(element => visible(element) && element.textContent?.trim() && !element.hasAttribute('data-presentation-allow-overlap'))
+        .filter(element => visible(element) && element.textContent?.trim() && !element.closest('[data-presentation-allow-overlap]'))
       for (let left = 0; left < candidates.length; left++) for (let right = left + 1; right < candidates.length; right++) {
         const a = candidates[left], b = candidates[right]
-        if (a.contains(b) || b.contains(a) || a.closest('[data-presentation-allow-overlap]') || b.closest('[data-presentation-allow-overlap]')) continue
+        if (a.contains(b) || b.contains(a)) continue
         const x = a.getBoundingClientRect(), y = b.getBoundingClientRect()
         const overlapWidth = Math.min(x.right, y.right) - Math.max(x.left, y.left)
         const overlapHeight = Math.min(x.bottom, y.bottom) - Math.max(x.top, y.top)
@@ -46,7 +46,7 @@ try {
       const inactive = document.querySelector('[data-presentation-active="false"]')
       if (active && inactive) {
         const a = getComputedStyle(active), b = getComputedStyle(inactive)
-        if (a.color === b.color && a.backgroundColor === b.backgroundColor && a.borderColor === b.borderColor && a.opacity === b.opacity && a.transform === b.transform) result.push('active navigation is visually indistinct from inactive navigation')
+        if (['color', 'backgroundColor', 'borderColor', 'opacity', 'transform'].every(property => a[property] === b[property])) result.push('active navigation is visually indistinct from inactive navigation')
       }
       const attribution = document.querySelector('[data-presentation-attribution]')
       if (!attribution || !visible(attribution)) result.push('attribution is missing or hidden')

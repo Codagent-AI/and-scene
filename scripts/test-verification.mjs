@@ -38,7 +38,6 @@ try {
     await cp(join(root, 'src'), join(app, 'src'), { recursive: true })
     for (const file of ['package.json', 'package-lock.json', 'index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json']) await cp(join(root, file), join(app, file))
     await cp(join(root, 'scripts/verify.mjs'), join(app, 'scripts-verify.mjs'))
-    await writeFile(join(app, 'scripts-verify.mjs'), await readFile(join(app, 'scripts-verify.mjs'), 'utf8'))
     await symlink(join(root, 'node_modules'), join(app, 'node_modules'), 'dir')
     await fixture.mutate(app)
     const port = 4300 + index

@@ -81,9 +81,9 @@ test('inspection rejects path-like slugs before writing output', async () => {
   assert.match(result.output, /Invalid presentation slug/)
 })
 
-test('isolated fault copies fail with phase and step details', { timeout: 360_000 }, async () => {
+test('isolated fault copies fail with phase and step details', { timeout: 480_000 }, async () => {
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'and-scene-faults-'))
-  const faults = ['build', 'missing-sample', 'missing-scene', 'browser-error', 'transition']
+  const faults = ['build', 'missing-sample', 'missing-scene', 'browser-error', 'step-three-error', 'transition']
   try {
     for (const fault of faults) {
       const project = await materialize(path.join(temporaryRoot, fault))
@@ -98,6 +98,12 @@ test('isolated fault copies fail with phase and step details', { timeout: 360_00
         const steps = path.join(sample, 'steps/index.tsx')
         const source = await readFile(steps, 'utf8')
         await writeFile(steps, source.replace('  const through = payload.through', "  console.error('injected browser fault')\n  const through = payload.through"))
+      } else if (fault === 'step-three-error') {
+        const steps = path.join(sample, 'steps/index.tsx')
+        const source = await readFile(steps, 'utf8')
+        const broken = source.replace('  const through = payload.through', "  const through = payload.through\n  if (through === 2) console.error('injected step three fault')")
+        assert.notEqual(broken, source, 'step three fault injection must change the sample scene')
+        await writeFile(steps, broken)
       } else {
         const navigation = path.join(project, 'src/presentation-kit/usePresentationNav.ts')
         const source = await readFile(navigation, 'utf8')
@@ -108,6 +114,11 @@ test('isolated fault copies fail with phase and step details', { timeout: 360_00
       const result = await command('npm', ['run', 'verify'], project, 70_000)
       assert.notEqual(result.code, 0, `${fault} fault must fail:\n${result.output}`)
       assert.match(result.output, /FAIL \[(build|sample contract|browser render step \d+)\]/, `${fault} reports failed phase:\n${result.output}`)
+      if (fault === 'step-three-error') {
+        assert.match(result.output, /FAIL \[browser render step 3\]/, `step three fault reports its phase:\n${result.output}`)
+        assert.match(result.output, /step 3: console\.error: injected step three fault/)
+        assert.doesNotMatch(result.output, /step (?!3)\d+: console\.error/)
+      }
       if (fault === 'browser-error') assert.match(result.output, /step 1: console\.error: injected browser fault/)
       if (fault === 'missing-scene') assert.match(result.output, /browser render step 1.*scene is not visibly rendered at step 1/)
       if (fault === 'transition') assert.match(result.output, /step 2.*observed index 0|step 2.*Timeout/i)

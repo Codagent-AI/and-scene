@@ -101,10 +101,17 @@ const expected = JSON.parse(await read(`src/presentations/${slug}/outline.json`)
   await root.waitFor({ state: 'visible' })
   const total = Number(await root.getAttribute('data-step-count'))
   assert.equal(total, expected.length, `registered route rendered ${total} steps, expected ${expected.length}`)
-  for (let index = 0; index < expected.length; index += 1) {
+  const enterStep = index => {
     currentStep = index
     phase = `browser render step ${index + 1}`
+  }
+  const assertNoBrowserErrors = () => {
+    if (errors.length) throw new Error(`Browser render failed: ${errors.join('\n')}`)
+  }
+  for (let index = 0; index < expected.length; index += 1) {
+    enterStep(index)
     await page.waitForTimeout(950)
+    assertNoBrowserErrors()
     const actual = Number(await root.getAttribute('data-step-index'))
     assert.equal(actual, index, `transition failed at step ${index + 1}: observed index ${actual}`)
     const title = await page.locator('.presentation-step-title').innerText()
@@ -118,12 +125,12 @@ const expected = JSON.parse(await read(`src/presentations/${slug}/outline.json`)
       assert.ok(await node.count() && await node.evaluate(isVisiblyPainted), `scene entity ${entity} is missing or invisible at step ${index + 1}`)
     }
     if (index < expected.length - 1) {
-      phase = `browser render step ${index + 2}`
+      enterStep(index + 1)
       await page.keyboard.press('ArrowRight')
       await page.waitForFunction(next => Number(document.querySelector('[data-presentation]')?.getAttribute('data-step-index')) === next, index + 1, { timeout: 5000 })
     }
   }
-  if (errors.length) throw new Error(`Browser render failed: ${errors.join('\n')}`)
+  assertNoBrowserErrors()
   console.log(`PASS: build, canonical sample contract, and production browser render (${slug}, ${expected.length} steps on ${host})`)
 } catch (error) {
   console.error(`FAIL [${phase}]${phase.startsWith('browser render step') ? '' : currentStep ? ` near step ${currentStep + 1}` : ''}: ${error instanceof Error ? error.message : error}`)

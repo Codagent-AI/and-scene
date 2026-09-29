@@ -28,7 +28,7 @@
 .card-1 { left: 100px; }.card-2 { left: 258px; }.card-3 { left: 416px; }
 .card-link { top: 268px; width: 40px; height: 1px; justify-content: flex-start; align-items: center; background: #b0c87f; }
 .card-link::after { content: ''; position: absolute; right: 0; top: -3px; border: 3px solid transparent; border-left: 5px solid #b0c87f; border-right: 0; }
-.card-link.entity > span { position: absolute; top: -12px; width: 100%; color: #cde39c; font-size: 7px; letter-spacing: .06em; text-align: center; }
+.card-link.entity > span { position: absolute; top: -14px; width: 100%; color: #cde39c; font-size: 10px; letter-spacing: .06em; text-align: center; }
 .link-1 { left: 218px; }.link-2 { left: 376px; }
 .ghost { left: 560px; top: 237px; width: 116px; height: 62px; align-items: center; border: 1px dashed #718278; border-radius: 7px; color: #9ca99e; font-size: 10px; text-align: center; }
 .depth { left: 58px; top: 83px; flex-direction: row; align-items: center; gap: 4px; color: #a6b79f; font-size: 8px; white-space: nowrap; }.depth span { color: #d7ed9c; font-size: 17px; }

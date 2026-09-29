@@ -109,6 +109,11 @@ test('reference sample keeps its tray readable, links consecutive cards, and ani
             const linkBox = await box(page, entity(`link-${link}`))
             assert.ok(linkBox.left >= cards[index].right - 1 && linkBox.right <= cards[index + 1].left + 1, `${name} step ${step}: link ${link} should sit between cards ${link} and ${link + 1}`)
             assert.ok(linkBox.top > cards[index].top && linkBox.bottom < cards[index].bottom, `${name} step ${step}: link ${link} should be level with its cards`)
+            // The label carries what morphs, so it must stay a legible size in design pixels (the canvas scales uniformly).
+            const labelSize = await page.locator(`${entity(`link-${link}`)} > span`).evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
+            assert.ok(labelSize >= 10, `${name} step ${step}: link ${link} label is ${labelSize}px, expected at least 10px`)
+            const linkLabel = await textBox(page, `${entity(`link-${link}`)} > span`)
+            assert.ok(linkLabel.right - linkLabel.left <= linkBox.right - linkBox.left + 1, `${name} step ${step}: link ${link} label should fit within its link`)
           }
         }
       } finally { await page.close() }

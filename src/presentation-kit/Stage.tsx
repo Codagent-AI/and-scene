@@ -17,11 +17,11 @@ export function Stage<T>({ steps, index, mode, width = DESIGN_W, height = DESIGN
     <div className="presentation-canvas-viewport" style={{ width: width * scale, height: height * scale }}>
       <div className="presentation-canvas" data-presentation-canvas="" style={{ width, height, transform: `scale(${scale})` }}>
         <LayoutGroup id={step.groupKey ?? step.id}>
-          {sameGroup ? scene : <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={step.id} className="presentation-scene" data-presentation-scene="" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <AnimatePresence mode="wait">
+            <motion.div key={step.groupKey ?? step.id} className="presentation-scene" data-presentation-scene="" initial={{ opacity: sameGroup ? 1 : 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
               {scene}
             </motion.div>
-          </AnimatePresence>}
+          </AnimatePresence>
         </LayoutGroup>
       </div>
     </div>

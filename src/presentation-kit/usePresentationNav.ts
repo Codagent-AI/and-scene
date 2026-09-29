@@ -5,9 +5,10 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState(initialMode)
   const touch = useRef<{ x: number; y: number } | null>(null)
+  const activeIndex = Math.min(index, Math.max(0, count - 1))
   const go = useCallback((next: number) => setIndex(Math.max(0, Math.min(count - 1, next))), [count])
-  const next = useCallback(() => go(index + 1), [go, index])
-  const prev = useCallback(() => go(index - 1), [go, index])
+  const next = useCallback(() => setIndex(current => Math.min(count - 1, Math.min(current, count - 1) + 1)), [count])
+  const prev = useCallback(() => setIndex(current => Math.max(0, Math.min(current, count - 1) - 1)), [count])
   const toggleMode = useCallback(() => setMode(value => value === 'browse' ? 'present' : 'browse'), [])
 
   useEffect(() => {
@@ -35,5 +36,5 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
       touch.current = null
     },
   }
-  return { index, mode, go, next, prev, toggleMode, touchHandlers }
+  return { index: activeIndex, mode, go, next, prev, toggleMode, touchHandlers }
 }

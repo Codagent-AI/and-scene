@@ -26,14 +26,9 @@ function command(program, args, cwd, timeout = 180_000) {
   })
 }
 
-async function filesUnder(directory, prefix = '') {
-  const files = []
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    const relative = path.join(prefix, entry.name)
-    if (entry.isDirectory()) files.push(...await filesUnder(path.join(directory, entry.name), relative))
-    else files.push(relative)
-  }
-  return files.sort()
+async function filesUnder(directory) {
+  const entries = await readdir(directory, { recursive: true, withFileTypes: true })
+  return entries.filter(entry => !entry.isDirectory()).map(entry => path.relative(directory, path.join(entry.parentPath, entry.name))).sort()
 }
 
 test('bootstrap materializes, builds, renders, and matches the canonical kit', { timeout: 300_000 }, async () => {

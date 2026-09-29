@@ -9,10 +9,9 @@ import { createServer } from 'vite'
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const slug = 'how-to-make-a-presentation'
 
-async function sources(dir) {
-  const entries = await readdir(dir, { withFileTypes: true })
-  const nested = await Promise.all(entries.map(entry => entry.isDirectory() ? sources(path.join(dir, entry.name)) : [path.join(dir, entry.name)]))
-  return nested.flat()
+async function sources(directory) {
+  const entries = await readdir(directory, { recursive: true, withFileTypes: true })
+  return entries.filter(entry => !entry.isDirectory()).map(entry => path.join(entry.parentPath, entry.name))
 }
 
 test('kit source ships no visual defaults or styling framework', async () => {

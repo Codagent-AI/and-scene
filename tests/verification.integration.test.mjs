@@ -61,7 +61,7 @@ test('inspection helper captures settled fixture steps and reports advisory defe
     `)
     const registryPath = path.join(project, 'src/presentations/index.ts')
     const registry = await readFile(registryPath, 'utf8')
-    await writeFile(registryPath, registry.replace('export const presentations:', "export const presentations:").replace('= [', "= [{ slug: 'diagnostic-fixture', title: 'Diagnostic fixture', load: () => import('./diagnostic-fixture/Talk') },"))
+    await writeFile(registryPath, registry.replace('= [', "= [{ slug: 'diagnostic-fixture', title: 'Diagnostic fixture', load: () => import('./diagnostic-fixture/Talk') },"))
     const result = await command('npm', ['run', 'inspect', '--', 'diagnostic-fixture'], project, 90_000)
     assert.equal(result.code, 0, result.output)
     assert.match(result.output, /possible text\/chrome overlap/)
@@ -101,7 +101,9 @@ test('isolated fault copies fail with phase and step details', { timeout: 360_00
       } else {
         const navigation = path.join(project, 'src/presentation-kit/usePresentationNav.ts')
         const source = await readFile(navigation, 'utf8')
-        await writeFile(navigation, source.replace('const next = useCallback(() => setIndex(current => Math.min(count - 1, Math.min(current, count - 1) + 1)), [count])', 'const next = useCallback(() => {}, [])'))
+        const broken = source.replace(/const next = useCallback\(.*\n/, 'const next = useCallback(() => {}, [])\n')
+        assert.notEqual(broken, source, 'transition fault injection must change the navigation hook')
+        await writeFile(navigation, broken)
       }
       const result = await command('npm', ['run', 'verify'], project, 70_000)
       assert.notEqual(result.code, 0, `${fault} fault must fail:\n${result.output}`)

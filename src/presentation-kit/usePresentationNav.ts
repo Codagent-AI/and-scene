@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { SWIPE_THRESHOLD } from './constants'
 import type { PresentationMode } from './types'
 
 export function usePresentationNav(count: number, initialMode: PresentationMode = 'browse') {
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState(initialMode)
   const touch = useRef<{ x: number; y: number } | null>(null)
-  const activeIndex = Math.min(index, Math.max(0, count - 1))
-  const go = useCallback((next: number) => setIndex(Math.max(0, Math.min(count - 1, next))), [count])
-  const next = useCallback(() => setIndex(current => Math.min(count - 1, Math.min(current, count - 1) + 1)), [count])
-  const prev = useCallback(() => setIndex(current => Math.max(0, Math.min(current, count - 1) - 1)), [count])
+  const clamp = useCallback((value: number) => Math.max(0, Math.min(count - 1, value)), [count])
+  const activeIndex = clamp(index)
+  const go = useCallback((target: number) => setIndex(clamp(target)), [clamp])
+  const next = useCallback(() => setIndex(current => clamp(clamp(current) + 1)), [clamp])
+  const prev = useCallback(() => setIndex(current => clamp(clamp(current) - 1)), [clamp])
   const toggleMode = useCallback(() => setMode(value => value === 'browse' ? 'present' : 'browse'), [])
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
       if (!touch.current) return
       const dx = event.changedTouches[0].clientX - touch.current.x
       const dy = event.changedTouches[0].clientY - touch.current.y
-      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy)) {
+      if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
         if (dx < 0) next()
         else prev()
       }

@@ -1,6 +1,6 @@
-import type { Step } from '../types'
+import type { PresentationMode, Step } from '../types'
 export function Footer<T>({ step, index, steps, mode, onPrevious, onNext, onJump }: {
-  step: Step<T>; index: number; steps: readonly Step<T>[]; mode: 'browse' | 'present'
+  step: Step<T>; index: number; steps: readonly Step<T>[]; mode: PresentationMode
   onPrevious: () => void; onNext: () => void; onJump: (index: number) => void
 }) {
   return <footer className="presentation-footer" data-presentation-footer="">

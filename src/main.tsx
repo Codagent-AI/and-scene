@@ -1,6 +1,5 @@
-import { StrictMode } from 'react'
+import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
-import { lazy, Suspense } from 'react'
 import './index.css'
 import Landing from './Landing.tsx'
 import { presentations } from './presentations/index.ts'

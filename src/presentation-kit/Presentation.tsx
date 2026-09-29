@@ -8,7 +8,7 @@ import type { PresentationProps } from './types'
 export function Presentation<T>({ steps, title, initialMode = 'browse', brand, attribution, designSize }: PresentationProps<T>) {
   const nav = usePresentationNav(steps.length, initialMode)
   if (!steps.length) return null
-  const index = Math.min(nav.index, steps.length - 1)
+  const index = nav.index
   const activeStep = steps[index]
   return <main className="presentation" data-presentation="" data-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.index}>
     <Header title={title} mode={nav.mode} brand={brand} />

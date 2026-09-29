@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { useState } from 'react'
 import { Presentation } from './Presentation'
+import { Appear } from './nodes/Appear'
 import { Box } from './nodes/Box'
 import type { SceneProps, Step } from './types'
 
@@ -73,5 +74,20 @@ describe('Presentation', () => {
     const stage = document.querySelector('[data-presentation-stage]')
     expect(parseFloat(stage?.getAttribute('style')?.match(/height: ([\d.-]+)px/)?.[1] ?? '-1')).toBeGreaterThanOrEqual(0)
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: previous.height })
+  })
+
+  it('animates a newcomer in after a grouped step change instead of showing it immediately', () => {
+    function Grown({ payload }: SceneProps<{ extra: boolean }>) {
+      return <><Box id="anchor">anchor</Box>{payload.extra && <Appear id="newcomer">newcomer</Appear>}</>
+    }
+    const grown: Step<{ extra: boolean }>[] = [
+      { id: 'a', era: 'one', title: 'A', caption: 'A caption', groupKey: 'g', Scene: Grown, payload: { extra: false } },
+      { id: 'b', era: 'one', title: 'B', caption: 'B caption', groupKey: 'g', Scene: Grown, payload: { extra: true } },
+    ]
+    render(<Presentation steps={grown} title="Grown" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Next step' }))
+    const newcomer = document.querySelector('[data-entity-id="newcomer"]')
+    expect(newcomer).toHaveStyle({ opacity: '0' })
+    expect(document.querySelector('[data-entity-id="anchor"]')).not.toHaveStyle({ opacity: '0' })
   })
 })

@@ -11,7 +11,7 @@ export function Stage<T>({ step, index, scale, width = DESIGN_W, height = DESIGN
   return <div className="presentation-stage" data-presentation-stage="" style={{ width: width * scale, height: height * scale }}>
     <motion.div className="presentation-canvas" data-presentation-canvas="" style={{ width, height, scale, transformOrigin: 'top left' }}>
       <LayoutGroup id={layoutScope}>
-        <AnimatePresence mode="popLayout" initial={false}>
+        <AnimatePresence mode="popLayout">
           <motion.div key={step.groupKey ?? step.id} className="presentation-scene" data-presentation-scene=""
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: ENTER_T }}>
             <Scene payload={step.payload} step={step} index={index} />

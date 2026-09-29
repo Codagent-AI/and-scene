@@ -53,6 +53,7 @@ try {
   const registry = join(app, 'src/presentations/index.ts')
   await writeFile(registry, `import type React from 'react'\nexport interface PresentationEntry { slug: string; title: string; load: () => Promise<{ default: React.ComponentType }> }\nexport const presentations: PresentationEntry[] = [{ slug: 'bootstrap-smoke', title: 'Smoke', load: () => import('./bootstrap-smoke/Talk') }]\n`)
   run('npm', ['install', '--no-audit', '--no-fund'], app)
+  run('npm', ['run', 'lint'], app)
   run('npm', ['run', 'build'], app)
   run('npm', ['run', 'verify'], app)
   server = spawn(process.execPath, [join(app, 'node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1', '--port', '4187', '--strictPort'], { cwd: app, stdio: 'ignore' })

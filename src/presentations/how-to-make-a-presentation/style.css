@@ -1,0 +1,27 @@
+@import './steps/scene.css';
+.presentation { background: #fbfaf6; color: #1b292a; }
+.presentation-header { padding: 26px 42px; }
+.presentation-header-title { display: grid; gap: 4px; }
+.presentation-header-title strong { font-size: 14px; font-weight: 650; letter-spacing: -.02em; }
+.presentation-header-title > span:last-child { color: #53625e; font-size: 12px; }
+.presentation-marker { color: #a66d41; font-size: 10px; text-transform: uppercase; letter-spacing: .13em; }
+.presentation-mode-toggle, .presentation-step-controls button, .presentation-toc-item { border: 1px solid #cbd4cb; border-radius: 20px; background: #fff; color: #344743; padding: 8px 13px; cursor: pointer; }
+.presentation-toc { display: grid; gap: 8px; padding: 12px; }
+.presentation-toc-item { font-size: 10px; }
+.presentation-toc-item[data-presentation-active="true"] { color: #fff; background: #426d62; border-color: #426d62; font-weight: 700; }
+.presentation-caption { position: absolute; left: 50%; bottom: 72px; width: min(620px, 70vw); transform: translateX(-50%); text-align: center; color: #52615d; font-size: 14px; line-height: 1.55; }
+.presentation-progress { position: absolute; left: 50%; bottom: 33px; transform: translateX(-50%); display: flex; gap: 8px; }
+.presentation-progress-item { width: 9px; height: 9px; padding: 0; border: 1px solid #789087; border-radius: 99px; background: transparent; cursor: pointer; }
+.presentation-progress-item[data-presentation-active="true"] { width: 24px; background: #426d62; border-color: #426d62; }
+.presentation-step-controls { position: absolute; bottom: 20px; right: 38px; display: flex; gap: 7px; }
+.presentation-attribution { position: absolute; right: 38px; bottom: 66px; color: #667c73; font-size: 11px; text-decoration: none; }
+.presentation-attribution:hover { text-decoration: underline; }
+.presentation-mode-toggle:focus-visible, .presentation-step-controls button:focus-visible, .presentation-toc-item:focus-visible, .presentation-progress-item:focus-visible { outline: 3px solid #dc9a54; outline-offset: 3px; }
+.presentation-footer { min-height: 110px; }
+@media (max-width: 700px) {
+ .presentation-header { padding: 18px; }
+ .presentation-header-title strong { max-width: 58vw; }
+ .presentation-caption { bottom: 70px; width: calc(100vw - 40px); font-size: 12px; }
+ .presentation-attribution { right: 16px; bottom: 16px; font-size: 10px; }
+ .presentation-step-controls { right: 14px; bottom: 48px; }
+}

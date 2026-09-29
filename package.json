@@ -9,7 +9,12 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:bootstrap": "node scripts/test-bootstrap.mjs"
+    "test:bootstrap": "node scripts/test-bootstrap.mjs",
+    "test:inspection": "node scripts/test-inspection.mjs",
+    "test:verification": "node scripts/test-verification.mjs",
+    "test:integration": "npm run test:bootstrap && npm run test:inspection && npm run test:verification",
+    "verify": "node scripts/verify.mjs",
+    "inspect": "node scripts/inspect-presentation.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",
@@ -28,6 +33,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "playwright": "^1.55.0",
     "jsdom": "^30.1.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",

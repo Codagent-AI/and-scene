@@ -7,7 +7,7 @@ import { chromium } from 'playwright'
 const slug = process.argv[2]
 const viewportArg = process.argv.slice(3).find(arg => arg.startsWith('--viewport='))?.slice('--viewport='.length)
 const viewportMatch = viewportArg?.match(/^(\d+)x(\d+)$/)
-if (!slug || (viewportArg && !viewportMatch)) { console.error('Usage: npm run inspect -- <presentation-slug> [--viewport=<width>x<height>]'); process.exit(2) }
+if (!slug || (viewportArg !== undefined && !viewportMatch)) { console.error('Usage: npm run inspect -- <presentation-slug> [--viewport=<width>x<height>]'); process.exit(2) }
 const viewport = viewportMatch ? { width: Number(viewportMatch[1]), height: Number(viewportMatch[2]) } : { width: 1440, height: 900 }
 const suffix = viewportMatch ? `-${viewportArg}` : ''
 let server

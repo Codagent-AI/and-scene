@@ -37,6 +37,10 @@ try {
   if (narrow.includes('text/chrome overlap')) throw new Error(`Reference sample chrome collides at a phone viewport\n${narrow}`)
   const narrowShots = (await readdir(join(app, 'inspection'))).filter(file => file.includes('-390x844-') && file.endsWith('.png'))
   if (narrowShots.length !== 9) throw new Error(`Expected nine narrow-viewport screenshots, found ${narrowShots.length}`)
+  for (const bad of ['--viewport=', '--viewport=wide']) {
+    const rejected = spawnSync(process.execPath, ['scripts-inspect.mjs', 'how-to-make-a-presentation', bad], { cwd: app, encoding: 'utf8' })
+    if (rejected.status !== 2 || !rejected.stderr.includes('Usage:')) throw new Error(`Invalid ${bad} was not rejected with a usage error (exit ${rejected.status})`)
+  }
   console.log('INT-002 passed: two screenshots captured, diagnostics surfaced, and marked overlap exempted.')
 } catch (error) {
   console.error(`INT-002 failed: ${error.message}`)

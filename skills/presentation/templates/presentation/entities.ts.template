@@ -1,0 +1,5 @@
+/** Stable, presentation-local layout identities. Do not reuse this namespace elsewhere. */
+export const entities = {
+  root: '{{slug}}:root',
+  subject: '{{slug}}:subject',
+} as const

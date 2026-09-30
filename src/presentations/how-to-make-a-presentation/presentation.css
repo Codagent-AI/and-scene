@@ -1,0 +1,73 @@
+main:has(.how-scene) {
+  background: #f5f2ea;
+  color: #14261d;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  grid-template-rows: 58px minmax(0, 1fr) 156px !important;
+}
+
+main:has(.how-scene) [data-presentation-header] {
+  align-items: center;
+  border-bottom: 1px solid #c8c5b8;
+  display: flex;
+  gap: 14px;
+  padding: 0 30px;
+}
+
+main:has(.how-scene) [data-presentation-header] p,
+main:has(.how-scene) [data-presentation-header] h1 { font-size: 14px; margin: 0; }
+main:has(.how-scene) [data-presentation-marker] { color: #b44a30; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+main:has(.how-scene) [data-presentation-stage] { align-self: center; min-height: 380px !important; }
+main:has(.how-scene) [data-presentation-toc] { border-right: 1px solid #c8c5b8; display: grid; gap: 6px; padding: 26px 20px; width: 170px; }
+main:has(.how-scene) button { background: none; border: 0; color: inherit; cursor: pointer; }
+main:has(.how-scene) [data-presentation-toc] button { color: #68736c; font-size: 12px; text-align: left; }
+main:has(.how-scene) [data-presentation-toc-active='true'] { color: #b44a30; font-weight: 800; }
+main:has(.how-scene) [data-presentation-footer] { border-top: 1px solid #c8c5b8; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 20px; padding: 16px 30px 22px; position: relative; }
+main:has(.how-scene) [data-presentation-footer] h2 { font-family: Georgia, serif; font-size: 22px; grid-column: 1; margin: 0; }
+main:has(.how-scene) [data-presentation-caption] { font-size: 13px; grid-column: 1; line-height: 1.35; margin: 0; max-width: 720px; }
+main:has(.how-scene) [data-presentation-progress] { align-items: center; display: flex; gap: 7px; grid-column: 2; grid-row: 1; }
+main:has(.how-scene) [data-presentation-progress] button { border: 1px solid #839086; border-radius: 50%; height: 10px; padding: 0; width: 10px; }
+main:has(.how-scene) [data-presentation-progress-active='true'] { background: #b44a30; border-color: #b44a30 !important; transform: scale(1.35); }
+main:has(.how-scene) [data-presentation-step-controls] { align-self: end; display: flex; gap: 10px; grid-column: 2; grid-row: 2; transform: translateX(-128px); }
+main:has(.how-scene) [data-presentation-step-controls] button { border: 1px solid #14261d; font-size: 12px; padding: 5px 9px; }
+main:has(.how-scene) [data-presentation-step-controls] button:disabled { opacity: .35; }
+main:has(.how-scene) [data-presentation-attribution] { color: #496050; font-size: 11px; padding: 8px 12px; }
+
+.how-scene { color: #14261d; font-size: 14px; }
+.how-person, .how-skill, .how-prompt, .how-card, .how-kit, .how-verify, .how-ghost { border: 2px solid #14261d; border-radius: 8px; background: #fffdf7; padding: 10px 14px; }
+.how-person, .how-skill { background: #d8e7d8; font-weight: 800; text-align: center; width: 86px; }
+.how-prompt { border-color: #b44a30; color: #9e3825; font-family: Georgia, serif; font-size: 20px; }
+.how-question, .how-depth, .how-edited { background: #f3cd69; border: 1px solid #14261d; border-radius: 999px; font-size: 11px; padding: 5px 8px; position: absolute; }
+.how-conversation, .how-modify { fill: none; overflow: visible; stroke: #14261d; stroke-width: 2; }
+.how-tray { border: 1px solid #8a988d; border-radius: 10px; height: 94px; }
+.how-card { display: grid; gap: 5px; height: 72px; padding: 9px; width: 140px; }
+.how-card strong { color: #b44a30; font-size: 11px; text-transform: uppercase; }
+.how-card span { font-size: 11px; line-height: 1.2; }
+.how-ghost { border-color: #8a988d; border-style: dashed; color: #8a988d; height: 72px; text-align: center; width: 42px; }
+.how-kit { background: #dbe8eb; border-radius: 999px; font-size: 11px; padding: 7px 12px; }
+.how-verify { background: #e7d1eb; font-size: 12px; font-weight: 800; padding: 12px 10px; text-align: center; width: 84px; }
+.how-pass { color: #197243; font-size: 11px; font-weight: 800; }
+.how-modify-label { color: #6b3a82; font-size: 11px; font-weight: 700; }
+.how-reveal { border: 3px solid #b44a30; border-radius: 14px; color: #b44a30; font-family: Georgia, serif; font-size: 13px; height: 360px; letter-spacing: .08em; padding: 12px; text-align: right; text-transform: uppercase; }
+
+@media (max-width: 899px) {
+  main:has(.how-scene) { grid-template-rows: 52px minmax(0, 1fr) 174px !important; }
+  main:has(.how-scene) [data-presentation-header] { padding: 0 16px; }
+  main:has(.how-scene) [data-presentation-footer] { padding: 14px 16px 24px; }
+  main:has(.how-scene) [data-presentation-footer] h2 { font-size: 18px; }
+  main:has(.how-scene) [data-presentation-footer] { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; }
+  main:has(.how-scene) [data-presentation-caption] { max-width: 245px; }
+  main:has(.how-scene) [data-presentation-progress] { position: absolute; right: 16px; top: 21px; }
+  main:has(.how-scene) [data-presentation-step-controls] { grid-column: 1; grid-row: 3; justify-self: start; transform: none; }
+}
+
+@media (max-width: 600px) {
+  .how-person,
+  .how-skill,
+  .how-prompt,
+  .how-question,
+  .how-card strong,
+  .how-kit,
+  .how-verify,
+  .how-pass { font-size: 21px; }
+  .how-card > span:not(.how-edited) { display: none; }
+}

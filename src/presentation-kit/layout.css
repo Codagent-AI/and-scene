@@ -1,0 +1,6 @@
+/* Toolkit placement only; presentations own the attribution's visual treatment. */
+:where([data-presentation-attribution]) {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+}

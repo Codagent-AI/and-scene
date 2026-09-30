@@ -1,139 +1,81 @@
-import { AnimatePresence, motion } from 'motion/react'
-import { EASE } from '../constants'
-import type { Mode, StepMeta } from '../types'
+import type { PresentationMode } from '../types'
 
-interface FooterProps {
-  steps: StepMeta[]
-  step: number
-  last: number
-  mode: Mode
-  homeHref?: string
+export interface FooterProps {
+  mode: PresentationMode
+  /** Multi-line browse-mode reading caption. */
+  caption: string
+  stepIndex: number
+  stepCount: number
+  onSelectStep: (index: number) => void
   onPrev: () => void
   onNext: () => void
-  onSelect: (i: number) => void
+  canPrev: boolean
+  canNext: boolean
 }
 
 /**
- * Bottom chrome: the per-step caption (browse mode only — the title now lives
- * at the top in both modes), a row of progress dots, and prev/next.
+ * Present mode renders nothing (Header alone carries marker + title).
+ * Browse mode shows the reading caption, step progress indicators, and
+ * prev/next controls.
  */
 export function Footer({
-  steps,
-  step,
-  last,
   mode,
-  homeHref = '/',
+  caption,
+  stepIndex,
+  stepCount,
+  onSelectStep,
   onPrev,
   onNext,
-  onSelect,
+  canPrev,
+  canNext,
 }: FooterProps) {
-  const current = steps[step]
-  const browsing = mode === 'browse'
+  if (mode === 'present') {
+    return null
+  }
 
   return (
-    <footer
-      data-presentation-footer
-      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20, padding: '0 40px 24px' }}
-    >
-      <div data-presentation-footer-inner style={{ maxWidth: '48rem', margin: '0 auto' }}>
-        {/* Browse: the caption sits here, above the dots. Presenter: nothing —
-            the title is at the top now, so the band collapses away. */}
-        {browsing && (
-          <div
-            data-presentation-caption-shell
-            style={{
-              minHeight: '4.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={`caption-${step}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.35, ease: EASE }}
-                data-presentation-caption
-                style={{ textAlign: 'center' }}
-              >
-                {current.caption}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-        )}
-
-        <div
-          data-presentation-footer-row
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: browsing ? 'space-between' : 'center',
-            gap: browsing ? 12 : 0,
-            marginTop: browsing ? 20 : 0,
-          }}
-        >
-          {/* progress dots — centered on their own in presenter mode. In browse
-              mode they share the row with the nav, so they take the leftover
-              space and wrap rather than shoving prev/next off a narrow screen. */}
-          <div
-            data-testid="step-progress"
-            data-step-count={steps.length}
-            data-step-index={step}
-            data-presentation-progress
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              minWidth: browsing ? 0 : undefined,
-              flex: browsing ? '1 1 0' : undefined,
-              flexWrap: browsing ? 'wrap' : undefined,
-            }}
-          >
-            {steps.map((s, i) => (
-              <button
-                key={s.id}
-                onClick={() => onSelect(i)}
-                // Consecutive steps in an era share that label, so era alone gives
-                // many dots the same name. The position + title make each dot
-                // distinct for screen readers; blank-title chrome cards fall back
-                // to era.
-                aria-label={`Go to step ${i + 1}: ${s.title || s.era}`}
-                aria-current={i === step ? 'step' : undefined}
-                data-presentation-progress-dot
-                data-active={i === step ? 'true' : undefined}
-              />
-            ))}
-          </div>
-
-          {/* nav — hidden in presenter mode */}
-          {browsing && (
-            <div
-              data-presentation-nav
-              style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: 12 }}
+    <footer className="sk-footer sk-footer--browse" data-scene-kit="footer">
+      <p className="sk-footer__caption" data-scene-kit="caption">
+        {caption}
+      </p>
+      <div className="sk-footer__progress" data-scene-kit="progress" role="tablist" aria-label="Steps">
+        {Array.from({ length: stepCount }, (_, index) => {
+          const isActive = index === stepIndex
+          return (
+            <button
+              key={index}
+              type="button"
+              className="sk-progress-dot"
+              data-scene-kit="progress-dot"
+              data-active={isActive ? 'true' : 'false'}
+              aria-current={isActive ? 'step' : undefined}
+              aria-label={`Go to step ${index + 1}`}
+              onClick={() => onSelectStep(index)}
             >
-              <button
-                onClick={onPrev}
-                disabled={step === 0}
-                data-presentation-button="previous"
-              >
-                &#x2190; prev
-              </button>
-              {/* On the last step there's nowhere further to advance, so the
-                  next button becomes an exit back to the home route. */}
-              {step === last ? (
-                <a href={homeHref} data-presentation-button="home">
-                  home
-                </a>
-              ) : (
-                <button onClick={onNext} data-presentation-button="next">
-                  next &#x2192;
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+              <span className="sk-progress-dot__mark" data-scene-kit="progress-dot-mark" />
+            </button>
+          )
+        })}
+      </div>
+      <div className="sk-footer__nav" data-scene-kit="nav-controls">
+        <button
+          type="button"
+          className="sk-nav-button sk-nav-button--prev"
+          data-scene-kit="prev-button"
+          onClick={onPrev}
+          disabled={!canPrev}
+        >
+          Prev
+        </button>
+        <button
+          type="button"
+          className="sk-nav-button sk-nav-button--next"
+          data-scene-kit="next-button"
+          onClick={onNext}
+          disabled={!canNext}
+        >
+          Next
+        </button>
       </div>
     </footer>
   )

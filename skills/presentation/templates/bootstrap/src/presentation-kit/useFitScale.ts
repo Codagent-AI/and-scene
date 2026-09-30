@@ -1,25 +1,46 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useEffect, useRef, useState, type RefObject } from 'react'
+import { DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT } from './constants'
+import type { PresentationMode } from './types'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+export interface UseFitScaleResult {
+  containerRef: RefObject<HTMLDivElement | null>
+  scale: number
+}
 
 /**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
+ * Uniformly scales the fixed `DESIGN_W x DESIGN_H` canvas to fit the space
+ * available in `containerRef` for the given mode's chrome geometry, so the
+ * composition never reflows and `layoutId` morphs stay clean across sizes.
  */
-export function useFitScale(layout: StageLayout) {
+export function useFitScale(mode: PresentationMode): UseFitScaleResult {
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
+
+  useEffect(() => {
+    const node = containerRef.current
+    if (!node) return
+
+    const layout = STAGE_LAYOUT[mode]
+
+    function measure() {
+      const rect = node!.getBoundingClientRect()
+      const availableWidth = Math.max(rect.width - layout.sidePadding * 2, 0)
+      const availableHeight = Math.max(rect.height - layout.reservedTop - layout.reservedBottom, 0)
+      const fit = Math.min(availableWidth / DESIGN_W, availableHeight / DESIGN_H)
+      setScale(Number.isFinite(fit) ? Math.max(fit, MIN_SCALE) : MIN_SCALE)
     }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+
+    measure()
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    window.addEventListener('resize', measure)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [mode])
+
+  return { containerRef, scale }
 }

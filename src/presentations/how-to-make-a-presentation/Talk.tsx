@@ -1,15 +1,8 @@
 import { Presentation } from '../../presentation-kit'
+import type { BeatPayload } from './steps/Scene'
 import { STEPS } from './steps'
-import './style.css'
+import './presentation.css'
 
 export default function Talk() {
-  return (
-    <div className="reference-talk">
-      <Presentation
-        steps={STEPS}
-        title="How to Use This Skill to Make a Presentation"
-        initialMode="browse"
-      />
-    </div>
-  )
+  return <Presentation<BeatPayload> steps={STEPS} title="How to Use This Skill to Make a Presentation" initialMode="browse" />
 }

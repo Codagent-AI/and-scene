@@ -1,25 +1,28 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useEffect, useState } from 'react'
+import { DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT } from './constants'
+import type { PresentationMode } from './types'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+function computeScale(mode: PresentationMode): number {
+  const gap = STAGE_LAYOUT[mode]
+  const availWidth = window.innerWidth
+  const availHeight = window.innerHeight - gap.topGap - gap.bottomGap
+  const scale = Math.min(availWidth / DESIGN_W, availHeight / DESIGN_H)
+  return Math.max(MIN_SCALE, scale)
+}
 
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
-  const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
+/** Uniform scale factor to fit the fixed design canvas within the active mode's chrome gap. */
+export function useFitScale(mode: PresentationMode): number {
+  const [scale, setScale] = useState(() => computeScale(mode))
+
+  useEffect(() => {
+    function handleResize() {
+      setScale(computeScale(mode))
     }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [mode])
+
   return scale
 }

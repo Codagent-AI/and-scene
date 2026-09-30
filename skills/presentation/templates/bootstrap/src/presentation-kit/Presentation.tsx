@@ -1,139 +1,71 @@
-import type { ReactNode } from 'react'
+import { Stage } from './Stage'
+import { Attribution } from './chrome/Attribution'
 import { Footer } from './chrome/Footer'
 import { Header } from './chrome/Header'
 import { Toc } from './chrome/Toc'
-import { Stage } from './Stage'
-import { stepMarker } from './stepMarker'
+import { DESIGN_H, DESIGN_W } from './constants'
+import { useFitScale } from './useFitScale'
+import { useIsWideViewport } from './useIsWideViewport'
 import { usePresentationNav } from './usePresentationNav'
-import type { Mode, Step } from './types'
+import type { PresentationProps } from './types'
 
-export interface PresentationProps<P extends Record<string, unknown> = Record<string, unknown>> {
-  steps: Step<P>[]
-  initialMode?: Mode
-  title?: string
-  /** Optional header brand. Omitted by default; pass a logo or title node to add one. */
-  brand?: ReactNode
-  /** Home link target for the header brand and the last-step footer button. */
-  homeHref?: string
-  /** Accessible label for the home link. */
-  homeLabel?: string
-  /** Full-bleed layer rendered behind the content. */
-  background?: ReactNode
-  /**
-   * Full-bleed layer rendered *above* the content (e.g. a CRT/scanline overlay).
-   * Unlike `background`, it paints over the chrome. Pointer events pass through,
-   * so it never intercepts clicks. Use `background` for true backdrops.
-   */
-  overlay?: ReactNode
-  /**
-   * Override the per-step marker (top-right). Defaults to a zero-padded count.
-   * A callback (not a per-step field) so hosts can number relationally — e.g.
-   * skip chrome cards and count only body steps.
-   */
-  marker?: (index: number, steps: Step<P>[]) => string
-  /** Small bottom-right attribution link. Defaults to and-scene; pass `null` for an intentional opt-out. */
-  attribution?: ReactNode
-  /** Attribution target; defaults to the and-scene GitHub repository. */
-  attributionHref?: string
-}
+export function Presentation<TPayload>({ steps, initialMode }: PresentationProps<TPayload>) {
+  const { index, mode, next, prev, goTo, stageRef } = usePresentationNav({
+    stepCount: steps.length,
+    initialMode,
+  })
+  const scale = useFitScale(mode)
+  const isWide = useIsWideViewport()
 
-export function Presentation<P extends Record<string, unknown> = Record<string, unknown>>({
-  steps,
-  initialMode = 'browse',
-  title = 'Presentation',
-  brand,
-  homeHref = '/',
-  homeLabel,
-  background,
-  overlay,
-  marker,
-  attribution = 'made by and-scene',
-  attributionHref = 'https://github.com/Codagent-AI/and-scene',
-}: PresentationProps<P>) {
-  const { step, setStep, next, prev, last, mode } = usePresentationNav(steps.length, initialMode)
-  // An empty deck has no current step; render a clear placeholder instead of
-  // crashing on `steps[step].title`. (Hooks above run unconditionally first.)
+  // An empty deck has no scene to draw. Render the enumeration hooks anyway so
+  // verification reports an unusable step count instead of a render crash.
   if (steps.length === 0) {
-    return (
-      <div
-        data-presentation={title}
-        data-presentation-empty
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        No steps to present.
-      </div>
-    )
+    return <div data-presentation-root="" data-step-count={0} data-step-index={0} />
   }
-  const current = steps[step]
-  const markerText = (marker ?? ((i) => stepMarker(i)))(step, steps)
+
+  // `index` is already clamped to the current step count by usePresentationNav,
+  // so a deck that shrinks while mounted falls back to its last step.
+  const activeStep = steps[index]
+  const marker = String(index + 1).padStart(2, '0')
 
   return (
     <div
-      data-presentation={title}
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        userSelect: 'none',
-        overflow: 'hidden',
-      }}
+      data-presentation-root=""
+      data-step-count={steps.length}
+      data-step-index={index}
+      ref={stageRef}
+      style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
     >
-      {background && (
+      <Header mode={mode} marker={marker} title={activeStep.title} />
+
+      <div
+        data-presentation-canvas-viewport=""
+        style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+      >
         <div
-          data-presentation-background
-          style={{ position: 'absolute', inset: 0, zIndex: 0 }}
+          data-presentation-canvas=""
+          style={{ width: DESIGN_W, height: DESIGN_H, transform: `scale(${scale})` }}
         >
-          {background}
+          <Stage steps={steps} activeIndex={index} />
         </div>
-      )}
-      <div data-presentation-content style={{ position: 'relative', zIndex: 10, minHeight: '100vh' }}>
-        <Stage step={current} mode={mode} />
-        <Header
-          marker={markerText}
-          title={current.title}
-          brand={brand}
-          homeHref={homeHref}
-          homeLabel={homeLabel}
-        />
-        {mode === 'browse' && <Toc steps={steps} step={step} onSelect={setStep} />}
-        <Footer
-          steps={steps}
-          step={step}
-          last={last}
-          mode={mode}
-          homeHref={homeHref}
-          onPrev={prev}
-          onNext={next}
-          onSelect={setStep}
-        />
       </div>
-      {overlay && (
-        <div
-          data-presentation-overlay
-          style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 50 }}
-        >
-          {overlay}
-        </div>
-      )}
-      {attribution && (
-        <a
-          href={attributionHref}
-          data-presentation-attribution
-          style={{
-            position: 'absolute',
-            right: 16,
-            bottom: 8,
-            zIndex: 60,
-            fontSize: 12,
-          }}
-        >
-          {attribution}
-        </a>
-      )}
+
+      {mode === 'browse' && isWide ? (
+        <Toc steps={steps} activeIndex={index} onSelectEra={goTo} />
+      ) : null}
+
+      <Footer
+        mode={mode}
+        title={activeStep.title}
+        caption={activeStep.caption}
+        stepCount={steps.length}
+        activeIndex={index}
+        onGoTo={goTo}
+        onNext={next}
+        onPrev={prev}
+      />
+
+      <Attribution />
     </div>
   )
 }

@@ -1,0 +1,12 @@
+// Stable layoutId namespace for this presentation's entities.
+//
+// Every entity that should morph in place across steps (rather than being
+// removed and re-added) needs a stable id here. Reuse these constants as the
+// `layoutId` prop on Box/Label/Arrow/Frame/Emphasis/SymbolChip wherever the
+// entity appears across steps — the id, not the component instance, is what
+// makes `motion` treat it as "the same thing" across a navigation.
+//
+// Replace the placeholders below with one constant per entity in the scene.
+export const ENTITY = {
+  // EXAMPLE_ENTITY: 'example-entity',
+} as const

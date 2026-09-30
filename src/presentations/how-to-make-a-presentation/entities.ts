@@ -1,21 +1,20 @@
-/** Stable layoutId namespace — entities morph across steps when ids match. */
-export const ENTITIES = {
+// Stable layoutId namespace for this presentation's entities. The whole talk
+// is one continuously evolving scene: every entity below appears once and
+// persists (via its layoutId) for the rest of the presentation — nothing is
+// ever removed or redrawn once it has landed on stage.
+export const ENTITY = {
   you: 'you',
   prompt: 'prompt',
-  questionChip: 'question-chip',
-  convoArrow: 'convo-arrow',
   skill: 'skill',
-  stepCard1: 'step-card-1',
-  stepCard2: 'step-card-2',
-  stepCard3: 'step-card-3',
-  ghostCard: 'ghost-card',
-  depthChip: 'depth-chip',
+  connector: 'connector',
+  questionChip: 'question-chip',
   tray: 'tray',
-  kitSocket: 'kit-socket',
-  verifyArrow: 'verify-arrow',
+  cardStep: 'card-step',
+  cardDeck: 'card-deck',
+  ghostCard: 'ghost-card',
+  depthControl: 'depth-control',
+  sceneKit: 'scene-kit',
   verifyNode: 'verify-node',
-  greenCheck: 'green-check',
-  editBadge: 'edit-badge',
+  modifyArc: 'modify-arc',
+  outerFrame: 'outer-frame',
 } as const
-
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]

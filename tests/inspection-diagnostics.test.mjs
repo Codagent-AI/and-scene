@@ -55,6 +55,10 @@ describe('presentation inspection diagnostics', () => {
       expect(indistinct.some((warning) => warning.includes('table-of-contents'))).toBe(false)
       await page.setContent(fixture('background:#186b5b;box-shadow:0 0 0 2px #186b5b'))
       expect((await inspectWarnings(page)).some((warning) => warning.includes('visually indistinct'))).toBe(false)
+      for (const distinct of ['outline:4px solid red', 'outline:2px dashed red', 'border:3px solid red', 'width:40px', 'transform:scale(1.5)', 'opacity:.5']) {
+        await page.setContent(fixture(distinct).replace('</style>', '[data-presentation-progress-item]{outline:1px solid red}</style>'))
+        expect((await inspectWarnings(page)).some((warning) => warning.includes('active progress')), distinct).toBe(false)
+      }
     } finally { await browser.close() }
   }, 30000)
 })

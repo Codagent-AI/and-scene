@@ -1,0 +1,3 @@
+export function Toc({ sections, activeIndex, onSelect }: { sections: readonly { section: string; index: number }[]; activeIndex: number; onSelect: (index: number) => void }) {
+  return <nav className="presentation-toc" data-presentation-toc aria-label="Sections">{sections.map(({ section, index }) => <button type="button" key={`${section}-${index}`} className="presentation-toc__item" data-presentation-toc-item data-presentation-active={activeIndex >= index && (sections.find((item) => item.index > index)?.index ?? Infinity) > activeIndex ? 'true' : 'false'} aria-current={activeIndex >= index && (sections.find((item) => item.index > index)?.index ?? Infinity) > activeIndex ? 'location' : undefined} onClick={() => onSelect(index)}>{section}</button>)}</nav>
+}

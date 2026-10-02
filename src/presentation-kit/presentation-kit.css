@@ -1,0 +1,20 @@
+.presentation { position: fixed; inset: 0; overflow: hidden; }
+.presentation-header { position: absolute; inset: 0 0 auto; display: flex; align-items: center; justify-content: space-between; }
+.presentation-header-brand:empty { display: none; }
+.presentation-header-title { margin: 0; }
+.presentation-toc { position: absolute; z-index: 2; }
+.presentation-toc-item, .presentation-progress-item, .presentation-controls button, .presentation-mode-toggle { font: inherit; }
+.presentation-stage { position: absolute; inset: 0; display: grid; place-items: center; touch-action: pan-y; }
+.presentation-stage-viewport { position: relative; }
+.presentation-canvas { position: absolute; inset: 0 auto auto 0; transform-origin: top left; }
+.presentation-stage-count { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.presentation-footer { position: absolute; inset: auto 0 0; }
+.presentation-caption { max-width: 48rem; }
+.presentation-controls, .presentation-progress { display: flex; align-items: center; }
+.presentation-attribution { position: absolute; right: 1rem; bottom: .75rem; }
+.presentation-mode-toggle { position: absolute; top: .75rem; right: .75rem; }
+.presentation-footer-present .presentation-caption, .presentation-footer-present .presentation-controls { display: none; }
+.presentation:not([data-presentation-mode="browse"]) .presentation-toc { display: none; }
+.scene-layer { position: absolute; inset: 0; }
+.scene-box, .scene-label, .scene-arrow, .scene-frame, .scene-emphasis, .scene-symbol-chip { position: absolute; }
+@media (max-width: 760px) { .presentation-toc { display: none; } }

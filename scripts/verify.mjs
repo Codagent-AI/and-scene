@@ -64,6 +64,8 @@ try {
     await page.waitForTimeout(900)
     const title=await page.locator('[data-presentation-step-title]').innerText()
     if(title!==expected[i][1])throw new Error(`render check failed on ${currentStep}: expected "${expected[i][1]}", got "${title}"`)
+    const caption=await page.locator('[data-presentation-caption]').innerText()
+    if(caption!==expected[i][2])throw new Error(`render check failed on ${currentStep}: expected canonical caption "${expected[i][2]}", got "${caption}"`)
     if(errors.length)throw new Error(`render check failed on ${currentStep}: ${errors.join('; ')}`)
   }
   console.log(`PASS: build, canonical sample, and production render through all 9 steps at ${base}/${slug}`)

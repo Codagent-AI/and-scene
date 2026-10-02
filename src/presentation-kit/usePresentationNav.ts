@@ -5,15 +5,18 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
-  const goTo = useCallback((next: number) => setIndex(Math.max(0, Math.min(count - 1, next))), [count])
-  const next = useCallback(() => goTo(index + 1), [goTo, index])
-  const prev = useCallback(() => goTo(index - 1), [goTo, index])
+  const safeIndex = Math.max(0, Math.min(count - 1, index))
+  const goTo = useCallback((nextIndex: number) => setIndex(Math.max(0, Math.min(Math.max(0, count - 1), nextIndex))), [count])
+  const next = useCallback(() => goTo(safeIndex + 1), [goTo, safeIndex])
+  const prev = useCallback(() => goTo(safeIndex - 1), [goTo, safeIndex])
   const toggleMode = useCallback(() => setMode((value) => value === 'browse' ? 'present' : 'browse'), [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return
       const target = event.target
-      if (target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select, button, a, [role="button"], [tabindex]:not([tabindex="-1"])'))) return
+      if (target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'))) return
+      if ((event.key === ' ' || event.key === 'Enter') && target instanceof HTMLElement && target.matches('button, a, [role="button"]')) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') { event.preventDefault(); next() }
       else if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') toggleMode()
@@ -35,5 +38,5 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
       }
     },
   }
-  return { index, mode, goTo, next, prev, toggleMode, touchHandlers }
+  return { index: safeIndex, mode, goTo, next, prev, toggleMode, touchHandlers }
 }

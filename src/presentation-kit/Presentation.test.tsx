@@ -54,11 +54,29 @@ describe('Presentation scene kit', () => {
     expect(screen.getByText('Second caption')).toBeTruthy()
   })
 
-  it('does not hijack navigation keys from focused controls', () => {
+  it('keeps deck shortcuts working after controls receive focus and preserves native activation keys', async () => {
     render(<Presentation steps={steps} title="Test" />)
     const control = screen.getByRole('button', { name: 'Go to step 2: Second' })
     control.focus()
     fireEvent.keyDown(control, { key: 'ArrowRight' })
-    expect(screen.getByText('First caption')).toBeTruthy()
+    await waitFor(() => expect(screen.getByText('Second caption')).toBeTruthy())
+    fireEvent.keyDown(control, { key: 'p' })
+    expect(screen.getByText('Test — Second')).toBeTruthy()
+    fireEvent.keyDown(control, { key: 'p', ctrlKey: true })
+    expect(screen.getByText('Test — Second')).toBeTruthy()
+    fireEvent.keyDown(control, { key: ' ', cancelable: true })
+    expect(screen.getByText('Test — Second')).toBeTruthy()
+  })
+
+  it('clamps the active step when the step list shrinks or becomes empty', () => {
+    const { rerender, container } = render(<Presentation steps={steps} title="Test" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 2: Second' }))
+    expect(container.querySelector('[data-step-index="1"]')).toBeTruthy()
+    rerender(<Presentation steps={[steps[0]]} title="Test" />)
+    expect(container.querySelector('[data-step-index="0"]')).toBeTruthy()
+    rerender(<Presentation steps={[]} title="Test" />)
+    expect(container.querySelector('[data-step-index]')).toBeNull()
+    rerender(<Presentation steps={[steps[0]]} title="Test" />)
+    expect(container.querySelector('[data-step-index="0"]')).toBeTruthy()
   })
 })

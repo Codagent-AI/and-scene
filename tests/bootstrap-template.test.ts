@@ -34,6 +34,12 @@ describe('distributable bootstrap template', () => {
       await symlink(path.join(repo, 'node_modules'), path.join(target, 'node_modules'), 'dir')
       const registryPath = path.join(target, 'src/presentations/index.ts')
       const registry = await readFile(registryPath, 'utf8')
+      const talkPath = path.join(target, 'src/presentations/starter/Talk.tsx')
+      const talk = await readFile(talkPath, 'utf8')
+      await writeFile(talkPath, talk.replace(
+        "  { id: 'welcome', era: 'Welcome', title: 'Your first scene', caption: 'Replace this starter with your evolving presentation.', Scene: StarterScene, payload: { label: 'Your topic' }, groupKey: 'starter' },",
+        "  { id: 'welcome', era: 'Welcome', title: 'Your first scene', caption: 'Replace this starter with your evolving presentation.', Scene: StarterScene, payload: { label: 'Your topic' }, groupKey: 'starter' },\n  { id: 'next', era: 'Welcome', title: 'Next', caption: 'Second step.', Scene: StarterScene, payload: { label: 'Next topic' }, groupKey: 'starter' },",
+      ))
       const twoRoutes = registry.replace(
         "  { slug: 'starter', title: 'Your presentation', load: () => import('./starter/Talk') },",
         "  { slug: 'starter', title: 'Your presentation', load: () => import('./starter/Talk') },\n  { slug: 'second', title: 'Second route', load: () => import('./starter/Talk') },",
@@ -43,8 +49,19 @@ describe('distributable bootstrap template', () => {
       expect(verifyOutput).toContain('PASS: starter rendered')
       expect(verifyOutput).toContain('PASS: second rendered')
       expect(verifyOutput).not.toContain('comment-is-not-a-route')
-      const inspectOutput = execFileSync('npm', ['run', 'inspect', '--prefix', target, '--', 'starter'], { cwd: os.tmpdir(), encoding: 'utf8' })
-      expect(inspectOutput).toContain('Captured 1 settled step screenshots')
+      const inspectOutput = execFileSync('npm', ['run', 'inspect', '--prefix', target, '--', 'starter'], { cwd: os.tmpdir(), encoding: 'utf8', env: { ...process.env, PRESENTATION_SETTLE_MS: '0' } })
+      expect(inspectOutput).toContain('Captured 2 settled step screenshots')
+      const htmlPath = path.join(target, 'dist/index.html')
+      await writeFile(htmlPath, (await readFile(htmlPath, 'utf8')).replace('<body>', '<body><script>document.addEventListener("keydown", event => { if (event.key === "ArrowRight") event.stopImmediatePropagation() }, true)</script>'))
+      try {
+        execFileSync('node', ['scripts/inspect-presentation.mjs', 'starter'], { cwd: target, encoding: 'utf8', stdio: 'pipe', env: { ...process.env, PRESENTATION_SETTLE_MS: '0' }, timeout: 15_000 })
+        throw new Error('inspection unexpectedly succeeded after a blocked transition')
+      } catch (error) {
+        if ((error as Error).message === 'inspection unexpectedly succeeded after a blocked transition') throw error
+        const result = error as { status?: number; stdout?: string; stderr?: string }
+        expect(result.status).not.toBe(0)
+        expect(`${result.stdout ?? ''}${result.stderr ?? ''}`).toMatch(/waiting for function|timeout/i)
+      }
       const templateFiles = await filesUnder(path.join(target, 'src/presentation-kit'))
       const canonicalFiles = await filesUnder(path.join(repo, 'src/presentation-kit'))
       const sourceFiles = (files: string[]) => files.filter((file) => !file.endsWith('.test.tsx') && !file.endsWith('.test.ts'))

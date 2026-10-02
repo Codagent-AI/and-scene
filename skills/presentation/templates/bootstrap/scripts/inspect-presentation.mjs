@@ -20,6 +20,7 @@ try {
   const out = `presentation-artifacts/${slug}`
   await mkdir(out, { recursive: true })
   for (let index = 0; index < count; index++) {
+    await page.waitForFunction((expected) => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === String(expected), index, { timeout: 5_000 })
     await page.waitForTimeout(Number(process.env.PRESENTATION_SETTLE_MS ?? 1100))
     const warnings = await page.evaluate(inspectDiagnostics)
     for (const warning of warnings) console.warn(`WARN step ${index + 1}: ${warning}`)

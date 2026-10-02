@@ -54,6 +54,7 @@ describe('presentation bootstrap template', () => {
       for (const path of await filesBelow(canonicalKit)) {
         expect(await readFile(join(app, 'src/presentation-kit', path), 'utf8')).toBe(await readFile(join(canonicalKit, path), 'utf8'))
       }
+      expect(await readFile(join(app, 'src/routeUtils.ts'), 'utf8')).toBe(await readFile(join(repository, 'src/routeUtils.ts'), 'utf8'))
       const manifest = JSON.parse(await readFile(join(app, 'package.json'), 'utf8')) as { dependencies: Record<string, string>; devDependencies: Record<string, string> }
       expect({ ...manifest.dependencies, ...manifest.devDependencies }).toEqual(expect.objectContaining({
         react: expect.any(String), 'react-dom': expect.any(String), motion: expect.any(String), 'lucide-react': expect.any(String), vite: expect.any(String),

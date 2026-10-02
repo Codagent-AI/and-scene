@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { Presentation, fitScale, usePresentationNav, type SceneProps, type Step } from '../src/presentation-kit'
 import { Box, SceneLayer } from '../src/presentation-kit'
 import { safeDecodePathSegment } from '../src/routeUtils'
+import { safeDecodePathSegment as bootstrapSafeDecodePathSegment } from '../skills/presentation/templates/bootstrap/src/routeUtils'
 
 type Payload = { count: number; labels: string[] }
 function TypedScene({ payload }: SceneProps<Payload>) {
@@ -29,6 +30,8 @@ describe('presentation kit contracts', () => {
     expect(safeDecodePathSegment('%E0%A4%A')).toBe('')
     expect(safeDecodePathSegment('%')).toBe('')
     expect(safeDecodePathSegment('how-to')).toBe('how-to')
+    expect(bootstrapSafeDecodePathSegment('%E0%A4%A')).toBe('')
+    expect(bootstrapSafeDecodePathSegment('how-to')).toBe('how-to')
   })
 
   it('exposes active state semantics on step progress and section navigation', () => {
@@ -62,6 +65,15 @@ describe('presentation kit contracts', () => {
     act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })))
     expect(result.current.index).toBe(1)
     input.remove()
+    const nextButton = document.createElement('button')
+    document.body.append(nextButton)
+    act(() => nextButton.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })))
+    expect(result.current.index).toBe(0)
+    act(() => nextButton.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true })))
+    expect(result.current.index).toBe(0)
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true })))
+    expect(result.current.mode).toBe('present')
+    nextButton.remove()
     unmount()
   })
 

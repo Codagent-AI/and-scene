@@ -6,6 +6,6 @@ import { useEntityMotion } from './entity'
 type FrameProps = Omit<HTMLMotionProps<'div'>, 'id' | 'layout' | 'layoutId' | 'className' | 'style'> & StyleProps
 
 export function Frame({ id, className, style, children, ...props }: FrameProps) {
-  const motionProps = useEntityMotion<HTMLDivElement>(props)
+  const motionProps = useEntityMotion<HTMLDivElement>(props, style)
   return <motion.div {...props} {...motionProps} layout layoutId={id} className={['scene-frame', className].filter(Boolean).join(' ')} style={style} data-scene-node="frame" data-entity-id={id}>{children}</motion.div>
 }

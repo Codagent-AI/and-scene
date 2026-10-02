@@ -8,7 +8,7 @@ type BoxProps = Omit<HTMLMotionProps<'div'>, 'id' | 'layout' | 'layoutId' | 'cla
 
 export function Box({ id, className, style, children, Icon, as = 'div', ...props }: BoxProps) {
   const Component = as === 'article' ? motion.article : motion.div
-  const motionProps = useEntityMotion<HTMLDivElement>(props)
+  const motionProps = useEntityMotion<HTMLDivElement>(props, style)
   return <Component {...props} {...motionProps} layout layoutId={id} className={['scene-box', className].filter(Boolean).join(' ')} style={style} data-scene-node="box" data-entity-id={id}>
     {Icon && <Icon className="scene-box-icon" aria-hidden="true" />}{children}
   </Component>

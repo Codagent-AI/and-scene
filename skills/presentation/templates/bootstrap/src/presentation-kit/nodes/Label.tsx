@@ -6,6 +6,6 @@ import { useEntityMotion } from './entity'
 type LabelProps = Omit<HTMLMotionProps<'span'>, 'id' | 'layout' | 'layoutId' | 'className' | 'style'> & StyleProps
 
 export function Label({ id, className, style, children, ...props }: LabelProps) {
-  const motionProps = useEntityMotion<HTMLSpanElement>(props)
+  const motionProps = useEntityMotion<HTMLSpanElement>(props, style)
   return <motion.span {...props} {...motionProps} layout layoutId={id} className={['scene-label', className].filter(Boolean).join(' ')} style={style} data-scene-node="label" data-entity-id={id}>{children}</motion.span>
 }

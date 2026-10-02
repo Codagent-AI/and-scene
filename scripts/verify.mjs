@@ -4,6 +4,7 @@ import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from '@playwright/test'
+import { assertPreviewPortAvailable } from './preview-port.mjs'
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const host = '127.0.0.1'
 const port = Number(process.env.PREVIEW_PORT ?? 4173)
@@ -34,6 +35,7 @@ try {
   if (!registry.includes(`slug: '${slug}'`) || !registry.includes(`./${slug}/Talk`)) throw new Error(`sample check failed: ${slug} is not registered`)
   for (const [section,title,caption] of expected) for (const value of [section,title,caption]) if (!source.includes(value)) throw new Error(`sample check failed: missing canonical text: ${title}`)
   if ((source.match(/\['the ask'|\['the gathering'|\['the build'|\['the loop'|\['the reveal'/g) ?? []).length !== 9) throw new Error('sample check failed: expected exactly nine ordered steps')
+  await assertPreviewPortAvailable(host,port)
   preview = spawn(process.execPath,[resolve(project,'node_modules/vite/bin/vite.js'),'preview','--host',host,'--port',String(port),'--strictPort'],{cwd:project,stdio:'ignore'})
   let previewError
   preview.once('error', (error) => { previewError = error })
@@ -41,7 +43,7 @@ try {
   for(let i=0;i<80;i++){
     if(previewError)throw new Error(`render check failed: preview could not start: ${previewError.message}`)
     if(preview.exitCode!==null)throw new Error(`render check failed: preview exited early (code ${preview.exitCode})`)
-    try{if((await fetch(base)).ok){ready=true;break}}catch{}
+    try{if((await fetch(base)).ok){await delay(250);if(previewError)throw new Error(`render check failed: preview could not start: ${previewError.message}`);if(preview.exitCode!==null)throw new Error(`render check failed: preview exited early (code ${preview.exitCode})`);ready=true;break}}catch(error){if(error.message.startsWith('render check failed:'))throw error}
     await delay(250)
   }
   if(previewError)throw new Error(`render check failed: preview could not start: ${previewError.message}`)

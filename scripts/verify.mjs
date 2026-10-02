@@ -40,19 +40,35 @@ try {
     previous = at
   }
 
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { stdio: 'ignore' })
+  const previewUrl = 'http://127.0.0.1:4173'
+  let serverExit
+  let serverError
+  let serverOutput = ''
+  let serverStderr = ''
+  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] })
+  server.stdout.setEncoding('utf8').on('data', (chunk) => { serverOutput += chunk })
+  server.stderr.setEncoding('utf8').on('data', (chunk) => { serverStderr += chunk })
+  server.once('error', (error) => { serverError = error })
+  server.once('exit', (code, signal) => { serverExit = { code, signal } })
   let ready = false
   for (let attempt = 0; attempt < 60; attempt++) {
-    try { if ((await fetch('http://127.0.0.1:4173/')).ok) { ready = true; break } } catch {}
+    if (serverError) throw new Error(`Render verification failed: could not start preview: ${serverError.message}`)
+    if (serverExit) throw new Error(`Render verification failed: preview server exited early (port in use?): ${JSON.stringify(serverExit)}${serverStderr ? `; ${serverStderr.trim()}` : ''}`)
+    // Vite's own ready line proves this child bound the port; a successful fetch
+    // alone could belong to an unrelated server already listening there.
+    if (serverOutput.includes(`${previewUrl}/`)) {
+      try { if ((await fetch(`${previewUrl}/`)).ok) { ready = true; break } } catch {}
+    }
     await delay(250)
   }
-  if (!ready) throw new Error('Render verification failed: preview did not become ready on 127.0.0.1:4173')
+  if (!ready) throw new Error(`Render verification failed: preview did not become ready on 127.0.0.1:4173${serverStderr ? `; ${serverStderr.trim()}` : ''}`)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
   const errors = []
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', (error) => errors.push(error.message))
-  const response = await page.goto(`http://127.0.0.1:4173/${slug}`)
+  if (serverExit || serverError) throw new Error(`Render verification failed: preview server stopped before browser navigation${serverStderr ? `; ${serverStderr.trim()}` : ''}`)
+  const response = await page.goto(`${previewUrl}/${slug}`)
   if (!response?.ok()) throw new Error(`Render verification failed: /${slug} returned ${response?.status()}`)
   const footer = page.locator('[data-step-count]')
   try { await footer.waitFor({ timeout: 5000 }) }
@@ -60,6 +76,7 @@ try {
   const count = Number(await footer.getAttribute('data-step-count'))
   if (count !== outline.length) throw new Error(`Render verification failed at step 1: expected ${outline.length} steps, found ${count}`)
   for (activeStep = 0; activeStep < count; activeStep++) {
+    if (serverExit || serverError) throw new Error(`Render verification failed at step ${activeStep + 1}: preview server stopped${serverStderr ? `; ${serverStderr.trim()}` : ''}`)
     await page.waitForTimeout(650)
     const actual = Number(await footer.getAttribute('data-step-index'))
     if (actual !== activeStep) throw new Error(`Render verification failed at step ${activeStep + 1}: observed index ${actual}`)

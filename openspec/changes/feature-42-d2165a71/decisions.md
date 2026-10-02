@@ -29,3 +29,31 @@ issue's stated merge gate ("Do not merge until the eval has been run").
 3. Do both (`main` PR plus a new fixture commit and an agent-evals re-pin). This is probably what the
    issue intends, but it needs a cross-repository change and a decision on how the eval gate is run.
    That is a direction-level stop under the define rules.
+
+## reconcile (attempt 2) — stop resolved by issue comment (decision-bearing)
+
+**Revision:** The `propose` direction-level stop above is superseded. Paul's comment on issue #42
+(2026-10-02T15:23:54Z) answers each open question. Definition resumes at `propose` with this scope:
+
+1. **Scope is `main` only.** The fixture half of "both" is already done.
+   `eval/fixture-sonnet-validator` has the `task-compliance` entry at
+   `b83deca4d3a8be7f70c97e6eabc25b79b6edeb2a` (parent `2262a9f1`). This change adds the same opt-in
+   entry to `main`'s `.validator/config.yml` and does not touch the fixture branch.
+2. **No agent-evals change.** Re-pinning `FIXTURE_REF` and touching Codagent-AI/agent-evals is out of
+   scope for this ticket. This removes the "change outside the target repository" stop condition.
+3. **Eval gate is external to this change.** Paul will run the eval separately with
+   `--fixture-ref b83deca4d3a8be7f70c97e6eabc25b79b6edeb2a` after reviewing the PR. The factory opens
+   the PR and does not merge it. "Run the eval" is not an implementation task here. The PR description
+   must say that merge waits for that eval.
+
+**Entry to add (matches agent-runner's reference form):** under `entry_points[path: .].reviews`,
+`- task-compliance: {builtin: task-compliance, enabled: false}`. Existing `code-quality` and
+`skill-quality` reviews and the codex/gpt-6-sol CLI settings stay unchanged. The fixture's
+claude/sonnet-5.5 and `all-reviewers` drift is not reconciled into `main`.
+
+**Alternatives considered:**
+- Keep the stop. Rejected because every stop question now has an explicit answer from the issue author.
+- Also update the fixture branch or re-pin agent-evals. Rejected because the comment says both are
+  done or out of scope.
+- Align `main`'s reviewer config with the fixture's. Rejected because the issue doesn't ask for it,
+  and it would change real and-scene runs beyond the opt-in entry.

@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify browser presentations, slide decks, talks, or evolving diagrams with the local React scene kit. Use when asked to make, build, or change presentation slides or a visual talk.
+description: Creates browser presentations as evolving diagrammatic React scenes. Use when the user asks to make a deck, build a talk, add a step, animate a diagram, edit slides, or mentions a presentation, deck, talk, or scene kit.
 ---
 
 # Presentation skill
@@ -21,11 +21,11 @@ For modification, identify the target presentation first. If unspecified or ambi
 
 Resolve template files from this skill's own directory (`SKILL.md` parent / `templates/`), never from the shell's current working directory. Determine the target project from the user's requested directory or the current project.
 
-Check the host's package scripts, source tree, build config, and registry rather than relying on one exact filename. The conventional locations below are good starting points; equivalent filenames and implementations count when they satisfy the stated contract:
+Check these anchors using the default checks below. A different filename is acceptable only when the same observable check succeeds against that implementation. Treat an anchor as missing when its check fails; inspect before replacing files so existing work stays intact.
 
-1. Build: inspect `package.json`, `vite.config.*`, and the TypeScript app entry (commonly `src/main.tsx`). Confirm a Vite + React + TypeScript app and a working `npm run build`.
-2. Scene kit: inspect the kit exports and stage/navigation/chrome implementation (commonly `src/presentation-kit/`). Confirm a typed Step/Scene contract, active scene host with entity morphs, browse/present navigation, caption/contents chrome, and fixed-canvas fit scaling.
-3. Presentation index: inspect the registry and router (commonly `src/presentations/index.ts` and `src/main.tsx` or `src/AppRouter.tsx`). Confirm an explicit mapping from independent presentations to routes.
+1. **Build setup:** inspect `package.json`, `vite.config.*`, and the app entry (usually `src/main.tsx`). It passes when React, Vite, and TypeScript are configured and `npm run build` succeeds.
+2. **Scene kit:** inspect the kit's public exports and implementations (usually `src/presentation-kit/`). It passes when the kit exports a typed `Step`/`SceneProps` contract and a `Stage`, and includes scene hosting, browse/present navigation, caption/contents chrome, and fixed-canvas scaling; confirm the app builds with `npm run build`.
+3. **Presentation index:** inspect the registry and route resolver (usually `src/presentations/index.ts` and `src/main.tsx` or `src/AppRouter.tsx`). It passes when an explicit registry entry has a slug, title, and presentation loader, and the resolver loads that entry at its own route.
 
 Presence is based on behavior and contract, not filenames or byte equality. Reuse existing anchors and scaffold only missing parts. Do not replace user files or existing presentations. If the project is non-empty and unscaffolded, state the resolved target and what will be added, then wait for confirmation before writing. Empty/standalone projects use the root. In a monorepo (workspaces in package.json, pnpm-workspace.yaml, or packages/ or apps/ layout), make a self-contained app under `presentations/`; preserve root files. If already inside a presentation app, scaffold only missing anchors there.
 
@@ -44,12 +44,18 @@ Create each presentation as its own directory under `src/presentations/<slug>/`,
 
 A new presentation must not rewrite existing presentation files. For a modification, edit only the selected presentation and the minimum necessary registry or shared-host files. Put colors, fonts, spacing, borders, shadows, card/button treatments, and responsive visual choices in presentation-owned plain CSS by default. The reusable kit stays style-neutral. Mark intentional overlap on the smallest applicable subtree with `data-allow-overlap`; use it only when the overlap remains readable.
 
-Do not expand the request into PowerPoint, Keynote, PDF, or image export, a visual editor, or hosting/publishing features. Keep generated runtime code React-based, and do not move a presentation's visual theme into the reusable kit.
-
 Templates:
 - `templates/presentation/` contains the routed presentation entry and entity namespace starter.
 - `templates/step/` contains a typed step and scene starter.
 - `templates/bootstrap/` is the complete app + kit starter for missing infrastructure.
+
+## Out of Scope
+
+- **PowerPoint, Keynote, PDF, or image export:** explain that this skill creates browser presentations; offer to create or revise the browser version instead.
+- **Visual editor:** explain that presentations are authored in code, then offer to make the requested change in the presentation source.
+- **Hosting or publishing:** explain that deployment is not included and direct the user to their preferred hosting workflow.
+
+Keep generated runtime code React-based, and keep presentation themes out of the reusable kit.
 
 ## 4. Verify and inspect before reporting success
 
@@ -57,4 +63,12 @@ Run the target app's `npm run build` and `npm run lint`. Ensure the route is reg
 
 Use `npm run inspect -- <slug>` when available. Wait for animations to settle and inspect screenshots of the first and last steps plus dense/key steps. Also inspect a narrow viewport when layout is responsive-sensitive. Review warnings for unintended text/chrome overlap, indistinct active navigation, and missing/default/undersized attribution. Fix functional failures and accidental visual collisions; use `data-allow-overlap` only for intentional readable overlap. Repeat build, render, and inspection after each fix until those checks pass. Do not report completion while any check fails. Summarize the route, files, commands, and any remaining advisory warnings accurately.
 
-For a completed creation, report the presentation title and route, the key files created, the checks run, and any remaining visual advisories. For a modification, report the target title and route, the scoped files changed, the checks run, and any remaining visual advisories.
+Use this completion format for both creation and modification; for a modification, list only the scoped files changed:
+
+```text
+Title: <presentation title>
+Route: /<slug>
+Files: <key created or changed files>
+Checks run: <build, render, and visual inspection results>
+Advisories: <remaining warnings, or none>
+```

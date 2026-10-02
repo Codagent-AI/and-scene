@@ -88,11 +88,22 @@ try {
     } catch (error) { throw new Error(`browser render/transition failed at step ${currentStep}: ${error.message}`) }
   }
   try {
-    const frame = page.locator('[data-presentation-entity="howto-frame"]')
+    const exitEntity = 'howto-frame'
+    const previousIndex = count - 2
+    await page.evaluate(({ entityId }) => {
+      const root = document.querySelector('[data-presentation]')
+      const log = { stepChangedAt: undefined, removedAt: undefined }
+      const node = document.querySelector(`[data-presentation-entity="${entityId}"]`)
+      if (!root || !node) throw new Error(`entity ${entityId} is not on the final step`)
+      new MutationObserver(() => { log.stepChangedAt ??= performance.now() }).observe(root, { attributes: true, attributeFilter: ['data-step-index'] })
+      new MutationObserver(() => { if (!node.isConnected) log.removedAt ??= performance.now() }).observe(document.body, { childList: true, subtree: true })
+      window.__exitLog = log
+    }, { entityId: exitEntity })
     await page.keyboard.press('ArrowLeft')
-    await page.waitForFunction(() => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === '7', undefined, { timeout: 3_000 })
-    if (await frame.count() === 0) throw new Error('departing reveal frame was removed immediately instead of animating out')
-    await frame.waitFor({ state: 'detached', timeout: 3_000 })
+    await page.waitForFunction((expected) => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === String(expected), previousIndex, { timeout: 3_000 })
+    await page.waitForFunction(() => window.__exitLog.removedAt !== undefined, undefined, { timeout: 3_000 })
+    const { stepChangedAt, removedAt } = await page.evaluate(() => window.__exitLog)
+    if (removedAt - stepChangedAt < 100) throw new Error(`${exitEntity} was removed ${Math.round(removedAt - stepChangedAt)}ms after the step change instead of animating out`)
   } catch (error) { throw new Error(`departing entity exit failed: ${error.message}`) }
   console.log(`PASS: ${title} rendered all 9 steps at http://${server.host}:${server.port}/${slug}`)
 } catch (error) {

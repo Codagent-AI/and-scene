@@ -1,0 +1,6 @@
+:root { font-synthesis: none; text-rendering: optimizeLegibility; }
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
+button, input, textarea, select { font: inherit; }
+.presentation-landing { max-width: 70rem; margin-inline: auto; padding: 3rem; }
+.presentation-landing ul { padding-inline-start: 1.25rem; }

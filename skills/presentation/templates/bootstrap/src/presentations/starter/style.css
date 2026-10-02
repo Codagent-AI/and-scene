@@ -1,0 +1,17 @@
+/* Starter visuals belong to this presentation; the reusable kit stays neutral. */
+.presentation-header { padding: 1.25rem 2rem; }
+.presentation-header-title { font: 600 1rem/1.2 system-ui, sans-serif; }
+.presentation-header-mode { opacity: .65; font: 600 .75rem/1 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .08em; margin-right: 3rem; }
+.presentation-toc { top: 5rem; left: 2rem; display: grid; gap: .5rem; }
+.presentation-toc-item, .presentation-progress-item, .presentation-controls button, .presentation-mode-toggle { border: 1px solid #9aa4b2; border-radius: 999px; padding: .5rem .75rem; background: white; color: #253044; cursor: pointer; }
+.presentation-toc-item[data-presentation-active="true"], .presentation-progress-item[data-presentation-active="true"] { background: #253044; color: white; }
+.presentation-footer { display: flex; align-items: end; justify-content: space-between; gap: 1rem; padding: 1.5rem 2rem; font: 400 .95rem/1.5 system-ui, sans-serif; }
+.presentation-caption { max-width: 35rem; }
+.presentation-caption p { margin: .25rem 0 0; }
+.presentation-progress, .presentation-controls { gap: .4rem; }
+.presentation-progress-item { min-width: 2.5rem; }
+.presentation-controls button:disabled { opacity: .45; cursor: default; }
+.presentation-attribution { bottom: .25rem; }
+.presentation-attribution a { color: inherit; font: 500 .75rem/1.4 system-ui, sans-serif; text-decoration: none; }
+.presentation-mode-toggle { top: 1.25rem; right: 1.25rem; }
+.starter-topic { left: 20%; top: 35%; padding: 1.25rem 1.5rem; border: 1px solid #64748b; border-radius: .75rem; background: white; color: #172033; font: 600 1.5rem/1.2 system-ui, sans-serif; box-shadow: 0 12px 30px #17203318; }

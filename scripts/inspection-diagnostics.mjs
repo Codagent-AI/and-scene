@@ -11,7 +11,7 @@ export async function inspectWarnings(page) {
       const first = visible[a], second = visible[b]
       if (first.closest('[data-allow-overlap]') || second.closest('[data-allow-overlap]')) continue
       const x = first.getBoundingClientRect(), y = second.getBoundingClientRect()
-      if (x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top) overlaps.push(`${first.getAttribute('data-scene-entity') || first.className || first.tagName} / ${second.getAttribute('data-scene-entity') || second.className || second.tagName}`)
+      if (x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top) overlaps.push(`${first.getAttribute('data-scene-entity') || first.getAttribute('class') || first.tagName} / ${second.getAttribute('data-scene-entity') || second.getAttribute('class') || second.tagName}`)
     }
     const warnings = overlaps.length ? [`visible text/chrome overlap: ${[...new Set(overlaps)].join(', ')}`] : []
     const active = [...root.querySelectorAll('[aria-current="step"], [aria-current="location"]')]

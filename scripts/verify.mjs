@@ -24,7 +24,10 @@ let preview, browser
 let currentStep = 'startup'
 try {
   const build = spawn('npm', ['run','build'], { cwd: project, stdio: 'inherit' })
-  const code = await new Promise((resolve) => build.on('close', resolve))
+  const code = await new Promise((resolve, reject) => {
+    build.once('error', reject)
+    build.once('close', resolve)
+  })
   if (code !== 0) throw new Error(`build failed (exit ${code})`)
   const registry = await readFile(resolve(project,'src/presentations/index.ts'),'utf8')
   const source = await readFile(resolve(project,`src/presentations/${slug}/steps/index.tsx`),'utf8')
@@ -32,8 +35,16 @@ try {
   for (const [section,title,caption] of expected) for (const value of [section,title,caption]) if (!source.includes(value)) throw new Error(`sample check failed: missing canonical text: ${title}`)
   if ((source.match(/\['the ask'|\['the gathering'|\['the build'|\['the loop'|\['the reveal'/g) ?? []).length !== 9) throw new Error('sample check failed: expected exactly nine ordered steps')
   preview = spawn(process.execPath,[resolve(project,'node_modules/vite/bin/vite.js'),'preview','--host',host,'--port',String(port),'--strictPort'],{cwd:project,stdio:'ignore'})
+  let previewError
+  preview.once('error', (error) => { previewError = error })
   let ready=false
-  for(let i=0;i<80;i++){if(preview.exitCode!==null)throw new Error('render check failed: preview exited early');try{if((await fetch(base)).ok){ready=true;break}}catch{}await delay(250)}
+  for(let i=0;i<80;i++){
+    if(previewError)throw new Error(`render check failed: preview could not start: ${previewError.message}`)
+    if(preview.exitCode!==null)throw new Error(`render check failed: preview exited early (code ${preview.exitCode})`)
+    try{if((await fetch(base)).ok){ready=true;break}}catch{}
+    await delay(250)
+  }
+  if(previewError)throw new Error(`render check failed: preview could not start: ${previewError.message}`)
   if(!ready)throw new Error(`render check failed: preview not ready at ${base}`)
   browser=await chromium.launch({headless:true})
   const page=await browser.newPage({viewport:{width:1440,height:1000}})

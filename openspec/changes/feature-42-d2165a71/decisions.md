@@ -196,3 +196,20 @@ The one-run cost limit and the reviewer-unchanged rule from the earlier test-pla
 - Keep the live run optional. Rejected: no other evidence covers `main`'s execution path.
 - Add a committed or CI test. Rejected: it would make paid reviewer calls in automation, and the
   repository has no CI.
+
+## write-tasks — single self-contained task (not decision-bearing)
+
+**Decision:** Write `tasks.md` with exactly one checkbox task. The workflow's `checkpoint.sh`
+requires exactly one `- [ ]` line, and `tasks.md` is the implement-task `task_file`. The task body
+includes the exact YAML block and its placement, the constraints (add it once, change nothing else,
+don't merge or run the eval), verification steps 1–6, Done-when criteria, and the PR-description
+handoff. Steps 1–5 come from `design.md` → Verification; step 6 is the required INT-001 live run.
+Step 6 may reuse the implement-task workflow's own `--enable-review task-compliance --context-file`
+validator run if its logs show the job executed, which avoids a second paid run within the one-run
+limit.
+**Alternatives considered:**
+- Separate per-task files under `tasks/`. Rejected: the workflow requires one task, and `tasks.md`
+  itself is the context file.
+- Leave the PR-description requirements out of the task. Rejected: the issue's do-not-merge gate and
+  the INT-001 outcome must reach the PR, and the task file is the only artifact passed to the
+  implementer.

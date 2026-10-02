@@ -86,3 +86,9 @@ presentation build and render gate, not the repository's Agent Validator reviews
 while the eval fixture uses claude/sonnet-5.5.
 **Alternatives considered:** Make `main` match the fixture's reviewer configuration. Rejected as out of
 scope; the issue doesn't ask for it, and it would change every and-scene review.
+
+## proposal-review — no findings (not decision-bearing)
+
+**Decision:** Leave `proposal.md` unchanged. `proposal-review-findings.json` is an empty array, so
+there is nothing to apply, reject, or escalate as direction-level.
+**Alternatives considered:** None.

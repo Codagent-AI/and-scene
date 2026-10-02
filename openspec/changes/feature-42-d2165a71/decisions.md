@@ -142,3 +142,35 @@ reviewer call. The eval Paul runs is the end-to-end check.
 **Alternatives considered:** Add a repository unit test that parses `.validator/config.yml` and
 asserts the entry. Rejected as disproportionate: it would add a YAML dependency or a fragile text
 assertion to a presentation project to guard one config line.
+
+## test-plan — no committed INT or E2E tests (decision-bearing)
+
+**Decision:** Add no `INT-*` or `E2E-*` obligations. The only boundary, config to validator runtime, is
+proven by the validator's own `validate` and `list` output. These checks run in implementation
+verification and the acceptance pass. The full Agent Runner journey crosses into other repositories
+and is covered by Paul's eval.
+**Alternatives considered:**
+- An integration test that parses `.validator/config.yml`. Rejected: it duplicates the validator's
+  output and adds a YAML dependency (the design rejected this too).
+- A CI step that runs `agent-validator validate`. Rejected: the repository has no CI workflows, and
+  adding CI is out of scope.
+
+## test-plan — acceptance envelope (decision-bearing)
+
+**Decision:** Authorize local validator commands, including at most one live
+`--enable-review task-compliance` run and one ordinary comparison run through the configured codex
+reviewer. These are metered reviewer calls of the same kind the factory already makes. Off limits:
+the fixture branch, agent-evals, running the eval, merging, other config changes, and changing the
+validator baseline. If codex is unavailable, skip the live run and report it; don't switch reviewers.
+**Alternatives considered:**
+- Forbid live review runs. Rejected: one run is the only direct evidence for the "explicit enablement"
+  scenario in this repository, and its cost is small.
+- Allow unlimited runs. Rejected because more runs add cost without adding evidence.
+
+## test-plan — HT-001 eval and merge decision (decision-bearing)
+
+**Decision:** Record the and-scene eval with `--fixture-ref b83deca4…` and the merge decision as
+HT-001. The issue makes the eval a merge gate, and Paul's comment reserves running it and deciding the
+merge for himself. Its harness is outside this repository.
+**Alternatives considered:** Record no human-only testing (`None.`). Rejected: that would drop the
+issue's explicit "do not merge until the eval has been run" gate.

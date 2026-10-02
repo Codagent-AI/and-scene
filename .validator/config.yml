@@ -26,6 +26,9 @@ entry_points:
           builtin: code-quality
           num_reviews: 1
       - skill-quality
+      - task-compliance:
+          builtin: task-compliance
+          enabled: false # Opt-in: activate with `agent-validator run --enable-review task-compliance --context-file <task>`
 
 # -------------------------------------------------------------------
 # All settings below are optional. Uncomment and change as needed.

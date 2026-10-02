@@ -56,7 +56,8 @@ try {
     if (serverExit) throw new Error(`Render verification failed: preview server exited early (port in use?): ${JSON.stringify(serverExit)}${serverStderr ? `; ${serverStderr.trim()}` : ''}`)
     // Vite's own ready line proves this child bound the port; a successful fetch
     // alone could belong to an unrelated server already listening there.
-    if (serverOutput.includes(`${previewUrl}/`)) {
+    const plainServerOutput = serverOutput.replace(/\u001b\[[0-9;]*m/g, '')
+    if (plainServerOutput.includes(`${previewUrl}/`)) {
       try { if ((await fetch(`${previewUrl}/`)).ok) { ready = true; break } } catch {}
     }
     await delay(250)

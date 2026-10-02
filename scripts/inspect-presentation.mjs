@@ -26,7 +26,8 @@ try {
   for (let attempt = 0; attempt < 60; attempt++) {
     if (serverError) throw new Error(`Preview could not start: ${serverError.message}`)
     if (serverExit) throw new Error(`Preview exited early (port in use?): ${JSON.stringify(serverExit)}${serverStderr ? `; ${serverStderr.trim()}` : ''}`)
-    if (serverOutput.includes(`${previewUrl}/`)) {
+    const plainServerOutput = serverOutput.replace(/\u001b\[[0-9;]*m/g, '')
+    if (plainServerOutput.includes(`${previewUrl}/`)) {
       try { if ((await fetch(`${previewUrl}/`)).ok) { ready = true; break } } catch {}
     }
     await delay(250)

@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
-import { createElement } from 'react'
+import { createElement, useEffect } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { act, renderHook } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { Presentation, fitScale, usePresentationNav, type SceneProps, type Step } from '../src/presentation-kit'
+import { Box, SceneLayer } from '../src/presentation-kit'
+import { safeDecodePathSegment } from '../src/routeUtils'
 
 type Payload = { count: number; labels: string[] }
 function TypedScene({ payload }: SceneProps<Payload>) {
@@ -21,6 +23,12 @@ describe('presentation kit contracts', () => {
     expect(markup).toContain('made by and-scene')
     expect(markup).toContain('href="https://github.com/and-scene/and-scene"')
     expect(markup).not.toContain('data-presentation-brand><a')
+  })
+
+  it('falls back safely when a route contains malformed percent encoding', () => {
+    expect(safeDecodePathSegment('%E0%A4%A')).toBe('')
+    expect(safeDecodePathSegment('%')).toBe('')
+    expect(safeDecodePathSegment('how-to')).toBe('how-to')
   })
 
   it('exposes active state semantics on step progress and section navigation', () => {
@@ -55,6 +63,32 @@ describe('presentation kit contracts', () => {
     expect(result.current.index).toBe(1)
     input.remove()
     unmount()
+  })
+
+  it('keeps grouped scenes and continuing entities mounted while groups remount', async () => {
+    let mounts = 0
+    function StatefulScene({ payload }: SceneProps<Payload>) {
+      useEffect(() => { mounts += 1 }, [])
+      return <SceneLayer>
+        <Box key="kept" id="kept" label="Persistent entity">Persistent {payload.count}</Box>
+        {payload.count === 1 ? <Box key="leaving" id="leaving">Leaving</Box> : <Box key="entering" id="entering">Entering</Box>}
+      </SceneLayer>
+    }
+    const grouped: Step<Payload>[] = steps.map((step) => ({ ...step, scene: StatefulScene }))
+    const view = render(<Presentation steps={grouped} title="Continuity" />)
+    expect(mounts).toBe(1)
+    expect(screen.getByText('Persistent 1')).toBeTruthy()
+    expect(screen.getByLabelText('Persistent entity')).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(await screen.findByText('Persistent 2')).toBeTruthy()
+    expect(screen.getByText('Entering')).toBeTruthy()
+    expect(mounts).toBe(1)
+    await waitFor(() => expect(screen.queryByText('Leaving')).toBeNull())
+    expect(view.container.querySelectorAll('[data-scene-entity="kept"]')).toHaveLength(1)
+
+    const newGroup = grouped.map((step, index) => index === 1 ? { ...step, groupKey: 'new-group' } : step)
+    view.rerender(<Presentation steps={newGroup} title="Continuity" />)
+    expect(mounts).toBe(2)
   })
 
   it('provides structural hooks without requiring kit-owned visual styles', () => {

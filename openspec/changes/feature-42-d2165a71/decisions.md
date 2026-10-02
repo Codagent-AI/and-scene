@@ -57,3 +57,32 @@ claude/sonnet-5.5 and `all-reviewers` drift is not reconciled into `main`.
   done or out of scope.
 - Align `main`'s reviewer config with the fixture's. Rejected because the issue doesn't ask for it,
   and it would change real and-scene runs beyond the opt-in entry.
+
+## propose — verdict go (decision-bearing)
+
+**Decision:** Go. Wrote `proposal.md`, scoped to one opt-in line in `main`'s `.validator/config.yml`:
+`- task-compliance: {builtin: task-compliance, enabled: false}` under the `.` entry point's reviews.
+I checked feasibility with the installed agent-validator using a temporary, reverted edit:
+`validate` passes and `list` shows the gate.
+
+**Alternatives considered:**
+- No-go or do nothing. Rejected: Agent Runner's `--enable-review task-compliance` would stay a silent
+  no-op in every and-scene run.
+- Enable task-compliance by default. Rejected: the issue asks for the opt-in form that matches
+  agent-runner, and enabling it would add a review to every ordinary validator run.
+- Write a custom `.validator/reviews/task-compliance.md` prompt. Rejected: the built-in is the
+  reference form in the sibling repositories.
+
+## propose — capability naming (not decision-bearing)
+
+**Decision:** Add the new capability `repository-quality-gates` to hold the requirement. The define
+workflow requires specs (`require_specs: "true"`), and no existing spec covers the validator config.
+**Alternatives considered:** Modify `presentation-verification`. Rejected because that spec covers the
+presentation build and render gate, not the repository's Agent Validator reviews.
+
+## propose — reviewer drift accepted (not decision-bearing)
+
+**Decision:** Keep `main`'s codex/gpt-6-sol reviewer. The task-compliance review uses it on `main`,
+while the eval fixture uses claude/sonnet-5.5.
+**Alternatives considered:** Make `main` match the fixture's reviewer configuration. Rejected as out of
+scope; the issue doesn't ask for it, and it would change every and-scene review.

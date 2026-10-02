@@ -1,7 +1,7 @@
 # repository-quality-gates Specification
 
 ## Purpose
-TBD - created by archiving change feature-42-d2165a71. Update Purpose after archive.
+Define the repository's Agent Validator gates, including the opt-in task-compliance review.
 ## Requirements
 ### Requirement: Opt-in task-compliance review
 The repository's Agent Validator configuration SHALL declare a review named `task-compliance`, backed by

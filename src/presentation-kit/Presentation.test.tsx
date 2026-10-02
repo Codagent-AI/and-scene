@@ -66,6 +66,15 @@ describe('presentation kit contracts', () => {
     expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
     expect(containerHas('data-presentation-progress')).toBe(false)
   })
+
+  it('leaves browser and operating-system modifier shortcuts untouched', () => {
+    render(<Presentation steps={steps} title="Shortcuts" />)
+    fireEvent.keyDown(window, { key: 'ArrowLeft', altKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowRight', metaKey: true })
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true })
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    expect(document.querySelector('[data-presentation-mode]')?.getAttribute('data-presentation-mode')).toBe('browse')
+  })
 })
 
 function containerHas(selector: string) { return document.querySelector(`[${selector}]`) !== null }

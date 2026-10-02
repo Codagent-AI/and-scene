@@ -12,6 +12,7 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return
       const target = event.target as HTMLElement | null
       if (target?.isContentEditable || (target && /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(target.tagName))) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') { event.preventDefault(); next() }

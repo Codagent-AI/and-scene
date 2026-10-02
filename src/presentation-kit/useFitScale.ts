@@ -3,7 +3,7 @@ import type { PresentationMode } from './types'
 import { STAGE_LAYOUT } from './constants'
 
 export function useFitScale(width: number, height: number, mode: PresentationMode) {
-  const [viewport, setViewport] = useState({ width: 0, height: 0 })
+  const [viewport, setViewport] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }))
   useEffect(() => {
     const update = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
     update()

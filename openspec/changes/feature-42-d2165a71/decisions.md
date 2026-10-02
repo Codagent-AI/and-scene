@@ -92,3 +92,24 @@ scope; the issue doesn't ask for it, and it would change every and-scene review.
 **Decision:** Leave `proposal.md` unchanged. `proposal-review-findings.json` is an empty array, so
 there is nothing to apply, reject, or escalate as direction-level.
 **Alternatives considered:** None.
+
+## specs — repository-quality-gates requirements (decision-bearing)
+
+**Decision:** Wrote `specs/repository-quality-gates/spec.md` with two requirements:
+1. **Opt-in task-compliance review.** The review is declared on `.`, backed by the built-in, and off by
+   default. It runs only when the run passes `--enable-review task-compliance`, the flag Agent Runner
+   uses together with `--context-file`.
+2. **Existing validator gates unchanged.** The checks, `code-quality`, `skill-quality`, and the reviewer
+   CLI preference stay the same. An enabled run adds only `task-compliance`.
+
+The scenarios describe observable validator behavior (`list`, `validate`, and `run` with or without
+the flag) instead of YAML structure. The config is a public contract only through what the validator
+does with it. `openspec validate --type change feature-42-d2165a71 --strict` passes.
+
+**Alternatives considered:**
+- Specify the exact YAML line. Rejected: the spec skill says to avoid scenarios about configuration
+  structure, and the proposal and design already record the exact form.
+- Add a scenario requiring task-compliance to run in the eval. Rejected: the eval uses the fixture
+  branch's config, and running it is out of scope (Paul runs it separately).
+- Require the review to use a specific reviewer model. Rejected: the reviewer is inherited from the
+  existing CLI preference, and reviewer drift from the fixture is accepted in the proposal.

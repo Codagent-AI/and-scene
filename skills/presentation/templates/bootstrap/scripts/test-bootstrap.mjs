@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process'
 
 const here = fileURLToPath(new URL('..', import.meta.url))
 const root = fileURLToPath(new URL('../../../../..', import.meta.url))
-  const canonicalKit = join(root, 'src/presentation-kit')
+const canonicalKit = join(root, 'src/presentation-kit')
 const target = await mkdtemp(join(tmpdir(), 'and-scene-bootstrap-'))
 const run = (cmd, args, cwd) => {
   const result = spawnSync(cmd, args, { cwd, encoding: 'utf8', stdio: 'inherit' })
@@ -32,16 +32,17 @@ try {
   if (Object.keys(declared).some((name) => /tailwind/i.test(name))) throw new Error('Bootstrap must not depend on Tailwind')
   const kit = join(target, 'src/presentation-kit')
   const templateFiles = (await files(kit)).map((file) => relative(kit, file)).sort()
-  try {
-    await access(canonicalKit)
+  const hasCanonicalKit = await access(canonicalKit).then(() => true, (error) => {
+    if (error.code === 'ENOENT') return false
+    throw error
+  })
+  if (hasCanonicalKit) {
     const canonicalFiles = (await files(canonicalKit)).map((file) => relative(canonicalKit, file)).sort()
     if (templateFiles.join('\n') !== canonicalFiles.join('\n')) throw new Error('Bootstrap scene-kit files differ from the canonical kit')
     for (const path of templateFiles) {
       if (await readFile(join(kit, path), 'utf8') !== await readFile(join(canonicalKit, path), 'utf8')) throw new Error(`Bootstrap scene-kit drift: ${path}`)
     }
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error
-  }
+  } else console.log('SKIP: canonical-kit parity is available only when the source repository is present')
   for (const anchor of ['vite.config.ts', 'src/presentation-kit/Presentation.tsx', 'src/presentations/index.ts']) {
     if (!(await readFile(join(target, anchor), 'utf8')).length) throw new Error(`Missing scaffold anchor ${anchor}`)
   }

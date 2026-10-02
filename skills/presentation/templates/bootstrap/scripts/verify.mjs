@@ -33,7 +33,7 @@ try {
   if (!response?.ok()) throw new Error(`Render verification failed: /${slug} returned ${response?.status()}`)
   await page.locator('[data-step-count]').waitFor()
   const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
-  if (!count) throw new Error(`Render verification failed: /${entry.slug} reported no steps`)
+  if (!count) throw new Error(`Render verification failed: /${slug} reported no steps`)
   for (let index = 0; index < count; index++) {
     await page.waitForTimeout(400)
     const actual = Number(await page.locator('[data-step-index]').getAttribute('data-step-index'))

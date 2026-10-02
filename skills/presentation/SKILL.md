@@ -1,11 +1,15 @@
 ---
 name: presentation
-description: Create or modify browser presentations as one evolving diagrammatic scene. Use when asked to create a presentation, visual explainer, or to change an existing presentation.
+description: Create or modify browser-based presentations, slide decks, talks, and visual explainers as one evolving diagrammatic scene. Use when asked to create a presentation, add a step, or change an existing presentation.
 ---
 
 # Presentation skill
 
 Create browser presentations as a single scene whose entities persist and evolve across named steps. Use the reusable scene kit for behavior and geometry; each presentation owns its visual design.
+
+## Scope
+
+This skill creates React browser presentations. It does not produce PowerPoint, Keynote, PDF, or other exported slide files, and it does not scaffold non-React applications.
 
 ## 1. Gather the brief
 
@@ -25,7 +29,7 @@ Check these three anchors at the contract level, allowing different filenames an
 
 If all are present, reuse the app. If only some are present, add only missing infrastructure and its dependencies; preserve existing anchors and presentations. If the directory is empty or a standalone project without anchors, scaffold at the repository root. In a monorepo (workspaces in package.json, `pnpm-workspace.yaml`, or a `packages/` or `apps/` layout), scaffold a self-contained app in `presentations/`. For a non-empty, unscaffolded project, state the exact target and wait for confirmation before writing there.
 
-Copy scaffold files from the resolved `templates/bootstrap/` directory. Ensure dependencies rather than assuming they exist: runtime `react`, `react-dom`, `motion`, `lucide-react`; development/build `vite`, `@vitejs/plugin-react`, TypeScript, React/Node type packages, ESLint and its configured plugins, and Playwright. Install the full set needed by the copied app. Do not add Tailwind or another styling framework unless the host already uses it or the user requests it.
+Copy scaffold files from the resolved `templates/bootstrap/` directory. Use `templates/presentation/` as the starting structure for a presentation folder and `templates/step/` for step-scene structure; resolve these paths from this skill file too. Ensure dependencies rather than assuming they exist: runtime `react`, `react-dom`, `motion`, `lucide-react`; development/build `vite`, `@vitejs/plugin-react`, TypeScript, React/Node type packages, ESLint and its configured plugins, and Playwright. Install the full set needed by the copied app. Do not add Tailwind or another styling framework unless the host already uses it or the user requests it.
 
 The reusable kit owns behavior, geometry, and stable hooks, not visual design. Keep its templates free of palette, typography, spacing scale, borders, shadows, card/button treatments, and theme tokens. Put visual treatment in presentation-owned plain CSS by default.
 
@@ -41,4 +45,13 @@ Run `npm run build`. Render the new/modified route in a real browser and check a
 
 Inspect settled views of the first, last, and densest/key steps. Check that the fixed-canvas content fits, intentional overlaps remain readable, and diagram content does not collide with captions, navigation, or other chrome. Check a narrow viewport when the composition is responsive-sensitive. Review inspection warnings: fix accidental overlap, make active progress/ToC states distinct, and style the attribution legibly. Mark an overlap as allowed only when it is intentional and readable. Fix build, render, and visual issues and repeat the relevant checks before reporting completion.
 
-Report the route, files/behavior changed, checks run, and any remaining advisory warnings or assumptions. Never claim a check passed if it was not run.
+Use this completion report, filling only what applies:
+
+```text
+Presentation: <title> (<route>)
+Changed: <presentation files and behavior>
+Checks: <build, render, and visual inspection performed>
+Warnings or assumptions: <remaining advisory warnings/assumptions, or "None">
+```
+
+Never claim a check passed if it was not run.

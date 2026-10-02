@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify browser presentations as continuously evolving diagrammatic scenes using the local React scene kit. Use when asked to make, build, or change a presentation.
+description: Create or modify browser presentations, slide decks, talks, or evolving diagrams with the local React scene kit. Use when asked to make, build, or change presentation slides or a visual talk.
 ---
 
 # Presentation skill
@@ -21,11 +21,11 @@ For modification, identify the target presentation first. If unspecified or ambi
 
 Resolve template files from this skill's own directory (`SKILL.md` parent / `templates/`), never from the shell's current working directory. Determine the target project from the user's requested directory or the current project.
 
-Check these three anchors at the contract level:
+Check the host's package scripts, source tree, build config, and registry rather than relying on one exact filename. The conventional locations below are good starting points; equivalent filenames and implementations count when they satisfy the stated contract:
 
-1. Build: a working Vite + React + TypeScript app and `npm run build`.
-2. Scene kit: typed Step/Scene contract, active scene host with entity morphs, browse/present navigation, captions/contents chrome, and fixed-canvas fit scaling.
-3. Presentation index: explicit registry mapping independent presentations to routes.
+1. Build: inspect `package.json`, `vite.config.*`, and the TypeScript app entry (commonly `src/main.tsx`). Confirm a Vite + React + TypeScript app and a working `npm run build`.
+2. Scene kit: inspect the kit exports and stage/navigation/chrome implementation (commonly `src/presentation-kit/`). Confirm a typed Step/Scene contract, active scene host with entity morphs, browse/present navigation, caption/contents chrome, and fixed-canvas fit scaling.
+3. Presentation index: inspect the registry and router (commonly `src/presentations/index.ts` and `src/main.tsx` or `src/AppRouter.tsx`). Confirm an explicit mapping from independent presentations to routes.
 
 Presence is based on behavior and contract, not filenames or byte equality. Reuse existing anchors and scaffold only missing parts. Do not replace user files or existing presentations. If the project is non-empty and unscaffolded, state the resolved target and what will be added, then wait for confirmation before writing. Empty/standalone projects use the root. In a monorepo (workspaces in package.json, pnpm-workspace.yaml, or packages/ or apps/ layout), make a self-contained app under `presentations/`; preserve root files. If already inside a presentation app, scaffold only missing anchors there.
 
@@ -40,9 +40,11 @@ Merge dependencies/scripts into the target package manifest and install with its
 
 ## 3. Create or modify
 
-Create each presentation as its own directory under `src/presentations/<slug>/`, with `entities.ts`, presentation-owned CSS, step scene components, and `Talk.tsx`; add one explicit lazy registry entry. Use stable entity IDs as layout identities across steps. Prefer a shared Scene component/group for a continuously evolving sequence; retain existing entities in place and add or remove only what the narrative requires. Use the fixed 880 × 380 canvas and generic kit primitives. Give every step a title, era, caption, and payload. Keep the design composed on the canvas with enough room for host chrome.
+Create each presentation as its own directory under `src/presentations/<slug>/`, with `entities.ts`, presentation-owned CSS, step scene components, and `Talk.tsx`; add one explicit lazy registry entry. Copy `templates/step/Step.tsx` into that presentation's `steps/` directory, where its relative kit imports resolve. Use stable entity IDs as layout identities across steps. Prefer a shared Scene component/group for a continuously evolving sequence; retain existing entities in place and add or remove only what the narrative requires. Use the fixed 880 × 380 canvas and generic kit primitives. Give every step a title, era, caption, and payload. Keep the design composed on the canvas with enough room for host chrome.
 
-A new presentation must not rewrite existing presentation files. For a modification, edit only the selected presentation and the minimum necessary registry or shared-host files. Put colors, fonts, spacing, borders, shadows, card/button treatments, and responsive visual choices in presentation-owned plain CSS by default. The reusable kit stays style-neutral.
+A new presentation must not rewrite existing presentation files. For a modification, edit only the selected presentation and the minimum necessary registry or shared-host files. Put colors, fonts, spacing, borders, shadows, card/button treatments, and responsive visual choices in presentation-owned plain CSS by default. The reusable kit stays style-neutral. Mark intentional overlap on the smallest applicable subtree with `data-allow-overlap`; use it only when the overlap remains readable.
+
+Do not expand the request into PowerPoint, Keynote, PDF, or image export, a visual editor, or hosting/publishing features. Keep generated runtime code React-based, and do not move a presentation's visual theme into the reusable kit.
 
 Templates:
 - `templates/presentation/` contains the routed presentation entry and entity namespace starter.
@@ -53,4 +55,6 @@ Templates:
 
 Run the target app's `npm run build` and `npm run lint`. Ensure the route is registered and render at least the first step without console or runtime errors. Use `npm run verify` when present; otherwise run the project-local browser smoke check if supplied, or create a temporary project-local Playwright script. Use a production preview and `127.0.0.1` for local browser URLs.
 
-Use `npm run inspect -- <slug>` when available. Wait for animations to settle and inspect screenshots of the first and last steps plus dense/key steps. Also inspect a narrow viewport when layout is responsive-sensitive. Review warnings for unintended text/chrome overlap, indistinct active navigation, and missing/default/undersized attribution. Fix functional failures and accidental visual collisions; use an explicit allow-overlap marker only for intentional readable overlap. Rebuild and re-inspect after fixes. Do not report completion until build, render, and visual composition have been checked. Summarize the route, files, commands, and any remaining advisory warnings accurately.
+Use `npm run inspect -- <slug>` when available. Wait for animations to settle and inspect screenshots of the first and last steps plus dense/key steps. Also inspect a narrow viewport when layout is responsive-sensitive. Review warnings for unintended text/chrome overlap, indistinct active navigation, and missing/default/undersized attribution. Fix functional failures and accidental visual collisions; use `data-allow-overlap` only for intentional readable overlap. Repeat build, render, and inspection after each fix until those checks pass. Do not report completion while any check fails. Summarize the route, files, commands, and any remaining advisory warnings accurately.
+
+For a completed creation, report the presentation title and route, the key files created, the checks run, and any remaining visual advisories. For a modification, report the target title and route, the scoped files changed, the checks run, and any remaining visual advisories.

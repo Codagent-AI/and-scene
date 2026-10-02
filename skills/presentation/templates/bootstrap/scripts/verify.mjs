@@ -1,36 +1,47 @@
-import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
-import { readFile } from 'node:fs/promises'
-const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-const entries = [...registry.matchAll(/slug:\s*['\"]([^'\"]+)['\"]/g)].map((match) => match[1])
+import { registeredSlugs, startPreview } from './preview-utils.mjs'
 
-const slug = entries[0]
-if (!slug) { console.error('FAIL: no presentation is registered; add one before running verify.'); process.exit(1) }
-const host = '127.0.0.1'
-const port = Number(process.env.PREVIEW_PORT || 4179)
-const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'ignore' })
+const registryPath = new URL('../src/presentations/index.ts', import.meta.url)
+const slugs = await registeredSlugs(registryPath)
+if (!slugs.length) {
+  console.error('FAIL: no presentation is registered; add one before running verify.')
+  process.exit(1)
+}
+
+let previewServer
 let browser
 try {
-  let ready = false
-  for (let attempt = 0; attempt < 60; attempt++) {
-    try { if ((await fetch(`http://${host}:${port}/${slug}`)).ok) { ready = true; break } } catch {}
-    await delay(250)
-  }
-  if (!ready) throw new Error('production preview did not become ready')
+  previewServer = await startPreview()
   browser = await chromium.launch({ headless: true })
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-  const errors = []
-  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
-  page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto(`http://${host}:${port}/${slug}`)
-  await page.locator('[data-presentation]').waitFor()
-  const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
-  for (let index = 0; index < count; index++) {
-    await page.locator(`[data-step-index="${index}"]`).waitFor()
-    if (errors.length) throw new Error(`browser error at step ${index + 1}: ${errors.join('; ')}`)
-    if (index < count - 1) await page.keyboard.press('ArrowRight')
+  for (const slug of slugs) {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+    const errors = []
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
+    page.on('pageerror', (error) => errors.push(error.message))
+    try {
+      const response = await page.goto(`http://${previewServer.host}:${previewServer.port}/${slug}`)
+      if (!response?.ok()) throw new Error(`route returned HTTP ${response?.status() ?? 'no response'}`)
+      await page.locator('[data-presentation]').waitFor()
+      const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
+      if (!Number.isInteger(count) || count < 1) throw new Error('presentation reports no steps')
+      for (let index = 0; index < count; index++) {
+        await page.waitForFunction((expected) => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === String(expected), index)
+        await delay(100)
+        if (errors.length) throw new Error(`browser error at step ${index + 1}: ${errors.join('; ')}`)
+        if (index < count - 1) await page.keyboard.press('ArrowRight')
+      }
+      console.log(`PASS: ${slug} rendered ${count} step(s) on ${previewServer.host}`)
+    } catch (error) {
+      throw new Error(`${slug}: ${error.message}`)
+    } finally {
+      await page.close()
+    }
   }
-  console.log(`PASS: ${slug} rendered ${count} step(s) on ${host}`)
-} catch (error) { console.error(`FAIL: ${error.message}`); process.exitCode = 1 }
-finally { await browser?.close(); server.kill('SIGTERM') }
+} catch (error) {
+  console.error(`FAIL: ${error.message}`)
+  process.exitCode = 1
+} finally {
+  await browser?.close()
+  await previewServer?.close()
+}

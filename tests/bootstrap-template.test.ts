@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { cp, mkdtemp, readFile, readdir, rm, symlink } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -22,7 +22,19 @@ describe('distributable bootstrap template', () => {
     try {
       await cp(bootstrap, target, { recursive: true, filter: (source) => !source.includes(`${path.sep}node_modules`) && !source.includes(`${path.sep}dist`) && !source.includes(`${path.sep}presentation-artifacts`) })
       await symlink(path.join(repo, 'node_modules'), path.join(target, 'node_modules'), 'dir')
-      execFileSync('npm', ['run', 'verify', '--prefix', target], { cwd: os.tmpdir(), stdio: 'pipe' })
+      const registryPath = path.join(target, 'src/presentations/index.ts')
+      const registry = await readFile(registryPath, 'utf8')
+      const twoRoutes = registry.replace(
+        "  { slug: 'starter', title: 'Your presentation', load: () => import('./starter/Talk') },",
+        "  { slug: 'starter', title: 'Your presentation', load: () => import('./starter/Talk') },\n  { slug: 'second', title: 'Second route', load: () => import('./starter/Talk') },",
+      ) + "\n// { slug: 'comment-is-not-a-route' }\n"
+      await writeFile(registryPath, twoRoutes)
+      const verifyOutput = execFileSync('npm', ['run', 'verify', '--prefix', target], { cwd: os.tmpdir(), encoding: 'utf8' })
+      expect(verifyOutput).toContain('PASS: starter rendered')
+      expect(verifyOutput).toContain('PASS: second rendered')
+      expect(verifyOutput).not.toContain('comment-is-not-a-route')
+      const inspectOutput = execFileSync('npm', ['run', 'inspect', '--prefix', target, '--', 'starter'], { cwd: os.tmpdir(), encoding: 'utf8' })
+      expect(inspectOutput).toContain('Captured 1 settled step screenshots')
       const templateFiles = await filesUnder(path.join(target, 'src/presentation-kit'))
       const canonicalFiles = await filesUnder(path.join(repo, 'src/presentation-kit'))
       const sourceFiles = (files: string[]) => files.filter((file) => !file.endsWith('.test.tsx') && !file.endsWith('.test.ts'))
@@ -37,7 +49,8 @@ describe('distributable bootstrap template', () => {
       const kitCss = await readFile(path.join(target, 'src/presentation-kit/presentation-kit.css'), 'utf8')
       expect(kitCss).not.toMatch(/#[\da-f]{3,8}\b|\b(?:font-family|box-shadow|border-radius|--[\w-]+)\s*:/i)
       expect(await readFile(path.join(target, 'src/presentations/index.ts'), 'utf8')).toContain("slug: 'starter'")
-      expect(await readFile(path.join(target, 'scripts/verify.mjs'), 'utf8')).toContain('127.0.0.1')
+      expect(await readFile(path.join(target, 'scripts/verify.mjs'), 'utf8')).toContain('registeredSlugs')
+      expect(await readFile(path.join(target, 'scripts/preview-utils.mjs'), 'utf8')).toContain('port: 0')
       expect(await readFile(path.join(target, 'scripts/inspect-presentation.mjs'), 'utf8')).toContain('presentation-artifacts')
     } finally {
       await rm(target, { recursive: true, force: true })

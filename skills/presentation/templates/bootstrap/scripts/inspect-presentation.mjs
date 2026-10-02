@@ -1,18 +1,15 @@
-import { spawn } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
-import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
-import { readFile } from 'node:fs/promises'
-const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-const entries = [...registry.matchAll(/slug:\s*['\"]([^'\"]+)['\"]/g)].map((match) => match[1])
+import { registeredSlugs, startPreview } from './preview-utils.mjs'
+const entries = await registeredSlugs(new URL('../src/presentations/index.ts', import.meta.url))
 
 const slug = process.argv[2]
 if (!entries.includes(slug)) { console.error(`Unknown presentation: ${slug || '(missing slug)'}`); process.exit(1) }
-const host = '127.0.0.1', port = Number(process.env.PREVIEW_PORT || 4180)
-const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'ignore' })
 let browser
+let previewServer
 try {
-  for (let i = 0; i < 60; i++) { try { if ((await fetch(`http://${host}:${port}/${slug}`)).ok) break } catch {}; await delay(250) }
+  previewServer = await startPreview()
+  const { host, port } = previewServer
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   await page.goto(`http://${host}:${port}/${slug}`)
@@ -48,4 +45,4 @@ try {
   }
   console.log(`Captured ${count} settled step screenshots in ${out}`)
 } catch (error) { console.error(`Inspection failed: ${error.message}`); process.exitCode = 1 }
-finally { await browser?.close(); server.kill('SIGTERM') }
+finally { await browser?.close(); await previewServer?.close() }

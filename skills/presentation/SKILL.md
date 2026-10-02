@@ -42,6 +42,8 @@ Merge dependencies/scripts into the target package manifest and install with its
 
 Create each presentation as its own directory under `src/presentations/<slug>/`, with `entities.ts`, presentation-owned CSS, step scene components, and `Talk.tsx`; add one explicit lazy registry entry. Copy `templates/step/Step.tsx` into that presentation's `steps/` directory, where its relative kit imports resolve. Use stable entity IDs as layout identities across steps. Prefer a shared Scene component/group for a continuously evolving sequence; retain existing entities in place and add or remove only what the narrative requires. Use the fixed 880 × 380 canvas and generic kit primitives. Give every step a title, era, caption, and payload. Keep the design composed on the canvas with enough room for host chrome.
 
+Wrap conditionally rendered entities in the kit's `Presence`, giving each direct child a stable `key`, so entities that disappear between steps animate out; wrapper elements that must exit with them should be `motion.div` elements using the kit's `EXIT` transition.
+
 A new presentation must not rewrite existing presentation files. For a modification, edit only the selected presentation and the minimum necessary registry or shared-host files. Put colors, fonts, spacing, borders, shadows, card/button treatments, and responsive visual choices in presentation-owned plain CSS by default. The reusable kit stays style-neutral. Mark intentional overlap on the smallest applicable subtree with `data-allow-overlap`; use it only when the overlap remains readable.
 
 Templates:

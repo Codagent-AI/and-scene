@@ -87,6 +87,13 @@ try {
       }
     } catch (error) { throw new Error(`browser render/transition failed at step ${currentStep}: ${error.message}`) }
   }
+  try {
+    const frame = page.locator('[data-presentation-entity="howto-frame"]')
+    await page.keyboard.press('ArrowLeft')
+    await page.waitForFunction(() => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === '7', undefined, { timeout: 3_000 })
+    if (await frame.count() === 0) throw new Error('departing reveal frame was removed immediately instead of animating out')
+    await frame.waitFor({ state: 'detached', timeout: 3_000 })
+  } catch (error) { throw new Error(`departing entity exit failed: ${error.message}`) }
   console.log(`PASS: ${title} rendered all 9 steps at http://${server.host}:${server.port}/${slug}`)
 } catch (error) {
   console.error(`FAIL: verification: ${error.message}`)

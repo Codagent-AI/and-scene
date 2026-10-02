@@ -18,29 +18,30 @@
 .howto .presentation-attribution a { color: #536975; text-decoration: none; }
 .howto .presentation-mode-toggle { top: 19px; right: 30px; width: 34px; height: 34px; padding: 0; }
 .howto .presentation-stage-count { display: none; }
-.howto .howto-scene { font-size: 12px; }
+.howto .howto-scene { font-size: 14px; }
 .howto .howto-scene [data-presentation-node] { display: grid; place-items: center; text-align: center; }
 .howto .person { border: 1px solid #0e776e; border-radius: 15px; color: #fff; background: #0e776e; font-size: 19px; font-weight: 700; }
 .howto .skill { border-color: #cc6b42; background: #cc6b42; }
 .howto .hidden { display: none !important; }
-.howto .prompt { border: 1px solid #d4c8a7; border-radius: 13px; color: #5d4c27; background: #fffaf0; font-size: 13px; }
+.howto .prompt { border: 1px solid #d4c8a7; border-radius: 13px; color: #5d4c27; background: #fffaf0; font-size: 16px; }
 .howto .conversation-arrow { color: #55716e; font-size: 23px; }
-.howto .question { border: 1px solid #97b6ac; border-radius: 999px; color: #176f65; background: #e1eee6; font-size: 10px; }
-.howto .step-card { display: flex !important; flex-direction: column; gap: 6px; padding: 10px 5px; border: 1px solid #b7c8c1; border-radius: 10px; color: #29443f; background: #fffdf8; font-size: 11px; box-shadow: 0 4px 10px #203b3212; }
+.howto .question { border: 1px solid #97b6ac; border-radius: 999px; color: #176f65; background: #e1eee6; font-size: 13px; }
+.howto .step-card { display: flex !important; flex-direction: column; gap: 6px; padding: 10px 5px; border: 1px solid #b7c8c1; border-radius: 10px; color: #29443f; background: #fffdf8; font-size: 13px; box-shadow: 0 4px 10px #203b3212; }
+.howto .step-card > span { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .howto .step-card.ghost { border-style: dashed; color: #71837c; background: #f2f1e9; }
-.howto .card-number { color: #0e776e; font-size: 9px; letter-spacing: .1em; }
-.howto .card-parts { color: #78877f; font-size: 7px; }
-.howto .morph-link { color: #a05b37; font-size: 8px; }
-.howto .depth-control { position: absolute; display: flex; flex-direction: column; gap: 4px; color: #65786d; font-size: 9px; }
-.howto .depth-switch { position: static; border: 1px solid #cc6b42; border-radius: 99px; padding: 6px 8px; color: #8f4d2f; background: #fff5e9; font-size: 9px; }
+.howto .card-number { color: #0e776e; font-size: 12px; letter-spacing: .1em; }
+.howto .card-parts { color: #78877f; font-size: 10px; }
+.howto .morph-link { color: #a05b37; font-size: 11px; }
+.howto .depth-control { position: absolute; display: flex; flex-direction: column; gap: 4px; color: #65786d; font-size: 12px; }
+.howto .depth-switch { position: static; border: 1px solid #cc6b42; border-radius: 99px; padding: 6px 8px; color: #8f4d2f; background: #fff5e9; font-size: 12px; }
 .howto .kit-plug { border-left: 2px solid #cc6b42; font-size: 0; }
-.howto .kit-socket { border: 1px solid #a76843; border-radius: 12px; color: #75462e; background: #f7e7d4; font-size: 12px; font-weight: 700; }
+.howto .kit-socket { border: 1px solid #a76843; border-radius: 12px; color: #75462e; background: #f7e7d4; font-size: 15px; font-weight: 700; }
 .howto .verify-node { border: 1px solid #3d8a5d; border-radius: 10px; color: #fff; background: #398553; font-size: 22px; font-weight: 800; }
-.howto .verify-detail { color: #50775e; font-size: 9px; }
-.howto .modify-arc { color: #b35837; font-size: 10px; }
+.howto .verify-detail { color: #50775e; font-size: 12px; }
+.howto .modify-arc { color: #b35837; font-size: 13px; }
 .howto .reveal-allow-overlap { position: absolute; inset: 0; pointer-events: none; }
 .howto .reveal-frame { border: 2px solid #e5a34e; border-radius: 26px; pointer-events: none; }
-.howto .reveal-frame span { position: absolute; top: -11px; left: 28px; padding: 3px 8px; color: #825523; background: #f4f1e8; font-size: 9px; letter-spacing: .14em; }
+.howto .reveal-frame span { position: absolute; top: -11px; left: 28px; padding: 3px 8px; color: #825523; background: #f4f1e8; font-size: 12px; letter-spacing: .14em; }
 .howto .presentation-footer-present .presentation-live-title { gap: 12px; font-size: 18px; }
 @media (max-width: 760px) {
   .howto .presentation-header { padding: 14px 16px; }

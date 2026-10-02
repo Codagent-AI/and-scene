@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { Arrow, Box, Presentation, type SceneProps, type Step } from './index'
+import { Arrow, Box, Presence, Presentation, type SceneProps, type Step } from './index'
 
 interface Payload { message: string }
 let mountCount = 0
@@ -39,6 +39,26 @@ describe('presentation kit contracts', () => {
     fireEvent.keyDown(window, { key: 'ArrowRight' })
     expect(screen.getByText('b1')).toBeTruthy()
     expect(mountCount).toBe(2)
+  })
+
+  it('animates a departing entity out instead of removing it immediately', async () => {
+    function ExitScene({ payload }: SceneProps<{ showExtra: boolean }>) {
+      return <div><Box id="stays">stays</Box><Presence>{payload.showExtra && <Box key="extra" id="extra">extra</Box>}</Presence></div>
+    }
+    const exitSteps: Step<{ showExtra: boolean }>[] = [
+      { id: 'with', era: 'a', title: 'With', caption: 'c', Scene: ExitScene, payload: { showExtra: true }, groupKey: 'exit' },
+      { id: 'without', era: 'a', title: 'Without', caption: 'c', Scene: ExitScene, payload: { showExtra: false }, groupKey: 'exit' },
+    ]
+    const { container } = render(<Presentation<{ showExtra: boolean }> steps={exitSteps} title="Exit" />)
+    const extra = () => container.querySelector('[data-presentation-entity="extra"]')
+    expect(extra()).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(container.querySelector('[data-presentation]')?.getAttribute('data-step-index')).toBe('1')
+    expect(extra()).toBeTruthy()
+    await new Promise((resolve) => setTimeout(resolve, 80))
+    expect(extra()).toBeTruthy()
+    await waitFor(() => expect(extra()).toBeNull(), { timeout: 3000 })
+    expect(container.querySelector('[data-presentation-entity="stays"]')).toBeTruthy()
   })
 
   it('exposes style hooks without applying visual defaults to primitives', () => {

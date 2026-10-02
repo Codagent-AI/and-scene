@@ -3,7 +3,7 @@
 One self-contained task. Read `proposal.md`, `design.md`, `test-plan.md`, and
 `specs/repository-quality-gates/spec.md` in this directory for the full rationale.
 
-- [ ] Declare the opt-in `task-compliance` review in `.validator/config.yml` and verify that it runs only when explicitly enabled
+- [x] Declare the opt-in `task-compliance` review in `.validator/config.yml` and verify that it runs only when explicitly enabled
 
 ## Task: opt-in task-compliance review
 

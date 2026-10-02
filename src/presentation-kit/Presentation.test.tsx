@@ -26,6 +26,21 @@ describe('presentation kit contracts', () => {
     expect(mountCount).toBe(1)
   })
 
+  it('remounts a shared scene component when navigation crosses into a different group', () => {
+    mountCount = 0
+    const grouped: Step<Payload>[] = [
+      { ...steps[0]!, id: 'a1', groupKey: 'first' },
+      { ...steps[1]!, id: 'a2', groupKey: 'first' },
+      { ...steps[0]!, id: 'b1', payload: { message: 'b1' }, groupKey: 'second' },
+    ]
+    render(<Presentation<Payload> steps={grouped} title="Groups" />)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(mountCount).toBe(1)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(screen.getByText('b1')).toBeTruthy()
+    expect(mountCount).toBe(2)
+  })
+
   it('exposes style hooks without applying visual defaults to primitives', () => {
     const { container } = render(<><Box id="box">Box</Box><Arrow id="arrow" /></>)
     const box = container.querySelector('[data-presentation-node="box"]') as HTMLElement

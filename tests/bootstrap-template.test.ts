@@ -17,6 +17,16 @@ async function filesUnder(root: string, relative = ''): Promise<string[]> {
 }
 
 describe('distributable bootstrap template', () => {
+  it('ships a lockfile that is consistent with its package manifest', async () => {
+    const target = await mkdtemp(path.join(os.tmpdir(), 'and-scene-bootstrap-lock-'))
+    try {
+      for (const file of ['package.json', 'package-lock.json']) await cp(path.join(bootstrap, file), path.join(target, file))
+      expect(() => execFileSync('npm', ['ci', '--dry-run', '--ignore-scripts', '--offline', '--no-audit', '--no-fund'], { cwd: target, encoding: 'utf8', stdio: 'pipe' })).not.toThrow()
+    } finally {
+      await rm(target, { recursive: true, force: true })
+    }
+  }, 60_000)
+
   it('materializes, builds from an unrelated working directory, and preserves kit parity', async () => {
     const target = await mkdtemp(path.join(os.tmpdir(), 'and-scene-bootstrap-'))
     try {

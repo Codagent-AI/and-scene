@@ -30,7 +30,7 @@ export function Stage<T>({ steps, index, mode, designWidth = DESIGN_W, designHei
       <div className="presentation-stage-viewport" style={{ width: designWidth * scale, height: designHeight * scale }}>
         <LayoutGroup id={`presentation-${step.groupKey ?? step.id}`}>
           {grouped ? (
-            <div className="presentation-canvas" data-presentation-canvas="" style={{ width: designWidth, height: designHeight, transform: `scale(${scale})` }}>
+            <div key={groupStart} className="presentation-canvas" data-presentation-canvas="" style={{ width: designWidth, height: designHeight, transform: `scale(${scale})` }}>
               <Scene payload={step.payload} step={step} index={index} />
             </div>
           ) : (

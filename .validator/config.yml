@@ -1,12 +1,12 @@
 # Ordered list of CLI agents to try for reviews
 cli:
   default_preference:
-    - codex
+    - claude
   adapters:
-    codex:
-      model: gpt-6-sol
+    claude:
       allow_tool_use: false
       thinking_budget: low
+      model: claude-sonnet-5-5
 
 # entry_points configured by /validator-setup
 entry_points:
@@ -22,9 +22,8 @@ entry_points:
           command: npm audit --audit-level=moderate
           run_locally: false
     reviews:
-      - code-quality:
-          builtin: code-quality
-          num_reviews: 1
+      - all-reviewers:
+          builtin: all-reviewers
       - skill-quality
 
 # -------------------------------------------------------------------

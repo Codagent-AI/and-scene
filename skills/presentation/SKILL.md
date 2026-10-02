@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify browser-based presentations, slide decks, talks, and visual explainers as one evolving diagrammatic scene. Use when asked to create a presentation, add a step, or change an existing presentation.
+description: Creates and modifies browser-based presentations as one evolving diagrammatic scene. Use when the user asks for a presentation, slide deck, talk, or visual explainer; asks to add or edit a step; or mentions a presentation or scene.
 ---
 
 # Presentation skill
@@ -10,6 +10,8 @@ Create browser presentations as a single scene whose entities persist and evolve
 ## Scope
 
 This skill creates React browser presentations. It does not produce PowerPoint, Keynote, PDF, or other exported slide files, and it does not scaffold non-React applications.
+
+For exported slide files, explain that this skill does not create those formats and suggest a dedicated document or slide-export workflow. For a request targeting a non-React app, ask whether the user wants to proceed with a React presentation scaffold.
 
 ## 1. Gather the brief
 
@@ -29,7 +31,13 @@ Check these three anchors at the contract level, allowing different filenames an
 
 If all are present, reuse the app. If only some are present, add only missing infrastructure and its dependencies; preserve existing anchors and presentations. If the directory is empty or a standalone project without anchors, scaffold at the repository root. In a monorepo (workspaces in package.json, `pnpm-workspace.yaml`, or a `packages/` or `apps/` layout), scaffold a self-contained app in `presentations/`. For a non-empty, unscaffolded project, state the exact target and wait for confirmation before writing there.
 
-Copy scaffold files from the resolved `templates/bootstrap/` directory. Use `templates/presentation/` as the starting structure for a presentation folder and `templates/step/` for step-scene structure; resolve these paths from this skill file too. Ensure dependencies rather than assuming they exist: runtime `react`, `react-dom`, `motion`, `lucide-react`; development/build `vite`, `@vitejs/plugin-react`, TypeScript, React/Node type packages, ESLint and its configured plugins, and Playwright. Install the full set needed by the copied app. Do not add Tailwind or another styling framework unless the host already uses it or the user requests it.
+Resolve these template paths relative to the directory containing this `SKILL.md`:
+
+- `templates/bootstrap/` — complete app and scene-kit scaffold when infrastructure is missing.
+- `templates/presentation/` — starting structure for a new routed presentation.
+- `templates/step/` — starting structure for a step scene.
+
+Copy scaffold files from the resolved `templates/bootstrap/` directory. Ensure dependencies rather than assuming they exist: runtime `react`, `react-dom`, `motion`, `lucide-react`; development/build `vite`, `@vitejs/plugin-react`, TypeScript, React/Node type packages, ESLint and its configured plugins, and Playwright. Install the full set needed by the copied app. Do not add Tailwind or another styling framework unless the host already uses it or the user requests it.
 
 The reusable kit owns behavior, geometry, and stable hooks, not visual design. Keep its templates free of palette, typography, spacing scale, borders, shadows, card/button treatments, and theme tokens. Put visual treatment in presentation-owned plain CSS by default.
 

@@ -66,4 +66,17 @@ describe('SceneGate', () => {
     gate.whenSettled(() => { settled = true })
     await waitFor(() => expect(settled).toBe(true))
   })
+
+  it('does not call back or leave a waiter behind when cancelled between animation frames', async () => {
+    const gate = new SceneGate()
+    gate.layoutStart({})
+    let settled = false
+    const cancel = gate.whenSettled(() => { settled = true })
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+    cancel()
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    gate.layoutEnd({})
+    expect(settled).toBe(false)
+    expect((gate as unknown as { waiting: Set<unknown> }).waiting.size).toBe(0)
+  })
 })

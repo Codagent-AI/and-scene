@@ -29,22 +29,32 @@ export class SceneGate {
   whenSettled(callback: () => void) {
     let cancelled = false
     let timeout = 0
+    let innerFrame = 0
     const done = () => {
+      this.waiting.delete(done)
+      window.clearTimeout(timeout)
       if (cancelled) return
       cancelled = true
-      window.clearTimeout(timeout)
-      this.waiting.delete(done)
       callback()
     }
     // Layout animations for the step that mounted this entity start on the next frames.
-    const frame = requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (this.moving.size === 0) done()
-      else {
-        this.waiting.add(done)
-        timeout = window.setTimeout(done, SETTLE_TIMEOUT_MS)
-      }
-    }))
-    return () => { cancelled = true; cancelAnimationFrame(frame); window.clearTimeout(timeout); this.waiting.delete(done) }
+    const outerFrame = requestAnimationFrame(() => {
+      innerFrame = requestAnimationFrame(() => {
+        if (cancelled) return
+        if (this.moving.size === 0) done()
+        else {
+          this.waiting.add(done)
+          timeout = window.setTimeout(done, SETTLE_TIMEOUT_MS)
+        }
+      })
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(outerFrame)
+      cancelAnimationFrame(innerFrame)
+      window.clearTimeout(timeout)
+      this.waiting.delete(done)
+    }
   }
 
   private flush() {

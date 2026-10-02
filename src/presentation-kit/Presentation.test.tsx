@@ -54,18 +54,17 @@ describe('Presentation scene kit', () => {
     expect(screen.getByText('Second caption')).toBeTruthy()
   })
 
-  it('keeps deck shortcuts working after controls receive focus and preserves native activation keys', async () => {
-    render(<Presentation steps={steps} title="Test" />)
-    const control = screen.getByRole('button', { name: 'Go to step 2: Second' })
+  it('lets focused interactive controls keep their keys instead of advancing the deck', async () => {
+    const { container } = render(<Presentation steps={steps} title="Test" />)
+    const control = screen.getByRole('button', { name: 'Go to step 1: First' })
     control.focus()
-    fireEvent.keyDown(control, { key: 'ArrowRight' })
-    await waitFor(() => expect(screen.getByText('Second caption')).toBeTruthy())
-    fireEvent.keyDown(control, { key: 'p' })
-    expect(screen.getByText('Test — Second')).toBeTruthy()
-    fireEvent.keyDown(control, { key: 'p', ctrlKey: true })
-    expect(screen.getByText('Test — Second')).toBeTruthy()
-    fireEvent.keyDown(control, { key: ' ', cancelable: true })
-    expect(screen.getByText('Test — Second')).toBeTruthy()
+    for (const key of ['ArrowRight', ' ', 'PageDown', 'p']) fireEvent.keyDown(control, { key, cancelable: true })
+    expect(container.querySelector('[data-step-index="0"]')).toBeTruthy()
+    expect(screen.getByText('First caption')).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    await waitFor(() => expect(container.querySelector('[data-step-index="1"]')).toBeTruthy())
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true })
+    expect(screen.getByText('Second caption')).toBeTruthy()
   })
 
   it('clamps the active step when the step list shrinks or becomes empty', () => {

@@ -15,8 +15,8 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey) return
       const target = event.target
-      if (target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'))) return
-      if ((event.key === ' ' || event.key === 'Enter') && target instanceof HTMLElement && target.matches('button, a, [role="button"]')) return
+      // Focused interactive controls keep their keys instead of also driving the deck.
+      if (target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select, button, a[href], [role="button"], [tabindex]:not([tabindex="-1"])'))) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') { event.preventDefault(); next() }
       else if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') toggleMode()

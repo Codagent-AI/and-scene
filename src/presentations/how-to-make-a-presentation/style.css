@@ -33,7 +33,7 @@
 .kit-plug { color: var(--blue); font-size: 19px !important; }.kit-socket { width: 272px; height: 58px; align-items: center; justify-content: center; border-color: #7893a0 !important; background: #eaf0ef !important; color: var(--blue); font-size: 13px; font-weight: 900; letter-spacing: .12em; }
 .kit-socket span { margin-top: 5px; font-size: 10px; font-weight: 500; letter-spacing: 0; }
 .verify-link { color: #43835b; font-size: 16px !important; }.verify-node { width: 104px; height: 86px; justify-content: center; border-color: #83a88d !important; background: #eef5ea !important; padding: 10px !important; }.verify-node strong { color: #35724b; font-size: 20px; }
-.modify-arc { position: absolute; inset: 0; color: var(--accent); font-size: 10px; pointer-events: none; }.modify-arc span { position: absolute; left: 8px; top: 256px; width: 108px; }
+.modify-note { position: absolute; left: 8px; top: 256px; width: 108px; color: var(--accent); font-size: 10px; pointer-events: none; }
 .modify-arrow { height: 42px; font-size: 25px !important; transform: rotate(14deg); }
 .reveal-frame { position: absolute; inset: 6px 12px 6px; border: 2px solid var(--accent); border-radius: 22px; pointer-events: none; }
 .reveal-frame span { position: absolute; right: 22px; bottom: -11px; padding: 3px 10px; background: var(--paper); color: var(--accent); font-size: 10px; font-weight: 900; letter-spacing: .13em; }

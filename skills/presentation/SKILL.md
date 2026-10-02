@@ -43,7 +43,7 @@ The reusable kit owns behavior, geometry, and stable hooks, not visual design. K
 
 ## 3. Create or modify
 
-For a new presentation, create a self-contained folder under `src/presentations/<slug>/`, with an entry component, stable entity IDs, step scene components/data, and presentation-owned CSS. Register one route without changing existing presentations. Use the kit's `Step<TPayload>`, `SceneProps<TPayload>`, and `Presentation` generics so grouped scene payloads remain typed. Prefer stable IDs/layout IDs for entities that continue; let them accumulate or transform rather than redrawing the whole diagram each step. Each step needs a title and useful caption, and the scene must support next/previous navigation.
+For a new presentation, create a self-contained folder under `src/presentations/<slug>/`, with an entry component, stable entity IDs, step scene components/data, and presentation-owned CSS. Register one route without changing existing presentations. Use the kit's `Step<TPayload>`, `SceneProps<TPayload>`, and `Presentation` generics so grouped scene payloads remain typed. Prefer stable IDs/layout IDs for entities that continue; let them accumulate or transform rather than redrawing the whole diagram each step. Kit node primitives fade newcomers in after continuing entities settle; wrap conditionally rendered entities in the kit's `Presence` (each with a stable `key`) so entities absent from the next step animate out. Each step needs a title and useful caption, and the scene must support next/previous navigation.
 
 For a modification, scope edits to the selected presentation and explicitly requested changes. Preserve other presentation files and routes.
 

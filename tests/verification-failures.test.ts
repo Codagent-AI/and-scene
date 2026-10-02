@@ -30,6 +30,18 @@ function failure(target: string, command = 'node', args = ['scripts/verify.mjs']
 afterAll(async () => { await Promise.all(scratch.map((directory) => rm(directory, { recursive: true, force: true }))) })
 
 describe('verification reports actionable failures in isolated copies', () => {
+  it('accepts equivalent registry formatting and a TypeScript import extension', async () => {
+    const target = await copyApp()
+    const registryPath = path.join(target, 'src/presentations/index.ts')
+    const registry = (await readFile(registryPath, 'utf8'))
+      .replace("slug: 'how-to-make-a-presentation'", '"slug": "how-to-make-a-presentation"')
+      .replace("title: 'How to Use This Skill to Make a Presentation'", '"title": "How to Use This Skill to Make a Presentation"')
+      .replace("import('./how-to-make-a-presentation/Talk')", 'import("./how-to-make-a-presentation/Talk.tsx")')
+    await writeFile(registryPath, registry)
+    const output = execFileSync('node', ['scripts/verify.mjs'], { cwd: target, encoding: 'utf8', timeout: 30_000 })
+    expect(output).toMatch(/PASS: How to Use This Skill to Make a Presentation rendered all 9 steps/)
+  }, 30_000)
+
   it('fails a build error without changing the source checkout', async () => {
     const target = await copyApp()
     const scene = path.join(target, 'src/presentations/how-to-make-a-presentation/steps/Scene.tsx')

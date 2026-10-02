@@ -35,8 +35,17 @@ export async function startPreview() {
   const server = await preview({ preview: { host: '127.0.0.1', port: 0, strictPort: true } })
   const address = server.httpServer.address()
   if (!address || typeof address === 'string') {
+    server.httpServer.closeAllConnections?.()
     await new Promise((resolve) => server.httpServer.close(resolve))
     throw new Error('Vite preview did not expose its assigned TCP port')
   }
-  return { server, host: '127.0.0.1', port: address.port, close: () => new Promise((resolve, reject) => server.httpServer.close((error) => error ? reject(error) : resolve())) }
+  return {
+    server,
+    host: '127.0.0.1',
+    port: address.port,
+    close: () => new Promise((resolve) => {
+      server.httpServer.closeAllConnections?.()
+      server.httpServer.close(() => resolve())
+    }),
+  }
 }

@@ -42,6 +42,6 @@ try {
   console.error(`FAIL: ${error.message}`)
   process.exitCode = 1
 } finally {
-  await browser?.close()
-  await previewServer?.close()
+  try { await browser?.close() } catch (error) { console.warn(`Browser cleanup failed: ${error.message}`) }
+  try { await previewServer?.close() } catch (error) { console.warn(`Preview cleanup failed: ${error.message}`) }
 }

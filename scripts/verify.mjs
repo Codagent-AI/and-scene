@@ -27,7 +27,29 @@ try {
     readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8'),
     readFile(new URL('../src/presentations/how-to-make-a-presentation/steps/index.ts', import.meta.url), 'utf8'),
   ])
-  if (!registry.includes(`title: '${title}'`) || !registry.includes(`import('./how-to-make-a-presentation/Talk')`)) throw new Error('reference sample registry title or loader is malformed')
+  const registrySource = ts.createSourceFile('src/presentations/index.ts', registry, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+  let registryArray
+  const findRegistry = (node) => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === 'presentations' && node.initializer && ts.isArrayLiteralExpression(node.initializer)) registryArray = node.initializer
+    ts.forEachChild(node, findRegistry)
+  }
+  findRegistry(registrySource)
+  const getProperty = (object, name) => object.properties.find((property) => ts.isPropertyAssignment(property) && ((ts.isIdentifier(property.name) && property.name.text === name) || (ts.isStringLiteral(property.name) && property.name.text === name)))
+  const readString = (node) => ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) ? node.text : undefined
+  const sampleEntry = registryArray?.elements.find((entry) => ts.isObjectLiteralExpression(entry) && readString(getProperty(entry, 'slug')?.initializer) === slug)
+  if (!sampleEntry || !ts.isObjectLiteralExpression(sampleEntry)) throw new Error('reference sample registry entry is malformed')
+  const registeredTitle = readString(getProperty(sampleEntry, 'title')?.initializer)
+  let registeredLoader
+  const loader = getProperty(sampleEntry, 'load')
+  if (loader && ts.isPropertyAssignment(loader)) {
+    const findImport = (node) => {
+      if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) registeredLoader = readString(node.arguments[0])
+      ts.forEachChild(node, findImport)
+    }
+    findImport(loader.initializer)
+  }
+  const normalizedLoader = registeredLoader?.replace(/\.(?:tsx?|jsx?)$/, '')
+  if (registeredTitle !== title || normalizedLoader !== `./${slug}/Talk`) throw new Error('reference sample registry title or loader is malformed')
   const stepSource = ts.createSourceFile('steps/index.ts', steps, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
   let actualBeats
   const findBeats = (node) => {
@@ -70,6 +92,6 @@ try {
   console.error(`FAIL: verification: ${error.message}`)
   process.exitCode = 1
 } finally {
-  await browser?.close()
-  await server?.close()
+  try { await browser?.close() } catch (error) { console.warn(`Browser cleanup failed: ${error.message}`) }
+  try { await server?.close() } catch (error) { console.warn(`Preview cleanup failed: ${error.message}`) }
 }

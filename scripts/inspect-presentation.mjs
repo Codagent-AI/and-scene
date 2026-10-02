@@ -16,6 +16,7 @@ try {
   await page.goto(`http://${host}:${port}/${slug}`)
   await page.locator('[data-presentation]').waitFor()
   const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
+  if (!Number.isInteger(count) || count < 1) throw new Error(`invalid data-step-count on ${slug}`)
   const out = `presentation-artifacts/${slug}`
   await mkdir(out, { recursive: true })
   for (let index = 0; index < count; index++) {
@@ -27,4 +28,7 @@ try {
   }
   console.log(`Captured ${count} settled step screenshots in ${out}`)
 } catch (error) { console.error(`Inspection failed: ${error.message}`); process.exitCode = 1 }
-finally { await browser?.close(); await previewServer?.close() }
+finally {
+  try { await browser?.close() } catch (error) { console.warn(`Browser cleanup failed: ${error.message}`) }
+  try { await previewServer?.close() } catch (error) { console.warn(`Preview cleanup failed: ${error.message}`) }
+}

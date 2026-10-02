@@ -113,3 +113,32 @@ does with it. `openspec validate --type change feature-42-d2165a71 --strict` pas
   branch's config, and running it is out of scope (Paul runs it separately).
 - Require the review to use a specific reviewer model. Rejected: the reviewer is inherited from the
   existing CLI preference, and reviewer drift from the fixture is accepted in the proposal.
+
+## design — entry form and placement (not decision-bearing)
+
+**Decision:** Write the entry as the three-line block with the opt-in comment, used byte for byte in
+both agent-runner's `.validator/config.yml` and the eval fixture at `b83deca4`. Place it last in
+`reviews`, after `skill-quality`, as the fixture does. The issue's one-line flow mapping was labeled
+"for reference" and parses to the same mapping.
+**Alternatives considered:** The one-line flow mapping. Rejected: it differs from both concrete
+references and from the file's existing block style, and it would make `main` and the fixture differ
+for this entry. Other positions in `reviews` were rejected for the same reason.
+
+## design — revision to proposal.md (not decision-bearing)
+
+**Decision:** Correct `proposal.md` (Why, Verdict, Technical Approach, and Impact). It described the
+entry as a one-line flow mapping that agent-runner uses. agent-runner actually uses the block form.
+The proposal now gives the block form, and `design.md` has the exact text. Scope and behavior are
+unchanged, and the specs need no change.
+**Alternatives considered:** Leave the proposal as written. Rejected: an implementer could follow its
+inaccurate description of the entry's form instead of the design.
+
+## design — verification approach (not decision-bearing)
+
+**Decision:** Verify with `agent-validator validate`, `agent-validator list`, a diff limited to the
+three added lines, a byte comparison with the fixture's block, and the standard `npm test`, `lint`,
+and `build` as a regression guard. A live `--enable-review` run is optional because it makes a paid
+reviewer call. The eval Paul runs is the end-to-end check.
+**Alternatives considered:** Add a repository unit test that parses `.validator/config.yml` and
+asserts the entry. Rejected as disproportionate: it would add a YAML dependency or a fragile text
+assertion to a presentation project to guard one config line.

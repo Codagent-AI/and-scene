@@ -7,12 +7,13 @@ implemented task against its task file. and-scene's `.validator/config.yml` does
 real and-scene factory runs or in the and-scene eval. As a result, an implementation can pass
 validation while missing its task's requirements, and nothing reports that the review was skipped.
 
-The same opt-in entry was added to agent-validator and agent-evals. agent-runner uses the reference
-form `- task-compliance: {builtin: task-compliance, enabled: false}`. and-scene is the remaining
+The same opt-in entry was added to agent-validator and agent-evals. The issue gives agent-runner's
+entry as `- task-compliance: {builtin: task-compliance, enabled: false}`. agent-runner's file writes
+that same mapping as a three-line block with an opt-in comment. and-scene is the remaining
 consumer without it. The eval fixture branch (`eval/fixture-sonnet-validator`) already has the entry
 at `b83deca4d3a8be7f70c97e6eabc25b79b6edeb2a`, so `main` is the last place it is missing.
 
-**Verdict: go.** The change is one declarative line. It matches the form already used in the sibling
+**Verdict: go.** The change is one small declarative entry. It matches the form already used in the sibling
 repositories and affects only runs that explicitly opt in. Paul has confirmed the scope in the issue
 comment. Building nothing would leave Agent Runner's compliance gate off for every and-scene run.
 
@@ -40,8 +41,9 @@ verification. None of them covers the repository's validator configuration.
 
 ## Technical Approach
 
-Add one inline review entry to the existing `entry_points[path: .].reviews` list, using agent-runner's
-flow-mapping form: `- task-compliance: {builtin: task-compliance, enabled: false}`. The validator
+Add one inline review entry to the existing `entry_points[path: .].reviews` list. It is
+`builtin: task-compliance` with `enabled: false`, written as the same three-line block (with opt-in
+comment) used in agent-runner and the eval fixture; `design.md` gives the exact text. The validator
 provides the built-in, so no `.validator/reviews/*.md` prompt file is needed. Inline definition is
 valid because `.` is the only entry point; the validator rejects a review defined inline in more than
 one entry point.
@@ -71,7 +73,7 @@ is accepted: the issue asks only for the declaration, and reconciling reviewer d
 
 ## Impact
 
-- **Code:** `.validator/config.yml` only (one added line).
+- **Code:** `.validator/config.yml` only (one added three-line review entry).
 - **Workflows:** Agent Runner implement-task runs in and-scene now actually perform task-compliance
   review. That adds one review call per task and may surface compliance findings that were previously
   never produced.

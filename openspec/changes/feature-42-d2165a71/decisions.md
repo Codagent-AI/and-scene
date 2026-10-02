@@ -174,3 +174,25 @@ HT-001. The issue makes the eval a merge gate, and Paul's comment reserves runni
 merge for himself. Its harness is outside this repository.
 **Alternatives considered:** Record no human-only testing (`None.`). Rejected: that would drop the
 issue's explicit "do not merge until the eval has been run" gate.
+
+## approach-review — AR-001 applied (decision-bearing)
+
+**Finding:** `validate` and `list` show only that the config is valid and the gate is discovered.
+The live `--enable-review task-compliance --context-file` run was optional. The fixture eval (HT-001)
+uses claude/sonnet-5.5, not `main`'s codex/gpt-6-sol, so nothing proved the "Explicit enablement runs
+the review" scenario for `main`.
+**Disposition:** Applied.
+- `design.md` Verification adds step 6: one required branch-local live run with
+  `--context-file openspec/changes/feature-42-d2165a71/tasks.md` through the configured codex
+  reviewer. It inspects `validator_logs/` for an executed `task-compliance` job, the injected task
+  context, and the unchanged default reviews.
+- `test-plan.md` records this as INT-001: an uncommitted, manual, required check. The envelope now
+  authorizes exactly one such run, which acceptance reuses. Permitted substitutes are now `None`: if
+  codex is unavailable, the scenario is reported as **unverified on `main`**.
+- E2E wording, the HT-001 prerequisites, and the coverage map were updated to match.
+
+The one-run cost limit and the reviewer-unchanged rule from the earlier test-plan decision still hold.
+**Alternatives considered:**
+- Keep the live run optional. Rejected: no other evidence covers `main`'s execution path.
+- Add a committed or CI test. Rejected: it would make paid reviewer calls in automation, and the
+  repository has no CI.

@@ -118,12 +118,25 @@ Run from the repository root after the edit:
    matches the added lines byte for byte, if the commit is fetchable.
 5. The repository's standard gates (`npm test`, `npm run lint`, `npm run build`) still pass. Nothing
    they cover changes, so they act only as a regression guard.
+6. **Required, run once:** a live branch-local
+   `agent-validator run --enable-review task-compliance --context-file openspec/changes/feature-42-d2165a71/tasks.md`
+   with a detected change under `.` (the committed config change against `origin/main` is enough).
+   It uses the configured codex/gpt-6-sol reviewer. Inspect the run's `validator_logs/` output and
+   confirm three things: a `task-compliance` review job ran; its prompt or log shows the task file's
+   contents injected as context; and `code-quality` and `skill-quality` also ran (spec: "Enabled run
+   adds only task-compliance"). This is test-plan obligation INT-001.
 
-The spec's "Explicit enablement runs the review" and "Ordinary runs skip the review" scenarios depend on
-agent-validator's documented `enabled: false` and `--enable-review` semantics. Steps 1 and 2 confirm
-the declaration that those semantics need. A live `--enable-review` run with a task file is optional
-exploratory evidence, not a required gate, because it makes a paid reviewer call. The and-scene eval
-Paul runs against the fixture is the end-to-end check.
+Steps 1 and 2 confirm only that the config is valid and the gate is discovered. They don't show that
+`--enable-review` actually runs the review on `main` with task context, and neither does the eval,
+which uses the fixture's claude/sonnet-5.5 config. Step 6 is the only evidence of the spec's
+"Explicit enablement runs the review" scenario for `main`'s configuration, so it is required before
+the PR is declared ready. It costs about one round of reviewer calls. If the codex reviewer is
+unavailable, record that scenario as **unverified on `main`** in the PR description. Don't treat
+steps 1 and 2 or the fixture eval as equivalent evidence, and don't switch reviewers. The spec's
+"Ordinary runs skip the review" scenario rests on agent-validator's documented `enabled: false`
+default. Any ordinary validator run the factory makes on this branch (one without the flag) shows it
+by the absence of a `task-compliance` job. The and-scene eval Paul runs against the fixture remains
+the end-to-end check of the Agent Runner journey.
 
 ## Migration Plan
 

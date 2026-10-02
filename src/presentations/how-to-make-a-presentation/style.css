@@ -1,0 +1,49 @@
+.how-to-presentation { --ink: #202b37; --muted: #65717d; --paper: #f7f5ef; --accent: #c65336; --blue: #426d81; --line: #c9c8bd; color: var(--ink); background: var(--paper); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.how-to-presentation .presentation-header-marker { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.how-to-presentation .presentation-header-title { font-size: 14px; font-weight: 650; }
+.how-to-presentation .presentation-caption { color: var(--muted); }
+.how-to-presentation .presentation-caption strong { color: var(--ink); font-size: 18px; }
+.how-to-presentation .presentation-caption p { max-width: 590px; font-size: 14px; line-height: 1.5; }
+.how-to-presentation .presentation-toc-item, .how-to-presentation .presentation-controls button, .how-to-presentation .presentation-progress-item, .how-to-presentation .presentation-mode-toggle { color: var(--ink); border-color: var(--line); }
+.how-to-presentation .presentation-toc-item { background: transparent; border: 0; padding: 6px 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
+.how-to-presentation .presentation-toc-item[data-active="true"] { color: var(--accent); font-weight: 900; box-shadow: inset 0 -2px var(--accent); }
+.how-to-presentation .presentation-progress-item { width: 9px; height: 9px; padding: 0; border: 1px solid #87919a; border-radius: 50%; background: transparent; }
+.how-to-presentation .presentation-progress-item[data-active="true"] { background: var(--accent); border: 2px solid var(--accent); transform: scale(1.35); }
+.how-to-presentation .presentation-controls button, .how-to-presentation .presentation-mode-toggle { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; }
+.how-to-presentation .presentation-attribution { color: var(--muted); font-size: 12px; text-decoration: none; }
+.reference-scene { color: var(--ink); }
+.reference-scene .scene-box { box-sizing: border-box; position: absolute; display: flex; flex-direction: column; border: 1.5px solid var(--line); border-radius: 12px; background: #fffefa; padding: 12px 15px; box-shadow: 0 3px 0 #dedbd1; }
+.reference-scene .person { width: 156px; height: 76px; }
+.reference-scene .person strong { font-size: 23px; }
+.reference-scene .person.skill { border-color: #7893a0; background: #eaf0ef; }
+.eyebrow { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .13em; }
+.scene-symbol-chip { position: absolute; display: block; border: 1px solid #d4b28b; border-radius: 999px; background: #fff4df; padding: 9px 15px; color: #77502f; font-size: 13px; white-space: nowrap; }
+.prompt { left: 350px; top: 98px; padding: 6px 12px; }.question { left: 386px; top: 16px; font-size: 11px; }
+.conversation-arrow, .scene-arrow { position: absolute; color: var(--accent); text-align: center; font-size: 24px; font-weight: 700; }
+.step-card { width: 108px; height: 112px; gap: 7px; padding: 11px 10px !important; }
+.step-card strong { font-size: 15px; }
+.card-index { color: var(--accent); font-size: 11px; font-weight: 850; letter-spacing: .1em; }
+.card-fields { color: var(--muted); font-size: 9px; white-space: nowrap; }
+.ghost-card { border-style: dashed !important; opacity: .72; background: #f3f0e8 !important; }
+.edited-card { border-color: var(--accent) !important; transform: rotate(-2deg); }
+.edited-tag { position: absolute; right: 8px; top: -10px; padding: 3px 6px; background: var(--accent); color: white; font-size: 8px; letter-spacing: .08em; }
+.morph-note, .ghost-note { position: absolute; color: var(--muted); font-size: 10px; }
+.morph-note { left: 210px; top: 346px; }.ghost-note { left: 478px; top: 248px; }
+.partial-control { left: 650px; top: 232px; border-color: #9eaa8b; background: #eef0e5; color: #526044; font-size: 10px; }
+.kit-plug { color: var(--blue); font-size: 19px !important; }.kit-socket { width: 272px; height: 58px; align-items: center; justify-content: center; border-color: #7893a0 !important; background: #eaf0ef !important; color: var(--blue); font-size: 13px; font-weight: 900; letter-spacing: .12em; }
+.kit-socket span { margin-top: 5px; font-size: 10px; font-weight: 500; letter-spacing: 0; }
+.verify-link { color: #43835b; font-size: 16px !important; }.verify-node { width: 104px; height: 86px; justify-content: center; border-color: #83a88d !important; background: #eef5ea !important; padding: 10px !important; }.verify-node strong { color: #35724b; font-size: 20px; }
+.modify-arc { position: absolute; inset: 0; color: var(--accent); font-size: 10px; pointer-events: none; }.modify-arc span { position: absolute; left: 8px; top: 256px; width: 108px; }
+.modify-arrow { height: 42px; font-size: 25px !important; transform: rotate(14deg); }
+.reveal-frame { position: absolute; inset: 6px 12px 6px; border: 2px solid var(--accent); border-radius: 22px; pointer-events: none; }
+.reveal-frame span { position: absolute; right: 22px; bottom: -11px; padding: 3px 10px; background: var(--paper); color: var(--accent); font-size: 10px; font-weight: 900; letter-spacing: .13em; }
+.scene-emphasis { position: absolute; right: 26px; bottom: 11px; color: #8b8d82; font-size: 10px; }
+@media (max-width: 700px) {
+  .how-to-presentation .presentation-footer { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "caption caption" "progress controls" "credit credit"; align-items: center; gap: 8px 12px; inset: auto 12px 10px; }
+  .how-to-presentation .presentation-caption { grid-area: caption; width: 100%; max-width: none; }
+  .how-to-presentation .presentation-caption strong { font-size: 16px; }
+  .how-to-presentation .presentation-caption p { max-width: none; margin-top: 3px; font-size: 12px; line-height: 1.35; }
+  .how-to-presentation .presentation-progress { grid-area: progress; justify-self: start; gap: 7px; }
+  .how-to-presentation .presentation-controls { grid-area: controls; justify-self: end; }
+  .how-to-presentation .presentation-attribution { grid-area: credit; justify-self: end; font-size: 10px; }
+}

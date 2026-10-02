@@ -3,8 +3,11 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { chromium, type Browser } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
+const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
 
 const freePort = () => new Promise<number>((resolve) => {
   const server = createServer().listen(0, '127.0.0.1', () => {
@@ -21,10 +24,10 @@ describe('reference presentation transitions in a production browser', () => {
 
   beforeAll(async () => {
     outDir = mkdtempSync(join(tmpdir(), 'and-scene-transitions-'))
-    execFileSync('npx', ['vite', 'build', '--outDir', outDir, '--emptyOutDir'], { stdio: 'ignore' })
+    execFileSync(process.execPath, [vite, 'build', '--outDir', outDir, '--emptyOutDir'], { stdio: 'inherit' })
     const port = await freePort()
     base = `http://127.0.0.1:${port}/how-to-make-a-presentation`
-    preview = spawn('npx', ['vite', 'preview', '--outDir', outDir, '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'ignore' })
+    preview = spawn(process.execPath, [vite, 'preview', '--outDir', outDir, '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'inherit' })
     for (let attempt = 0; attempt < 50; attempt++) {
       if (await fetch(base).then((response) => response.ok, () => false)) break
       await new Promise((resolve) => setTimeout(resolve, 200))
@@ -35,6 +38,7 @@ describe('reference presentation transitions in a production browser', () => {
   afterAll(async () => {
     await browser?.close()
     preview?.kill()
+    await new Promise((resolve) => (preview && preview.exitCode === null ? preview.once('exit', resolve) : resolve(undefined)))
     rmSync(outDir, { recursive: true, force: true })
   })
 

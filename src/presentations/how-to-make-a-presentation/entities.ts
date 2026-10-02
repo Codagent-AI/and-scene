@@ -1,0 +1,1 @@
+export const ids = { you: 'howto-you', prompt: 'howto-prompt', skill: 'howto-skill', question: 'howto-question', tray: 'howto-tray', cards: Array.from({ length: 6 }, (_, index) => `howto-card-${index + 1}`), kit: 'howto-kit', verify: 'howto-verify', modify: 'howto-modify', reveal: 'howto-reveal' } as const

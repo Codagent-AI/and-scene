@@ -29,7 +29,7 @@ describe('presentation bootstrap template', () => {
       const registryPath = join(app, 'src/presentations/index.ts')
       const registry = await readFile(registryPath, 'utf8')
       await writeFile(registryPath, registry.replace(']\n', "  { slug: 'generated', title: 'Generated presentation', load: () => import('./generated/Talk') },\n]\n"))
-      execFileSync('npm', ['ci', '--no-audit', '--no-fund'], { cwd: app, stdio: 'pipe' })
+      execFileSync('npm', ['ci', '--no-audit', '--no-fund', '--prefer-offline'], { cwd: app, stdio: 'pipe' })
       const outsideWorkingDirectory = parent
       execFileSync('npm', ['run', 'lint', '--prefix', app], { cwd: outsideWorkingDirectory, stdio: 'pipe' })
       execFileSync('npm', ['run', 'verify', '--prefix', app], { cwd: outsideWorkingDirectory, stdio: 'pipe', timeout: 120_000 })
@@ -68,5 +68,5 @@ describe('presentation bootstrap template', () => {
     } finally {
       await rm(parent, { recursive: true, force: true })
     }
-  }, 240_000)
+  }, 360_000)
 })

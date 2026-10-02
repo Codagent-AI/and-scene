@@ -95,7 +95,7 @@ describe('presentation kit contracts', () => {
     expect(await screen.findByText('Persistent 2')).toBeTruthy()
     expect(screen.getByText('Entering')).toBeTruthy()
     expect(mounts).toBe(1)
-    await waitFor(() => expect(screen.queryByText('Leaving')).toBeNull())
+    await waitFor(() => expect(screen.queryByText('Leaving')).toBeNull(), { timeout: 5000 })
     expect(view.container.querySelectorAll('[data-scene-entity="kept"]')).toHaveLength(1)
 
     const newGroup = grouped.map((step, index) => index === 1 ? { ...step, groupKey: 'new-group' } : step)

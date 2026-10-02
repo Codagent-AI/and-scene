@@ -20,7 +20,8 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
       const target = event.target as HTMLElement | null
       if (event.ctrlKey || event.metaKey || event.altKey) return
       if (target?.isContentEditable || (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return
-      if (event.key === ' ' && target?.tagName === 'BUTTON') return
+      const isNavigationKey = event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown' || event.key === 'ArrowLeft' || event.key === 'PageUp'
+      if (isNavigationKey && target?.closest?.('button, a[href], summary, [role="button"], [role="link"], [role="tab"], [role="slider"]')) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') { event.preventDefault(); next() }
       else if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') toggleMode()

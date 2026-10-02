@@ -67,14 +67,34 @@ describe('presentation kit contracts', () => {
     input.remove()
     const nextButton = document.createElement('button')
     document.body.append(nextButton)
-    act(() => nextButton.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })))
-    expect(result.current.index).toBe(0)
-    act(() => nextButton.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true })))
+    for (const key of ['ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', ' ']) {
+      act(() => nextButton.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })))
+      expect(result.current.index).toBe(1)
+    }
+    const link = document.createElement('a')
+    link.href = '#'
+    document.body.append(link)
+    act(() => link.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })))
+    expect(result.current.index).toBe(1)
+    link.remove()
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })))
     expect(result.current.index).toBe(0)
     act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true })))
     expect(result.current.mode).toBe('present')
     nextButton.remove()
     unmount()
+  })
+
+  it('does not advance the deck when a navigation key is pressed on a focused progress control', async () => {
+    render(<Presentation steps={steps} title="Focus" />)
+    const jump = screen.getByLabelText('Go to step 2')
+    fireEvent.click(jump)
+    expect(jump.getAttribute('aria-current')).toBe('step')
+    jump.focus()
+    fireEvent.keyDown(jump, { key: 'ArrowRight' })
+    fireEvent.keyDown(jump, { key: 'ArrowLeft' })
+    expect(jump.getAttribute('aria-current')).toBe('step')
+    expect(document.querySelector('[data-presentation]')?.getAttribute('data-step-index')).toBe('1')
   })
 
   it('keeps grouped scenes and continuing entities mounted while groups remount', async () => {

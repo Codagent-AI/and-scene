@@ -14,13 +14,12 @@ export async function inspectWarnings(page) {
       if (x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top) overlaps.push(`${first.getAttribute('data-scene-entity') || first.getAttribute('class') || first.tagName} / ${second.getAttribute('data-scene-entity') || second.getAttribute('class') || second.tagName}`)
     }
     const warnings = overlaps.length ? [`visible text/chrome overlap: ${[...new Set(overlaps)].join(', ')}`] : []
-    const active = [...root.querySelectorAll('[aria-current="step"], [aria-current="location"]')]
-    for (const item of active) {
-      const inactive = [...root.querySelectorAll('[data-presentation-progress-item], [data-presentation-toc-item]')].find((node) => node !== item && node.getAttribute('aria-current') === null && node.getBoundingClientRect().width > 0)
-      if (!inactive) continue
-      const a = getComputedStyle(item), b = getComputedStyle(inactive), x = item.getBoundingClientRect(), y = inactive.getBoundingClientRect()
-      if (a.color === b.color && a.backgroundColor === b.backgroundColor && a.fontWeight === b.fontWeight && Math.abs(x.width - y.width) < 3) warnings.push('active progress or table-of-contents state may be visually indistinct')
-      break
+    const kinds = [['data-presentation-progress-item', 'active progress indicator may be visually indistinct from inactive indicators'], ['data-presentation-toc-item', 'active table-of-contents entry may be visually indistinct from inactive entries']]
+    const look = (node) => { const style = getComputedStyle(node), rect = node.getBoundingClientRect(); return [style.color, style.backgroundColor, style.backgroundImage, style.fontWeight, style.opacity, style.boxShadow, style.textDecorationLine, style.transform, style.outlineStyle === 'none' ? '' : style.outlineColor, ['Top', 'Right', 'Bottom', 'Left'].map((side) => style[`border${side}Style`] === 'none' ? '' : `${style[`border${side}Width`]} ${style[`border${side}Color`]}`).join('|'), Math.round(rect.width), Math.round(rect.height)].join(';') }
+    for (const [hook, message] of kinds) {
+      const items = [...root.querySelectorAll(`[${hook}]`)].filter((node) => node.getBoundingClientRect().width > 0)
+      const inactive = items.filter((node) => node.getAttribute('aria-current') === null)
+      if (items.some((item) => item.getAttribute('aria-current') !== null && inactive.length && inactive.every((node) => look(node) === look(item)))) warnings.push(message)
     }
     const attribution = root.querySelector('[data-presentation-attribution]')
     if (!attribution) warnings.push('missing attribution')

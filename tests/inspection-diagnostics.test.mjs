@@ -35,4 +35,26 @@ describe('presentation inspection diagnostics', () => {
       expect(warnings.some((warning) => warning.includes('attribution may be browser-default or undersized'))).toBe(true)
     } finally { await browser.close() }
   }, 30000)
+
+  it('checks every kind of active chrome, so a distinct table of contents does not mask indistinct progress dots', async () => {
+    const browser = await chromium.launch({ headless: true })
+    try {
+      const page = await browser.newPage({ viewport: { width: 800, height: 600 } })
+      const fixture = (progressActive) => `<style>
+        button{font:14px sans-serif;color:black;background:white;border:0;width:20px;height:10px}
+        [data-presentation-toc-item][aria-current]{background:#186b5b;color:white;font-weight:700;width:60px}
+        [data-presentation-progress-item][aria-current]{${progressActive}}
+      </style><main data-presentation>
+        <nav><button data-presentation-toc-item aria-current="location">Start</button><button data-presentation-toc-item>Build</button></nav>
+        <nav><button data-presentation-progress-item aria-current="step"></button><button data-presentation-progress-item></button><button data-presentation-progress-item></button></nav>
+        <a data-presentation-attribution href="#" style="font-size:14px;color:black;text-decoration:none">made by and-scene</a>
+      </main>`
+      await page.setContent(fixture(''))
+      const indistinct = await inspectWarnings(page)
+      expect(indistinct).toContain('active progress indicator may be visually indistinct from inactive indicators')
+      expect(indistinct.some((warning) => warning.includes('table-of-contents'))).toBe(false)
+      await page.setContent(fixture('background:#186b5b;box-shadow:0 0 0 2px #186b5b'))
+      expect((await inspectWarnings(page)).some((warning) => warning.includes('visually indistinct'))).toBe(false)
+    } finally { await browser.close() }
+  }, 30000)
 })

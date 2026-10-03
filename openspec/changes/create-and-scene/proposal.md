@@ -1,9 +1,11 @@
 ## Why
 
-Agent Runner needs a realistic eval fixture for comparing workflow behavior across
-models and workflow revisions. A presentation-generation skill is large enough to
-exercise planning, frontend implementation, verification, and artifact quality,
-while still being small enough to reset and rerun from a spec-only branch.
+People who explain technical ideas often want a browser presentation that works
+as one evolving diagram, where elements appear, move, connect, and re-label as the
+explanation develops, rather than a deck of disconnected slides. Building that by
+hand is slow and inconsistent. An agent skill that generates such presentations
+from a topic, backed by a reusable scene kit and a verification flow, makes them
+repeatable.
 
 ## What Changes
 
@@ -43,7 +45,7 @@ presentation from a topic.
 Throughout this change, "presentation" is the canonical term for the generated
 artifact. "Talk" is treated as a synonym only in informal narrative and carries
 no separate meaning in the skill or scene contracts. The one exception is the
-per-presentation entry component, retained from the reference as `Talk.tsx`; the
+per-presentation entry component, named `Talk.tsx`; the
 filename is incidental and does not denote a distinct concept.
 
 ```text
@@ -77,20 +79,7 @@ Scene
 
 The skill should be hybrid rather than prompt-only. The skill document provides
 the agent procedure and quality bar; reusable templates/scripts/components keep
-the generated output consistent enough for evals.
-
-The eval workflow will clone a spec-only branch, run Agent Runner's OpenSpec
-implementation workflow for this change, then compare the resulting behavior and
-artifacts across candidate models or workflow versions. Creating that spec-only
-branch (proposal + specs + design, without tasks or implementation) and a
-reference implementation branch is a one-time manual setup performed after this
-change is implemented; it is not itself a capability of this system (see Out of
-Scope).
-
-The Agent Runner-side Docker/smoke-test configuration that points the eval at this
-repository's spec-only branch lives in the Agent Runner codebase and is tracked
-separately (see Out of Scope); it is a consumer of this change, not a deliverable
-of it.
+the generated output consistent across presentations.
 
 ## Out of Scope
 
@@ -98,23 +87,9 @@ of it.
 - A general-purpose visual editor.
 - A production hosting or publishing workflow.
 - Subjective scoring of visual taste as the primary verification mechanism.
-- Recreating the full codagent.dev site.
-- Eval fixture branching. Creating the spec-only and reference-implementation
-  branches is a one-time manual operation done after this change ships, not a
-  capability the system implements (a spec for branch creation would otherwise
-  have to live on the very branch it creates, and only ever runs once).
-- Agent Runner's Docker smoke-test configuration. Updating Agent Runner so its
-  smoke project is cloned from this repository's spec-only branch is an external
-  dependency tracked in the Agent Runner codebase, not a deliverable of this
-  change.
 
 ## Impact
 
 - Adds a local skill definition for generating presentations.
 - Adds React presentation-kit code and generated presentation conventions.
 - Adds scripts or tests for build/render verification.
-- Adds OpenSpec artifacts that can be preserved on a spec-only branch for evals.
-- External dependency (not delivered here): Agent Runner's Docker smoke test must
-  be updated separately so the smoke project is cloned from this repository's
-  spec-only branch instead of a generic starter. Tracked in the Agent Runner
-  codebase; see Out of Scope.

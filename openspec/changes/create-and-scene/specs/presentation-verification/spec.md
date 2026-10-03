@@ -8,7 +8,7 @@ Verification SHALL build the whole application — all presentations plus the in
 - **THEN** it builds the whole app and fails if `npm run build` reports any type or build error
 
 ### Requirement: Committed reference sample
-A generated sample presentation SHALL be committed in the repository as a known-good fixture, registered and reachable like any other presentation.
+A generated sample presentation SHALL be committed in the repository as a known-good example, registered and reachable like any other presentation.
 
 The sample is the self-referential talk **"How to Use This Skill to Make a Presentation"** — a presentation, built by the skill, about building presentations with the skill. Its closing beat reveals that the viewer is looking at an example of the skill's own output. The sample SHALL implement the following steps (titles, captions, and scene intent are normative; the per-step visual design is deferred to design):
 
@@ -56,7 +56,7 @@ Verification SHALL render the reference sample through all of its steps and fail
 - **THEN** verification fails and identifies the failing step
 
 ### Requirement: Pass/fail reporting
-Verification SHALL produce an unambiguous pass/fail outcome suitable for automated evals.
+Verification SHALL produce an unambiguous pass/fail outcome suitable for automated checks.
 
 #### Scenario: Clear outcome
 - **WHEN** verification completes

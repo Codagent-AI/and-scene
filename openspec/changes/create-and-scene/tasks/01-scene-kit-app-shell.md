@@ -18,10 +18,6 @@ Before starting, read:
 - `src/main.tsx`, `src/App.tsx`, `vite.config.ts`, `src/index.css`, and
   `package.json` — the starting scaffold
 
-The sibling `codagent-dot-dev` presentation harness may be used as a behavioral
-reference for motion, fixed-canvas layout, navigation, and modes. Do not copy its
-talk-specific entities or visual styling into the reusable kit.
-
 ## Implementation
 
 - Keep `Step<TPayload>`, `SceneProps<TPayload>`, and `Presentation<TPayload>`
@@ -48,7 +44,7 @@ talk-specific entities or visual styling into the reusable kit.
 The canonical scenarios in
 `openspec/changes/create-and-scene/specs/evolving-scene-presentations/spec.md`
 are authoritative. This task deliberately does not duplicate that spec; copied
-acceptance criteria drifted in an earlier fixture revision.
+acceptance criteria drifted in an earlier revision.
 
 ## Done When
 

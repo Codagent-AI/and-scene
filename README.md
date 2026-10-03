@@ -1,7 +1,6 @@
 # and-scene
 
-And Scene is a fixture project for building and evaluating an Agent Runner
-workflow that implements a presentation-generation skill.
+And Scene is a project for building a presentation-generation agent skill.
 
 The intended presentation model is not a stack of unrelated slides. It is one
 diagrammatic scene that evolves through named steps: elements appear, move,

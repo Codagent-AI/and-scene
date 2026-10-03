@@ -52,7 +52,7 @@ settle and emit advisory warnings for:
 - visually indistinct active progress or table-of-contents state
 - missing, browser-default, or undersized attribution
 
-Deliver INT-002 with controlled browser fixtures for screenshots, settling,
+Deliver INT-002 with controlled test presentations for screenshots, settling,
 warnings, and overlap exemptions. Deliver E2E-001 as the successful production
 verification journey and E2E-002 with isolated fault-injection copies that prove
 actionable non-zero failures without mutating the source checkout. Once the

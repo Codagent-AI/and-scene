@@ -1,24 +1,21 @@
 ## Context
 
-And Scene is a Vite + React 19 + TypeScript fixture for an Agent Runner eval. The
+And Scene is a Vite + React 19 + TypeScript app. The
 change adds a local **presentation skill** that generates browser-based
 presentations modeled as one evolving diagrammatic scene (stable entities moving
 through named steps), plus the reusable engine those presentations run on, a
 verification flow, and a committed self-referential sample.
 
-The runtime model and most of the visual approach are proven in the sibling repo
-`codagent-dot-dev` (`src/presentation/harness/**`): a fixed design canvas scaled
-to fit, `motion` layout (`layoutId`) morphs for entity continuity, an
-`AnimatePresence` step host, a keyboard/touch nav hook, and present/browse chrome.
-That code is **talk-specific** (nodes like `LLMNode`, `ToolsNode`); this design
-generalizes the engine into a reusable kit and keeps each presentation's entities
+The runtime model is a fixed design canvas scaled to fit, `motion` layout
+(`layoutId`) morphs for entity continuity, an `AnimatePresence` step host, a
+keyboard/touch nav hook, and present/browse chrome. This design packages that
+engine as a reusable, topic-agnostic kit and keeps each presentation's entities
 local to itself.
 
 Current scaffold state: plain-CSS single-page `App.tsx`, no router, no Tailwind.
 `react`, `react-dom`, `motion`, and `lucide-react` are already in
 `package.json`. Specs in `openspec/changes/create-and-scene/specs/`:
-`presentation-skill`, `evolving-scene-presentations`, `presentation-verification`
-(`eval-fixture-branching` was descoped).
+`presentation-skill`, `evolving-scene-presentations`, `presentation-verification`.
 
 ## Goals / Non-Goals
 
@@ -31,15 +28,11 @@ Current scaffold state: plain-CSS single-page `App.tsx`, no router, no Tailwind.
 - A committed **sample** ("How to Use This Skill to Make a Presentation").
 - A **verification** entry point (`npm run verify`) that builds the whole app and
   renders the sample through every step in a real browser.
-- Behavioral parity with the `codagent-dot-dev` harness where it already solved a
-  problem (canvas dimensions, morph timing, navigation, and modes), while keeping
-  all visual styling owned by the presentation or host.
+- Kit-owned behavior for canvas dimensions, morph timing, navigation, and
+  modes, while keeping all visual styling owned by the presentation or host.
 
 **Non-Goals:**
 - Export (PPT/Keynote/PDF/image), a visual editor, hosting/publishing.
-- Eval fixture branching (descoped — one-time manual op after this ships).
-- The Agent Runner Docker/smoke-test config (external dependency, tracked
-  separately).
 
 ## Approach
 
@@ -65,7 +58,7 @@ src/
     nodes/                 # generic primitives composed by each presentation's steps
       Box.tsx              # bordered card; optional LucideIcon glyph; carries layoutId
       Label.tsx, Arrow.tsx, Frame.tsx, Emphasis.tsx
-      SymbolChip.tsx       # generalized HarnessNode with stable styling hooks
+      SymbolChip.tsx       # generic symbol chip with stable styling hooks
       Appear.tsx, SceneLayer.tsx
   presentations/
     index.ts               # EXPLICIT registry: [{ slug, title, load: () => import('./<dir>/Talk') }]
@@ -82,7 +75,7 @@ scripts/
 
 ### Scene kit (the engine)
 
-A direct generalization of `codagent-dot-dev/src/presentation/harness/**`:
+The kit provides:
 
 - **Step contract** (`types.ts`): generic `Step<TPayload>` and
   `SceneProps<TPayload>` types preserve strongly typed grouped payloads through
@@ -104,8 +97,8 @@ A direct generalization of `codagent-dot-dev/src/presentation/harness/**`:
   Active navigation exposes semantic current state and stable active hooks.
   Bottom-right attribution defaults to a `made by and-scene` GitHub link with a
   stable hook; top-left branding is host opt-in.
-- **Generic node primitives**: the reusable replacement for dot-dev's
-  talk-specific nodes. Each accepts stable identity and class/data/style hooks,
+- **Generic node primitives**: reusable, topic-agnostic building blocks instead
+  of talk-specific nodes. Each accepts stable identity and class/data/style hooks,
   but supplies no palette, font, spacing, border, shadow, card, button, or theme
   defaults. `Appear` sequences newcomers only after persisting entities settle;
   `SceneLayer` absolutely positions a step's diagram so mounting one layer never
@@ -113,8 +106,8 @@ A direct generalization of `codagent-dot-dev/src/presentation/harness/**`:
 
 Each **presentation** supplies only its own `entities.ts` (its `layoutId`
 namespace) and `steps/*` (Scenes composing the primitives), then renders
-`<Presentation steps=… />`. This is what keeps generated output consistent enough
-for evals.
+`<Presentation steps=… />`. This is what keeps generated output consistent
+across presentations.
 
 ### Routing + registry
 
@@ -124,7 +117,7 @@ for evals.
 - `presentations/index.ts` is an **explicit** array of
   `{ slug, title, load: () => import('./<dir>/Talk') }`. Adding a presentation =
   new folder + one registry line. Chosen over `import.meta.glob` so registration
-  is deterministic and diffable in evals.
+  is deterministic and diffable in review.
 - `Landing.tsx` enumerates the registry (replaces the placeholder `App.tsx`).
 
 ### Skill (`skills/presentation/SKILL.md`)
@@ -173,7 +166,7 @@ output consistent. Procedure:
    through every step (`ArrowRight`), checking the `data-step-index` advances.
 4. Any `console.error`, `pageerror` (uncaught exception), or failed step
    transition fails verification and reports the failing step index.
-5. Process exits non-zero on any failure (machine-readable for evals).
+5. Process exits non-zero on any failure (machine-readable for automation).
 
 The chrome exposes `data-step-count` and `data-step-index` test hooks so the
 headless driver enumerates steps without coupling to DOM structure.
@@ -192,36 +185,36 @@ host already uses, or the user explicitly requests, another styling system.
 
 ## Decisions
 
-1. **Style-neutral kit + presentation-owned CSS** — only behavioral and geometric
-   decisions are ported from the reference. Stable hooks let each presentation
+1. **Style-neutral kit + presentation-owned CSS** — the kit owns only behavioral
+   and geometric decisions. Stable hooks let each presentation
    own palette, typography, spacing, borders, shadows, and control treatments.
    This prevents the reusable engine from becoming an accidental design system.
 2. **Generic node primitives** — ship `Box/Label/Arrow/Frame/Emphasis/SymbolChip`
    parameterized by stable identity and semantic styling hooks instead of
    talk-specific nodes. This is the core generalization that makes the kit
-   reusable across topics. *Alternative:* copy the reference nodes (couples the
-   kit to one talk and its visual system).
+   reusable across topics. *Alternative:* talk-specific nodes (couples the kit to
+   one talk and its visual system).
 3. **Zero-dep pathname router + explicit registry** — minimal `main.tsx` switch +
    `presentations/index.ts`. Deterministic, diffable, no new dep. *Alternatives:*
    `react-router-dom` (extra dep/surface); `import.meta.glob` auto-registration
-   (non-deterministic for evals).
+   (non-deterministic registration).
 4. **Render check = Playwright over `vite preview`** — real browser stepping the
    sample, failing on console/page errors; faithful to `motion` layout and
-   aligned with the Agent Runner Docker smoke test. *Alternative:* Vitest + jsdom
+   runnable in Docker/CI. *Alternative:* Vitest + jsdom
    per-step mount (fast, no browser, but can't faithfully run layout animation —
    weaker signal).
 5. **Skill carries a template snapshot; canonical kit lives in `src/`** — the
    app/sample use `src/presentation-kit/` naturally; the skill's `templates/` is a
-   snapshot used only to bootstrap a fresh/empty project. Keeps the fixture's
-   layout natural for the implementing agent. *Alternative:* a Vite alias so the
-   app consumes the kit from the skill's templates (no duplication, but an
-   unusual layout that reads worse as a fixture).
+   snapshot used only to bootstrap a fresh/empty project. Keeps the repository's
+   layout natural for contributors. *Alternative:* a Vite alias so the app
+   consumes the kit from the skill's templates (no duplication, but an unusual
+   layout that is harder to read and maintain).
 6. **Scaffold target resolution + full dependency set** — scaffolding resolves
    root vs. a `presentations/` subdir (monorepo) and ensures the complete
    dependency set rather than assuming any deps exist. *Alternative:* always
    scaffold at root (breaks monorepo use).
 7. **`glyphs = lucide-react`** — already a dependency here; the scaffold adds it
-   for fresh projects. Same icon-as-component pattern as the reference (`Icon:
+   for fresh projects. Icons use the icon-as-component pattern (`Icon:
    LucideIcon`), so adding art is one import, no SVG authoring.
 
 ## Risks / Trade-offs
@@ -230,15 +223,13 @@ host already uses, or the user explicitly requests, another styling system.
   snapshot of the kit; verification builds and renders the materialized app, so
   any drift that breaks rendering fails CI. Keep the snapshot in sync when the
   kit changes.
-- **Playwright browser in Docker/CI** → Install Chromium in the verify step; this
-  matches the Agent Runner smoke environment the proposal already assumes. Heavier
+- **Playwright browser in Docker/CI** → Install Chromium in the verify step. Heavier
   than a jsdom check, accepted for fidelity.
 - **Monorepo detection is heuristic** → The skill states the resolved target and
   confirms before writing in any non-empty project, so a wrong guess is caught by
   the user, not silently applied.
-- **StrictMode double-invoke + `motion`** → The reference runs fine under
-  `StrictMode`; keep it. Watch for effect/animation double-fire during
-  implementation.
+- **StrictMode double-invoke + `motion`** → Keep `StrictMode`; watch for
+  effect/animation double-fire during implementation.
 - **Self-verify cost inside the skill** → A full Playwright pass on every skill
   run is slow; the skill may run the lighter build + a single-route render first
   and reserve the full `npm run verify` for completion, as long as it does not
@@ -249,7 +240,7 @@ host already uses, or the user explicitly requests, another styling system.
 Greenfield (no production users); the implementing change will, roughly:
 1. Add `playwright` for verification (runtime/build dependencies already present);
    keep the reusable kit styling-framework-neutral.
-2. Build `src/presentation-kit/**` by generalizing the reference harness.
+2. Build `src/presentation-kit/**` as a generic, reusable presentation harness.
 3. Add the router (`main.tsx`), `Landing.tsx` (replacing `App.tsx`), and
    `presentations/index.ts`.
 4. Implement the sample under `presentations/how-to-make-a-presentation/`

@@ -1,0 +1,4 @@
+// Prefix every entity ID with the presentation slug to avoid layoutId collisions.
+export const ENTITY = {
+  subject: 'SLUG:subject',
+} as const

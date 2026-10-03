@@ -1,0 +1,11 @@
+import { Presentation, type Step } from '../../presentation-kit'
+import { FirstStep } from './steps/FirstStep'
+import './style.css'
+
+const steps: Step<Record<string, never>>[] = [
+  { id: 'intro', era: 'introduction', title: 'TITLE', caption: 'CAPTION', Scene: FirstStep, payload: {} },
+]
+
+export default function Talk() {
+  return <Presentation steps={steps} title="PRESENTATION_TITLE" initialMode="browse" />
+}

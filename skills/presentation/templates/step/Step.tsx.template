@@ -1,0 +1,9 @@
+import { Box, SceneLayer, type SceneProps } from '../../../presentation-kit'
+import { ENTITY } from '../entities'
+
+export function STEP_COMPONENT({ step }: SceneProps<Record<string, never>>) {
+  return <SceneLayer className="scene">
+    {/* Preserve IDs for continuing entities; add unique IDs for newcomers. */}
+    <Box id={ENTITY.subject} className="subject" label={step.title} />
+  </SceneLayer>
+}

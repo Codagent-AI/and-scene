@@ -1,0 +1,32 @@
+:root { font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
+button, input, textarea, select { font: inherit; }
+
+.presentation { position: relative; width: 100vw; height: 100dvh; overflow: hidden; }
+.presentation-header { position: absolute; inset: 0 0 auto; display: flex; justify-content: space-between; align-items: start; padding: 1rem; }
+.presentation-heading { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+.presentation-mode-tools { display: flex; gap: .75rem; align-items: center; }
+.presentation-toc { position: absolute; z-index: 1; inset: 50% auto auto 1rem; display: flex; flex-direction: column; transform: translateY(-50%); }
+.presentation-viewport { position: absolute; inset: 0; display: grid; place-items: center; touch-action: pan-y; }
+.presentation--browse .presentation-viewport { top: 92px; bottom: 170px; }
+.presentation--present .presentation-viewport { top: 72px; bottom: 112px; }
+.presentation-stage { position: relative; }
+.presentation-canvas { position: absolute; inset: 0 auto auto 0; }
+.presentation-scene { position: absolute; inset: 0; }
+.presentation-footer { position: absolute; inset: auto 0 1rem; display: flex; justify-content: space-between; align-items: end; gap: 1rem; padding: 1rem; }
+.presentation-narration { max-width: min(42rem, 65vw); }
+.presentation-navigation, .presentation-progress { display: flex; align-items: center; gap: .5rem; }
+.presentation-attribution { position: absolute; right: 1rem; bottom: .25rem; }
+.presentation-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.presentation--present .presentation-footer { justify-content: center; }
+.landing { width: min(70rem, calc(100% - 3rem)); margin: 0 auto; padding: clamp(3rem, 10vh, 7rem) 0; color: #f4f0e6; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.landing::before { content: ''; position: fixed; z-index: -1; inset: 0; background: radial-gradient(ellipse at 18% 12%, #29352d 0, transparent 42rem), #111411; }
+.landing header > p:first-child { margin-bottom: 1.4rem; color: #a8bf9b; font-size: .78rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.landing h1 { max-width: 13ch; margin: 0; font-size: clamp(3rem, 8vw, 6.75rem); font-weight: 560; line-height: .94; letter-spacing: -.065em; }
+.landing header > p:last-child { max-width: 38rem; margin-top: 1.6rem; color: #c0c5bc; font-size: clamp(1rem, 2vw, 1.25rem); line-height: 1.6; }
+.landing section { max-width: 54rem; margin-top: clamp(3rem, 9vh, 6.5rem); border-top: 1px solid #ffffff2b; padding-top: 1rem; color: #aeb7aa; }
+.landing ul { margin: 0; padding: 0; list-style: none; }
+.landing li { padding: 1rem 0; border-bottom: 1px solid #ffffff24; }
+.landing a { color: #f4f0e6; font-size: 1.1rem; text-decoration-thickness: 1px; text-underline-offset: .25em; }
+@media (max-width: 700px) { .presentation-toc { display: none; } .presentation-footer { flex-direction: column; align-items: stretch; } .presentation-navigation { justify-content: space-between; } }

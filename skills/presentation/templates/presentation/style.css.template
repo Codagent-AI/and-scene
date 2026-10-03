@@ -1,0 +1,6 @@
+/* Presentation-owned styling. The shared scene kit has no visual theme. */
+.presentation--browse, .presentation--present {
+  /* Define this presentation's palette and typography here. */
+}
+.scene { position: absolute; inset: 0; }
+.subject { position: absolute; left: 80px; top: 80px; }

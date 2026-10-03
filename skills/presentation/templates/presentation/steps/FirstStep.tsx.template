@@ -1,0 +1,8 @@
+import { Box, SceneLayer, type SceneProps } from '../../../presentation-kit'
+import { ENTITY } from '../entities'
+
+export function FirstStep({ step }: SceneProps<Record<string, never>>) {
+  return <SceneLayer className="scene">
+    <Box id={ENTITY.subject} className="subject" label={step.title} />
+  </SceneLayer>
+}

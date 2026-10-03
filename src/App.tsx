@@ -26,7 +26,7 @@ function App() {
         <p className="eyebrow">and-scene</p>
         <h1 id="page-title">Presentations as evolving diagrams.</h1>
         <p className="summary">
-          This repo is the fixture for a future skill that generates browser-based
+          This repo is home to a future skill that generates browser-based
           talks from a topic. The core artifact is not a deck of isolated slides;
           it is one scene moving through named states.
         </p>

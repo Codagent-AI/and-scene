@@ -27,7 +27,7 @@ paid effects, and must leave the source repository unchanged.
 ### INT-002: Screenshot helper emits faithful artifacts and advisory warnings
 - Covers: Project-local screenshot capture, settled transitions, overlap exemptions, active-navigation diagnostics, and attribution diagnostics.
 - Boundary: The project-local inspection script drives a production preview in Chromium and writes screenshots plus diagnostics to the filesystem.
-- Setup: Use a controlled registered fixture presentation with multiple steps and variants containing an unmarked text collision, an explicitly allowed overlap, indistinct active chrome, and unpolished attribution.
+- Setup: Use a controlled registered test presentation with multiple steps and variants containing an unmarked text collision, an explicitly allowed overlap, indistinct active chrome, and unpolished attribution.
 - Action: Run the inspection helper through every step after the configured settle interval.
 - Assertions: One predictable screenshot is written per step; captures occur only after transitions settle; the unmarked collision, indistinct active state, and attribution defect produce step-specific advisory warnings; and the explicitly allowed readable overlap does not produce an overlap warning.
 - Execution: Run in the repository's browser-backed integration suite on every pull request with Chromium available.

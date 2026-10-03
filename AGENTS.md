@@ -1,6 +1,5 @@
-# And Scene Evaluation Fixture
+# And Scene
 
-This branch is the pre-implementation fixture for the And Scene evaluation.
 Implement the `create-and-scene` OpenSpec change in this repository and verify
 both behavior and visual composition before reporting completion. The target
 application, skill, scene kit, and scripts intentionally do not exist yet.
@@ -14,8 +13,7 @@ application, skill, scene kit, and scripts intentionally do not exist yet.
 
 Read the proposal, design, canonical specs, and all task files before editing.
 Treat the canonical specs as authoritative when task summaries are less
-detailed. Keep implementation work inside the repository; do not alter the
-evaluation harness or fixture history.
+detailed. Keep implementation work inside the repository.
 
 ## Target Project Map
 
@@ -30,7 +28,7 @@ The change creates these primary areas:
 ## Browser Tooling
 
 Use `chrome-devtools-axi` for agent-driven browser inspection and debugging.
-It is installed in the evaluation sandbox and provides a concise CLI over
+It is installed in this environment and provides a concise CLI over
 Chrome DevTools:
 
 ```bash

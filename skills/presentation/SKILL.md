@@ -96,6 +96,9 @@ CSS. Follow local conventions if an existing project differs. Register a new
 slug/title/route in the presentation index without editing or deleting other
 entries. Stable entity IDs must persist across states when a diagram object
 continues; model a presentation as an evolving scene, not unrelated slide cards.
+Wrap entities that appear only in some steps in the kit's `Presence`, with a
+stable `key` on each direct child (a keyed `Fragment` for a group), so they
+animate out when a step removes them.
 Each step needs a stable id, section/era, presenter title, explanatory caption,
 and visible diagram state. Keep numbering derived from array order.
 

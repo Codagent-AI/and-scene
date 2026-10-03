@@ -45,7 +45,7 @@ try {
     await footer.waitFor({ state: 'visible' })
     await page.waitForFunction((expected) => Number(document.querySelector('[data-presentation-footer]')?.getAttribute('data-step-index')) === expected, index)
     await page.waitForFunction(() => document.getAnimations().every((animation) => animation.playState !== 'running'), null, { timeout: 10000 }).catch(() => {})
-    await page.waitForTimeout(700)
+    await page.waitForTimeout(1200) // layout move (0.55s) + newcomer delay and fade (0.83s), with margin
     await page.screenshot({ path: resolve(output, `step-${String(index + 1).padStart(2, '0')}.png`), fullPage: true })
     const diagnostics = await page.evaluate(() => {
       const result = []

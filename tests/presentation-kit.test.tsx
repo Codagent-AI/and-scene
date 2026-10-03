@@ -3,6 +3,8 @@ import { useEffect } from 'react'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { Presentation } from '../src/presentation-kit/Presentation'
 import { Box } from '../src/presentation-kit/nodes/Box'
+import { Arrow } from '../src/presentation-kit/nodes/Arrow'
+import { Presence } from '../src/presentation-kit/Presence'
 import type { SceneProps, Step } from '../src/presentation-kit/types'
 import { normalizeRoute } from '../src/route'
 
@@ -104,5 +106,23 @@ describe('presentation kit contracts', () => {
     render(<Box id="fixed-id" data-presentation-node="override" data-entity-id="override">Node</Box>)
     const node = document.querySelector('[data-presentation-node="box"]')
     expect(node?.getAttribute('data-entity-id')).toBe('fixed-id')
+  })
+
+  it('retains a departing entity inside Presence instead of removing it immediately', () => {
+    const scene = (present: boolean) => <Presence>{present && <Box key="leaving" id="leaving-node">Leaving</Box>}</Presence>
+    const { rerender } = render(scene(true))
+    expect(document.querySelector('[data-entity-id="leaving-node"]')).toBeTruthy()
+    rerender(scene(false))
+    expect(document.querySelector('[data-entity-id="leaving-node"]')).toBeTruthy()
+  })
+
+  it('mounts newcomers hidden so they can enter after continuing entities move', () => {
+    function GrowingScene({ payload }: SceneProps<Payload>) {
+      return <><Box id="continuing-node">Continuing</Box>{payload.value > 1 && <><Box id="new-box">New</Box><Arrow id="new-arrow" /></>}</>
+    }
+    const growing = steps.map((step) => ({ ...step, Scene: GrowingScene }))
+    render(<Presentation steps={growing} title="Growing" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Next step' }))
+    for (const id of ['new-box', 'new-arrow']) expect((document.querySelector(`[data-entity-id="${id}"]`) as HTMLElement).style.opacity).toBe('0')
   })
 })

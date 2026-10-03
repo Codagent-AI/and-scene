@@ -1,27 +1,42 @@
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { createServer } from 'node:net'
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
 const appRoot = fileURLToPath(new URL('../', import.meta.url))
+const availablePort = async () => {
+  const probe = createServer()
+  await new Promise((resolve, reject) => { probe.once('error', reject); probe.listen(0, '127.0.0.1', resolve) })
+  const { port } = probe.address()
+  await new Promise((resolve, reject) => probe.close((error) => error ? reject(error) : resolve()))
+  return port
+}
 const slug = process.argv[2]
 if (!slug || !/^[a-z0-9-]+$/.test(slug)) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
 const output = resolve(appRoot, 'artifacts', 'presentation-inspection', slug)
 await mkdir(output, { recursive: true })
-const server = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', '4178', '--strictPort'], { cwd: appRoot, stdio: 'ignore' })
+const port = await availablePort()
+const server = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: appRoot, stdio: 'ignore' })
 let browser
 try {
   let ready = false
-  for (let i = 0; i < 60; i++) { try { if ((await fetch('http://127.0.0.1:4178')).ok) { ready = true; break } } catch {} await delay(250) }
+  const baseUrl = `http://127.0.0.1:${port}`
+  for (let i = 0; i < 60; i++) {
+    if (server.exitCode !== null) throw new Error('Preview server exited before becoming ready')
+    try { if ((await fetch(baseUrl)).ok) { ready = true; break } } catch {}
+    await delay(250)
+  }
   if (!ready) throw new Error('Preview did not start; run npm run build first')
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } })
-  await page.goto(`http://127.0.0.1:4178/${slug}`, { waitUntil: 'networkidle' })
+  await page.goto(`${baseUrl}/${slug}`, { waitUntil: 'networkidle' })
   const footer = page.locator('[data-presentation-footer]')
+  if (!await footer.count()) throw new Error(`No presentation found at /${slug}`)
   const count = Number(await footer.getAttribute('data-step-count'))
-  if (!count) throw new Error(`No presentation found at /${slug}`)
+  if (!count) throw new Error(`Presentation at /${slug} has no steps`)
   const warnings = []
   for (let index = 0; index < count; index++) {
     await footer.waitFor({ state: 'visible' })
@@ -48,4 +63,13 @@ try {
   console.log(`Captured ${count} settled screenshots in ${output}`)
   for (const warning of [...new Set(warnings)]) console.warn(`WARN: ${warning}`)
 } catch (error) { console.error(`Inspection failed: ${error.message}`); process.exitCode = 1 }
-finally { await browser?.close(); server.kill('SIGTERM'); await new Promise((resolve) => server.once('exit', resolve)) }
+finally {
+  await browser?.close()
+  if (server.exitCode === null) {
+    await new Promise((resolve) => {
+      server.once('exit', resolve)
+      if (server.exitCode === null) server.kill('SIGTERM')
+      else resolve()
+    })
+  }
+}

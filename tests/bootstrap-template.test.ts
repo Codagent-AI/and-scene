@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, cp, stat, mkdir } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, cp, stat, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -41,14 +41,18 @@ describe('distributable bootstrap template', () => {
       expect(await stat(join(app, 'src/presentation-kit/Presentation.tsx'))).toBeTruthy()
       expect(await stat(join(app, 'src/presentations/index.ts'))).toBeTruthy()
       expect(await stat(join(app, 'vite.config.ts'))).toBeTruthy()
+      const registryPath = join(app, 'src/presentations/index.ts')
+      await writeFile(registryPath, (await readFile(registryPath, 'utf8')).replace("slug: 'starter'", "slug: 'custom-route'"))
 
       await exec('npm', ['ci', '--ignore-scripts'], { cwd: app, timeout: 180_000 })
       await exec('npm', ['run', 'build'], { cwd: app, timeout: 120_000 })
       await exec('npm', ['run', 'lint'], { cwd: app, timeout: 120_000 })
-      await exec('npm', ['run', 'inspect', '--', 'starter'], { cwd: app, timeout: 120_000 })
-      expect((await readdir(join(app, 'artifacts/presentation-inspection/starter'))).filter((name) => name.endsWith('.png'))).toHaveLength(1)
+      await exec('npm', ['run', 'inspect', '--', 'custom-route'], { cwd: app, timeout: 120_000 })
+      expect((await readdir(join(app, 'artifacts/presentation-inspection/custom-route'))).filter((name) => name.endsWith('.png'))).toHaveLength(1)
+      await expect(exec('npm', ['run', 'inspect', '--', 'unknown-route'], { cwd: app, timeout: 30_000 })).rejects.toMatchObject({ stderr: expect.stringContaining('No presentation found at /unknown-route') })
       // Invoke by absolute script path from outside the app to prove cwd independence.
-      await exec('node', [join(app, 'scripts/verify.mjs')], { cwd: caller, timeout: 120_000 })
+      const verification = await exec('node', [join(app, 'scripts/verify.mjs')], { cwd: caller, timeout: 120_000 })
+      expect(verification.stdout).toContain('PASS: bootstrap builds and /custom-route renders in Chromium')
     } finally {
       await rm(temp, { recursive: true, force: true })
     }

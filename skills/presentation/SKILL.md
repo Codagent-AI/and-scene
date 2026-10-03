@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify a browser presentation as one evolving, navigable diagram scene.
+description: Create or modify browser presentations, slide decks, or talks as one evolving, navigable React diagram scene.
 ---
 
 # Presentation skill
@@ -8,6 +8,10 @@ description: Create or modify a browser presentation as one evolving, navigable 
 Use this procedure whenever asked to create, scaffold, or modify a presentation.
 The reusable engine is `src/presentation-kit/`; presentation-specific entities,
 steps, and visual design belong in a separate presentation folder.
+
+This workflow creates browser-based React presentations. It does not edit native
+PowerPoint, Keynote, or Google Slides decks, export PPTX/PDF/images, or publish a
+hosted site. Use an existing slide-editing workflow for those requests.
 
 ## 1. Identify the requested work and gather details
 
@@ -101,8 +105,8 @@ registry or shared integration files. Do not rewrite unrelated presentations.
 ## 5. Build, render, and inspect before reporting success
 
 Run `npm run build` in the app root and fix errors. Then run the local browser
-verification (`npm run verify`) when present; at minimum it must build and open
-the new route in Chromium without page or console errors. If the app has no
+verification (`npm run verify -- <slug>`) when present; at minimum it must build
+and open the new route in Chromium without page or console errors. If the app has no
 `verify` script, add/run an equivalent Playwright smoke check inside the project
 root, using the local dependencies and `127.0.0.1` for preview.
 
@@ -117,6 +121,13 @@ active progress/contents state, and missing/default/tiny attribution. Mark an
 overlap with `data-presentation-allow-overlap` only when it is deliberate and
 readable. Rerun build, render, and inspection after fixes.
 
-Report the created or modified route, the checks actually completed, and any
-remaining advisory warnings. Never claim checks passed if they were not run or
-failed.
+Report completion in this shape, omitting any inapplicable row:
+
+```text
+Presentation: <title> (<route>)
+Changed: <brief file/scene summary>
+Checks: build <pass/fail>; browser render <pass/fail>; visual inspection <steps/viewports>
+Advisories: <remaining warnings or none>
+```
+
+Never claim checks passed if they were not run or failed.

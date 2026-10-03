@@ -6,7 +6,6 @@ export interface PresentationEntry {
   load: () => Promise<{ default: ComponentType }>
 }
 
-/** Explicit registry — add a folder + one line here for each presentation. */
-export const presentations: PresentationEntry[] = []
-
-export const presentationSlugs = new Set(presentations.map((p) => p.slug))
+export const PRESENTATIONS: PresentationEntry[] = [
+  { slug: 'starter', title: 'Starter presentation', load: () => import('./starter/Talk') },
+]

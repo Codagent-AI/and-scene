@@ -1,139 +1,73 @@
-import type { ReactNode } from 'react'
-import { Footer } from './chrome/Footer'
-import { Header } from './chrome/Header'
-import { Toc } from './chrome/Toc'
-import { Stage } from './Stage'
-import { stepMarker } from './stepMarker'
+import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
+import Stage from './Stage'
+import { DESIGN_H, DESIGN_W } from './constants'
 import { usePresentationNav } from './usePresentationNav'
-import type { Mode, Step } from './types'
+import type { PresentationProps, Step } from './types'
 
-export interface PresentationProps<P extends Record<string, unknown> = Record<string, unknown>> {
-  steps: Step<P>[]
-  initialMode?: Mode
-  title?: string
-  /** Optional header brand. Omitted by default; pass a logo or title node to add one. */
-  brand?: ReactNode
-  /** Home link target for the header brand and the last-step footer button. */
-  homeHref?: string
-  /** Accessible label for the home link. */
-  homeLabel?: string
-  /** Full-bleed layer rendered behind the content. */
-  background?: ReactNode
-  /**
-   * Full-bleed layer rendered *above* the content (e.g. a CRT/scanline overlay).
-   * Unlike `background`, it paints over the chrome. Pointer events pass through,
-   * so it never intercepts clicks. Use `background` for true backdrops.
-   */
-  overlay?: ReactNode
-  /**
-   * Override the per-step marker (top-right). Defaults to a zero-padded count.
-   * A callback (not a per-step field) so hosts can number relationally — e.g.
-   * skip chrome cards and count only body steps.
-   */
-  marker?: (index: number, steps: Step<P>[]) => string
-  /** Small bottom-right attribution link. Defaults to and-scene; pass `null` for an intentional opt-out. */
-  attribution?: ReactNode
-  /** Attribution target; defaults to the and-scene GitHub repository. */
-  attributionHref?: string
-}
+const WIDE_QUERY = '(min-width: 900px)'
+const SWIPE_MIN_PX = 50
 
-export function Presentation<P extends Record<string, unknown> = Record<string, unknown>>({
-  steps,
-  initialMode = 'browse',
-  title = 'Presentation',
-  brand,
-  homeHref = '/',
-  homeLabel,
-  background,
-  overlay,
-  marker,
-  attribution = 'made by and-scene',
-  attributionHref = 'https://github.com/Codagent-AI/and-scene',
-}: PresentationProps<P>) {
-  const { step, setStep, next, prev, last, mode } = usePresentationNav(steps.length, initialMode)
-  // An empty deck has no current step; render a clear placeholder instead of
-  // crashing on `steps[step].title`. (Hooks above run unconditionally first.)
-  if (steps.length === 0) {
-    return (
-      <div
-        data-presentation={title}
-        data-presentation-empty
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        No steps to present.
-      </div>
-    )
+export default function Presentation<T>({ steps, title, initialMode = 'browse', designWidth = DESIGN_W, designHeight = DESIGN_H, className = '', style, branding, attribution }: PresentationProps<T>) {
+  const { index, mode, goTo, next, prev, toggleMode } = usePresentationNav(steps.length, initialMode)
+  const step = steps[index]
+  const touch = useRef<{ x: number; y: number } | null>(null)
+  const eras = useMemo(() => steps.reduce<{ era: string; index: number }[]>((all, current, i) => {
+    if (!all.some((entry) => entry.era === current.era)) all.push({ era: current.era, index: i })
+    return all
+  }, []), [steps])
+  const [tocOpen, setTocOpen] = useState(false)
+  const [wide, setWide] = useState(() => window.matchMedia(WIDE_QUERY).matches)
+  useEffect(() => {
+    const query = window.matchMedia(WIDE_QUERY)
+    const update = () => setWide(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+  const rootStyle = { position: 'fixed', inset: 0, ...style } as const
+  if (!step) return <main className={`presentation ${className}`} style={rootStyle}>No presentation steps available.</main>
+
+  const onTouchEnd = (event: TouchEvent) => {
+    if (!touch.current) return
+    const dx = event.changedTouches[0].clientX - touch.current.x
+    const dy = event.changedTouches[0].clientY - touch.current.y
+    touch.current = null
+    if (Math.abs(dx) <= SWIPE_MIN_PX || Math.abs(dx) <= Math.abs(dy)) return
+    if (dx < 0) next()
+    else prev()
   }
-  const current = steps[step]
-  const markerText = (marker ?? ((i) => stepMarker(i)))(step, steps)
 
-  return (
-    <div
-      data-presentation={title}
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        userSelect: 'none',
-        overflow: 'hidden',
-      }}
-    >
-      {background && (
-        <div
-          data-presentation-background
-          style={{ position: 'absolute', inset: 0, zIndex: 0 }}
-        >
-          {background}
-        </div>
-      )}
-      <div data-presentation-content style={{ position: 'relative', zIndex: 10, minHeight: '100vh' }}>
-        <Stage step={current} mode={mode} />
-        <Header
-          marker={markerText}
-          title={current.title}
-          brand={brand}
-          homeHref={homeHref}
-          homeLabel={homeLabel}
-        />
-        {mode === 'browse' && <Toc steps={steps} step={step} onSelect={setStep} />}
-        <Footer
-          steps={steps}
-          step={step}
-          last={last}
-          mode={mode}
-          homeHref={homeHref}
-          onPrev={prev}
-          onNext={next}
-          onSelect={setStep}
-        />
-      </div>
-      {overlay && (
-        <div
-          data-presentation-overlay
-          style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 50 }}
-        >
-          {overlay}
-        </div>
-      )}
-      {attribution && (
-        <a
-          href={attributionHref}
-          data-presentation-attribution
-          style={{
-            position: 'absolute',
-            right: 16,
-            bottom: 8,
-            zIndex: 60,
-            fontSize: 12,
-          }}
-        >
-          {attribution}
-        </a>
-      )}
-    </div>
-  )
+  return <main className={`presentation presentation--${mode} ${className}`} style={rootStyle} data-presentation="" data-presentation-mode={mode} data-step-count={steps.length} data-step-index={index} data-step-title={step.title} data-step-caption={step.caption} onTouchStart={(event) => { touch.current = { x: event.touches[0].clientX, y: event.touches[0].clientY } }} onTouchEnd={onTouchEnd}>
+    <header className="presentation-header" data-presentation-header="">
+      <div data-presentation-brand="">{branding}</div>
+      {mode === 'browse'
+        ? <h1 data-presentation-title="">{title}</h1>
+        : <div data-presentation-marker=""><span>{String(index + 1).padStart(2, '0')}</span><h1>{step.title}</h1></div>}
+      <button type="button" data-presentation-mode-toggle="" onClick={toggleMode} aria-label={`Switch to ${mode === 'browse' ? 'present' : 'browse'} mode`}>{mode === 'browse' ? 'Present' : 'Browse'}</button>
+    </header>
+    <Stage steps={steps} index={index} mode={mode} width={designWidth} height={designHeight} />
+    <footer className="presentation-footer" data-presentation-footer="">
+      {mode === 'browse' ? <>
+        <p data-presentation-caption="">{step.caption}</p>
+        <nav aria-label="Presentation progress" data-presentation-progress="">
+          {steps.map((item, i) => {
+            const active = i === index
+            return <button type="button" key={item.id} data-presentation-progress-item="" data-presentation-active={active ? 'true' : 'false'} aria-current={active ? 'step' : undefined} aria-label={`Go to step ${i + 1}: ${item.title}`} onClick={() => goTo(i)}>{i + 1}</button>
+          })}
+        </nav>
+        <button type="button" data-presentation-prev="" onClick={prev} disabled={index === 0}>Previous</button>
+        <button type="button" data-presentation-next="" onClick={next} disabled={index === steps.length - 1}>Next</button>
+        <button type="button" data-presentation-toc-toggle="" onClick={() => setTocOpen((open) => !open)} aria-expanded={tocOpen}>Contents</button>
+        {(tocOpen || wide) && <nav aria-label="Table of contents" data-presentation-toc="">
+          {eras.map(({ era, index: eraIndex }) => {
+            const active = step.era === era
+            return <button type="button" key={era} data-presentation-toc-item="" data-presentation-active={active ? 'true' : 'false'} aria-current={active ? 'location' : undefined} onClick={() => goTo(eraIndex)}>{era}</button>
+          })}
+        </nav>}
+      </> : <div data-presentation-present-title="">{step.title}</div>}
+      {attribution === false ? null : <div data-presentation-attribution="">{attribution ?? <a href="https://github.com/Codagent-AI/and-scene">made by and-scene</a>}</div>}
+    </footer>
+  </main>
 }
+
+export type { Step }

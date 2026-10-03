@@ -1,241 +1,111 @@
 import { spawn } from 'node:child_process'
-import { dirname, join } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { createServer } from 'node:net'
+import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
+import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
-import { REFERENCE_SLUG } from './verify-lib.mjs'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const VITE_BIN = join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'vite.cmd' : 'vite')
-const PREVIEW_URL_RE = /http:\/\/127\.0\.0\.1:(\d+)\//
+const host = '127.0.0.1'
+const route = '/how-to-make-a-presentation'
+const outline = [
+  ['You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
+  ['The skill interviews you', 'One question at a time: the topic, the look, then each beat of the story.'],
+  ['Answers become steps', 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.'],
+  ['The deck grows', 'Same shapes, new beats. Every answer extends the story without redrawing it.'],
+  ['You set the depth', 'Spell out every step, or sketch a few and see how it looks. You hold the gate.'],
+  ['It assembles the scene', 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.'],
+  ['It checks its own work', 'Before saying done, it builds and renders every step — and fixes what breaks.'],
+  ['Changed your mind? Loop it.', 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.'],
+  ["You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
+]
+const sayFail = (phase, message) => { throw new Error(`${phase}: ${message}`) }
+const waitForExit = (child) => new Promise((resolve) => child.once('exit', resolve))
 
-/** @param {string} check @param {string} detail */
-function fail(check, detail) {
-  console.error(`FAIL [${check}]: ${detail}`)
-  process.exit(1)
-}
-
-function pass(msg) {
-  console.log(`PASS: ${msg}`)
-}
-
-function runBuild() {
-  return new Promise((resolve, reject) => {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-    const child = spawn(npm, ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: false })
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`build exited ${code}`))))
-    child.on('error', reject)
-  })
-}
-
-/** Read the project's presentation registry. Returns the list of { slug }. */
-async function readRegistry() {
-  const registryUrl = pathToFileURL(join(ROOT, 'src/presentations/index.ts')).href
-  const mod = await import(registryUrl)
-  const presentations = mod.presentations
-  if (!Array.isArray(presentations)) {
-    throw new Error('src/presentations/index.ts does not export a `presentations` array')
-  }
-  return presentations
-}
-
-/** @param {import('node:child_process').ChildProcess} child */
-function childExited(child) {
-  return child.exitCode !== null || child.signalCode !== null
-}
-
-/** @param {string} baseUrl @param {import('node:child_process').ChildProcess} child */
-async function waitForPreview(baseUrl, child, deadlineMs = 30_000) {
-  const started = Date.now()
-  while (Date.now() - started < deadlineMs) {
-    if (childExited(child)) {
-      throw new Error(`vite preview exited before ready (code ${child.exitCode})`)
-    }
-    try {
-      const res = await fetch(baseUrl)
-      const html = await res.text()
-      if (res.ok && html.includes('id="root"')) return
-    } catch {
-      // server not listening yet
-    }
-    await new Promise((r) => setTimeout(r, 200))
-  }
-  throw new Error('vite preview did not become ready within 30s')
-}
-
-/** @param {import('node:child_process').ChildProcess} child */
-function stopPreview(child) {
-  return new Promise((resolve) => {
-    if (!child.pid) {
-      resolve()
-      return
-    }
-    child.once('close', () => resolve())
-    try {
-      process.kill(-child.pid, 'SIGTERM')
-    } catch {
-      child.kill('SIGTERM')
-    }
-    setTimeout(() => {
-      if (!childExited(child)) {
-        try {
-          process.kill(-child.pid, 'SIGKILL')
-        } catch {
-          child.kill('SIGKILL')
-        }
-      }
-      resolve()
-    }, 3000)
-  })
-}
-
-function startPreview() {
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      VITE_BIN,
-      ['preview', '--port', '0', '--host', '127.0.0.1'],
-      { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
-    )
-
-    let output = ''
-    let settled = false
-    let readyStarted = false
-
-    const cleanup = () => {
-      clearTimeout(timer)
-      child.stdout?.off('data', onData)
-      child.stderr?.off('data', onData)
-      child.off('error', onError)
-      child.off('close', onClose)
-    }
-    const rejectWith = async (err) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      await stopPreview(child)
-      reject(err)
-    }
-    const resolveWith = (value) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      resolve(value)
-    }
-    const onData = (chunk) => {
-      output += chunk.toString()
-      const match = output.match(PREVIEW_URL_RE)
-      if (!match || readyStarted) return
-      readyStarted = true
-      const baseUrl = match[0]
-      waitForPreview(baseUrl, child)
-        .then(() => resolveWith({ child, baseUrl }))
-        .catch(rejectWith)
-    }
-    const onError = (err) => rejectWith(err)
-    const onClose = (code) => {
-      if (!settled) rejectWith(new Error(`vite preview exited before ready (code ${code})`))
-    }
-    const timer = setTimeout(() => {
-      const detail = output.trim() ? ` Output:\n${output.trim()}` : ''
-      rejectWith(new Error(`vite preview did not print a local URL within 30s.${detail}`))
-    }, 30_000)
-
-    child.stdout?.on('data', onData)
-    child.stderr?.on('data', onData)
-    child.on('error', onError)
-    child.on('close', onClose)
-  })
-}
-
-/** Step a single presentation through every step, capturing render errors. */
-async function renderPresentation(page, baseUrl, slug) {
-  const errors = []
-  // Start at 0 so errors during the initial page load (before the step loop
-  // runs) are attributed to step 0 rather than a confusing `step null`.
-  let failingStep = 0
-
-  const onConsole = (msg) => {
-    if (msg.type() === 'error') errors.push({ step: failingStep, msg: msg.text() })
-  }
-  const onPageError = (err) => errors.push({ step: failingStep, msg: err.message })
-  page.on('console', onConsole)
-  page.on('pageerror', onPageError)
-
-  try {
-    await page.goto(`${baseUrl}${slug}`, { waitUntil: 'load', timeout: 30_000 })
-
-    const progress = page.locator('[data-testid="step-progress"]')
-    await progress.waitFor({ timeout: 10_000 })
-
-    const stepCount = Number(await progress.getAttribute('data-step-count'))
-    if (!Number.isFinite(stepCount) || stepCount < 1) {
-      throw new Error(`${slug}: invalid data-step-count: ${stepCount}`)
-    }
-
-    for (let i = 0; i < stepCount; i++) {
-      failingStep = i
-      const index = Number(await progress.getAttribute('data-step-index'))
-      if (index !== i) throw new Error(`${slug} step ${i}: expected index ${i}, got ${index}`)
-
-      if (i < stepCount - 1) {
-        await page.keyboard.press('ArrowRight')
-        await page.waitForFunction(
-          (expected) => {
-            const el = document.querySelector('[data-testid="step-progress"]')
-            return el && Number(el.getAttribute('data-step-index')) === expected
-          },
-          i + 1,
-          { timeout: 5000 },
-        )
-      }
-    }
-
-    if (errors.length > 0) {
-      const first = errors[0]
-      throw new Error(`${slug} step ${first.step}: ${first.msg}`)
-    }
-  } finally {
-    page.off('console', onConsole)
-    page.off('pageerror', onPageError)
-  }
-}
-
-/** @param {string} baseUrl @param {Array<{ slug: string }>} presentations */
-async function renderCheck(baseUrl, presentations) {
-  const browser = await chromium.launch()
-  try {
-    const page = await browser.newPage()
-    for (const { slug } of presentations) {
-      await renderPresentation(page, baseUrl, slug)
-    }
-  } finally {
-    await browser.close()
-  }
+async function availablePort() {
+  const server = createServer()
+  await new Promise((resolve, reject) => server.once('error', reject).listen(0, host, resolve))
+  const port = server.address().port
+  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))
+  return port
 }
 
 async function main() {
+  const build = spawn('npm', ['run', 'build'], { stdio: 'inherit', shell: process.platform === 'win32' })
+  const buildCode = await waitForExit(build)
+  if (buildCode !== 0) sayFail('BUILD', `npm run build exited ${buildCode}`)
+
+  const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
+  const source = await readFile(new URL('../src/presentations/how-to-make-a-presentation/steps.tsx', import.meta.url), 'utf8')
+  if (!registry.includes(`slug: '${route.slice(1)}'`) || !registry.includes("import('./how-to-make-a-presentation/Talk.js')")) sayFail('SAMPLE CONTRACT', 'reference sample is missing or not registered')
+  let cursor = -1
+  for (const [title, caption] of outline) {
+    const titleSingle = source.indexOf(`title: '${title}'`, cursor + 1)
+    const titleDouble = source.indexOf(`title: "${title}"`, cursor + 1)
+    const titleAt = titleSingle < 0 ? titleDouble : titleDouble < 0 ? titleSingle : Math.min(titleSingle, titleDouble)
+    const captionAt = source.indexOf(`caption: '${caption}'`, titleAt + 1)
+    if (titleAt < 0 || captionAt < 0) sayFail('SAMPLE CONTRACT', `missing or out-of-order step: ${title}`)
+    cursor = captionAt
+  }
+  if ((source.match(/id: '[-a-z]+'/g) ?? []).length < outline.length) sayFail('SAMPLE CONTRACT', 'reference sample does not define nine ordered steps')
+
+  const port = await availablePort()
+  const origin = `http://${host}:${port}`
+  const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
+  const server = spawn(process.execPath, [vite, 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let serverOutput = ''
+  let serverFailure
+  server.stdout.on('data', (chunk) => { serverOutput += chunk })
+  server.stderr.on('data', (chunk) => { serverOutput += chunk })
+  server.once('error', (error) => { serverFailure = error })
+  let browser
   try {
-    await runBuild()
-    pass('build')
-
-    const presentations = await readRegistry()
-    if (!presentations.some((entry) => entry.slug === REFERENCE_SLUG)) {
-      fail('registry', `reference sample "${REFERENCE_SLUG}" is not registered`)
+    let ready = false
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      if (serverFailure || server.exitCode !== null) sayFail('PREVIEW', `${serverFailure?.message ?? `server exited ${server.exitCode}`}\n${serverOutput}`)
+      try {
+        const response = await fetch(origin)
+        if (response.ok) { ready = true; break }
+      } catch { /* retry while Vite starts */ }
+      await delay(200)
     }
-    pass(`registry (${presentations.length} presentation${presentations.length === 1 ? '' : 's'})`)
+    if (!ready) sayFail('PREVIEW', `did not become ready at ${origin}\n${serverOutput}`)
 
-    const { child, baseUrl } = await startPreview()
-    try {
-      await renderCheck(baseUrl, presentations)
-      pass('render')
-    } finally {
-      await stopPreview(child)
+    browser = await chromium.launch({ headless: true })
+    const page = await browser.newPage()
+    let currentStep = 1
+    const errors = []
+    page.on('pageerror', (error) => errors.push(`step ${currentStep}: ${error.message}`))
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(`step ${currentStep}: ${message.text()}`) })
+    await page.goto(`${origin}${route}`, { waitUntil: 'networkidle' })
+    const root = page.locator('[data-presentation-root]')
+    try { await root.waitFor({ timeout: 5000 }) }
+    catch { sayFail('RENDER', `step ${currentStep} did not mount the presentation root`) }
+    const count = Number(await root.getAttribute('data-step-count'))
+    if (count !== outline.length) sayFail('RENDER', `expected ${outline.length} steps, got ${count}`)
+    for (let index = 0; index < count; index += 1) {
+      currentStep = index + 1
+      if (index > 0) {
+        await page.keyboard.press('ArrowRight')
+        try { await root.waitFor({ state: 'attached', timeout: 1000 }); await page.waitForFunction((expected) => Number(document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index')) === expected, index, { timeout: 2500 }) }
+        catch { sayFail('TRANSITION', `step ${index + 1} did not advance to index ${index}`) }
+      }
+      await page.waitForTimeout(150)
+      if (errors.length) sayFail('RENDER', `step ${currentStep}: ${errors.join('; ')}`)
+      const [expectedTitle, expectedCaption] = outline[index]
+      const footer = page.locator('[data-presentation-footer]')
+      const renderedTitle = (await footer.locator('.presentation-step-title').textContent())?.trim()
+      const renderedCaption = (await footer.locator('.presentation-caption').textContent())?.trim()
+      if (renderedTitle !== expectedTitle) sayFail('SAMPLE CONTRACT', `step ${currentStep} rendered "${renderedTitle}", expected "${expectedTitle}"`)
+      if (renderedCaption !== expectedCaption) sayFail('SAMPLE CONTRACT', `step ${currentStep} rendered caption "${renderedCaption}", expected "${expectedCaption}"`)
+      console.log(`PASS: reference step ${currentStep}/${count} rendered`)
     }
-
-    console.log('VERIFY: PASS')
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    fail(message.includes(' step ') ? 'render' : 'verify', message)
+    console.log(`PASS: npm run verify completed on ${origin}${route}`)
+  } finally {
+    await browser?.close()
+    server.kill('SIGTERM')
+    await Promise.race([waitForExit(server), delay(1500)]).catch(() => {})
+    if (server.exitCode === null) server.kill('SIGKILL')
   }
 }
 
-main()
+main().catch((error) => { console.error(`FAIL: ${error.message}`); process.exitCode = 1 })

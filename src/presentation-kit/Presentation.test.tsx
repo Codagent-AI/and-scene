@@ -1,63 +1,46 @@
-import { render, screen } from '@testing-library/react'
+// @vitest-environment jsdom
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { Presentation } from './Presentation'
-import type { Step } from './types'
+import { Presentation } from './Presentation.js'
+import type { Step } from './types.js'
 
-function Scene({ step }: { step: Step }) {
-  return <div data-testid="scene">{step.title}</div>
-}
-
-const steps: Step[] = [
-  {
-    id: 'one',
-    era: 'intro',
-    title: 'First step',
-    caption: 'First caption',
-    Scene,
-  },
-  {
-    id: 'two',
-    era: 'intro',
-    title: 'Second step',
-    caption: 'Second caption',
-    Scene,
-  },
+function Scene({ payload }: { payload: { label: string } }) { return <p>{payload.label}</p> }
+const steps: Step<{ label: string }>[] = [
+  { id: 'a', era: 'Start', title: 'First', caption: 'First caption', scene: Scene, payload: { label: 'one' }, groupKey: 'same' },
+  { id: 'b', era: 'Next', title: 'Second', caption: 'Second caption', scene: Scene, payload: { label: 'two' }, groupKey: 'same' },
 ]
 
-describe('Presentation chrome hooks', () => {
-  it('exposes data-step-count and data-step-index on the progress chrome', () => {
-    render(<Presentation steps={steps} title="Demo" initialMode="browse" />)
-
-    const chrome = screen.getByTestId('step-progress')
-    expect(chrome).toHaveAttribute('data-step-count', '2')
-    expect(chrome).toHaveAttribute('data-step-index', '0')
-    expect(screen.getByLabelText('Go to step 1: First step')).toHaveAttribute('aria-current', 'step')
+describe('Presentation', () => {
+  it('accepts a typed payload array, exposes active semantics, and switches modes in place', () => {
+    render(<Presentation steps={steps} title="Demo" />)
+    expect(screen.getByText('one')).toBeTruthy()
+    expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 2: Second' }))
+    expect(document.querySelector('[data-step-index="1"] .presentation-step-scene')?.textContent).toContain('two')
+    expect(screen.getByRole('button', { name: 'Go to step 2: Second' }).getAttribute('aria-current')).toBe('step')
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to present mode' }))
+    expect(document.querySelector('[data-presentation-mode="present"][data-step-index="1"]')).toBeTruthy()
+    expect(screen.queryByText('Second caption')).toBeNull()
   })
 
-  it('derives on-screen step numbers from position', () => {
-    render(<Presentation steps={steps} title="Demo" initialMode="browse" />)
-    expect(screen.getAllByText('01').length).toBeGreaterThan(0)
+  it('clamps navigation at both ends and leaves focused control keys to the control', () => {
+    render(<Presentation steps={steps} title="Demo" />)
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+    const next = document.querySelector<HTMLButtonElement>('.presentation-next')!
+    next.focus()
+    fireEvent.keyDown(next, { key: 'ArrowRight' })
+    expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+    fireEvent.click(next)
+    fireEvent.click(next)
+    expect(document.querySelector('[data-step-index="1"]')).toBeTruthy()
   })
 
-  it('accepts strongly typed step payloads at the presentation boundary', () => {
-    type Payload = { count: number }
-    function TypedScene({ step }: { step: Step<Payload> }) {
-      return <div data-testid="typed-scene">{step.payload?.count}</div>
-    }
-
-    const typedSteps: Step<Payload>[] = [
-      {
-        id: 'typed',
-        era: 'typed',
-        title: 'Typed step',
-        caption: 'Typed caption',
-        payload: { count: 3 },
-        Scene: TypedScene,
-      },
-    ]
-
-    render(<Presentation steps={typedSteps} title="Typed demo" initialMode="browse" />)
-
-    expect(screen.getByTestId('typed-scene')).toHaveTextContent('3')
+  it('keeps the active index in range when the step list shrinks', () => {
+    const { rerender } = render(<Presentation steps={[...steps, { ...steps[1], id: 'c', title: 'Third' }]} title="Demo" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 3: Third' }))
+    rerender(<Presentation steps={steps} title="Demo" />)
+    expect(document.querySelector('[data-step-index="1"]')).toBeTruthy()
+    expect(document.querySelector('[data-step-index="1"] .presentation-step-scene')?.textContent).toContain('two')
   })
 })

@@ -1,39 +1,8 @@
-import { Sparkles } from 'lucide-react'
-import { presentations } from './presentations'
+import { presentations } from './presentations/index.js'
 
 export function Landing() {
-  return (
-    <main>
-      <div>
-        <p>and-scene</p>
-        <h1>Presentations as evolving diagrams.</h1>
-        <p>
-          One shared canvas holds the talk together. Each step changes positions,
-          labels, focus, or connections while the audience follows one idea as it
-          develops.
-        </p>
-
-        <section aria-labelledby="presentations-heading">
-          <h2 id="presentations-heading">Presentations</h2>
-          {presentations.length === 0 ? (
-            <p>
-              No presentations registered yet. Add one under{' '}
-              <code>src/presentations/</code> and register it in{' '}
-              <code>index.ts</code>.
-            </p>
-          ) : (
-            <ul>
-              {presentations.map((entry) => (
-                <li key={entry.slug}>
-                  <a href={`/${entry.slug}`}>
-                    <Sparkles size={18} aria-hidden /> {entry.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-    </main>
-  )
+  return <main className="landing" data-presentation-landing="">
+    <header className="landing-header"><p>and-scene</p><h1>Presentations as evolving scenes</h1><p>Explore presentations built as one diagram that changes over time.</p></header>
+    <section className="landing-presentations" aria-label="Presentations">{presentations.length ? presentations.map(item => <a key={item.slug} href={`/${item.slug}`} className="landing-presentation" data-presentation-link=""><h2>{item.title}</h2><span>Open presentation</span></a>) : <p data-presentation-empty="">No presentations yet.</p>}</section>
+  </main>
 }

@@ -1,139 +1,44 @@
-import type { ReactNode } from 'react'
-import { Footer } from './chrome/Footer'
-import { Header } from './chrome/Header'
-import { Toc } from './chrome/Toc'
+import { useMemo, useRef } from 'react'
 import { Stage } from './Stage'
-import { stepMarker } from './stepMarker'
 import { usePresentationNav } from './usePresentationNav'
-import type { Mode, Step } from './types'
+import type { PresentationProps } from './types'
 
-export interface PresentationProps<P extends Record<string, unknown> = Record<string, unknown>> {
-  steps: Step<P>[]
-  initialMode?: Mode
-  title?: string
-  /** Optional header brand. Omitted by default; pass a logo or title node to add one. */
-  brand?: ReactNode
-  /** Home link target for the header brand and the last-step footer button. */
-  homeHref?: string
-  /** Accessible label for the home link. */
-  homeLabel?: string
-  /** Full-bleed layer rendered behind the content. */
-  background?: ReactNode
-  /**
-   * Full-bleed layer rendered *above* the content (e.g. a CRT/scanline overlay).
-   * Unlike `background`, it paints over the chrome. Pointer events pass through,
-   * so it never intercepts clicks. Use `background` for true backdrops.
-   */
-  overlay?: ReactNode
-  /**
-   * Override the per-step marker (top-right). Defaults to a zero-padded count.
-   * A callback (not a per-step field) so hosts can number relationally — e.g.
-   * skip chrome cards and count only body steps.
-   */
-  marker?: (index: number, steps: Step<P>[]) => string
-  /** Small bottom-right attribution link. Defaults to and-scene; pass `null` for an intentional opt-out. */
-  attribution?: ReactNode
-  /** Attribution target; defaults to the and-scene GitHub repository. */
-  attributionHref?: string
-}
-
-export function Presentation<P extends Record<string, unknown> = Record<string, unknown>>({
-  steps,
-  initialMode = 'browse',
-  title = 'Presentation',
-  brand,
-  homeHref = '/',
-  homeLabel,
-  background,
-  overlay,
-  marker,
-  attribution = 'made by and-scene',
-  attributionHref = 'https://github.com/Codagent-AI/and-scene',
-}: PresentationProps<P>) {
-  const { step, setStep, next, prev, last, mode } = usePresentationNav(steps.length, initialMode)
-  // An empty deck has no current step; render a clear placeholder instead of
-  // crashing on `steps[step].title`. (Hooks above run unconditionally first.)
-  if (steps.length === 0) {
-    return (
-      <div
-        data-presentation={title}
-        data-presentation-empty
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        No steps to present.
-      </div>
-    )
+export function Presentation<T>({ steps, title, initialMode = 'browse', branding, className }: PresentationProps<T>) {
+  const nav = usePresentationNav(steps.length, initialMode)
+  const touch = useRef<{ x: number; y: number } | null>(null)
+  const step = steps[nav.index]
+  const eras = useMemo(() => steps.reduce<{ era: string; index: number }[]>((list, item, index) => {
+    if (!list.some(({ era }) => era === item.era)) list.push({ era: item.era, index })
+    return list
+  }, []), [steps])
+  if (!step) return null
+  const browsing = nav.mode === 'browse'
+  const touchStart = (event: React.TouchEvent) => { touch.current = { x: event.touches[0].clientX, y: event.touches[0].clientY } }
+  const touchEnd = (event: React.TouchEvent) => {
+    if (!touch.current) return
+    const dx = event.changedTouches[0].clientX - touch.current.x
+    const dy = event.changedTouches[0].clientY - touch.current.y
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) nav.next()
+      else nav.prev()
+    }
+    touch.current = null
   }
-  const current = steps[step]
-  const markerText = (marker ?? ((i) => stepMarker(i)))(step, steps)
-
-  return (
-    <div
-      data-presentation={title}
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        userSelect: 'none',
-        overflow: 'hidden',
-      }}
-    >
-      {background && (
-        <div
-          data-presentation-background
-          style={{ position: 'absolute', inset: 0, zIndex: 0 }}
-        >
-          {background}
-        </div>
-      )}
-      <div data-presentation-content style={{ position: 'relative', zIndex: 10, minHeight: '100vh' }}>
-        <Stage step={current} mode={mode} />
-        <Header
-          marker={markerText}
-          title={current.title}
-          brand={brand}
-          homeHref={homeHref}
-          homeLabel={homeLabel}
-        />
-        {mode === 'browse' && <Toc steps={steps} step={step} onSelect={setStep} />}
-        <Footer
-          steps={steps}
-          step={step}
-          last={last}
-          mode={mode}
-          homeHref={homeHref}
-          onPrev={prev}
-          onNext={next}
-          onSelect={setStep}
-        />
-      </div>
-      {overlay && (
-        <div
-          data-presentation-overlay
-          style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 50 }}
-        >
-          {overlay}
-        </div>
-      )}
-      {attribution && (
-        <a
-          href={attributionHref}
-          data-presentation-attribution
-          style={{
-            position: 'absolute',
-            right: 16,
-            bottom: 8,
-            zIndex: 60,
-            fontSize: 12,
-          }}
-        >
-          {attribution}
-        </a>
-      )}
-    </div>
-  )
+  return <main className={`presentation ${className ?? ''}`} data-presentation-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.index} onTouchStart={touchStart} onTouchEnd={touchEnd}>
+    <header className="presentation-header" data-presentation-header="">
+      <div className="presentation-brand">{branding}</div>
+      <div className="presentation-heading"><span data-presentation-marker="">{step.era} · {String(nav.index + 1).padStart(2, '0')}</span>{browsing && <strong>{title}</strong>}</div>
+      <button type="button" data-presentation-mode-toggle="" aria-label={`Switch to ${browsing ? 'present' : 'browse'} mode`} onClick={nav.toggleMode}>{browsing ? 'Present' : 'Browse'}</button>
+    </header>
+    <Stage step={step} mode={nav.mode} />
+    <footer className="presentation-footer" data-presentation-footer="">
+      <div className="presentation-narration"><strong>{step.title}</strong>{browsing && <p>{step.caption}</p>}</div>
+      {browsing && <>
+        <nav className="presentation-toc" aria-label="Table of contents" data-presentation-toc="">{eras.map(({ era, index }) => <button key={era} type="button" aria-current={step.era === era ? 'location' : undefined} data-presentation-active={step.era === era ? '' : undefined} onClick={() => nav.goTo(index)}>{era}</button>)}</nav>
+        <nav className="presentation-progress" aria-label="Step navigation" data-presentation-progress="">{steps.map((item, index) => <button key={item.id} type="button" aria-label={`${index + 1}: ${item.title}`} aria-current={index === nav.index ? 'step' : undefined} data-presentation-active={index === nav.index ? '' : undefined} onClick={() => nav.goTo(index)} />)}</nav>
+        <div className="presentation-controls"><button type="button" onClick={nav.prev} disabled={nav.index === 0}>Previous</button><button type="button" onClick={nav.next} disabled={nav.index === steps.length - 1}>Next</button></div>
+      </>}
+      <a className="presentation-attribution" data-presentation-attribution="" href="https://github.com/and-scene/and-scene">made by and-scene</a>
+    </footer>
+  </main>
 }

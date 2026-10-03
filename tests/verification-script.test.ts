@@ -44,4 +44,19 @@ describe('production verification failure contract', () => {
       await rm(temp, { recursive: true, force: true })
     }
   }, 420_000)
+
+  it('parses reformatted multi-line step objects when checking the canonical outline', async () => {
+    const temp = await mkdtemp(join(tmpdir(), 'and-scene-verification-format-'))
+    try {
+      const app = await makeCopy(temp, 'multiline')
+      const path = join(app, 'src/presentations/how-to-make-a-presentation/steps/index.ts')
+      const source = (await readFile(path, 'utf8')).replace(/(\{ id: '[^']+',)\s*(era:)/g, '$1\n    $2').replace(/, (title:|caption:|groupKey:|Scene:|payload:)/g, ',\n    $1').replace('You have a topic', 'Wrong sample title')
+      await writeFile(path, source)
+      const result = await exec(process.execPath, [join(app, 'scripts/verify.mjs')], { cwd: temp, timeout: 30_000 }).then(() => ({ code: 0, output: '' }), (error: { code?: number; stdout?: string; stderr?: string }) => ({ code: error.code, output: `${error.stdout ?? ''}\n${error.stderr ?? ''}` }))
+      expect(result.code).not.toBe(0)
+      expect(result.output).toContain('FAIL: sample: step 1 does not match canonical')
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  }, 60_000)
 })

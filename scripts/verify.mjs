@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import ts from 'typescript'
 import { readPresentationSlugs } from './presentation-registry.mjs'
 
 const appRoot = fileURLToPath(new URL('../', import.meta.url))
@@ -21,6 +22,26 @@ const captions = [
   'This presentation was built exactly this way. Thanks for watching.',
 ]
 
+const readSampleSteps = (source) => {
+  const file = ts.createSourceFile('steps/index.ts', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+  const text = (node) => node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : undefined
+  const found = []
+  for (const statement of file.statements) {
+    if (!ts.isVariableStatement(statement)) continue
+    for (const declaration of statement.declarationList.declarations) {
+      if (!ts.isIdentifier(declaration.name) || declaration.name.text !== 'steps' || !declaration.initializer || !ts.isArrayLiteralExpression(declaration.initializer)) continue
+      for (const entry of declaration.initializer.elements) {
+        if (!ts.isObjectLiteralExpression(entry)) continue
+        const fields = {}
+        for (const property of entry.properties) {
+          if (ts.isPropertyAssignment(property) && ts.isIdentifier(property.name)) fields[property.name.text] = text(property.initializer)
+        }
+        if (fields.id !== undefined && fields.title !== undefined && fields.caption !== undefined) found.push({ title: fields.title, caption: fields.caption })
+      }
+    }
+  }
+  return found
+}
 const fail = (phase, message) => { throw new Error(`${phase}: ${message}`) }
 const failPreflight = (message) => { console.error(`FAIL: sample: ${message}`); process.exit(1) }
 const registeredText = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
@@ -35,11 +56,10 @@ if (isReferenceApp) {
   if (!registeredText.includes("import('./how-to-make-a-presentation/Talk')")) failPreflight(`reference sample is not registered at /${slug}`)
   let stepText
   try { stepText = await readFile(new URL('../src/presentations/how-to-make-a-presentation/steps/index.ts', import.meta.url), 'utf8') } catch { failPreflight('reference sample step source is missing') }
-  const parsedSteps = stepText.split('\n').map((line) => line.match(/\{\s*id:\s*'[^']+',\s*era:\s*'([^']+)',\s*title:\s*(['"])(.*?)\2,\s*caption:\s*'((?:[^'\\]|\\.)*)'/)).filter(Boolean)
+  const parsedSteps = readSampleSteps(stepText)
   if (parsedSteps.length !== 9) failPreflight(`expected 9 canonical steps, found ${parsedSteps.length}`)
   for (let i = 0; i < 9; i++) {
-    const title = parsedSteps[i][3].replaceAll("\\'", "'")
-    const caption = parsedSteps[i][4].replaceAll("\\'", "'")
+    const { title, caption } = parsedSteps[i]
     if (title !== titles[i] || caption !== captions[i]) failPreflight(`step ${i + 1} does not match canonical title/caption order; got "${title}"`)
   }
 }

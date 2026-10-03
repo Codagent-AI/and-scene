@@ -24,6 +24,10 @@ entry_points:
     reviews:
       - all-reviewers:
           builtin: all-reviewers
+  # Skill files live under skills/ (skills/<name>/SKILL.md plus its templates),
+  # so skill-quality only runs when they change.
+  - path: skills
+    reviews:
       - skill-quality
 
 # -------------------------------------------------------------------

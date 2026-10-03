@@ -1,25 +1,20 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useEffect, useState } from 'react'
+import { DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT } from './constants'
+import type { PresentationMode } from './types'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+export function getFitScale(width: number, height: number, mode: PresentationMode) {
+  const layout = STAGE_LAYOUT[mode]
+  const availableWidth = Math.max(0, width - layout.horizontal * 2)
+  const availableHeight = Math.max(0, height - layout.top - layout.bottom)
+  return Math.max(MIN_SCALE, Math.min(1, availableWidth / DESIGN_W, availableHeight / DESIGN_H))
+}
 
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
-  const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
-    }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+export function useFitScale(mode: PresentationMode) {
+  const [viewport, setViewport] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }))
+  useEffect(() => {
+    const resize = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
+    window.addEventListener('resize', resize)
+    return () => window.removeEventListener('resize', resize)
+  }, [])
+  return getFitScale(viewport.width, viewport.height, mode)
 }

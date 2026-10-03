@@ -1,0 +1,4 @@
+/* Host-level reset only. Presentation visual design belongs to each presentation. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { min-height: 100%; margin: 0; }
+body { min-height: 100vh; }

@@ -1,14 +1,14 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType, type LazyExoticComponent } from 'react'
 import Landing from './Landing'
 import type { PresentationEntry } from './presentations'
+import { resolveRoute } from './route-utils'
 
 export function Router({ entries }: { entries: readonly PresentationEntry[] }) {
   const [path, setPath] = useState(window.location.pathname)
   useEffect(() => { const update = () => setPath(window.location.pathname); window.addEventListener('popstate', update); return () => window.removeEventListener('popstate', update) }, [])
-  const slug = decodeURIComponent(path.replace(/^\/+|\/+$/g, ''))
-  const entry = entries.find(item => item.slug === slug)
-  if (!slug || !entry) return <Landing />
-  return <RouteLoader key={entry.slug} entry={entry} />
+  const resolution = resolveRoute(path, entries)
+  if (resolution.kind !== 'presentation') return <Landing />
+  return <RouteLoader key={resolution.entry.slug} entry={resolution.entry} />
 }
 
 function RouteLoader({ entry }: { entry: PresentationEntry }) {

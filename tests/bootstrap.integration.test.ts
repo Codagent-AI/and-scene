@@ -54,6 +54,12 @@ describe('presentation bootstrap template', () => {
         stdio: 'pipe',
         env: { ...process.env, PRESENTATION_ROUTE: '/bootstrap-check', PREVIEW_PORT: '43891' },
       })
+      execFileSync('npm', ['--prefix', appRoot, 'run', 'inspect', '--', 'bootstrap-check', '--narrow'], {
+        cwd: tempRoot,
+        stdio: 'pipe',
+        env: { ...process.env, PREVIEW_PORT: '43892' },
+      })
+      expect((await readFile(path.join(appRoot, 'artifacts/inspection/bootstrap-check/390x844-narrow/step-01.png'))).byteLength).toBeGreaterThan(0)
 
       const bootstrapCss = await readFile(path.join(appRoot, 'src/index.css'), 'utf8')
       expect(bootstrapCss).not.toMatch(/font-family\s*:|#[\da-f]{3,8}\b|rgb\(|box-shadow\s*:|border\s*:/i)

@@ -3,11 +3,23 @@ import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 
-const slug = process.argv[2]
+const args = process.argv.slice(2)
+const slug = args.find(argument => !argument.startsWith('--'))
 if (!slug) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
+const viewportArg = args.find(argument => argument.startsWith('--viewport='))?.slice('--viewport='.length)
+  ?? (args.includes('--viewport') ? args[args.indexOf('--viewport') + 1] : undefined)
+const viewport = args.includes('--narrow') ? { width: 390, height: 844 } : viewportArg ? (() => {
+  const match = viewportArg.match(/^(\d+)x(\d+)$/i)
+  if (!match) throw new Error(`invalid viewport "${viewportArg}"; expected WIDTHxHEIGHT`)
+  return { width: Number(match[1]), height: Number(match[2]) }
+})() : { width: 1440, height: 1000 }
+if (!Number.isInteger(viewport.width) || !Number.isInteger(viewport.height) || viewport.width < 320 || viewport.height < 240) {
+  throw new Error('viewport width must be at least 320px and height at least 240px')
+}
+const viewportName = viewport.width <= 760 ? 'narrow' : 'wide'
 const host = '127.0.0.1'
 const port = Number(process.env.PREVIEW_PORT ?? 4179)
-const preview = spawn('npm', ['run', 'preview', '--', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'ignore' })
+const preview = spawn(process.execPath, ['./node_modules/vite/bin/vite.js', 'preview', '--host', host, '--port', String(port), '--strictPort'], { stdio: 'ignore' })
 let browser
 try {
   const url = `http://${host}:${port}/${encodeURIComponent(slug)}`
@@ -15,11 +27,11 @@ try {
   for (let i = 0; i < 80; i += 1) { try { if ((await fetch(url)).ok) { ready = true; break } } catch {} await delay(250) }
   if (!ready) throw new Error(`preview did not become ready at ${url}`)
   browser = await chromium.launch({ headless: true })
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+  const page = await browser.newPage({ viewport })
   await page.goto(url, { waitUntil: 'networkidle' })
   await page.locator('[data-step-count]').waitFor()
   const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
-  const out = `artifacts/inspection/${slug}`
+  const out = `artifacts/inspection/${slug}/${viewport.width}x${viewport.height}-${viewportName}`
   await mkdir(out, { recursive: true })
   for (let index = 0; index < count; index += 1) {
     await page.waitForTimeout(900)

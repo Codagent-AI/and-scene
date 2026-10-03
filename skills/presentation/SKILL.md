@@ -44,7 +44,7 @@ Ensure the selected app has all dependencies required by the scaffold, even if s
 - Linting: `eslint`, `@eslint/js`, `typescript-eslint`, `globals`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`.
 - Browser verification: `playwright`.
 
-Use compatible current versions and update the selected app's package manifest and lockfile, then install dependencies. Do not add Tailwind or another styling framework unless the host already uses it or the user asks for it. The scaffold and reusable kit must not introduce a palette, font, spacing scale, borders, shadows, card/button treatments, or theme tokens.
+Use compatible current versions and update the selected app's package manifest and lockfile, then install dependencies. Before browser checks, run `npx playwright install chromium`. If it fails, resolve the install issue or report browser verification as blocked; do not skip the browser checks or claim completion. Do not add Tailwind or another styling framework unless the host already uses it or the user asks for it. The scaffold and reusable kit must not introduce a palette, font, spacing scale, borders, shadows, card/button treatments, or theme tokens.
 
 ## 3. Create or modify
 
@@ -58,6 +58,14 @@ For a modification, edit only the selected presentation and the minimum required
 
 Work from the app root. Build and run the available render check; fix failures and rerun both before reporting success. Prefer `npm run verify` when available. At minimum, open the created route in a real browser, check its first step for runtime/console errors, and traverse every step when the project provides full verification.
 
-Use the app's project-local screenshot helper when present (`npm run inspect -- <slug>`). Otherwise create any temporary Playwright helper under the app root and remove it after use. Capture settled screenshots of the first and last steps and every dense or visually important step; use a narrow viewport too when the layout is responsive-sensitive. Review actual screenshots, not just successful command output. Check content fits the fixed canvas, intentional overlaps remain readable, and no content collides with captions, table of contents, progress, or navigation. Review each warning: fix accidental overlap, make active navigation visibly distinct, and style attribution locally so it is legible. Mark an overlap as allowed only when it is deliberate and remains readable. Rerun inspection after fixes.
+Use the app's project-local screenshot helper when present. Otherwise create any temporary Playwright helper under the app root and remove it after use. Capture settled screenshots of the first and last steps and every dense or visually important step.
+
+For the bootstrap inspection helper:
+
+- Run `npm run inspect -- <slug>` for the default 1440×1000 viewport.
+- For responsive-sensitive layouts, run `npm run inspect -- <slug> --narrow` or set an explicit size with `npm run inspect -- <slug> --viewport 390x844`.
+- Screenshots are written under `artifacts/inspection/<slug>/<width>x<height>-<wide|narrow>/`.
+
+Review actual screenshots, not just successful command output. Check content fits the fixed canvas, intentional overlaps remain readable, and no content collides with captions, table of contents, progress, or navigation. Review each warning: fix accidental overlap, make active navigation visibly distinct, and style attribution locally so it is legible. Mark an overlap as allowed only when it is deliberate and remains readable. Rerun inspection after fixes.
 
 Do not report completion while build, render, or visual inspection has an unresolved failure. In the final report state the route, files changed, build/render results, inspected steps and viewport(s), remaining advisory warnings, and any assumptions made after an explicit partial-detail choice.

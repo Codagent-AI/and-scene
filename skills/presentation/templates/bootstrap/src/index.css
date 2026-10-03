@@ -1,0 +1,4 @@
+/* Host reset only. Presentation visuals belong in the presentation's own CSS. */
+* { box-sizing: border-box; }
+html, body, #root { width: 100%; min-height: 100%; margin: 0; }
+body { min-width: 320px; }

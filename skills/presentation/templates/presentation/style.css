@@ -1,0 +1,2 @@
+/* Presentation-owned styles. Keep visual decisions out of presentation-kit. */
+.example-scene { position: absolute; inset: 40% auto auto 35%; }

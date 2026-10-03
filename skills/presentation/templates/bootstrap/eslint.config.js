@@ -6,8 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  // The embedded app template is linted in isolation by its materialization test.
-  globalIgnores(['dist', 'skills/presentation/templates/bootstrap/**']),
+  globalIgnores(['dist']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

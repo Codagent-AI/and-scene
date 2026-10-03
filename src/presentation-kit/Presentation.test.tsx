@@ -47,7 +47,7 @@ describe('Presentation contract', () => {
     const view = mount()
     expect(view.querySelector('[data-presentation-progress][aria-current="step"][data-presentation-active="true"]')).not.toBeNull()
     expect(view.querySelector('[data-presentation-toc-entry][aria-current="location"]')).not.toBeNull()
-    expect(view.querySelector('[data-presentation-attribution]')?.getAttribute('href')).toBe('https://github.com/and-scene/and-scene')
+    expect(view.querySelector('[data-presentation-attribution]')?.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene')
     expect(view.querySelector('.presentation-brand a')).toBeNull()
     expect(view.querySelector('[data-presentation-attribution]')?.getAttribute('style')).toBeNull()
   })

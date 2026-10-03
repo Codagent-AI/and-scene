@@ -1,0 +1,5 @@
+/* Presentation-owned styles. Define the full visual design here; the shared kit is style-neutral. */
+.{{SLUG}}-scene { display: grid; place-items: center; }
+.{{SLUG}}-entity { padding: 1.5rem 2rem; border: 1px solid currentColor; border-radius: 1rem; }
+.presentation-progress [data-presentation-active="true"] { outline: 2px solid currentColor; outline-offset: 2px; }
+[data-presentation-attribution] a { font: 600 0.75rem/1.4 system-ui, sans-serif; text-decoration-thickness: 1px; }

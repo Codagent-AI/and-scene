@@ -1,0 +1,8 @@
+.starter-scene { display: grid; place-items: center; }
+.starter-card { padding: 1.5rem 2rem; border: 1px solid #719b89; border-radius: 1rem; color: #e7f1ec; background: #23382f; font-size: 1.5rem; }
+.presentation { color: #23382f; background: #f4f6f1; }
+.presentation-header, .presentation-footer { padding: 0 1.5rem; }
+.presentation-progress { display: flex; align-items: center; gap: 0.5rem; }
+.presentation-progress [data-presentation-progress-item] { min-width: 2rem; min-height: 2rem; border: 1px solid #526c60; border-radius: 999px; color: #23382f; background: transparent; }
+.presentation-progress [data-presentation-active="true"] { outline: 2px solid #719b89; outline-offset: 2px; }
+[data-presentation-attribution] a { color: #23382f; font: 600 0.75rem/1.4 system-ui, sans-serif; text-decoration-thickness: 1px; }

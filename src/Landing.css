@@ -1,0 +1,6 @@
+.landing { width: min(900px, calc(100% - 48px)); margin: 0 auto; padding: 12vh 0; }
+.landing__eyebrow { margin: 0 0 20px; }
+.landing h1 { max-width: 760px; margin: 0; font-size: clamp(2.6rem, 8vw, 6rem); line-height: .98; }
+.landing__intro { max-width: 620px; margin: 24px 0 56px; }
+.landing__list { display: grid; gap: 12px; }
+.landing__link { display: flex; justify-content: space-between; text-decoration: none; }

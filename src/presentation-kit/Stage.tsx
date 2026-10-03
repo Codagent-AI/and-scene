@@ -1,62 +1,28 @@
-import { AnimatePresence, LayoutGroup } from 'motion/react'
-import { DESIGN_H, STAGE_LAYOUT } from './constants'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { DESIGN_H, DESIGN_W, LAYOUT_T } from './constants'
 import { useFitScale } from './useFitScale'
-import type { Mode, Step } from './types'
+import type { PresentationMode, Step } from './types'
 
-/**
- * The fixed design canvas, scaled to fit the gap between header and footer.
- * transform-origin is the canvas center and the canvas is flex-centered, so the
- * diagram stays centered at any scale.
- *
- * Hosts the LayoutGroup + AnimatePresence: only the active step's Scene is
- * mounted (keyed by groupKey, falling back to id), so when the step changes the
- * outgoing and incoming scenes coexist briefly and their shared layoutId
- * elements morph between them. Steps that share a groupKey (and Scene) are NOT
- * remounted when navigating between them — the same instance persists and only
- * its `step` prop changes, so on-screen elements update in place instead of
- * re-animating. See StepMeta.groupKey.
- */
-export function Stage<P extends Record<string, unknown> = Record<string, unknown>>({
-  step,
-  mode,
-}: {
-  step: Step<P>
-  mode: Mode
-}) {
-  const layout = STAGE_LAYOUT[mode]
-  const scale = useFitScale(layout)
+export function Stage<TPayload>({ step, index, mode, touchHandlers, showAttribution, layoutGroupId }: { step: Step<TPayload>; index: number; mode: PresentationMode; touchHandlers: React.HTMLAttributes<HTMLDivElement>; showAttribution: boolean; layoutGroupId: string }) {
+  const scale = useFitScale(mode)
   const Scene = step.Scene
-
-  return (
-    <div
-      data-presentation-stage-shell
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: layout.top,
-        bottom: layout.bottom,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <div
-        data-presentation-stage
-        style={{
-          position: 'relative',
-          flexShrink: 0,
-          width: layout.fitW,
-          height: DESIGN_H,
-          transform: `scale(${scale})`,
-        }}
-      >
-        <LayoutGroup>
-          <AnimatePresence>
-            <Scene key={step.groupKey ?? step.id} step={step} />
-          </AnimatePresence>
-        </LayoutGroup>
+  const identity = step.groupKey ? `group:${step.groupKey}:${Scene.name}` : `step:${step.id}`
+  return <div className="presentation-stage" data-presentation-stage style={{ position: 'relative', minHeight: 0, overflow: 'hidden' }} {...touchHandlers}>
+    <div className="presentation-stage__viewport" data-presentation-stage-viewport style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
+      <div className="presentation-stage__canvas-frame" data-presentation-canvas-frame style={{ width: DESIGN_W * scale, height: DESIGN_H * scale, position: 'relative' }}>
+        <motion.div className="presentation-stage__canvas" data-presentation-canvas style={{ width: DESIGN_W, height: DESIGN_H, scale, position: 'absolute', top: 0, left: 0, transformOrigin: 'top left' }}>
+          <LayoutGroup id={layoutGroupId}>
+            <AnimatePresence mode="sync" initial={false}>
+              <motion.div key={identity} className="presentation-stage__scene" data-presentation-scene style={{ width: DESIGN_W, height: DESIGN_H, position: 'absolute', inset: 0 }} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.15 } }} exit={{ opacity: 0, transition: { duration: 0.15 } }} transition={LAYOUT_T}>
+                <Scene payload={step.payload} step={step} index={index} />
+              </motion.div>
+            </AnimatePresence>
+          </LayoutGroup>
+        </motion.div>
       </div>
     </div>
-  )
+    {showAttribution && <span className="presentation-attribution" data-presentation-attribution style={{ position: 'fixed', right: 16, bottom: 12, zIndex: 5 }}>
+      <a href="https://github.com/and-scene" target="_blank" rel="noreferrer">made by and-scene</a>
+    </span>}
+  </div>
 }

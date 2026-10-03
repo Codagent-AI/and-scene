@@ -1,15 +1,12 @@
 import { Presentation } from '../../presentation-kit'
-import { introStep } from './steps/intro'
+import { STEPS } from './steps'
+import './{{SLUG}}.css'
 
-/** Replace with all steps for the talk; keep order stable for navigation. */
-const STEPS = [introStep]
-
+/**
+ * Entry component for {{TITLE}}. Renders the whole evolving scene from the
+ * ordered STEPS array. Styling lives in `{{SLUG}}.css`, imported here so it
+ * only loads when this presentation's route is visited.
+ */
 export default function Talk() {
-  return (
-    <Presentation
-      steps={STEPS}
-      title="{{PRESENTATION_TITLE}}"
-      initialMode="browse"
-    />
-  )
+  return <Presentation steps={STEPS} title="{{TITLE}}" initialMode="browse" />
 }

@@ -1,0 +1,54 @@
+/*
+ * {{TITLE}} — presentation-owned styling.
+ *
+ * The scene kit ships zero visual defaults: no palette, fonts, spacing,
+ * borders, shadows, or card/button treatments. Everything below is this
+ * presentation's own design; adjust freely. Keep the active-state and
+ * attribution rules — they are required so the generated navigation reads
+ * as intentional and the kit's attribution is legible (see the presentation
+ * skill's quality bar).
+ */
+
+[data-presentation-node='box'] {
+  border: 1px solid currentColor;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+}
+
+[data-presentation-node='label'] {
+  font-size: 0.9rem;
+}
+
+/* Active-state distinctness: required so the current step is unambiguous. */
+[data-presentation-progress-dot] {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.35);
+  border: none;
+}
+
+[data-presentation-progress-dot][data-active='true'] {
+  background: currentColor;
+}
+
+[data-presentation-toc-entry] {
+  opacity: 0.6;
+}
+
+[data-presentation-toc-entry][data-active='true'] {
+  opacity: 1;
+  font-weight: 600;
+}
+
+/* Attribution polish: required so the link isn't a raw browser-default anchor. */
+[data-presentation-attribution] {
+  font-size: 0.75rem;
+  color: inherit;
+  opacity: 0.7;
+  text-decoration: none;
+}
+
+[data-presentation-attribution]:hover {
+  opacity: 1;
+}

@@ -1,0 +1,269 @@
+/*
+ * "How to Use This Skill to Make a Presentation" — presentation-owned
+ * styling. The scene kit ships zero visual defaults; everything below is
+ * this presentation's own design.
+ */
+
+:root {
+  --htmasp-ink: #f8f3e6;
+  --htmasp-accent: #c7a755;
+  --htmasp-dim: rgba(248, 243, 230, 0.55);
+  --htmasp-surface: rgba(248, 243, 230, 0.06);
+}
+
+.and-scene-presentation:has(.htmasp-scene) {
+  color: var(--htmasp-ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Present-mode marker: era + per-step title, otherwise rendered flush together. */
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-marker] {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-era] {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--htmasp-dim);
+}
+
+/*
+ * Layout: a centered flex column so the composition re-centers as entities
+ * accumulate. Sizes are kept compact (small gaps/padding) so the full
+ * nine-step composition — conversation row, modify arc, tray, kit socket —
+ * fits inside the kit's fixed 880x380 design canvas without internal
+ * reflow or overflow into the surrounding chrome.
+ */
+.htmasp-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1rem;
+}
+
+.htmasp-conversation-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1.25rem;
+}
+
+.htmasp-you-column,
+.htmasp-conversation-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.htmasp-conversation-link {
+  justify-content: center;
+  min-height: 1.5rem;
+  padding-top: 0.3rem;
+}
+
+/* Boxes: You / Skill / step cards / ghost card / verify node. */
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-node='box'] {
+  border: 1px solid var(--htmasp-accent);
+  background: var(--htmasp-surface);
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.htmasp-you-box,
+.htmasp-skill-box {
+  min-width: 4.5rem;
+  text-transform: lowercase;
+  font-weight: 600;
+}
+
+.htmasp-prompt-bubble {
+  font-size: 0.7rem;
+  color: var(--htmasp-dim);
+  font-style: italic;
+  max-width: 9rem;
+  text-align: center;
+}
+
+.htmasp-partial-control {
+  font-size: 0.65rem;
+}
+
+.htmasp-question-chip {
+  font-size: 0.65rem;
+  white-space: nowrap;
+}
+
+.htmasp-conversation-arrow {
+  width: 3.5rem;
+  height: 2px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.htmasp-modify-arc-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.htmasp-modify-arc {
+  width: 2px;
+  height: 0.85rem;
+  background: var(--htmasp-accent);
+  opacity: 0.8;
+}
+
+.htmasp-tray-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.htmasp-step-card {
+  width: 8rem;
+  text-align: left;
+  align-items: flex-start;
+}
+
+.htmasp-step-card-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.htmasp-step-card-caption,
+.htmasp-step-card-visual {
+  font-size: 0.6rem;
+  color: var(--htmasp-dim);
+  line-height: 1.2;
+}
+
+.htmasp-step-card--edited {
+  border-color: var(--htmasp-ink);
+}
+
+.htmasp-step-card-edited-tag {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--htmasp-accent);
+  font-weight: 700;
+}
+
+.htmasp-ghost-card {
+  width: 7rem;
+  border-style: dashed;
+  opacity: 0.55;
+  justify-content: center;
+}
+
+.htmasp-ghost-label {
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
+.htmasp-verify-node {
+  width: 6rem;
+  justify-content: center;
+}
+
+.htmasp-verify-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.htmasp-verify-check {
+  font-size: 0.7rem;
+  color: var(--htmasp-dim);
+}
+
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-node='emphasis'][data-active='true'].htmasp-verify-check {
+  color: #7fd97f;
+  font-weight: 700;
+}
+
+.htmasp-kit-socket-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.htmasp-kit-socket {
+  font-size: 0.65rem;
+  border: 1px dashed var(--htmasp-accent);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+}
+
+/* Reveal frame: an outer border around the whole composition, corner-labeled. */
+.htmasp-reveal-frame {
+  position: absolute;
+  inset: 0.4rem 0.4rem 3.5rem 0.4rem;
+  border: 2px dashed var(--htmasp-accent);
+  border-radius: 1rem;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 0.35rem 0.6rem;
+}
+
+.htmasp-reveal-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--htmasp-accent);
+  background: #0d0c0b;
+  padding: 0 0.3rem;
+}
+
+/* Active-state distinctness: required so the current step is unambiguous. */
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-progress-dot] {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(248, 243, 230, 0.3);
+  border: none;
+}
+
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-progress-dot][data-active='true'] {
+  background: var(--htmasp-accent);
+}
+
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-toc-entry] {
+  opacity: 0.6;
+  color: var(--htmasp-ink);
+  background: none;
+  border: none;
+}
+
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-toc-entry][data-active='true'] {
+  opacity: 1;
+  font-weight: 700;
+  color: var(--htmasp-accent);
+}
+
+/* Attribution polish: required so the link isn't a raw browser-default anchor. */
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-attribution] {
+  font-size: 0.75rem;
+  color: var(--htmasp-dim);
+  opacity: 0.85;
+  text-decoration: none;
+}
+
+.and-scene-presentation:has(.htmasp-scene) [data-presentation-attribution]:hover {
+  opacity: 1;
+  color: var(--htmasp-accent);
+}

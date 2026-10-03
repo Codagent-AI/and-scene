@@ -1,25 +1,46 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
-
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+import { useEffect, useRef, useState } from 'react'
+import { DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT } from './constants'
+import type { Mode } from './types'
 
 /**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
+ * Uniform fit scale for the fixed design canvas within the active mode's
+ * stage geometry, so the composition never reflows and layout morphs stay
+ * clean across viewport sizes. Pass `reserveToc` when the table of contents
+ * is shown so its side gutters are excluded from the available width.
  */
-export function useFitScale(layout: StageLayout) {
+export function useFitScale(mode: Mode, reserveToc = false): number {
   const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
+  const frameRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    function measure() {
+      const layout = STAGE_LAYOUT[mode]
+      const availableWidth = Math.max(window.innerWidth - (reserveToc ? 2 * layout.tocGutter : 0), 1)
+      const availableHeight = Math.max(window.innerHeight - layout.chromeTop - layout.chromeBottom, 1)
+      const widthScale = availableWidth / DESIGN_W
+      const heightScale = availableHeight / DESIGN_H
+      setScale(Math.max(Math.min(widthScale, heightScale), MIN_SCALE))
     }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
+
+    measure()
+
+    function scheduleMeasure() {
+      if (frameRef.current != null) return
+      frameRef.current = window.requestAnimationFrame(() => {
+        frameRef.current = null
+        measure()
+      })
+    }
+
+    window.addEventListener('resize', scheduleMeasure)
+    return () => {
+      window.removeEventListener('resize', scheduleMeasure)
+      if (frameRef.current != null) {
+        window.cancelAnimationFrame(frameRef.current)
+        frameRef.current = null
+      }
+    }
+  }, [mode, reserveToc])
+
   return scale
 }

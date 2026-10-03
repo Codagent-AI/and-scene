@@ -1,39 +1,34 @@
-import { Sparkles } from 'lucide-react'
-import { presentations } from './presentations'
+import { presentations } from './presentations/index.ts'
+import './Landing.css'
 
 export function Landing() {
   return (
-    <main>
-      <div>
-        <p>and-scene</p>
-        <h1>Presentations as evolving diagrams.</h1>
-        <p>
-          One shared canvas holds the talk together. Each step changes positions,
-          labels, focus, or connections while the audience follows one idea as it
-          develops.
+    <main className="shell" data-presentation-landing="">
+      <section className="intro" aria-labelledby="page-title">
+        <p className="eyebrow">and-scene</p>
+        <h1 id="page-title">Presentations as evolving diagrams.</h1>
+        <p className="summary">
+          Each presentation here is one scene moving through named steps —
+          stable entities that morph in place — rather than a deck of
+          isolated slides.
         </p>
+      </section>
 
-        <section aria-labelledby="presentations-heading">
-          <h2 id="presentations-heading">Presentations</h2>
-          {presentations.length === 0 ? (
-            <p>
-              No presentations registered yet. Add one under{' '}
-              <code>src/presentations/</code> and register it in{' '}
-              <code>index.ts</code>.
-            </p>
-          ) : (
-            <ul>
-              {presentations.map((entry) => (
-                <li key={entry.slug}>
-                  <a href={`/${entry.slug}`}>
-                    <Sparkles size={18} aria-hidden /> {entry.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+      <section className="registry" aria-label="Registered presentations">
+        {presentations.length === 0 ? (
+          <p className="empty" data-presentation-registry-empty="">
+            No presentations are registered yet.
+          </p>
+        ) : (
+          <ul className="registry-list" data-presentation-registry="">
+            {presentations.map((entry) => (
+              <li key={entry.slug}>
+                <a href={`/${entry.slug}`}>{entry.title}</a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   )
 }

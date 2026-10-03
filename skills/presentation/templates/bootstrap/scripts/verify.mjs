@@ -1,255 +1,119 @@
-import { spawn } from 'node:child_process'
-import { dirname, join } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
-import { chromium } from 'playwright'
-
+#!/usr/bin/env node
 /**
- * Presentation-agnostic verifier for a scaffolded project.
+ * Build + render verification for a scaffolded presentation app.
  *
- * Rather than pinning to a single known slug, this reads the project's own
- * registry and renders EVERY registered
- * presentation through all of its steps, failing on any build error, console
- * error, or uncaught page error. A project with no presentations yet still
- * passes (the scaffold builds; there is simply nothing to render).
+ * 1. `npm run build` over the whole app.
+ * 2. Reads the presentation registry and, for each registered presentation,
+ *    starts a production preview it owns exclusively (an OS-assigned port on
+ *    127.0.0.1, via Vite's programmatic `preview()` API rather than a spawned
+ *    CLI process) and steps through every step with Playwright/Chromium,
+ *    failing on console errors, page errors, or a step index that does not
+ *    advance.
+ * 3. If no presentations are registered yet, opens the landing route instead
+ *    so a freshly scaffolded (pre-content) app still gets a real render check.
  *
- * Run via `npm run verify` (which supplies --experimental-strip-types so the
- * TypeScript registry can be imported directly).
+ * Exits non-zero on any failure and names the failing phase/step.
  */
+import process from 'node:process'
+import { chromium } from 'playwright'
+import { HOST, closePreviewServer, readRegisteredSlugs, run, startOwnedPreview } from './preview-utils.mjs'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const VITE_BIN = join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'vite.cmd' : 'vite')
-const PREVIEW_URL_RE = /http:\/\/127\.0\.0\.1:(\d+)\//
+const SETTLE_MS = 400
 
-/** @param {string} check @param {string} detail */
-function fail(check, detail) {
-  console.error(`FAIL [${check}]: ${detail}`)
-  process.exit(1)
+function fail(message) {
+  console.error(`\n[verify] FAIL: ${message}`)
+  process.exitCode = 1
 }
 
-function pass(msg) {
-  console.log(`PASS: ${msg}`)
-}
-
-function runBuild() {
-  return new Promise((resolve, reject) => {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-    const child = spawn(npm, ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: false })
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`build exited ${code}`))))
-    child.on('error', reject)
-  })
-}
-
-/** Read the project's presentation registry. Returns the list of { slug }. */
-async function readRegistry() {
-  const registryUrl = pathToFileURL(join(ROOT, 'src/presentations/index.ts')).href
-  const mod = await import(registryUrl)
-  const presentations = mod.presentations
-  if (!Array.isArray(presentations)) {
-    throw new Error('src/presentations/index.ts does not export a `presentations` array')
+async function checkRoute(page, baseUrl, routePath, { requireSteps }) {
+  const consoleErrors = []
+  const pageErrors = []
+  const onConsole = (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text())
   }
-  return presentations
-}
-
-/** @param {import('node:child_process').ChildProcess} child */
-function childExited(child) {
-  return child.exitCode !== null || child.signalCode !== null
-}
-
-/** @param {string} baseUrl @param {import('node:child_process').ChildProcess} child */
-async function waitForPreview(baseUrl, child, deadlineMs = 30_000) {
-  const started = Date.now()
-  while (Date.now() - started < deadlineMs) {
-    if (childExited(child)) {
-      throw new Error(`vite preview exited before ready (code ${child.exitCode})`)
-    }
-    try {
-      const res = await fetch(baseUrl)
-      const html = await res.text()
-      if (res.ok && html.includes('id="root"')) return
-    } catch {
-      // server not listening yet
-    }
-    await new Promise((r) => setTimeout(r, 200))
-  }
-  throw new Error('vite preview did not become ready within 30s')
-}
-
-/** @param {import('node:child_process').ChildProcess} child */
-function stopPreview(child) {
-  return new Promise((resolve) => {
-    if (!child.pid) {
-      resolve()
-      return
-    }
-    child.once('close', () => resolve())
-    try {
-      process.kill(-child.pid, 'SIGTERM')
-    } catch {
-      child.kill('SIGTERM')
-    }
-    setTimeout(() => {
-      if (!childExited(child)) {
-        try {
-          process.kill(-child.pid, 'SIGKILL')
-        } catch {
-          child.kill('SIGKILL')
-        }
-      }
-      resolve()
-    }, 3000)
-  })
-}
-
-function startPreview() {
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      VITE_BIN,
-      ['preview', '--port', '0', '--host', '127.0.0.1'],
-      { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
-    )
-
-    let output = ''
-    let settled = false
-    let readyStarted = false
-
-    const cleanup = () => {
-      clearTimeout(timer)
-      child.stdout?.off('data', onData)
-      child.stderr?.off('data', onData)
-      child.off('error', onError)
-      child.off('close', onClose)
-    }
-    const rejectWith = async (err) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      await stopPreview(child)
-      reject(err)
-    }
-    const resolveWith = (value) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      resolve(value)
-    }
-    const onData = (chunk) => {
-      output += chunk.toString()
-      const match = output.match(PREVIEW_URL_RE)
-      if (!match || readyStarted) return
-      readyStarted = true
-      const baseUrl = match[0]
-      waitForPreview(baseUrl, child)
-        .then(() => resolveWith({ child, baseUrl }))
-        .catch(rejectWith)
-    }
-    const onError = (err) => rejectWith(err)
-    const onClose = (code) => {
-      if (!settled) rejectWith(new Error(`vite preview exited before ready (code ${code})`))
-    }
-    const timer = setTimeout(() => {
-      const detail = output.trim() ? ` Output:\n${output.trim()}` : ''
-      rejectWith(new Error(`vite preview did not print a local URL within 30s.${detail}`))
-    }, 30_000)
-
-    child.stdout?.on('data', onData)
-    child.stderr?.on('data', onData)
-    child.on('error', onError)
-    child.on('close', onClose)
-  })
-}
-
-/** Step a single presentation through every step, capturing render errors. */
-async function renderPresentation(page, baseUrl, slug) {
-  const errors = []
-  // Start at 0 so errors during the initial page load (before the step loop
-  // runs) are attributed to step 0 rather than a confusing `step null`.
-  let failingStep = 0
-
-  const onConsole = (msg) => {
-    if (msg.type() === 'error') errors.push({ step: failingStep, msg: msg.text() })
-  }
-  const onPageError = (err) => errors.push({ step: failingStep, msg: err.message })
+  const onPageError = (error) => pageErrors.push(error.message)
   page.on('console', onConsole)
   page.on('pageerror', onPageError)
 
-  try {
-    await page.goto(`${baseUrl}${slug}`, { waitUntil: 'load', timeout: 30_000 })
+  const url = `${baseUrl}${routePath}`
+  await page.goto(url, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(SETTLE_MS)
 
-    const progress = page.locator('[data-testid="step-progress"]')
-    await progress.waitFor({ timeout: 10_000 })
-
-    const stepCount = Number(await progress.getAttribute('data-step-count'))
-    if (!Number.isFinite(stepCount) || stepCount < 1) {
-      throw new Error(`${slug}: invalid data-step-count: ${stepCount}`)
+  if (requireSteps) {
+    const stepCount = await page
+      .locator('[data-step-count]')
+      .first()
+      .getAttribute('data-step-count')
+      .catch(() => null)
+    const count = Number(stepCount)
+    if (!Number.isFinite(count) || count < 1) {
+      throw new Error(`route ${routePath} has no readable data-step-count hook`)
     }
 
-    for (let i = 0; i < stepCount; i++) {
-      failingStep = i
-      const index = Number(await progress.getAttribute('data-step-index'))
-      if (index !== i) throw new Error(`${slug} step ${i}: expected index ${i}, got ${index}`)
-
-      if (i < stepCount - 1) {
+    for (let step = 0; step < count; step += 1) {
+      const indexAttr = await page.locator('[data-step-index]').first().getAttribute('data-step-index')
+      const currentIndex = Number(indexAttr)
+      if (!Number.isFinite(currentIndex) || currentIndex !== step) {
+        throw new Error(`route ${routePath} step ${step} did not report the expected data-step-index`)
+      }
+      if (step < count - 1) {
         await page.keyboard.press('ArrowRight')
-        await page.waitForFunction(
-          (expected) => {
-            const el = document.querySelector('[data-testid="step-progress"]')
-            return el && Number(el.getAttribute('data-step-index')) === expected
-          },
-          i + 1,
-          { timeout: 5000 },
-        )
+        await page.waitForTimeout(SETTLE_MS)
       }
     }
-
-    if (errors.length > 0) {
-      const first = errors[0]
-      throw new Error(`${slug} step ${first.step}: ${first.msg}`)
-    }
-  } finally {
-    page.off('console', onConsole)
-    page.off('pageerror', onPageError)
   }
-}
 
-/** @param {string} baseUrl @param {Array<{ slug: string }>} presentations */
-async function renderCheck(baseUrl, presentations) {
-  const browser = await chromium.launch()
-  try {
-    const page = await browser.newPage()
-    for (const { slug } of presentations) {
-      await renderPresentation(page, baseUrl, slug)
-    }
-  } finally {
-    await browser.close()
+  page.off('console', onConsole)
+  page.off('pageerror', onPageError)
+
+  if (consoleErrors.length > 0) {
+    throw new Error(`route ${routePath} logged console errors: ${consoleErrors.join(' | ')}`)
+  }
+  if (pageErrors.length > 0) {
+    throw new Error(`route ${routePath} threw uncaught page errors: ${pageErrors.join(' | ')}`)
   }
 }
 
 async function main() {
+  console.log('[verify] building application...')
+  await run('npm', ['run', 'build'])
+
+  const slugs = await readRegisteredSlugs()
+  console.log(
+    slugs.length > 0
+      ? `[verify] found ${slugs.length} registered presentation(s): ${slugs.join(', ')}`
+      : '[verify] no presentations registered yet; checking the landing route only',
+  )
+
+  console.log(`[verify] starting an owned preview on ${HOST}...`)
+  const { server, baseUrl } = await startOwnedPreview()
+  console.log(`[verify] preview listening at ${baseUrl}`)
+
+  let browser
   try {
-    await runBuild()
-    pass('build')
+    browser = await chromium.launch()
+    const page = await browser.newPage()
 
-    const presentations = await readRegistry()
-    pass(`registry (${presentations.length} presentation${presentations.length === 1 ? '' : 's'})`)
-
-    if (presentations.length === 0) {
-      console.log('VERIFY: PASS (no presentations registered yet)')
-      return
+    if (slugs.length === 0) {
+      await checkRoute(page, baseUrl, '/', { requireSteps: false })
+    } else {
+      for (const slug of slugs) {
+        await checkRoute(page, baseUrl, `/${slug}`, { requireSteps: true })
+      }
     }
 
-    const { child, baseUrl } = await startPreview()
+    console.log('[verify] PASS: build succeeded and every checked route rendered cleanly')
+  } catch (error) {
+    fail(error.message)
+  } finally {
     try {
-      await renderCheck(baseUrl, presentations)
-      pass('render')
+      if (browser) await browser.close()
     } finally {
-      await stopPreview(child)
+      await closePreviewServer(server)
     }
-
-    console.log('VERIFY: PASS')
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    fail(message.includes(' step ') ? 'render' : 'verify', message)
   }
 }
 
-main()
+main().catch((error) => {
+  fail(error.stack ?? String(error))
+})

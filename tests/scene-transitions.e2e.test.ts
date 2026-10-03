@@ -28,12 +28,16 @@ afterAll(async () => {
 })
 
 const opacities = (selector: string) => page.evaluate((sel) => [...document.querySelectorAll(sel)].map((el) => Number(getComputedStyle(el).opacity)), selector)
-const go = (key: string) => page.keyboard.press(key)
+// Press a key and wait until the footer reports the destination step, so settling never races the start of a transition.
+const go = async (key: string, expectedIndex: number) => {
+  await page.keyboard.press(key)
+  await page.waitForFunction((expected) => Number(document.querySelector('[data-presentation-footer]')?.getAttribute('data-step-index')) === expected, expectedIndex, { timeout: 15_000 })
+}
 const settled = () => page.waitForFunction(() => document.getAnimations().length === 0 && [...document.querySelectorAll('[data-entity-id]')].every((el) => getComputedStyle(el).opacity === '1'), null, { timeout: 15_000 })
 
 describe('reference scene transitions in a real browser', () => {
   it('enters newcomers after the continuing entities have moved, then settles fully visible', async () => {
-    await go('ArrowRight')
+    await go('ArrowRight', 1)
     // Newcomers are held back by the layout delay, so right after the keypress they are not yet fully visible.
     expect((await opacities('[data-entity-id="sample-skill"]'))[0]).toBeLessThan(1)
     expect(await opacities('[data-entity-id="sample-you"]')).toEqual([1])
@@ -42,12 +46,12 @@ describe('reference scene transitions in a real browser', () => {
   }, 30_000)
 
   it('keeps departing entities mounted while they exit, then removes them', async () => {
-    await go('ArrowRight')
+    await go('ArrowRight', 2)
     await settled()
-    await go('ArrowRight')
+    await go('ArrowRight', 3)
     await settled()
     expect((await opacities('.step-card')).length).toBe(4)
-    await go('ArrowLeft')
+    await go('ArrowLeft', 2)
     // Departing cards stay mounted while they exit instead of vanishing on the keypress.
     expect((await opacities('.step-card')).length).toBe(4)
     await page.waitForFunction(() => document.querySelectorAll('.step-card').length === 1, null, { timeout: 15_000 })

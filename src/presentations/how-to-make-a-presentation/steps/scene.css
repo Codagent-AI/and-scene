@@ -1,0 +1,31 @@
+.howto-scene { color: #172229; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.howto-scene [data-presentation-node] { position: absolute; box-sizing: border-box; }
+.howto-person { z-index: 2; width: 142px; height: 70px; display: grid; align-content: center; gap: 5px; padding: 12px; border: 1px solid #8ba7a1; border-radius: 14px; background: #e9f5ef; }
+.howto-person small, .howto-card small, .howto-kit small, .howto-verify small { font-size: 9px; letter-spacing: .14em; color: #59736e; }
+.howto-person strong, .howto-card strong, .howto-kit strong, .howto-verify strong { font-size: 14px; }
+.howto-prompt { z-index: 2; border: 1px solid #d4c7a4; border-radius: 22px; padding: 13px 18px; background: #fff8e7; color: #65572f; font-size: 13px; }
+.howto-conversation { position: absolute; border-top: 2px solid #95a9a5; text-align: center; color: #69817c; font-size: 20px; line-height: 1px; }
+.howto-question { z-index: 3; position: absolute; padding: 5px 12px; background: #f1ebff; border: 1px solid #c8b8e5; color: #624c89; border-radius: 20px; font-size: 10px; }
+.howto-tray-label { position: absolute; color: #72827d; font-size: 10px; letter-spacing: .16em; }
+.howto-tray { position: absolute; border-bottom: 2px solid #b7c6bf; border-radius: 0 0 12px 12px; }
+.howto-card { width: 104px; height: 86px; display: grid; align-content: start; gap: 8px; padding: 10px; border: 1px solid #b8cac1; border-radius: 11px; background: #f3f8f4; box-shadow: 0 5px 15px #28413813; }
+.howto-card strong { font-size: 13px; }
+.howto-parts { font-size: 9px; color: #64776e; }
+.howto-links { position: absolute; left: 110px; top: 281px; display: flex; gap: 76px; align-items: center; color: #8c739f; font-size: 10px; }
+.howto-links b { font-size: 15px; }
+.howto-ghost { width: 104px; border-style: dashed; background: #fff; opacity: .65; }
+.howto-depth { position: absolute; padding: 8px 12px; color: #5e6d65; background: #edf1ea; border-radius: 18px; font-size: 11px; }
+.howto-depth span { padding: 0 6px; color: #b67742; }
+.howto-kit-plug { position: absolute; width: 1px; height: 16px; border-left: 2px solid #568678; }
+.howto-kit-plug::after { position: absolute; left: -5px; bottom: 0; width: 0; height: 0; content: ''; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #568678; }
+.howto-kit { width: 190px; height: 64px; display: grid; gap: 2px; padding: 8px 12px; border: 1px solid #84b4a6; border-radius: 10px; background: #e7f4ee; }
+.howto-kit span, .howto-verify span { font-size: 10px; color: #52776b; }
+.howto-verify { width: 120px; height: 78px; display: grid; gap: 4px; padding: 9px; border: 1px solid #8ebc83; border-radius: 12px; background: #eff8e9; }
+.howto-verify span { color: #318144; font-weight: 700; }
+.howto-edited { border-color: #de9d51; background: #fff7e9; }
+.howto-edited-flag { position: absolute; top: -10px; right: -8px; padding: 3px 6px; color: white; background: #bb6d35; border-radius: 8px; font-size: 8px; }
+.howto-modify-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.howto-modify-path { fill: none; stroke: #cb8b58; stroke-width: 2; stroke-dasharray: 5 5; }
+.howto-modify { position: absolute; color: #a56334; font-size: 11px; }
+.howto-reveal { position: absolute; border: 2px solid #d38e51; border-radius: 24px; pointer-events: none; }
+.howto-reveal-label { position: absolute; padding: 4px 10px; background: #fffaf1; color: #a56334; font-size: 11px; }

@@ -1,0 +1,13 @@
+/* Presentation-owned styles. The scene kit intentionally supplies no theme. */
+.presentation { background: #f5f2eb; color: #20231f; font-family: Georgia, serif; }
+.presentation-header, .presentation-footer { padding: 1.25rem 2rem; }
+.presentation-header-title { display: grid; gap: .25rem; text-align: center; }
+.presentation-marker { font: 600 .7rem/1.2 system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+.presentation-mode-toggle, .presentation-step-controls button, .presentation-progress-item, .presentation-toc-item { font: inherit; cursor: pointer; }
+.presentation-caption { max-width: 44rem; margin: 0 auto 1rem; text-align: center; }
+.presentation-progress { display: flex; justify-content: center; gap: .5rem; }
+.presentation-progress-item { width: .7rem; height: .7rem; border: 1px solid currentColor; border-radius: 50%; background: transparent; }
+.presentation-progress-item[data-presentation-active="true"] { background: currentColor; transform: scale(1.25); }
+.presentation-attribution { position: absolute; right: 2rem; bottom: .75rem; color: inherit; font: 600 .7rem/1.2 system-ui, sans-serif; }
+.scene-layer { color: inherit; }
+.subject { position: absolute; inset: 125px auto auto 300px; padding: 1.5rem; border: 1px solid currentColor; }

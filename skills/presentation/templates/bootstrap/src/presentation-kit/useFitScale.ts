@@ -1,25 +1,24 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useEffect, useState, type RefObject } from 'react'
+import { STAGE_LAYOUT } from './constants.ts'
+import type { PresentationMode } from './types.ts'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
-
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
+export function useFitScale(ref: RefObject<HTMLElement | null>, mode: PresentationMode, width: number, height: number) {
   const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+    const measure = () => {
+      const bounds = element.getBoundingClientRect()
+      const reserve = STAGE_LAYOUT[mode]
+      const availableWidth = Math.max(0, bounds.width - reserve.side * 2)
+      const availableHeight = Math.max(0, bounds.height - reserve.top - reserve.bottom)
+      setScale(Math.max(0, Math.min(1, availableWidth / width, availableHeight / height)))
     }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    window.addEventListener('resize', measure)
+    return () => { observer.disconnect(); window.removeEventListener('resize', measure) }
+  }, [height, mode, ref, width])
   return scale
 }

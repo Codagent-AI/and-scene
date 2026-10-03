@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { Presentation } from '../src/presentation-kit/Presentation'
 import { Box } from '../src/presentation-kit/nodes/Box'
 import type { SceneProps, Step } from '../src/presentation-kit/types'
+import { normalizeRoute } from '../src/route'
 
 afterEach(cleanup)
 
@@ -74,5 +75,33 @@ describe('presentation kit contracts', () => {
     expect(node.style.backgroundColor).toBe('')
     expect(node.style.border).toBe('')
     expect(node.style.boxShadow).toBe('')
+  })
+
+  it('renders an empty-state message for empty step arrays', () => {
+    render(<Presentation steps={[]} title="Empty" />)
+    expect(screen.getByRole('status').textContent).toBe('This presentation has no steps.')
+    expect(document.querySelector('[data-presentation-empty]')).toBeTruthy()
+  })
+
+  it('preserves malformed paths as a safe landing route', () => {
+    expect(() => normalizeRoute('/%E0%A4%A')).not.toThrow()
+    expect(normalizeRoute('/%E0%A4%A')).toBe('%E0%A4%A')
+  })
+
+  it('does not intercept modified or already-prevented keyboard shortcuts', () => {
+    render(<Presentation steps={steps} title="Example" />)
+    fireEvent.keyDown(window, { key: 'ArrowRight', altKey: true })
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true })
+    expect(screen.getByText('First caption')).toBeTruthy()
+    const event = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
+    event.preventDefault()
+    window.dispatchEvent(event)
+    expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+  })
+
+  it('keeps stable entity hooks when conflicting data props are supplied', () => {
+    render(<Box id="fixed-id" data-presentation-node="override" data-entity-id="override">Node</Box>)
+    const node = document.querySelector('[data-presentation-node="box"]')
+    expect(node?.getAttribute('data-entity-id')).toBe('fixed-id')
   })
 })

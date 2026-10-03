@@ -9,6 +9,9 @@ import type { PresentationProps } from './types'
 export function Presentation<T>({ steps, title, initialMode = 'browse', designSize, brand }: PresentationProps<T>) {
   const nav = usePresentationNav(steps.length, initialMode)
   const [touchX, setTouchX] = useState<number | null>(null)
+  if (steps.length === 0) {
+    return <main className="presentation" data-presentation="" data-mode={nav.mode} data-presentation-empty="" style={{ position: 'fixed', inset: 0 }}><Header title={title} mode={nav.mode} brand={brand} /><p role="status">This presentation has no steps.</p></main>
+  }
   const step = steps[nav.index]
   return <main className="presentation" data-presentation="" data-mode={nav.mode} onTouchStart={(event) => setTouchX(event.touches[0]?.clientX ?? null)} onTouchEnd={(event) => { if (touchX === null) return; const dx = (event.changedTouches[0]?.clientX ?? touchX) - touchX; if (Math.abs(dx) > 48) (dx < 0 ? nav.next : nav.prev)(); setTouchX(null) }} style={{ position: 'fixed', inset: 0 }}>
     <Header title={title} mode={nav.mode} brand={brand} />

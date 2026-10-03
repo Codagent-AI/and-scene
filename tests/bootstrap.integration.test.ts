@@ -43,7 +43,7 @@ describe('presentation bootstrap template', () => {
 
       const fixtureDir = path.join(appRoot, 'src/presentations/bootstrap-check')
       await mkdir(fixtureDir, { recursive: true })
-      await writeFile(path.join(fixtureDir, 'Talk.tsx'), `import { Presentation, Box, SceneLayer, type Step } from '../../presentation-kit'\nconst Scene = ({ payload }: { payload: { label: string } }) => <SceneLayer><Box id="bootstrap-check:entity">{payload.label}</Box></SceneLayer>\nconst steps: Step<{ label: string }>[] = [{ id: 'only', era: 'Start', title: 'Bootstrap route', caption: 'The materialized app route renders.', payload: { label: 'Ready' }, Scene }]\nexport default function Talk() { return <Presentation title="Bootstrap check" steps={steps} /> }\n`)
+      await writeFile(path.join(fixtureDir, 'Talk.tsx'), `import { Presentation, Box, SceneLayer, type Step } from '../../presentation-kit'\nconst Scene = ({ payload }: { payload: { label: string } }) => <SceneLayer><Box id="bootstrap-check:entity">{payload.label}</Box></SceneLayer>\nconst steps: Step<{ label: string }>[] = [{ id: 'first', era: 'Start', title: 'Bootstrap route', caption: 'The materialized app route renders.', payload: { label: 'Ready' }, Scene }, { id: 'second', era: 'Finish', title: 'Second fixture step', caption: 'The inspector captures every step.', payload: { label: 'Done' }, Scene }]\nexport default function Talk() { return <Presentation title="Bootstrap check" steps={steps} /> }\n`)
       await writeFile(path.join(appRoot, 'src/presentations/index.ts'), `import type { ComponentType } from 'react'\nexport interface PresentationEntry { slug: string; title: string; load: () => Promise<{ default: ComponentType }> }\nexport const presentations: PresentationEntry[] = [{ slug: 'bootstrap-check', title: 'Bootstrap check', load: () => import('./bootstrap-check/Talk') }]\n`)
 
       execFileSync('npm', ['ci'], { cwd: appRoot, stdio: 'pipe' })
@@ -54,12 +54,13 @@ describe('presentation bootstrap template', () => {
         stdio: 'pipe',
         env: { ...process.env, PRESENTATION_ROUTE: '/bootstrap-check', PREVIEW_PORT: '43891' },
       })
-      execFileSync('npm', ['--prefix', appRoot, 'run', 'inspect', '--', 'bootstrap-check', '--narrow'], {
+      const inspectionOutput = execFileSync('npm', ['--prefix', appRoot, 'run', 'inspect', '--', 'bootstrap-check', '--narrow'], {
         cwd: tempRoot,
         stdio: 'pipe',
         env: { ...process.env, PREVIEW_PORT: '43892' },
       })
-      expect((await readFile(path.join(appRoot, 'artifacts/inspection/bootstrap-check/390x844-narrow/step-01.png'))).byteLength).toBeGreaterThan(0)
+      expect(inspectionOutput.toString()).toContain('Captured 2 settled screenshots')
+      for (const screenshot of ['step-01.png', 'step-02.png']) expect((await readFile(path.join(appRoot, 'artifacts/inspection/bootstrap-check/390x844-narrow', screenshot))).byteLength).toBeGreaterThan(0)
 
       const bootstrapCss = await readFile(path.join(appRoot, 'src/index.css'), 'utf8')
       expect(bootstrapCss).not.toMatch(/font-family\s*:|#[\da-f]{3,8}\b|rgb\(|box-shadow\s*:|border\s*:/i)

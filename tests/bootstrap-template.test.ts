@@ -42,7 +42,8 @@ describe('distributable bootstrap template', () => {
       expect(await stat(join(app, 'src/presentations/index.ts'))).toBeTruthy()
       expect(await stat(join(app, 'vite.config.ts'))).toBeTruthy()
       const registryPath = join(app, 'src/presentations/index.ts')
-      await writeFile(registryPath, (await readFile(registryPath, 'utf8')).replace("slug: 'starter'", "slug: 'custom-route'"))
+      const registry = (await readFile(registryPath, 'utf8')).replace("slug: 'starter'", "slug: 'custom-route'").replace("  { slug: 'custom-route', title: 'Starter presentation', load: () => import('./starter/Talk') },", "  { slug: 'custom-route', title: 'Starter presentation', load: () => import('./starter/Talk') },\n  {\n    slug: 'secondary-route',\n    title: 'Secondary presentation',\n    load: async () => { return import('./starter/Talk') },\n  },")
+      await writeFile(registryPath, registry)
 
       await exec('npm', ['ci', '--ignore-scripts'], { cwd: app, timeout: 180_000 })
       await exec('npm', ['run', 'build'], { cwd: app, timeout: 120_000 })
@@ -50,9 +51,14 @@ describe('distributable bootstrap template', () => {
       await exec('npm', ['run', 'inspect', '--', 'custom-route'], { cwd: app, timeout: 120_000 })
       expect((await readdir(join(app, 'artifacts/presentation-inspection/custom-route'))).filter((name) => name.endsWith('.png'))).toHaveLength(1)
       await expect(exec('npm', ['run', 'inspect', '--', 'unknown-route'], { cwd: app, timeout: 30_000 })).rejects.toMatchObject({ stderr: expect.stringContaining('No presentation found at /unknown-route') })
+      await writeFile(registryPath, `${registry}\n// { slug: 'comment-only', title: 'Fake route', load: () => import('./missing/Talk') }\n`)
+      await expect(exec('npm', ['run', 'inspect', '--', 'comment-only'], { cwd: app, timeout: 30_000 })).rejects.toMatchObject({ stderr: expect.stringContaining('No presentation found at /comment-only') })
       // Invoke by absolute script path from outside the app to prove cwd independence.
       const verification = await exec('node', [join(app, 'scripts/verify.mjs')], { cwd: caller, timeout: 120_000 })
       expect(verification.stdout).toContain('PASS: /custom-route renders every registered starter step in Chromium')
+      const secondaryVerification = await exec('node', [join(app, 'scripts/verify.mjs'), 'secondary-route'], { cwd: caller, timeout: 120_000 })
+      expect(secondaryVerification.stdout).toContain('PASS: /secondary-route renders every registered starter step in Chromium')
+      await expect(exec('node', [join(app, 'scripts/verify.mjs'), 'comment-only'], { cwd: caller, timeout: 30_000 })).rejects.toMatchObject({ stderr: expect.stringContaining('FAIL: sample: unknown presentation slug "comment-only"') })
 
       await writeFile(join(app, 'src/presentations/starter/Talk.tsx'), `import { Presentation } from '../../presentation-kit'
 import type { Step } from '../../presentation-kit'

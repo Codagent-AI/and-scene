@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import { readPresentationSlugs } from './presentation-registry.mjs'
 
 const appRoot = fileURLToPath(new URL('../', import.meta.url))
 const availablePort = async () => {
@@ -17,7 +18,7 @@ const availablePort = async () => {
 const slug = process.argv[2]
 if (!slug || !/^[a-z0-9-]+$/.test(slug)) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
 const registry = await readFile(resolve(appRoot, 'src/presentations/index.ts'), 'utf8')
-if (!registry.match(new RegExp(`slug:\\s*['"]${slug}['"]`))) { console.error(`No presentation found at /${slug}`); process.exit(1) }
+if (!readPresentationSlugs(registry).includes(slug)) { console.error(`No presentation found at /${slug}`); process.exit(1) }
 const output = resolve(appRoot, 'artifacts', 'presentation-inspection', slug)
 await mkdir(output, { recursive: true })
 const port = await availablePort()

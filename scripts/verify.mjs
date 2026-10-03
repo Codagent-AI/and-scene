@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import { readPresentationSlugs } from './presentation-registry.mjs'
 
 const appRoot = fileURLToPath(new URL('../', import.meta.url))
 const sampleSlug = 'how-to-make-a-presentation'
@@ -23,9 +24,12 @@ const captions = [
 const fail = (phase, message) => { throw new Error(`${phase}: ${message}`) }
 const failPreflight = (message) => { console.error(`FAIL: sample: ${message}`); process.exit(1) }
 const registeredText = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-const registeredSlugs = [...registeredText.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((match) => match[1])
+const registeredSlugs = readPresentationSlugs(registeredText)
 const isReferenceApp = registeredSlugs.includes(sampleSlug)
-const slug = isReferenceApp ? sampleSlug : registeredSlugs[0]
+const requestedSlug = process.argv[2]
+if (requestedSlug && !registeredSlugs.includes(requestedSlug)) failPreflight(`unknown presentation slug "${requestedSlug}"; registered: ${registeredSlugs.join(', ') || '(none)'}`)
+const slug = requestedSlug ?? (isReferenceApp ? sampleSlug : registeredSlugs[0])
+const isReferenceSample = slug === sampleSlug
 if (!slug) failPreflight('no presentations are registered')
 if (isReferenceApp) {
   if (!registeredText.includes("import('./how-to-make-a-presentation/Talk')")) failPreflight(`reference sample is not registered at /${slug}`)
@@ -80,13 +84,13 @@ try {
   const footer = page.locator('[data-presentation-footer]')
   try { await footer.waitFor({ timeout: 5000 }) } catch { fail('browser', `no presentation rendered at /${slug}`) }
   const count = Number(await footer.getAttribute('data-step-count'))
-  if (!count || (isReferenceApp && count !== titles.length)) fail('browser', `step count hook reports ${count}${isReferenceApp ? `; expected ${titles.length}` : ''}`)
+  if (!count || (isReferenceSample && count !== titles.length)) fail('browser', `step count hook reports ${count}${isReferenceSample ? `; expected ${titles.length}` : ''}`)
   for (let index = 0; index < count; index++) {
     currentStep = index + 1
     await footer.waitFor({ state: 'visible' })
     await page.waitForFunction((expected) => Number(document.querySelector('[data-presentation-footer]')?.getAttribute('data-step-index')) === expected, index)
     const actualTitle = await page.locator('[data-presentation-step-title]').textContent()
-    if (!actualTitle || (isReferenceApp && actualTitle !== titles[index])) fail('browser', `step ${index + 1} title mismatch: ${actualTitle}`)
+    if (!actualTitle || (isReferenceSample && actualTitle !== titles[index])) fail('browser', `step ${index + 1} title mismatch: ${actualTitle}`)
     if (errors.length) fail('browser', errors.join('; '))
     if (index + 1 < count) {
       await page.keyboard.press('ArrowRight')
@@ -96,7 +100,7 @@ try {
   }
   await page.waitForTimeout(650)
   if (errors.length) fail('browser', errors.join('; '))
-  console.log(isReferenceApp
+  console.log(isReferenceSample
     ? `PASS: /${slug} matches the canonical nine-step outline and renders every step in Chromium`
     : `PASS: /${slug} renders every registered starter step in Chromium`)
 } catch (error) {

@@ -1,0 +1,51 @@
+/* Structural styles belong to the host or presentation. The kit supplies no visual defaults. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.landing-shell,
+[data-presentation] {
+  min-height: 100vh;
+}
+
+.presentation-stage-viewport {
+  display: grid;
+  place-items: center;
+  min-height: 52vh;
+  overflow: hidden;
+}
+
+.presentation-stage-frame {
+  position: relative;
+}
+
+.presentation-stage-canvas {
+  position: absolute;
+  transform-origin: top left;
+}
+
+.presentation-toc[hidden] {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .presentation-toc {
+    display: none;
+  }
+}

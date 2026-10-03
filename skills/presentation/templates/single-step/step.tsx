@@ -1,28 +1,27 @@
-import type { Step } from '../../../presentation-kit'
-import { Box, SceneLayer } from '../../../presentation-kit'
-import { ENTITIES } from '../entities'
+import type { SceneProps, Step } from '../../../presentation-kit/types.ts'
+import { Box } from '../../../presentation-kit/nodes/Box.tsx'
+import { SceneLayer } from '../../../presentation-kit/nodes/SceneLayer.tsx'
 
-/**
- * Single-step template — copy into steps/ and customize metadata + layout.
- * Register the step in Talk.tsx STEPS array.
- */
-function StepScene() {
+export interface ExamplePayload {
+  label: string
+}
+
+function ExampleScene({ payload }: SceneProps<ExamplePayload>) {
   return (
     <SceneLayer>
-      <Box
-        layoutId={ENTITIES.hero}
-        label="{{STEP_TITLE}}"
-        subtitle="{{STEP_SUBTITLE}}"
-        accent="amber"
-      />
+      <Box id="replace-with-presentation-entity" className="example-entity">
+        {payload.label}
+      </Box>
     </SceneLayer>
   )
 }
 
-export const step: Step = {
-  id: '{{STEP_ID}}',
-  era: '{{ERA}}',
-  title: '{{STEP_TITLE}}',
-  caption: '{{STEP_CAPTION}}',
-  Scene: StepScene,
+export const exampleStep: Step<ExamplePayload> = {
+  id: 'replace-with-stable-step-id',
+  era: 'replace-with-era',
+  title: 'Replace with a presenter title',
+  caption: 'Replace with the browse caption for this scene state.',
+  groupKey: 'replace-with-scene-group',
+  Scene: ExampleScene,
+  payload: { label: 'Replace with scene content' },
 }

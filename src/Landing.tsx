@@ -1,39 +1,34 @@
-import { Sparkles } from 'lucide-react'
-import { presentations } from './presentations'
+import type { PresentationRegistryEntry } from './presentations/index.ts'
+import { PRESENTATIONS } from './presentations/index.ts'
 
-export function Landing() {
+type LandingProps = {
+  presentations?: readonly PresentationRegistryEntry[]
+}
+
+export function Landing({ presentations = PRESENTATIONS }: LandingProps) {
   return (
-    <main>
-      <div>
-        <p>and-scene</p>
-        <h1>Presentations as evolving diagrams.</h1>
+    <main className="landing-shell" data-landing>
+      <section className="landing-intro" aria-labelledby="landing-title">
+        <p className="landing-eyebrow">and-scene</p>
+        <h1 id="landing-title">Presentations as evolving scenes.</h1>
         <p>
-          One shared canvas holds the talk together. Each step changes positions,
-          labels, focus, or connections while the audience follows one idea as it
-          develops.
+          Browse browser-based presentations where one diagram develops through a sequence of named states.
         </p>
-
-        <section aria-labelledby="presentations-heading">
-          <h2 id="presentations-heading">Presentations</h2>
-          {presentations.length === 0 ? (
-            <p>
-              No presentations registered yet. Add one under{' '}
-              <code>src/presentations/</code> and register it in{' '}
-              <code>index.ts</code>.
-            </p>
-          ) : (
-            <ul>
-              {presentations.map((entry) => (
-                <li key={entry.slug}>
-                  <a href={`/${entry.slug}`}>
-                    <Sparkles size={18} aria-hidden /> {entry.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+      </section>
+      <section className="landing-presentations" aria-labelledby="presentation-list-title">
+        <h2 id="presentation-list-title">Presentations</h2>
+        {presentations.length > 0 ? (
+          <ul>
+            {presentations.map((presentation) => (
+              <li key={presentation.slug}>
+                <a href={`/${presentation.slug}`}>{presentation.title}</a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p data-empty-presentations>No presentations registered yet.</p>
+        )}
+      </section>
     </main>
   )
 }

@@ -1,0 +1,21 @@
+[data-presentation] .replace-with-presentation-entity {
+  position: absolute;
+  left: 80px;
+  top: 100px;
+  padding: 16px;
+  border: 1px solid currentColor;
+}
+
+[data-presentation] [data-presentation-attribution] {
+  font-size: 12px;
+}
+
+[data-presentation] [data-presentation-attribution] a {
+  color: inherit;
+  text-decoration: none;
+}
+
+[data-presentation] [data-state-active="true"],
+[data-presentation] .is-active {
+  font-weight: 700;
+}

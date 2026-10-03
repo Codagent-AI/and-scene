@@ -1,10 +1,22 @@
-export type Route =
-  | { kind: 'landing' }
-  | { kind: 'presentation'; slug: string }
+import type { PresentationRegistryEntry } from './presentations'
 
-export function resolveRoute(pathname: string, slugs: ReadonlySet<string>): Route {
-  if (pathname === '/' || pathname === '') return { kind: 'landing' }
-  const slug = pathname.replace(/^\//, '').replace(/\/$/, '')
-  if (slug && slugs.has(slug)) return { kind: 'presentation', slug }
-  return { kind: 'landing' }
+export type Route =
+  | { type: 'landing' }
+  | { type: 'presentation'; entry: PresentationRegistryEntry }
+  | { type: 'not-found'; pathname: string }
+
+/** Zero-dependency pathname router: "/" -> landing, "/<slug>" -> a registered presentation. */
+export function resolveRoute(pathname: string, registry: PresentationRegistryEntry[]): Route {
+  const normalized = pathname.replace(/\/+$/, '') || '/'
+  if (normalized === '/') {
+    return { type: 'landing' }
+  }
+
+  const slug = normalized.replace(/^\//, '')
+  const entry = registry.find((candidate) => candidate.slug === slug)
+  if (entry) {
+    return { type: 'presentation', entry }
+  }
+
+  return { type: 'not-found', pathname }
 }

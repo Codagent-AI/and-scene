@@ -1,37 +1,96 @@
 import type { Step } from '../../presentation-kit'
-import { ReferenceScene, type RefPayload } from './ReferenceScene'
-import { REFERENCE_STEP_OUTLINE } from './outline'
-
-const GROUP = 'reference-demo'
+import { MainScene } from './MainScene'
+import type { ScenePayload } from './MainScene'
 
 /**
- * What each beat adds to the one evolving scene. Payloads are cumulative on
- * purpose: a step is "the previous picture, plus one thing" — that continuity
- * is the whole trick this demo is teaching.
+ * The nine canonical steps from
+ * `openspec/changes/create-and-scene/specs/presentation-verification/spec.md`.
+ * Titles and captions are normative and must stay verbatim and in order;
+ * every step shares one `groupKey` so `MainScene` stays mounted the whole
+ * talk and only its `payload.step` advances — nothing is ever redrawn.
  */
-const PAYLOADS: Record<(typeof REFERENCE_STEP_OUTLINE)[number]['id'], RefPayload> = {
-  'you-have-a-topic': { bubble: true },
-  'skill-interviews-you': { skill: true, question: 'what’s it about?' },
-  'answers-become-steps': { skill: true, question: 'and step 1?', cards: 1 },
-  'the-deck-grows': { skill: true, question: 'step 2… step 3?', cards: 3 },
-  'you-set-the-depth': { skill: true, question: 'how deep?', cards: 3, ghost: true, depth: true },
-  'assembles-the-scene': { skill: true, cards: 3, depth: true, route: true },
-  'checks-its-work': { skill: true, cards: 3, depth: true, route: true, verify: true },
-  'loop-it': {
-    skill: true,
-    question: 'change step 2?',
-    cards: 3,
-    depth: true,
-    route: true,
-    verify: true,
-    loop: true,
+export const STEPS: Step<ScenePayload>[] = [
+  {
+    id: 'htmap-01',
+    era: 'the ask',
+    groupKey: 'htmap-scene',
+    title: 'You have a topic',
+    caption: 'It starts with you, a topic, and mild overconfidence.',
+    payload: { step: 1 },
+    Scene: MainScene,
   },
-  reveal: { skill: true, cards: 3, depth: true, route: true, verify: true, reveal: true },
-}
-
-export const STEPS: Step<RefPayload>[] = REFERENCE_STEP_OUTLINE.map((step) => ({
-  ...step,
-  groupKey: GROUP,
-  payload: PAYLOADS[step.id],
-  Scene: ReferenceScene,
-}))
+  {
+    id: 'htmap-02',
+    era: 'the ask',
+    groupKey: 'htmap-scene',
+    title: 'The skill interviews you',
+    caption: 'One question at a time: the topic, the look, then each beat of the story.',
+    payload: { step: 2 },
+    Scene: MainScene,
+  },
+  {
+    id: 'htmap-03',
+    era: 'the gathering',
+    groupKey: 'htmap-scene',
+    title: 'Answers become steps',
+    caption:
+      'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.',
+    payload: { step: 3 },
+    Scene: MainScene,
+  },
+  {
+    id: 'htmap-04',
+    era: 'the gathering',
+    groupKey: 'htmap-scene',
+    title: 'The deck grows',
+    caption: 'Same shapes, new beats. Every answer extends the story without redrawing it.',
+    payload: { step: 4 },
+    Scene: MainScene,
+  },
+  {
+    id: 'htmap-05',
+    era: 'the gathering',
+    groupKey: 'htmap-scene',
+    title: 'You set the depth',
+    caption: 'Spell out every step, or sketch a few and see how it looks. You hold the gate.',
+    payload: { step: 5 },
+    Scene: MainScene,
+  },
+  {
+    id: 'htmap-06',
+    era: 'the build',
+    groupKey: 'htmap-scene',
+    title: 'It assembles the scene',
+    caption:
+      'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.',
+    payload: { step: 6 },
+    Scene: MainScene,
+  },
+  {
+    id: 'htmap-07',
+    era: 'the build',
+    groupKey: 'htmap-scene',
+    title: 'It checks its own work',
+    caption: 'Before saying done, it builds and renders every step — and fixes what breaks.',
+    payload: { step: 7 },
+    Scene: MainScene,
+  },
+  {
+    id: 'htmap-08',
+    era: 'the loop',
+    groupKey: 'htmap-scene',
+    title: 'Changed your mind? Loop it.',
+    caption: 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.',
+    payload: { step: 8 },
+    Scene: MainScene,
+  },
+  {
+    id: 'htmap-09',
+    era: 'the reveal',
+    groupKey: 'htmap-scene',
+    title: "You're looking at one",
+    caption: 'This presentation was built exactly this way. Thanks for watching.',
+    payload: { step: 9 },
+    Scene: MainScene,
+  },
+]

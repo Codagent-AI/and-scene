@@ -1,14 +1,8 @@
 /**
- * Stable layoutId namespace for this presentation.
- * Every entity that persists or morphs across steps gets a constant here.
+ * layoutId namespace for __SLUG__. Every entity that should morph across
+ * steps (rather than remount) needs a stable id declared here — keep ids
+ * scoped to this presentation so they never collide with another one.
  */
-export const ENTITIES = {
-  /** Primary focal node — rename to match your topic. */
-  hero: 'hero',
-  /** Supporting label or annotation. */
-  caption: 'caption',
-  /** Connector between entities. */
-  flow: 'flow',
+export const entities = {
+  placeholder: '__SLUG__-placeholder',
 } as const
-
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]

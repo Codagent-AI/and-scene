@@ -1,15 +1,8 @@
 import { Presentation } from '../../presentation-kit'
-import { introStep } from './steps/intro'
+import { STEPS } from './steps'
+import './__SLUG__.css'
 
-/** Replace with all steps for the talk; keep order stable for navigation. */
-const STEPS = [introStep]
-
+/** __TITLE__ */
 export default function Talk() {
-  return (
-    <Presentation
-      steps={STEPS}
-      title="{{PRESENTATION_TITLE}}"
-      initialMode="browse"
-    />
-  )
+  return <Presentation steps={STEPS} title="__TITLE__" initialMode="browse" className="__SLUG__-talk" />
 }

@@ -1,25 +1,54 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useEffect, useRef, useState } from 'react'
+import type { RefObject } from 'react'
+import { DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT } from './constants'
+import type { PresentationMode } from './types'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+export interface UseFitScaleResult {
+  scale: number
+  containerRef: RefObject<HTMLDivElement | null>
+}
 
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
+/** Uniform fit-to-viewport scale for the fixed design canvas, per active mode. */
+export function useFitScale(
+  mode: PresentationMode,
+  designWidth: number = DESIGN_W,
+  designHeight: number = DESIGN_H,
+): UseFitScaleResult {
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
+
+  useEffect(() => {
+    function computeScale() {
+      const geometry = STAGE_LAYOUT[mode]
+      // Prefer the container's own measured box (it already reflects real
+      // layout — e.g. a sibling table of contents narrowing it) over
+      // `window.innerWidth`/`innerHeight`, which know nothing about host
+      // layout and would overestimate space next to any sibling chrome.
+      const container = containerRef.current
+      const containerWidth = container?.clientWidth ?? window.innerWidth
+      const containerHeight =
+        container?.clientHeight ??
+        window.innerHeight - geometry.headerHeight - geometry.footerHeight
+      const availableWidth = containerWidth - geometry.sidePadding * 2
+      const availableHeight = containerHeight - geometry.topPadding - geometry.bottomPadding
+      const fitted = Math.min(availableWidth / designWidth, availableHeight / designHeight)
+      setScale(Number.isFinite(fitted) ? Math.max(MIN_SCALE, fitted) : MIN_SCALE)
     }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+
+    computeScale()
+
+    // The container's box already tracks the window, so observe it directly;
+    // fall back to window resizes only where ResizeObserver can't be used.
+    const container = containerRef.current
+    if (typeof ResizeObserver !== 'undefined' && container) {
+      const observer = new ResizeObserver(computeScale)
+      observer.observe(container)
+      return () => observer.disconnect()
+    }
+
+    window.addEventListener('resize', computeScale)
+    return () => window.removeEventListener('resize', computeScale)
+  }, [mode, designWidth, designHeight])
+
+  return { scale, containerRef }
 }

@@ -1,39 +1,35 @@
-import { Sparkles } from 'lucide-react'
 import { presentations } from './presentations'
+import './Landing.css'
 
+/** Replaces the placeholder App.tsx; enumerates the presentation registry. */
 export function Landing() {
   return (
-    <main>
-      <div>
-        <p>and-scene</p>
+    <main className="landing" data-presentation-landing="">
+      <header className="landing-header">
+        <p className="landing-eyebrow">and-scene</p>
         <h1>Presentations as evolving diagrams.</h1>
-        <p>
-          One shared canvas holds the talk together. Each step changes positions,
-          labels, focus, or connections while the audience follows one idea as it
-          develops.
+        <p className="landing-summary">
+          Each presentation below is one scene moving through named steps, not a
+          deck of isolated slides.
         </p>
-
-        <section aria-labelledby="presentations-heading">
-          <h2 id="presentations-heading">Presentations</h2>
-          {presentations.length === 0 ? (
-            <p>
-              No presentations registered yet. Add one under{' '}
-              <code>src/presentations/</code> and register it in{' '}
-              <code>index.ts</code>.
-            </p>
-          ) : (
-            <ul>
-              {presentations.map((entry) => (
-                <li key={entry.slug}>
-                  <a href={`/${entry.slug}`}>
-                    <Sparkles size={18} aria-hidden /> {entry.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+      </header>
+      {presentations.length > 0 ? (
+        <ul className="landing-list" data-presentation-registry="">
+          {presentations.map((entry) => (
+            <li key={entry.slug}>
+              <a href={`/${entry.slug}`} data-presentation-registry-item="">
+                {entry.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="landing-empty" data-presentation-registry-empty="">
+          No presentations are registered yet.
+        </p>
+      )}
     </main>
   )
 }
+
+export default Landing

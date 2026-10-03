@@ -1,0 +1,51 @@
+.landing {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.landing-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.landing-eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.landing-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+.landing-summary {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.landing-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.landing-list a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.landing-empty {
+  opacity: 0.7;
+}

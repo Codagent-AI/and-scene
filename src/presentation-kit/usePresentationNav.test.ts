@@ -1,71 +1,31 @@
-import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { usePresentationNav } from './usePresentationNav'
+import { clampStepIndex, isNavigationKey, shouldHandleNavigationKey, shouldHandleSwipe } from './usePresentationNav'
 
-describe('usePresentationNav', () => {
-  it('advances one step on ArrowRight', () => {
-    const { result } = renderHook(() => usePresentationNav(3))
-    act(() => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
-    })
-    expect(result.current.step).toBe(1)
+describe('presentation navigation helpers', () => {
+  it('clamps movement at both ends without wrapping', () => {
+    expect(clampStepIndex(-1, 4)).toBe(0)
+    expect(clampStepIndex(2, 4)).toBe(2)
+    expect(clampStepIndex(9, 4)).toBe(3)
+    expect(clampStepIndex(4, 2)).toBe(1)
   })
 
-  it('goes back one step on ArrowLeft', () => {
-    const { result } = renderHook(() => usePresentationNav(3))
-    act(() => {
-      result.current.setStep(2)
-    })
-    act(() => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }))
-    })
-    expect(result.current.step).toBe(1)
+  it('recognizes navigation keys while leaving controls alone', () => {
+    expect(isNavigationKey('ArrowRight')).toBe('next')
+    expect(isNavigationKey(' ')).toBe('next')
+    expect(isNavigationKey('PageUp')).toBe('previous')
+    expect(isNavigationKey('p')).toBe('toggle-mode')
+    expect(isNavigationKey('Enter')).toBe(false)
   })
 
-  it('clamps at the first step when going back', () => {
-    const { result } = renderHook(() => usePresentationNav(3))
-    act(() => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }))
-    })
-    expect(result.current.step).toBe(0)
+  it('does not claim modified or already-handled browser events', () => {
+    expect(shouldHandleNavigationKey({ key: 'p', defaultPrevented: false, ctrlKey: true, metaKey: false, altKey: false })).toBe(false)
+    expect(shouldHandleNavigationKey({ key: 'ArrowRight', defaultPrevented: false, ctrlKey: false, metaKey: false, altKey: false })).toBe(true)
+    expect(shouldHandleNavigationKey({ key: 'ArrowRight', defaultPrevented: true, ctrlKey: false, metaKey: false, altKey: false })).toBe(false)
   })
 
-  it('clamps at the last step when advancing', () => {
-    const { result } = renderHook(() => usePresentationNav(3))
-    act(() => {
-      result.current.setStep(2)
-    })
-    act(() => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
-    })
-    expect(result.current.step).toBe(2)
-  })
-
-  it('toggles mode while preserving the current step', () => {
-    const { result } = renderHook(() => usePresentationNav(3, 'browse'))
-    act(() => {
-      result.current.setStep(1)
-    })
-    act(() => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p' }))
-    })
-    expect(result.current.mode).toBe('present')
-    expect(result.current.step).toBe(1)
-  })
-
-  it('does not hijack navigation keys when focus is on a button', () => {
-    const { result } = renderHook(() => usePresentationNav(3))
-    const button = document.createElement('button')
-    document.body.appendChild(button)
-    button.focus()
-
-    act(() => {
-      const event = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
-      Object.defineProperty(event, 'target', { value: button })
-      window.dispatchEvent(event)
-    })
-
-    expect(result.current.step).toBe(0)
-    button.remove()
+  it('only treats predominantly horizontal swipes as navigation', () => {
+    expect(shouldHandleSwipe({ dx: 60, dy: 12 })).toBe(true)
+    expect(shouldHandleSwipe({ dx: 60, dy: 80 })).toBe(false)
+    expect(shouldHandleSwipe({ dx: 43, dy: 0 })).toBe(false)
   })
 })

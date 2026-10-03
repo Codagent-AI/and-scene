@@ -1,63 +1,53 @@
-import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { Presentation } from './Presentation'
-import type { Step } from './types'
+import { Appear, Box } from './nodes'
+import { calculateFitScale } from './useFitScale'
 
-function Scene({ step }: { step: Step }) {
-  return <div data-testid="scene">{step.title}</div>
-}
-
-const steps: Step[] = [
-  {
-    id: 'one',
-    era: 'intro',
-    title: 'First step',
-    caption: 'First caption',
-    Scene,
-  },
-  {
-    id: 'two',
-    era: 'intro',
-    title: 'Second step',
-    caption: 'Second caption',
-    Scene,
-  },
+const steps = [
+  { id: 'one', era: 'start', title: 'First', caption: 'First caption', groupKey: 'scene', payload: { value: 1 }, Scene: ({ payload }: { payload: { value: number } }) => <div><Box entityId="stable">{payload.value}</Box></div> },
+  { id: 'two', era: 'finish', title: 'Second', caption: 'Second caption', groupKey: 'scene', payload: { value: 2 }, Scene: ({ payload }: { payload: { value: number } }) => <div><Box entityId="stable">{payload.value}</Box></div> },
 ]
 
-describe('Presentation chrome hooks', () => {
-  it('exposes data-step-count and data-step-index on the progress chrome', () => {
-    render(<Presentation steps={steps} title="Demo" initialMode="browse" />)
-
-    const chrome = screen.getByTestId('step-progress')
-    expect(chrome).toHaveAttribute('data-step-count', '2')
-    expect(chrome).toHaveAttribute('data-step-index', '0')
-    expect(screen.getByLabelText('Go to step 1: First step')).toHaveAttribute('aria-current', 'step')
+describe('presentation kit contract', () => {
+  it('keeps the fixed canvas uniformly scaled', () => {
+    expect(calculateFitScale(880, 380 + 82 + 184, 'browse')).toBe(1)
+    expect(calculateFitScale(440, 646, 'browse')).toBe(0.5)
   })
 
-  it('derives on-screen step numbers from position', () => {
-    render(<Presentation steps={steps} title="Demo" initialMode="browse" />)
-    expect(screen.getAllByText('01').length).toBeGreaterThan(0)
+  it('renders unstyled semantic chrome and attribution hooks', () => {
+    const html = renderToStaticMarkup(<Presentation steps={steps} title="Typed scene" />)
+    expect(html).toContain('data-step-count="2"')
+    expect(html).toContain('data-step-index="0"')
+    expect(html).toContain('data-presentation-progress-item="true"')
+    expect(html).toContain('aria-current="step"')
+    expect(html).toContain('data-presentation-attribution="true"')
+    expect(html).toContain('made by and-scene')
+    expect(html).toContain('>First</h1>')
+    expect(html).not.toContain('data-presentation-brand="true">and-scene')
   })
 
-  it('accepts strongly typed step payloads at the presentation boundary', () => {
-    type Payload = { count: number }
-    function TypedScene({ step }: { step: Step<Payload> }) {
-      return <div data-testid="typed-scene">{step.payload?.count}</div>
-    }
+  it('supports title-focused present mode without browse controls', () => {
+    const html = renderToStaticMarkup(<Presentation steps={steps} title="Typed scene" initialMode="present" />)
+    expect(html).toContain('data-presentation-mode="present"')
+    expect(html).toContain('data-presentation-present-title="true"')
+    expect(html).toContain('>First</h1>')
+    expect(html).not.toContain('data-presentation-caption="true"')
+    expect(html).not.toContain('data-presentation-progress="true"')
+    expect(html).not.toContain('data-presentation-toc="true"')
+  })
 
-    const typedSteps: Step<Payload>[] = [
-      {
-        id: 'typed',
-        era: 'typed',
-        title: 'Typed step',
-        caption: 'Typed caption',
-        payload: { count: 3 },
-        Scene: TypedScene,
-      },
-    ]
+  it('keeps the stage layout namespace stable when steps have no group key', () => {
+    expect(readFileSync(new URL('./Stage.tsx', import.meta.url), 'utf8')).toMatch(/useId/)
+  })
 
-    render(<Presentation steps={typedSteps} title="Typed demo" initialMode="browse" />)
-
-    expect(screen.getByTestId('typed-scene')).toHaveTextContent('3')
+  it('lets newcomers animate in once a grouped scene is mounted', () => {
+    // A suppressed initial state (e.g. `initial={false}` on the stage's AnimatePresence)
+    // is inherited through presence context by every descendant, which silently disables
+    // `Appear` for entities a later step introduces. Assert the entry state survives.
+    const scene = () => <Appear><Box entityId="newcomer">new</Box></Appear>
+    const html = renderToStaticMarkup(<Presentation steps={[{ ...steps[0], Scene: scene }]} title="Typed scene" />)
+    expect(html).toContain('data-scene-node="appear" style="opacity:0"')
   })
 })

@@ -1,0 +1,8 @@
+.presentation {
+  color: inherit;
+}
+
+.presentation [data-scene-node] {
+  position: absolute;
+  padding: 16px;
+}

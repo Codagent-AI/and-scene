@@ -1,63 +1,91 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { useEffect } from 'react'
+import { afterEach, describe, expect, it } from 'vitest'
 import { Presentation } from './Presentation'
-import type { Step } from './types'
+import type { SceneProps, Step } from './types'
 
-function Scene({ step }: { step: Step }) {
-  return <div data-testid="scene">{step.title}</div>
-}
-
-const steps: Step[] = [
-  {
-    id: 'one',
-    era: 'intro',
-    title: 'First step',
-    caption: 'First caption',
-    Scene,
-  },
-  {
-    id: 'two',
-    era: 'intro',
-    title: 'Second step',
-    caption: 'Second caption',
-    Scene,
-  },
+interface State { message: string }
+const activeIndex = () => document.querySelector('[data-step-index]')?.getAttribute('data-step-index')
+function Scene({ payload }: SceneProps<State>) { return <div>{payload.message}</div> }
+const steps: Step<State>[] = [
+  { id: 'one', era: 'Start', title: 'First', caption: 'First explanation', groupKey: 'same', payload: { message: 'one' }, Scene },
+  { id: 'two', era: 'Start', title: 'Second', caption: 'Second explanation', groupKey: 'same', payload: { message: 'two' }, Scene },
 ]
 
-describe('Presentation chrome hooks', () => {
-  it('exposes data-step-count and data-step-index on the progress chrome', () => {
-    render(<Presentation steps={steps} title="Demo" initialMode="browse" />)
-
-    const chrome = screen.getByTestId('step-progress')
-    expect(chrome).toHaveAttribute('data-step-count', '2')
-    expect(chrome).toHaveAttribute('data-step-index', '0')
-    expect(screen.getByLabelText('Go to step 1: First step')).toHaveAttribute('aria-current', 'step')
+describe('Presentation', () => {
+  afterEach(cleanup)
+  it('accepts typed grouped steps, updates the existing scene, and exposes active semantics', () => {
+    let mounts = 0
+    function Tracked({ payload }: SceneProps<State>) { useEffect(() => { mounts += 1 }, []); return <div>{payload.message}</div> }
+    const grouped = steps.map((step) => ({ ...step, Scene: Tracked }))
+    render(<Presentation<State> steps={grouped} title="A title" />)
+    expect(screen.getByText('one')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /go to step 1/i }).getAttribute('aria-current')).toBe('step')
+    expect(screen.getByRole('link', { name: 'made by and-scene' }).getAttribute('href')).toBe('https://github.com/and-scene/and-scene')
+    expect(document.querySelector('[data-presentation-brand]')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /go to step 2/i }))
+    expect(screen.getByText('two')).toBeTruthy()
+    expect(mounts).toBe(1)
+    expect(screen.getByRole('button', { name: /go to step 2/i }).getAttribute('aria-current')).toBe('step')
   })
 
-  it('derives on-screen step numbers from position', () => {
-    render(<Presentation steps={steps} title="Demo" initialMode="browse" />)
-    expect(screen.getAllByText('01').length).toBeGreaterThan(0)
+  it('switches to present mode in place and back using the mode control', () => {
+    render(<Presentation steps={steps} title="A title" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to present mode' }))
+    expect(document.querySelector('[data-presentation]')?.getAttribute('data-presentation-mode')).toBe('present')
+    expect(screen.queryByText('First explanation')).toBeNull()
+    expect(screen.queryByRole('navigation', { name: 'Table of contents' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to browse mode' }))
+    expect(document.querySelector('[data-presentation]')?.getAttribute('data-presentation-mode')).toBe('browse')
+    expect(screen.getByText('First explanation')).toBeTruthy()
   })
 
-  it('accepts strongly typed step payloads at the presentation boundary', () => {
-    type Payload = { count: number }
-    function TypedScene({ step }: { step: Step<Payload> }) {
-      return <div data-testid="typed-scene">{step.payload?.count}</div>
+  it('supports keyboard navigation, clamps at each end, and leaves focused controls in control', () => {
+    render(<Presentation steps={steps} title="A title" />)
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(activeIndex()).toBe('0')
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(activeIndex()).toBe('1')
+    fireEvent.keyDown(window, { key: 'PageDown' })
+    expect(activeIndex()).toBe('1')
+    const next = screen.getByRole('button', { name: 'Next step' })
+    next.focus()
+    fireEvent.keyDown(next, { key: 'ArrowLeft' })
+    expect(activeIndex()).toBe('0')
+  })
+
+  it('keeps arrow navigation available while a mode button retains focus, without hijacking its activation keys', () => {
+    render(<Presentation steps={steps} title="A title" />)
+    const presentButton = screen.getByRole('button', { name: 'Switch to present mode' })
+    presentButton.focus()
+    fireEvent.click(presentButton)
+
+    fireEvent.keyDown(presentButton, { key: 'ArrowRight' })
+    expect(activeIndex()).toBe('1')
+
+    for (const key of [' ', 'Enter']) {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+      presentButton.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(false)
     }
+  })
 
-    const typedSteps: Step<Payload>[] = [
-      {
-        id: 'typed',
-        era: 'typed',
-        title: 'Typed step',
-        caption: 'Typed caption',
-        payload: { count: 3 },
-        Scene: TypedScene,
-      },
-    ]
+  it('does not handle presentation shortcuts from editable controls', () => {
+    render(<Presentation steps={steps} title="A title" />)
+    const input = document.createElement('input')
+    document.body.append(input)
+    fireEvent.keyDown(input, { key: 'ArrowRight' })
+    expect(activeIndex()).toBe('0')
+    input.remove()
+  })
 
-    render(<Presentation steps={typedSteps} title="Typed demo" initialMode="browse" />)
-
-    expect(screen.getByTestId('typed-scene')).toHaveTextContent('3')
+  it('clamps the active step immediately when the step list shrinks', () => {
+    const view = render(<Presentation steps={steps} title="A title" />)
+    fireEvent.click(screen.getByRole('button', { name: /go to step 2/i }))
+    expect(activeIndex()).toBe('1')
+    view.rerender(<Presentation steps={steps.slice(0, 1)} title="A title" />)
+    expect(screen.getByText('First explanation')).toBeTruthy()
+    expect(activeIndex()).toBe('0')
   })
 })

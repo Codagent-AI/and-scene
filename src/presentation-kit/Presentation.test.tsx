@@ -1,63 +1,141 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+// @vitest-environment jsdom
+import { act, fireEvent, render, screen, cleanup, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Presentation } from './Presentation'
-import type { Step } from './types'
+import type { SceneProps, Step } from './types'
+import { Box } from './nodes/Box'
+import { Presence } from './nodes/Presence'
 
-function Scene({ step }: { step: Step }) {
-  return <div data-testid="scene">{step.title}</div>
+afterEach(cleanup)
+
+type Payload = { label: string }
+function Diagram({ payload }: SceneProps<Payload>) {
+  return <div data-testid="diagram"><span data-presentation-node="label">{payload.label}</span></div>
 }
-
-const steps: Step[] = [
-  {
-    id: 'one',
-    era: 'intro',
-    title: 'First step',
-    caption: 'First caption',
-    Scene,
-  },
-  {
-    id: 'two',
-    era: 'intro',
-    title: 'Second step',
-    caption: 'Second caption',
-    Scene,
-  },
+const steps: Step<Payload>[] = [
+  { id: 'one', era: 'Start', title: 'First', caption: 'First caption', scene: Diagram, groupKey: 'story', payload: { label: 'A' } },
+  { id: 'two', era: 'Continue', title: 'Second', caption: 'Second caption', scene: Diagram, groupKey: 'story', payload: { label: 'B' } },
 ]
 
-describe('Presentation chrome hooks', () => {
-  it('exposes data-step-count and data-step-index on the progress chrome', () => {
-    render(<Presentation steps={steps} title="Demo" initialMode="browse" />)
+type Departure = { showSkill: boolean }
+function DepartureScene({ payload }: SceneProps<Departure>) {
+  return <Presence>{payload.showSkill && <Box id="skill">skill</Box>}</Presence>
+}
+const departureSteps: Step<Departure>[] = [
+  { id: 'with', era: 'Start', title: 'With', caption: 'With skill', scene: DepartureScene, groupKey: 'story', payload: { showSkill: true } },
+  { id: 'without', era: 'Start', title: 'Without', caption: 'Without skill', scene: DepartureScene, groupKey: 'story', payload: { showSkill: false } },
+]
 
-    const chrome = screen.getByTestId('step-progress')
-    expect(chrome).toHaveAttribute('data-step-count', '2')
-    expect(chrome).toHaveAttribute('data-step-index', '0')
-    expect(screen.getByLabelText('Go to step 1: First step')).toHaveAttribute('aria-current', 'step')
-  })
-
-  it('derives on-screen step numbers from position', () => {
-    render(<Presentation steps={steps} title="Demo" initialMode="browse" />)
-    expect(screen.getAllByText('01').length).toBeGreaterThan(0)
-  })
-
-  it('accepts strongly typed step payloads at the presentation boundary', () => {
-    type Payload = { count: number }
-    function TypedScene({ step }: { step: Step<Payload> }) {
-      return <div data-testid="typed-scene">{step.payload?.count}</div>
+describe('Presentation', () => {
+  it('animates a departing entity out of a persistent grouped scene before removing it', async () => {
+    // Motion captures requestAnimationFrame at import but reads time from performance.now, so faking
+    // only the clock keeps real frames running while the exit cannot finish until time is advanced.
+    vi.useFakeTimers({ toFake: ['performance', 'Date'] })
+    try {
+      const { container } = render(<Presentation<Departure> title="Example" steps={departureSteps} />)
+      const skill = () => container.querySelector('[data-entity-id="skill"]')
+      fireEvent.keyDown(window, { key: 'ArrowRight' })
+      vi.advanceTimersByTime(150)
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      expect(screen.getByRole('main').getAttribute('data-step-index')).toBe('1')
+      expect(skill()).toBeTruthy()
+      vi.advanceTimersByTime(1000)
+      await waitFor(() => expect(skill()).toBeNull(), { timeout: 5000 })
+    } finally {
+      vi.useRealTimers()
     }
+  }, 15000)
 
-    const typedSteps: Step<Payload>[] = [
-      {
-        id: 'typed',
-        era: 'typed',
-        title: 'Typed step',
-        caption: 'Typed caption',
-        payload: { count: 3 },
-        Scene: TypedScene,
-      },
+  it('accepts a strongly typed grouped payload and updates the persistent scene', async () => {
+    const { getByTestId } = render(<Presentation<Payload> title="Example" steps={steps} />)
+    const before = getByTestId('diagram')
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    await waitFor(() => expect(screen.getByText('B')).toBeTruthy())
+    expect(getByTestId('diagram')).toBe(before)
+    expect(screen.getByRole('main').getAttribute('data-step-index')).toBe('1')
+  })
+
+  it('clamps at both ends and exposes active progress and table-of-contents semantics', () => {
+    render(<Presentation title="Example" steps={steps} />)
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(screen.getByRole('main').getAttribute('data-step-index')).toBe('0')
+    expect(screen.getByRole('button', { name: 'Go to step 1' }).getAttribute('aria-current')).toBe('step')
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(screen.getByRole('main').getAttribute('data-step-index')).toBe('1')
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(screen.getByRole('main').getAttribute('data-step-index')).toBe('1')
+  })
+
+  it('toggles modes without changing position and renders default attribution hooks', () => {
+    render(<Presentation title="Example" steps={steps} initialMode="present" />)
+    expect(screen.queryByText('First caption')).toBeNull()
+    expect(screen.getByRole('link', { name: 'made by and-scene' }).getAttribute('href')).toBe('https://github.com/and-scene/and-scene')
+    fireEvent.keyDown(window, { key: 'p' })
+    expect(screen.getByRole('main').getAttribute('data-mode')).toBe('browse')
+    expect(screen.getByText('First caption')).toBeTruthy()
+    expect(document.querySelector('[data-presentation-brand]')).toBeNull()
+  })
+
+  it('keeps navigation keys available to focused controls and exposes style-neutral hooks', () => {
+    render(<Presentation title="Example" steps={steps} />)
+    const next = screen.getByRole('button', { name: 'Next step' })
+    next.focus()
+    fireEvent.keyDown(next, { key: 'ArrowRight' })
+    expect(screen.getByRole('main').getAttribute('data-step-index')).toBe('0')
+    expect(screen.getByRole('link', { name: 'made by and-scene' }).getAttribute('data-presentation-attribution')).not.toBeNull()
+    expect(document.querySelector('[data-presentation-title]')).not.toBeNull()
+    expect(document.querySelector('[data-presentation-toc-item][data-presentation-active="true"]')).not.toBeNull()
+  })
+
+  it('shows the browse table of contents only when it fits beside the scaled canvas', () => {
+    const { innerWidth: width, innerHeight: height } = window
+    const rect = HTMLElement.prototype.getBoundingClientRect
+    const resize = (nextWidth: number, nextHeight: number) => act(() => {
+      window.innerWidth = nextWidth
+      window.innerHeight = nextHeight
+      window.dispatchEvent(new Event('resize'))
+    })
+    HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+      return this.hasAttribute('data-presentation-toc') ? DOMRect.fromRect({ x: 24, y: 0, width: 122, height: 200 }) : rect.call(this)
+    }
+    try {
+      window.innerWidth = 1024
+      window.innerHeight = 768
+      render(<Presentation title="Example" steps={steps} />)
+      const toc = () => screen.queryByRole('navigation', { name: 'Table of contents' })
+      expect(screen.getByText('First caption')).toBeTruthy()
+      expect(toc()).toBeNull()
+      resize(1440, 900)
+      expect(toc()).toBeTruthy()
+      resize(390, 844)
+      expect(toc()).toBeNull()
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = rect
+      window.innerWidth = width
+      window.innerHeight = height
+    }
+  })
+
+  it('keeps the TOC era active while moving within that era', () => {
+    const sameEra: Step<Payload>[] = [
+      steps[0],
+      steps[1],
+      { ...steps[1], id: 'three', title: 'Third', payload: { label: 'C' } },
     ]
+    render(<Presentation title="Example" steps={sameEra} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 3' }))
+    const tocItems = document.querySelectorAll('[data-presentation-toc-item]')
+    expect(tocItems[1].getAttribute('aria-current')).toBe('step')
+    expect(tocItems[1].getAttribute('data-presentation-active')).toBe('true')
+  })
 
-    render(<Presentation steps={typedSteps} title="Typed demo" initialMode="browse" />)
-
-    expect(screen.getByTestId('typed-scene')).toHaveTextContent('3')
+  it('keeps a valid step and chrome when the steps list shrinks', () => {
+    const { rerender } = render(<Presentation title="Example" steps={steps} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 2' }))
+    rerender(<Presentation title="Example" steps={[steps[0]]} />)
+    expect(screen.getByRole('main').getAttribute('data-step-index')).toBe('0')
+    expect(screen.getByText('First caption')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Next step' })).toBeTruthy()
   })
 })

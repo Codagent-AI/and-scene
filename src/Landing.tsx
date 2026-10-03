@@ -1,0 +1,2 @@
+import { presentations } from './presentations'
+export default function Landing() { return <main className="landing" data-presentation-landing><header><p>and-scene</p><h1>Presentations as evolving diagrams.</h1><p>One scene moves through named states, with entities that persist and change over time.</p></header><section aria-label="Presentations">{presentations.length ? presentations.map(item => <article key={item.slug}><a href={`/${item.slug}`}>{item.title}</a></article>) : <p>No presentations registered yet.</p>}</section></main> }

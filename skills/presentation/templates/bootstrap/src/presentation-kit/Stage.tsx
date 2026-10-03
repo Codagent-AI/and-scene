@@ -1,61 +1,80 @@
-import { AnimatePresence, LayoutGroup } from 'motion/react'
-import { DESIGN_H, STAGE_LAYOUT } from './constants'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { EASE, EXIT_T, type PresentationMode } from './constants'
 import { useFitScale } from './useFitScale'
-import type { Mode, Step } from './types'
+import type { CanvasSize, Step } from './types'
+
+interface StageProps<TPayload> {
+  step: Step<TPayload>
+  index: number
+  mode: PresentationMode
+  canvas: CanvasSize
+}
 
 /**
- * The fixed design canvas, scaled to fit the gap between header and footer.
- * transform-origin is the canvas center and the canvas is flex-centered, so the
- * diagram stays centered at any scale.
- *
- * Hosts the LayoutGroup + AnimatePresence: only the active step's Scene is
- * mounted (keyed by groupKey, falling back to id), so when the step changes the
- * outgoing and incoming scenes coexist briefly and their shared layoutId
- * elements morph between them. Steps that share a groupKey (and Scene) are NOT
- * remounted when navigating between them — the same instance persists and only
- * its `step` prop changes, so on-screen elements update in place instead of
- * re-animating. See StepMeta.groupKey.
+ * Hosts the active step's scene inside the fixed design canvas. Steps sharing a
+ * `groupKey` keep one host key, so React updates the scene in place instead of
+ * remounting it; other steps cross-fade.
  */
-export function Stage<P extends Record<string, unknown> = Record<string, unknown>>({
-  step,
-  mode,
-}: {
-  step: Step<P>
-  mode: Mode
-}) {
-  const layout = STAGE_LAYOUT[mode]
-  const scale = useFitScale(layout)
-  const Scene = step.Scene
+export function Stage<TPayload>({ step, index, mode, canvas }: StageProps<TPayload>) {
+  const { ref, scale } = useFitScale(mode, canvas)
+  const { Scene } = step
+  const hostKey = step.groupKey ? `group:${step.groupKey}` : `step:${step.id}`
 
   return (
     <div
-      data-presentation-stage-shell
+      ref={ref}
+      className="presentation-stage"
+      data-presentation-stage=""
+      data-presentation-scale={scale.toFixed(3)}
       style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: layout.top,
-        bottom: layout.bottom,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        position: 'relative',
+        flex: '1 1 0',
+        minWidth: 0,
+        minHeight: 0,
+        overflow: 'hidden',
       }}
     >
       <div
-        data-presentation-stage
         style={{
-          position: 'relative',
-          flexShrink: 0,
-          width: layout.fitW,
-          height: DESIGN_H,
-          transform: `scale(${scale})`,
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          width: canvas.width * scale,
+          height: canvas.height * scale,
+          transform: 'translate(-50%, -50%)',
         }}
       >
-        <LayoutGroup>
-          <AnimatePresence>
-            <Scene key={step.groupKey ?? step.id} step={step} />
-          </AnimatePresence>
-        </LayoutGroup>
+        {/* Scaled through motion (not a raw CSS transform) so layout projection measures
+            entities in unscaled canvas space and morphs stay in place at any fit scale. */}
+        <motion.div
+          className="presentation-canvas"
+          data-presentation-canvas=""
+          style={{
+            position: 'relative',
+            width: canvas.width,
+            height: canvas.height,
+            scale,
+            originX: 0,
+            originY: 0,
+          }}
+        >
+          <LayoutGroup>
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={hostKey}
+                className="presentation-scene"
+                data-presentation-scene=""
+                data-presentation-step={step.id}
+                style={{ position: 'absolute', inset: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: { duration: 0.3, ease: EASE } }}
+                exit={{ opacity: 0, transition: { duration: EXIT_T, ease: EASE } }}
+              >
+                <Scene payload={step.payload} step={step} index={index} />
+              </motion.div>
+            </AnimatePresence>
+          </LayoutGroup>
+        </motion.div>
       </div>
     </div>
   )

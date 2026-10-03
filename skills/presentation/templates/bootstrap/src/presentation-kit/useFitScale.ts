@@ -1,25 +1,32 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { MIN_SCALE, STAGE_LAYOUT, type PresentationMode } from './constants'
+import type { CanvasSize } from './types'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
-
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
+/** Uniform scale that fits the design canvas into the measured viewport element. */
+export function useFitScale(mode: PresentationMode, canvas: CanvasSize) {
+  const ref = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
+
   useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
+    const el = ref.current
+    if (!el) return
+    const { padX, padY, maxScale } = STAGE_LAYOUT[mode]
+    const measure = () => {
+      const w = el.clientWidth - padX * 2
+      const h = el.clientHeight - padY * 2
+      if (w <= 0 || h <= 0) return
+      const fit = Math.min(w / canvas.width, h / canvas.height)
+      setScale(Math.min(maxScale, Math.max(MIN_SCALE, fit)))
     }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+    measure()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure)
+      return () => window.removeEventListener('resize', measure)
+    }
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [mode, canvas.width, canvas.height])
+
+  return { ref, scale }
 }

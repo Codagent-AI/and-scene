@@ -1,14 +1,6 @@
-/**
- * Stable layoutId namespace for this presentation.
- * Every entity that persists or morphs across steps gets a constant here.
- */
-export const ENTITIES = {
-  /** Primary focal node — rename to match your topic. */
-  hero: 'hero',
-  /** Supporting label or annotation. */
-  caption: 'caption',
-  /** Connector between entities. */
-  flow: 'flow',
+/** This presentation's stable entity ids — the `layoutId` namespace shared by its steps. */
+export const E = {
+  subject: '__SLUG__:subject',
+  detail: '__SLUG__:detail',
+  link: '__SLUG__:link',
 } as const
-
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]

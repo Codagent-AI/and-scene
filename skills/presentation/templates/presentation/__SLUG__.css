@@ -1,0 +1,22 @@
+/*
+ * Presentation-owned styling (plain CSS). The scene kit ships no visual defaults, so
+ * palette, type, spacing, borders, and control looks all live here. Replace this starter
+ * design; keep the three groups of rules below styled (active chrome, attribution, slots).
+ */
+
+/* Canvas slots: positions inside the 880 x 380 design canvas. */
+.__SLUG__-slot { position: absolute; }
+.__SLUG__-slot-subject { left: 60px; top: 140px; }
+.__SLUG__-slot-link { left: 360px; top: 175px; }
+.__SLUG__-slot-detail { left: 560px; top: 140px; }
+
+/* Active navigation chrome must be visibly distinct from inactive chrome. */
+.presentation-progress { list-style: none; gap: 8px; margin: 0 16px; padding: 0; }
+.presentation-progress-item { width: 10px; height: 10px; border-radius: 50%; border: 1px solid currentColor; background: transparent; opacity: 0.5; }
+.presentation-progress-item[data-presentation-active='true'] { background: currentColor; opacity: 1; transform: scale(1.3); }
+.presentation-toc ol { list-style: none; margin: 0; padding: 0 16px; }
+.presentation-toc-item { border: 0; background: none; color: inherit; opacity: 0.6; cursor: pointer; }
+.presentation-toc-item[data-presentation-active='true'] { opacity: 1; font-weight: 700; text-decoration: underline; }
+
+/* Attribution must be legible, not a browser-default link. */
+.presentation-attribution { padding: 6px 12px; font-size: 12px; color: inherit; opacity: 0.75; text-decoration: none; }

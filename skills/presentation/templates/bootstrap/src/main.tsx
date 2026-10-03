@@ -1,10 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import { Root } from './Root'
+import { presentations } from './presentations'
+import { Router } from './router.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Root />
+    <Router pathname={window.location.pathname} registry={presentations} />
   </StrictMode>,
 )

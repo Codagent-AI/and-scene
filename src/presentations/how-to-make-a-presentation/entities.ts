@@ -1,21 +1,23 @@
-/** Stable layoutId namespace — entities morph across steps when ids match. */
-export const ENTITIES = {
-  you: 'you',
-  prompt: 'prompt',
-  questionChip: 'question-chip',
-  convoArrow: 'convo-arrow',
-  skill: 'skill',
-  stepCard1: 'step-card-1',
-  stepCard2: 'step-card-2',
-  stepCard3: 'step-card-3',
-  ghostCard: 'ghost-card',
-  depthChip: 'depth-chip',
-  tray: 'tray',
-  kitSocket: 'kit-socket',
-  verifyArrow: 'verify-arrow',
-  verifyNode: 'verify-node',
-  greenCheck: 'green-check',
-  editBadge: 'edit-badge',
+/** Stable entity ids — the `layoutId` namespace shared by every step of this talk. */
+export const E = {
+  frame: 'howto:frame',
+  frameLabel: 'howto:frame:label',
+  tray: 'howto:tray',
+  you: 'howto:you',
+  prompt: 'howto:prompt',
+  skill: 'howto:skill',
+  talk: 'howto:talk',
+  question: 'howto:question',
+  depth: 'howto:depth',
+  ghost: 'howto:ghost',
+  socket: 'howto:socket',
+  verify: 'howto:verify',
+  build: 'howto:verify:build',
+  render: 'howto:verify:render',
+  pass: 'howto:verify:pass',
+  modify: 'howto:modify',
+  modifyLabel: 'howto:modify:label',
+  edited: 'howto:edited',
+  card: (n: number) => `howto:card:${n}`,
+  link: (n: number) => `howto:link:${n}`,
 } as const
-
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]

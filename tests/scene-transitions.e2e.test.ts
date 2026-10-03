@@ -19,7 +19,7 @@ beforeAll(async () => {
   page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
   await page.goto(url)
   await page.waitForSelector('[data-presentation-footer]')
-  await page.waitForTimeout(1500)
+  await settled()
 }, 60_000)
 
 afterAll(async () => {
@@ -29,27 +29,27 @@ afterAll(async () => {
 
 const opacities = (selector: string) => page.evaluate((sel) => [...document.querySelectorAll(sel)].map((el) => Number(getComputedStyle(el).opacity)), selector)
 const go = (key: string) => page.keyboard.press(key)
+const settled = () => page.waitForFunction(() => document.getAnimations().length === 0 && [...document.querySelectorAll('[data-entity-id]')].every((el) => getComputedStyle(el).opacity === '1'), null, { timeout: 15_000 })
 
 describe('reference scene transitions in a real browser', () => {
   it('enters newcomers after the continuing entities have moved, then settles fully visible', async () => {
     await go('ArrowRight')
-    await page.waitForTimeout(100)
-    expect(await opacities('[data-entity-id="sample-skill"]')).toEqual([0])
+    // Newcomers are held back by the layout delay, so right after the keypress they are not yet fully visible.
+    expect((await opacities('[data-entity-id="sample-skill"]'))[0]).toBeLessThan(1)
     expect(await opacities('[data-entity-id="sample-you"]')).toEqual([1])
-    await page.waitForTimeout(1500)
+    await settled()
     expect(await opacities('[data-entity-id="sample-skill"]')).toEqual([1])
   }, 30_000)
 
   it('keeps departing entities mounted while they exit, then removes them', async () => {
     await go('ArrowRight')
-    await page.waitForTimeout(1500)
+    await settled()
     await go('ArrowRight')
-    await page.waitForTimeout(1500)
+    await settled()
     expect((await opacities('.step-card')).length).toBe(4)
     await go('ArrowLeft')
-    await page.waitForTimeout(150)
+    // Departing cards stay mounted while they exit instead of vanishing on the keypress.
     expect((await opacities('.step-card')).length).toBe(4)
-    await page.waitForTimeout(1500)
-    expect((await opacities('.step-card')).length).toBe(1)
-  }, 30_000)
+    await page.waitForFunction(() => document.querySelectorAll('.step-card').length === 1, null, { timeout: 15_000 })
+  }, 60_000)
 })

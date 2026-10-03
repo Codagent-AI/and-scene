@@ -1,0 +1,16 @@
+export const entities = {
+  you: 'sample-you',
+  prompt: 'sample-prompt',
+  skill: 'sample-skill',
+  question: 'sample-question',
+  conversation: 'sample-conversation',
+  tray: 'sample-step-tray',
+  cards: ['sample-step-1', 'sample-step-2', 'sample-step-3', 'sample-step-4', 'sample-step-5', 'sample-step-6', 'sample-step-7'],
+  ghost: 'sample-ghost-card',
+  depth: 'sample-depth-control',
+  kit: 'sample-kit-socket',
+  verify: 'sample-verify',
+  modify: 'sample-modify-arc',
+  edited: 'sample-edited-flag',
+  reveal: 'sample-reveal-frame',
+} as const

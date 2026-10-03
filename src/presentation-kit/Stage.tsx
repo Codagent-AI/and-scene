@@ -6,7 +6,7 @@ import { useFitScale } from './useFitScale'
 export function Stage<T>({ step, mode, width = DESIGN_W, height = DESIGN_H, direction = 1 }: { step: Step<T>; mode: 'browse' | 'present'; width?: number; height?: number; direction?: number }) {
   const scale = useFitScale(width, height, mode)
   const Scene = step.Scene
-  return <div className="presentation-stage" data-presentation-stage="" data-mode={mode} style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
+  return <div className="presentation-stage" data-presentation-stage="" data-mode={mode} style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', placeItems: 'center', pointerEvents: 'none' }}>
     <div data-presentation-canvas="" style={{ position: 'relative', width, height, transform: `scale(${scale})`, transformOrigin: 'center' }}>
       <LayoutGroup id={step.groupKey ?? step.id}>
         <AnimatePresence mode="popLayout" initial={false} custom={direction}>

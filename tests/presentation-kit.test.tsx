@@ -40,6 +40,7 @@ describe('presentation kit contracts', () => {
     expect(document.querySelector('[data-presentation-progress-item][data-presentation-active="true"]')).toBeTruthy()
     expect(document.querySelector('[data-presentation-node="box"]')?.getAttribute('class')).toBe('local-style')
     expect(document.querySelector('[data-presentation-canvas]')?.getAttribute('style')).toContain('width: 880px')
+    expect((document.querySelector('[data-presentation-stage]') as HTMLElement).style.gridTemplateColumns).toBe('minmax(0, 1fr)')
   })
 
   it('jumps by progress and table of contents, exposes active semantics, and clamps at ends', () => {

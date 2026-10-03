@@ -52,7 +52,36 @@ describe('distributable bootstrap template', () => {
       await expect(exec('npm', ['run', 'inspect', '--', 'unknown-route'], { cwd: app, timeout: 30_000 })).rejects.toMatchObject({ stderr: expect.stringContaining('No presentation found at /unknown-route') })
       // Invoke by absolute script path from outside the app to prove cwd independence.
       const verification = await exec('node', [join(app, 'scripts/verify.mjs')], { cwd: caller, timeout: 120_000 })
-      expect(verification.stdout).toContain('PASS: bootstrap builds and /custom-route renders in Chromium')
+      expect(verification.stdout).toContain('PASS: /custom-route renders every registered starter step in Chromium')
+
+      await writeFile(join(app, 'src/presentations/starter/Talk.tsx'), `import { Presentation } from '../../presentation-kit'
+import type { Step } from '../../presentation-kit'
+function Scene() { return <div className="fixture-scene">
+  <span className="fixture-overlap-a">UNMARKED-A</span><span className="fixture-overlap-b">UNMARKED-B</span>
+  <div data-presentation-allow-overlap=""><span className="fixture-allowed-a">ALLOWED-A</span><span className="fixture-allowed-b">ALLOWED-B</span></div>
+</div> }
+const steps: Step<undefined>[] = [
+  { id: 'one', era: 'Start', title: 'Fixture first', caption: 'Inspect diagnostics.', Scene, payload: undefined },
+  { id: 'two', era: 'Finish', title: 'Fixture last', caption: 'Inspect the settled second state.', Scene, payload: undefined },
+]
+export default function Talk() { return <Presentation steps={steps} title="Inspection fixture" initialMode="browse" /> }
+`)
+      await writeFile(join(app, 'src/index.css'), `* { box-sizing: border-box; } html, body, #root { width: 100%; min-height: 100%; margin: 0; } body { min-width: 320px; }
+.fixture-scene { position: absolute; inset: 0; }
+.fixture-overlap-a, .fixture-overlap-b, .fixture-allowed-a, .fixture-allowed-b { position: absolute; left: 24px; top: 24px; }
+.fixture-overlap-a, .fixture-allowed-a { width: 90px; height: 32px; background: #eee; }
+.fixture-overlap-b, .fixture-allowed-b { width: 90px; height: 32px; background: #ccc; }
+.presentation-progress button { color: #111 !important; background: #fff !important; border-color: #777 !important; font-weight: 400 !important; outline: none !important; }
+[data-presentation-attribution] { color: #00e !important; font-size: 8px !important; }
+`)
+      await exec('npm', ['run', 'build'], { cwd: app, timeout: 120_000 })
+      const inspection = await exec('npm', ['run', 'inspect', '--', 'custom-route'], { cwd: app, timeout: 120_000 })
+      expect((await readdir(join(app, 'artifacts/presentation-inspection/custom-route'))).filter((name) => name.endsWith('.png'))).toHaveLength(2)
+      expect(inspection.stderr).toContain('step 1: unmarked visible text/chrome overlap: "UNMARKED-A" / "UNMARKED-B"')
+      expect(inspection.stderr).toContain('active progress state may be visually indistinguishable')
+      expect(inspection.stderr).toContain('attribution may be browser-default or undersized')
+      expect(inspection.stderr).not.toContain('ALLOWED-A')
+      expect(inspection.stderr).not.toContain('ALLOWED-B')
     } finally {
       await rm(temp, { recursive: true, force: true })
     }

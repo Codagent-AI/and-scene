@@ -1,0 +1,21 @@
+/* Structural host rules only. Presentation colors, typography, spacing and controls belong to each presentation. */
+* { box-sizing: border-box; }
+html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
+body { min-height: 100vh; }
+button { font: inherit; }
+.presentation { min-height: 100vh; position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+.presentation-header { position: relative; min-height: 58px; z-index: 2; }
+.presentation-stage { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; }
+.presentation-canvas-frame { position: relative; flex: none; }
+.presentation-canvas { position: absolute; }
+.presentation-scene, [data-presentation-scene-group] { width: 100%; height: 100%; }
+.presentation-toc { position: absolute; inset: 50% auto auto 0; transform: translateY(-50%); z-index: 2; display: flex; flex-direction: column; }
+.presentation-footer { position: relative; min-height: 154px; z-index: 2; }
+.presentation-narration { max-width: 60rem; }
+.presentation-mode-toggle { position: absolute; right: 1rem; top: 1rem; }
+.presentation-attribution { position: absolute; right: 1rem; bottom: .75rem; }
+.presentation-progress, .presentation-controls { display: flex; gap: .5rem; }
+.presentation[data-presentation-mode="present"] { grid-template-rows: 60px minmax(0, 1fr) 74px; }
+.presentation[data-presentation-mode="present"] .presentation-header { min-height: 60px; }
+.presentation[data-presentation-mode="present"] .presentation-footer { min-height: 74px; }
+@media (max-width: 760px) { .presentation-toc { display: none; } }

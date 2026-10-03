@@ -1,0 +1,3 @@
+/* Presentation-owned visual design. Define this presentation's colors, type, and layout here. */
+.scene-example { display: grid; place-items: center; }
+.scene-example__box { padding: 1.25rem 1.5rem; }

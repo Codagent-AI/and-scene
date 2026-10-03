@@ -19,6 +19,10 @@ async function files(dir: string): Promise<string[]> {
 }
 
 describe('distributable bootstrap template', () => {
+  it('keeps the scaffolded verification script aligned with the repository copy', async () => {
+    expect(await readFile(join(root, 'scripts/verify.mjs'))).toEqual(await readFile(join(bootstrap, 'scripts/verify.mjs')))
+  })
+
   it('materializes outside the source tree, preserves kit parity, and builds/renders without a styling framework', async () => {
     const temp = await mkdtemp(join(tmpdir(), 'and-scene-bootstrap-'))
     const app = join(temp, 'app')

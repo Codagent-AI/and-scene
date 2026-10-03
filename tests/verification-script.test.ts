@@ -59,4 +59,22 @@ describe('production verification failure contract', () => {
       await rm(temp, { recursive: true, force: true })
     }
   }, 60_000)
+
+  it('reports non-literal step fields and accepts quoted property names', async () => {
+    const temp = await mkdtemp(join(tmpdir(), 'and-scene-verification-fields-'))
+    try {
+      const app = await makeCopy(temp, 'fields')
+      const path = join(app, 'src/presentations/how-to-make-a-presentation/steps/index.ts')
+      const source = await readFile(path, 'utf8')
+      await writeFile(path, source.replace("title: 'You have a topic'", "title: 'You ' + 'have a topic'"))
+      const nonLiteral = await exec(process.execPath, [join(app, 'scripts/verify.mjs')], { cwd: temp, timeout: 30_000 }).then(() => '', (error: { stderr?: string }) => error.stderr ?? '')
+      expect(nonLiteral).toContain('FAIL: sample: step 1 has non-literal or missing fields: title')
+
+      await writeFile(path, source.replace("title: 'You have a topic'", "'title': 'Wrong sample title'"))
+      const quotedKey = await exec(process.execPath, [join(app, 'scripts/verify.mjs')], { cwd: temp, timeout: 30_000 }).then(() => '', (error: { stderr?: string }) => error.stderr ?? '')
+      expect(quotedKey).toContain('FAIL: sample: step 1 does not match canonical title/caption order')
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  }, 60_000)
 })

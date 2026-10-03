@@ -31,12 +31,18 @@ const readSampleSteps = (source) => {
     for (const declaration of statement.declarationList.declarations) {
       if (!ts.isIdentifier(declaration.name) || declaration.name.text !== 'steps' || !declaration.initializer || !ts.isArrayLiteralExpression(declaration.initializer)) continue
       for (const entry of declaration.initializer.elements) {
-        if (!ts.isObjectLiteralExpression(entry)) continue
+        if (!ts.isObjectLiteralExpression(entry)) {
+          found.push({ issue: `step ${found.length + 1} is not an object literal` })
+          continue
+        }
         const fields = {}
         for (const property of entry.properties) {
-          if (ts.isPropertyAssignment(property) && ts.isIdentifier(property.name)) fields[property.name.text] = text(property.initializer)
+          if (ts.isPropertyAssignment(property) && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) fields[property.name.text] = text(property.initializer)
         }
-        if (fields.id !== undefined && fields.title !== undefined && fields.caption !== undefined) found.push({ title: fields.title, caption: fields.caption })
+        const unreadable = ['id', 'title', 'caption'].filter((field) => fields[field] === undefined)
+        found.push(unreadable.length
+          ? { issue: `step ${found.length + 1} has non-literal or missing fields: ${unreadable.join(', ')}` }
+          : { title: fields.title, caption: fields.caption })
       }
     }
   }
@@ -57,6 +63,8 @@ if (isReferenceApp) {
   let stepText
   try { stepText = await readFile(new URL('../src/presentations/how-to-make-a-presentation/steps/index.ts', import.meta.url), 'utf8') } catch { failPreflight('reference sample step source is missing') }
   const parsedSteps = readSampleSteps(stepText)
+  const malformedStep = parsedSteps.find((step) => step.issue)
+  if (malformedStep) failPreflight(malformedStep.issue)
   if (parsedSteps.length !== 9) failPreflight(`expected 9 canonical steps, found ${parsedSteps.length}`)
   for (let i = 0; i < 9; i++) {
     const { title, caption } = parsedSteps[i]

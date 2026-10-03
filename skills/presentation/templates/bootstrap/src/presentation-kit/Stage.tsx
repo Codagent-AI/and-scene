@@ -1,59 +1,81 @@
-import { AnimatePresence, LayoutGroup } from 'motion/react'
-import { DESIGN_H, STAGE_LAYOUT } from './constants'
+import { AnimatePresence, LayoutGroup, motion, useIsPresent } from 'motion/react'
+import { useRef } from 'react'
+import { DESIGN_H, DESIGN_W } from './constants'
 import { useFitScale } from './useFitScale'
-import type { Mode, Step } from './types'
+import type { AnyStep } from './types'
+
+export interface StageProps {
+  steps: AnyStep[]
+  activeIndex: number
+}
+
+interface SceneHostProps {
+  step: AnyStep
+}
 
 /**
- * The fixed design canvas, scaled to fit the gap between header and footer.
- * transform-origin is the canvas center and the canvas is flex-centered, so the
- * diagram stays centered at any scale.
- *
- * Hosts the LayoutGroup + AnimatePresence: only the active step's Scene is
- * mounted (keyed by groupKey, falling back to id), so when the step changes the
- * outgoing and incoming scenes coexist briefly and their shared layoutId
- * elements morph between them. Steps that share a groupKey (and Scene) are NOT
- * remounted when navigating between them — the same instance persists and only
- * its `step` prop changes, so on-screen elements update in place instead of
- * re-animating. See StepMeta.groupKey.
+ * Renders one step's Scene, deriving `active` from AnimatePresence's own
+ * presence state rather than a constant. While a host is exiting (its step
+ * navigated away but AnimatePresence is still playing the exit animation),
+ * `active` is false so the outgoing Scene can stop timers/media/handlers
+ * instead of continuing to run alongside the incoming one.
  */
-export function Stage<P extends Record<string, unknown> = Record<string, unknown>>({
-  step,
-  mode,
-}: {
-  step: Step<P>
-  mode: Mode
-}) {
-  const layout = STAGE_LAYOUT[mode]
-  const scale = useFitScale(layout)
-  const Scene = step.Scene
+function SceneHost({ step }: SceneHostProps) {
+  const isPresent = useIsPresent()
+  return (
+    <motion.div
+      data-presentation-node="scene-host"
+      style={{ position: 'absolute', inset: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <step.Scene payload={step.payload} active={isPresent} />
+    </motion.div>
+  )
+}
+
+/**
+ * Hosts the fixed DESIGN_W x DESIGN_H canvas, uniformly scaled to fit its
+ * actual available space, and renders the active step's Scene. Steps sharing
+ * a groupKey keep the same React key across navigation, so the Scene instance
+ * persists and only its payload changes; otherwise the host cross-fades via
+ * AnimatePresence while entities sharing a layoutId still morph across the
+ * swap.
+ */
+export function Stage({ steps, activeIndex }: StageProps) {
+  const viewportRef = useRef<HTMLDivElement | null>(null)
+  const scale = useFitScale(viewportRef)
+  const step = steps[activeIndex]
+  const hostKey = step?.groupKey ?? step?.id
 
   return (
     <div
-      data-presentation-stage-shell
+      ref={viewportRef}
+      data-presentation-stage-viewport="true"
       style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: layout.top,
-        bottom: layout.bottom,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
       }}
     >
       <div
-        data-presentation-stage
+        data-presentation-stage="true"
         style={{
-          position: 'relative',
-          flexShrink: 0,
-          width: layout.fitW,
+          width: DESIGN_W,
           height: DESIGN_H,
+          position: 'relative',
+          flex: '0 0 auto',
           transform: `scale(${scale})`,
+          transformOrigin: 'center center',
         }}
       >
-        <LayoutGroup>
-          <AnimatePresence>
-            <Scene key={step.groupKey ?? step.id} step={step} />
+        <LayoutGroup id="and-scene-stage">
+          <AnimatePresence mode="popLayout" initial={false}>
+            {step ? <SceneHost key={hostKey} step={step} /> : null}
           </AnimatePresence>
         </LayoutGroup>
       </div>

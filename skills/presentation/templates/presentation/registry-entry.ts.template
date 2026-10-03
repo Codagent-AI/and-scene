@@ -1,0 +1,6 @@
+/**
+ * Append ONE entry like this to the `presentations` array in
+ * src/presentations/index.ts (or `presentations/src/presentations/index.ts`
+ * in a monorepo-scaffolded app). Do not touch any other entry.
+ */
+{ slug: '__SLUG__', title: '__TITLE__', load: () => import('./__SLUG__/Talk') }

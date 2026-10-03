@@ -1,25 +1,38 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
-
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+import { useEffect, useState, type RefObject } from 'react'
+import { DESIGN_H, DESIGN_W } from './constants'
 
 /**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
+ * Computes the uniform scale factor that fits the fixed DESIGN_W x DESIGN_H
+ * canvas into a container's actual measured content box, so the composition
+ * never reflows internally and never exceeds whatever space the surrounding
+ * chrome (header, footer, table of contents) really leaves it, at any
+ * viewport size or breakpoint.
  */
-export function useFitScale(layout: StageLayout) {
+export function useFitScale(containerRef: RefObject<HTMLElement | null>): number {
   const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
+
+  useEffect(() => {
+    const node = containerRef.current
+    if (!node) return
+
+    function recompute(width: number, height: number) {
+      if (width <= 0 || height <= 0) return
+      setScale(Math.min(width / DESIGN_W, height / DESIGN_H, 1))
     }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
+
+    recompute(node.clientWidth, node.clientHeight)
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (!entry) return
+      const box = entry.contentBoxSize?.[0]
+      const width = box ? box.inlineSize : entry.contentRect.width
+      const height = box ? box.blockSize : entry.contentRect.height
+      recompute(width, height)
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [containerRef])
+
   return scale
 }

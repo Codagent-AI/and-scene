@@ -1,45 +1,52 @@
 import type { ComponentType } from 'react'
 
-export type Mode = 'browse' | 'present'
+/** The two runtime modes a presentation can be viewed in. */
+export type PresentationMode = 'present' | 'browse'
 
-/** Narration + identity for one beat of the evolving diagram. */
-export interface StepMeta<P extends Record<string, unknown> = Record<string, unknown>> {
-  /** Stable key for AnimatePresence + React reconciliation. */
+/** Props passed to every step's Scene component. */
+export interface SceneProps<TPayload> {
+  /** The data this step's diagram state should render. */
+  payload: TPayload
+  /** Whether this step is the currently active one. */
+  active: boolean
+}
+
+/** Narration/identity fields carried by every step, independent of payload. */
+export interface StepMeta {
+  /** Stable identity, independent of position. */
   id: string
-  /** Header label, e.g. "the model". */
+  /** Section/era label used for table-of-contents grouping. */
   era: string
-  /** Presenter-mode one-liner. */
+  /** One-line presenter title shown in present mode. */
   title: string
-  /** Browsing-mode paragraph. */
+  /** Paragraph-length browse-mode caption. */
   caption: string
-  /**
-   * AnimatePresence key override. Consecutive steps that share a groupKey are
-   * NOT remounted when you navigate between them — the Scene instance persists
-   * and only its `step` prop changes, so elements already on screen never fade
-   * out and back in; they update in place (and a newly added element animates
-   * in on its own). Steps sharing a groupKey must also share the same `Scene`
-   * component. Defaults to `id`.
-   */
+}
+
+/**
+ * A single named state of the evolving scene. Steps that share a `groupKey`
+ * render the same `Scene` instance without remounting between them; only the
+ * active step's `payload` changes.
+ */
+export interface Step<TPayload = unknown> extends StepMeta {
+  /** Steps sharing a groupKey persist one Scene instance across navigation. */
   groupKey?: string
-  /** Per-step data handed to the Scene (e.g. how many chips to show). */
-  payload?: P
+  payload: TPayload
+  Scene: ComponentType<SceneProps<TPayload>>
 }
 
 /**
- * Props every Scene receives. Most scenes ignore them; a grouped scene reads
- * `step.payload` to decide which sub-state of its diagram to render.
+ * A type-erased Step usable in a heterogeneous steps array. Each step is
+ * authored with its own concrete `Step<TPayload>` type (so its Scene and
+ * payload stay aligned without casts); assigning it into `AnyStep` is a
+ * widening, not a cast, so the typed-payload boundary is preserved at the
+ * point of authoring.
  */
-export interface SceneProps<P extends Record<string, unknown> = Record<string, unknown>> {
-  step: Step<P>
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- intentional type erasure: `any` is required so `Step<TPayload>` (with its Scene/payload pairing in a contravariant position) widens into a heterogeneous array without an explicit cast at the authoring boundary.
+export type AnyStep = Step<any>
 
-/**
- * A step = its narration + the diagram layer rendered while it is active.
- *
- * `Scene` composes the shared nodes (see ./nodes). Elements that should morph
- * between steps share a layoutId — that's the only contract between one step
- * and the next.
- */
-export interface Step<P extends Record<string, unknown> = Record<string, unknown>> extends StepMeta<P> {
-  Scene: ComponentType<SceneProps<P>>
+export interface PresentationProps {
+  steps: AnyStep[]
+  title: string
+  initialMode?: PresentationMode
 }

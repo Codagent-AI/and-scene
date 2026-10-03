@@ -1,0 +1,193 @@
+/**
+ * E2E-002: Verification failures are actionable.
+ *
+ * Runs `npm run verify` against independent disposable copies of this
+ * repository, each with one representative fault injected, and asserts
+ * every copy exits non-zero, names the failed phase (and, for
+ * browser/transition faults, the offending step), never reports success,
+ * leaves no `vite preview` subprocess running, and leaves the source
+ * checkout untouched.
+ *
+ * Each copy reuses this repo's installed `node_modules` via a symlink
+ * (already proven complete/correct by INT-001) instead of a fresh
+ * `npm install`, so fault injection stays fast and deterministic.
+ */
+import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { copyRepoWithLinkedModules, REPO_ROOT } from './helpers'
+
+const RUN_TIMEOUT_MS = 3 * 60 * 1000
+const SETUP_TIMEOUT_MS = RUN_TIMEOUT_MS
+
+let baseRepoStateBefore: string[]
+let setupError: Error | null = null
+
+function listFilesRecursively(dir: string): string[] {
+  const entries = fs.readdirSync(dir, { withFileTypes: true })
+  const files: string[] = []
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      files.push(...listFilesRecursively(full))
+    } else {
+      files.push(full)
+    }
+  }
+  return files
+}
+
+/** Runs verify in `dir` and returns { status, output } without throwing on non-zero exit. */
+function runVerify(dir: string): { status: number; output: string } {
+  try {
+    const output = execFileSync('npm', ['run', 'verify'], {
+      cwd: dir,
+      timeout: RUN_TIMEOUT_MS,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    return { status: 0, output }
+  } catch (err) {
+    const e = err as { status?: number; stdout?: string; stderr?: string }
+    return { status: e.status ?? 1, output: `${e.stdout ?? ''}${e.stderr ?? ''}` }
+  }
+}
+
+/** Returns any still-running `vite preview` subprocess launched from `dir`'s installed vite. */
+function lingeringPreviewProcesses(dir: string): string[] {
+  const viteBin = path.join(dir, 'node_modules', 'vite', 'bin', 'vite.js')
+  return execFileSync('ps', ['-eo', 'pid=,args='], { encoding: 'utf8' })
+    .split('\n')
+    .filter((line) => line.includes(viteBin) && line.includes('preview'))
+}
+
+/** Runs verify in `dir` and asserts its preview subprocess was cleaned up before it exited. */
+function runVerifyAndAssertCleanup(dir: string): { status: number; output: string } {
+  const result = runVerify(dir)
+  expect(lingeringPreviewProcesses(dir)).toEqual([])
+  return result
+}
+
+describe('verification failures are actionable (E2E-002)', () => {
+  beforeAll(() => {
+    try {
+      baseRepoStateBefore = listFilesRecursively(REPO_ROOT).filter((f) => !f.includes(`${path.sep}node_modules${path.sep}`))
+    } catch (err) {
+      setupError = err instanceof Error ? err : new Error(String(err))
+    }
+  }, SETUP_TIMEOUT_MS)
+
+  afterAll(() => {
+    // The source checkout must be unchanged by any fault-injection copy.
+    const after = listFilesRecursively(REPO_ROOT).filter((f) => !f.includes(`${path.sep}node_modules${path.sep}`))
+    expect(after.sort()).toEqual(baseRepoStateBefore.sort())
+  })
+
+  it(
+    'fails the build phase on a build-breaking edit',
+    () => {
+      if (setupError) throw setupError
+      const dir = copyRepoWithLinkedModules('and-scene-verify-build-')
+      try {
+        const sceneFile = path.join(dir, 'src', 'presentations', 'how-to-make-a-presentation', 'Scene.tsx')
+        fs.appendFileSync(sceneFile, '\nconst brokenSyntax: = ;\n')
+
+        const { status, output } = runVerifyAndAssertCleanup(dir)
+
+        expect(status).not.toBe(0)
+        expect(output).toMatch(/FAILED \(build\)/)
+        expect(output).not.toMatch(/All checks passed/)
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true })
+      }
+    },
+    RUN_TIMEOUT_MS + 15_000,
+  )
+
+  it(
+    'fails the registry phase when the reference sample is missing',
+    () => {
+      if (setupError) throw setupError
+      const dir = copyRepoWithLinkedModules('and-scene-verify-missing-sample-')
+      try {
+        const registryPath = path.join(dir, 'src', 'presentations', 'index.ts')
+        const source = fs.readFileSync(registryPath, 'utf8')
+        // Replace the canonical slug with an unrelated one, so the registry
+        // is non-empty but no longer contains the reference sample.
+        const retargeted = source.replace(/slug: 'how-to-make-a-presentation'/, "slug: 'something-else'")
+        expect(retargeted).not.toBe(source)
+        fs.writeFileSync(registryPath, retargeted)
+
+        const { status, output } = runVerifyAndAssertCleanup(dir)
+
+        expect(status).not.toBe(0)
+        expect(output).toMatch(/FAILED \(registry\)/)
+        expect(output).toMatch(/how-to-make-a-presentation.*not registered/)
+        expect(output).not.toMatch(/All checks passed/)
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true })
+      }
+    },
+    RUN_TIMEOUT_MS + 15_000,
+  )
+
+  it(
+    'fails the render phase and names the offending step on a runtime/console error',
+    () => {
+      if (setupError) throw setupError
+      const dir = copyRepoWithLinkedModules('and-scene-verify-console-error-')
+      try {
+        const sceneFile = path.join(dir, 'src', 'presentations', 'how-to-make-a-presentation', 'Scene.tsx')
+        const source = fs.readFileSync(sceneFile, 'utf8')
+        const patched = source.replace(
+          'export function HowToMakeAPresentationScene({ payload }: SceneProps<HowToMakeAPresentationPayload>) {\n  const { step } = payload',
+          'export function HowToMakeAPresentationScene({ payload }: SceneProps<HowToMakeAPresentationPayload>) {\n' +
+            '  const { step } = payload\n' +
+            "  if (step === 5) console.error('E2E-002 fault-injection console error')",
+        )
+        expect(patched).not.toBe(source)
+        fs.writeFileSync(sceneFile, patched)
+
+        const { status, output } = runVerifyAndAssertCleanup(dir)
+
+        expect(status).not.toBe(0)
+        expect(output).toMatch(/FAILED \(render\)/)
+        expect(output).toMatch(/at step 4/)
+        expect(output).toMatch(/E2E-002 fault-injection console error/)
+        expect(output).not.toMatch(/All checks passed/)
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true })
+      }
+    },
+    RUN_TIMEOUT_MS + 15_000,
+  )
+
+  it(
+    'fails the render phase when a step transition does not advance the public step index',
+    () => {
+      if (setupError) throw setupError
+      const dir = copyRepoWithLinkedModules('and-scene-verify-stuck-nav-')
+      try {
+        const navFile = path.join(dir, 'src', 'presentation-kit', 'usePresentationNav.ts')
+        const source = fs.readFileSync(navFile, 'utf8')
+        const patched = source.replace(
+          'const next = useCallback(() => setIndex((current) => clamp(current + 1)), [clamp])',
+          'const next = useCallback(() => setIndex((current) => current), [clamp])',
+        )
+        expect(patched).not.toBe(source)
+        fs.writeFileSync(navFile, patched)
+
+        const { status, output } = runVerifyAndAssertCleanup(dir)
+
+        expect(status).not.toBe(0)
+        expect(output).toMatch(/FAILED \(render\)/)
+        expect(output).toMatch(/did not advance by one/)
+        expect(output).not.toMatch(/All checks passed/)
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true })
+      }
+    },
+    RUN_TIMEOUT_MS + 15_000,
+  )
+})

@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create or modify browser presentations, slide decks, or talks as one evolving, navigable React diagram scene.
+description: Creates or modifies browser-based React presentations as one evolving diagram scene. Use when asked to create, scaffold, edit, or add steps to a presentation, slide deck, or talk, or when the user mentions presentation, slides, deck, or scene.
 ---
 
 # Presentation skill

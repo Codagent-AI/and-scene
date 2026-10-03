@@ -34,7 +34,12 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } })
   await page.goto(`${baseUrl}/${slug}`, { waitUntil: 'networkidle' })
   const footer = page.locator('[data-presentation-footer]')
-  if (!await footer.count()) throw new Error(`No presentation found at /${slug}`)
+  try {
+    await footer.waitFor({ timeout: 5000 })
+  } catch (error) {
+    if (error?.name !== 'TimeoutError') throw error
+    throw new Error(`No presentation found at /${slug}`)
+  }
   const count = Number(await footer.getAttribute('data-step-count'))
   if (!count) throw new Error(`Presentation at /${slug} has no steps`)
   const warnings = []

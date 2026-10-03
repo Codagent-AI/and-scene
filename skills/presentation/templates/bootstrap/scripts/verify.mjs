@@ -48,7 +48,12 @@ try {
   page.on('pageerror', (error) => errors.push(`uncaught page error: ${error.message}`))
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
   await page.goto(url, { waitUntil: 'networkidle' })
-  if (!await page.locator('[data-presentation-footer]').count()) throw new Error(`No presentation rendered at /${requestedSlug}`)
+  try {
+    await page.locator('[data-presentation-footer]').waitFor({ timeout: 5000 })
+  } catch (error) {
+    if (error?.name !== 'TimeoutError') throw error
+    throw new Error(`No presentation rendered at /${requestedSlug}`)
+  }
   await page.locator('[data-presentation-step-title]').waitFor({ timeout: 5000 })
   if (errors.length) throw new Error(`Browser errors: ${errors.join('; ')}`)
   console.log(`PASS: bootstrap builds and /${requestedSlug} renders in Chromium`)

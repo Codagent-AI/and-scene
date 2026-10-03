@@ -1,0 +1,12 @@
+/* Starter presentation styling belongs to the presentation, not the reusable kit. */
+body { background: #f5f2ea; color: #20252b; font-family: system-ui, sans-serif; }
+.presentation { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; padding: 2rem; box-sizing: border-box; }
+.presentation-header, .presentation-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.presentation-header__title { font-size: clamp(1.3rem, 3vw, 2.2rem); }
+.presentation-stage { justify-self: center; align-self: center; }
+.presentation-stage__step-label { display: block; margin-top: .5rem; }
+.presentation-footer { flex-wrap: wrap; }
+.presentation-footer__caption { max-width: 48rem; }
+.presentation-footer__controls { display: flex; align-items: center; gap: .5rem; }
+.starter-node { padding: 1rem 1.25rem; border: 2px solid #20252b; border-radius: .75rem; background: #f2c14e; font-weight: 700; }
+.presentation__attribution { color: inherit; }

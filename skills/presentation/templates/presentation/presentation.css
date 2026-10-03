@@ -1,0 +1,4 @@
+/* Presentation-owned styling belongs here. Keep reusable kit styling-neutral. */
+.presentation { min-height: 100vh; }
+.scene-layer { position: relative; width: 100%; height: 100%; }
+.scene-box { position: absolute; left: 40%; top: 40%; padding: 1rem; }

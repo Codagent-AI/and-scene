@@ -78,12 +78,14 @@ describe('Presentation contract', () => {
     expect(mountCount).toBe(1)
   })
 
-  it('does not hijack navigation keys while an interactive control is focused', () => {
+  it('preserves native Space activation on controls while arrow navigation still works', () => {
     const view = mount()
     const next = view.querySelector('[data-presentation-next]') as HTMLButtonElement
     next.focus()
-    act(() => next.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })))
+    act(() => next.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })))
     expect(view.querySelector('[data-step-index="0"]')).not.toBeNull()
+    act(() => next.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })))
+    expect(view.querySelector('[data-step-index="1"]')).not.toBeNull()
   })
 
   it('uses semantic style hooks without injecting visual defaults', () => {
@@ -92,5 +94,13 @@ describe('Presentation contract', () => {
     expect(view.querySelector('[data-presentation-toc]')).not.toBeNull()
     expect(view.querySelector('[data-presentation-attribution]')).toBeNull()
     expect(view.querySelector('[data-presentation-progress]')?.getAttribute('style')).toBeNull()
+  })
+
+  it('renders a clear empty state when no steps are provided', () => {
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() => root?.render(createElement(Presentation<Payload>, { steps: [], title: 'Empty' })))
+    expect(host.querySelector('[data-presentation-empty]')?.textContent).toContain('no steps')
   })
 })

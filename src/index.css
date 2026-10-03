@@ -2,20 +2,21 @@
 html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
 body { min-height: 100vh; }
 button { font: inherit; }
-.presentation { min-height: 100vh; position: relative; display: flex; flex-direction: column; overflow: hidden; }
-.presentation-header { position: absolute; inset: 0 0 auto; min-height: 58px; z-index: 2; }
-.presentation-stage { position: absolute; inset: 58px 0 154px; display: grid; place-items: center; overflow: hidden; }
+.presentation { min-height: 100vh; position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+.presentation-header { position: relative; min-height: 58px; z-index: 2; }
+.presentation-stage { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; }
 .presentation-canvas-frame { position: relative; flex: none; }
 .presentation-canvas { position: absolute; }
 .presentation-scene, [data-presentation-scene-group] { width: 100%; height: 100%; }
 .presentation-toc { position: absolute; inset: 50% auto auto 0; transform: translateY(-50%); z-index: 2; display: flex; flex-direction: column; }
-.presentation-footer { position: absolute; inset: auto 0 0; min-height: 154px; z-index: 2; }
+.presentation-footer { position: relative; min-height: 154px; z-index: 2; }
 .presentation-narration { max-width: 60rem; }
 .presentation-mode-toggle { position: absolute; right: 1rem; top: 1rem; }
 .presentation-attribution { position: absolute; right: 1rem; bottom: .75rem; }
 .presentation-progress, .presentation-controls { display: flex; gap: .5rem; }
-.presentation[data-presentation-mode="present"] .presentation-stage { inset: 60px 0 74px; }
+.presentation[data-presentation-mode="present"] { grid-template-rows: 60px minmax(0, 1fr) 74px; }
 .presentation[data-presentation-mode="present"] .presentation-header { min-height: 60px; }
+.presentation[data-presentation-mode="present"] .presentation-footer { min-height: 74px; }
 .landing { max-width: 70rem; margin: 0 auto; padding: 4rem 2rem; }
 .landing header { max-width: 46rem; }
 @media (max-width: 760px) { .presentation-toc { display: none; } }

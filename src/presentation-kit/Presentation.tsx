@@ -7,10 +7,18 @@ import { usePresentationNav } from './usePresentationNav'
 import type { PresentationProps } from './types'
 
 export function Presentation<T>({ steps, title, initialMode = 'browse', attribution = true, brand }: PresentationProps<T>) {
+  const groupScenes = new Map<string, PresentationProps<T>['steps'][number]['Scene']>()
+  for (const item of steps) {
+    if (!item.groupKey) continue
+    const existing = groupScenes.get(item.groupKey)
+    if (existing && existing !== item.Scene) throw new Error(`Steps in scene group "${item.groupKey}" must use the same Scene component.`)
+    groupScenes.set(item.groupKey, item.Scene)
+  }
   const nav = usePresentationNav(steps.length, initialMode)
   const touchStart = useRef(0)
   const step = steps[nav.index]
-  if (!step) return null
+  if (steps.length === 0) return <main className="presentation" data-presentation data-presentation-empty role="status">This presentation has no steps.</main>
+  if (!step) return <main className="presentation" data-presentation data-presentation-empty role="status">This presentation has no active step.</main>
   return <main className="presentation" data-presentation data-presentation-mode={nav.mode}>
     <Header title={title} step={step} index={nav.index} mode={nav.mode} brand={brand} />
     {nav.mode === 'browse' && <Toc steps={steps} index={nav.index} goTo={nav.goTo} />}

@@ -1,0 +1,35 @@
+.sample-presentation { --ink: #18232d; --muted: #65727d; --paper: #f3f0e8; --mint: #b6ebd3; --coral: #ed7354; --line: #c6c9c2; color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.sample-presentation .presentation-header, .sample-presentation .presentation-footer, .sample-presentation [data-presentation-toc] { color: var(--ink); }
+.sample-presentation [data-presentation-stage] { background: var(--paper); border: 1px solid #d6d3c9; border-radius: 18px; }
+.sample-presentation .presentation-attribution { color: var(--muted); font-size: 12px; text-decoration: none; }
+.sample-presentation [data-presentation-active="true"] { color: var(--coral); font-weight: 750; }
+.sample-scene { color: var(--ink); font-size: 13px; }
+.sample-scene .scene-box, .sample-scene .scene-symbol-chip { position: absolute; display: flex; flex-direction: column; justify-content: center; gap: 5px; box-sizing: border-box; border: 1.5px solid var(--line); border-radius: 12px; background: #fffdf8; padding: 12px 14px; box-shadow: 0 4px 0 #d9d5ca; }
+.sample-scene strong { font-size: 14px; line-height: 1.15; }
+.sample-scene small { color: var(--muted); font-size: 10px; }
+.sample-scene .eyebrow, .card-number { color: var(--coral); font-size: 8px; font-weight: 800; letter-spacing: .12em; }
+.sample-scene .person { top: 24px; width: 136px; height: 76px; }
+.sample-scene .you { left: 96px; }
+.sample-scene .skill { right: 96px; background: var(--mint); }
+.sample-scene .depth-control { position: absolute; right: 8px; bottom: -14px; width: 96px; min-height: 18px; padding: 3px 6px; border-color: var(--coral); border-radius: 8px; background: #fff2eb; font-size: 7px; white-space: nowrap; box-shadow: 0 2px 0 #d9d5ca; }
+.sample-scene .prompt { position: absolute; left: 274px; top: 42px; width: 230px; height: 54px; border-radius: 28px; text-align: center; }
+.sample-scene .conversation-arrow { position: absolute; left: 426px; top: 16px; width: 28px; color: var(--coral); font-size: 19px; }
+.sample-scene .question-chip { position: absolute; left: 350px; top: 7px; font-size: 9px; }
+.sample-scene .route { position: absolute; left: 30px; right: 30px; top: 130px; display: flex; align-items: flex-start; gap: 7px; }
+.sample-scene .card-slot { display: contents; }
+.sample-scene .step-card { position: relative; width: 116px; height: 94px; border-color: #b6bbb5; padding: 10px; }
+.sample-scene .step-card strong { font-size: 10px; }
+.sample-scene .step-card small { font-size: 8px; }
+.sample-scene .current-card { border-color: var(--coral); }
+.sample-scene .card-link { width: 18px; text-align: center; padding-top: 35px; color: var(--coral); font-size: 11px; }
+.sample-scene .card-link small { font-size: 7px; }
+.sample-scene .ghost-card { border-style: dashed; background: transparent; box-shadow: none; }
+.sample-scene .kit-label { position: absolute; left: 120px; top: 98px; color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .12em; }
+.sample-scene .kit-socket { position: absolute; left: 270px; top: 88px; height: 40px; border-color: var(--coral); background: #fff2eb; font-size: 9px; }
+.sample-scene .verify-node { position: relative; flex: 0 0 64px; width: 64px; height: 54px; margin-top: 20px; padding: 6px; align-items: center; background: var(--mint); }
+.sample-scene .verify-node strong { color: #168052; font-size: 18px; }
+.sample-scene .verify-node span { font-size: 7px; font-weight: 800; text-align: center; }
+.sample-scene .modify-arc { position: absolute; left: 92px; top: 108px; color: var(--coral); font-size: 9px; }
+.sample-scene .edited-flag { position: absolute; left: 36px; top: 115px; color: var(--coral); font-size: 7px; font-weight: 800; }
+.sample-scene .reveal-frame { position: absolute; inset: 3px; border: 2px solid var(--coral); border-radius: 18px; pointer-events: none; }
+.sample-scene .reveal-frame > span { position: absolute; right: 14px; bottom: 7px; background: var(--paper); color: var(--coral); padding: 2px 6px; font-size: 8px; font-weight: 800; letter-spacing: .1em; }

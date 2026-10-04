@@ -78,9 +78,11 @@ try {
     const tiny = await narrow.evaluate(() => {
       const canvas = document.querySelector('[data-presentation-canvas]')
       const scale = canvas.getBoundingClientRect().width / canvas.offsetWidth
-      const leaves = [...document.querySelectorAll('[data-presentation-scene] *')].filter((el) => el.children.length === 0 && (el.textContent ?? '').trim() && getComputedStyle(el).display !== 'none' && Number(getComputedStyle(el).opacity) > 0.05)
+      const leaves = [...document.querySelectorAll('[data-presentation-scene] *')].filter((el) => el.children.length === 0 && (el.textContent ?? '').trim() && el.checkVisibility({ opacityProperty: true, visibilityProperty: true }) && el.getClientRects().length > 0)
+      if (leaves.length < 2) return { text: 'scene content', hidden: leaves.length }
       return leaves.map((el) => ({ text: el.textContent.trim().slice(0, 30), size: parseFloat(getComputedStyle(el).fontSize) * scale })).filter((item) => item.size < 5.5)[0]
     })
+    if (tiny?.hidden !== undefined) fail('NARROW READABILITY FAILED', `only ${tiny.hidden} scene text elements are visible on a 390px viewport`, step)
     if (tiny) fail('NARROW READABILITY FAILED', `"${tiny.text}" renders at ${tiny.size.toFixed(1)}px on a 390px viewport`, step)
   }
   console.log('PASS: scene text stays readable at a 390px viewport')

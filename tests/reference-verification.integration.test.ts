@@ -29,6 +29,7 @@ describe('reference verification failure contract (E2E-002)', () => {
       { name: 'build-fault', file: 'src/presentations/how-to-make-a-presentation/Talk.tsx', change: (text) => `${text}\nconst = ;\n`, message: /BUILD FAILED/ },
       { name: 'sample-fault', file: 'src/presentations/how-to-make-a-presentation/Talk.tsx', change: (text) => text.replace('The deck grows', 'The deck gets bigger'), message: /SAMPLE CHECK FAILED.*The deck grows/ },
       { name: 'rendered-outline-fault', file: 'src/presentations/how-to-make-a-presentation/Talk.tsx', change: (text) => text.replace('outline.map(', '[...outline].reverse().map('), message: /SAMPLE CHECK FAILED at step 1.*You have a topic/ },
+      { name: 'hidden-narrow-scene-fault', file: 'src/presentations/how-to-make-a-presentation/presentation.css', change: (text) => `${text}\n@media (max-width: 700px) { .reference-scene { display: none !important; } }\n`, message: /NARROW READABILITY FAILED at step 1/ },
       { name: 'runtime-fault', file: 'src/presentations/how-to-make-a-presentation/steps/ReferenceScene.tsx', change: (text) => text.replace('export function ReferenceScene({ index }: SceneProps<undefined>) {', "export function ReferenceScene({ index }: SceneProps<undefined>) {\n  if (index === 1) throw new Error('injected render fault')"), message: /BROWSER ERROR at step 2|TRANSITION FAILED at step 2/ },
       { name: 'transition-fault', file: 'src/presentation-kit/usePresentationNav.ts', change: (text) => text.replace('goTo(safeIndex + 1)', 'goTo(safeIndex)'), message: /TRANSITION FAILED at step 2/ },
     ]
@@ -43,7 +44,7 @@ describe('reference verification failure contract (E2E-002)', () => {
       expect(result.status, testCase.name).not.toBe(0)
       expect(result.output, testCase.name).toMatch(testCase.message)
     }
-  }, 360_000)
+  }, 480_000)
 
   it('captures settled fixture steps and diagnoses collisions, active chrome, and attribution (INT-002)', async () => {
     const temp = await mkdtemp(join(tmpdir(), 'and-scene-inspection-'))

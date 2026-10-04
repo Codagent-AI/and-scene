@@ -1,0 +1,4 @@
+/* Host-level reset only. Presentation visuals belong to each presentation. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
+button, a { font: inherit; }

@@ -1,0 +1,3 @@
+/* Host layout only. Presentation visual styling belongs to each presentation. */
+html, body, #root { min-height: 100%; margin: 0; }
+.presentation { min-height: 100vh; }

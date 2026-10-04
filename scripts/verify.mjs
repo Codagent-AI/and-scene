@@ -58,6 +58,11 @@ try {
   await footer.waitFor()
   const count = Number(await footer.getAttribute('data-step-count'))
   if (count !== 9) throw new Error(`expected 9 steps, received ${count}`)
+  await page.locator('[data-presentation-mode-toggle]').focus()
+  await page.keyboard.press('ArrowRight')
+  await page.waitForTimeout(100)
+  if (await footer.getAttribute('data-step-index') !== '0') throw new Error('ArrowRight on a focused control advanced the presentation')
+  await page.evaluate(() => document.activeElement?.blur())
   for (currentStep = 1; currentStep <= count; currentStep++) {
     await page.waitForFunction((index) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === index, currentStep - 1, { timeout: 5_000 })
     await page.locator('[data-presentation-stage]').waitFor({ state: 'visible' })

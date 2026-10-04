@@ -14,7 +14,8 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
       const target = event.target instanceof HTMLElement ? event.target : null
       if (event.metaKey || event.ctrlKey || event.altKey) return
       if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return
-      if (target?.closest('button, a, [role="button"]') && (event.key === ' ' || event.key === 'Enter')) return
+      const onControl = !!target?.closest('button, a[href], [role="button"]')
+      if (onControl && event.key.toLowerCase() !== 'p') return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') { event.preventDefault(); next() }
       else if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') toggleMode()

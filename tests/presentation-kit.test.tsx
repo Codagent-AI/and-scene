@@ -3,6 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Presentation } from '../src/presentation-kit/Presentation'
 import { Box } from '../src/presentation-kit/nodes/Box'
+import { SceneLayer } from '../src/presentation-kit/nodes/SceneLayer'
 import type { SceneProps, Step } from '../src/presentation-kit/types'
 import { getFitScale } from '../src/presentation-kit/useFitScale'
 
@@ -69,6 +70,26 @@ describe('scene kit contract', () => {
     expect(host.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
     key('ArrowRight')
     expect(host.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+  })
+
+  it('keeps a departing grouped-scene entity mounted while it exits', async () => {
+    function Departing({ payload }: SceneProps<Payload>) {
+      return <SceneLayer>
+        <Box id="stays">stays</Box>
+        {payload.count === 1 && <Box id="leaves">leaves</Box>}
+      </SceneLayer>
+    }
+    const departingSteps: Step<Payload>[] = [
+      { id: 'a', section: 'A', title: 'A', caption: 'A', groupKey: 'd', Scene: Departing, payload: { count: 1, label: 'a' } },
+      { id: 'b', section: 'B', title: 'B', caption: 'B', groupKey: 'd', Scene: Departing, payload: { count: 2, label: 'b' } },
+    ]
+    render(<Presentation steps={departingSteps} title="Departing" />)
+    expect(host.querySelector('[data-presentation-entity="leaves"]')).not.toBeNull()
+    key('ArrowRight')
+    expect(host.querySelector('[data-presentation-entity="stays"]')).not.toBeNull()
+    expect(host.querySelector('[data-presentation-entity="leaves"]')).not.toBeNull()
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 600)) })
+    expect(host.querySelector('[data-presentation-entity="leaves"]')).toBeNull()
   })
 
   it('preserves browser shortcuts with modifier keys and clamps if the step list shrinks', () => {

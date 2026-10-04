@@ -1,0 +1,90 @@
+.reference-presentation { --ink: #f5f1e8; --muted: #aaa79e; --line: #3a3a33; --acid: #c9f36a; color: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; background: radial-gradient(ellipse at 50% 42%, #22241d 0, #11120f 67%); }
+.reference-presentation { position: fixed; inset: 0; min-width: 320px; min-height: 100vh; overflow: hidden; }
+.reference-presentation .presentation-header { position: absolute; z-index: 3; inset: 0 0 auto; min-height: 76px; display: flex; align-items: center; justify-content: space-between; }
+.reference-presentation .presentation-header-brand { display: none; }
+.reference-presentation .presentation-header { padding: 24px 42px; }
+.reference-presentation .presentation-header-title { font-size: 13px; letter-spacing: .03em; font-weight: 600; color: #bebdb4; }
+.reference-presentation .presentation-step-marker { color: var(--acid); font: 500 11px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
+.reference-presentation .presentation-toc { display:flex; gap: 8px; }
+.reference-presentation .presentation-toc { position: absolute; z-index: 3; top: 77px; left: 50%; transform: translateX(-50%); }
+.reference-presentation .presentation-toc-item { border: 1px solid #34362f; border-radius: 99px; background: transparent; color: #82847a; padding: 6px 11px; font: 11px ui-monospace, monospace; transition: .2s ease; }
+.reference-presentation .presentation-toc-item[data-presentation-active="true"] { border-color: var(--acid); color: #111; background: var(--acid); font-weight: 700; }
+.reference-presentation .presentation-stage { position: absolute; inset: 104px 48px 160px; display: grid; place-items: center; overflow: hidden; }
+.reference-presentation .presentation-canvas { position: absolute; top: 50%; left: 50%; translate: -50% -50%; transform-origin: center; }
+.reference-presentation .presentation-scene-host { position: relative; width: 100%; height: 100%; }
+.reference-presentation .presentation-scene-layer { position: absolute; inset: 0; }
+.reference-presentation .presentation-footer { padding: 0 42px 30px; }
+.reference-presentation .presentation-footer { position: absolute; z-index: 3; right: 42px; bottom: 34px; left: 42px; display: grid; grid-template-columns: minmax(260px, 1fr) auto auto; align-items: end; gap: 28px; }
+.reference-presentation .presentation-caption { max-width: 700px; }
+.reference-presentation .presentation-progress { display: flex; align-items: center; gap: 4px; }
+.reference-presentation .presentation-controls { display: flex; gap: 7px; }
+.reference-presentation .presentation-caption strong { font-size: clamp(17px, 2vw, 23px); letter-spacing: -.04em; }
+.reference-presentation .presentation-caption p { color: #aaa79e; max-width: 690px; font-size: 13px; line-height: 1.55; }
+.reference-presentation .presentation-progress-item { width: 25px; height: 4px; padding: 0; border: 0; border-radius: 4px; background: #45463e; transition: .2s; }
+.reference-presentation .presentation-progress-item[data-presentation-active="true"] { width: 42px; background: var(--acid); }
+.reference-presentation .presentation-controls button { border: 1px solid #43443c; border-radius: 8px; padding: 8px 13px; background: #191a16; color: var(--ink); font-size: 12px; }
+.reference-presentation .presentation-controls button:disabled { opacity: .38; }
+.reference-presentation .presentation-attribution { right: 28px; bottom: 17px; }
+.reference-presentation .presentation-attribution { position: absolute; z-index: 4; }
+.reference-presentation .presentation-attribution a { color: #92958a; font: 11px ui-monospace, monospace; text-decoration-color: #55584c; text-underline-offset: 3px; }
+
+.reference-scene { color: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; }
+.reference-scene .presentation-scene-layer { position: absolute; inset: 0; }
+.reference-scene .presentation-node { position: absolute; display: flex; align-items: center; justify-content: center; }
+.reference-scene .person { width: 92px; height: 44px; border: 1px solid #646650; border-radius: 12px; background: #20221b; color: var(--acid); font-weight: 800; letter-spacing: -.04em; }
+.reference-scene .skill { border-color: #807b65; background: #29261d; color: #f1c77c; }
+.reference-scene .prompt { gap: 14px; width: 126px; height: 44px; color: #f1f0e8; border-radius: 12px 12px 12px 3px; background: #34372c; font-size: 13px; }
+.reference-scene .prompt span { color: var(--acid); }
+.reference-scene .conversation-link { height: 2px; color: var(--acid); font-size: 17px; justify-content: center; }
+.reference-scene .question { color: #b5b99e; font: 10px 'DM Mono', monospace; }
+.reference-scene .tray { position: absolute; left: 74px; top: 139px; width: 676px; height: 136px; border-top: 1px solid #4a4b40; border-bottom: 1px solid #4a4b40; background: linear-gradient(90deg, rgba(255,255,255,.018), transparent); }
+.reference-scene .step-card { flex-direction: column; align-items: flex-start; width: 145px; height: 99px; padding: 13px; border: 1px solid #54564a; border-radius: 10px; background: linear-gradient(145deg, #292b24, #1b1d19); box-shadow: 0 8px 24px #0004; }
+.reference-scene .step-card strong { margin-top: 6px; font-size: 13px; }
+.reference-scene .step-card small { margin-top: 4px; color: #97998e; font-size: 9px; }
+.reference-scene .card-number { color: var(--acid); font: 10px 'DM Mono', monospace; }
+.reference-scene .card-new { border-color: var(--acid); }
+.reference-scene .morph-link { color: #858a70; font: 9px 'DM Mono', monospace; }
+.reference-scene .ghost-card { left: 609px !important; height: 48px; padding: 8px; color: #858779; border-style: dashed; border-color: #77786b; background: transparent; font: 22px 'DM Mono', monospace; }
+.reference-scene .ghost-card small { margin-top: 0; }
+.reference-scene .depth-control { color: #dbd9cd; gap: 8px; border: 1px solid #54564a; border-radius: 99px; padding: 5px 9px; background: #20221c; font: 9px 'DM Mono', monospace; }
+.reference-scene .depth-control i { color: var(--acid); font-style: normal; }
+.reference-scene .kit-plug { color: var(--acid); justify-content: center; }
+.reference-scene .kit-socket { flex-direction: column; gap: 4px; width: 200px; height: 47px; border: 1px solid #9db85a; border-radius: 8px; background: #252c1d; color: var(--acid); font: 500 10px 'DM Mono', monospace; letter-spacing: .09em; }
+.reference-scene .kit-socket small { color: #9ba58a; font: 9px Manrope, sans-serif; letter-spacing: 0; }
+.reference-scene .check-chain { color: #94a76a; justify-content: center; }
+.reference-scene .verify-node { flex-direction: column; align-items: flex-start; gap: 7px; border-left: 1px solid #737760; padding-left: 12px; color: #dfdfd3; font: 10px 'DM Mono', monospace; }
+.reference-scene .verify-node b { color: var(--acid); font-size: 9px; }
+.reference-scene .modify-path { position: absolute; left: 705px; top: 77px; width: 86px; height: 130px; border-right: 1px dashed #e7ad70; border-bottom: 1px dashed #e7ad70; border-radius: 0 0 24px 0; transform: skewY(-13deg); }
+.reference-scene .modify-label { color: #e7ad70; font: 9px 'DM Mono', monospace; }
+.reference-scene .edited-flag { padding: 3px 5px; border: 1px solid #e7ad70; border-radius: 3px; color: #ffd19c; background: #382b1f; font: 8px 'DM Mono', monospace; transform: rotate(-8deg); }
+.reference-scene .reveal-frame { position: absolute; inset: 7px 26px 32px; border: 1px solid #b7d96a; border-radius: 18px; pointer-events: none; }
+.reference-scene .reveal-frame > span { position: absolute; top: -9px; right: 26px; padding: 2px 9px; background: #1d2118; color: var(--acid); font: 9px 'DM Mono', monospace; letter-spacing: .12em; }
+.reference-scene .scene-footnote { position: absolute; right: 48px; bottom: 0; color: #606359; font: 8px 'DM Mono', monospace; letter-spacing: .14em; }
+
+@media (max-width: 700px) {
+  .reference-presentation .presentation-stage { inset: 116px 18px 190px; }
+  .reference-presentation .presentation-header { padding: 16px 18px; }
+  .reference-presentation .presentation-header-title { max-width: 62%; font-size: 11px; }
+  .reference-presentation .presentation-footer { padding: 0 18px 26px; }
+  .reference-presentation .presentation-footer { right: 18px; bottom: 24px; left: 18px; grid-template-columns: 1fr; gap: 10px; }
+  .reference-presentation .presentation-controls { position: absolute; right: 0; bottom: 0; }
+  .reference-presentation .presentation-progress { grid-row: 2; }
+  .reference-presentation .presentation-caption { padding-right: 0; }
+  .reference-presentation .presentation-toc { gap: 4px; }
+  .reference-presentation .presentation-toc { flex-wrap: nowrap; width: max-content; max-width: calc(100vw - 16px); overflow-x: auto; justify-content: flex-start; }
+  .reference-presentation .presentation-toc-item { flex: 0 0 auto; white-space: nowrap; padding: 5px 7px; font-size: 9px; }
+  .reference-presentation .presentation-attribution { right: 12px; bottom: 8px; }
+  .reference-scene .person { font-size: 28px; }
+  .reference-scene .prompt { font-size: 24px; }
+  .reference-scene .question { font-size: 17px; }
+  .reference-scene .step-card strong { font-size: 28px; }
+  .reference-scene .step-card small { font-size: 14px; white-space: nowrap; }
+  .reference-scene .card-number { font-size: 18px; }
+  .reference-scene .morph-link, .reference-scene .modify-label { font-size: 15px; }
+  .reference-scene .ghost-card { font-size: 32px; }
+  .reference-scene .kit-socket { font-size: 22px; }
+  .reference-scene .kit-socket small { font-size: 12px; white-space: nowrap; }
+  .reference-scene .verify-node, .reference-scene .verify-node b { font-size: 14px; }
+  .reference-scene .edited-flag { font-size: 15px; }
+  .reference-scene .reveal-frame > span { font-size: 14px; }
+}

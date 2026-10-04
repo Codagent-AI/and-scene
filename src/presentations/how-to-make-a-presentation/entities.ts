@@ -1,0 +1,18 @@
+export const entity = {
+  you: 'reference-you',
+  prompt: 'reference-prompt',
+  skill: 'reference-skill',
+  link: 'reference-conversation-link',
+  question: 'reference-question',
+  tray: 'reference-tray',
+  card1: 'reference-card-1',
+  card2: 'reference-card-2',
+  card3: 'reference-card-3',
+  ghost: 'reference-ghost-card',
+  depth: 'reference-depth-control',
+  kit: 'reference-scene-kit',
+  verify: 'reference-verify',
+  modify: 'reference-modify-arc',
+  edited: 'reference-edited-card',
+  reveal: 'reference-reveal-frame',
+} as const

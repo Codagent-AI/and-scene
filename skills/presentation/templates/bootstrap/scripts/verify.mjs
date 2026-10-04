@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 
 const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
 const routes = [...registry.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((match) => match[1])
@@ -10,7 +11,7 @@ const routes = [...registry.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((match) =
 const build = spawnSync('npm', ['run', 'build'], { stdio: 'inherit' })
 if (build.status !== 0) process.exit(build.status ?? 1)
 
-const child = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { stdio: 'inherit' })
+const child = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { stdio: 'inherit' })
 let browser
 try {
   await new Promise((resolve, reject) => {

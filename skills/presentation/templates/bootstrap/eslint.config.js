@@ -6,8 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  // The bootstrap kit is an intentional source snapshot with its own TS project.
-  globalIgnores(['dist', 'skills/presentation/templates/bootstrap/**']),
+  globalIgnores(['dist']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

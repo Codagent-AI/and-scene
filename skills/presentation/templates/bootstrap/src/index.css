@@ -1,0 +1,36 @@
+:root {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
+button, input, textarea, select { font: inherit; }
+
+.landing { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 56px 0; }
+.landing__intro { max-width: 800px; }
+.landing__eyebrow { margin: 0 0 14px; }
+.landing h1 { margin: 0; font-size: clamp(2.5rem, 7vw, 5.5rem); line-height: .98; }
+.landing__intro > p:last-child { max-width: 680px; margin-top: 24px; }
+.landing__presentations { margin-top: 56px; }
+.landing__presentations h2 { margin: 0 0 16px; }
+.landing__presentations ul { padding-left: 24px; }
+
+.presentation { position: relative; display: flex; flex-direction: column; width: 100%; min-height: 100vh; overflow: hidden; }
+.presentation-header, .presentation-footer { position: relative; z-index: 2; flex: none; }
+.presentation-header { display: flex; align-items: center; justify-content: space-between; min-height: 58px; }
+.presentation-header__brand:empty { display: none; }
+.presentation-header__title { margin: 0; }
+.presentation-toc { position: absolute; z-index: 3; top: 64px; right: 20px; display: flex; flex-direction: column; }
+.presentation-stage-host { display: grid; flex: 1; min-height: 0; place-items: center; touch-action: pan-y; }
+.presentation-stage { position: relative; overflow: visible; }
+.presentation-stage__canvas { position: absolute; top: 0; left: 0; transform-origin: top left; }
+.presentation-stage__scene, .presentation-scene-layer { position: absolute; inset: 0; }
+.presentation-footer__controls, .presentation-progress { display: flex; align-items: center; }
+.presentation-progress { gap: 8px; }
+.presentation-footer__controls { justify-content: center; gap: 16px; }
+.presentation-attribution { position: absolute; right: 12px; bottom: 8px; }
+.presentation[data-presentation-mode="present"] .presentation-header { min-height: 36px; }
+@media (max-width: 760px) { .presentation-toc { display: none; } .landing { width: calc(100% - 24px); padding-top: 32px; } }

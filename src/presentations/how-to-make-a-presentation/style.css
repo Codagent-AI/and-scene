@@ -1,0 +1,43 @@
+.how-scene { color: #ede8d9; font: 500 15px/1.2 'DM Sans', Inter, system-ui, sans-serif; }
+.how-scene [data-presentation-node] { position: absolute; box-sizing: border-box; }
+.person { width: 82px; height: 42px; display: grid; place-items: center; border: 1px solid #779283; border-radius: 22px; color: #d6e8d9; background: #1b332b; font-weight: 700; }
+.skill { color: #f0d5a2; border-color: #bf9860; background: #3b3020; }
+.prompt { width: 112px; height: 38px; padding: 10px 13px; border-radius: 10px 10px 10px 2px; color: #e9d5b5; background: #382d24; }
+.conversation { height: 3px; color: #96ac96; text-align: center; font-size: 20px; line-height: 0; }
+.question { position: absolute; color: #b4c8ae; font-size: 11px; letter-spacing: .04em; }
+.tray { position: absolute; left: 20px; top: 104px; width: 840px; height: 166px; border-top: 1px solid #596658; }
+.step-card { width: 98px; min-height: 104px; padding: 13px 9px; border: 1px solid #666c59; border-radius: 8px; background: #242820; box-shadow: 0 8px 18px #090b0870; }
+.step-card strong { display: block; margin-top: 8px; font: 600 16px Georgia, serif; }
+.step-card small { display: block; margin-top: 7px; color: #aaa998; font-size: 10px; }
+.card-num { color: #a9b696; font: 11px ui-monospace, monospace; }
+.card-link { position: absolute; right: -11px; top: 39px; z-index: 1; color: #d2b174; }
+.ghost { min-height: 74px; border-style: dashed; color: #9a9c8c; background: #242820a0; text-align: center; }
+.ghost strong { font-size: 26px; }
+.depth { position: absolute; display: block; color: #dfc386; font-size: 12px; }
+.kit-wire,.verify-wire { position: absolute; color: #9da987; font-size: 19px; text-align: center; border-left: 1px dashed #6a795e; }
+.kit,.verify { height: 42px; padding: 0 14px; display: flex; align-items: center; gap: 9px; border-radius: 8px; border: 1px solid #667954; background: #263126; color: #d8e4cb; font-size: 12px; }
+.kit { width: 240px; }
+.kit .socket { position: absolute; top: -8px; left: 86px; }
+.socket { display: block; width: 13px; height: 13px; flex: 0 0 13px; border: 2px solid #b8c995; border-radius: 50%; }
+.verify { width: 160px; border-color: #629477; color: #bce3c5; background: #1c352a; }
+.verify-connector { position: absolute; color: #9da987; font-size: 19px; line-height: 1; }
+.modify-arc { position: absolute; color: #e0ad79; border-top: 1px dashed #bb8e62; font-size: 11px; text-align: center; }
+.edit-flag { position: absolute; padding: 3px 6px; color: #271c11; border-radius: 4px; background: #e6b36e; font-size: 9px; }
+.reveal { position: absolute; border: 1px solid #d1b676; border-radius: 15px; pointer-events: none; }
+.reveal span { position: absolute; right: 12px; bottom: -7px; padding: 0 8px; color: #dfc889; background: #151914; font-size: 9px; letter-spacing: .16em; }
+.presentation { color: #e9e5dc; background: #141512; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.presentation-header,.presentation-footer { z-index: 2; }
+.presentation-marker { color: #b2c09e; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; }
+.presentation-title { color: #e9e5dc; font: 500 1rem Georgia, serif; }
+.presentation-mode-toggle,.presentation-controls button,.presentation-progress-item,.presentation-toc-item { color: #d8d8ca; background: #252820; border: 1px solid #4b5146; border-radius: 5px; }
+.presentation-mode-toggle { padding: .45rem .75rem; }
+.presentation-narration h2 { margin: 0 0 .35rem; font: 500 1.2rem Georgia,serif; }
+.presentation-narration p { max-width: 46rem; margin: 0; color: #bcbdb3; line-height: 1.45; }
+.presentation-progress-item { width: 14px; height: 8px; padding: 0; }
+.presentation-progress-item[aria-current="step"] { border-color: #d5bb7f; background: #c5a965; transform: scaleY(1.35); }
+.presentation-toc-item { padding: .45rem .65rem; font-size: .72rem; }
+.presentation-toc-item[aria-current="location"] { color: #171912; background: #c5b47c; border-color: #c5b47c; }
+.presentation-controls button { padding: .5rem .8rem; }
+.presentation-controls button:disabled { opacity: .4; }
+.presentation-attribution { position: fixed; z-index: 3; right: 24px; bottom: 18px; color: #b9c0ae; font-size: 12px; text-decoration: none; }
+.presentation-attribution:hover { color: #e5d296; text-decoration: underline; }

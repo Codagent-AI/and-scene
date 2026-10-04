@@ -1,27 +1,15 @@
-:root {
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  color: #f8f3e6;
-  background: #0d0c0b;
-  font-synthesis: none;
-  line-height: 1.5;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-body {
+html,
+body,
+#root {
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100%;
   margin: 0;
-  background:
-    radial-gradient(circle at 20% 10%, rgba(199, 167, 85, 0.16), transparent 28rem),
-    linear-gradient(135deg, #0d0c0b 0%, #161412 58%, #0d0c0b 100%);
 }
 
 button,
@@ -29,4 +17,49 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+.landing {
+  min-height: 100vh;
+  padding: clamp(2rem, 8vw, 7rem);
+  color: #f8f3e6;
+  background: #0d0c0b;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.landing-intro { max-width: 52rem; }
+.landing-eyebrow { letter-spacing: .16em; text-transform: uppercase; }
+.landing-intro h1 { max-width: 12ch; font-size: clamp(3rem, 9vw, 7rem); line-height: .98; }
+.landing-intro > p:last-child { max-width: 38rem; font-size: 1.15rem; line-height: 1.6; }
+.landing-list { display: grid; gap: .75rem; max-width: 52rem; margin-top: 4rem; }
+.landing-link { display: flex; justify-content: space-between; padding: 1.25rem 0; border-bottom: 1px solid #625c50; color: inherit; text-decoration: none; }
+.landing-link:hover { color: #e5c979; }
+.landing-empty { opacity: .7; }
+.route-loading { padding: 3rem; }
+
+.presentation {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.presentation-header,
+.presentation-footer,
+.presentation-stage,
+.presentation-toc,
+.presentation-mode-toggle { position: absolute; }
+.presentation-stage { inset: 0; display: grid; place-items: center; }
+.presentation-stage-viewport { position: relative; }
+.presentation-stage-canvas { position: absolute; inset: 0 auto auto 0; transform-origin: top left; }
+.presentation-scene { position: absolute; inset: 0; }
+.presentation-newcomer-timing { position: absolute; width: 0; height: 0; }
+.presentation-header { inset: 0 0 auto; }
+.presentation-footer { inset: auto 0 0; }
+.presentation-toc { inset: 50% auto auto 1rem; transform: translateY(-50%); display: grid; }
+.presentation-mode-toggle { inset: 1rem 1rem auto auto; }
+.presentation-title-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+@media (max-width: 700px) {
+  .presentation-toc { display: none; }
 }

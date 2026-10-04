@@ -63,6 +63,9 @@ describe('presentation kit contract', () => {
   it('supports modes without losing position and leaves navigation keys to focused controls', () => {
     render(<Presentation steps={steps} title="Modes" />)
     const modeButton = screen.getByRole('button', { name: 'Switch to present mode' })
+    fireEvent.keyDown(modeButton, { key: ' ' })
+    expect(document.querySelector('[data-mode]')?.getAttribute('data-mode')).toBe('browse')
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
     fireEvent.click(modeButton)
     expect(document.querySelector('[data-mode]')?.getAttribute('data-mode')).toBe('present')
     expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')

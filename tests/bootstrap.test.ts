@@ -44,10 +44,12 @@ describe('distributable bootstrap', () => {
       await execFileAsync('npm', ['ci', '--no-audit', '--no-fund'], { cwd: app, timeout: 240_000 })
       await execFileAsync('npm', ['run', 'lint'], { cwd: app, timeout: 120_000 })
       await execFileAsync('npm', ['run', 'build'], { cwd: app, timeout: 120_000 })
+      const colorEnv = { ...process.env, FORCE_COLOR: '1' }
+      delete colorEnv.NO_COLOR
       // Run from a caller directory outside both the app and this source checkout.
-      const { stdout, stderr } = await execFileAsync('npm', ['--prefix', app, 'run', 'verify', '--', 'example'], { cwd: outside, timeout: 180_000 })
+      const { stdout, stderr } = await execFileAsync('npm', ['--prefix', app, 'run', 'verify', '--', 'example'], { cwd: outside, timeout: 180_000, env: colorEnv })
       expect(`${stdout}\n${stderr}`).toContain('PASS: build and first-step render for /example')
-      const inspection = await execFileAsync('npm', ['--prefix', app, 'run', 'inspect', '--', 'example'], { cwd: outside, timeout: 180_000 })
+      const inspection = await execFileAsync('npm', ['--prefix', app, 'run', 'inspect', '--', 'example'], { cwd: outside, timeout: 180_000, env: colorEnv })
       expect(`${inspection.stdout}\n${inspection.stderr}`).toContain('PASS: captured 1 settled screenshots')
     } finally {
       await rm(temp, { recursive: true, force: true })

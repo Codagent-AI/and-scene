@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import type { Step } from '../../presentation-kit'
-import { Box, Label, SceneLayer } from '../../presentation-kit'
-import { ENTITY } from './entities'
+import type { Step } from '../../../presentation-kit'
+import { Box, Label, SceneLayer } from '../../../presentation-kit'
+import { ENTITY } from '../entities'
 
 type Content = { message: string }
 function Scene({ payload }: { payload: Content }) {

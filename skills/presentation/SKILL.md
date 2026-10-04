@@ -62,7 +62,7 @@ For a modification, edit only the selected presentation and the registry or host
 Do not report success until all applicable checks pass. From the app root:
 
 1. Run `npm run build`; fix type or build failures.
-2. Run `npm run verify` when available. Otherwise start a local Vite preview on `127.0.0.1`, open the generated route in a real browser, and confirm the first step renders without console/runtime errors and navigation works.
+2. Run `PRESENTATION_SLUG=<slug> npm run verify` when available, using the generated or modified presentation's slug; without the variable the verifier checks only its default route. Otherwise start a local Vite preview on `127.0.0.1`, open the generated route in a real browser, and confirm the first step renders without console/runtime errors and navigation works.
 3. Capture settled browser views of the first, last, and dense/key steps. Check a narrow viewport too when the layout is responsive-sensitive. Prefer `npm run inspect -- <slug>` when the project's screenshot helper exists; otherwise place any temporary Playwright helper inside the project.
 4. Review collisions, readability, active navigation and attribution. Fix accidental overlap, make current-step chrome distinct, and mark an overlap as intentional only when it is readable and genuinely part of the composition. Rerun affected checks after fixes.
 

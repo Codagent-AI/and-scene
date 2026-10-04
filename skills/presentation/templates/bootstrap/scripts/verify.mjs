@@ -32,9 +32,18 @@ try {
   const slug = process.argv[2] ?? routes[0]
   if (!routes.includes(slug)) throw new Error(`Presentation route is not registered: ${slug}`)
   await page.goto(`http://127.0.0.1:4173/${slug}`)
-  await page.locator('[data-step-index="0"]').waitFor()
-  if (errors.length) throw new Error(`Render failed at step 0: ${errors.join('; ')}`)
-  console.log(`PASS: ${slug} rendered at step 0`)
+  await page.locator('[data-step-count]').waitFor()
+  const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
+  if (!Number.isInteger(count) || count < 1) throw new Error(`Invalid step count for ${slug}`)
+  for (let index = 0; index < count; index += 1) {
+    if (index > 0) {
+      await page.keyboard.press('ArrowRight')
+      await page.waitForFunction((expected) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(expected), index)
+    }
+    await page.waitForTimeout(900)
+    if (errors.length) throw new Error(`Render failed at step ${index}: ${errors.splice(0).join('; ')}`)
+    console.log(`PASS: ${slug} rendered at step ${index}`)
+  }
 } catch (error) {
   console.error(`Verification failed: ${error.message}`)
   process.exitCode = 1

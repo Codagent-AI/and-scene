@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, readFile, cp, symlink, rm } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, cp, symlink, rm, writeFile, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -52,4 +52,22 @@ describe('presentation skill bootstrap (INT-001)', () => {
       await rm(temp, { recursive: true, force: true })
     }
   }, 60_000)
+
+  it('verifies every step of a generated presentation in the bootstrap app', async () => {
+    const temp = await mkdtemp(join(tmpdir(), 'and-scene-bootstrap-verify-'))
+    const app = join(temp, 'fresh-project')
+    try {
+      await cp(bootstrap, app, { recursive: true })
+      await symlink(join(root, 'node_modules'), join(app, 'node_modules'), 'dir')
+      await mkdir(join(app, 'src/presentations/example'), { recursive: true })
+      await writeFile(join(app, 'src/presentations/index.ts'), `import type { ComponentType } from 'react'\nexport interface PresentationEntry { slug: string; title: string; load: () => Promise<{ default: ComponentType }> }\nexport const presentations: PresentationEntry[] = [{ slug: 'example', title: 'Example', load: () => import('./example/Talk') }]\n`)
+      await writeFile(join(app, 'src/presentations/example/Talk.tsx'), `import { Presentation } from '../../presentation-kit'\nimport type { SceneProps, Step } from '../../presentation-kit'\nfunction Scene({ step }: SceneProps) { return <div>{step.title}</div> }\nconst steps: Step[] = [1, 2].map((n) => ({ id: String(n), section: 'Example', title: 'Step ' + n, caption: '', Scene, payload: undefined }))\nexport default function Talk() { return <Presentation steps={steps} title="Example" /> }\n`)
+
+      const output = execFileSync('npm', ['run', 'verify'], { cwd: app, encoding: 'utf8', timeout: 60_000, stdio: ['ignore', 'pipe', 'pipe'] })
+      expect(output).toContain('PASS: example rendered at step 0')
+      expect(output).toContain('PASS: example rendered at step 1')
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  }, 90_000)
 })

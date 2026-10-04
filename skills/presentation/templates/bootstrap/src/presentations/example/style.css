@@ -1,0 +1,4 @@
+.presentation { color: #202632; background: #f4f2ed; font-family: system-ui, sans-serif; }
+.example-card { padding: 20px; border: 1px solid currentColor; }
+.presentation-attribution { font-size: 12px; }
+.presentation-progress [aria-current="step"] { outline: 2px solid currentColor; }

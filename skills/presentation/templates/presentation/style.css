@@ -1,0 +1,6 @@
+/* Presentation-owned visual design. The reusable kit intentionally has no theme. */
+.presentation { color: #202632; background: #f4f2ed; font-family: system-ui, sans-serif; }
+.presentation-stage { color: inherit; }
+.presentation [data-presentation-node] { box-sizing: border-box; }
+.presentation-attribution { font-size: 12px; }
+.presentation-progress [aria-current="step"] { outline: 2px solid currentColor; }

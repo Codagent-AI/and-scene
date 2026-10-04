@@ -1,0 +1,6 @@
+export { Presentation } from './Presentation'
+export * from './types'
+export * from './constants'
+export * from './nodes'
+export { useFitScale } from './useFitScale'
+export { usePresentationNav } from './usePresentationNav'

@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
+import { resolvePresentationSlug } from '../src/route'
 import { Presentation } from '../src/presentation-kit/Presentation'
 import type { SceneProps, Step } from '../src/presentation-kit/types'
 
@@ -29,7 +30,7 @@ describe('presentation kit contract', () => {
   })
 
   it('clamps navigation and exposes semantic active state', () => {
-    render(<Presentation steps={typedSteps} title="Typed" attribution={false} />)
+    const view = render(<Presentation steps={typedSteps} title="Typed" attribution={false} />)
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
     expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
     fireEvent.click(screen.getByRole('button', { name: 'Step 2: Second' }))
@@ -37,6 +38,14 @@ describe('presentation kit contract', () => {
     expect(screen.getByRole('button', { name: 'Step 2: Second' }).getAttribute('aria-current')).toBe('step')
     fireEvent.keyDown(window, { key: 'ArrowRight' })
     expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    view.rerender(<Presentation steps={typedSteps.slice(0, 1)} title="Typed" attribution={false} />)
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+  })
+
+  it('resolves routes below the configured Vite base path', () => {
+    expect(resolvePresentationSlug('/studio/architecture/', '/studio/')).toBe('architecture')
+    expect(resolvePresentationSlug('/studio/', '/studio/')).toBe('')
+    expect(resolvePresentationSlug('/elsewhere/architecture', '/studio/')).toBe('elsewhere/architecture')
   })
 
   it('switches modes without changing position and renders default attribution', () => {

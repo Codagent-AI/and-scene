@@ -14,7 +14,7 @@ interface StageProps<TPayload> {
 export function Stage<TPayload>({ step, index, scale, width = DESIGN_W, height = DESIGN_H }: StageProps<TPayload>) {
   const CurrentScene = step.Scene
   const sceneProps: SceneProps<TPayload> = { payload: step.payload, step, index }
-  const sceneKey = step.groupKey ? `${step.groupKey}:${CurrentScene.displayName ?? CurrentScene.name}` : step.id
+  const sceneKey = step.groupKey ?? step.id
   return (
     <div className="presentation-stage" data-presentation-stage="" style={{ width: width * scale, height: height * scale }}>
       <div className="presentation-stage__canvas" data-presentation-canvas="" style={{ width, height, transform: `scale(${scale})` }}>

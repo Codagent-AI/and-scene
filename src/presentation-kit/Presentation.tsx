@@ -11,6 +11,7 @@ import type { PresentationProps } from './types'
 export function Presentation<TPayload>({ steps, title, initialMode = 'browse', designSize = { width: DESIGN_W, height: DESIGN_H }, attribution }: PresentationProps<TPayload>) {
   const nav = usePresentationNav(steps.length, initialMode)
   const scale = useFitScale(nav.mode, designSize.width, designSize.height)
+  const activeIndex = Math.min(nav.index, Math.max(0, steps.length - 1))
   const pointer = useRef<{ x: number; y: number } | null>(null)
   if (steps.length === 0) return <main className="presentation" data-presentation="" data-presentation-mode={nav.mode} data-step-count="0" data-step-index="0" />
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => { pointer.current = { x: event.clientX, y: event.clientY } }
@@ -24,12 +25,12 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse', d
       else nav.prev()
     }
   }
-  return <main className="presentation" data-presentation="" data-presentation-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.index}>
+  return <main className="presentation" data-presentation="" data-presentation-mode={nav.mode} data-step-count={steps.length} data-step-index={activeIndex}>
     <Header title={title} mode={nav.mode} onToggleMode={nav.toggleMode} />
-    {nav.mode === 'browse' && <Toc steps={steps} index={nav.index} onSelect={nav.goTo} />}
+    {nav.mode === 'browse' && <Toc steps={steps} index={activeIndex} onSelect={nav.goTo} />}
     <div className="presentation-stage-host" data-presentation-stage-host="" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
-      <Stage step={steps[nav.index]} index={nav.index} scale={scale} width={designSize.width} height={designSize.height} />
+      <Stage step={steps[activeIndex]} index={activeIndex} scale={scale} width={designSize.width} height={designSize.height} />
     </div>
-    <Footer steps={steps} index={nav.index} mode={nav.mode} title={title} onSelect={nav.goTo} onPrev={nav.prev} onNext={nav.next} attribution={attribution} />
+    <Footer steps={steps} index={activeIndex} mode={nav.mode} title={title} onSelect={nav.goTo} onPrev={nav.prev} onNext={nav.next} attribution={attribution} />
   </main>
 }

@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 
-const slug = process.env.PRESENTATION_SLUG ?? 'starter'
+const slug = process.env.PRESENTATION_SLUG ?? 'how-to-make-a-presentation'
 const titles = ['You have a topic', 'The skill interviews you', 'Answers become steps', 'The deck grows', 'You set the depth', 'It assembles the scene', 'It checks its own work', 'Changed your mind? Loop it.', "You're looking at one"]
 const captions = [
   'It starts with you, a topic, and mild overconfidence.',

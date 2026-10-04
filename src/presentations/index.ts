@@ -6,4 +6,6 @@ export interface PresentationRegistration {
   load: () => Promise<{ default: ComponentType }>
 }
 
-export const presentations: PresentationRegistration[] = []
+export const presentations: PresentationRegistration[] = [
+  { slug: 'how-to-make-a-presentation', title: 'How to Use This Skill to Make a Presentation', load: () => import('./how-to-make-a-presentation/Talk') },
+]

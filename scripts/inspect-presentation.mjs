@@ -15,7 +15,7 @@ try {
   if(!ready)throw Error('preview did not become ready')
   browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1440,height:960}})
   await page.goto(`${base}/${encodeURIComponent(slug)}`,{waitUntil:'networkidle'})
-  const root=page.locator('[data-presentation]');if(!(await root.count()))throw Error(`No presentation route found for ${slug}`)
+  const root=page.locator('[data-presentation]');if(!(await root.waitFor({state:'attached',timeout:10000}).then(()=>true,()=>false)))throw Error(`No presentation route found for ${slug}`)
   const count=Number(await root.getAttribute('data-step-count'))
   for(let i=0;i<count;i++){
     if(Number(await root.getAttribute('data-step-index'))!==i)await page.locator('[data-presentation-progress-item]').nth(i).click()

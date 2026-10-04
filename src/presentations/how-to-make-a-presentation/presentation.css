@@ -61,7 +61,14 @@
   .sample-scene .eyebrow, .sample-scene .person .eyebrow, .sample-scene .step-card > span, .sample-scene .verify-card > span, .sample-scene .kit-socket > span { font-size: 15px; }
   .sample-scene .person strong { font-size: 26px; }
   .sample-scene .person small, .sample-scene .step-card small { display: none; }
-  .sample-scene .step-card strong, .sample-scene .verify-card strong, .sample-scene .kit-socket strong { font-size: 20px; line-height: 1.1; }
+  .sample-scene .step-card > span { font-size: 13px; letter-spacing: .04em; white-space: nowrap; }
+  .sample-scene .step-card strong, .sample-scene .verify-card strong, .sample-scene .kit-socket strong { font-size: 17px; line-height: 1.1; }
+  .sample-scene .verify-card { height: auto; min-height: 70px; }
+  .sample-scene .verify-card strong { font-size: 15px; white-space: nowrap; }
+  .sample-scene .prompt { font-size: 16px; }
+  .sample-scene .depth-control span, .sample-scene .reveal-label { font-size: 13px; }
+  .sample-scene .reveal-label { top: -14px; }
+  .sample-scene .morph-link { width: 54px; font-size: 12px; }
   .sample-scene .question-chip, .sample-scene .depth-control, .sample-scene .edited-flag { font-size: 15px; }
   .sample-scene .kit-socket small { display: none; }
   .sample-scene .morph-note { font-size: 13px; }

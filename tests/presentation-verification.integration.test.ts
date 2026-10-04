@@ -50,6 +50,17 @@ describe('production verification failure contract (E2E-002)', () => {
     expect(result.output).toContain('sample outline check failed')
   }, 180_000)
 
+  it('rejects a rendered title that differs from the canonical outline even when the source text is present', async () => {
+    const result = await verifyFault(async app => {
+      const file = resolve(app, 'src/presentations/how-to-make-a-presentation/steps/index.tsx')
+      const source = await readFile(file, 'utf8')
+      const titlesLine = source.split('\n').find(line => line.startsWith('const titles = '))!
+      await writeFile(file, source.replace(titlesLine, `export const UNUSED_CANONICAL ${titlesLine.slice('const titles'.length)}\n${titlesLine.replace("'You have a topic'", "'Unused title'")}`))
+    })
+    expect(result.status).not.toBe(0)
+    expect(result.output).toContain('step 1 outline check failed')
+  }, 180_000)
+
   it('identifies the step that emits a browser console error', async () => {
     const result = await verifyFault(async app => {
       const file = resolve(app, 'src/presentations/how-to-make-a-presentation/steps/Scene.tsx')

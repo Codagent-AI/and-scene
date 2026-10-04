@@ -9,7 +9,7 @@ const card = (id: string, n: number, label: string, left: number) => <Box id={id
 function Scene({ payload: { beat } }: SceneProps<Payload>) {
   return <SceneLayer className="story-scene">
     <Box id={E.you} className="person-node you-node" style={place(178, 22, 144)}><span className="node-kicker">YOU</span><Label id={`${E.you}:label`}>A topic</Label></Box>
-    {beat === 1 && <SymbolChip id={E.prompt} className="prompt-chip" style={place(334, 44)}>“I have an idea…”</SymbolChip>}
+    {beat >= 1 && <SymbolChip id={E.prompt} className="prompt-chip" style={place(20, 48)}>“I have an idea…”</SymbolChip>}
     {beat >= 2 && <>
       <Box id={E.skill} className="person-node skill-node" style={place(558, 22, 144)}><span className="node-kicker">THE SKILL</span><Label id={`${E.skill}:label`}>One question</Label></Box>
       <Arrow id={E.conversation} className="conversation-arrow" style={place(336, 69, 214)}><span>↔</span></Arrow>

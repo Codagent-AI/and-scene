@@ -52,6 +52,9 @@ try {
       await page.waitForFunction(i => Number(document.querySelector('[data-presentation]')?.getAttribute('data-step-index')) === i, activeIndex, { timeout: 4000 }).catch(() => fail(`step ${activeIndex + 1} transition failed: data-step-index did not advance`))
     }
     await page.waitForTimeout(450)
+    const shownTitle = await page.locator('[data-presentation-caption] h1').first().textContent({ timeout: 2000 }).catch(() => null)
+    const shownCaption = await page.locator('[data-presentation-caption] p').first().textContent({ timeout: 2000 }).catch(() => null)
+    if (shownTitle !== expectedTitles[activeIndex] || shownCaption !== expectedCaptions[activeIndex]) fail(`step ${activeIndex + 1} outline check failed: rendered title/caption do not match the canonical outline`)
     const stepErrors = errors.filter(error => error.step === activeIndex + 1)
     if (stepErrors.length) fail(`step ${activeIndex + 1} render failed: ${stepErrors.map(error => error.message).join('; ')}`)
   }

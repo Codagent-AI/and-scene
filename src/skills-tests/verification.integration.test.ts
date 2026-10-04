@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { spawnSync } from 'node:child_process'
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:net'
+import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,15 +11,29 @@ import { afterAll, describe, expect, it } from 'vitest'
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const scratch = await mkdtemp(path.join(tmpdir(), 'and-scene-verification-'))
 const copiedFiles = ['package.json', 'package-lock.json', 'index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'eslint.config.js']
+const copiedApps: string[] = []
 
 async function copyApp(name: string) {
   const app = path.join(scratch, name)
+  copiedApps.push(app)
   await mkdir(app, { recursive: true })
   for (const file of copiedFiles) await cp(path.join(repository, file), path.join(app, file))
   await cp(path.join(repository, 'src'), path.join(app, 'src'), { recursive: true })
   await cp(path.join(repository, 'scripts'), path.join(app, 'scripts'), { recursive: true })
   await symlink(path.join(repository, 'node_modules'), path.join(app, 'node_modules'), 'dir')
   return app
+}
+
+async function allocatePreviewPort() {
+  const server = createServer()
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', resolve)
+  })
+  const address = server.address()
+  if (!address || typeof address === 'string') throw new Error('Could not allocate a free preview port for the integration test')
+  await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
+  return String(address.port)
 }
 
 function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv = {}) {
@@ -30,7 +45,7 @@ function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEn
 
 async function expectFailure(app: string, expected: RegExp) {
   let output = ''
-  const port = String(4300 + [...path.basename(app)].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 1000)
+  const port = await allocatePreviewPort()
   try { run('npm', ['run', 'verify'], app, { PREVIEW_PORT: port }) } catch (error) {
     const failure = error as { stdout?: string; stderr?: string; status?: number }
     output = `${failure.stdout ?? ''}${failure.stderr ?? ''}`
@@ -40,7 +55,17 @@ async function expectFailure(app: string, expected: RegExp) {
   expect(output).not.toMatch(/PASS: build/)
 }
 
-afterAll(async () => { await rm(scratch, { recursive: true, force: true }) })
+afterAll(async () => {
+  for (const app of copiedApps) {
+    const link = path.join(app, 'node_modules')
+    try {
+      if ((await lstat(link)).isSymbolicLink()) await unlink(link)
+    } catch {
+      // The scratch app may not have created its dependency link yet.
+    }
+  }
+  await rm(scratch, { recursive: true, force: true })
+})
 
 describe('production verification failure contract (E2E-002)', () => {
   it('fails a build-breaking copy with a build-phase diagnostic', async () => {
@@ -55,7 +80,7 @@ describe('production verification failure contract (E2E-002)', () => {
     const steps = path.join(app, 'src/presentations/how-to-make-a-presentation/steps.tsx')
     const source = await readFile(steps, 'utf8')
     await writeFile(steps, source.replace("const titles = ['You have a topic', 'The skill interviews you'", "const titles = ['The skill interviews you', 'You have a topic'"))
-    await expectFailure(app, /Sample check: canonical nine-step titles or captions are missing or out of order/)
+    await expectFailure(app, /Sample check failed at step 1: expected title/)
   }, 90_000)
 
   it('reports a browser runtime failure at its offending step', async () => {
@@ -87,7 +112,7 @@ describe('project-local inspection diagnostics (INT-002)', () => {
     await writeFile(path.join(fixture, 'steps.tsx'), `import type { SceneProps, Step } from '../../presentation-kit/types'; import { SceneLayer } from '../../presentation-kit/nodes/SceneLayer'; type Payload = { n: number }; function Scene({ payload }: SceneProps<Payload>) { return <SceneLayer><div className="collision-one">Unmarked collision A {payload.n}</div><div className="collision-two">Unmarked collision B {payload.n}</div><div className="allowed" data-presentation-allow-overlap=""><span>Allowed overlap A</span><span>Allowed overlap B</span></div><div className="settle-marker" data-settle-marker="" /></SceneLayer> }; export const STEPS: Step<Payload>[] = [1, 2].map(n => ({ id: String(n), era: 'Test', title: 'Test ' + n, caption: 'Fixture caption', payload: { n }, Scene, groupKey: 'fixture' }));`)
     await writeFile(path.join(fixture, 'style.css'), `.presentation-progress-item, .presentation-toc-item { color: #222 !important; background: #ddd !important; border: 1px solid #777 !important; font-weight: 400 !important; } .collision-one, .collision-two { position: absolute; left: 180px; top: 110px; color: white; } .collision-two { left: 184px; } .allowed { position:absolute; left:180px; top:150px; } .settle-marker { position:absolute; left:100px; top:100px; width:42px; height:42px; background:rgb(255,0,255); animation:settle 400ms steps(1,end) forwards; } @keyframes settle { 0%,49% {background:rgb(255,0,255)} 50%,100% {background:rgb(0,255,0)} }`)
     run('npm', ['run', 'build'], app)
-    const port = String(4300 + [...path.basename(app)].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 1000)
+    const port = await allocatePreviewPort()
     const output = run('npm', ['run', 'inspect', '--', 'inspection-fixture'], app, { INSPECT_SETTLE_MS: '500', PREVIEW_PORT: port })
     expect((await readdir(path.join(app, 'inspection'))).filter(file => file.endsWith('.png'))).toEqual(['inspection-fixture-01.png', 'inspection-fixture-02.png'])
     expect(output).toMatch(/WARN step 1: visible text overlap:.*collision-one.*collision-two/)

@@ -2,7 +2,10 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { resolvePresentationSlug } from '../src/route'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 import { Presentation } from '../src/presentation-kit/Presentation'
+import { Appear, Arrow, Box, Emphasis, Frame, Label, SymbolChip } from '../src/presentation-kit'
 import type { SceneProps, Step } from '../src/presentation-kit/types'
 
 afterEach(cleanup)
@@ -63,5 +66,48 @@ describe('presentation kit contract', () => {
     screen.getByRole('button', { name: 'Step 2: Second' }).focus()
     fireEvent.keyDown(screen.getByRole('button', { name: 'Step 2: Second' }), { key: 'ArrowRight' })
     expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+  })
+
+  it('keeps visual styling out of kit primitives, chrome, and source', () => {
+    function AllPrimitives() {
+      return (
+        <div>
+          <Box entityId="box">Box</Box>
+          <Arrow entityId="arrow" />
+          <Label entityId="label">Label</Label>
+          <Frame entityId="frame">Frame</Frame>
+          <Emphasis entityId="emphasis">Emphasis</Emphasis>
+          <SymbolChip entityId="chip" label="Chip" />
+          <Appear>Appear</Appear>
+        </div>
+      )
+    }
+    const steps: readonly Step<null>[] = [{ id: 'one', era: 'Start', title: 'First', caption: 'Caption', Scene: AllPrimitives, payload: null }]
+    const { container } = render(<Presentation steps={steps} title="Unstyled" />)
+    const visual = /^(color|background|font|border|box-shadow|text-shadow|outline|padding|margin|gap|filter|letter-spacing)/
+    for (const element of container.querySelectorAll<HTMLElement>('[style]')) {
+      const properties = Array.from(element.style, (name) => name)
+      expect(properties.filter((name) => visual.test(name)), element.outerHTML.slice(0, 120)).toEqual([])
+    }
+    for (const hook of ['box', 'arrow', 'label', 'frame', 'emphasis', 'symbol-chip']) {
+      expect(container.querySelector(`[data-presentation-node="${hook}"]`), hook).not.toBeNull()
+    }
+    expect(container.querySelector('[data-presentation-appear]')).not.toBeNull()
+
+    const sources: string[] = []
+    const walk = (directory: string) => {
+      for (const entry of readdirSync(directory)) {
+        const path = join(directory, entry)
+        if (statSync(path).isDirectory()) walk(path)
+        else sources.push(path)
+      }
+    }
+    walk('src/presentation-kit')
+    expect(sources.filter((path) => /\.(css|scss|sass|less)$/.test(path))).toEqual([])
+    for (const path of sources) {
+      const text = readFileSync(path, 'utf8')
+      expect(text, path).not.toMatch(/tailwind|styled-components|@emotion|\.css['"]/)
+      expect(text, path).not.toMatch(/(?:color|background(?:Color)?|fontFamily|boxShadow|border(?:Color|Radius)?)\s*:/)
+    }
   })
 })

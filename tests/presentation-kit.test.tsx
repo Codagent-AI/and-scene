@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { resolvePresentationSlug } from '../src/route'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { computeFitScale } from '../src/presentation-kit/useFitScale'
 import { Presentation } from '../src/presentation-kit/Presentation'
 import { Appear, Arrow, Box, Emphasis, Frame, Label, SymbolChip } from '../src/presentation-kit'
 import type { SceneProps, Step } from '../src/presentation-kit/types'
@@ -109,5 +110,13 @@ describe('presentation kit contract', () => {
       expect(text, path).not.toMatch(/tailwind|styled-components|@emotion|\.css['"]/)
       expect(text, path).not.toMatch(/(?:color|background(?:Color)?|fontFamily|boxShadow|border(?:Color|Radius)?)\s*:/)
     }
+  })
+
+  it('keeps desktop fit geometry and reclaims side gutters on narrow viewports', () => {
+    expect(computeFitScale('browse', 1440, 900)).toBe(1)
+    expect(computeFitScale('browse', 1000, 900)).toBeCloseTo((1000 - 128) / 880)
+    const narrow = computeFitScale('browse', 390, 844)
+    expect(narrow).toBeCloseTo((390 - 32) / 880)
+    expect(narrow).toBeGreaterThan((390 - 128) / 880)
   })
 })

@@ -54,6 +54,11 @@ try {
   run('npm', ['install', '--prefer-offline', '--no-audit', '--no-fund'], tempRoot)
   run('npx', ['playwright', 'install', 'chromium'], tempRoot)
   run('npm', ['run', 'build'], tempRoot)
+  const missingSlug = spawnSync(process.execPath, ['scripts/verify.mjs'], { cwd: tempRoot, encoding: 'utf8' })
+  const missingSlugOutput = `${missingSlug.stdout ?? ''}${missingSlug.stderr ?? ''}`
+  if (missingSlug.status !== 2 || !missingSlugOutput.includes('Usage: npm run verify -- <presentation-slug>')) {
+    throw new Error(`verification without a slug should exit with usage status 2: ${missingSlugOutput}`)
+  }
   run('npm', ['run', 'verify', '--', 'bootstrap-contract'], tempRoot)
   const inspection = spawnSync('npm', ['run', 'inspect', '--', 'bootstrap-contract', '--settle', '40'], { cwd: tempRoot, encoding: 'utf8' })
   const inspectionOutput = `${inspection.stdout ?? ''}${inspection.stderr ?? ''}`

@@ -65,6 +65,8 @@ try {
     }
     await page.waitForTimeout(900)
     if (browserErrors.length) fail('BROWSER ERROR', browserErrors.splice(0).join('; '), activeStep)
+    const rendered = await page.evaluate(() => ({ title: document.querySelector('[data-presentation-caption] strong')?.textContent ?? '', caption: document.querySelector('[data-presentation-caption] p')?.textContent ?? '' }))
+    if (rendered.title !== titles[activeStep] || rendered.caption !== captions[activeStep]) fail('SAMPLE CHECK FAILED', `rendered "${rendered.title}" does not match canonical "${titles[activeStep]}"`, activeStep)
     console.log(`PASS: step ${activeStep + 1}/9 — ${titles[activeStep]}`)
   }
   console.log(`PASS: production render verification completed for /${slug} on 127.0.0.1`)

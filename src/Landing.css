@@ -1,0 +1,33 @@
+:root {
+  color: #e9e5dc;
+  background: #141512;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+body { min-width: 320px; min-height: 100vh; margin: 0; }
+button, a { font: inherit; }
+.presentation-landing {
+  min-height: 100vh;
+  padding: clamp(2rem, 8vw, 7rem) max(1.5rem, calc((100vw - 920px) / 2));
+  background: radial-gradient(ellipse at 80% 5%, #354033 0, transparent 38rem), #141512;
+}
+.presentation-landing::before {
+  content: 'AND SCENE  /  FIELD NOTES';
+  display: block;
+  margin-bottom: 4rem;
+  color: #a7b28e;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .18em;
+}
+.presentation-landing h1 { max-width: 12ch; margin: 0; font-family: Georgia, serif; font-size: clamp(3rem, 8vw, 6.5rem); font-weight: 400; line-height: .98; letter-spacing: -.045em; }
+.presentation-landing > p { max-width: 38rem; margin-top: 1.5rem; color: #bcbdb3; font-size: 1.1rem; line-height: 1.7; }
+.presentation-landing ul { display: grid; gap: .75rem; max-width: 48rem; margin: 3.5rem 0 0; padding: 0; list-style: none; }
+.presentation-landing li { border-top: 1px solid #464940; }
+.presentation-landing li a { display: flex; justify-content: space-between; gap: 1rem; padding: 1.2rem .2rem; color: #e9e5dc; text-decoration: none; font-size: 1.1rem; }
+.presentation-landing li a::after { content: '↗'; color: #a7b28e; }
+.presentation-landing li a:hover { color: #c9d5a9; }

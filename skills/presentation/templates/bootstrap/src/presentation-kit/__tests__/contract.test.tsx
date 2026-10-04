@@ -43,7 +43,7 @@ describe('presentation kit contract', () => {
   it('renders attribution with a styling hook and no built-in top-left brand', () => {
     render(<Presentation steps={steps} title="Attribution" />)
     const link = screen.getByRole('link', { name: 'made by and-scene' })
-    expect(link.getAttribute('href')).toBe('https://github.com/and-scene/and-scene')
+    expect(link.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene')
     expect(link.hasAttribute('data-presentation-attribution')).toBe(true)
     expect(document.querySelector('[data-presentation-brand]')).toBeNull()
   })

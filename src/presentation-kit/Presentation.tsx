@@ -19,6 +19,6 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse', d
     <Stage step={step} index={index} mode={nav.mode} designWidth={width} designHeight={height} />
     <Toc eras={eras} steps={steps} index={index} mode={nav.mode} onSelect={nav.goTo} />
     <Footer title={title} step={step} steps={steps} index={index} mode={nav.mode} onSelect={nav.goTo} onNext={nav.next} onPrev={nav.prev} />
-    {attribution !== false && <a className="presentation-attribution" data-presentation-attribution="" href={attribution.href ?? 'https://github.com/and-scene/and-scene'} target="_blank" rel="noreferrer">{attribution.label ?? 'made by and-scene'}</a>}
+    {attribution !== false && <a className="presentation-attribution" data-presentation-attribution="" href={attribution.href ?? 'https://github.com/Codagent-AI/and-scene'} target="_blank" rel="noreferrer">{attribution.label ?? 'made by and-scene'}</a>}
   </main>
 }

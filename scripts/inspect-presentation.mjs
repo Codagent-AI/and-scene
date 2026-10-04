@@ -21,16 +21,26 @@ try {
   if (!ready) throw new Error('preview did not become ready at 127.0.0.1')
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+  const browserErrors = []
+  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(`console: ${message.text()}`) })
+  page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.message}`))
   const out = `artifacts/inspect/${slug}`
   await mkdir(out, { recursive: true })
   await page.goto(`${base}/${slug}`, { waitUntil: 'networkidle' })
   const footer = page.locator('[data-step-count]')
   await footer.waitFor()
   const count = Number(await footer.getAttribute('data-step-count'))
+  if (!Number.isInteger(count) || count < 1) throw new Error(`invalid data-step-count: ${count}`)
   for (let index = 0; index < count; index++) {
     if (index > 0) await page.keyboard.press('ArrowRight')
-    await page.waitForFunction((expected) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === expected, index)
+    try {
+      await page.waitForFunction((expected) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === expected, index)
+    } catch (error) {
+      if (browserErrors.length) throw new Error(`step ${index + 1} browser error: ${browserErrors.join('; ')}`)
+      throw new Error(`step ${index + 1} did not become active: ${error.message}`)
+    }
     await page.waitForTimeout(900)
+    if (browserErrors.length) throw new Error(`step ${index + 1} browser error: ${browserErrors.join('; ')}`)
     await page.screenshot({ path: `${out}/step-${String(index + 1).padStart(2, '0')}.png`, fullPage: true })
     const warnings = await page.evaluate(() => {
       const isVisible = (element) => {

@@ -64,7 +64,25 @@ try {
   if (elapsed < 1_700) throw new Error(`screenshots completed before both 900ms settle intervals (${elapsed}ms)`)
   const screenshots = await readdir(join(target, 'artifacts/inspect/inspection-fixture'))
   if (screenshots.filter((name) => name.endsWith('.png')).length !== 2) throw new Error(`expected two per-step screenshots, found ${screenshots.join(', ')}`)
+
+  const footerPath = join(target, 'src/presentation-kit/chrome/Footer.tsx')
+  const footerSource = await readFile(footerPath, 'utf8')
+  await writeFile(footerPath, footerSource.replace('data-step-count={steps.length}', 'data-step-count="invalid"'))
+  let faultBuild = await run(target, ['run', 'build'])
+  if (faultBuild.code !== 0) throw new Error(`invalid-count fixture build failed\n${faultBuild.output}`)
+  let faultInspection = await run(target, ['run', 'inspect', '--', 'inspection-fixture'])
+  if (faultInspection.code === 0 || !faultInspection.output.includes('invalid data-step-count: NaN')) throw new Error(`invalid step count was not rejected\n${faultInspection.output}`)
+
+  await writeFile(footerPath, footerSource)
+  const talkPath = join(presentation, 'Talk.tsx')
+  const talkSource = await readFile(talkPath, 'utf8')
+  await writeFile(talkPath, talkSource.replace('<span>{payload}</span>', "<>{payload === 1 && console.error('fixture browser console failure')}<span>{payload}</span></>"))
+  faultBuild = await run(target, ['run', 'build'])
+  if (faultBuild.code !== 0) throw new Error(`console-error fixture build failed\n${faultBuild.output}`)
+  faultInspection = await run(target, ['run', 'inspect', '--', 'inspection-fixture'])
+  if (faultInspection.code === 0 || !/step 2 browser error: console: fixture browser console failure/.test(faultInspection.output)) throw new Error(`browser console error was not reported with its step\n${faultInspection.output}`)
   console.log('PASS: screenshots settle, warnings identify the fixture step, and allowed overlap is exempt')
+  console.log('PASS: invalid step counts and browser console errors fail inspection with useful diagnostics')
 } finally {
   await rm(temp, { recursive: true, force: true })
 }

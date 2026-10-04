@@ -1,5 +1,5 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
-import { DESIGN_H, DESIGN_W, ENTER_DELAY, ENTER_T } from './constants'
+import { DESIGN_H, DESIGN_W, ENTER_DELAY, ENTER_T, STAGE_LAYOUT } from './constants'
 import type { Step } from './types'
 import { useFitScale } from './useFitScale'
 import type { PresentationMode } from './types'
@@ -8,7 +8,8 @@ export function Stage<T>({ step, mode }: { step: Step<T>; mode: PresentationMode
   const scale = useFitScale(mode)
   const Scene = step.Scene
   const sceneKey = `${step.groupKey ?? step.id}:${Scene.displayName ?? Scene.name}`
-  return <div className="presentation-stage" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }} data-presentation-stage="" data-mode={mode} onTouchStartCapture={undefined}>
+  const geometry = STAGE_LAYOUT[mode]
+  return <div className="presentation-stage" style={{ position: 'absolute', top: geometry.top, right: 0, bottom: geometry.bottom, left: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }} data-presentation-stage="" data-mode={mode} onTouchStartCapture={undefined}>
     <div className="presentation-canvas-viewport" style={{ position: 'relative', width: DESIGN_W * scale, height: DESIGN_H * scale }}>
       <div className="presentation-canvas" style={{ position: 'absolute', left: 0, top: 0, transformOrigin: 'top left', width: DESIGN_W, height: DESIGN_H, transform: `scale(${scale})`, pointerEvents: 'auto' }}>
         <LayoutGroup id="presentation-scene">

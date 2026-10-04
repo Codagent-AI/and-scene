@@ -69,6 +69,21 @@ try {
     if (rendered.title !== titles[activeStep] || rendered.caption !== captions[activeStep]) fail('SAMPLE CHECK FAILED', `rendered "${rendered.title}" does not match canonical "${titles[activeStep]}"`, activeStep)
     console.log(`PASS: step ${activeStep + 1}/9 — ${titles[activeStep]}`)
   }
+  const narrow = await browser.newPage({ viewport: { width: 390, height: 844 } })
+  await narrow.goto(`http://127.0.0.1:4173/${slug}`)
+  await narrow.locator('[data-step-count="9"]').waitFor({ timeout: 10000 }).catch(() => fail('NARROW RENDER FAILED', 'reference route did not expose nine steps at 390px'))
+  for (let step = 0; step < 9; step += 1) {
+    if (step > 0) await narrow.keyboard.press('ArrowRight')
+    await narrow.waitForTimeout(900)
+    const tiny = await narrow.evaluate(() => {
+      const canvas = document.querySelector('[data-presentation-canvas]')
+      const scale = canvas.getBoundingClientRect().width / canvas.offsetWidth
+      const leaves = [...document.querySelectorAll('[data-presentation-scene] *')].filter((el) => el.children.length === 0 && (el.textContent ?? '').trim() && getComputedStyle(el).display !== 'none' && Number(getComputedStyle(el).opacity) > 0.05)
+      return leaves.map((el) => ({ text: el.textContent.trim().slice(0, 30), size: parseFloat(getComputedStyle(el).fontSize) * scale })).filter((item) => item.size < 5.5)[0]
+    })
+    if (tiny) fail('NARROW READABILITY FAILED', `"${tiny.text}" renders at ${tiny.size.toFixed(1)}px on a 390px viewport`, step)
+  }
+  console.log('PASS: scene text stays readable at a 390px viewport')
   console.log(`PASS: production render verification completed for /${slug} on 127.0.0.1`)
 } catch (error) {
   console.error(`VERIFY FAILED: ${error.message}`)

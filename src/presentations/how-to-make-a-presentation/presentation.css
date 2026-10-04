@@ -74,17 +74,20 @@
   .reference-presentation .presentation-toc { flex-wrap: nowrap; width: max-content; max-width: calc(100vw - 16px); overflow-x: auto; justify-content: flex-start; }
   .reference-presentation .presentation-toc-item { flex: 0 0 auto; white-space: nowrap; padding: 5px 7px; font-size: 9px; }
   .reference-presentation .presentation-attribution { right: 12px; bottom: 8px; }
-  .reference-scene .person { font-size: 28px; }
-  .reference-scene .prompt { font-size: 24px; }
-  .reference-scene .question { font-size: 17px; }
+  .reference-scene .person { font-size: 30px; }
+  .reference-scene .prompt { font-size: 26px; }
+  .reference-scene .question { font-size: 22px; white-space: nowrap; margin-top: 10px; }
   .reference-scene .step-card strong { font-size: 28px; }
-  .reference-scene .step-card small { font-size: 14px; white-space: nowrap; }
-  .reference-scene .card-number { font-size: 18px; }
-  .reference-scene .morph-link, .reference-scene .modify-label { font-size: 15px; }
+  .reference-scene .card-number { font-size: 22px; }
+  .reference-scene .modify-label { font-size: 18px; white-space: nowrap; }
   .reference-scene .ghost-card { font-size: 32px; }
-  .reference-scene .kit-socket { font-size: 22px; }
-  .reference-scene .kit-socket small { font-size: 12px; white-space: nowrap; }
-  .reference-scene .verify-node, .reference-scene .verify-node b { font-size: 14px; }
-  .reference-scene .edited-flag { font-size: 15px; }
-  .reference-scene .reveal-frame > span { font-size: 14px; }
+  .reference-scene .kit-socket { font-size: 26px; }
+  .reference-scene .depth-control { font-size: 20px; white-space: nowrap; padding: 6px 12px; }
+  .reference-scene .verify-node { font-size: 20px; white-space: nowrap; }
+  .reference-scene .verify-node b { font-size: 18px; }
+  .reference-scene .edited-flag { font-size: 18px; }
+  .reference-scene .reveal-frame > span { font-size: 18px; white-space: nowrap; }
+  .reference-scene .conversation-link, .reference-scene .kit-plug, .reference-scene .check-chain { font-size: 26px; }
+  /* Secondary annotations cannot reach a legible size at phone scale; the caption carries the same content. */
+  .reference-scene .step-card small, .reference-scene .kit-socket small, .reference-scene .morph-link, .reference-scene .scene-footnote { display: none; }
 }

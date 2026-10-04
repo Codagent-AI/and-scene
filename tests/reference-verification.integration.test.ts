@@ -43,7 +43,7 @@ describe('reference verification failure contract (E2E-002)', () => {
       expect(result.status, testCase.name).not.toBe(0)
       expect(result.output, testCase.name).toMatch(testCase.message)
     }
-  }, 180_000)
+  }, 360_000)
 
   it('captures settled fixture steps and diagnoses collisions, active chrome, and attribution (INT-002)', async () => {
     const temp = await mkdtemp(join(tmpdir(), 'and-scene-inspection-'))

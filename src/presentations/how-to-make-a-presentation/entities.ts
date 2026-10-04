@@ -1,0 +1,16 @@
+export const ENTITY = {
+  you: 'how-to-make-a-presentation:you',
+  prompt: 'how-to-make-a-presentation:prompt',
+  skill: 'how-to-make-a-presentation:skill',
+  question: 'how-to-make-a-presentation:question',
+  card1: 'how-to-make-a-presentation:card-1',
+  card2: 'how-to-make-a-presentation:card-2',
+  card3: 'how-to-make-a-presentation:card-3',
+  ghost: 'how-to-make-a-presentation:ghost',
+  depth: 'how-to-make-a-presentation:depth',
+  kit: 'how-to-make-a-presentation:kit',
+  verify: 'how-to-make-a-presentation:verify',
+  modify: 'how-to-make-a-presentation:modify',
+  edited: 'how-to-make-a-presentation:edited',
+  reveal: 'how-to-make-a-presentation:reveal',
+} as const

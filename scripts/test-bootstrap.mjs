@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, readdir, rm, writeFile, mkdir } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, readdir, rm, writeFile, mkdir, stat } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -48,13 +48,21 @@ try {
   await writeFile(appManifest, `${JSON.stringify(json, null, 2)}\n`)
   const fixtureDir = path.join(tempRoot, 'src/presentations/bootstrap-contract')
   await mkdir(fixtureDir, { recursive: true })
-  await writeFile(path.join(fixtureDir, 'Talk.tsx'), `import { Presentation, type Step } from '../../presentation-kit'\nfunction Scene() { return <div>Bootstrap route renders</div> }\nconst steps: Step<null>[] = [{ id: 'fixture:one', era: 'Fixture', title: 'Bootstrap smoke', caption: 'The materialized route works.', Scene, payload: null }]\nexport default function Talk() { return <Presentation steps={steps} title="Bootstrap contract" /> }\n`)
+  await writeFile(path.join(fixtureDir, 'Talk.tsx'), `import { Presentation, type SceneProps, type Step } from '../../presentation-kit'\nimport './fixture.css'\nfunction Scene({ index }: SceneProps<null>) { return <div className="fixture-scene"><p className="collision-a">Collision A</p><p className="collision-b">Collision B</p><div className="allowed" data-presentation-allow-overlap><p>Allowed A</p><p>Allowed B</p></div><span>Step {index + 1}</span></div> }\nconst steps: Step<null>[] = [1, 2].map((n) => ({ id: 'fixture:' + n, era: 'Fixture ' + n, title: 'Bootstrap smoke ' + n, caption: 'The materialized route works.', Scene, payload: null }))\nexport default function Talk() { return <Presentation steps={steps} title="Bootstrap contract" /> }\n`)
+  await writeFile(path.join(fixtureDir, 'fixture.css'), `.fixture-scene { position: relative; height: 100%; } .fixture-scene p { position: absolute; margin: 0; } .collision-a, .collision-b { left: 20px; top: 20px; } .allowed { position: absolute; left: 200px; top: 20px; } .allowed p { left: 0; top: 0; } .allowed p + p { left: 0; top: 0; }`)
   await writeFile(path.join(tempRoot, 'src/presentations/index.ts'), `export interface PresentationRegistration { slug: string; title: string; load: () => Promise<{ default: React.ComponentType }> }\nexport const presentations: PresentationRegistration[] = [{ slug: 'bootstrap-contract', title: 'Bootstrap contract', load: () => import('./bootstrap-contract/Talk') }]\n`)
-  run('npm', ['install', '--no-audit', '--no-fund'], tempRoot)
+  run('npm', ['install', '--prefer-offline', '--no-audit', '--no-fund'], tempRoot)
   run('npx', ['playwright', 'install', 'chromium'], tempRoot)
   run('npm', ['run', 'build'], tempRoot)
   run('npm', ['run', 'verify', '--', 'bootstrap-contract'], tempRoot)
-  run('npm', ['run', 'inspect', '--', 'bootstrap-contract'], tempRoot)
+  const inspection = spawnSync('npm', ['run', 'inspect', '--', 'bootstrap-contract', '--settle', '40'], { cwd: tempRoot, encoding: 'utf8' })
+  const inspectionOutput = `${inspection.stdout ?? ''}${inspection.stderr ?? ''}`
+  if (inspection.status !== 0) throw new Error(`inspection failed with ${inspection.status}: ${inspectionOutput}`)
+  if (!/WARN step 1\/2: overlap: .*Collision A.*Collision B/s.test(inspectionOutput)) throw new Error(`inspection did not report the unmarked collision: ${inspectionOutput}`)
+  if (!/WARN step 1\/2: active navigation: .*resembles inactive state/.test(inspectionOutput)) throw new Error(`inspection did not report indistinct active navigation: ${inspectionOutput}`)
+  if (!/WARN step 1\/2: attribution: .*browser-default or undersized/.test(inspectionOutput)) throw new Error(`inspection did not report unpolished attribution: ${inspectionOutput}`)
+  if (/overlap: .*Allowed A.*Allowed B/s.test(inspectionOutput)) throw new Error('inspection reported an explicitly allowed overlap')
+  for (const name of ['step-01.png', 'step-02.png']) await stat(path.join(tempRoot, 'artifacts/presentation-inspection/bootstrap-contract', name))
   console.log('PASS: materialized bootstrap built, rendered, and captured a route screenshot in an isolated directory')
 } catch (error) {
   console.error(`FAIL: ${error.message}`)

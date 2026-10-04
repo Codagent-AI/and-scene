@@ -1,0 +1,68 @@
+.how-to-make-a-presentation { --ink: #17272d; --muted: #718187; --teal: #126c69; --coral: #e8795d; color: var(--ink); font-family: Manrope, sans-serif; }
+.how-to-make-a-presentation .presentation { min-height: 100svh; background: #f4f3ed; }
+.how-to-make-a-presentation .presentation-header { min-height: 62px; padding: 0 4vw; border-bottom: 1px solid #dfdfd6; }
+.how-to-make-a-presentation .presentation-header__title { font-size: 13px; font-weight: 700; letter-spacing: .01em; }
+.how-to-make-a-presentation .presentation-mode-toggle, .how-to-make-a-presentation .presentation-prev, .how-to-make-a-presentation .presentation-next { color: var(--ink); border: 1px solid #cfd6d1; border-radius: 999px; background: #fffdf7; padding: 9px 15px; cursor: pointer; }
+.how-to-make-a-presentation .presentation-mode-toggle { font-size: 12px; font-weight: 700; }
+.how-to-make-a-presentation .presentation-toc { top: 50%; right: 26px; transform: translateY(-50%); gap: 8px; }
+.how-to-make-a-presentation .presentation-toc__item { color: #76858a; border: 0; border-left: 2px solid #d5dbd7; background: transparent; text-align: left; padding: 4px 9px; font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: .08em; }
+.how-to-make-a-presentation .presentation-toc__item[data-presentation-active="true"] { color: var(--teal); border-left: 3px solid var(--coral); font-weight: 800; }
+.how-to-make-a-presentation .presentation-stage-host { padding: 10px 0; }
+.how-to-make-a-presentation .presentation-footer { min-height: 112px; padding: 12px 4vw 23px; border-top: 1px solid #dfdfd6; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+.how-to-make-a-presentation .presentation-footer__narrative { grid-column: 1; max-width: 560px; }
+.how-to-make-a-presentation .presentation-footer__title { margin: 0 0 4px; font-weight: 800; font-size: 15px; }
+.how-to-make-a-presentation .presentation-footer__caption { margin: 0; color: #66767b; font-size: 12px; line-height: 1.5; }
+.how-to-make-a-presentation .presentation-footer__controls { grid-column: 2; }
+.how-to-make-a-presentation .presentation-progress__item { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 9px; background: #bdc9c4; cursor: pointer; transition: width .2s, background .2s; }
+.how-to-make-a-presentation .presentation-progress__item[data-presentation-active="true"] { width: 27px; background: var(--coral); }
+.how-to-make-a-presentation .presentation-attribution { right: 4vw; bottom: 8px; color: #66767b; font-size: 12px; }
+.how-to-make-a-presentation .presentation-attribution a { color: inherit; text-decoration-color: #aab8b3; text-underline-offset: 3px; }
+.sample-scene { position: absolute; inset: 0; overflow: visible; }
+.sample-scene .presentation-box, .sample-scene .presentation-symbol-chip, .sample-scene .presentation-emphasis, .sample-scene .presentation-frame, .sample-scene .presentation-label, .sample-scene .presentation-arrow { position: absolute; }
+.conversation { position: absolute; inset: 0 0 auto; height: 130px; }
+.person { top: 13px; width: 190px; height: 78px; padding: 12px 16px; border: 1px solid #cbd8d2; border-radius: 14px; background: #fffdf8; box-shadow: 0 5px 14px #193d3510; display: flex; flex-direction: column; }
+.person.you { left: 112px; }.person.skill { left: 546px; border-color: #b3d2ca; background: #e8f2ec; }
+.eyebrow, .person .eyebrow, .step-card > span, .verify-card > span, .kit-socket > span { color: #778a86; font: 500 9px 'DM Mono', monospace; letter-spacing: .1em; }
+.person strong { margin-top: 1px; font-size: 21px; line-height: 1.2; }.person small { color: #72817e; font-size: 10px; }
+.conversation-arrow { left: 340px; top: 36px; width: 160px; color: var(--teal); text-align: center; font: 26px Manrope, sans-serif; }
+.prompt { left: 126px; top: 100px; padding: 7px 12px; color: #8a4f40; background: #fff0e8; border-radius: 8px; font-size: 11px; }
+.question-chip { left: 357px; top: 9px; padding: 5px 10px; border: 1px solid #d7ddd5; border-radius: 999px; color: #566d68; background: #fffdf8; font-size: 9px; white-space: nowrap; }
+.depth-control { left: 100px; top: 98px; width: 218px; display: flex; justify-content: space-between; padding: 7px 10px; border: 1px solid #e4b3a0; border-radius: 8px; background: #fff5ed; color: #764c3e; font-size: 10px; }
+.depth-control span { font: 500 9px 'DM Mono', monospace; letter-spacing: .1em; }
+.route-row { position: absolute; left: 62px; top: 154px; }
+.tray { position: relative; width: 756px; height: 145px; padding: 13px 15px; border: 1px solid #dbe1da; border-radius: 12px; background: #eeefe9; }
+.tray-label { position: absolute; top: 10px; left: 15px; }
+.cards { position: absolute; left: 15px; right: 15px; top: 33px; display: flex; align-items: center; gap: 10px; }
+.step-card { position: relative !important; width: 124px; height: 82px; flex: none; display: flex; flex-direction: column; padding: 9px 10px; border: 1px solid #b9d4ca; border-radius: 9px; background: #fffef9; box-shadow: 0 3px 9px #213d3710; }
+.step-card > span { color: var(--teal); }.step-card strong { margin-top: 5px; font-size: 12px; }.step-card small { color: #778681; font-size: 9px; }
+.step-card.ghost { border-style: dashed; background: #f4f3ed; color: #7b8984; box-shadow: none; }.ghost > span { color: #c17a62; }
+.morph-note { position: absolute; left: 300px; bottom: 8px; color: #74847f; font: 9px 'DM Mono', monospace; }
+.kit-connector { left: 424px; top: 294px; width: 30px; height: 20px; color: var(--coral); text-align: center; font-size: 18px; }
+.kit-socket { left: 344px; top: 315px; width: 192px; height: 53px; padding: 7px 11px; display: flex; flex-direction: column; border: 1px solid #a9c7bd; border-radius: 9px; background: #dfede6; }
+.kit-socket strong { font-size: 12px; }.kit-socket small { color: #6b8179; font-size: 9px; }
+.card-link { position: relative !important; color: var(--coral); font-size: 18px; }
+.morph-link { position: relative !important; width: 38px; flex: none; color: var(--teal); font: 8px 'DM Mono', monospace; text-align: center; white-space: nowrap; }
+.verify-card { position: relative !important; width: 112px; height: 70px; padding: 9px; display: flex; flex-direction: column; border: 1px solid #a7cbb3; border-radius: 9px; background: #e6f4e9; }
+.verify-card strong { margin-top: 7px; color: #31724d; font-size: 12px; }
+.modify-arc { left: 661px; top: 94px; color: var(--coral); font-size: 32px; transform: rotate(12deg); }
+.edited-flag { left: 592px; top: 124px; padding: 5px 8px; color: #8c4937; background: #ffebe1; border: 1px solid #edb59f; border-radius: 5px; font: 9px 'DM Mono', monospace; }
+.reveal-frame { inset: 0; border: 2px solid #e58a6f; border-radius: 18px; pointer-events: none; }
+.reveal-label { top: -10px; left: 50%; padding: 3px 10px; transform: translateX(-50%); color: #854c3d; background: #f4f3ed; font: 500 9px 'DM Mono', monospace; letter-spacing: .12em; white-space: nowrap; }
+@media (max-width: 760px) {
+  .how-to-make-a-presentation .presentation-header { min-height: 52px; padding: 0 16px; }
+  .how-to-make-a-presentation .presentation-header__title { max-width: 68vw; font-size: 11px; }
+  .how-to-make-a-presentation .presentation-footer { min-height: 128px; padding: 12px 14px 27px; grid-template-columns: 1fr; gap: 9px; }
+  .how-to-make-a-presentation .presentation-footer__narrative, .how-to-make-a-presentation .presentation-footer__controls { grid-column: 1; }
+  .how-to-make-a-presentation .presentation-footer__controls { justify-content: flex-start; gap: 11px; }
+  .how-to-make-a-presentation .presentation-footer__caption { font-size: 11px; }
+  .how-to-make-a-presentation .presentation-attribution { right: 14px; bottom: 8px; }
+}
+@media (max-width: 500px) {
+  .sample-scene .eyebrow, .sample-scene .person .eyebrow, .sample-scene .step-card > span, .sample-scene .verify-card > span, .sample-scene .kit-socket > span { font-size: 15px; }
+  .sample-scene .person strong { font-size: 26px; }
+  .sample-scene .person small, .sample-scene .step-card small { display: none; }
+  .sample-scene .step-card strong, .sample-scene .verify-card strong, .sample-scene .kit-socket strong { font-size: 20px; line-height: 1.1; }
+  .sample-scene .question-chip, .sample-scene .depth-control, .sample-scene .edited-flag { font-size: 15px; }
+  .sample-scene .kit-socket small { display: none; }
+  .sample-scene .morph-note { font-size: 13px; }
+}

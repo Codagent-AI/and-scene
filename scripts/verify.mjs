@@ -5,11 +5,25 @@ import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 
-const slug = process.argv[2]
-if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+const referenceSlug = 'how-to-make-a-presentation'
+const slug = process.argv[2] ?? referenceSlug
+const title = 'How to Use This Skill to Make a Presentation'
+if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
   console.error('Usage: npm run verify -- <presentation-slug>')
   process.exit(2)
 }
+const outline = [
+  ['the ask', 'You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
+  ['the ask', 'The skill interviews you', 'One question at a time: the topic, the look, then each beat of the story.'],
+  ['the gathering', 'Answers become steps', 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.'],
+  ['the gathering', 'The deck grows', 'Same shapes, new beats. Every answer extends the story without redrawing it.'],
+  ['the gathering', 'You set the depth', 'Spell out every step, or sketch a few and see how it looks. You hold the gate.'],
+  ['the build', 'It assembles the scene', 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.'],
+  ['the build', 'It checks its own work', 'Before saying done, it builds and renders every step — and fixes what breaks.'],
+  ['the loop', 'Changed your mind? Loop it.', 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.'],
+  ['the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
+]
+
 function run(command, args) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { stdio: 'inherit', shell: process.platform === 'win32' })
@@ -34,9 +48,24 @@ let browser
 let activeStep = 'build and sample contract'
 try {
   await run('npm', ['run', 'build'])
-  const registry = await readFile('src/presentations/index.ts', 'utf8')
-  await readFile(`src/presentations/${slug}/Talk.tsx`, 'utf8')
-  if (!registry.includes(`slug: '${slug}'`) || !registry.includes(`import('./${slug}/Talk')`)) throw new Error(`Presentation contract failed: ${slug} is not registered`)
+  const [registry, talk] = await Promise.all([
+    readFile('src/presentations/index.ts', 'utf8'),
+    readFile(`src/presentations/${slug}/Talk.tsx`, 'utf8'),
+  ])
+  const source = await readFile(`src/presentations/${slug}/steps.tsx`, 'utf8').catch(() => '')
+  if (!registry.includes(`slug: '${slug}'`) || !registry.includes(`import('./${slug}/Talk')`) || (slug === referenceSlug && !registry.includes(title))) throw new Error(`Sample contract failed: ${slug} is not registered with the expected title`)
+  if (slug === referenceSlug && !talk.includes('<Presentation steps={STEPS}')) throw new Error('Sample contract failed: presentation entry does not render STEPS')
+  if (slug === referenceSlug) {
+    if (!source) throw new Error('Sample contract failed: reference steps file is missing')
+    let previous = -1
+    for (const [era, stepTitle, caption] of outline) {
+      const eraIndex = source.indexOf(era, previous + 1)
+      const titleIndex = source.indexOf(stepTitle, eraIndex + 1)
+      const captionIndex = source.indexOf(caption, titleIndex + 1)
+      if (eraIndex < 0 || titleIndex < 0 || captionIndex < 0) throw new Error(`Sample contract failed: missing or out-of-order step “${stepTitle}” (${era})`)
+      previous = captionIndex
+    }
+  }
 
   const port = await reservePort()
   const url = `http://127.0.0.1:${port}`
@@ -62,6 +91,7 @@ try {
   const root = page.locator('[data-step-count]')
   const count = Number(await root.getAttribute('data-step-count'))
   if (!Number.isInteger(count) || count < 1) throw new Error(`Render check failed: route /${slug} exposed invalid data-step-count ${count}`)
+  if (slug === referenceSlug && count !== outline.length) throw new Error(`Render check failed: expected ${outline.length} steps, found ${count}`)
   const waitForIndex = async (expected) => {
     try {
       await page.waitForFunction((value) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === value, expected, { timeout: 5000 })

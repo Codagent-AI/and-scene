@@ -1,0 +1,4 @@
+/* Host-level structural reset only. Presentation themes belong to each presentation. */
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; margin: 0; }
+button, a { font: inherit; }

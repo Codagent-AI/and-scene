@@ -1,0 +1,4 @@
+/* Presentation-owned styles. Define this presentation's complete visual language here. */
+.example-presentation { color: #18202a; font-family: system-ui, sans-serif; }
+.example-presentation [data-presentation-progress][aria-current="step"] { outline: 2px solid currentColor; }
+.example-presentation [data-presentation-attribution-container] { font-size: 12px; }

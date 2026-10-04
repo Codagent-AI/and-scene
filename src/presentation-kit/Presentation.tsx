@@ -8,9 +8,9 @@ import { usePresentationNav } from './usePresentationNav'
 import type { PresentationProps } from './types'
 
 export function Presentation<TPayload>({ steps, title, initialMode = 'browse', design, attribution, brand, className, style }: PresentationProps<TPayload>) {
-  if (steps.length === 0) throw new Error('Presentation requires at least one step')
   const dimensions = useMemo(() => ({ width: design?.width ?? DESIGN_W, height: design?.height ?? DESIGN_H }), [design?.width, design?.height])
   const nav = usePresentationNav(steps.length, initialMode)
+  if (steps.length === 0) return <main className={['presentation', className].filter(Boolean).join(' ')} style={style} data-presentation="" data-mode={nav.mode} data-step-count="0" data-step-index="0" />
   const active = steps[nav.index]
   return <main className={['presentation', className].filter(Boolean).join(' ')} style={style} data-presentation="" data-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.index}>
     <Header mode={nav.mode} title={title} step={active} index={nav.index} brand={brand} />

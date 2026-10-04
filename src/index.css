@@ -36,6 +36,7 @@ select {
 .landing-link:hover { color: #e5c979; }
 .landing-empty { opacity: .7; }
 .route-loading { padding: 3rem; }
+.route-not-found { padding: 3rem; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 
 .presentation {
   position: relative;

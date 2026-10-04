@@ -6,16 +6,17 @@ const isInteractive = (target: EventTarget | null) => target instanceof HTMLElem
 )
 
 export function usePresentationNav(count: number, initialMode: PresentationMode = 'browse') {
-  const [index, setIndex] = useState(0)
+  const [requestedIndex, setIndex] = useState(0)
+  const index = count === 0 ? 0 : Math.max(0, Math.min(count - 1, requestedIndex))
   const [mode, setMode] = useState<PresentationMode>(initialMode)
-  const next = useCallback(() => setIndex((current) => Math.min(count - 1, current + 1)), [count])
-  const prev = useCallback(() => setIndex((current) => Math.max(0, current - 1)), [])
+  const next = useCallback(() => setIndex(Math.min(count - 1, index + 1)), [count, index])
+  const prev = useCallback(() => setIndex(Math.max(0, index - 1)), [index])
   const goTo = useCallback((target: number) => setIndex(Math.max(0, Math.min(count - 1, target))), [count])
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || isInteractive(event.target)) return
+      if (event.defaultPrevented || event.repeat || event.altKey || event.ctrlKey || event.metaKey || isInteractive(event.target)) return
       if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') { event.preventDefault(); next() }
       else if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') toggleMode()

@@ -50,11 +50,22 @@ describe('Presentation contract', () => {
     expect(document.querySelector('[data-scene-instance]')).toBe(original)
   })
 
+  it('handles a shrinking or empty step list without indexing a missing step', () => {
+    const view = render(<Presentation steps={steps} title="Example" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 2' }))
+    view.rerender(<Presentation steps={[steps[0]]} title="Example" />)
+    expect(document.querySelector('[data-presentation][data-step-index="0"]')).toBeTruthy()
+    view.rerender(<Presentation steps={[]} title="Example" />)
+    expect(document.querySelector('[data-presentation][data-step-count="0"]')).toBeTruthy()
+  })
+
   it('keeps keyboard navigation keys with focused controls', () => {
     render(<Presentation steps={steps} title="Example" />)
     const control = screen.getByRole('button', { name: 'Go to step 1' })
     control.focus()
     fireEvent.keyDown(control, { key: 'ArrowRight' })
+    expect(document.querySelector('[data-presentation][data-step-index="0"]')).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'ArrowRight', repeat: true })
     expect(document.querySelector('[data-presentation][data-step-index="0"]')).toBeTruthy()
     fireEvent.keyDown(window, { key: 'ArrowRight' })
     expect(document.querySelector('[data-presentation][data-step-index="1"]')).toBeTruthy()

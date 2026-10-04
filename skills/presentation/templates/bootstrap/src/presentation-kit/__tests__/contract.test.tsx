@@ -97,6 +97,15 @@ describe('presentation kit contract', () => {
     expect(index()).toBe('2')
   })
 
+  it('leaves focus on buttons rendered inside the stage after a pointer click', () => {
+    const StageButton = () => <button type="button">Author control</button>
+    render(<Presentation steps={[{ ...steps[0], Scene: StageButton as Step<Payload>['Scene'] }]} title="Stage focus" />)
+    const button = screen.getByRole('button', { name: 'Author control' })
+    button.focus()
+    fireEvent.click(button, { detail: 1 })
+    expect(document.activeElement).toBe(button)
+  })
+
   it('fits a default 880 by 380 canvas uniformly and follows mode geometry', () => {
     expect(calculateFitScale(1760, 1000, 'present')).toBe(1)
     expect(calculateFitScale(440, 500, 'present')).toBe(0.5)

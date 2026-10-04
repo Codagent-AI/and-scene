@@ -6,9 +6,12 @@ import { DESIGN_H, DESIGN_W } from './constants'
 import { usePresentationNav } from './usePresentationNav'
 import type { PresentationProps } from './types'
 
-// A pointer click leaves focus on the chrome button, which would keep it from handing keys to the deck; keyboard activations (detail 0) keep focus.
+// A pointer click leaves focus on a chrome button, which would keep it from handing keys to the deck; keyboard activations (detail 0) keep focus.
+// Buttons inside the stage belong to the presentation and keep their focus.
 function releasePointerFocus(event: React.MouseEvent) {
-  if (event.detail > 0 && event.target instanceof HTMLElement) event.target.closest('button')?.blur()
+  if (event.detail === 0 || !(event.target instanceof HTMLElement)) return
+  const button = event.target.closest('button')
+  if (button && !button.closest('[data-presentation-stage]')) button.blur()
 }
 
 export function Presentation<TPayload>({ steps, title, initialMode = 'browse', designSize, attribution = {} }: PresentationProps<TPayload>) {

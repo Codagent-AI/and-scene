@@ -1,7 +1,9 @@
+import type { ComponentType } from 'react'
+
 export interface PresentationEntry {
   slug: string
   title: string
-  load: () => Promise<{ default: React.ComponentType }>
+  load: () => Promise<{ default: ComponentType }>
 }
 
 /** Explicit registration keeps routes deterministic and easy to review. */

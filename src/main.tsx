@@ -4,9 +4,9 @@ import './index.css'
 import { lazy, Suspense } from 'react'
 import Landing from './Landing'
 import { presentations } from './presentations'
+import { resolvePresentationRoute } from './router'
 
-const slug = window.location.pathname.replace(/^\/+|\/+$/g, '')
-const route = presentations.find(presentation => presentation.slug === slug)
+const route = resolvePresentationRoute(window.location.pathname, presentations)
 const RoutedPresentation = route ? lazy(route.load) : null
 
 createRoot(document.getElementById('root')!).render(

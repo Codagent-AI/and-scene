@@ -12,7 +12,7 @@ export function Stage<T>({ steps, index, mode, width = DESIGN_W, height = DESIGN
   const Scene = step.Scene
   return <div className="presentation-stage" data-presentation-stage="" data-presentation-mode={mode}>
     <div className="presentation-stage__viewport" style={{ width: width * scale, height: height * scale }}>
-      <motion.div className="presentation-stage__canvas" data-presentation-canvas="" style={{ width, height, transform: `scale(${scale})` }}>
+      <motion.div className="presentation-stage__canvas" data-presentation-canvas="" style={{ width, height, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
         <LayoutGroup id="presentation-scene">
           <AnimatePresence mode="sync" initial={false}>
             <motion.div className="presentation-scene" data-presentation-scene="" key={key}>

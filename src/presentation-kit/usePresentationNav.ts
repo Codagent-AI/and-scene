@@ -11,10 +11,10 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null
+      const target = event.target instanceof HTMLElement ? event.target : null
       const editable = target?.isContentEditable || !!target?.closest('input, textarea, select, [contenteditable="true"]')
       const control = target?.closest('button, a, [role="button"]')
-      if (editable || control) return
+      if (editable || (control && [' ', 'Enter'].includes(event.key))) return
       if (['ArrowRight', ' ', 'PageDown'].includes(event.key)) { event.preventDefault(); next() }
       else if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') setMode(value => value === 'browse' ? 'present' : 'browse')

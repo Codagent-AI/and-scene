@@ -4,8 +4,10 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { readFile } from 'node:fs/promises'
 import { chromium } from '@playwright/test'
+import { parsePresentationRegistry } from './presentation-registry.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
+const referenceSlug = 'how-to-make-a-presentation'
 const expected = [
   ['the ask', 'You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
   ['the ask', 'The skill interviews you', 'One question at a time: the topic, the look, then each beat of the story.'],
@@ -32,31 +34,29 @@ async function freePort() {
 async function stop(server) {
   if (server.exitCode !== null || server.signalCode !== null) return
   const closed = new Promise((resolve) => server.once('close', resolve))
-  server.kill('SIGTERM')
   const timeout = setTimeout(() => server.kill('SIGKILL'), 3000)
+  server.kill('SIGTERM')
   await closed
   clearTimeout(timeout)
 }
+async function assertReference(registry) {
+  const sample = registry.find(({ slug }) => slug === referenceSlug)
+  if (!sample) throw new Error(`sample check failed: registered reference presentation “${referenceSlug}” is missing`)
+  if (sample.title !== 'How to Use This Skill to Make a Presentation') throw new Error(`sample check failed: unexpected registered title “${sample.title}”`)
+  const folder = new URL(`../src/presentations/${referenceSlug}/`, import.meta.url)
+  for (const file of ['Talk.tsx', 'Scene.tsx', 'entities.ts', 'style.css', 'steps.ts']) await readFile(new URL(file, folder))
+  for (let index = 0; index < expected.length; index += 1) {
+    const file = `steps/step-${String(index + 1).padStart(2, '0')}.tsx`
+    const source = await readFile(new URL(file, folder), 'utf8').catch(() => '')
+    if (!source) throw new Error(`sample check failed at step ${index + 1}: missing ${file}`)
+    for (const value of expected[index]) if (!source.includes(value)) throw new Error(`sample check failed at step ${index + 1}: expected “${value}”`)
+  }
+}
 async function main() {
   await run('npm', ['run', 'build'])
-  const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-  const canonical = registry.includes("slug: 'how-to-make-a-presentation'")
-  const slug = canonical ? 'how-to-make-a-presentation' : 'example'
-  const outline = canonical
-    ? (await Promise.all(expected.map((_, index) => readFile(new URL(`../src/presentations/${slug}/steps/step-${String(index + 1).padStart(2, '0')}.tsx`, import.meta.url), 'utf8')))).join('\n')
-    : await readFile(new URL(`../src/presentations/${slug}/steps.tsx`, import.meta.url), 'utf8')
-  const folder = new URL(`../src/presentations/${slug}/`, import.meta.url)
-  if (canonical) {
-    for (const file of ['Talk.tsx', 'Scene.tsx', 'entities.ts', 'style.css', 'steps.ts']) await readFile(new URL(file, folder))
-    let cursor = 0
-    for (let i = 0; i < expected.length; i += 1) {
-      for (const value of expected[i]) {
-        const found = outline.indexOf(value, cursor)
-        if (found < 0) throw new Error(`sample check failed at step ${i + 1}: missing or out-of-order “${value}”`)
-        cursor = found + value.length
-      }
-    }
-  }
+  const source = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
+  const registry = parsePresentationRegistry(source)
+  await assertReference(registry)
   const port = await freePort()
   const base = `http://127.0.0.1:${port}`
   const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
@@ -67,40 +67,48 @@ async function main() {
   try {
     let ready = false
     for (let i = 0; i < 60; i += 1) {
-      if (server.exitCode !== null || server.signalCode !== null) throw new Error(`preview failed: ${startup.trim()}`)
-      try { ready = (await fetch(base)).ok; if (ready) break } catch { /* wait for preview */ }
+      if (server.exitCode !== null) throw new Error(`preview failed: ${startup.trim()}`)
+      try { ready = (await fetch(base, { signal: AbortSignal.timeout(1000) })).ok; if (ready) break } catch { /* bounded readiness probe */ }
       await delay(250)
     }
     if (!ready) throw new Error(`preview readiness failed at ${base}: ${startup.trim()}`)
     browser = await chromium.launch({ headless: true })
     const page = await browser.newPage()
+    let currentRoute = registry[0].slug
     let currentStep = 1
     const errors = []
-    page.on('console', (message) => { if (message.type() === 'error') errors.push(`step ${currentStep}: console error: ${message.text()}`) })
-    page.on('pageerror', (error) => errors.push(`step ${currentStep}: uncaught page error: ${error.message}`))
-    await page.goto(`${base}/${slug}`, { waitUntil: 'networkidle' })
-    const footer = page.locator('[data-step-count]')
-    await footer.waitFor()
-    const count = Number(await footer.getAttribute('data-step-count'))
-    if (canonical && count !== expected.length) throw new Error(`render check failed: expected ${expected.length} steps, found ${count}`)
-    for (let index = 0; index < count; index += 1) {
-      currentStep = index + 1
-      await page.waitForTimeout(650)
-      const actualIndex = Number(await page.locator('[data-step-index]').getAttribute('data-step-index'))
-      if (actualIndex !== index) throw new Error(`step ${index + 1}: expected data-step-index ${index}, found ${actualIndex}`)
-      if (canonical) {
-        const title = await page.locator('[data-presentation-progress][aria-current="step"]').getAttribute('aria-label')
-        if (!title?.includes(expected[index][1])) throw new Error(`step ${index + 1}: expected active title “${expected[index][1]}”, found “${title ?? 'none'}”`)
-      }
-      if (errors.length) throw new Error(errors[0])
-      if (index < count - 1) {
-        await page.keyboard.press('ArrowRight')
-        try { await page.waitForFunction((next) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === next, index + 1, { timeout: 2500 }) }
-        catch { throw new Error(`step ${index + 2}: transition did not advance data-step-index`) }
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(`${currentRoute} step ${currentStep}: console error: ${message.text()}`) })
+    page.on('pageerror', (error) => errors.push(`${currentRoute} step ${currentStep}: uncaught page error: ${error.message}`))
+    let rendered = 0
+    for (const { slug } of registry) {
+      currentRoute = slug
+      currentStep = 1
+      await page.goto(`${base}/${encodeURIComponent(slug)}`, { waitUntil: 'networkidle' })
+      const footer = page.locator('[data-step-count]')
+      await footer.waitFor()
+      const count = Number(await footer.getAttribute('data-step-count'))
+      if (!Number.isInteger(count) || count < 1) throw new Error(`${slug} render check failed: invalid data-step-count “${count}”`)
+      if (slug === referenceSlug && count !== expected.length) throw new Error(`${slug} render check failed: expected ${expected.length} steps, found ${count}`)
+      for (let index = 0; index < count; index += 1) {
+        currentStep = index + 1
+        await page.waitForTimeout(650)
+        const actualIndex = Number(await page.locator('[data-step-index]').getAttribute('data-step-index'))
+        if (actualIndex !== index) throw new Error(`${slug} step ${index + 1}: expected data-step-index ${index}, found ${actualIndex}`)
+        if (slug === referenceSlug) {
+          const active = await page.locator('[data-presentation-progress][aria-current="step"]').getAttribute('aria-label')
+          if (!active?.includes(expected[index][1])) throw new Error(`${slug} step ${index + 1}: expected active title “${expected[index][1]}”, found “${active ?? 'none'}”`)
+        }
+        if (errors.length) throw new Error(errors[0])
+        rendered += 1
+        if (index < count - 1) {
+          await page.keyboard.press('ArrowRight')
+          try { await page.waitForFunction((next) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === next, index + 1, { timeout: 2500 }) }
+          catch { throw new Error(`${slug} step ${index + 2}: transition did not advance data-step-index`) }
+        }
       }
     }
     if (errors.length) throw new Error(errors[0])
-    console.log(`PASS: built app and rendered all ${count} ${canonical ? 'reference' : 'bootstrap example'} steps on ${base}`)
+    console.log(`PASS: built app and rendered ${rendered} steps across ${registry.length} registered presentations on ${base}`)
   } finally {
     await browser?.close()
     await stop(server)

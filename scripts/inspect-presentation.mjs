@@ -37,7 +37,7 @@ try {
   let ready = false
   for (let attempt = 0; attempt < 60; attempt += 1) {
     if (server.exitCode !== null || server.signalCode !== null) throw new Error(`preview exited before ready: ${startupOutput.trim()}`)
-    try { ready = (await fetch(base)).ok; if (ready) break } catch { /* server starting */ }
+    try { ready = (await fetch(base, { signal: AbortSignal.timeout(1000) })).ok; if (ready) break } catch { /* bounded readiness probe */ }
     await delay(250)
   }
   if (!ready) throw new Error(`preview did not become ready at ${base}: ${startupOutput.trim()}`)

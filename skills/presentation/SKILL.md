@@ -104,9 +104,10 @@ Copy `templates/presentation/*` to `src/presentations/<slug>/`. Create its
 `steps/` directory, then copy `templates/step/step.tsx` to
 `src/presentations/<slug>/steps/step-NN.tsx` for each step. Update `steps.ts`
 imports for the actual step count. Replace every `REPLACE_*` placeholder
-(including `REPLACE_SLUG`, `REPLACE_TITLE`, and `REPLACE_SECTION`) with the
-presentation's values, then search the new folder for `REPLACE_` and resolve any
-leftovers. Never replace or disturb existing presentations. When modifying,
+(including `REPLACE_SLUG`, `REPLACE_TITLE`, `REPLACE_SECTION`,
+`REPLACE_STEP_TITLE`, and `REPLACE_CAPTION`) with the presentation's values,
+then search the new folder for `REPLACE_` and resolve any leftovers. Never
+replace or disturb existing presentations. When modifying,
 confine edits to the selected presentation and requested change, plus a
 necessary registry adjustment.
 

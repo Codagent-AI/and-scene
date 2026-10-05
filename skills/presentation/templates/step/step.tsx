@@ -13,8 +13,8 @@ function Scene() {
 export const step: Step = {
   id: 'REPLACE_SLUG/step-01',
   era: 'REPLACE_SECTION',
-  title: 'REPLACE STEP TITLE',
-  caption: 'REPLACE WITH THE POINT THIS STEP MAKES.',
+  title: 'REPLACE_STEP_TITLE',
+  caption: 'REPLACE_CAPTION',
   Scene,
   payload: undefined,
 }

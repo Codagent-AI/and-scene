@@ -33,8 +33,14 @@ try {
   if (entries.length !== expected.length || expected.some(([title, caption], index) => entries[index]?.[0] !== title || entries[index]?.[1] !== caption)) fail(`sample check failed: expected canonical nine titles and captions in order, found ${entries.length} step(s)`)
   console.log('Sample check passed: registered canonical nine-step outline.')
 
-  const build = spawnSync('npm', ['run', 'build'], { stdio: 'inherit' })
-  if (build.status !== 0) fail(`build check failed: npm run build exited ${build.status ?? build.signal ?? 'without a status'}`)
+  const buildTimeoutMs = 120_000
+  const build = spawnSync('npm', ['run', 'build'], { stdio: 'inherit', timeout: buildTimeoutMs })
+  if (build.status !== 0) {
+    const reason = build.error?.code === 'ETIMEDOUT'
+      ? `timed out after ${buildTimeoutMs}ms`
+      : `exited ${build.status ?? build.signal ?? 'without a status'}`
+    fail(`build check failed: npm run build ${reason}`)
+  }
   console.log('Build check passed.')
 
   preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'inherit' })
@@ -69,6 +75,9 @@ try {
       catch { fail(`render check failed at ${stepContext}: ArrowRight did not advance data-step-index to ${index + 1}`) }
     }
   }
+  stepContext = `step ${count} (${expected[count - 1][0]})`
+  await page.waitForTimeout(300)
+  if (errors.length) fail(`render check failed at ${stepContext}: ${errors.join('; ')}`)
   console.log(`Render check passed: ${count} steps rendered cleanly at ${base}${route}.`)
   console.log('Verification passed: build, registered sample outline, and production browser render.')
 } catch (error) {

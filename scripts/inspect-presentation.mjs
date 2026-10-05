@@ -9,8 +9,12 @@ const port = Number(process.env.PORT ?? 4180)
 const settleMs = Number(process.env.INSPECT_SETTLE_MS ?? 800)
 const base = `http://127.0.0.1:${port}/${slug}`
 const output = `artifacts/inspection/${slug}`
-const build = spawnSync('npm', ['run', 'build'], { stdio: 'inherit' })
-if (build.status !== 0) process.exit(build.status ?? 1)
+const buildTimeoutMs = 120_000
+const build = spawnSync('npm', ['run', 'build'], { stdio: 'inherit', timeout: buildTimeoutMs })
+if (build.status !== 0) {
+  if (build.error?.code === 'ETIMEDOUT') console.error(`Inspection build timed out after ${buildTimeoutMs}ms.`)
+  process.exit(build.status ?? 1)
+}
 const preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'inherit' })
 let browser
 const warnings = []

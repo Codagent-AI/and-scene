@@ -19,6 +19,11 @@ const cases = [
     const source = await readFile(file, 'utf8')
     await writeFile(file, source.replace('function Scene({ payload }: { payload: Payload }) {', "function Scene({ payload }: { payload: Payload }) {\n  if (payload.cards === 0 && !payload.skill) console.error('fixture browser failure')"))
   }, expected: /Verification failed at step 1 \(You have a topic\): render check failed at step 1 .*console error: fixture browser failure/ },
+  { name: 'late browser console', port: 4306, mutate: async copy => {
+    const file = path.join(copy, 'src/presentations/how-to-make-a-presentation/steps.tsx')
+    const source = await readFile(file, 'utf8')
+    await writeFile(file, source.replace('function Scene({ payload }: { payload: Payload }) {', "function Scene({ payload }: { payload: Payload }) {\n  if (payload.reveal) setTimeout(() => console.error('late fixture browser failure'), 100)"))
+  }, expected: /render check failed at step 9 \(You’re looking at one\): console error: late fixture browser failure/ },
   { name: 'stalled transition', port: 4305, mutate: async copy => {
     const file = path.join(copy, 'src/presentation-kit/usePresentationNav.ts')
     const source = await readFile(file, 'utf8')

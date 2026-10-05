@@ -13,8 +13,7 @@
     "test:inspection": "node scripts/test-presentation-inspection.mjs",
     "test:verification": "node scripts/test-presentation-verification.mjs",
     "verify": "node scripts/verify.mjs",
-    "inspect": "node scripts/inspect-presentation.mjs",
-    "test:verification": "node scripts/test-presentation-verification.mjs"
+    "inspect": "node scripts/inspect-presentation.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

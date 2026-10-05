@@ -9,7 +9,7 @@ import type { PresentationProps } from './types'
 export function Presentation<TPayload>({ steps, title, initialMode = 'browse', designSize = { width: DESIGN_W, height: DESIGN_H }, attribution, className, style }: PresentationProps<TPayload>) {
   const nav = usePresentationNav(steps.length, initialMode)
   if (steps.length === 0) return null
-  const attributionOptions = { label: attribution?.label ?? 'made by and-scene', href: attribution?.href ?? 'https://github.com/and-scene', hidden: attribution?.hidden ?? false }
+  const attributionOptions = { label: attribution?.label ?? 'made by and-scene', href: attribution?.href ?? 'https://github.com/Codagent-AI/and-scene', hidden: attribution?.hidden ?? false }
   return <main className={['presentation', `presentation--${nav.mode}`, className].filter(Boolean).join(' ')} data-presentation="" data-presentation-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.stepIndex} style={style} {...nav.touchHandlers}>
     <Header title={title} mode={nav.mode} index={nav.stepIndex} />
     <Stage steps={steps} index={nav.stepIndex} mode={nav.mode} width={designSize.width} height={designSize.height} />

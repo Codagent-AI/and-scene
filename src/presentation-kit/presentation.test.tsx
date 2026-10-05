@@ -48,7 +48,7 @@ describe('presentation kit contract', () => {
     const { container } = render(<Presentation title="Example" steps={steps} />)
     const attribution = container.querySelector('[data-presentation-attribution]')
     expect(attribution?.textContent).toBe('made by and-scene')
-    expect(attribution?.getAttribute('href')).toContain('github.com/and-scene')
+    expect(attribution?.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene')
     expect(container.querySelector('.presentation-header a')).toBeNull()
   })
 

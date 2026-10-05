@@ -1,0 +1,10 @@
+import type { ComponentType } from 'react'
+
+export interface PresentationEntry {
+  slug: string
+  title: string
+  load: () => Promise<{ default: ComponentType }>
+}
+
+/** Add one entry per self-contained presentation directory. */
+export const presentations: readonly PresentationEntry[] = []

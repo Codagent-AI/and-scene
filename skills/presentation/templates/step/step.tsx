@@ -12,7 +12,7 @@ function Scene() {
 
 export const step: Step = {
   id: 'REPLACE_SLUG/step-01',
-  era: 'REPLACE SECTION',
+  era: 'REPLACE_SECTION',
   title: 'REPLACE STEP TITLE',
   caption: 'REPLACE WITH THE POINT THIS STEP MAKES.',
   Scene,

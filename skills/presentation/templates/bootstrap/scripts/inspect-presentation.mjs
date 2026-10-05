@@ -1,4 +1,5 @@
 import { mkdir } from 'node:fs/promises'
+import { createServer } from 'node:net'
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
@@ -6,20 +7,46 @@ import { chromium } from '@playwright/test'
 
 const slug = process.argv[2]
 if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
-const port = 4175
+async function freePort() {
+  const probe = createServer()
+  await new Promise((resolve, reject) => {
+    probe.once('error', reject)
+    probe.listen(0, '127.0.0.1', resolve)
+  })
+  const { port } = probe.address()
+  await new Promise((resolve, reject) => probe.close((error) => error ? reject(error) : resolve()))
+  return port
+}
+
+async function stop(server) {
+  if (server.exitCode !== null || server.signalCode !== null) return
+  const closed = new Promise((resolve) => server.once('close', resolve))
+  server.kill('SIGTERM')
+  const timeout = setTimeout(() => server.kill('SIGKILL'), 3000)
+  await closed
+  clearTimeout(timeout)
+}
+
+const port = await freePort()
 const base = `http://127.0.0.1:${port}`
 const output = `inspection/${slug}`
 const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
-const server = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: fileURLToPath(new URL('..', import.meta.url)), stdio: 'ignore' })
+const server = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: fileURLToPath(new URL('..', import.meta.url)), stdio: ['ignore', 'ignore', 'pipe'] })
 let browser
+let startupOutput = ''
+server.stderr.setEncoding('utf8')
+server.stderr.on('data', (chunk) => { startupOutput += chunk })
 try {
   await mkdir(output, { recursive: true })
   let ready = false
   for (let attempt = 0; attempt < 60; attempt += 1) {
+    if (server.exitCode !== null || server.signalCode !== null) {
+      throw new Error(`Vite preview exited before becoming ready${startupOutput ? `: ${startupOutput.trim()}` : ''}`)
+    }
     try { ready = (await fetch(base)).ok; if (ready) break } catch { /* preview is starting */ }
     await delay(250)
   }
-  if (!ready) throw new Error('Vite preview did not become ready')
+  if (!ready) throw new Error(`Vite preview did not become ready on ${base}${startupOutput ? `: ${startupOutput.trim()}` : ''}`)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   page.on('console', (message) => { if (message.type() === 'error') console.warn(`Browser console: ${message.text()}`) })
@@ -79,6 +106,5 @@ try {
   console.log(`Captured ${count} settled step screenshots in ${output}/; review scene and chrome composition visually.`)
 } finally {
   await browser?.close()
-  server.kill('SIGTERM')
-  await new Promise((resolve) => server.once('close', resolve))
+  await stop(server)
 }

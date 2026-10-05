@@ -50,6 +50,7 @@ describe('distributable presentation bootstrap (INT-001)', () => {
   })
 
   it('builds and smoke-renders the registered example route from outside the source repository', () => {
+    run('npm', ['run', 'lint'], materialized)
     run('npm', ['run', 'build'], materialized)
     const verify = path.join(materialized, 'scripts/verify.mjs')
     run(process.execPath, [verify], tempRoot)
@@ -68,8 +69,14 @@ describe('distributable presentation bootstrap (INT-001)', () => {
 
   it('resolves templates from the skill directory and keeps visual defaults outside the reusable kit', () => {
     const skill = readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8')
-    expect(skill).toMatch(/directory containing this\s+`SKILL\.md`/)
-    expect(skill).toMatch(/templates\/` next to this file/)
+    expect(skill).toMatch(/directory containing this `SKILL\.md`/)
+    expect(skill).toMatch(/templates\/bootstrap/)
+    expect(skill).toMatch(/templates\/presentation/)
+    expect(skill).toMatch(/templates\/step\/step\.tsx/)
+    expect(skill).toMatch(/REPLACE_SLUG/)
+    expect(skill).toMatch(/REPLACE_TITLE/)
+    expect(skill).toMatch(/Out of Scope/)
+    expect(skill).toMatch(/Commands run:/)
     const kitCss = readFileSync(path.join(bootstrap, 'src/presentation-kit/presentation-kit.css'), 'utf8')
     expect(kitCss).toMatch(/Geometry only/)
     expect(kitCss).not.toMatch(/#[\da-f]{3,8}\b|font-family|box-shadow|border-radius|--[\w-]+\s*:/i)

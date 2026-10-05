@@ -2,10 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Presentation } from '../Presentation'
 import { Box } from '../nodes/Box'
 import { SceneLayer } from '../nodes/SceneLayer'
+import { useFitScale } from '../useFitScale'
 import type { SceneProps, Step } from '../types'
 
 type Payload = { value: string }
@@ -15,6 +16,11 @@ function TestScene({ payload }: SceneProps<Payload>) {
 }
 function ChangingScene({ payload }: SceneProps<Payload>) {
   return <SceneLayer>{payload.value === 'one' ? <Box id="persistent">Persisting</Box> : <><Box id="persistent">Persisting updated</Box><Box id="new" entering>New entity</Box></>}</SceneLayer>
+}
+function FitProbe() {
+  const [element, setElement] = useState<HTMLElement | null>(null)
+  const scale = useFitScale(element, 880, 380)
+  return <div ref={setElement} data-scale={scale} />
 }
 const steps: Step<Payload>[] = [
   { id: 'first', era: 'Start', title: 'First title', caption: 'First caption', groupKey: 'flow', Scene: TestScene, payload: { value: 'one' } },
@@ -61,6 +67,39 @@ describe('Presentation', () => {
     expect(document.querySelector('[data-step-index="1"]')).toBeInTheDocument()
     fireEvent.keyDown(window, { key: 'ArrowRight' })
     expect(document.querySelector('[data-step-index="1"]')).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(document.querySelector('[data-step-index="1"]')).toBeInTheDocument()
+  })
+
+  it('shows one active title in present mode and hides browse navigation and caption', () => {
+    render(<Presentation steps={steps} title="Deck title" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to present mode' }))
+    expect(screen.getByRole('heading', { name: 'First title' })).toBeInTheDocument()
+    expect(screen.getAllByText('First title')).toHaveLength(1)
+    expect(screen.queryByText('Deck title')).not.toBeInTheDocument()
+    expect(screen.queryByText('First caption')).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Table of contents' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Previous step' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Next step' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'made by and-scene' })).toBeInTheDocument()
+  })
+
+  it('navigates with horizontal pointer swipes', () => {
+    const { container } = render(<Presentation steps={steps} title="Typed" />)
+    const stage = container.querySelector('[data-presentation-stage]')!
+    fireEvent.pointerDown(stage, { clientX: 180, clientY: 40, pointerType: 'touch' })
+    fireEvent.pointerUp(stage, { clientX: 80, clientY: 44, pointerType: 'touch' })
+    expect(document.querySelector('[data-step-index="1"]')).toBeInTheDocument()
+    fireEvent.pointerDown(stage, { clientX: 80, clientY: 44, pointerType: 'touch' })
+    fireEvent.pointerUp(stage, { clientX: 180, clientY: 40, pointerType: 'touch' })
+    expect(document.querySelector('[data-step-index="0"]')).toBeInTheDocument()
+  })
+
+  it('scales the fixed canvas uniformly to its available viewport', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 440, height: 190 } as DOMRect)
+    render(<FitProbe />)
+    expect(document.querySelector('[data-scale="0.5"]')).toBeInTheDocument()
+    vi.restoreAllMocks()
   })
 
   it('keeps kit presentation styles limited to geometry and exports the fixed canvas contract', async () => {

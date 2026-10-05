@@ -6,8 +6,8 @@ import { ENTITY } from './entities'
 type Payload = { message: string }
 function Scene({ payload }: { payload: Payload }) {
   return <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-    <Box id={ENTITY.example} className="example-node" style={{ position: 'absolute', left: 300, top: 140, width: 280, height: 90 }}>
-      <Label className="example-node__label">{payload.message}</Label>
+    <Box entityId={ENTITY.example} className="example-node" style={{ position: 'absolute', left: 300, top: 140, width: 280, height: 90 }}>
+      <Label entityId={`${ENTITY.example}-label`} className="example-node__label">{payload.message}</Label>
     </Box>
   </div>
 }

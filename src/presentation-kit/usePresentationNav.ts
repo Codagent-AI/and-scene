@@ -11,6 +11,7 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return
       const target = event.target instanceof HTMLElement ? event.target : null
       const editable = target?.isContentEditable || !!target?.closest('input, textarea, select, [contenteditable="true"]')
       const control = target?.closest('button, a, [role="button"]')

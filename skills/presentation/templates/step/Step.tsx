@@ -4,8 +4,8 @@ import { Box, Label } from '../../../presentation-kit'
 
 export interface ExamplePayload { label: string }
 function ExampleScene({ payload }: { payload: ExamplePayload }) {
-  return <Box id="stable-entity-id" className="example-node">
-    <Label className="example-node__label">{payload.label}</Label>
+  return <Box entityId="stable-entity-id" className="example-node">
+    <Label entityId="stable-entity-label" className="example-node__label">{payload.label}</Label>
   </Box>
 }
 

@@ -77,6 +77,14 @@ describe('presentation kit contract', () => {
     expect(screen.queryByRole('navigation', { name: 'Presentation steps' })).toBeNull()
   })
 
+  it('ignores presentation navigation shortcuts with modifiers', () => {
+    render(<Presentation title="Example" steps={steps} />)
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowRight', metaKey: true })
+    expect(document.querySelector('[data-presentation-mode]')?.getAttribute('data-presentation-mode')).toBe('browse')
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+  })
+
   it('provides an explicit empty registry and resolves only registered path slugs', () => {
     expect(presentations).toEqual([])
     const entry = { slug: 'example', title: 'Example', load: async () => ({ default: RouteComponent }) }

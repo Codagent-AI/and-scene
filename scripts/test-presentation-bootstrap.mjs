@@ -34,6 +34,11 @@ try {
   assert.deepEqual(snapshotFiles, kitFiles, 'bootstrap kit file list must match canonical kit')
   for (const file of kitFiles) assert.equal(await readFile(path.join(project, 'src/presentation-kit', file), 'utf8'), await readFile(path.join(root, 'src/presentation-kit', file), 'utf8'), `${file} differs from canonical kit`)
 
+  const templatePresentation = path.join(project, 'src/presentations/template-check')
+  await mkdir(path.join(templatePresentation, 'steps'), { recursive: true })
+  await cp(path.join(skillDir, 'templates/presentation'), templatePresentation, { recursive: true })
+  await cp(path.join(skillDir, 'templates/step/Step.tsx'), path.join(templatePresentation, 'steps/Step.tsx'))
+
   const pkg = JSON.parse(await readFile(path.join(project, 'package.json'), 'utf8'))
   const declared = { ...pkg.dependencies, ...pkg.devDependencies }
   for (const name of ['react', 'react-dom', 'motion', 'lucide-react', 'vite', '@vitejs/plugin-react', 'typescript', '@types/react', '@types/react-dom', '@types/node', 'eslint', 'eslint-plugin-react-hooks', 'eslint-plugin-react-refresh', 'playwright']) assert.ok(declared[name], `missing required dependency ${name}`)
@@ -42,9 +47,10 @@ try {
   assert.doesNotMatch(kitText, /tailwind|#[0-9a-f]{3,8}\b|font-family\s*:|box-shadow\s*:|border\s*:/i, 'kit must not define a visual theme')
   assert.doesNotMatch(await readFile(path.join(project, 'src/index.css'), 'utf8'), /#[0-9a-f]{3,8}\b|font-family\s*:|box-shadow\s*:|tailwind/i, 'bootstrap host CSS must not define a theme')
   const skill = await readFile(path.join(skillDir, 'SKILL.md'), 'utf8')
-  assert.match(skill, /new URL\(['"]\.\/templates/i, 'templates must resolve relative to the skill file')
+  assert.match(skill, /templates.*next to this `SKILL\.md`/i, 'templates must resolve relative to the skill file')
 
   run('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], project)
+  run('npm', ['--prefix', project, 'run', 'build'], outside)
   run('npm', ['--prefix', project, 'run', 'lint'], outside)
   run('npm', ['--prefix', project, 'run', 'verify'], outside)
   console.log('INT-001 passed: materialized bootstrap built, route smoke-checked from an external cwd, dependency contract and kit parity verified.')

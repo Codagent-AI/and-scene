@@ -33,7 +33,7 @@ try {
   const count = Number(await root.getAttribute('data-step-count'))
   if (!count) throw new Error(`route ${base} did not expose presentation step hooks`)
   for (stepIndex = 0; stepIndex < count; stepIndex++) {
-    await page.waitForFunction(() => [...document.getAnimations()].every(animation => !['running', 'pending'].includes(animation.playState)))
+    await page.waitForFunction(() => [...document.getAnimations()].every(animation => animation.effect?.getComputedTiming().iterations === Infinity || !['running', 'pending'].includes(animation.playState)), null, { timeout: 5000 }).catch(() => {})
     await page.waitForTimeout(800)
     const diagnostics = await page.evaluate(() => {
       const found = []
@@ -47,7 +47,7 @@ try {
       const directText = [...document.querySelectorAll('body *')].filter(element => [...element.childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()))
       const items = [...new Set([...document.querySelectorAll(selectors), ...directText])].filter(visible)
       for (const item of items) {
-        const text = item.textContent?.trim().replace(/\\s+/g, ' ').slice(0, 70) || item.getAttribute('data-presentation-node') || item.tagName.toLowerCase()
+        const text = item.textContent?.trim().replace(/\s+/g, ' ').slice(0, 70) || item.getAttribute('data-presentation-node') || item.tagName.toLowerCase()
         const a = item.getBoundingClientRect()
         if (item.closest('[data-presentation-allow-overlap]')) continue
         for (const other of items) {
@@ -56,7 +56,7 @@ try {
           const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left)
           const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
           if (overlapX > 4 && overlapY > 4 && text < (other.textContent?.trim() ?? '')) {
-            const otherText = other.textContent?.trim().replace(/\\s+/g, ' ').slice(0, 70) || other.tagName.toLowerCase()
+            const otherText = other.textContent?.trim().replace(/\s+/g, ' ').slice(0, 70) || other.tagName.toLowerCase()
             found.push(`overlap: “${text}” / “${otherText}”`)
           }
         }

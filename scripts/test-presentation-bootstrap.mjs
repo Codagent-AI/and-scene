@@ -46,6 +46,10 @@ try {
   const kitText = (await Promise.all(kitFiles.map(file => readFile(path.join(project, 'src/presentation-kit', file), 'utf8')))).join('\n')
   assert.doesNotMatch(kitText, /tailwind|#[0-9a-f]{3,8}\b|font-family\s*:|box-shadow\s*:|border\s*:/i, 'kit must not define a visual theme')
   assert.doesNotMatch(await readFile(path.join(project, 'src/index.css'), 'utf8'), /#[0-9a-f]{3,8}\b|font-family\s*:|box-shadow\s*:|tailwind/i, 'bootstrap host CSS must not define a theme')
+  const inspectScript = await readFile(path.join(templateDir, 'scripts/inspect-presentation.mjs'), 'utf8')
+  assert.match(inspectScript, /getComputedTiming\(\)\.iterations === Infinity/, 'inspection settle wait must tolerate infinite animations')
+  assert.match(inspectScript, /timeout: 5000/, 'inspection settle wait must have a best-effort timeout')
+  assert.equal((inspectScript.match(/replace\(\/\\s\+\/g/g) ?? []).length, 2, 'overlap labels must normalize whitespace')
   const skill = await readFile(path.join(skillDir, 'SKILL.md'), 'utf8')
   assert.match(skill, /templates.*next to this `SKILL\.md`/i, 'templates must resolve relative to the skill file')
 

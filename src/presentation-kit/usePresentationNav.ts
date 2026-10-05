@@ -10,6 +10,7 @@ export function usePresentationNav(count: number, initialMode: PresentationMode 
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return
       const target = event.target
       if (target instanceof HTMLElement && target.closest('input, textarea, select, button, a, [contenteditable="true"], [role="slider"], [role="textbox"]')) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') { event.preventDefault(); next() }

@@ -71,6 +71,18 @@ describe('Presentation', () => {
     expect(document.querySelector('[data-step-index="1"]')).toBeInTheDocument()
   })
 
+  it('leaves modified browser shortcuts alone', () => {
+    render(<Presentation steps={steps} title="Typed" />)
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true })
+    expect(document.querySelector('[data-presentation][data-presentation-mode="browse"]')).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'p', metaKey: true })
+    expect(document.querySelector('[data-presentation][data-presentation-mode="browse"]')).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: ' ', altKey: true })
+    expect(document.querySelector('[data-step-index="0"]')).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'ArrowRight', ctrlKey: true })
+    expect(document.querySelector('[data-step-index="0"]')).toBeInTheDocument()
+  })
+
   it('shows one active title in present mode and hides browse navigation and caption', () => {
     render(<Presentation steps={steps} title="Deck title" />)
     fireEvent.click(screen.getByRole('button', { name: 'Switch to present mode' }))

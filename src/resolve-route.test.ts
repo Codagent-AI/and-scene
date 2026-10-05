@@ -13,4 +13,9 @@ describe('presentation route resolution', () => {
   it('matches a registered pathname after decoding its slug', () => {
     expect(resolvePresentationRoute('/how-to%2520scene/', [entry])).toBe(entry)
   })
+
+  it('treats malformed percent escapes as an unmatched route', () => {
+    expect(resolvePresentationRoute('/100%', [entry])).toBeUndefined()
+    expect(resolvePresentationRoute('/%E0%A4%A', [entry])).toBeUndefined()
+  })
 })

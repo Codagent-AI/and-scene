@@ -1,0 +1,3 @@
+/* Host reset only. Presentation styling belongs to each presentation. */
+html, body, #root { min-height: 100%; margin: 0; }
+body { min-width: 320px; }

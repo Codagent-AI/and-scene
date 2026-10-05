@@ -1,0 +1,10 @@
+/* Presentation-owned visual design. The scene kit supplies geometry only. */
+.REPLACE_SLUG {
+  color: #17212b;
+  background: #f5f2ea;
+  font-family: Georgia, serif;
+}
+
+.REPLACE_SLUG .presentation-header__title { font-size: 1.25rem; }
+.REPLACE_SLUG .presentation-footer__narration { font-size: 1rem; }
+.REPLACE_SLUG .presentation-progress [aria-current="step"] { outline: 2px solid currentColor; }

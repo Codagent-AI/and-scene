@@ -1,9 +1,9 @@
 /* Geometry only. Hosts own all visual treatments. */
 .presentation { position: relative; width: 100%; height: 100vh; min-height: 280px; overflow: hidden; }
-.presentation-header { position: absolute; inset: 0 0 auto; height: 64px; display: flex; align-items: center; gap: 16px; padding-inline: 24px; }
+.presentation-header { position: absolute; inset: 0 0 auto; height: 64px; display: flex; align-items: center; gap: 16px; padding: 0 128px 0 24px; }
 .presentation-header__brand { display: contents; }
 .presentation-header__marker { flex: none; }
-.presentation-header__title { margin: 0; }
+.presentation-header__title { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .presentation-stage { position: absolute; inset: 64px 0 112px; }
 .presentation-stage__viewport { position: absolute; inset: 12px 0; overflow: hidden; }
 .presentation-stage__scaled { position: absolute; top: 50%; left: 50%; transform-origin: center; }
@@ -21,4 +21,4 @@
 .presentation--present .presentation-stage { inset: 64px 0 80px; }
 .presentation--present .presentation-footer { min-height: 80px; }
 .presentation--present .presentation-attribution { bottom: 4px; }
-@media (max-width: 700px) { .presentation-toc { display: none; } .presentation-header { padding-inline: 16px; } .presentation-footer { padding-inline: 16px; } .presentation-footer__content { align-items: stretch; flex-direction: column; gap: 8px; } .presentation-footer__narration { max-width: none; } }
+@media (max-width: 700px) { .presentation-toc { display: none; } .presentation-header { padding: 0 120px 0 16px; } .presentation-footer { padding-inline: 16px; } .presentation-footer__content { align-items: stretch; flex-direction: column; gap: 8px; } .presentation-footer__narration { max-width: none; } }

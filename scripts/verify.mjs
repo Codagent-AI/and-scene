@@ -89,6 +89,13 @@ async function main() {
       const count = Number(await footer.getAttribute('data-step-count'))
       if (!Number.isInteger(count) || count < 1) throw new Error(`${slug} render check failed: invalid data-step-count “${count}”`)
       if (slug === referenceSlug && count !== expected.length) throw new Error(`${slug} render check failed: expected ${expected.length} steps, found ${count}`)
+      await page.setViewportSize({ width: 390, height: 844 })
+      const titleBounds = await page.locator('.presentation-header__title').boundingBox()
+      const toggleBounds = await page.locator('[data-presentation-mode-toggle]').boundingBox()
+      if (titleBounds && toggleBounds && titleBounds.x + titleBounds.width > toggleBounds.x) {
+        throw new Error(`${slug} render check failed: header title overlaps the mode toggle at narrow width`)
+      }
+      await page.setViewportSize({ width: 1280, height: 720 })
       for (let index = 0; index < count; index += 1) {
         currentStep = index + 1
         await page.waitForTimeout(650)

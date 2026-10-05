@@ -1,0 +1,38 @@
+.how-to-make-a-presentation { color: #202d37; background: #f6f3eb; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.how-to-make-a-presentation .presentation-header__marker { color: #f6f3eb; background: #274b45; border-radius: 50%; width: 34px; height: 34px; display: grid; place-items: center; font-size: .72rem; font-weight: 700; }
+.how-to-make-a-presentation .presentation-header__title { font-size: 1rem; letter-spacing: -.02em; }
+.how-to-make-a-presentation .presentation-mode-toggle, .how-to-make-a-presentation .presentation-footer button, .how-to-make-a-presentation .presentation-toc button { border: 1px solid #c9c5b9; border-radius: 999px; color: #274b45; background: #fffdf8; padding: .5rem .85rem; font: inherit; cursor: pointer; }
+.how-to-make-a-presentation .presentation-footer__narration { color: #33434a; font-size: .92rem; }
+.how-to-make-a-presentation .presentation-footer__narration [data-presentation-era] { color: #ba603b; text-transform: uppercase; letter-spacing: .12em; font-size: .68rem; font-weight: 800; }
+.how-to-make-a-presentation .presentation-progress button { width: 12px; height: 12px; min-width: 12px; padding: 0; background: #d8d4c9; border: 0; }
+.how-to-make-a-presentation .presentation-progress button[data-presentation-active="true"] { background: #d8643f; outline: 3px solid #f0c8b6; }
+.how-to-make-a-presentation .presentation-toc button { font-size: .72rem; text-transform: capitalize; }
+.how-to-make-a-presentation .presentation-toc button[data-presentation-active="true"] { color: #fffdf8; background: #274b45; border-color: #274b45; font-weight: 750; }
+.how-to-make-a-presentation .presentation-attribution { color: #52635e; font-size: 12px; text-decoration: none; }
+.sample-scene { color: #202d37; }
+.conversation { position: absolute; inset: 24px 86px auto; height: 80px; display: flex; align-items: center; justify-content: space-between; }
+.actor, .prompt { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; border-radius: 16px; font-weight: 750; }
+.actor { width: 112px; background: #274b45; color: #fffdf8; }
+.actor--skill { background: #d8643f; }
+.prompt { position: absolute; left: 0; top: -40px; width: 184px; height: 38px; background: #fffdf8; border: 1px solid #ddd7c8; color: #52635e; font-size: 13px; transform: rotate(-2deg); }
+.conversation-arrow { position: absolute; left: 150px; right: 150px; height: 2px; background: #85958c; }
+.question-chip { position: absolute; left: 50%; top: -1px; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; border-radius: 20px; padding: 7px 12px; background: #f1d8bc; color: #70452f; font-size: 11px; }
+.step-tray { position: absolute; left: 20px; right: 20px; top: 144px; height: 118px; display: flex; align-items: flex-start; gap: 8px; }
+.step-card { position: relative; width: 78px; height: 82px; flex: 0 0 78px; padding: 9px 7px; border: 1px solid #d8d1c1; border-radius: 11px; background: #fffdf8; box-shadow: 0 3px 0 #e8e2d5; display: flex; flex-direction: column; gap: 5px; }
+.step-card__number { color: #c56543; font-size: 10px; font-weight: 800; }
+.step-card__title { font-size: 11px; font-weight: 750; }
+.step-card__parts { margin-top: auto; color: #7b837c; font-size: 8px; }
+.step-card--selected { border-color: #d8643f; box-shadow: 0 0 0 2px #f0c8b6; }
+.step-card--ghost { border-style: dashed; background: transparent; box-shadow: none; color: #a0a397; align-items: center; justify-content: center; }
+.kit-socket { position: absolute; top: 88px; left: 190px; min-width: 226px; padding: 8px 13px; text-align: center; border: 1px solid #8ca197; border-radius: 9px; background: #e7eee6; color: #274b45; font-size: 11px; font-weight: 700; }
+.verify-link { position: absolute; top: 38px; left: 530px; width: 18px; height: 2px; background: #d8643f; }
+.verify-node { position: absolute; z-index: 2; top: 17px; left: 548px; width: 108px; height: 46px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; border: 1px solid #8fb09b; border-radius: 10px; background: #e5f1e8; color: #23583a; font-size: 9px; }
+.verify-node b { font-size: 8px; letter-spacing: .09em; }
+.depth-control { position: absolute; left: 35px; top: 91px; color: #60736a; font-size: 9px; display: flex; gap: 8px; align-items: center; }
+.depth-pill { padding: 5px 8px; border-radius: 99px; background: #e6e9dc; font-weight: 700; color: #34584c; }
+.depth-pill i { display: inline-block; width: 12px; height: 2px; margin: 0 3px; vertical-align: middle; background: #bc704f; }
+.modify-route { position: absolute; left: 75px; top: 275px; display: flex; align-items: center; gap: 6px; color: #a55337; font-size: 11px; }
+.reveal-frame { position: absolute; inset: 8px 2px 2px; border: 2px solid #d8643f; border-radius: 24px; pointer-events: none; }
+.reveal-allow-overlap { position: absolute; inset: 0; pointer-events: none; }
+.reveal-label { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); white-space: nowrap; padding: 3px 11px; background: #f6f3eb; color: #a55337; font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+@media (max-width: 700px) { .how-to-make-a-presentation .presentation-footer__narration { font-size: .8rem; } .how-to-make-a-presentation .presentation-footer__controls { justify-content: space-between; gap: 5px; } .how-to-make-a-presentation .presentation-footer button { padding: .4rem .55rem; font-size: .75rem; } }

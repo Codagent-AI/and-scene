@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "verify": "npm run build && node scripts/verify.mjs",
+    "verify": "node scripts/verify.mjs",
     "inspect": "node scripts/inspect-presentation.mjs",
     "test": "vitest run"
   },

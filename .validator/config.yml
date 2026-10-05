@@ -24,6 +24,9 @@ entry_points:
     reviews:
       - all-reviewers:
           builtin: all-reviewers
+      - task-compliance:
+          builtin: task-compliance
+          enabled: false # Opt-in: activate with `agent-validator run --enable-review task-compliance --context-file <task>`
   # Skill files live under skills/ (skills/<name>/SKILL.md plus its templates),
   # so skill-quality only runs when they change.
   - path: skills

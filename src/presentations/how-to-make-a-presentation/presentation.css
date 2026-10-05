@@ -25,35 +25,6 @@
 .presentation--present .presentation-mode-toggle { top: auto; right: 36px; bottom: 18px; }
 .presentation--present .presentation-attribution { display: none; }
 
-@media (max-width: 600px) {
-  .presentation-header { min-height: 52px; padding: 9px 14px; }
-  .presentation-header__title { max-width: calc(100vw - 145px); overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-  .presentation-mode-toggle { top: 12px; right: 12px; padding: 7px 11px; }
-  .presentation-toc { top: 59px; right: 8px; left: 8px; justify-content: center; gap: 3px; }
-  .presentation-toc button { padding: 5px 7px; font-size: 8px; }
-  .presentation-footer { right: 14px; bottom: 12px; left: 14px; flex-direction: column; align-items: stretch; gap: 8px; }
-  .presentation-footer__narration { max-width: none; }
-  .presentation-footer__narration h2 { margin-bottom: 4px; font-size: 18px; }
-  .presentation-footer__narration p { font-size: 11px; line-height: 1.3; }
-  .presentation-progress { justify-content: center; gap: 5px; width: 100%; }
-  .presentation-progress__steps { justify-content: center; gap: 4px; }
-  .presentation-progress__step { flex: 0 0 26px; width: 26px; height: 26px; }
-  .presentation-control { display: none; }
-  .presentation-attribution { top: 42px; right: 12px !important; font-size: 11px; }
-  .presentation--present .presentation-footer { bottom: 14px; }
-  .sample-person .scene-label, .sample-skill .scene-label { font-size: 23px; }
-  .sample-sub { font-size: 16px; }
-  .sample-prompt { font-size: 25px; }
-  .sample-question, .sample-modify-chip { font-size: 14px; }
-  .sample-tray-label { font-size: 14px; }
-  .sample-card__number { font-size: 17px; }
-  .sample-card__title { font-size: 20px; }
-  .sample-card__meta { font-size: 13px; }
-  .sample-morph { font-size: 14px; }
-  .sample-kit span, .sample-verify span { font-size: 16px; }
-  .sample-kit small, .sample-verify small { font-size: 13px; }
-}
-
 .sample-scene { color: #172b3a; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 .sample-scene-content { position: relative; width: 100%; height: 100%; }
 .sample-conversation { z-index: 2; }
@@ -87,3 +58,36 @@
 .sample-modify-chip { display: grid; place-items: center; border-radius: 16px; background: #fff0d7; color: #8a5d18; font-size: 9px; }
 .sample-reveal { z-index: 5; border: 2px solid #df9e39; border-radius: 23px; background: transparent; pointer-events: none; }
 .sample-reveal > span { position: absolute; right: 18px; top: 7px; padding: 3px 8px; border-radius: 10px; background: #f5d89e; color: #745016; font-size: 9px; font-weight: 800; letter-spacing: .11em; }
+
+@media (max-width: 600px) {
+  .presentation-header { min-height: 52px; padding: 9px 14px; }
+  .presentation-header__title { max-width: calc(100vw - 145px); overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+  .presentation-mode-toggle { top: 12px; right: 12px; padding: 7px 11px; }
+  .presentation-toc { top: 59px; right: 8px; left: 8px; justify-content: center; gap: 3px; }
+  .presentation-toc button { padding: 5px 7px; font-size: 8px; }
+  .presentation-footer { right: 14px; bottom: 12px; left: 14px; flex-direction: column; align-items: stretch; gap: 8px; }
+  .presentation-footer__narration { max-width: none; }
+  .presentation-footer__narration h2 { margin-bottom: 4px; font-size: 18px; }
+  .presentation-footer__narration p { font-size: 11px; line-height: 1.3; }
+  .presentation-progress { justify-content: center; gap: 5px; width: 100%; }
+  .presentation-progress__steps { justify-content: center; gap: 4px; }
+  .presentation-progress__step { flex: 0 0 26px; width: 26px; height: 26px; }
+  .presentation-control { display: none; }
+  .presentation-attribution { top: 42px; right: 12px !important; font-size: 11px; }
+  .presentation--present .presentation-footer { bottom: 14px; }
+  /* The canvas scales to about 0.37 here, so primary labels grow and tertiary detail drops out. */
+  .sample-person .scene-label, .sample-skill .scene-label { font-size: 30px; }
+  .sample-sub, .sample-card__meta, .sample-kit small, .sample-verify small { display: none; }
+  .sample-prompt { font-size: 27px; }
+  .sample-question, .sample-modify-chip { font-size: 15px; }
+  .sample-tray-label { font-size: 20px; }
+  .sample-card__number { top: 13px; font-size: 20px; }
+  .sample-card__title { font-size: 28px; }
+  .sample-morph { font-size: 20px; }
+  .sample-kit span { font-size: 24px; }
+  .sample-verify span { font-size: 20px; white-space: nowrap; }
+  .sample-partial { font-size: 15px; }
+  .sample-partial__switch { font-size: 20px; }
+  .sample-ghost { font-size: 22px; }
+  .sample-reveal > span { font-size: 18px; }
+}

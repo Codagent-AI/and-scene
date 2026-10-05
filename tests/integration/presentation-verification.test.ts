@@ -34,6 +34,14 @@ function replaceFile(root: string, relative: string, replace: (source: string) =
 }
 
 describe('presentation verification (INT-002, E2E-001, E2E-002)', () => {
+  it('rejects inspection slugs that could escape the output directory', () => {
+    const target = isolatedCopy('and-scene-inspection-path-')
+    const inspected = run(process.execPath, ['scripts/inspect-presentation.mjs', '../escaped'], target)
+    expect(inspected.status).not.toBe(0)
+    expect(inspected.output).toContain('lowercase letters, numbers, and hyphens')
+    expect(existsSync(path.join(target, 'escaped'))).toBe(false)
+  })
+
   it('captures settled screenshots and reports overlap, exemption, active-state, and attribution diagnostics (INT-002)', () => {
     const target = isolatedCopy('and-scene-inspection-fixture-')
     replaceFile(target, 'src/presentations/index.ts', (source) => source.replace(/\]\s*$/, "  { slug: 'inspection-fixture', title: 'Inspection Fixture', load: () => import('./inspection-fixture/Talk') },\n]"))

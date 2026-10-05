@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
 
 const slug = process.argv[2]
-if (!slug) throw new Error('Usage: npm run inspect -- <presentation-slug>')
+if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+  throw new Error('Usage: npm run inspect -- <presentation-slug> (lowercase letters, numbers, and hyphens)')
+}
 const root = fileURLToPath(new URL('..', import.meta.url))
 const output = `inspection/${slug}`
 const settleMs = Number(process.env.PRESENTATION_SETTLE_MS ?? 700)

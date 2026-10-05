@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { cp, mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -38,6 +38,10 @@ try {
   await mkdir(path.join(templatePresentation, 'steps'), { recursive: true })
   await cp(path.join(skillDir, 'templates/presentation'), templatePresentation, { recursive: true })
   await cp(path.join(skillDir, 'templates/step/Step.tsx'), path.join(templatePresentation, 'steps/Step.tsx'))
+  await cp(path.join(root, 'src/presentations/how-to-make-a-presentation'), path.join(project, 'src/presentations/how-to-make-a-presentation'), { recursive: true })
+  const registryPath = path.join(project, 'src/presentations/index.ts')
+  const registry = await readFile(registryPath, 'utf8')
+  await writeFile(registryPath, registry.replace('export const presentations: readonly PresentationEntry[] = []', `export const presentations: readonly PresentationEntry[] = [{ slug: 'how-to-make-a-presentation', title: 'How to Use This Skill to Make a Presentation', load: () => import('./how-to-make-a-presentation/Talk') }]`))
 
   const pkg = JSON.parse(await readFile(path.join(project, 'package.json'), 'utf8'))
   const declared = { ...pkg.dependencies, ...pkg.devDependencies }

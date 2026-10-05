@@ -86,7 +86,7 @@ describe('presentation kit contract', () => {
   })
 
   it('provides an explicit empty registry and resolves only registered path slugs', () => {
-    expect(presentations).toEqual([])
+    expect(presentations.map(({ slug, title }) => ({ slug, title }))).toEqual([{ slug: 'how-to-make-a-presentation', title: 'How to Use This Skill to Make a Presentation' }])
     const entry = { slug: 'example', title: 'Example', load: async () => ({ default: RouteComponent }) }
     expect(resolvePresentationRoute('/', [entry])).toBeUndefined()
     expect(resolvePresentationRoute('/example/', [entry])).toBe(entry)

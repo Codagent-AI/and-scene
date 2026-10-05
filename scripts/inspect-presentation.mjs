@@ -5,6 +5,10 @@ import { chromium } from 'playwright'
 
 const slug = process.argv[2]
 if (!slug) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
+if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+  console.error(`Invalid presentation slug: ${slug}`)
+  process.exit(2)
+}
 const port = Number(process.env.PORT ?? 4180)
 const settleMs = Number(process.env.INSPECT_SETTLE_MS ?? 800)
 const base = `http://127.0.0.1:${port}/${slug}`

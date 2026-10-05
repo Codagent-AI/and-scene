@@ -11,6 +11,11 @@ const run = (cmd, args, options = {}) => spawnSync(cmd, args, { cwd: temp, encod
 try {
   await cp(root, temp, { recursive: true, filter: source => !/(^|\/)(node_modules|\.git|dist|artifacts|validator_logs)(\/|$)/.test(path.relative(root, source)) })
   await symlink(path.join(root, 'node_modules'), path.join(temp, 'node_modules'), 'dir')
+  const invalidSlug = run(process.execPath, ['scripts/inspect-presentation.mjs', '../../outside'])
+  assert.equal(invalidSlug.status, 2, `${invalidSlug.stdout}\n${invalidSlug.stderr}`)
+  assert.match(invalidSlug.stderr, /Invalid presentation slug/)
+  await assert.rejects(stat(path.join(temp, 'outside')), 'invalid slug must not create output outside the inspection directory')
+
   const fixture = path.join(temp, 'src/presentations/controlled-inspection')
   await mkdir(fixture, { recursive: true })
   await writeFile(path.join(temp, 'src/presentations/index.ts'), `import type { ComponentType } from 'react'

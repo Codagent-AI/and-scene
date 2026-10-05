@@ -64,7 +64,7 @@
 .sample-sub { margin-top: 2px; color: #71818a; font-size: 10px; letter-spacing: .04em; }
 .sample-link { display: grid; place-items: center; color: #397d74; font-size: 28px; }
 .sample-question { display: grid; place-items: center; border-radius: 20px; background: #213d4c; color: #fff; font-size: 10px; letter-spacing: .05em; }
-.sample-tray { z-index: 1; border: 1px solid #d5dfdc; border-radius: 15px; background: #eff4f1; }
+.sample-tray { z-index: 1; }
 .sample-tray-label { position: absolute; left: 14px; top: 4px; margin: 0; color: #6c807b; font-size: 9px; font-weight: 750; letter-spacing: .13em; }
 .sample-card { display: flex; flex-direction: column; justify-content: center; padding: 5px 9px 4px 33px; border: 1px solid #c8d4d1; border-radius: 9px; background: #fff; box-shadow: 0 3px 8px #243b4a10; }
 .sample-card__number { position: absolute; left: 8px; top: 8px; color: #4c9e8e; font-size: 10px; font-weight: 800; }

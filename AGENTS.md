@@ -9,11 +9,11 @@ application, skill, scene kit, and scripts intentionally do not exist yet.
 - `openspec/changes/create-and-scene/proposal.md`: scope and motivation
 - `openspec/changes/create-and-scene/design.md`: architecture and implementation decisions
 - `openspec/changes/create-and-scene/specs/`: canonical behavioral requirements
-- `openspec/changes/create-and-scene/tasks/`: ordered implementation work
+- `openspec/changes/create-and-scene/test-plan.md`: testing obligations
 
-Read the proposal, design, canonical specs, and all task files before editing.
-Treat the canonical specs as authoritative when task summaries are less
-detailed. Keep implementation work inside the repository.
+Read the proposal, design, canonical specs, and test plan before editing.
+Treat the canonical specs as authoritative. Keep implementation work inside the
+repository.
 
 ## Target Project Map
 

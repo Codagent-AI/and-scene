@@ -1,4 +1,4 @@
-import { motion, type HTMLMotionProps } from 'motion/react'
+import { AnimatePresence, motion, type HTMLMotionProps } from 'motion/react'
 import type { CSSProperties, ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { ENTER_DELAY } from '../constants'
@@ -15,6 +15,11 @@ export function SymbolChip({ id, ...props }: Base) { return <span data-presentat
 
 export function Appear({ id, delay = ENTER_DELAY, ...props }: MotionNodeProps & { delay?: number }) {
   return <motion.div data-presentation-appear={id} {...props} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay } }} exit={{ opacity: 0 }} />
+}
+
+/** Wrap conditionally rendered keyed entities (`Appear`, `Frame`, ...) so they animate out when a grouped scene drops them. */
+export function Presence({ children }: { children?: ReactNode }) {
+  return <AnimatePresence>{children}</AnimatePresence>
 }
 
 export function SceneLayer({ id, children, className, style }: Base) {

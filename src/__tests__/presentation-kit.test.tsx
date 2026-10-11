@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import type { TouchEvent } from 'react'
 import { usePresentationNav } from '../presentation-kit/usePresentationNav'
 import { Presentation } from '../presentation-kit/Presentation'
+import { Appear, Presence } from '../presentation-kit'
 import { DESIGN_H, DESIGN_W } from '../presentation-kit/constants'
 import { calculateFitScale } from '../presentation-kit/useFitScale'
 import { resolvePresentation, presentations } from '../presentations'
@@ -68,6 +69,36 @@ describe('presentation kit contracts', () => {
     fireEvent.keyDown(chromeButton, { key: ' ' })
     expect(result.current.index).toBe(1)
     chromeButton.remove()
+  })
+
+  it('leaves arrow and page keys to a focused interactive control', () => {
+    const { result } = renderHook(() => usePresentationNav(3))
+    const control = document.createElement('button')
+    const link = document.createElement('a')
+    link.href = '#x'
+    document.body.append(control, link)
+    for (const el of [control, link]) {
+      el.focus()
+      for (const key of ['ArrowRight', 'ArrowLeft', 'PageDown', 'PageUp']) fireEvent.keyDown(el, { key })
+    }
+    expect(result.current.index).toBe(0)
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' })
+    expect(result.current.index).toBe(1)
+    control.remove()
+    link.remove()
+  })
+
+  it('keeps a departing grouped-scene entity mounted until its exit animation finishes', async () => {
+    function ExitScene({ payload }: { payload: Payload }) {
+      return <Presence>{payload.value === 1 && <Appear key="gone" id="gone">bye</Appear>}</Presence>
+    }
+    const steps: Step<Payload>[] = typedSteps.map((step) => ({ ...step, diagram: { ...step.diagram, scene: ExitScene } }))
+    const { container } = render(<Presentation steps={steps} title="Exit" />)
+    expect(container.querySelector('[data-presentation-appear="gone"]')).not.toBeNull()
+    fireEvent.click(within(container).getByRole('button', { name: 'Go to step 2' }))
+    expect(container.querySelector('[data-presentation-step-index]')).toHaveAttribute('data-presentation-step-index', '1')
+    expect(container.querySelector('[data-presentation-appear="gone"]')).not.toBeNull()
+    await waitFor(() => expect(container.querySelector('[data-presentation-appear="gone"]')).toBeNull(), { timeout: 3000 })
   })
 
   it('uses horizontal touch swipes and clamps direct jumps', () => {

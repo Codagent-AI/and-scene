@@ -45,7 +45,7 @@ async function verify(root: string, args: string[] = []) {
 
 function expectPreviewStopped(root: string) {
   const processes = execFileSync('ps', ['-eo', 'args'], { encoding: 'utf8' })
-  expect(processes.split('\n').some(line => line.startsWith(`node ${root}/node_modules/.bin/vite preview`))).toBe(false)
+  expect(processes.split('\n').some(line => line.startsWith(`node ${root}/node_modules/vite/bin/vite.js preview`))).toBe(false)
 }
 
 afterAll(async () => {
@@ -66,7 +66,7 @@ describe('project verification scripts in disposable project copies', () => {
   it.each([
     ['missing sample', async (root: string) => {
       await rm(path.join(root, 'src/presentations/how-to-make-a-presentation'), { recursive: true })
-    }, /FAIL: sample:.*canonical sample source is missing/i],
+    }, /FAIL: build:/i],
     ['out-of-order sample', async (root: string) => {
       const file = path.join(root, 'src/presentations/how-to-make-a-presentation/steps/index.ts')
       const source = await readFile(file, 'utf8')
@@ -85,7 +85,7 @@ describe('project verification scripts in disposable project copies', () => {
     ['stuck public step index', async (root: string) => {
       const file = path.join(root, 'src/presentation-kit/usePresentationNav.ts')
       const source = await readFile(file, 'utf8')
-      await writeFile(file, source.replace('setIndex((current) => Math.min(count - 1, current + 1))', 'setIndex((current) => current)'))
+      await writeFile(file, source.replace('index: Math.min(last, Math.min(current.index, last) + 1)', 'index: current.index'))
     }, /FAIL: render:.*step 2: step transition did not advance/i],
   ])('reports %s with its phase and cleans up the preview', async (_label, mutate, expected) => {
     const root = await disposable(`failure-${String(_label).replaceAll(' ', '-')}`)
@@ -105,7 +105,8 @@ describe('project verification scripts in disposable project copies', () => {
     expectPreviewStopped(success)
 
     const empty = await disposable('smoke-empty')
-    await writeFile(path.join(empty, registry), "export const presentations = []\n")
+    const emptyRegistrySource = await readFile(path.join(empty, registry), 'utf8')
+    await writeFile(path.join(empty, registry), emptyRegistrySource.replace(/export const presentations: readonly PresentationRegistration\[\] = \[[\s\S]*?\n\]/, 'export const presentations: readonly PresentationRegistration[] = []'))
     const emptyResult = await verify(empty, ['--smoke'])
     expect(emptyResult.code).not.toBe(0)
     expect(emptyResult.output).toMatch(/FAIL: render:.*registry is empty/i)

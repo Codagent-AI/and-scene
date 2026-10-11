@@ -18,6 +18,7 @@ const parseViewport = value => { const match = /^(\d+)x(\d+)$/.exec(value); if (
 const viewports = [parseViewport(viewportArg)]
 if (args.includes('--narrow')) viewports.push(parseViewport(option('--narrow') || '390x844'))
 let preview
+let previewError
 let browser
 function run(command, commandArgs) {
   return new Promise((resolve, reject) => {
@@ -34,7 +35,12 @@ async function freePort() {
   return port
 }
 async function waitReady(url) {
-  for (let i = 0; i < 100; i++) { try { if ((await fetch(url)).ok) return } catch {} await delay(100) }
+  for (let i = 0; i < 100; i++) {
+    if (previewError) throw Error(`preview failed to start: ${previewError.message}`)
+    if (preview.exitCode !== null || preview.signalCode !== null) throw Error(`preview exited early (${preview.exitCode ?? preview.signalCode})`)
+    try { if ((await fetch(url)).ok) return } catch {}
+    await delay(100)
+  }
   throw Error(`preview did not become ready at ${url}`)
 }
 async function diagnostics(page, step) {
@@ -88,17 +94,30 @@ async function settleMotion(page) {
     await page.waitForTimeout(80)
   }
 }
+let cleanupPromise
 async function cleanup() {
-  await browser?.close().catch(() => {})
-  if (preview && preview.exitCode === null) { preview.kill('SIGTERM'); await Promise.race([new Promise(resolve => preview.once('exit', resolve)), delay(1500)]); if (preview.exitCode === null) preview.kill('SIGKILL') }
+  if (cleanupPromise) return cleanupPromise
+  cleanupPromise = (async () => {
+    if (preview && preview.exitCode === null && preview.signalCode === null) {
+      const exited = new Promise(resolve => preview.once('exit', resolve))
+      preview.kill('SIGTERM')
+      const stopped = await Promise.race([exited.then(() => true), delay(1500).then(() => false)])
+      if (!stopped) {
+        preview.kill('SIGKILL')
+        await Promise.race([exited, delay(1000)])
+      }
+    }
+    await browser?.close().catch(() => {})
+  })()
+  return cleanupPromise
 }
 async function main() {
   if (!slug || !Number.isFinite(settle) || settle < 0 || args.includes('--help')) throw Error('usage: npm run inspect -- <slug> [--settle-ms 500] [--viewport 1280x800] [--narrow [390x844]] [--root <project-root>]; builds first, then serves Vite production preview')
   await run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'build'])
   const port = await freePort()
-  preview = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' })
-  preview.exitCode = null
-  preview.once('exit', code => { preview.exitCode = code })
+  const viteCli = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')
+  preview = spawn(process.execPath, [viteCli, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit' })
+  preview.once('error', error => { previewError = error })
   const base = `http://127.0.0.1:${port}`
   await waitReady(base)
   try { browser = await chromium.launch() } catch (error) { throw Error(`Chromium unavailable; install it with "npx playwright install chromium" (${error.message})`) }

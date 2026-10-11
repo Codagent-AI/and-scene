@@ -27,6 +27,7 @@ const rootIndex = args.indexOf('--root')
 const root = path.resolve(rootIndex >= 0 ? args[rootIndex + 1] : process.env.AND_SCENE_ROOT || process.cwd())
 let phase = 'arguments'
 let preview
+let previewError
 let browser
 
 function fail(message) { throw new Error(message) }
@@ -46,7 +47,8 @@ async function freePort() {
 }
 async function waitReady(url) {
   for (let i = 0; i < 100; i++) {
-    if (preview.exitCode !== null) fail(`preview exited early (${preview.exitCode})`)
+    if (previewError) fail(`preview failed to start: ${previewError.message}`)
+    if (preview.exitCode !== null || preview.signalCode !== null) fail(`preview exited early (${preview.exitCode ?? preview.signalCode})`)
     try { const response = await fetch(url); if (response.ok) return } catch {}
     await delay(100)
   }
@@ -84,10 +86,9 @@ async function render(targetSlug, entries) {
   const registration = entries.find(item => item.slug === targetSlug)
   if (!registration) fail(`unknown presentation slug "${targetSlug}"`)
   const port = await freePort()
-  const executable = process.platform === 'win32' ? 'npx.cmd' : 'npx'
-  preview = spawn(executable, ['vite', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' })
-  preview.exitCode = null
-  preview.once('exit', code => { preview.exitCode = code })
+  const viteCli = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')
+  preview = spawn(process.execPath, [viteCli, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit' })
+  preview.once('error', error => { previewError = error })
   const base = `http://127.0.0.1:${port}`
   await waitReady(base)
   try { browser = await chromium.launch() } catch (error) { fail(`Chromium unavailable; install it with "npx playwright install chromium" (${error.message})`) }
@@ -114,13 +115,22 @@ async function render(targetSlug, entries) {
   if (errors.length) fail(errors[0])
   await page.close()
 }
+let cleanupPromise
 async function cleanup() {
-  await browser?.close().catch(() => {})
-  if (preview && preview.exitCode === null) {
-    preview.kill('SIGTERM')
-    await Promise.race([new Promise(resolve => preview.once('exit', resolve)), delay(1500)])
-    if (preview.exitCode === null) preview.kill('SIGKILL')
-  }
+  if (cleanupPromise) return cleanupPromise
+  cleanupPromise = (async () => {
+    if (preview && preview.exitCode === null && preview.signalCode === null) {
+      const exited = new Promise(resolve => preview.once('exit', resolve))
+      preview.kill('SIGTERM')
+      const stopped = await Promise.race([exited.then(() => true), delay(1500).then(() => false)])
+      if (!stopped) {
+        preview.kill('SIGKILL')
+        await Promise.race([exited, delay(1000)])
+      }
+    }
+    await browser?.close().catch(() => {})
+  })()
+  return cleanupPromise
 }
 async function main() {
   if (args.some(arg => !['--smoke', '--slug', '--root'].includes(arg)) || (slugArg >= 0 && !requestedSlug) || (rootIndex >= 0 && !args[rootIndex + 1])) fail('usage: node scripts/verify.mjs [--smoke [--slug <slug>]] [--root <project-root>]')
@@ -135,6 +145,6 @@ async function main() {
   await render(target, entries)
 }
 for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.once(signal, () => { cleanup().finally(() => process.exit(128 + (signal === 'SIGINT' ? 2 : signal === 'SIGTERM' ? 15 : 1))) })
-try { await main(); console.log('PASS: build, sample, and render verification completed') }
+try { await main(); console.log(smoke ? 'PASS: build and render verification completed' : 'PASS: build, sample, and render verification completed') }
 catch (error) { console.error(`FAIL: ${phase}: ${error.message}`); process.exitCode = 1 }
 finally { await cleanup() }

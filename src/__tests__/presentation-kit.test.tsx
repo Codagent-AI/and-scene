@@ -88,6 +88,18 @@ describe('presentation kit contracts', () => {
     link.remove()
   })
 
+  it('keeps arrow navigation working after clicking the deck footer controls', () => {
+    const { container } = render(<Presentation steps={[...typedSteps, { ...typedSteps[1], id: 'three' }]} title="Focus" />)
+    const dot = within(container).getByRole('button', { name: 'Go to step 1' })
+    dot.focus()
+    fireEvent.keyDown(dot, { key: 'ArrowRight' })
+    expect(container.querySelector('[data-presentation-step-index]')).toHaveAttribute('data-presentation-step-index', '1')
+    const present = within(container).getByRole('button', { name: 'Present' })
+    present.focus()
+    fireEvent.keyDown(present, { key: 'ArrowRight' })
+    expect(container.querySelector('[data-presentation-step-index]')).toHaveAttribute('data-presentation-step-index', '1')
+  })
+
   it('keeps a departing grouped-scene entity mounted until its exit animation finishes', async () => {
     function ExitScene({ payload }: { payload: Payload }) {
       return <Presence>{payload.value === 1 && <Appear key="gone" id="gone">bye</Appear>}</Presence>

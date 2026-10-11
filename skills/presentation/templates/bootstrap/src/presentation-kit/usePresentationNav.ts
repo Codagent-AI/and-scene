@@ -5,6 +5,9 @@ const TEXT_ENTRY = 'input:not([type]),input[type="text"],input[type="search"],in
 const NATIVE_SPACE = 'button,[role="button"],input[type="button"],input[type="submit"],input[type="reset"],input[type="checkbox"],input[type="radio"],summary'
 const INTERACTIVE = `${NATIVE_SPACE},a[href],[role="link"],[role="tab"],[role="slider"],[role="menuitem"],[role="option"],[role="switch"]`
 
+// The deck's own footer buttons (progress, ToC, previous/next) keep focus after a click; arrows must still navigate from them.
+const DECK_CONTROL = '[data-presentation-footer] button'
+
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
   const [position, setPosition] = useState({ index: 0, stepCount })
   if (position.stepCount !== stepCount) {
@@ -24,7 +27,7 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
       const target = event.target instanceof Element ? event.target : null
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || target?.closest(TEXT_ENTRY)) return
       if (event.key === ' ' && target?.closest(NATIVE_SPACE)) return
-      if (event.key !== 'p' && event.key !== 'P' && event.key !== ' ' && target?.closest(INTERACTIVE)) return
+      if (event.key !== 'p' && event.key !== 'P' && event.key !== ' ' && target?.closest(INTERACTIVE) && !target.closest(DECK_CONTROL)) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') { event.preventDefault(); next() }
       else if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') toggleMode()

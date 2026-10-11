@@ -14,7 +14,7 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
   const touchStart = useRef<{ x: number; y: number } | null>(null)
   const last = Math.max(0, stepCount - 1)
   const jumpTo = useCallback((target: number) => setPosition({ index: Math.min(last, Math.max(0, target)), stepCount }), [last, stepCount])
-  const next = useCallback(() => setPosition((current) => ({ stepCount, index: Math.min(last, Math.min(current.index, last) + 1) })), [last, stepCount])
+  const next = useCallback(() => setPosition((current) => ({ stepCount, index: Math.min(last, current.index + 1) })), [last, stepCount])
   const prev = useCallback(() => setPosition((current) => ({ stepCount, index: Math.max(0, Math.min(current.index, last) - 1) })), [last, stepCount])
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])
 

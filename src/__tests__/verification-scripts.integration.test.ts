@@ -85,7 +85,7 @@ describe('project verification scripts in disposable project copies', () => {
     ['stuck public step index', async (root: string) => {
       const file = path.join(root, 'src/presentation-kit/usePresentationNav.ts')
       const source = await readFile(file, 'utf8')
-      await writeFile(file, source.replace('index: Math.min(last, Math.min(current.index, last) + 1)', 'index: current.index'))
+      await writeFile(file, source.replace('index: Math.min(last, current.index + 1)', 'index: current.index'))
     }, /FAIL: render:.*step 2: step transition did not advance/i],
   ])('reports %s with its phase and cleans up the preview', async (_label, mutate, expected) => {
     const root = await disposable(`failure-${String(_label).replaceAll(' ', '-')}`)

@@ -116,6 +116,19 @@ describe('project verification scripts in disposable project copies', () => {
     expect(unknownResult.code).not.toBe(0)
     expect(unknownResult.output).toMatch(/FAIL: render:.*unknown presentation slug/i)
   }, 360_000)
+
+  it('fails smoke verification on a browser console error and stops its preview', async () => {
+    const root = await disposable('smoke-console-fault')
+    const file = path.join(root, sample)
+    const source = await readFile(file, 'utf8')
+    await writeFile(file, source.replace('export const step01:', "if (typeof window !== 'undefined') console.error('injected smoke fault')\nexport const step01:"))
+
+    const result = await verify(root, ['--smoke', '--slug', 'how-to-make-a-presentation'])
+    expect(result.code, result.output).not.toBe(0)
+    expect(result.output).toMatch(/FAIL: render:.*console\.error at step 1: injected smoke fault/i)
+    expect(result.output).not.toMatch(/PASS:/)
+    expectPreviewStopped(root)
+  }, 180_000)
 })
 
 describe('inspection helper browser artifacts and advisories', () => {

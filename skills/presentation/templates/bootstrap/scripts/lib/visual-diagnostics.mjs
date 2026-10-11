@@ -39,15 +39,18 @@ export function inspectVisuals() {
       warn('overlap', `${identify(a.element)} intersects ${identify(b.element)}`);
     }
   }
-  // Intrinsic control width varies with label length, even without active styling.
+  // Intrinsic control size varies with label length, so compare it only between equal-length labels.
   const properties = ['color', 'backgroundColor', 'backgroundImage', 'borderTopColor', 'borderTopWidth', 'borderTopStyle', 'borderRadius', 'outline', 'boxShadow', 'opacity', 'fontWeight', 'fontSize', 'transform', 'textDecoration'];
   for (const hook of ['data-presentation-progress-item', 'data-presentation-toc-item']) {
     const items = [...root.querySelectorAll(`[${hook}]`)].filter(visible);
     const active = items.find(e => e.getAttribute('data-presentation-active') === 'true');
-    const inactive = items.find(e => e.getAttribute('data-presentation-active') !== 'true' && e.parentElement === active?.parentElement);
+    const siblings = items.filter(e => e.getAttribute('data-presentation-active') !== 'true' && e.parentElement === active?.parentElement);
+    const length = element => element.textContent.trim().length;
+    const inactive = siblings.find(e => length(e) === length(active)) ?? siblings[0];
     if (active && inactive) {
       const a = getComputedStyle(active), b = getComputedStyle(inactive);
-      if (properties.every(property => a[property] === b[property])) warn('active-chrome', `[${hook}] active and inactive controls have indistinguishable computed visual styles`);
+      const compared = length(active) === length(inactive) ? [...properties, 'width', 'height'] : properties;
+      if (compared.every(property => a[property] === b[property])) warn('active-chrome', `[${hook}] active and inactive controls have indistinguishable computed visual styles`);
     }
   }
   const attribution = root.querySelector('[data-presentation-attribution]');

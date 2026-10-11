@@ -6,5 +6,8 @@
 .fixture [data-presentation-caption] { margin: 0 0 15px; }
 .fixture [data-presentation-mode-toggle] { position: absolute; top: 20px; right: 20px; }
 .fixture [data-presentation-progress-item], .fixture [data-presentation-toc-item] { margin-right: 5px; }
-.clean [data-presentation-active="true"] { background: #234; color: white; font-weight: 700; }
+.clean [data-presentation-toc-item][data-presentation-active="true"] { background: #234; color: white; font-weight: 700; }
+/* Width alone distinguishes the active progress pill. */
+.clean [data-presentation-progress-item] { width: 24px; }
+.clean [data-presentation-progress-item][data-presentation-active="true"] { width: 48px; }
 .clean [data-presentation-attribution] { font-size: 12px; color: #345; text-decoration: none; padding: 10px; }

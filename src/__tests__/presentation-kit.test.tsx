@@ -58,23 +58,63 @@ describe('presentation kit contracts', () => {
     expect(result.current.index).toBe(1)
     fireEvent.keyDown(window, { key: 'p' })
     expect(result.current.mode).toBe('browse')
+    const chromeButton = document.createElement('button')
+    document.body.append(chromeButton)
+    chromeButton.focus()
+    fireEvent.keyDown(chromeButton, { key: 'ArrowRight' })
+    expect(result.current.index).toBe(1)
+    fireEvent.keyDown(chromeButton, { key: 'p' })
+    expect(result.current.mode).toBe('present')
+    fireEvent.keyDown(chromeButton, { key: ' ' })
+    expect(result.current.index).toBe(1)
+    chromeButton.remove()
   })
 
   it('uses horizontal touch swipes and clamps direct jumps', () => {
     const { result } = renderHook(() => usePresentationNav(2))
     const handlers = result.current.touchHandlers
     act(() => {
-      handlers.onTouchStart({ touches: [{ clientX: 160 } as Touch] } as unknown as TouchEvent)
-      handlers.onTouchEnd({ changedTouches: [{ clientX: 90 } as Touch] } as unknown as TouchEvent)
+      handlers.onTouchStart({ touches: [{ clientX: 160, clientY: 10 } as Touch] } as unknown as TouchEvent)
+      handlers.onTouchEnd({ changedTouches: [{ clientX: 90, clientY: 10 } as Touch], touches: [] } as unknown as TouchEvent)
     })
     expect(result.current.index).toBe(1)
     act(() => {
-      handlers.onTouchStart({ touches: [{ clientX: 90 } as Touch] } as unknown as TouchEvent)
-      handlers.onTouchEnd({ changedTouches: [{ clientX: 160 } as Touch] } as unknown as TouchEvent)
+      handlers.onTouchStart({ touches: [{ clientX: 90, clientY: 10 } as Touch] } as unknown as TouchEvent)
+      handlers.onTouchEnd({ changedTouches: [{ clientX: 160, clientY: 10 } as Touch], touches: [] } as unknown as TouchEvent)
     })
     expect(result.current.index).toBe(0)
     act(() => result.current.jumpTo(9))
     expect(result.current.index).toBe(1)
+  })
+
+  it('rejects vertical-dominant and multi-touch gestures', () => {
+    const { result } = renderHook(() => usePresentationNav(2))
+    const handlers = result.current.touchHandlers
+    act(() => {
+      handlers.onTouchStart({ touches: [{ clientX: 160, clientY: 10 } as Touch] } as unknown as TouchEvent)
+      handlers.onTouchEnd({ changedTouches: [{ clientX: 150, clientY: 100 } as Touch], touches: [] } as unknown as TouchEvent)
+    })
+    expect(result.current.index).toBe(0)
+    act(() => {
+      handlers.onTouchStart({ touches: [{ clientX: 160, clientY: 10 } as Touch, { clientX: 170, clientY: 10 } as Touch] } as unknown as TouchEvent)
+      handlers.onTouchEnd({ changedTouches: [{ clientX: 80, clientY: 10 } as Touch], touches: [] } as unknown as TouchEvent)
+    })
+    expect(result.current.index).toBe(0)
+    act(() => {
+      handlers.onTouchStart({ touches: [{ clientX: 160, clientY: 10 } as Touch] } as unknown as TouchEvent)
+      handlers.onTouchMove({ touches: [{ clientX: 150, clientY: 10 } as Touch, { clientX: 170, clientY: 10 } as Touch] } as unknown as TouchEvent)
+      handlers.onTouchEnd({ changedTouches: [{ clientX: 80, clientY: 10 } as Touch], touches: [] } as unknown as TouchEvent)
+    })
+    expect(result.current.index).toBe(0)
+  })
+
+  it('clamps the displayed step when the step list shrinks after mount', async () => {
+    const { container, rerender } = render(<Presentation steps={typedSteps} title="Shrink" />)
+    fireEvent.click(within(container).getByRole('button', { name: 'Go to step 2' }))
+    await waitFor(() => expect(container.querySelector('[data-presentation-step-index]')).toHaveAttribute('data-presentation-step-index', '1'))
+    rerender(<Presentation steps={typedSteps.slice(0, 1)} title="Shrink" />)
+    expect(container.querySelector('[data-presentation-step-index]')).toHaveAttribute('data-presentation-step-index', '0')
+    expect(within(container).getByRole('heading', { name: 'One' })).toBeInTheDocument()
   })
 
   it('uses explicit registry lookup and supports empty landing state', () => {

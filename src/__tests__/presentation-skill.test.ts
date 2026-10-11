@@ -19,11 +19,11 @@ describe('presentation skill package', () => {
     const skill = await readFile(path.join(skillDir, 'SKILL.md'), 'utf8')
     for (const requirement of [
       'one question at a time', 'partial detail', 'ASCII', 'three anchors', 'contract level',
-      'skip scaffolding', 'add only missing anchors', 'full scaffold', 'Playwright', 'style-neutral',
-      'relative to this `SKILL.md` file', 'monorepo', 'standalone app at the project root',
+      'skip scaffolding', 'add only the missing anchors', 'full scaffold', 'Playwright', 'style-neutral',
+      'relative to this `SKILL.md`', 'monorepo', 'standalone project root',
       'wait for confirmation', 'preserve all existing routes', 'ambiguous', 'requested edits',
-      'npm run build', 'first step', 'runtime or console errors', 'settled screenshots', 'first, last, and dense',
-      'Fix failures', 'data-presentation-allow-overlap', 'attribution', 'remaining advisory warnings',
+      'npm run build', 'first step', 'runtime and console errors', 'settled screenshots', 'first, last, and dense',
+      'fix build or render failures', 'data-presentation-allow-overlap', 'attribution', 'remaining advisory warnings',
     ]) expect(skill.toLowerCase()).toContain(requirement.toLowerCase())
     expect(skill.split('\n').length).toBeLessThan(200)
   })

@@ -23,3 +23,9 @@ validator_logs
 *.njsproj
 *.sln
 *.sw?
+
+# Browser verification and visual inspection artifacts
+playwright-report/
+test-results/
+.inspection/
+artifacts/presentation-inspection/

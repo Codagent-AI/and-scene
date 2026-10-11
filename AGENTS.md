@@ -80,6 +80,8 @@ npm run inspect -- how-to-make-a-presentation
   differences.
 - Do not commit generated build output, dependency directories, or inspection
   screenshots.
+- Do not add CI configuration, such as `.github/workflows/`. The npm scripts
+  are the verification gate; the repository has no hosted CI.
 
 Before reporting completion, run the full test, lint, build, and verify suite.
 Also inspect representative first, last, dense, and responsive-sensitive steps

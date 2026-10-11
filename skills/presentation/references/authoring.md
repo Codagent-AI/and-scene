@@ -6,8 +6,10 @@ numbering from array order. Use a shared Scene and groupKey for adjacent states 
 one diagram so the scene instance persists. Put shared scene code in `steps/Scene.tsx`
 when it serves multiple step files; collect ordered exports in `steps/index.tsx`.
 The starter already separates `steps/Scene.tsx` from its metadata; extend that
-shared component when expanding. Never wrap continuing entities in newcomer fades. Use kit `Appear` for
-arrivals and presence handling for departures as needed. Keep the fixed 880×380
+shared component when expanding. Never wrap continuing entities in newcomer fades. Wrap each
+arrival in kit `Appear` with a stable per-entity `key`, placed directly inside the scene's
+`AnimatePresence`; without that boundary departures vanish instead of animating out, and an
+unstable key re-fades a continuing entity. Keep the fixed 880×380
 canvas, stable layoutIds, and shared scene composition across viewport sizes.
 
 Replace the starter subject with the story's entities. Extend `Talk.tsx` with the

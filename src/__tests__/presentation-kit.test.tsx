@@ -118,7 +118,7 @@ describe('presentation kit contracts', () => {
   })
 
   it('uses explicit registry lookup and supports empty landing state', () => {
-    expect(presentations).toEqual([])
+    expect(presentations.some(({ slug }) => slug === 'how-to-make-a-presentation')).toBe(true)
     expect(resolvePresentation('missing')).toBeUndefined()
   })
 

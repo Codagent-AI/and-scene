@@ -4,10 +4,12 @@ import { STEPS } from './steps'
 import './presentation.css'
 
 export default function Talk() {
-  const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 700px)').matches)
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 700px)').matches)
 
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
     const media = window.matchMedia('(max-width: 700px)')
+    if (!media) return
     const update = () => setNarrow(media.matches)
     media.addEventListener('change', update)
     return () => media.removeEventListener('change', update)

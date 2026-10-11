@@ -9,14 +9,44 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 
 const args = process.argv.slice(2)
-const slug = args.find(value => !value.startsWith('--'))
-const option = name => { const index = args.indexOf(name); return index < 0 ? undefined : args[index + 1] }
-const root = path.resolve(option('--root') || process.env.AND_SCENE_ROOT || process.cwd())
-const settle = Number(option('--settle-ms') ?? 500)
-const viewportArg = option('--viewport') || '1280x800'
 const parseViewport = value => { const match = /^(\d+)x(\d+)$/.exec(value); if (!match) throw Error(`invalid viewport "${value}"; expected WIDTHxHEIGHT`); return { width: Number(match[1]), height: Number(match[2]) } }
-const viewports = [parseViewport(viewportArg)]
-if (args.includes('--narrow')) viewports.push(parseViewport(option('--narrow') || '390x844'))
+const usage = 'usage: npm run inspect -- <slug> [--settle-ms 500] [--viewport 1280x800] [--narrow [390x844]] [--root <project-root>]; builds first, then serves Vite production preview'
+function parseArgs(values) {
+  const options = new Map()
+  let slug
+  for (let index = 0; index < values.length; index++) {
+    const value = values[index]
+    if (value === '--help') throw Error(usage)
+    if (value === '--narrow') {
+      const maybeViewport = values[index + 1]
+      if (maybeViewport && !maybeViewport.startsWith('--') && /^\d+x\d+$/.test(maybeViewport)) {
+        options.set(value, maybeViewport)
+        index++
+      } else options.set(value, true)
+      continue
+    }
+    if (['--root', '--settle-ms', '--viewport'].includes(value)) {
+      const optionValue = values[index + 1]
+      if (!optionValue || optionValue.startsWith('--')) throw Error(`${value} requires a value; ${usage}`)
+      options.set(value, optionValue)
+      index++
+      continue
+    }
+    if (value.startsWith('--')) throw Error(`unknown option "${value}"; ${usage}`)
+    if (slug === undefined) slug = value
+    else throw Error(`unexpected argument "${value}"; ${usage}`)
+  }
+  if (!slug || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) throw Error(`invalid slug "${slug ?? ''}"; expected /^[a-z0-9][a-z0-9-]*$/; ${usage}`)
+  const settle = Number(options.get('--settle-ms') ?? 500)
+  if (!Number.isFinite(settle) || settle < 0) throw Error(`invalid --settle-ms value; ${usage}`)
+  const viewportArg = options.get('--viewport') ?? '1280x800'
+  const viewports = [parseViewport(viewportArg)]
+  if (options.has('--narrow')) viewports.push(parseViewport(options.get('--narrow') === true ? '390x844' : options.get('--narrow')))
+  return { slug, settle, root: path.resolve(options.get('--root') || process.env.AND_SCENE_ROOT || process.cwd()), viewports }
+}
+let parsed
+try { parsed = parseArgs(args) } catch (error) { console.error(`FAIL: inspect: ${error.message}`); process.exit(1) }
+const { slug, settle, root, viewports } = parsed
 let preview
 let previewError
 let browser
@@ -112,7 +142,6 @@ async function cleanup() {
   return cleanupPromise
 }
 async function main() {
-  if (!slug || !Number.isFinite(settle) || settle < 0 || args.includes('--help')) throw Error('usage: npm run inspect -- <slug> [--settle-ms 500] [--viewport 1280x800] [--narrow [390x844]] [--root <project-root>]; builds first, then serves Vite production preview')
   await run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'build'])
   const port = await freePort()
   const viteCli = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')

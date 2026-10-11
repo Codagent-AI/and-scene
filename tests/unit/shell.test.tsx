@@ -1,0 +1,10 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+const state = vi.hoisted(() => ({ loaded: 0 }));
+vi.mock('../../src/presentations', () => ({ presentations: [{ slug: 'fixture', title: 'Fixture', load: async () => { state.loaded++; return { default: () => <p>Lazy presentation</p> }; } }] }));
+import { PresentationRoute } from '../../src/PresentationRoute';
+import Landing from '../../src/Landing';
+import { presentations } from '../../src/presentations';
+afterEach(cleanup);
+it('renders the landing and unknown fallback with an empty registry', () => { const entry = presentations.pop()!; const { rerender } = render(<PresentationRoute pathname="/"/>); expect(screen.getByText('No presentations yet.')).toBeTruthy(); rerender(<PresentationRoute pathname="/missing"/>); expect(screen.getByText('Ideas in motion.')).toBeTruthy(); presentations.push(entry); });
+it('lists explicit entries and lazy loads only a matching pathname', async () => { const { rerender } = render(<Landing />); expect(screen.getByRole('link', { name: 'Fixture' }).getAttribute('href')).toBe('/fixture'); expect(state.loaded).toBe(0); rerender(<PresentationRoute pathname="/fixture"/>); expect(await screen.findByText('Lazy presentation')).toBeTruthy(); expect(state.loaded).toBe(1); });

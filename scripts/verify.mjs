@@ -20,12 +20,42 @@ const expected = [
   ['the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ]
 const args = process.argv.slice(2)
-const smoke = args.includes('--smoke')
-const slugArg = args.indexOf('--slug')
-const requestedSlug = slugArg >= 0 ? args[slugArg + 1] : null
-const rootIndex = args.indexOf('--root')
-const root = path.resolve(rootIndex >= 0 ? args[rootIndex + 1] : process.env.AND_SCENE_ROOT || process.cwd())
+let smoke = false
+let requestedSlug = null
+let root = path.resolve(process.env.AND_SCENE_ROOT || process.cwd())
 let phase = 'arguments'
+
+function parseArguments(argv) {
+  let routeSmoke = false
+  let slugValue = null
+  let rootValue = process.env.AND_SCENE_ROOT || process.cwd()
+  let rootWasSet = false
+  let slugWasSet = false
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (arg === '--smoke') {
+      if (routeSmoke) fail('option --smoke may only be specified once')
+      routeSmoke = true
+    } else if (arg === '--slug' || arg === '--root') {
+      const value = argv[i + 1]
+      if (!value || value.startsWith('--')) fail(`option ${arg} requires a value`)
+      i++
+      if (arg === '--slug') {
+        if (slugWasSet) fail('option --slug may only be specified once')
+        slugWasSet = true
+        slugValue = value
+      } else {
+        if (rootWasSet) fail('option --root may only be specified once')
+        rootWasSet = true
+        rootValue = value
+      }
+    } else {
+      fail(`unknown argument: ${arg}`)
+    }
+  }
+  if (slugWasSet && !routeSmoke) fail('--slug is only supported with --smoke')
+  return { smoke: routeSmoke, requestedSlug: slugValue, root: path.resolve(rootValue) }
+}
 let preview
 let previewError
 let browser
@@ -133,7 +163,10 @@ async function cleanup() {
   return cleanupPromise
 }
 async function main() {
-  if (args.some(arg => !['--smoke', '--slug', '--root'].includes(arg)) || (slugArg >= 0 && !requestedSlug) || (rootIndex >= 0 && !args[rootIndex + 1])) fail('usage: node scripts/verify.mjs [--smoke [--slug <slug>]] [--root <project-root>]')
+  const options = parseArguments(args)
+  smoke = options.smoke
+  requestedSlug = options.requestedSlug
+  root = options.root
   phase = 'build'
   await run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'build'])
   const registryText = await import('node:fs/promises').then(fs => fs.readFile(path.join(root, 'src/presentations/index.ts'), 'utf8').catch(() => ''))

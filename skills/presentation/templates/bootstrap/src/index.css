@@ -1,0 +1,2 @@
+/* Host geometry only. Each presentation owns its visual styling. */
+html, body, #root { min-height: 100%; margin: 0; }

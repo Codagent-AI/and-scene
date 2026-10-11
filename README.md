@@ -1,52 +1,65 @@
-# and-scene
+# And Scene
 
-And Scene is a project for building a presentation-generation agent skill.
+And Scene builds browser presentations as one evolving diagram: stable entities
+appear, move, connect and change across named steps. The committed example is
+[How to Use This Skill to Make a Presentation](src/presentations/how-to-make-a-presentation/Talk.tsx).
 
-The intended presentation model is not a stack of unrelated slides. It is one
-diagrammatic scene that evolves through named steps: elements appear, move,
-collapse, connect, and re-label as the talk arc develops.
+The distributable [presentation skill](skills/presentation/SKILL.md) interviews
+for a topic, visual direction and story beats, or modifies one identified
+presentation. It carries a style-neutral bootstrap, scene kit, presentation
+starter and deterministic scaffolder. Templates resolve relative to the skill,
+so it works outside this checkout. Standalone projects use their root; monorepos
+receive a self-contained `presentations/` app. Existing infrastructure is reused,
+missing anchors are added without overwriting host files, and build-only hosts
+retain their root content alongside new presentation routes.
 
-## Development
+The canonical [scene kit](src/presentation-kit/index.ts) owns typed steps, grouped
+scene persistence, entity motion, navigation, browse/present chrome and fixed
+880×380 canvas scaling. Each presentation owns its entities and CSS. Register a
+new folder with one explicit slug/title/lazy-loader entry in
+[src/presentations/index.ts](src/presentations/index.ts).
+
+## Development and verification
 
 ```bash
-npm install
+npm ci
+npx playwright install chromium # once, when the browser is missing
 npm run dev
-npm run build
-```
-
-## Current State
-
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
-
-## Inspect a presentation
-
-Use the project-local helper to build a production preview, capture every settled
-step, and review advisory visual diagnostics:
-
-```bash
+npm test                       # fast unit and template/scaffold contracts
+npm run lint                   # ESLint
+npm run build                  # TypeScript + production build
+npm run verify                 # build and render every registered step
+npm run verify -- how-to-make-a-presentation
+npm run test:integration        # materialized bootstrap, partial host, browser diagnostics/failures
 npm run inspect -- how-to-make-a-presentation
 npm run inspect -- how-to-make-a-presentation --viewport 390x844
 ```
 
-The default viewport is `1440x900`; the default settle interval is 850 ms, longer
-than the kit's 700 ms newcomer delay plus transition. Screenshots are written to
-`artifacts/inspect/<slug>/<viewport>/step-01.png`, `step-02.png`, and so on.
-`report.json` records the zero-based index, step ID, screenshot path, warnings,
-and entity opacity at capture time. Generated artifacts are gitignored.
+The root expectations file additionally checks the reference's nine normative
+titles and captions. Fresh bootstrap apps omit those sample expectations and
+verify only their own registered presentations. The npm scripts are the project
+verification gate; no hosted CI configuration is required.
 
-Optional arguments are `--viewport <W>x<H>`, `--settle <milliseconds>`,
-`--out <directory>` (replaces the output directory), and `--no-build` (uses an
-existing production build). Chromium must be installed through Playwright.
-The preview and browser use `127.0.0.1` and are stopped on success, failure, or
-interruption.
+## Inspect composition
 
-Warnings identify the step and hook to review: `overlap` flags intersecting
-visible text or chrome; `active-chrome` compares active and inactive navigation
-styles; `attribution` flags a missing, invisible, undersized, or browser-default
-link. Warnings are advisory and exit successfully; unknown slugs and operational
-failures exit non-zero. Review screenshots to distinguish composition defects
-from heuristic false positives. Mark only readable, intentional compositions
-with `data-presentation-allow-overlap` on the affected subtree, and style chrome
-through presentation-owned CSS. `npm run verify` remains the automated render
-gate; inspection does not replace it.
+The project-local helper captures each settled step from a production preview on
+`127.0.0.1`. Desktop defaults to 1440×900 with an 850 ms settle interval.
+Screenshots live in `artifacts/inspect/<slug>/<viewport>/step-01.png` and subsequent
+step files; `report.json` records index, ID, screenshot, warnings and entity
+opacity. Generated output and inspection artifacts are gitignored.
+
+Optional arguments: `--viewport WxH`, `--settle <milliseconds>`, `--out <directory>`
+and `--no-build`. Operational errors exit non-zero. Advisory `WARN` lines identify
+text/chrome overlap, indistinct active navigation or unpolished attribution.
+Review first, last and dense/key screenshots and narrow responsive views. Fix
+accidental collisions and polish in presentation-owned CSS; mark only intentional
+readable overlap with `data-presentation-allow-overlap`. Report any reviewed
+remaining warnings accurately. Inspection supplements `npm run verify`.
+
+For interactive inspection use `chrome-devtools-axi`: open the production route,
+start with `snapshot`, then capture screenshots. Verification and inspection
+scripts clean up their preview and browser processes on success or failure.
+
+When updating the kit or browser tooling, update the bootstrap copies too; the
+fast parity contracts enforce identical files and bytes, matching dependency
+ranges, and the absence of styling-framework defaults.

@@ -65,3 +65,6 @@
   .making-presentation [data-presentation-prev] { left: 22px; }.making-presentation [data-presentation-next] { right: 22px; }
   .making-presentation [data-presentation-attribution] { font-size: 12px; padding: 7px 16px; }
 }
+
+/* Shared active hook from the starter, scoped to this presentation. */
+.making-presentation [data-presentation-active="true"] { font-weight: 700; }

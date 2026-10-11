@@ -1,0 +1,18 @@
+/* Scope every selector to your presentation. Fill values from the chosen style.
+   These hooks supply no palette, fonts, theme, card or button defaults. */
+.authored-presentation {}
+.authored-presentation .subject {}
+.authored-presentation [data-presentation-header] {}
+.authored-presentation [data-presentation-marker] {}
+.authored-presentation [data-presentation-title] {}
+.authored-presentation [data-presentation-footer] {}
+.authored-presentation [data-presentation-caption] {}
+.authored-presentation [data-presentation-toc] {}
+.authored-presentation [data-presentation-toc-item] {}
+.authored-presentation [data-presentation-progress] {}
+.authored-presentation [data-presentation-progress-item] {}
+.authored-presentation [data-presentation-active="true"] {}
+.authored-presentation [data-presentation-prev] {}
+.authored-presentation [data-presentation-next] {}
+.authored-presentation [data-presentation-mode-toggle] {}
+.authored-presentation [data-presentation-attribution] {}

@@ -17,11 +17,12 @@ async function moduleFile(base) {
     try { await readFile(base + suffix); return base + suffix; } catch (error) { if (error.code !== 'EISDIR') throw error; }
   }
 }
-async function moduleGraph(entry, seen = new Set()) {
+async function moduleGraph(entry, seen = new Set(), sources = []) {
   const file = await moduleFile(entry); if (!file || seen.has(file)) return '';
   seen.add(file); const source = (await text(file)).replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
+  sources.push(source);
   let result = source;
-  for (const match of source.matchAll(/(?:from\s*|import\s*\()(['"])(\.[^'"]+)\1/g)) result += '\n' + await moduleGraph(resolve(dirname(file), match[2]), seen);
+  for (const match of source.matchAll(/(?:from\s*|import\s*\()(['"])(\.[^'"]+)\1/g)) result += '\n' + await moduleGraph(resolve(dirname(file), match[2]), seen, sources);
   return result;
 }
 async function anchors(target) {
@@ -30,9 +31,10 @@ async function anchors(target) {
   const html = await text(join(target, 'index.html'));
   const entry = html.match(/<script\b[^>]*\bsrc=["']([^"']+)["']/)?.[1] ?? '/src/main.tsx';
   const entryPath = resolve(target, entry.replace(/^\//, ''));
-  const graph = await moduleGraph(entryPath);
-  const registry = await text(join(target, 'src/presentations/index.ts'));
-  return { build: Boolean(pkg.scripts?.build && deps.vite && deps.react && deps.typescript), kit: /export[\s\S]*\bPresentation\b/.test(kit) && /export[\s\S]*\bStep\b/.test(kit), index: /\bexport\b/.test(registry) && /\bload\b/.test(registry) && /(?:pathname|location)/.test(graph) && graph.includes(registry.replace(/\/\/[^\n]*/g, '').trim()), entryPath };
+  const sources = [], graph = await moduleGraph(entryPath, new Set(), sources);
+  // Any routed module exporting slug/load entries is the registry, whatever its filename.
+  const registry = sources.some(source => /\bexport\b/.test(source) && /\bslug\s*\??:/.test(source) && /\bload\s*\??:/.test(source));
+  return { build: Boolean(pkg.scripts?.build && deps.vite && deps.react && deps.typescript), kit: /export[\s\S]*\bPresentation\b/.test(kit) && /export[\s\S]*\bStep\b/.test(kit), index: registry && /(?:pathname|location)/.test(graph), entryPath };
 }
 async function wireHost(target, entryPath) {
   const original = await text(entryPath);

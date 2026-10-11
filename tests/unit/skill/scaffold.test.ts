@@ -76,3 +76,13 @@ it('recognizes a differently named routed slug-loader registry without cosmetic 
   expect(run(dir)).toContain('index: skipped');
   expect(await readFile(join(dir, 'src/main.tsx'), 'utf8')).toBe(main);
 });
+it('recognizes a routed slug-loader registry at a different file path without re-scaffolding', async () => {
+  const dir = await target(); run(dir);
+  await rm(join(dir, 'src/presentations'), { recursive: true });
+  await writeFile(join(dir, 'src/talks.ts'), `export const talks: { slug: string; load: () => Promise<{ default: () => null }> }[] = [];`);
+  const main = `import { lazy } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport { talks } from './talks';\nconst entry = talks.find(item => '/' + item.slug === window.location.pathname);\nconst Component = entry ? lazy(entry.load) : () => <p>Host</p>;\ncreateRoot(document.getElementById('root')!).render(<Component />);\n`;
+  await writeFile(join(dir, 'src/main.tsx'), main);
+  expect(run(dir)).toContain('index: skipped');
+  expect(await readFile(join(dir, 'src/main.tsx'), 'utf8')).toBe(main);
+  await expect(readFile(join(dir, 'src/presentations/index.ts'), 'utf8')).rejects.toThrow();
+});

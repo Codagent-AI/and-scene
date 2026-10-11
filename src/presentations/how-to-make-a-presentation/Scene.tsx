@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { Appear, Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip } from '../../presentation-kit'
+import { Appear, Arrow, Box, Frame, Label, SceneLayer, SymbolChip } from '../../presentation-kit'
 import { ENTITY_IDS as id } from './entities'
 
 type Payload = { step: number }
@@ -26,15 +26,14 @@ export function ReferenceScene({ payload }: { payload: Payload }) {
       </Appear>}
       {step >= 5 && <Appear id="depth-enters" className="reference-entering"><SymbolChip id={id.depth} className="depth-chip" style={{ left: 116, top: 108 }}>partial ↔ full</SymbolChip></Appear>}
       {step >= 8 && <Appear id="modify-enters" className="reference-entering">
-        <Arrow id={id.modify} className="modify-arc" style={{ left: 610, top: 96, width: 225, height: 112 }}>↘ modify in place</Arrow>
-        <Emphasis id={id.edited} className="edited-flag" style={{ left: 423, top: 245 }}>edited</Emphasis>
+        <Arrow id={id.modify} className="modify-arc" style={{ left: 600, top: 65, width: 240, height: 95 }}>↘ modify in place</Arrow>
       </Appear>}
     </SceneLayer>
 
     <SceneLayer id="tray" className="tray-layer">
       {step >= 3 && <Appear id="tray-enters" className="reference-entering"><Label id={id.tray} className="tray-label">THE STORY TAKES SHAPE</Label></Appear>}
       {cards.map((card, index) => step >= index + 3 && <Appear key={card} id={`${card}-enters`} className="reference-entering">
-        <Box id={card} className={`entity step-card card-${index + 1}`} style={{ left: 64 + index * 170, top: 164 }}>
+        <Box id={card} className={`entity step-card card-${index + 1}${index === 2 && step >= 8 ? ' edited-card' : ''}`} data-presentation-allow-overlap={index === 2 && step >= 8 ? '' : undefined} style={{ left: 64 + index * 170, top: 164 }}>
           <span className="card-number">{cardLabels[index][0]}</span>
           <strong>{cardLabels[index][1]}</strong>
           <span>{cardLabels[index][2]}</span>

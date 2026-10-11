@@ -26,7 +26,7 @@
 [data-presentation-footer] > button { position: absolute; bottom: 16px; right: 34px; }
 [data-presentation-footer] > button:last-of-type { right: 112px; }
 [data-presentation-footer] > button:disabled { opacity: .4; cursor: default; }
-[data-presentation-attribution] { bottom: 52px !important; color: #526c72; font-size: 10px; text-decoration-color: #a6b8b3; }
+[data-presentation-attribution] { bottom: 52px !important; color: #526c72; font: 500 12px 'Avenir Next', Avenir, sans-serif; text-decoration: none; }
 
 .reference-scene { position: relative; width: 880px; height: 380px; color: var(--ink); }
 .entity { position: absolute; box-sizing: border-box; display: flex; align-items: center; justify-content: center; z-index: 2; }
@@ -39,7 +39,7 @@
 .dialogue-arrow::after { left: 0; right: auto; transform: rotate(225deg); }
 .question-chip, .depth-chip { position: absolute; padding: 6px 10px; border: 1px solid #c5dcd4; border-radius: 999px; background: #f6f5ef; color: #31544d; font-size: 10px; font-weight: 700; z-index: 3; }
 .depth-chip { border-color: #e9a991; color: #a44c35; }
-.tray-label { position: absolute; left: 510px; top: 121px; color: #789087; font: 10px 'SFMono-Regular', Consolas, monospace; letter-spacing: .16em; }
+.tray-label { position: absolute; left: 390px; top: 121px; color: #789087; font: 10px 'SFMono-Regular', Consolas, monospace; letter-spacing: .16em; }
 .step-card { width: 132px; height: 100px; flex-direction: column; align-items: flex-start; gap: 4px; padding: 11px 13px; border: 1px solid #d5ded6; border-radius: 10px; background: #fffefa; box-shadow: 0 7px 17px #132a3510; }
 .step-card strong { font-size: 12px; }
 .step-card > span:not(.card-number) { color: var(--muted); font-size: 9px; }
@@ -59,7 +59,7 @@
 .verify-node { width: 132px; height: 50px; flex-direction: column; gap: 4px; border: 1px solid #b8d9c6; border-radius: 10px; background: #edf7ef; font-size: 9px; color: #365d49; }
 .pass-mark { color: #26844a; font-size: 17px; font-weight: 800; line-height: 1; }
 .modify-arc { position: absolute; border-top: 1px dashed #e07859; border-right: 1px dashed #e07859; border-radius: 0 28px 0 0; color: #a44c35; text-align: right; padding: 4px 5px 0 0; font: 10px 'SFMono-Regular', Consolas, monospace; z-index: 4; }
-.edited-flag { position: absolute; border-radius: 5px; background: #fff0e9; border: 1px solid #f0a184; color: #a44c35; padding: 4px 7px; font: 9px 'SFMono-Regular', Consolas, monospace; z-index: 4; }
+.edited-card::after { content: 'edited'; position: absolute; left: 10px; bottom: -12px; border-radius: 5px; background: #fff0e9; border: 1px solid #f0a184; color: #a44c35; padding: 3px 7px; font: 9px 'SFMono-Regular', Consolas, monospace; z-index: 4; }
 .reveal-frame { position: absolute; border: 1px solid #e58b6b; border-radius: 24px; background: transparent; z-index: 6; pointer-events: none; }
 .reveal-label { position: absolute; left: 354px; top: 16px; z-index: 7; padding: 6px 12px; border-radius: 999px; background: #f6f5ef; color: #a44c35; font: 500 10px 'SFMono-Regular', Consolas, monospace; letter-spacing: .1em; }
 @media (max-width: 700px) {

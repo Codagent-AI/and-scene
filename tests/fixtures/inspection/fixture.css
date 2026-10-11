@@ -1,0 +1,10 @@
+.fixture { font-family: sans-serif; color: #222; background: white; }
+.fixture [data-presentation-header] { padding: 20px; }
+.fixture [data-presentation-title] { margin: 0; font-size: 24px; width: fit-content; }
+.fixture [data-presentation-toc] { position: absolute; top: 70px; left: 20px; }
+.fixture [data-presentation-footer] { padding: 20px; }
+.fixture [data-presentation-caption] { margin: 0 0 15px; }
+.fixture [data-presentation-mode-toggle] { position: absolute; top: 20px; right: 20px; }
+.fixture [data-presentation-progress-item], .fixture [data-presentation-toc-item] { margin-right: 5px; }
+.clean [data-presentation-active="true"] { background: #234; color: white; font-weight: 700; }
+.clean [data-presentation-attribution] { font-size: 12px; color: #345; text-decoration: none; padding: 10px; }

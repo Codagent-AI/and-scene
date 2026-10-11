@@ -28,4 +28,4 @@ validator_logs
 playwright-report/
 test-results/
 .inspection/
-artifacts/presentation-inspection/
+artifacts/

@@ -73,30 +73,29 @@
   [data-presentation-progress] { display: none; }
   [data-presentation-footer] > button { right: 15px; bottom: 12px; padding: 7px 9px; }
   [data-presentation-footer] > button:last-of-type { right: 89px; }
-  [data-presentation-stage] { flex: none; height: 310px; }
-  [data-presentation-canvas] { left: 14px !important; top: 18px !important; margin: 0 !important; scale: .72 !important; transform-origin: top left !important; }
-  .reference-scene { height: 380px; }
-  .you-entity { left: 20px !important; }
-  .prompt-entity { left: 165px !important; }
-  .skill-entity { left: 405px !important; }
-  .dialogue-arrow { left: 60px !important; width: 300px !important; }
-  .question-chip { left: 165px !important; }
-  .depth-chip { left: 25px !important; }
-  .tray-label { left: 165px !important; }
+  [data-presentation-stage] { flex: none; height: 560px; }
+  .reference-scene { width: 360px; height: 560px; }
+  .you-entity { left: 8px !important; top: 24px !important; }
+  .prompt-entity { left: 130px !important; top: 24px !important; }
+  .skill-entity { left: 236px !important; top: 92px !important; }
+  .dialogue-arrow { left: 36px !important; top: 146px !important; width: 260px !important; }
+  .question-chip { left: 110px !important; top: 126px !important; }
+  .depth-chip { left: 8px !important; top: 150px !important; }
+  .tray-label { left: 95px !important; top: 178px !important; }
   .step-card { left: auto !important; }
-  .card-1 { left: 20px !important; }
-  .card-2 { left: 180px !important; }
-  .card-3 { left: 340px !important; }
-  .ghost-card { left: 500px !important; }
-  .morph-one { left: 100px !important; }
-  .morph-two { left: 280px !important; }
-  .kit-connector { left: 230px !important; }
-  .kit-socket { left: 150px !important; }
-  .verify-connector { left: 330px !important; top: 300px !important; }
-  .verify-node { left: 380px !important; top: 275px !important; }
-  .modify-arc { left: 365px !important; top: 98px !important; height: 36px !important; }
-  .reveal-frame { left: 8px !important; width: 510px !important; }
-  .reveal-label { left: 165px !important; }
+  .card-1 { left: 8px !important; top: 204px !important; }
+  .card-2 { left: 180px !important; top: 204px !important; }
+  .card-3 { left: 8px !important; top: 330px !important; }
+  .ghost-card { left: 180px !important; top: 330px !important; }
+  .morph-one { left: 16px !important; top: 306px !important; }
+  .morph-two { left: 185px !important; top: 306px !important; }
+  .kit-connector { left: 92px !important; top: 432px !important; }
+  .kit-socket { left: 10px !important; top: 464px !important; }
+  .verify-connector { left: 220px !important; top: 432px !important; width: 50px !important; }
+  .verify-node { left: 225px !important; top: 464px !important; }
+  .modify-arc { left: 180px !important; top: 150px !important; width: 160px !important; height: 24px !important; }
+  .reveal-frame { left: 4px !important; top: 12px !important; width: 352px !important; height: 510px !important; }
+  .reveal-label { left: 78px !important; top: 526px !important; }
 }
 @media (max-width: 700px) {
   [data-presentation-attribution] { top: 68px !important; bottom: auto !important; right: 15px !important; }

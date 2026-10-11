@@ -1,7 +1,17 @@
 import { Presentation } from '../../presentation-kit'
+import { useEffect, useState } from 'react'
 import { STEPS } from './steps'
 import './presentation.css'
 
 export default function Talk() {
-  return <Presentation steps={STEPS} title="How to Use This Skill to Make a Presentation" initialMode="browse" />
+  const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 700px)').matches)
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 700px)')
+    const update = () => setNarrow(media.matches)
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  return <Presentation steps={STEPS} title="How to Use This Skill to Make a Presentation" initialMode="browse" designSize={narrow ? { width: 360, height: 560 } : undefined} />
 }

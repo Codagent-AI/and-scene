@@ -1,0 +1,4 @@
+- [ ] [Scene kit, router, and registry](tasks/01-scene-kit-and-app-shell.md)
+- [ ] ["How to Use This Skill to Make a Presentation" reference sample](tasks/02-reference-sample.md)
+- [ ] [Production verification and visual inspection scripts](tasks/03-verify-and-inspect-scripts.md)
+- [ ] [Presentation skill and bootstrap templates](tasks/04-presentation-skill-and-templates.md)

@@ -66,11 +66,37 @@
   [data-presentation-header] { padding: 12px 15px 8px; min-height: 60px; }
   [data-presentation-title] { font-size: 9px; }
   [data-presentation-title] h1 { font-size: 14px; }
-  [data-presentation-footer] { padding: 8px 15px 14px; }
-  [data-presentation-caption] { margin-right: 0; max-width: calc(100% - 80px); font-size: 11px; }
+  [data-presentation-footer] { padding: 8px 15px 54px; min-height: 0; display: flex; flex-direction: column; gap: 7px; }
+  [data-presentation-caption] { margin: 0; max-width: none; font-size: 11px; }
+  [data-presentation-toc] { flex-wrap: wrap; margin: 0; gap: 5px; }
+  [data-presentation-toc] button { padding: 5px 9px; }
   [data-presentation-progress] { display: none; }
-  [data-presentation-footer] > button { right: 15px; bottom: 13px; padding: 7px 9px; }
+  [data-presentation-footer] > button { right: 15px; bottom: 12px; padding: 7px 9px; }
   [data-presentation-footer] > button:last-of-type { right: 89px; }
+  [data-presentation-stage] { flex: none; height: 310px; }
+  [data-presentation-canvas] { left: 14px !important; top: 18px !important; margin: 0 !important; scale: .72 !important; transform-origin: top left !important; }
+  .reference-scene { height: 380px; }
+  .you-entity { left: 20px !important; }
+  .prompt-entity { left: 165px !important; }
+  .skill-entity { left: 405px !important; }
+  .dialogue-arrow { left: 60px !important; width: 300px !important; }
+  .question-chip { left: 165px !important; }
+  .depth-chip { left: 25px !important; }
+  .tray-label { left: 165px !important; }
+  .step-card { left: auto !important; }
+  .card-1 { left: 20px !important; }
+  .card-2 { left: 180px !important; }
+  .card-3 { left: 340px !important; }
+  .ghost-card { left: 500px !important; }
+  .morph-one { left: 100px !important; }
+  .morph-two { left: 280px !important; }
+  .kit-connector { left: 230px !important; }
+  .kit-socket { left: 150px !important; }
+  .verify-connector { left: 330px !important; top: 300px !important; }
+  .verify-node { left: 380px !important; top: 275px !important; }
+  .modify-arc { left: 365px !important; top: 98px !important; height: 36px !important; }
+  .reveal-frame { left: 8px !important; width: 510px !important; }
+  .reveal-label { left: 165px !important; }
 }
 @media (max-width: 700px) {
   [data-presentation-attribution] { top: 68px !important; bottom: auto !important; right: 15px !important; }

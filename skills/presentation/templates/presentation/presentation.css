@@ -1,0 +1,5 @@
+/* This file belongs to the presentation. Replace these example treatments. */
+[data-presentation-chrome] { color: #18313a; font-family: system-ui, sans-serif; }
+.idea { border: 1px solid currentColor; padding: 1rem; }
+[data-presentation-active], [aria-current="step"] { font-weight: 700; text-decoration: underline; }
+[data-presentation-attribution] { color: inherit; font-size: 0.75rem; }

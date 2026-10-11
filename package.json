@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:integration": "node scripts/test-bootstrap.mjs",
     "verify": "node scripts/verify.mjs",
     "inspect": "node scripts/inspect-presentation.mjs"
   },

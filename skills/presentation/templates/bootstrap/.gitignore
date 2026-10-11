@@ -1,0 +1,4 @@
+node_modules/
+dist/
+.and-scene/inspection/
+*.local

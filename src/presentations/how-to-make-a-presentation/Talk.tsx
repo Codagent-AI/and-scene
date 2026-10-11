@@ -1,19 +1,29 @@
+import { useSyncExternalStore } from 'react'
 import { Presentation } from '../../presentation-kit'
-import { useEffect, useState } from 'react'
 import { STEPS } from './steps'
 import './presentation.css'
 
+// Below 700px the scene reflows into two columns on a 360x560 design canvas (see presentation.css).
+const NARROW_QUERY = '(max-width: 699px)'
+const WIDE_SIZE = { width: 880, height: 380 }
+const NARROW_SIZE = { width: 360, height: 560 }
+
+// Environments without matchMedia fall back to the kit's default design size.
+const canMatchMedia = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+
+function subscribe(onChange: () => void) {
+  if (!canMatchMedia()) return () => {}
+  const query = window.matchMedia(NARROW_QUERY)
+  query.addEventListener('change', onChange)
+  return () => query.removeEventListener('change', onChange)
+}
+
+function useNarrow() {
+  return useSyncExternalStore(subscribe, () => canMatchMedia() && window.matchMedia(NARROW_QUERY).matches, () => false)
+}
+
 export default function Talk() {
-  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 700px)').matches)
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
-    const media = window.matchMedia('(max-width: 700px)')
-    if (!media) return
-    const update = () => setNarrow(media.matches)
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [])
-
-  return <Presentation steps={STEPS} title="How to Use This Skill to Make a Presentation" initialMode="browse" designSize={narrow ? { width: 360, height: 560 } : undefined} />
+  const narrow = useNarrow()
+  const designSize = narrow ? NARROW_SIZE : canMatchMedia() ? WIDE_SIZE : undefined
+  return <Presentation steps={STEPS} title="How to Use This Skill to Make a Presentation" initialMode="browse" designSize={designSize} />
 }

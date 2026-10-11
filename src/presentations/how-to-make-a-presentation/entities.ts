@@ -1,21 +1,5 @@
-export const GROUP_ID = 'how-to-make-a-presentation/one-scene'
+/** Keep identifiers stable for visual entities that continue between steps. */
+export const entity = (name: string) => `talk:${name}`
 
-export const ENTITY_IDS = {
-  you: 'and-scene/you',
-  prompt: 'and-scene/prompt',
-  skill: 'and-scene/skill',
-  dialogue: 'and-scene/dialogue',
-  question: 'and-scene/question',
-  tray: 'and-scene/step-tray',
-  cardOne: 'and-scene/card-one',
-  cardTwo: 'and-scene/card-two',
-  cardThree: 'and-scene/card-three',
-  ghost: 'and-scene/ghost-card',
-  depth: 'and-scene/depth-control',
-  kit: 'and-scene/scene-kit',
-  verify: 'and-scene/verify',
-  pass: 'and-scene/pass',
-  modify: 'and-scene/modify-arc',
-  edited: 'and-scene/edited-card',
-  reveal: 'and-scene/reveal-frame',
-} as const
+/** Step cards in the tray are numbered; every other entity is named once in the scene. */
+export const cardEntity = (n: number) => entity(`card-${n}`)

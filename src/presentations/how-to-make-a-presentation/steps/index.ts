@@ -8,4 +8,5 @@ import { step07 } from './07'
 import { step08 } from './08'
 import { step09 } from './09'
 
-export const STEPS = [step01, step02, step03, step04, step05, step06, step07, step08, step09] as const
+/** Ordered steps; scripts/verify.mjs reads this list to confirm the nine-step outline. */
+export const STEPS = [step01, step02, step03, step04, step05, step06, step07, step08, step09]

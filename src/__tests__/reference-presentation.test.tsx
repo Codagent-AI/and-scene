@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { STEPS } from '../presentations/how-to-make-a-presentation/steps'
-import { GROUP_ID } from '../presentations/how-to-make-a-presentation/entities'
 import { presentations, resolvePresentation } from '../presentations'
 
 const expected = [
@@ -20,7 +19,8 @@ describe('reference presentation contract', () => {
     expect(STEPS).toHaveLength(9)
     expect(STEPS.map(({ era, title, caption }) => [era, title, caption])).toEqual(expected)
     expect(new Set(STEPS.map(({ id }) => id)).size).toBe(9)
-    expect(STEPS.every(({ diagram }) => diagram.groupKey === GROUP_ID)).toBe(true)
+    expect(STEPS[0].diagram.groupKey).toBeTruthy()
+    expect(STEPS.every(({ diagram }) => diagram.groupKey === STEPS[0].diagram.groupKey)).toBe(true)
     expect(STEPS.every(({ diagram }) => diagram.scene === STEPS[0].diagram.scene)).toBe(true)
     expect(presentations).toHaveLength(1)
     expect(resolvePresentation('how-to-make-a-presentation')).toMatchObject({

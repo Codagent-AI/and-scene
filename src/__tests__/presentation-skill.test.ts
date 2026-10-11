@@ -22,8 +22,11 @@ describe('presentation skill package', () => {
       'skip scaffolding', 'add only the missing anchors', 'full scaffold', 'Playwright', 'style-neutral',
       'relative to this `SKILL.md`', 'monorepo', 'standalone project root',
       'wait for confirmation', 'preserve all existing routes', 'ambiguous', 'requested edits',
-      'npm run build', 'first step', 'runtime and console errors', 'settled screenshots', 'first, last, and dense',
+      'npm run build', 'first step', 'settled screenshots', 'first, last, and dense',
       'fix build or render failures', 'data-presentation-allow-overlap', 'attribution', 'remaining advisory warnings',
+      'build slides', 'create a browser talk', 'modify the <name> presentation', 'default to plain presentation-owned CSS',
+      'only if the project already uses it or the user asks for it', 'npm run verify', 'console.error',
+      'ask how the user wants to proceed with a separate workflow',
     ]) expect(skill.toLowerCase()).toContain(requirement.toLowerCase())
     expect(skill.split('\n').length).toBeLessThan(200)
   })

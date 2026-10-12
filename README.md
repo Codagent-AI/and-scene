@@ -14,7 +14,15 @@ npm run dev
 npm run build
 ```
 
-## Current State
+## Verification and inspection
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+Run `npm ci`, then install Chromium used by the render checks with
+`npx playwright install chromium`. `npm run verify` builds the app and opens the
+reference presentation in Chromium against a production preview on
+`127.0.0.1`.
+
+`npm run inspect -- how-to-make-a-presentation` rebuilds the app, captures each
+settled step at 1440 × 900, and writes screenshots under
+`artifacts/inspection/<slug>/`. Add `--narrow` for a 390 × 844 viewport or
+`--settle <milliseconds>` to change the default 900 ms animation wait. Warnings
+are advisory. Inspection artifacts are git-ignored.

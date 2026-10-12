@@ -44,21 +44,28 @@ async function main() {
   let server
   let browser
   const children = new Set()
-  const stop = () => {
+  let interrupted = false
+  const stop = signal => {
+    interrupted = true
+    process.exitCode = signal === 'SIGINT' ? 130 : 143
     for (const child of children) if (child.pid) try { process.kill(-child.pid, 'SIGTERM') } catch { /* already exited */ }
     if (browser) void browser.close().catch(() => {})
   }
-  process.once('SIGINT', stop)
-  process.once('SIGTERM', stop)
+  const onInterrupt = () => stop('SIGINT')
+  const onTerminate = () => stop('SIGTERM')
+  const ensureRunning = () => { if (interrupted) throw new Error('Verification interrupted') }
+  process.once('SIGINT', onInterrupt)
+  process.once('SIGTERM', onTerminate)
   try {
     console.log('[verify] build: running npm run build')
-    const build = spawn('npm', ['run', 'build'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
+    const build = spawn('npm', ['run', 'build'], { cwd: root, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
     children.add(build)
     let output = ''
     build.stdout.on('data', chunk => { output += chunk })
     build.stderr.on('data', chunk => { output += chunk })
     const buildCode = await new Promise(resolve => build.on('close', resolve))
     children.delete(build)
+    ensureRunning()
     if (buildCode !== 0) return fail('build', `npm run build exited ${buildCode}\n${tail(output)}`)
     console.log('[verify] build: passed')
 
@@ -85,6 +92,7 @@ async function main() {
     const url = `http://127.0.0.1:${port}/`
     let ready = false
     for (let i = 0; i < 100; i += 1) {
+      ensureRunning()
       if (server.exitCode !== null) break
       try { const response = await fetch(url); if (response.ok) { ready = true; break } } catch { /* preview is not listening yet */ }
       await sleep(100)
@@ -98,6 +106,7 @@ async function main() {
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
     page.on('pageerror', error => errors.push(error.message))
     await page.goto(`${url}how-to-make-a-presentation`, { waitUntil: 'networkidle' })
+    ensureRunning()
     const chrome = page.locator('[data-step-count]').first()
     const count = Number(await chrome.getAttribute('data-step-count'))
     if (count !== 9) return fail('render', `step 1 reports ${count} steps; expected 9`)
@@ -107,6 +116,7 @@ async function main() {
       errors = []
       currentStep = index + 1
       await page.keyboard.press('ArrowRight')
+      ensureRunning()
       try { await page.waitForFunction(expectedIndex => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === expectedIndex, currentStep - 1, { timeout: 5000 }) }
       catch { return fail('render', `step ${currentStep}: data-step-index did not advance`) }
       if (errors.length) return fail('render', `step ${currentStep}: ${errors.join('; ')}`)
@@ -116,8 +126,10 @@ async function main() {
     console.log('[verify] render: all 9/9 steps rendered without browser errors')
     console.log('[verify] PASS')
   } catch (error) {
-    fail('render', error.stack || error.message)
+    if (!interrupted) fail('render', error.stack || error.message)
   } finally {
+    process.removeListener('SIGINT', onInterrupt)
+    process.removeListener('SIGTERM', onTerminate)
     if (browser) await browser.close().catch(() => {})
     if (server?.pid) { try { process.kill(-server.pid, 'SIGTERM') } catch { /* already exited */ } }
     for (const child of children) if (child.pid) try { process.kill(-child.pid, 'SIGTERM') } catch { /* already exited */ }

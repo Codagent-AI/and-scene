@@ -31,6 +31,10 @@ export function parseArgs(args) {
 
 export function inspectPage() {
   const visible = element => {
+    for (let current = element; current; current = current.parentElement) {
+      const style = getComputedStyle(current)
+      if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false
+    }
     const style = getComputedStyle(element)
     const rect = element.getBoundingClientRect()
     return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0 && rect.width > 0 && rect.height > 0
@@ -79,9 +83,10 @@ async function freePort() {
   return port
 }
 
-async function run(command, args) {
+async function run(command, args, onChild) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd: root, stdio: 'inherit' })
+    const child = spawn(command, args, { cwd: root, detached: true, stdio: 'inherit' })
+    onChild?.(child)
     child.on('error', reject)
     child.on('close', code => code === 0 ? resolve() : reject(new Error(`${command} exited ${code}`)))
   })
@@ -90,22 +95,41 @@ async function run(command, args) {
 export async function main(args = process.argv.slice(2)) {
   let server
   let browser
-  const stop = () => {
+  let buildChild
+  let interrupted = false
+  const terminate = child => {
+    if (child?.pid) try { process.kill(-child.pid, 'SIGTERM') } catch { /* already exited */ }
+  }
+  const stop = signal => {
+    interrupted = true
+    process.exitCode = signal === 'SIGINT' ? 130 : 143
+    terminate(buildChild)
     if (server?.pid) try { process.kill(-server.pid, 'SIGTERM') } catch { /* already exited */ }
     if (browser) void browser.close().catch(() => {})
   }
-  process.once('SIGINT', stop)
-  process.once('SIGTERM', stop)
+  const onInterrupt = () => stop('SIGINT')
+  const onTerminate = () => stop('SIGTERM')
+  const ensureRunning = () => { if (interrupted) throw new Error('Inspection interrupted') }
+  process.once('SIGINT', onInterrupt)
+  process.once('SIGTERM', onTerminate)
   try {
     const options = parseArgs(args)
     const registry = await fs.readFile(path.join(root, 'src/presentations/index.ts'), 'utf8')
+    ensureRunning()
     if (!registry.includes(`"${options.slug}"`) && !registry.includes(`'${options.slug}'`)) throw new Error(`Presentation slug is not registered: ${options.slug}`)
-    if (!options.skipBuild) { console.log('[inspect] build: running npm run build'); await run('npm', ['run', 'build']) }
+    if (!options.skipBuild) {
+      console.log('[inspect] build: running npm run build')
+      const buildPromise = run('npm', ['run', 'build'], child => { buildChild = child })
+      await buildPromise
+      ensureRunning()
+    }
     const port = await freePort()
+    ensureRunning()
     server = spawn('npm', ['exec', '--', 'vite', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, detached: true, stdio: 'ignore' })
     const base = `http://127.0.0.1:${port}/`
     let ready = false
     for (let i = 0; i < 100; i += 1) {
+      ensureRunning()
       if (server.exitCode !== null) break
       try { if ((await fetch(base)).ok) { ready = true; break } } catch { /* preview is not listening yet */ }
       await sleep(100)
@@ -118,30 +142,41 @@ export async function main(args = process.argv.slice(2)) {
     catch (error) { throw new Error(`Could not launch Chromium. Install it with "npx playwright install chromium" or set PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH/CHROME_PATH. ${error.message}`, { cause: error }) }
     const page = await browser.newPage({ viewport: { width: options.width, height: options.height } })
     await page.goto(`${base}${options.slug}`, { waitUntil: 'networkidle' })
+    ensureRunning()
     const count = Number(await page.locator('[data-step-count]').first().getAttribute('data-step-count'))
+    ensureRunning()
     if (!Number.isInteger(count) || count < 1) throw new Error(`Route ${options.slug} has no valid [data-step-count] hook`)
     const output = path.resolve(root, options.out, options.slug)
     await fs.mkdir(output, { recursive: true })
     let warnings = 0
     for (let step = 1; step <= count; step += 1) {
+      ensureRunning()
       if (step > 1) await page.keyboard.press('ArrowRight')
       await page.waitForFunction(index => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === index - 1, step, { timeout: 5000 })
+      ensureRunning()
       await page.waitForTimeout(options.settle)
+      ensureRunning()
+      const marker = await page.locator('[data-inspect-settle-marker]').first().getAttribute('data-inspect-settle-marker').catch(() => null)
       const diagnostics = await page.evaluate(inspectPage)
       const file = path.join(output, `step-${String(step).padStart(2, '0')}.png`)
       await page.screenshot({ path: file, fullPage: true })
-      console.log(`[inspect] captured step ${step}/${count}: ${file}`)
+      console.log(`[inspect] captured step ${step}/${count}: ${file}${marker === null ? '' : ` marker=${marker}`}`)
       for (const [left, right] of diagnostics.overlap) { warnings += 1; console.warn(`[inspect] WARN step=${step} overlap: ${left} intersects ${right}`) }
       for (const active of diagnostics.activeWarnings) { warnings += 1; console.warn(`[inspect] WARN step=${step} active-nav: ${active} matches inactive sibling styling`) }
       if (diagnostics.attributionWarning) { warnings += 1; console.warn(`[inspect] WARN step=${step} attribution: ${diagnostics.attributionWarning}; style the data-presentation-attribution hook`) }
     }
     console.log(`[inspect] done: ${count} screenshots, ${warnings} warnings`)
   } catch (error) {
-    console.error(`[inspect] FAIL ${error.stack || error.message}`)
-    process.exitCode = 1
+    if (!interrupted) {
+      console.error(`[inspect] FAIL ${error.stack || error.message}`)
+      process.exitCode = 1
+    }
   } finally {
+    process.removeListener('SIGINT', onInterrupt)
+    process.removeListener('SIGTERM', onTerminate)
     if (browser) await browser.close().catch(() => {})
-    if (server?.pid) try { process.kill(-server.pid, 'SIGTERM') } catch { /* already exited */ }
+    terminate(buildChild)
+    terminate(server)
   }
 }
 

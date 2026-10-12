@@ -34,9 +34,11 @@ export function Stage<T>({
         style={{
           width: DESIGN_W,
           height: DESIGN_H,
-          position: "relative",
+          position: "absolute",
+          left: `calc(50% - ${(DESIGN_W * scale) / 2}px)`,
+          top: `calc(50% - ${(DESIGN_H * scale) / 2}px)`,
           transform: `scale(${scale})`,
-          transformOrigin: "center center",
+          transformOrigin: "top left",
         }}
       >
         <LayoutGroup id="presentation-scene">

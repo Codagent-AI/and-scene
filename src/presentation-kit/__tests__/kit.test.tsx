@@ -379,6 +379,19 @@ describe("presentation kit", () => {
     expect(computeFitScale(1, 1, "browse")).toBe(MIN_SCALE);
   });
 
+  it("centers the scaled fixed canvas within a narrow viewport", () => {
+    const originalWidth = window.innerWidth;
+    const originalHeight = window.innerHeight;
+    setViewportWidth(390);
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 844 });
+    render(<Presentation steps={steps} title="Narrow" initialMode="browse" attribution={false} />);
+    const canvas = document.querySelector<HTMLElement>("[data-presentation-stage] > div")!;
+    expect(canvas.style.left).toBe("calc(50% - 147px)");
+    expect(canvas.style.transformOrigin).toBe("top left");
+    setViewportWidth(originalWidth);
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: originalHeight });
+  });
+
   it("shows default attribution, supports overrides, and has no default brand", () => {
     const { rerender } = render(
       <Presentation steps={steps} title="Demo" initialMode="present" />,

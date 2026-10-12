@@ -10,4 +10,5 @@ const sync = async (source, destination) => {
 }
 await sync(path.join(repo, 'src/presentation-kit'), path.join(template, 'src/presentation-kit'))
 await sync(path.join(repo, 'scripts/inspect-presentation.mjs'), path.join(template, 'scripts/inspect-presentation.mjs'))
-console.log('Synced canonical presentation kit and inspection helper into bootstrap snapshot.')
+await sync(path.join(repo, 'scripts/verify.mjs'), path.join(template, 'scripts/verify.mjs'))
+console.log('Synced canonical presentation kit, verification script, and inspection helper into bootstrap snapshot.')

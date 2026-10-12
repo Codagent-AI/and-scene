@@ -70,15 +70,12 @@ describe('INT-001 standalone bootstrap materialization', () => {
     expect(forbidden[2]).toContain('Host reset only')
   })
 
-  it('keeps canonical kit and inspection snapshot byte aligned and documents verify behavior', async () => {
+  it('keeps canonical kit and verification/inspection scripts byte aligned', async () => {
     await compareTrees(path.join(repo, 'src/presentation-kit'), path.join(bootstrap, 'src/presentation-kit'))
     expect(await readFile(path.join(repo, 'scripts/inspect-presentation.mjs'))).toEqual(await readFile(path.join(bootstrap, 'scripts/inspect-presentation.mjs')))
-    const routeVerify = await readFile(path.join(bootstrap, 'scripts/verify.mjs'), 'utf8')
-    expect(routeVerify).toContain("No presentations are registered")
-    expect(routeVerify).toContain("registry.matchAll(/slug")
-    expect(routeVerify).toContain("await page.keyboard.press('ArrowRight')")
-    expect(routeVerify).toContain("data-step-index")
-    expect(routeVerify).toContain("console.log('[verify] PASS')")
+    expect(await readFile(path.join(repo, 'scripts/verify.mjs'))).toEqual(await readFile(path.join(bootstrap, 'scripts/verify.mjs')))
+    expect(await stat(path.join(repo, 'verify.config.json'))).toBeDefined()
+    await expect(stat(path.join(bootstrap, 'verify.config.json'))).rejects.toThrow()
     expect(outcomes['npm ci']).toBe('passed')
     await rm(app, { recursive: true, force: true })
   })

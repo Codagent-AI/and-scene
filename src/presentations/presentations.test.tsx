@@ -1,4 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { Landing } from "../Landing";
 import { Presentation } from "../presentation-kit";
@@ -66,5 +68,13 @@ describe("presentation registry and sample", () => {
         expect(root.dataset.stepIndex).toBe(String(index + 1));
       }
     }
+  });
+
+  it("reserves space between present titles and the mode toggle", async () => {
+    const stylesheet = await readFile(
+      path.resolve(process.cwd(), "src/presentations/how-to-make-a-presentation/talk.css"),
+      "utf8",
+    );
+    expect(stylesheet).toMatch(/\[data-presentation-root\]\[data-presentation-mode="present"\]\s+\[data-presentation-title\]\s*\{[^}]*margin-right:\s*(?:9[0-9]|[1-9][0-9]{2,})px/s);
   });
 });

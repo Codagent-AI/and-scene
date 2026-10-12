@@ -169,14 +169,20 @@ describe('presentation kit', () => {
 
   it('calculates uniform canvas fit at the default dimensions', () => {
     expect(calculateFitScale(976, 664, 'present')).toBe(1)
-    expect(calculateFitScale(488, 400, 'present')).toBeCloseTo(0.44545, 4)
+    expect(calculateFitScale(488, 400, 'present')).toBeCloseTo((488 - 2 * 0.04 * 488) / 880, 4)
     expect(calculateFitScale(400, 140, 'browse')).toBeCloseTo(0.305, 3)
   })
 
-  it('uses compact horizontal margins on narrow viewports to keep scene content legible', () => {
-    expect(calculateFitScale(390, 700, 'browse')).toBeCloseTo((390 - 24) / 880, 4)
-    expect(calculateFitScale(390, 700, 'present')).toBeCloseTo((390 - 24) / 880, 4)
-    expect(calculateFitScale(480, 700, 'browse')).toBeCloseTo((480 - 96) / 880, 4)
+  it('shrinks horizontal margins with the viewport so narrow scenes stay legible without jumps', () => {
+    expect(calculateFitScale(390, 700, 'browse')).toBeCloseTo((390 - 2 * 0.04 * 390) / 880, 4)
+    expect(calculateFitScale(300, 700, 'present')).toBeCloseTo((300 - 24) / 880, 4)
+    let previous = 0
+    for (let width = 300; width <= 1400; width += 1) {
+      const scale = calculateFitScale(width, 2000, 'browse')
+      expect(scale).toBeGreaterThanOrEqual(previous)
+      if (previous) expect(scale - previous).toBeLessThan(0.005)
+      previous = scale
+    }
   })
 
   it('keeps the active step valid when the supplied step list shrinks', () => {

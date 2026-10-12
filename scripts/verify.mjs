@@ -5,7 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
 import path from 'node:path'
 import { chromium } from 'playwright'
-import { parseArgs, validateSample } from './verification-lib.mjs'
+import { parseArgs, validateRegistration, validateSample } from './verification-lib.mjs'
 
 export async function freePort() {
   const server = net.createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening')
@@ -20,7 +20,7 @@ export async function waitReady(url, child, timeout = 30000) {
   }
   throw new Error('preview readiness timed out')
 }
-export async function main({ root, slug, port: requestedPort }) {
+export async function main({ root, slug, port: requestedPort, generic = false }) {
   let browser; let preview; let build; let phase = 'build'; let step = 0
   const terminate = async (child) => { if (child && child.exitCode === null) { child.kill('SIGTERM'); await Promise.race([once(child, 'exit'), delay(3000)]); if (child.exitCode === null) child.kill('SIGKILL') } }
   const cleanup = async () => { await browser?.close().catch(() => {}); await Promise.all([terminate(preview), terminate(build)]) }
@@ -29,7 +29,7 @@ export async function main({ root, slug, port: requestedPort }) {
     const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
     build = spawn(npmCommand, ['run', 'build'], { cwd: root, stdio: 'inherit' })
     const [code] = await once(build, 'exit'); if (code !== 0) throw new Error('npm run build failed')
-    phase = 'sample-registration'; const total = await validateSample(root, slug)
+    phase = 'sample-registration'; const expectedTotal = generic ? (await validateRegistration(root, slug), null) : await validateSample(root, slug)
     phase = 'render'; const port = requestedPort || await freePort(); const base = `http://127.0.0.1:${port}`
     preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: ['ignore', 'inherit', 'inherit'] })
     await waitReady(base, preview)
@@ -45,14 +45,18 @@ export async function main({ root, slug, port: requestedPort }) {
       throw new Error('rendered sample did not expose data-step-count')
     })
     const count = Number(countAttribute)
-    if (count !== total) throw new Error(`expected ${total} rendered steps, found ${count}`)
+    const total = expectedTotal ?? count
+    if (!Number.isInteger(count) || count < 1 || count !== total) throw new Error(`expected ${total} rendered steps, found ${count}`)
     for (step = 0; step < total; step++) {
       if (step) await page.keyboard.press('ArrowRight')
       await page.waitForFunction((index) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === index, step, { timeout: 5000 }).catch(() => { throw new Error('transition did not advance data-step-index') })
       await page.waitForTimeout(650)
       const title = await page.locator('[data-presentation-caption] h2').textContent().catch(() => '')
-      const expected = (await import('./verification-lib.mjs')).expectedSteps[step][1]
-      if (!title?.includes(expected)) throw new Error(`expected title "${expected}", got "${title}"`)
+      if (!title) throw new Error(`step ${step + 1} did not expose a caption title`)
+      if (!generic) {
+        const expected = (await import('./verification-lib.mjs')).expectedSteps[step][1]
+        if (!title.includes(expected)) throw new Error(`expected title "${expected}", got "${title}"`)
+      }
       if (faults.length) throw new Error(faults.join('; '))
     }
     phase = 'complete'; console.log(`PASS: build, sample registration, and render verification (${total} steps)`)

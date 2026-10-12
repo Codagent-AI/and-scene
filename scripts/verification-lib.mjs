@@ -26,13 +26,18 @@ export async function validateSample(root, slug = sampleSlug) {
   })
   return outline.length
 }
+export async function validateRegistration(root, slug) {
+  const registry = await readFile(path.join(root, 'src/presentations/index.ts'), 'utf8').catch(() => '')
+  if (!registry.includes(`slug: '${slug}'`) || !registry.includes(`./${slug}/Talk`)) throw new Error(`presentation registration: ${slug} is missing from src/presentations/index.ts`)
+}
 export function parseArgs(args) {
-  const result = { root: process.env.AND_SCENE_ROOT || process.cwd(), slug: process.env.AND_SCENE_SAMPLE_SLUG || sampleSlug, port: Number(process.env.AND_SCENE_PORT || 0) }
+  const result = { root: process.env.AND_SCENE_ROOT || process.cwd(), slug: process.env.AND_SCENE_SAMPLE_SLUG || sampleSlug, port: Number(process.env.AND_SCENE_PORT || 0), generic: process.env.AND_SCENE_GENERIC_VERIFY === '1' }
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     if (arg === '--root') result.root = path.resolve(args[++i])
     else if (arg === '--slug') result.slug = args[++i]
     else if (arg === '--port') result.port = Number(args[++i])
+    else if (arg === '--generic') result.generic = true
     else throw new Error(`unknown argument: ${arg}`)
   }
   return result

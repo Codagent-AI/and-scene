@@ -19,6 +19,10 @@ describe('presentation skill contract', () => {
       'wait for confirmation before writing', "this skill file's directory", 'plain CSS is the default',
       'list the registered presentations', 'npm run build', 'first-step render check',
       'Inspect first, last, and dense or key steps', 'Review overlap, active-chrome, and attribution warnings',
+      'slide deck, talk', 'entities.ts', '`id`, `era`, `title`, `caption`, `Scene`, and `payload`',
+      'After verification, report the presentation title and route', '## Out of scope',
+      'standalone non-monorepo', 'all three anchors already exist', 'templates/bootstrap/package.json',
+      'If the user chooses to proceed with partial details', 'use `--narrow` where the presentation is responsive-sensitive',
     ]) expect(skill).toContain(phrase)
     const resolvedBootstrap = path.resolve(path.dirname(skillPath), 'templates/bootstrap')
     expect(resolvedBootstrap).toBe(path.join(root, 'skills/presentation/templates/bootstrap'))

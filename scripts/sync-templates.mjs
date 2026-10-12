@@ -1,6 +1,7 @@
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { findSnapshotDrift, replaceSnapshot } from './sync-templates-lib.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const bootstrap = path.join(root, 'skills/presentation/templates/bootstrap')
@@ -29,18 +30,43 @@ expected.set('package.json', Buffer.from(`${JSON.stringify(packageJson, null, 2)
 expected.set('src/index.css', Buffer.from('* { box-sizing: border-box; }\n'))
 expected.set('src/presentations/index.ts', Buffer.from("import type React from 'react'\nexport interface PresentationEntry { slug: string; title: string; load: () => Promise<{ default: React.ComponentType }> }\nexport const presentations: PresentationEntry[] = [\n  { slug: 'starter', title: 'Your presentation', load: () => import('./starter/Talk') },\n]\nexport function findPresentation(slug: string): PresentationEntry | undefined { return presentations.find((entry) => entry.slug === slug) }\nexport type RouteResolution = { kind: 'landing' } | { kind: 'presentation'; slug: string }\nexport function resolveRoute(pathname: string): RouteResolution {\n  const slug = pathname.replace(/^\\/+|\\/+$/g, '')\n  return slug && findPresentation(slug) ? { kind: 'presentation', slug } : { kind: 'landing' }\n}\n"))
 expected.set('src/presentations/starter/Talk.tsx', Buffer.from("import { Presentation } from '../../presentation-kit/Presentation'\nimport { Box } from '../../presentation-kit/nodes/Box'\nimport type { Step } from '../../presentation-kit/types'\nfunction StarterScene() { return <Box layoutId=\"starter-node\">Add your scene</Box> }\nconst steps: Step[] = [{ id: 'start', era: 'Start', title: 'Your first step', caption: 'Describe the idea this scene introduces.', Scene: StarterScene, payload: undefined }]\nexport default function Talk() { return <Presentation steps={steps} title=\"Your presentation\" /> }\n"))
-if (!check) {
-  await rm(bootstrap, { recursive: true, force: true })
-  await mkdir(bootstrap, { recursive: true })
-  for (const [file, content] of expected) { const target = path.join(bootstrap, file); await mkdir(path.dirname(target), { recursive: true }); await writeFile(target, content) }
-  await cp(path.join(root, 'package-lock.json'), path.join(bootstrap, 'package-lock.json'))
-  await mkdir(path.join(bootstrap, 'src/presentations/starter'), { recursive: true })
-  await writeFile(path.join(bootstrap, 'src/presentations/starter/Talk.tsx'), expected.get('src/presentations/starter/Talk.tsx'))
-} else {
-  const mismatches = []
-  for (const [file, content] of expected) {
-    const actual = await readFile(path.join(bootstrap, file)).catch(() => null)
-    if (!actual || !actual.equals(content)) mismatches.push(file)
+async function walkFiles(dir, relative = '') {
+  const found = []
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name === 'dist') continue
+    const child = path.join(dir, entry.name)
+    const childRelative = path.posix.join(relative, entry.name)
+    if (entry.isDirectory()) found.push(...await walkFiles(child, childRelative))
+    else if (entry.isFile()) found.push(childRelative)
   }
-  if (mismatches.length) { console.error(`Template snapshot drift: ${mismatches.join(', ')}`); process.exitCode = 1 }
+  return found
+}
+
+if (!check) {
+  const staging = await mkdtemp(path.join(path.dirname(bootstrap), '.bootstrap-staging-'))
+  try {
+    for (const [file, content] of expected) {
+      const target = path.join(staging, file)
+      await mkdir(path.dirname(target), { recursive: true })
+      await writeFile(target, content)
+    }
+    await replaceSnapshot(staging, bootstrap)
+  } finally {
+    await rm(staging, { recursive: true, force: true })
+  }
+} else {
+  const actualPaths = await walkFiles(bootstrap).catch(() => [])
+  const drift = findSnapshotDrift(expected.keys(), actualPaths)
+  const changed = []
+  for (const file of actualPaths) {
+    if (!expected.has(file)) continue
+    const actual = await readFile(path.join(bootstrap, file))
+    if (!actual.equals(expected.get(file))) changed.push(file)
+  }
+  if (drift.missing.length || drift.unexpected.length || changed.length) {
+    if (drift.missing.length) console.error(`Missing bootstrap files: ${drift.missing.join(', ')}`)
+    if (changed.length) console.error(`Changed bootstrap files: ${changed.join(', ')}`)
+    if (drift.unexpected.length) console.error(`Unexpected bootstrap files: ${drift.unexpected.join(', ')}`)
+    process.exitCode = 1
+  }
 }

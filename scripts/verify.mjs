@@ -39,16 +39,21 @@ export async function main({ root, slug, port: requestedPort }) {
     page.on('console', (msg) => { if (msg.type() === 'error') faults.push(`console error: ${msg.text()}`) })
     page.on('pageerror', (error) => faults.push(`page error: ${error.message}`))
     await page.goto(`${base}/${slug}`, { waitUntil: 'networkidle' })
-    const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
-    if (count !== total) throw new Error(`step ${step}: expected ${total} rendered steps, found ${count}`)
+    if (faults.length) throw new Error(faults.join('; '))
+    const countAttribute = await page.locator('[data-step-count]').getAttribute('data-step-count', { timeout: 3000 }).catch(() => {
+      if (faults.length) throw new Error(faults.join('; '))
+      throw new Error('rendered sample did not expose data-step-count')
+    })
+    const count = Number(countAttribute)
+    if (count !== total) throw new Error(`expected ${total} rendered steps, found ${count}`)
     for (step = 0; step < total; step++) {
       if (step) await page.keyboard.press('ArrowRight')
-      await page.waitForFunction((index) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === index, step, { timeout: 5000 }).catch(() => { throw new Error(`step ${step}: transition did not advance data-step-index`) })
+      await page.waitForFunction((index) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === index, step, { timeout: 5000 }).catch(() => { throw new Error('transition did not advance data-step-index') })
       await page.waitForTimeout(650)
       const title = await page.locator('[data-presentation-caption] h2').textContent().catch(() => '')
       const expected = (await import('./verification-lib.mjs')).expectedSteps[step][1]
-      if (!title?.includes(expected)) throw new Error(`step ${step}: expected title "${expected}", got "${title}"`)
-      if (faults.length) throw new Error(`step ${step}: ${faults.join('; ')}`)
+      if (!title?.includes(expected)) throw new Error(`expected title "${expected}", got "${title}"`)
+      if (faults.length) throw new Error(faults.join('; '))
     }
     phase = 'complete'; console.log(`PASS: build, sample registration, and render verification (${total} steps)`)
   } catch (error) { console.error(`FAIL [${phase}]${phase === 'render' ? ` step ${step}` : ''}: ${error.message}`); process.exitCode = 1 }

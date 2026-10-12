@@ -48,14 +48,19 @@ export async function inspect({ slug, narrow, settle, root }) {
     const output = path.join(root, 'artifacts/inspection', `${slug}${narrow ? '-narrow' : ''}`); await mkdir(output, { recursive: true })
     for (let step = 0; step < total; step++) {
       if (step) { await page.keyboard.press('ArrowRight'); await page.waitForFunction((index) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === index, step) }
+      const settleStarted = Date.now()
       await page.waitForTimeout(settle)
+      if (process.env.AND_SCENE_INSPECT_TRACE === '1') {
+        const activeAnimations = await page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running').length)
+        console.log(`CAPTURE step ${step} settled=${Date.now() - settleStarted}ms activeAnimations=${activeAnimations}`)
+      }
       const report = await page.evaluate(() => {
         const allowed = (element) => Boolean(element.closest('[data-presentation-allow-overlap]'))
-        const nodes = [...document.querySelectorAll('body *')].filter((e) => e.children.length === 0 && e.textContent.trim() && getComputedStyle(e).display !== 'none' && !['arrow','frame'].includes(e.getAttribute('data-presentation-node'))).map((e) => { const range=document.createRange(); range.selectNodeContents(e); const r=range.getBoundingClientRect(); return { label: e.getAttribute('data-presentation-node') || e.tagName.toLowerCase(), text: e.textContent.trim(), allowed: allowed(e), rect: { left:r.left,right:r.right,top:r.top,bottom:r.bottom } } })
+        const nodes = [...document.querySelectorAll('body *')].filter((e) => e.children.length === 0 && e.textContent.trim() && getComputedStyle(e).display !== 'none' && !['arrow','frame'].includes(e.getAttribute('data-presentation-node'))).map((e) => { const range=document.createRange(); range.selectNodeContents(e); const r=range.getBoundingClientRect(); return { label: e.getAttribute('data-presentation-label') || e.getAttribute('data-presentation-node') || e.tagName.toLowerCase(), text: e.textContent.trim(), allowed: allowed(e), rect: { left:r.left,right:r.right,top:r.top,bottom:r.bottom } } })
         const active = [...document.querySelectorAll('[data-presentation-progress] [data-presentation-active="true"], [data-presentation-toc] [data-presentation-active="true"]')]
         const controls = active.map((el) => { const inactive = [...el.parentElement.querySelectorAll('button')].find((item) => item !== el); if (!inactive) return false; const a=getComputedStyle(el), b=getComputedStyle(inactive); return ['color','backgroundColor','borderColor','fontWeight','opacity','textDecorationLine'].every((key)=>a[key]===b[key]) })
         const link = document.querySelector('[data-presentation-attribution]'), s = link && getComputedStyle(link)
-        return { overlaps: nodes, indistinct: controls.some(Boolean), attribution: link ? { fontSize:parseFloat(s.fontSize), defaultLike:(s.textDecorationLine.includes('underline') || s.color==='rgb(0, 0, 238)') && !s.fontFamily.includes('system-ui') } : null }
+        return { overlaps: nodes, indistinct: controls.some(Boolean), attribution: link ? { fontSize:parseFloat(s.fontSize), defaultLike:s.textDecorationLine.includes('underline') || s.color==='rgb(0, 0, 238)' } : null }
       })
       for (const warning of findOverlaps(report.overlaps)) console.warn(`WARN step ${step}: overlapping text/chrome "${warning.first}" and "${warning.second}"`)
       if (report.indistinct) console.warn(`WARN step ${step}: active progress/ToC is indistinguishable from inactive controls`)

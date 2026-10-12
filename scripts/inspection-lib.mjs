@@ -32,6 +32,6 @@ export function inspectDocument() {
   const style = (el) => { const s = getComputedStyle(el); return { color: s.color, backgroundColor: s.backgroundColor, borderColor: s.borderColor, fontWeight: s.fontWeight, opacity: s.opacity, textDecorationLine: s.textDecorationLine } }
   const attribution = document.querySelector('[data-presentation-attribution]')
   let attributionInfo = null
-  if (attribution) { const s = getComputedStyle(attribution); attributionInfo = { fontSize: parseFloat(s.fontSize), defaultLike: (s.textDecorationLine.includes('underline') || s.color === 'rgb(0, 0, 238)') && !s.fontFamily.includes('system-ui') } }
+  if (attribution) { const s = getComputedStyle(attribution); attributionInfo = { fontSize: parseFloat(s.fontSize), defaultLike: s.textDecorationLine.includes('underline') || s.color === 'rgb(0, 0, 238)' } }
   return { overlaps: findOverlaps(visibleText), indistinct: active.flatMap((item, i) => inactive[i] && stylesIndistinguishable(style(item), style(inactive[i])) ? [item.closest('nav')?.getAttribute('aria-label') || 'navigation'] : []), attribution: attributionWarnings(attributionInfo) }
 }

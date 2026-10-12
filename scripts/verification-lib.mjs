@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 export const sampleSlug = 'how-to-make-a-presentation'
 export const expectedSteps = [
@@ -25,8 +26,6 @@ export async function validateSample(root, slug = sampleSlug) {
   })
   return outline.length
 }
-import { pathToFileURL } from 'node:url'
-
 export function parseArgs(args) {
   const result = { root: process.env.AND_SCENE_ROOT || process.cwd(), slug: process.env.AND_SCENE_SAMPLE_SLUG || sampleSlug, port: Number(process.env.AND_SCENE_PORT || 0) }
   for (let i = 0; i < args.length; i++) {

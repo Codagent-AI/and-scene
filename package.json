@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "verify": "node scripts/verify.mjs",
     "inspect": "node scripts/inspect-presentation.mjs",
-    "test": "vitest run"
+    "test": "npm run test:fast && npm run test:heavy",
+    "test:fast": "vitest run src tests/skill",
+    "test:heavy": "vitest run tests/integration tests/e2e --no-file-parallelism --maxWorkers=1 --testTimeout=120000 --hookTimeout=120000"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

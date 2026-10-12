@@ -47,7 +47,7 @@ describe('INT-002 inspection artifacts and diagnostics', () => {
     } finally { rmSync(fixture, { recursive: true, force: true }) }
   }, 60_000)
 
-  it.each([['--width'], ['--settle', 'abc']])('rejects invalid inspection arguments: %s', (...args) => {
+  it.each([['--width'], ['--settle', 'abc'], ['--width', '390.5'], ['--height', '480.25'], ['--port', '65536'], ['--port', '80.5']])('rejects invalid inspection arguments: %s', (...args) => {
     const result = spawnSync('node', ['scripts/inspect-presentation.mjs', ...args, 'custom-fixture'], { cwd: source, encoding: 'utf8' })
     expect(result.status).toBe(2)
     expect(`${result.stdout}\n${result.stderr}`).toContain('Usage: npm run inspect')

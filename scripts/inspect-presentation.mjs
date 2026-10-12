@@ -13,16 +13,18 @@ try {
   }, allowPositionals: true })
   ;({ width = '1440', height = '900', settle = '1400', port, 'no-build': noBuild = false } = parsed.values)
   ;[slug] = parsed.positionals
-  const numeric = (name, value, fallback) => {
-    if (value === undefined) return fallback
+  const numeric = (name, value, { integer = false, max = Infinity } = {}) => {
+    if (value === undefined) return value
     const number = Number(value)
     if (!Number.isFinite(number) || number <= 0) throw new Error(`${name} must be a finite positive number`)
+    if (integer && !Number.isInteger(number)) throw new Error(`${name} must be a whole number`)
+    if (number > max) throw new Error(`${name} must be at most ${max}`)
     return number
   }
-  width = numeric('--width', width)
-  height = numeric('--height', height)
+  width = numeric('--width', width, { integer: true })
+  height = numeric('--height', height, { integer: true })
   settle = numeric('--settle', settle)
-  port = numeric('--port', port)
+  port = numeric('--port', port, { integer: true, max: 65535 })
   if (!slug || parsed.positionals.length !== 1) throw new Error('provide exactly one presentation slug')
 } catch (error) {
   console.error(`${error.message}\n${usage}`)

@@ -1,20 +1,24 @@
 # and-scene
 
-And Scene is a project for building a presentation-generation agent skill.
-
-The intended presentation model is not a stack of unrelated slides. It is one
-diagrammatic scene that evolves through named steps: elements appear, move,
-collapse, connect, and re-label as the talk arc develops.
+And Scene is a small Vite, React, and TypeScript app for browser presentations
+that unfold as one evolving diagram. The style-neutral scene kit provides
+navigation and motion primitives; each presentation owns its content and CSS.
 
 ## Development
 
 ```bash
 npm install
 npm run dev
+npm test
+npm run lint
 npm run build
 ```
 
 ## Current State
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+Presentations live in `src/presentations/` and are registered explicitly in
+`src/presentations/index.ts`. The landing page lists registered presentations;
+each slug is available at `/<slug>`. The committed
+`how-to-make-a-presentation` example demonstrates a grouped, continuously
+evolving scene. Browser verification and inspection scripts are planned for a
+later slice.

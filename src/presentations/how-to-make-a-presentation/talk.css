@@ -1,0 +1,48 @@
+[data-presentation-root] {
+  --ink: #202824; --muted: #68746a; --paper: #f3f0e7; --lime: #c9dc71; --line: #c9cfc1;
+  color: var(--ink); background: var(--paper); font-family: 'DM Sans', sans-serif;
+}
+[data-presentation-header] { z-index: 3; padding: 0 38px; color: var(--ink); }
+[data-presentation-title] { font: 700 15px 'Manrope', sans-serif; letter-spacing: -.02em; }
+[data-presentation-step-marker] { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--lime); font: 12px 'DM Mono', monospace; }
+[data-presentation-footer] { z-index: 4; padding: 0 38px 17px; color: var(--ink); }
+[data-presentation-caption] { min-height: 42px; max-width: 680px; margin: 0 auto 8px; text-align: center; font-size: 13px; line-height: 1.45; color: #465148; }
+[data-presentation-footer] nav { display: flex; align-items: center; justify-content: center; gap: 7px; }
+[data-presentation-progress] { width: 13px; height: 13px; padding: 0; border: 1px solid #8c9786; border-radius: 50%; background: transparent; color: transparent; font-size: 0; cursor: pointer; transition: .2s ease; }
+[data-presentation-progress][data-active="true"] { width: 30px; border-radius: 8px; border-color: var(--ink); background: var(--lime); box-shadow: 0 0 0 3px #c9dc714d; }
+[data-presentation-footer] button[aria-label="Previous step"], [data-presentation-footer] button[aria-label="Next step"] { padding: 8px 13px; border: 1px solid #879187; border-radius: 999px; background: transparent; color: var(--ink); cursor: pointer; font: 600 11px 'DM Mono', monospace; }
+[data-presentation-footer] button[aria-label="Previous step"] { margin-left: 16px; }
+[data-presentation-footer] button:hover { background: var(--ink); color: var(--paper); }
+[data-presentation-toc] { z-index: 5; left: 22px !important; top: 50% !important; transform: translateY(-50%); display: grid; gap: 8px; }
+[data-presentation-toc-entry] { padding: 7px 10px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: #667168; text-align: left; text-transform: capitalize; font: 11px 'DM Mono', monospace; cursor: pointer; }
+[data-presentation-toc-entry][data-active="true"] { border-color: #9ba67e; background: #e0e7c4; color: #253028; font-weight: 600; }
+[data-presentation-attribution] { z-index: 5; position: absolute; right: 22px; bottom: 17px; color: #445046; font: 500 12px 'DM Mono', monospace; text-decoration: none; }
+[data-presentation-attribution]:hover { color: #738629; text-decoration: underline; }
+[data-presentation-mode-toggle] { z-index: 7; top: 20px !important; right: 26px !important; padding: 7px 12px; border: 1px solid #aab2a3; border-radius: 999px; background: transparent; color: #425047; font: 11px 'DM Mono', monospace; cursor: pointer; }
+.story-scene { position: absolute; inset: 0; color: var(--ink); }
+.conversation-label, .route-caption { position: absolute; left: 171px; color: #758073; font: 500 10px 'DM Mono', monospace; letter-spacing: .12em; }
+.conversation-label { top: 9px; }
+.you-node, .skill-node { position: absolute; top: 49px; display: flex; align-items: center; gap: 9px; height: 44px; padding: 0 15px; border: 1px solid #8e9c90; border-radius: 12px; background: #fffdf7; font-weight: 700; font-size: 14px; }
+.you-node { left: 175px; width: 116px; }.you-node svg { color: #788942; }
+.skill-node { left: 568px; width: 128px; }.skill-node svg { color: #86983a; }
+.prompt-bubble { position: absolute; top: 56px; left: 317px; display: grid; place-items: center; width: 165px; height: 36px; border: 1px solid #cbd2c1; border-radius: 18px; background: #e6ebdc; color: #4b594d; font-size: 12px; }
+.prompt-bubble i { position: absolute; left: -5px; bottom: 7px; width: 9px; height: 9px; transform: rotate(45deg); border-bottom: 1px solid #cbd2c1; border-left: 1px solid #cbd2c1; background: #e6ebdc; }
+.conversation-arrow { position: absolute; top: 66px; width: 31px; height: 16px; color: #7f8d63; }.conversation-arrow.forward { left: 523px; }.conversation-arrow.return { left: 487px; top: 75px; width: 31px; }
+.question-chip { position: absolute; top: 28px; left: 439px; display: flex; align-items: center; gap: 5px; padding: 5px 9px; border: 1px solid #cad2b8; border-radius: 20px; background: #f9f8ef; color: #5e6d50; font-size: 10px; }
+.route-caption { top: 116px; left: 169px; }
+.card-tray { position: absolute; top: 139px; left: 154px; display: flex; gap: 8px; }
+.step-card { position: relative; flex: 0 0 106px; width: 106px; height: 126px; padding: 11px 9px; border: 1px solid #cbd0c4; border-radius: 10px; background: #fffdf8; box-shadow: 0 4px 12px #2631260b; }
+.step-card strong { display: block; min-height: 28px; margin-top: 8px; font: 700 11px/1.2 'Manrope', sans-serif; }
+.step-card small { display: block; margin-top: 4px; color: #647067; font-size: 8.5px; line-height: 1.25; }
+.card-number { color: #7b8964; font: 9px 'DM Mono', monospace; letter-spacing: .04em; }
+.visual-token { display: flex; align-items: center; gap: 4px; margin-top: 8px; height: 8px; }.visual-token span { display: block; width: 24px; height: 5px; border-radius: 5px; background: #cbd78e; }.visual-token span:nth-child(2) { width: 15px; background: #a9b8a6; }.visual-token span:nth-child(3) { width: 8px; background: #e3bd7e; }
+.ghost-card { border-style: dashed; background: #eeeee7; box-shadow: none; opacity: .8; }
+.morph-link { position: absolute; top: 272px; left: 220px; display: flex; align-items: center; gap: 5px; color: #77816e; font: 9px 'DM Mono', monospace; }
+.depth-control { position: absolute; top: 298px; left: 169px; display: flex; align-items: center; gap: 10px; color: #6d786a; font: 9px 'DM Mono', monospace; }.depth-control > span:first-child { margin-right: 9px; letter-spacing: .06em; }.depth-control b { color: #344137; font-weight: 500; }.depth-track { width: 62px; height: 3px; background: linear-gradient(90deg, #c9dc71 0 50%, #bbc4b6 50%); }
+.kit-socket { position: absolute; top: 277px; left: 437px; display: grid; grid-template-columns: 20px 1fr; align-items: center; width: 157px; height: 47px; padding: 7px 10px; border: 1px solid #b7c394; border-top: 3px solid #c2d374; border-radius: 7px; background: #e7edcf; color: #425134; }.kit-socket svg { grid-row: span 2; }.kit-socket span { font: 600 9px 'DM Mono', monospace; letter-spacing: .08em; }.kit-socket small { font-size: 9px; }
+.verify-node { position: absolute; top: 178px; left: 728px; display: grid; grid-template-columns: 24px 1fr; align-items: center; width: 140px; height: 48px; padding: 7px 9px; border: 1px solid #c5cec1; border-radius: 8px; background: #f9faf4; color: #435247; }.verify-node svg { grid-row: span 2; }.verify-node span { font-size: 10px; font-weight: 600; }.verify-node b { display: flex; align-items: center; gap: 3px; color: #398052; font: 600 9px 'DM Mono', monospace; }.verify-node b svg { display: inline; }
+.edited { border-color: #d59a56; box-shadow: 0 0 0 2px #d59a5633; }.edit-flag { position: absolute; top: -8px; right: 6px; padding: 2px 4px; border-radius: 4px; background: #d98945; color: white; font: 8px 'DM Mono', monospace; }
+.modify-arc { position: absolute; top: 103px; left: 500px; display: flex; align-items: center; gap: 5px; color: #ac713d; font: 9px 'DM Mono', monospace; }.modify-arc::before { content: ''; position: absolute; left: -8px; top: 17px; width: 10px; height: 78px; border-left: 1px dashed #d39b61; border-bottom: 1px dashed #d39b61; border-radius: 0 0 0 9px; }
+.reveal-frame { position: absolute; inset: 0; border: 1px solid #a7b37c; border-radius: 20px; pointer-events: none; }.reveal-frame span { position: absolute; top: -8px; right: 24px; padding: 0 9px; background: var(--paper); color: #6f7e44; font: 9px 'DM Mono', monospace; letter-spacing: .12em; }
+.reveal-label { position: absolute; top: 345px; left: 0; width: 100%; color: #66734a; text-align: center; font: 500 10px 'DM Mono', monospace; letter-spacing: .1em; }
+@media (max-width: 600px) { [data-presentation-header] { padding: 0 16px; } [data-presentation-title] { max-width: 68vw; font-size: 12px; } [data-presentation-footer] { padding: 0 12px 14px; } [data-presentation-caption] { font-size: 12px; } [data-presentation-attribution] { right: 10px; bottom: 3px; font-size: 12px; } [data-presentation-mode-toggle] { right: 12px !important; top: 12px !important; } }

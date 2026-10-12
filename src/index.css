@@ -1,32 +1,21 @@
-:root {
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  color: #f8f3e6;
-  background: #0d0c0b;
-  font-synthesis: none;
-  line-height: 1.5;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  min-width: 320px;
-  min-height: 100vh;
-  margin: 0;
-  background:
-    radial-gradient(circle at 20% 10%, rgba(199, 167, 85, 0.16), transparent 28rem),
-    linear-gradient(135deg, #0d0c0b 0%, #161412 58%, #0d0c0b 100%);
-}
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
+:root { font-family: 'DM Sans', sans-serif; color: #f5f0e6; background: #171918; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-width: 320px; min-height: 100%; }
+body { min-height: 100vh; }
+button, input { font: inherit; }
+.loading { min-height: 100vh; display: grid; place-items: center; color: #eee5d6; }
+.landing { min-height: 100vh; max-width: 1180px; margin: 0 auto; padding: 42px clamp(24px, 7vw, 96px) 28px; display: flex; flex-direction: column; background: #171918; }
+.landing-brand { display: flex; gap: 10px; align-items: center; color: #c6d282; font: 500 12px 'DM Mono', monospace; letter-spacing: .16em; }
+.landing-intro { margin: clamp(72px, 15vh, 150px) 0 72px; max-width: 760px; }
+.eyebrow { color: #a7b08a; font: 500 11px 'DM Mono', monospace; letter-spacing: .12em; text-transform: uppercase; }
+.landing h1 { margin: 18px 0; font: 700 clamp(48px, 8vw, 92px)/.98 'Manrope', sans-serif; letter-spacing: -.065em; }
+.landing h1 em { color: #c6d282; font-style: normal; }
+.landing-copy { max-width: 490px; color: #c2c5ba; font-size: 18px; line-height: 1.6; }
+.presentation-list { max-width: 700px; }
+.presentation-list .eyebrow { padding-bottom: 12px; border-bottom: 1px solid #434840; }
+.presentation-link { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; border-bottom: 1px solid #434840; color: #f5f0e6; text-decoration: none; font-size: 18px; }
+.presentation-link svg { color: #c6d282; transition: transform .2s ease; }
+.presentation-link:hover svg { transform: translate(3px, -3px); }
+.landing-footer { margin-top: auto; padding-top: 60px; color: #858b7e; font: 11px 'DM Mono', monospace; }

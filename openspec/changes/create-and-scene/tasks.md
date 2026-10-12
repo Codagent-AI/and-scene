@@ -1,3 +1,3 @@
-- [ ] [Scene kit and app shell](tasks/01-scene-kit-and-app-shell.md)
-- [ ] [Reference sample, verification gate, and inspection helper](tasks/02-reference-sample-verification-and-inspection.md)
-- [ ] [Presentation skill and bootstrap templates](tasks/03-presentation-skill-and-bootstrap-templates.md)
+- [x] [Scene kit and app shell](tasks/01-scene-kit-and-app-shell.md)
+- [x] [Reference sample, verification gate, and inspection helper](tasks/02-reference-sample-verification-and-inspection.md)
+- [x] [Presentation skill and bootstrap templates](tasks/03-presentation-skill-and-bootstrap-templates.md)

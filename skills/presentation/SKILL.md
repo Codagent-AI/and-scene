@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create a browser presentation, slide deck, talk, or evolving scene; add or change presentation steps; bootstrap and verify a Vite, React, and TypeScript app when needed.
+description: Creates and modifies evolving-scene browser presentations and bootstraps a Vite, React, and TypeScript app when needed. Use when the user asks for a presentation, slide deck, or talk, asks to add or change presentation steps, or mentions presentations, slides, or scenes.
 ---
 
 # Presentation skill
@@ -27,18 +27,26 @@ Detect three contract anchors by presence, not byte equality:
 2. Scene kit: the `Step`/`Scene` contract, stage and morph host, present/browse navigation, chrome, and fit-scale canvas.
 3. Presentation index: a registry mapping each presentation to its own route.
 
-If all anchors exist, use the app and proceed without scaffolding or asking for scaffold confirmation. If some are missing, add only the missing infrastructure and dependencies without replacing present anchors. For a non-empty project missing any anchor, first state the resolved scaffold target and ask the user to confirm before writing, including when the project is a standalone non-monorepo. This also applies when the scene kit and presentation index exist but build setup is missing. An empty directory needs no confirmation.
+If all anchors exist, use the app without scaffolding.
 
-Use `templates/bootstrap/package.json` as the authoritative exact dependency manifest for the scaffold. On a fresh app, copy that manifest and lockfile. On an existing app, preserve its manifest and merge any missing dependencies from the template before installing. The required runtime dependencies are `react`, `react-dom`, `motion`, and `lucide-react`; required development tools include Vite and its React plugin, TypeScript and React/Node types, ESLint with the repository's TypeScript, React Hooks, and React Refresh plugins, `globals`, and Playwright. Add Vitest and its test dependencies only when adopting the shipped tests. Do not assume dependencies are installed. Do not add Tailwind or another style framework unless the host already uses it or the user requests it. Keep this dependency set in sync with the bootstrap manifest rather than maintaining version ranges here.
+Use `templates/bootstrap/package.json` as the sole authoritative list of scaffold dependencies and versions.
+
+1. For a fresh app, copy the template's `package.json` and `package-lock.json`.
+2. For an existing app, preserve its manifest and merge any missing entries from the template manifest.
+3. Install dependencies: use `npm ci` after copying the template lockfile, or `npm install` after merging into an existing app.
+
+- Add Vitest and its test dependencies only when adopting the shipped tests.
+- Do not add Tailwind or another style framework unless the host already uses it or the user requests it.
 
 Target rules:
 
 - In an empty directory or standalone app, scaffold at the project root.
 - In a monorepo, scaffold a self-contained app at `presentations/`, not the repository root. Detect monorepos from `workspaces` in `package.json`, `pnpm-workspace.yaml`, or a `packages/` or `apps/` directory.
 - If already inside a presentation app, reuse it and fill only missing anchors.
-- In a non-empty project missing the scene kit, presentation index, or build setup, state the target path and wait for confirmation before writing. If all three anchors already exist, use the existing app without a scaffold confirmation.
+- An empty directory needs no confirmation. In any non-empty project missing one or more anchors, state the target path and wait for confirmation before writing. This includes standalone projects and projects missing only build setup.
+- For a partial scaffold, add only missing infrastructure and dependencies without replacing anchors that are already present.
 
-When bootstrapping from an empty/standalone directory, copy `templates/bootstrap/` relative to this SKILL.md. For partial scaffolds, copy only the missing anchor files and merge dependencies. Install dependencies after updating the package manifest and lockfile. Preserve host files and existing presentations.
+When bootstrapping from an empty/standalone directory, copy `templates/bootstrap/` relative to this SKILL.md. For partial scaffolds, copy only the missing anchor files and merge dependencies. Preserve host files and existing presentations.
 
 ## Create or modify
 
@@ -65,8 +73,15 @@ Run `npm run build`, then a first-step render check (prefer `npm run verify`; du
 
 The bootstrap's `npm run verify` renders its registered starter route. The root app's verify script also checks the canonical sample across all steps.
 
-After verification, report the presentation title and route, files created or changed, checks performed and their outcomes, and any remaining caveat. Keep the report concise and distinguish completed checks from checks that could not run.
+Use this completion report:
+
+```text
+Presentation: <title> (route: /<slug>)
+Files: <created or changed files>
+Checks: build <pass/fail>, verify <pass/fail>, inspect <pass/fail/not run (reason)>
+Caveats: <none or list>
+```
 
 ## Out of scope
 
-This skill creates browser-based React presentations. It does not export PowerPoint, Keynote, PDF, or image decks, and it does not scaffold non-React presentation hosts. If the user needs those outputs or a non-React host, explain that this skill does not provide them and let the user choose a suitable format or tool.
+This skill creates browser-based React presentations. It does not export PowerPoint, Keynote, PDF, or image decks, and it does not scaffold non-React presentation hosts. For export or non-React requests, decline that output and offer to build the browser-based React version instead. Decline direct edits to presentations that do not use the scene-kit contract; offer to convert or recreate them as a scene-kit presentation.

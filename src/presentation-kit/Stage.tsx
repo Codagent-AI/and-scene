@@ -11,8 +11,9 @@ export function Stage<T>({
   index: number;
   mode: PresentationMode;
 }) {
-  const step = steps[index]!;
+  const step = steps[index];
   const scale = useFitScale(mode);
+  if (!step) return null;
   const Component = step.Scene;
   const scene = <Component payload={step.payload} stepIndex={index} />;
   const geometry = STAGE_LAYOUT[mode];

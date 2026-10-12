@@ -21,19 +21,22 @@ export function Presentation<T>({
   brand,
 }: PresentationProps<T>) {
   const nav = usePresentationNav(steps.length, initialMode);
-  const step = steps[nav.stepIndex]!;
+  // `steps` can shrink after the index was set (hot reload, filtered list).
+  const stepIndex = Math.min(nav.stepIndex, steps.length - 1);
+  const step = steps[stepIndex];
   const [isWide, setIsWide] = useState(() => window.innerWidth >= 900);
   useEffect(() => {
     const resize = () => setIsWide(window.innerWidth >= 900);
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
   }, []);
+  if (!step) return null;
   return (
     <main
       aria-label={title}
       data-presentation-root
       data-step-count={steps.length}
-      data-step-index={nav.stepIndex}
+      data-step-index={stepIndex}
       data-presentation-mode={nav.mode}
       onTouchStart={nav.onTouchStart}
       onTouchEnd={nav.onTouchEnd}
@@ -47,17 +50,17 @@ export function Presentation<T>({
       <Header
         title={step.title}
         mode={nav.mode}
-        stepNumber={nav.stepIndex + 1}
+        stepNumber={stepIndex + 1}
         brand={brand}
       />
-      <Stage steps={steps} index={nav.stepIndex} mode={nav.mode} />
+      <Stage steps={steps} index={stepIndex} mode={nav.mode} />
       {nav.mode === "browse" && isWide && (
-        <Toc steps={steps} index={nav.stepIndex} onJump={nav.jumpTo} />
+        <Toc steps={steps} index={stepIndex} onJump={nav.jumpTo} />
       )}
       <Footer
         mode={nav.mode}
         caption={step.caption}
-        index={nav.stepIndex}
+        index={stepIndex}
         count={steps.length}
         onJump={nav.jumpTo}
         onPrev={nav.prev}

@@ -1,3 +1,5 @@
+// Usage: node sync-templates.mjs
+// Refreshes the bootstrap snapshot (kit, verify, inspect scripts) from the canonical sources in this repository.
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'

@@ -1,6 +1,8 @@
+// Usage: node detect-target.mjs <project-dir>
+// Prints JSON: { anchors, target: { kind, dir }, empty, missing }. See references/detect-target-output.md.
 import fs from 'node:fs/promises'
 import path from 'node:path'
- 
+
 const args = process.argv.slice(2)
 const base = path.resolve(args[0] || '.')
 const exists = async (file) => Boolean(await fs.stat(file).catch(() => null))

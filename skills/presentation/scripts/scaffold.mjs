@@ -1,3 +1,5 @@
+// Usage: node scaffold.mjs --target <dir> [--anchors all|build,kit,index]
+// Copies only the missing anchor files from templates/bootstrap and merges missing dependencies; never overwrites.
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'

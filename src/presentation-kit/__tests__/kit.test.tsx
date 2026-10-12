@@ -196,6 +196,40 @@ describe("presentation kit", () => {
     expect(getStepIndex()).toBe(1);
   });
 
+  it("ignores navigation and mode keys while a modifier is held", () => {
+    render(
+      <Presentation
+        steps={steps}
+        title="Modifiers"
+        initialMode="present"
+        attribution={false}
+      />,
+    );
+    fireEvent.keyDown(window, { key: "p", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "p", metaKey: true });
+    fireEvent.keyDown(window, { key: "ArrowRight", altKey: true });
+    expect(getRoot().getAttribute("data-presentation-mode")).toBe("present");
+    expect(getStepIndex()).toBe(0);
+  });
+
+  it("clamps the active step when the steps list shrinks and tolerates none", () => {
+    const { rerender } = render(
+      <Presentation steps={steps} title="Shrink" attribution={false} />,
+    );
+    fireEvent.keyDown(window, { key: "End" });
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(getStepIndex()).toBe(2);
+
+    rerender(
+      <Presentation steps={steps.slice(0, 2)} title="Shrink" attribution={false} />,
+    );
+    expect(getStepIndex()).toBe(1);
+
+    rerender(<Presentation steps={[]} title="Shrink" attribution={false} />);
+    expect(document.querySelector("[data-presentation-root]")).toBeNull();
+  });
+
   it("clamps at both ends and ignores navigation keys on controls", () => {
     render(
       <Presentation

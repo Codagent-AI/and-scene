@@ -30,6 +30,7 @@ export function usePresentationNav(
   );
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (isInteractiveTarget(e.target)) return;
       if (["ArrowRight", " ", "PageDown"].includes(e.key)) {
         e.preventDefault();

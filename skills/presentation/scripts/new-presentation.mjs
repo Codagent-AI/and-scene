@@ -1,3 +1,5 @@
+// Usage: node new-presentation.mjs --target <dir> --slug <slug> --title <title>
+// Copies templates/presentation to src/presentations/<slug>/ and registers it in src/presentations/index.ts.
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'

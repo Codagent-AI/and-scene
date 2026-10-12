@@ -1,5 +1,5 @@
-import { motion } from "motion/react";
 import type { NodeProps } from "../types";
+import { PresentationNode } from "./PresentationNode";
 export function SymbolChip({
   entityId,
   layoutId = entityId,
@@ -7,13 +7,8 @@ export function SymbolChip({
   ...props
 }: NodeProps & { children?: React.ReactNode }) {
   return (
-    <motion.div
-      data-presentation-node="symbol-chip"
-      data-entity-id={entityId}
-      layoutId={layoutId}
-      {...props}
-    >
+    <PresentationNode node="symbol-chip" entityId={entityId} layoutId={layoutId} {...props}>
       {children}
-    </motion.div>
+    </PresentationNode>
   );
 }

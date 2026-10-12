@@ -1,19 +1,5 @@
-import { motion } from "motion/react";
+import { PresentationNode } from "./PresentationNode";
 import type { NodeProps } from "../types";
-export function Arrow({
-  entityId,
-  layoutId = entityId,
-  children,
-  ...props
-}: NodeProps & { children?: React.ReactNode }) {
-  return (
-    <motion.div
-      data-presentation-node="arrow"
-      data-entity-id={entityId}
-      layoutId={layoutId}
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
+export function Arrow(props: NodeProps & { children?: React.ReactNode }) {
+  return <PresentationNode node="arrow" {...props} />;
 }

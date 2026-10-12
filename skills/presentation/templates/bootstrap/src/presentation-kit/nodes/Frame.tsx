@@ -1,5 +1,5 @@
-import { motion } from "motion/react";
 import type { NodeProps } from "../types";
+import { PresentationNode } from "./PresentationNode";
 export function Frame({
   entityId,
   layoutId = entityId,
@@ -7,13 +7,8 @@ export function Frame({
   ...props
 }: NodeProps & { children?: React.ReactNode }) {
   return (
-    <motion.div
-      data-presentation-node="frame"
-      data-entity-id={entityId}
-      layoutId={layoutId}
-      {...props}
-    >
+    <PresentationNode node="frame" entityId={entityId} layoutId={layoutId} {...props}>
       {children}
-    </motion.div>
+    </PresentationNode>
   );
 }

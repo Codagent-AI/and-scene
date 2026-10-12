@@ -17,8 +17,11 @@ const steps: Step<Payload>[] = [
   { id: 'two', era: 'First era', title: 'Second title', caption: 'Second caption', Scene: GroupedScene, groupKey: 'same-scene', payload: { value: 'Second scene' } },
   { id: 'three', era: 'Later era', title: 'Third title', caption: 'Third caption', Scene, payload: { value: 'Third scene' } },
 ]
+function setViewportWide(matches: boolean) {
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+}
 
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 describe('Presentation chrome', () => {
   it('accepts typed payload steps and changes modes without losing position', async () => {
     mountSpy.mockClear()
@@ -35,6 +38,7 @@ describe('Presentation chrome', () => {
     expect(screen.getByText('Second caption')).toBeTruthy()
   })
   it('exposes active step and era semantics and default attribution without a default brand', () => {
+    setViewportWide(true)
     render(<Presentation steps={steps} title="Typed presentation" />)
     const activeProgress = screen.getByRole('button', { name: 'Go to step 1: First title' })
     expect(activeProgress.getAttribute('aria-current')).toBe('step')
@@ -46,5 +50,20 @@ describe('Presentation chrome', () => {
     expect(document.querySelector('[data-presentation-brand]')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Later era' }))
     expect(document.querySelector('[data-step-index="2"]')).toBeTruthy()
+  })
+  it('mounts an ungrouped next step while the previous step exits', () => {
+    render(<Presentation steps={steps} title="Typed presentation" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 3: Third title' }))
+    expect(screen.getByText('Third scene')).toBeTruthy()
+    expect(screen.getByText('First scene')).toBeTruthy()
+  })
+  it('shows the table of contents only on wide viewports', () => {
+    setViewportWide(false)
+    render(<Presentation steps={steps} title="Typed presentation" />)
+    expect(screen.queryByRole('navigation', { name: 'Presentation sections' })).toBeNull()
+    cleanup()
+    setViewportWide(true)
+    render(<Presentation steps={steps} title="Typed presentation" />)
+    expect(screen.getByRole('navigation', { name: 'Presentation sections' })).toBeTruthy()
   })
 })

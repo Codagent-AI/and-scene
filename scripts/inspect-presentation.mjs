@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process'
-import { createRequire } from 'node:module'
+import { startPreview } from './preview-process.mjs'
 import { setTimeout as delay } from 'node:timers/promises'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import fs from 'node:fs/promises'
-import net from 'node:net'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -20,27 +20,6 @@ const require = createRequire(path.join(root, 'package.json'))
 const { chromium } = require('playwright')
 let preview
 let browser
-let previewError
-
-async function port() {
-  return await new Promise((resolve, reject) => {
-    const server = net.createServer()
-    server.once('error', reject)
-    server.listen(0, '127.0.0.1', () => { const selected = server.address().port; server.close(() => resolve(selected)) })
-  })
-}
-async function ready(url) {
-  const deadline = Date.now() + 30000
-  while (Date.now() < deadline) {
-    if (previewError || preview?.exitCode !== null && preview?.exitCode !== undefined) throw new Error(`preview could not start: ${previewError?.message ?? `preview exited with code ${preview.exitCode}`}`)
-    let response
-    try { response = await fetch(url) } catch {}
-    if (previewError || preview.exitCode !== null) throw new Error(`preview could not start: ${previewError?.message ?? `preview exited with code ${preview.exitCode}`}`)
-    if (response?.ok) return
-    await delay(200)
-  }
-  throw new Error(`preview did not become ready at ${url}`)
-}
 async function cleanup() {
   await browser?.close().catch(() => {})
   if (preview && preview.exitCode === null) {
@@ -59,13 +38,10 @@ try {
     npm.once('error', reject)
     npm.once('exit', (code) => code === 0 ? resolve() : reject(new Error(`build failed with exit ${code}`)))
   })
-  const selectedPort = await port()
   const vite = path.resolve(path.dirname(require.resolve('vite')), '../../bin/vite.js')
-  preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(selectedPort), '--strictPort'], { cwd: root, stdio: 'inherit' })
-  preview.once('error', (error) => { previewError = error })
-  preview.once('exit', (code, signal) => { previewError = new Error(`preview exited with ${code === null ? signal : `code ${code}`}`) })
-  const base = `http://127.0.0.1:${selectedPort}`
-  await ready(base)
+  const started = startPreview(vite, root)
+  preview = started.child
+  const { url: base } = await started.ready
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width, height } })
   await page.goto(`${base}/${encodeURIComponent(slug)}`, { waitUntil: 'networkidle' })

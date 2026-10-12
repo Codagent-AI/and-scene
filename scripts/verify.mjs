@@ -1,10 +1,10 @@
 import { spawn } from 'node:child_process'
-import { createRequire } from 'node:module'
+import { startPreview } from './preview-process.mjs'
 import { setTimeout as delay } from 'node:timers/promises'
+import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
-import net from 'node:net'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -13,7 +13,6 @@ const { chromium } = require('playwright')
 let phase = 'build'
 let preview
 let browser
-let previewError
 
 function fail(message) { throw new Error(`${phase}: ${message}`) }
 function run(command, args, options = {}) {
@@ -22,25 +21,6 @@ function run(command, args, options = {}) {
     child.once('error', reject)
     child.once('exit', (code, signal) => code === 0 ? resolve() : reject(new Error(`command exited ${code ?? signal}`)))
   })
-}
-async function freePort() {
-  return await new Promise((resolve, reject) => {
-    const server = net.createServer()
-    server.once('error', reject)
-    server.listen(0, '127.0.0.1', () => { const { port } = server.address(); server.close(() => resolve(port)) })
-  })
-}
-async function waitReady(url) {
-  const until = Date.now() + 30000
-  while (Date.now() < until) {
-    if (previewError || preview?.exitCode !== null && preview?.exitCode !== undefined) fail(`preview could not start: ${previewError?.message ?? `preview exited with code ${preview.exitCode}`}`)
-    let response
-    try { response = await fetch(url) } catch {}
-    if (previewError || preview.exitCode !== null) fail(`preview could not start: ${previewError?.message ?? `preview exited with code ${preview.exitCode}`}`)
-    if (response?.ok) return
-    await delay(200)
-  }
-  fail(`preview did not become ready at ${url}`)
 }
 async function cleanup() {
   await browser?.close().catch(() => {})
@@ -72,13 +52,10 @@ try {
   if (!routes.length) fail('no registered presentations found in src/presentations/index.ts')
 
   phase = 'render'
-  const port = await freePort()
   const vite = path.resolve(path.dirname(require.resolve('vite')), '../../bin/vite.js')
-  preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit' })
-  preview.once('error', (error) => { previewError = error })
-  preview.once('exit', (code, signal) => { previewError = new Error(`preview exited with ${code === null ? signal : `code ${code}`}`) })
-  const base = `http://127.0.0.1:${port}`
-  await waitReady(base)
+  const started = startPreview(vite, root)
+  preview = started.child
+  const { url: base } = await started.ready
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
   let activeStep = 1

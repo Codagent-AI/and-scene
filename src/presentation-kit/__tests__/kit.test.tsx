@@ -431,6 +431,29 @@ describe("presentation kit", () => {
     );
   });
 
+  it("lets a grouped scene animate an entity out across a real step change", async () => {
+    type LeavePayload = { visible: boolean };
+    function LeaveScene({ payload }: SceneProps<LeavePayload>) {
+      return (
+        <Departing show={payload.visible} className="leaver" data-test="leaver">
+          <span>leaving entity</span>
+        </Departing>
+      );
+    }
+    const leaveSteps: Step<LeavePayload>[] = [
+      { id: "in", era: "e", title: "In", caption: "c", Scene: LeaveScene, payload: { visible: true }, groupKey: "g" },
+      { id: "out", era: "e", title: "Out", caption: "c", Scene: LeaveScene, payload: { visible: false }, groupKey: "g" },
+    ];
+    render(<Presentation steps={leaveSteps} title="Leave" attribution={false} />);
+    const wrapper = () => document.querySelector("[data-presentation-departing]");
+    expect(wrapper()?.classList.contains("leaver")).toBe(true);
+    expect(wrapper()?.getAttribute("data-test")).toBe("leaver");
+
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(wrapper()).toBeTruthy();
+    await waitFor(() => expect(wrapper()).toBeNull());
+  });
+
   it("calculates uniform fit and enforces the minimum scale", () => {
     expect(DESIGN_W).toBe(880);
     expect(DESIGN_H).toBe(380);

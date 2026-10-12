@@ -17,6 +17,8 @@ Stable hooks:
   `data-entity-id`; newcomers wrapped in `Appear` expose
   `data-presentation-appear`; entities leaving a grouped scene are wrapped in
   `Departing` and expose `data-presentation-departing` while they animate out.
+  `Departing` accepts class/style/data attributes for its wrapper and must stay
+  mounted across the step change, driven only by `show`.
 
 Active progress and ToC entries set both `aria-current` and
 `data-active="true"`.

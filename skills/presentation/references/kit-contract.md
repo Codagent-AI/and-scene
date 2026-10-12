@@ -37,6 +37,6 @@ const steps: Step<Payload>[] = [
 - `entityId` sets `data-entity-id` and is the default `layoutId`; pass `layoutId` to override. Reuse the same value for a continuing entity so it morphs.
 - `Box` takes an optional `Icon` (a lucide-react component).
 - `Appear` fades a newcomer in after persisting entities have moved. Wrap only entities that are new in the step, or pass `isNew={false}`; never wrap continuing entities.
-- `Departing` wraps an entity that leaves a grouped scene: render `<Departing show={condition}>` and the entity animates out when `show` turns false instead of vanishing. Entities that do not leave need no wrapper.
+- `Departing` wraps an entity that leaves a grouped scene: render `<Departing show={condition}>` and the entity animates out when `show` turns false instead of vanishing. Keep `Departing` mounted across the step change and drive it only by `show`; if an ancestor unmounts, the exit animation is skipped. It accepts class, style, and data attributes for its wrapper. Entities that do not leave need no wrapper.
 - `SceneLayer` absolutely positions a step's diagram so mounting one layer never reflows another.
 - For coordinate-heavy diagrams, use raw `motion` elements with stable `layoutId`s when a primitive does not fit.

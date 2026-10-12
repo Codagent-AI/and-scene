@@ -1,72 +1,70 @@
 ---
 name: presentation
-description: Create, modify, scaffold, and verify evolving-scene presentations in React apps. Use when asked to make a presentation, slide-like visual story, diagram talk, or update an existing presentation.
+description: Creates and modifies evolving-scene React presentations. Use when asked to "create a presentation", "build a talk", "add steps", "modify a presentation", "scaffold", or "resync the presentation scene-kit scaffold".
 ---
 
 # Presentation skill
 
-Follow **gather → resolve and scaffold → create or modify → verify**. Supporting
-details and examples are in [the workflow reference](references/workflow.md),
-[the scene authoring guide](references/authoring.md), and the templates alongside
-this skill. Resolve every template path from this `SKILL.md`'s directory, never
-from the caller's working directory. The [worked sample](../../src/presentations/how-to-make-a-presentation/)
-shows the complete nine-step structure.
+Use this skill to create and modify step-based presentations hosted by the
+React/Vite scene kit. Follow the detailed procedures and safety rules in
+[the workflow reference](references/workflow.md), the examples in
+[the authoring guide](references/authoring.md), and the templates beside this
+file. Resolve template paths from this file's directory, not the caller's
+working directory.
 
-## Gather
+## Workflow
 
-Skip questions already answered. Otherwise ask one question at a time for the
-topic, visual style, and each step's content and visual description. Do not
-invent details the user can still provide. The user may say to build with the
-available details; accept that and iterate without a completeness gate. An
-ASCII sketch is optional for a key or complex layout, not every step.
+1. **Gather:** Collect the topic, visual direction, and step content that the
+   user has not already provided. Follow the partial-detail and clarification
+   rules in the workflow reference.
+2. **Resolve and scaffold:** Inspect the target, identify the build, scene-kit,
+   and registry anchors, then reuse or add only what is needed. Follow the
+   target selection and write-safety procedure in the workflow reference.
+3. **Create or modify:** Read the existing registry, one talk, its entities,
+   and one step module before editing an existing app. Match its import paths,
+   ID prefixes, CSS naming, and registry style. Follow the authoring guide and
+   use the bundled templates for new files.
+4. **Verify:** Run the build, browser verification, and inspection commands in
+   the workflow reference. Fix failures and rerun until clean; inspect the
+   required screenshots and warnings before reporting.
+5. **Report:** Use the completion report format below. Report only results you
+   observed.
 
-## Resolve and scaffold
+## Generated talk layout
 
-Inspect the target and check the three anchors in
-[the workflow reference](references/workflow.md): Vite/React/TypeScript build,
-scene kit contract, and presentation registry/router. Reuse present anchors and
-scaffold only missing ones. If all are present, work in that app.
+Create each talk under `<presentations-dir>/<slug>/`:
 
-For an empty or standalone project, target its root. Treat a project as a
-monorepo when it has `workspaces` in root `package.json`,
-`pnpm-workspace.yaml`, or a root `packages/` or `apps/` directory; target a
-self-contained `presentations/` app and do not mutate monorepo root. In any
-non-empty project missing the kit or presentation index, state the exact target
-and wait for confirmation before writing. Install the full dependency set from
-the bootstrap manifest; do not assume dependencies already exist. Keep the
-scaffold style-neutral. Bootstrap includes a minimal registered starter talk:
-replace it for a new requested talk, or retain it only if requested.
+```text
+<slug>/
+├── entities.ts
+├── Talk.tsx
+├── styles.css
+└── steps/
+    ├── 01-introduction.tsx
+    └── ...
+```
 
-Copy bootstrap files from `templates/bootstrap/` relative to this skill. For an
-existing app, merge only missing anchors and dependencies; preserve unrelated
-files, existing presentations, and working host configuration.
+Add one loader entry for the talk in the presentation registry. Keep its
+visual styling local to the talk.
 
-## Create or modify
+## Completion report format
 
-For a new talk, create `<presentations-dir>/<slug>/` with `entities.ts`,
-`steps/`, `Talk.tsx`, and local plain CSS, then add one explicit registry entry.
-Use `templates/presentation/` as a starting structure and the worked sample for
-conventions. Never change existing talks while creating another.
+```text
+Talk: <slug>
+Route: <route>
+Commands:
+- `<command>` — <result>
+Screenshots: <directory or paths>
+Warnings:
+- <warning, or "None">
+Visual review: <first, last, dense/key, and narrow viewport as applicable>
+```
 
-For a modification, if the target is ambiguous, list the existing talks and ask
-which one. Once selected, ask only about the requested changes and edit that
-talk in place; do not repeat the create interview.
+## Out of scope
 
-## Verify before reporting success
-
-Run `npm run build`, `npm run verify`, and
-`npm run inspect -- <slug>`. Fix failures and rerun. Review all inspection
-warnings: fix accidental collisions, make active ToC/progress state distinct,
-and style attribution legibly in presentation-owned CSS. Mark only readable,
-intentional overlaps with `data-presentation-allow-overlap`. Inspect settled
-screenshots of the first, last, and dense/key steps; inspect a narrow viewport
-when responsive-sensitive. Prefer the project-local inspection helper; any
-temporary Playwright helper belongs under the project root.
-
-Report success only after a clean build, first-step render without runtime or
-console errors, captions and next/previous navigation for every step, coherent
-visual composition, and evolving-scene continuity: stable entity IDs, persisting
-entities morph in place, new entities enter after continuing motion settles,
-departing entities exit, and adjacent states share a scene group where they
-continue. Styling belongs to the presentation or host. Accumulate-only
-composition is specific to the worked sample, not a generated-talk rule.
+- Static slide decks and PowerPoint/PDF export: use a slide-authoring tool or
+  export workflow designed for those formats.
+- Non-React or non-Vite hosts: use the host's presentation tooling.
+- Changing the scene kit's core behavior or visuals: use the kit maintenance
+  workflow/repository. This skill changes presentation-owned content and
+  styling while consuming the kit contract.

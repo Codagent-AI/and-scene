@@ -20,9 +20,14 @@ async function files(directory: string): Promise<string[]> {
 describe('presentation skill bootstrap contract', () => {
   it('keeps the snapshot aligned and proves it builds and renders outside this repository', async () => {
     const skill = await readFile(path.join(root, 'skills/presentation/SKILL.md'), 'utf8')
-    expect(skill).toContain('Resolve every template path from this `SKILL.md`\'s directory')
-    expect(skill).toContain('root `packages/` or `apps/` directory')
-    expect(skill).toContain('wait for confirmation')
+    const workflow = await readFile(path.join(root, 'skills/presentation/references/workflow.md'), 'utf8')
+    expect(skill).toContain('Resolve template paths from this file\'s directory')
+    expect(workflow).toContain('`workspaces`')
+    expect(workflow).toContain('`pnpm-workspace.yaml`')
+    expect(workflow).toContain('or root')
+    expect(workflow).toContain('`packages/` or `apps/` exists')
+    expect(workflow).toContain('self-contained `presentations/` child app')
+    expect(workflow).toContain('wait for explicit confirmation')
     const kit = path.join(root, 'src/presentation-kit')
     const snapshot = path.join(bootstrap, 'src/presentation-kit')
     const kitFiles = (await files(kit)).filter(file => !/\.test\./.test(file))

@@ -25,6 +25,10 @@ export async function startPreview({ port, onUrl = () => {} } = {}) {
   const deadline = Date.now() + 15000
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`preview exited before readiness: ${output}`)
+    if (!/Local:\s+https?:\/\//.test(output)) {
+      await delay(50)
+      continue
+    }
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(1000) })
       if (response.ok) {

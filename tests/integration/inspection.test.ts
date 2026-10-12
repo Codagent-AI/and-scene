@@ -1,4 +1,5 @@
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+import { createServer } from 'node:http'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -51,4 +52,49 @@ describe('INT-002 inspection artifacts and diagnostics', () => {
     expect(result.status).toBe(2)
     expect(`${result.stdout}\n${result.stderr}`).toContain('Usage: npm run inspect')
   })
+
+  it('does not accept an unrelated HTTP server as the preview', async () => {
+    const server = createServer((_request, response) => {
+      response.writeHead(200, { 'content-type': 'text/html' })
+      response.end('<!doctype html><title>Unrelated server</title>')
+    })
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+    const address = server.address()
+    if (!address || typeof address === 'string') throw new Error('test server did not bind to a TCP port')
+
+    const script = `
+      import { startPreview, stopPreview } from './scripts/preview-utils.mjs'
+      try {
+        const preview = await startPreview({ port: Number(process.argv[1]) })
+        await stopPreview(preview.child)
+        process.stderr.write('unexpectedly accepted unrelated server')
+        process.exitCode = 1
+      } catch (error) {
+        if (!error.message.includes('preview exited before readiness')) {
+          process.stderr.write(String(error))
+          process.exitCode = 2
+        }
+      }
+    `
+    const child = spawn(process.execPath, ['--input-type=module', '-e', script, String(address.port)], { cwd: source, stdio: ['ignore', 'pipe', 'pipe'] })
+    let output = ''
+    child.stdout.setEncoding('utf8').on('data', chunk => { output += chunk })
+    child.stderr.setEncoding('utf8').on('data', chunk => { output += chunk })
+
+    try {
+      const exitCode = await new Promise<number>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          child.kill('SIGKILL')
+          reject(new Error(`preview collision test timed out: ${output}`))
+        }, 10_000)
+        child.once('error', error => { clearTimeout(timeout); reject(error) })
+        child.once('exit', code => { clearTimeout(timeout); resolve(code ?? -1) })
+      })
+      expect(exitCode, output).toBe(0)
+      expect(output).not.toContain('unexpectedly accepted unrelated server')
+    } finally {
+      if (child.exitCode === null) child.kill('SIGKILL')
+      await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
+    }
+  }, 15_000)
 })

@@ -25,7 +25,15 @@ export async function startPreview({ port, onUrl = () => {} } = {}) {
   const deadline = Date.now() + 15000
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`preview exited before readiness: ${output}`)
-    try { const response = await fetch(url); if (response.ok) return { child, url, output: () => output } } catch {}
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(1000) })
+      if (response.ok) {
+        if (child.exitCode !== null) throw new Error(`preview exited before readiness: ${output}`)
+        return { child, url, output: () => output }
+      }
+    } catch (error) {
+      if (child.exitCode !== null) throw new Error(`preview exited before readiness: ${output}`)
+    }
     await delay(150)
   }
   child.kill('SIGTERM')

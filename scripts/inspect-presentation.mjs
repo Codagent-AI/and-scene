@@ -2,14 +2,32 @@ import { spawnSync } from 'node:child_process'
 import { mkdir, readdir, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseArgs } from 'node:util'
 import { chromium, installSignalCleanup, rootPath, startPreview, stopPreview, waitForStep } from './preview-utils.mjs'
 
-const args = process.argv.slice(2)
-const slug = args.find(arg => !arg.startsWith('--'))
-if (!slug) { console.error('Usage: npm run inspect -- <slug> [--width N] [--height N] [--settle MS] [--no-build] [--port N]'); process.exit(2) }
-const option = (name, fallback) => { const at = args.indexOf(name); return at < 0 ? fallback : Number(args[at + 1]) }
-const width = option('--width', 1440), height = option('--height', 900), settle = option('--settle', 1400), port = option('--port', undefined)
-const noBuild = args.includes('--no-build')
+const usage = 'Usage: npm run inspect -- <slug> [--width N] [--height N] [--settle MS] [--no-build] [--port N]'
+let slug, width, height, settle, port, noBuild
+try {
+  const parsed = parseArgs({ args: process.argv.slice(2), options: {
+    width: { type: 'string' }, height: { type: 'string' }, settle: { type: 'string' }, port: { type: 'string' }, 'no-build': { type: 'boolean' },
+  }, allowPositionals: true })
+  ;({ width = '1440', height = '900', settle = '1400', port, 'no-build': noBuild = false } = parsed.values)
+  ;[slug] = parsed.positionals
+  const numeric = (name, value, fallback) => {
+    if (value === undefined) return fallback
+    const number = Number(value)
+    if (!Number.isFinite(number) || number <= 0) throw new Error(`${name} must be a finite positive number`)
+    return number
+  }
+  width = numeric('--width', width)
+  height = numeric('--height', height)
+  settle = numeric('--settle', settle)
+  port = numeric('--port', port)
+  if (!slug || parsed.positionals.length !== 1) throw new Error('provide exactly one presentation slug')
+} catch (error) {
+  console.error(`${error.message}\n${usage}`)
+  process.exit(2)
+}
 const run = (command, params) => spawnSync(command, params, { cwd: rootPath, encoding: 'utf8', stdio: 'inherit' })
 async function latestSourceTime(directory) {
   let latest = 0

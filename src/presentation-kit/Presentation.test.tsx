@@ -46,7 +46,7 @@ describe('presentation kit', () => {
     await waitFor(() => expect(mounted).toBeGreaterThan(initialMounts))
   })
 
-  it('clamps navigation, maps keys, preserves focused controls, and toggles mode in place', () => {
+  it('clamps navigation, maps keys, and toggles mode in place', () => {
     render(<Presentation steps={steps} title="Test" />)
     const root = document.querySelector('[data-step-index]')!
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
@@ -69,7 +69,33 @@ describe('presentation kit', () => {
     next.focus()
     fireEvent.keyDown(next, { key: 'ArrowRight' })
     expect(root.getAttribute('data-step-index')).toBe('2')
+    fireEvent.keyDown(next, { key: 'p' })
+    expect(root.getAttribute('data-presentation-mode')).toBe('present')
+    fireEvent.keyDown(next, { key: ' ' })
+    expect(root.getAttribute('data-step-index')).toBe('2')
     fireEvent.keyDown(window, { key: 'PageUp' })
+    expect(root.getAttribute('data-step-index')).toBe('1')
+  })
+
+  it('allows navigation keys on focused buttons and links but leaves text entry and Space alone', () => {
+    render(<Presentation steps={steps} title="Test" />)
+    const root = document.querySelector('[data-step-index]')!
+    const next = screen.getByRole('button', { name: 'Next' })
+    next.focus()
+    fireEvent.keyDown(next, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('1')
+    fireEvent.keyDown(next, { key: 'PageUp' })
+    expect(root.getAttribute('data-step-index')).toBe('0')
+
+    const entry = document.createElement('input')
+    document.body.append(entry)
+    fireEvent.keyDown(entry, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('0')
+    entry.remove()
+
+    const attribution = screen.getByRole('link', { name: 'made by and-scene' })
+    attribution.focus()
+    fireEvent.keyDown(attribution, { key: 'ArrowRight' })
     expect(root.getAttribute('data-step-index')).toBe('1')
   })
 

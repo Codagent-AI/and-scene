@@ -1,6 +1,6 @@
 ---
 name: presentation
-description: Create, extend, or revise a browser presentation as one evolving scene with the And Scene kit. Use when a user asks for a presentation, explainer, talk, or visual walkthrough.
+description: Create, add steps to, edit, or restyle browser presentations as one evolving animated diagram with the And Scene kit. Use when a user asks for a presentation, slides, deck, talk, explainer, or visual walkthrough, or wants to add, edit, or restyle steps in an existing presentation.
 ---
 
 # Presentation skill
@@ -9,17 +9,28 @@ Create one evolving diagram, not a stack of unrelated slides. Stable entities pe
 
 Resolve every path below from the directory containing this `SKILL.md` (the skill directory), never from the caller's working directory. The bootstrap snapshot is `templates/bootstrap/`; the presentation starter is `templates/presentation/`.
 
-## 1. Gather the brief
+## Out of scope
 
-Use details already provided. Ask only for missing information, one question at a time:
+- For static slide decks or requests to author a native deck, use a slide-authoring skill or application such as Google Slides.
+- For PPTX or PDF export, use a presentation or document export tool that supports that format.
+- For non-Vite or non-React hosts, use the host's native presentation workflow or a skill for that framework.
+- For changes to shared kit behavior, use the repository's implementation workflow and kit specifications; this skill creates presentations with the kit.
 
-1. What topic or explanation should the presentation cover?
-2. What visual style should it use?
-3. For each step in order, ask one question about what it explains and what viewers should see. Capture that step's title, caption, visual description, and which entities appear, persist, move, or leave before asking about the next step.
+## 1. Read first
 
-Do not invent details the user can still provide. The user controls depth: accept sketches, partial outlines, or a request to proceed with what is known, and iterate from the result. Do not impose a completeness gate. For a key or complex composition, an ASCII mockup may help confirm the layout; use it selectively, not for every step.
+Before interviewing or editing, inspect the presentation registry and the worked example at `src/presentations/how-to-make-a-presentation/` when they exist. Read the example's `entities.ts`, every file in `steps/`, `presentation.css`, and `Talk.tsx`. When the worked example is unavailable, use the skill-relative `templates/presentation/` starter as the reference. For a modification, read the target presentation's `entities.ts`, `steps/`, `presentation.css`, and `Talk.tsx` before editing. Follow its naming, structure, and styling conventions while keeping the requested changes scoped to that presentation.
 
-## 2. Resolve the app target and scaffold
+## 2. Gather the brief
+
+Use the details already provided. Ask only for missing information, one question at a time:
+
+1. Identify the topic or explanation.
+2. Identify the visual style.
+3. For each step in order, capture what it explains, what viewers should see, its title and caption, and which entities appear, persist, move, or leave.
+
+Accept sketches, partial outlines, and requests to proceed with the available information. For an explicit partial brief, proceed with a minimal scaffold and record unknown details as placeholders; iterate from the result. Do not impose a completeness gate. Use an ASCII mockup selectively when a key or complex composition would benefit from confirming its layout.
+
+## 3. Resolve the app target and scaffold
 
 Inspect the intended project and detect these three contract anchors, regardless of filenames or formatting:
 
@@ -27,22 +38,22 @@ Inspect the intended project and detect these three contract anchors, regardless
 - **Scene kit:** a `Step`/`Scene` contract, active-scene host with entity morphs, present/browse navigation and chrome, and fit-scaled canvas.
 - **Presentation index:** a registry mapping each presentation to its route.
 
-If all anchors exist, use the app and preserve its conventions. If any are missing, resolve the target as follows:
+If all anchors exist, use the app and preserve its conventions. If any are missing, resolve the target:
 
-- An empty directory or standalone project uses its root.
-- A monorepo uses a self-contained app under `presentations/`. Treat any of these as monorepo signals: a `workspaces` field in `package.json`, a `pnpm-workspace.yaml`, or a root `packages/` or `apps/` directory.
-- When already inside an app with one or more anchors, complete only the missing infrastructure there.
-
-In a non-empty project that needs scaffolding, state the exact target path and wait for confirmation before writing. Then copy only missing infrastructure from the skill-relative bootstrap, preserve existing files and package entries, merge missing scripts and dependencies, and install dependencies. For a monorepo, scaffold a self-contained app at `presentations/` rather than changing root build configuration. Do not infer that dependencies exist just because related source files do.
+1. Use the project root for an empty directory or standalone project.
+2. For a monorepo, use a self-contained app under `presentations/`. Treat a `workspaces` field in `package.json`, a `pnpm-workspace.yaml`, or a root `packages/` or `apps/` directory as monorepo signals.
+3. When already inside an app with one or more anchors, complete only the missing infrastructure there.
+4. In a non-empty project that needs scaffolding, state the exact target path and wait for confirmation before writing.
+5. Copy only missing infrastructure from the skill-relative bootstrap. Preserve existing files and package entries, merge missing scripts and dependencies, then install dependencies.
 
 Ensure this full dependency set:
 
 - Runtime: `react`, `react-dom`, `motion`, `lucide-react`.
 - Build/lint/render development dependencies: `vite`, `@vitejs/plugin-react`, `typescript`, `@types/react`, `@types/react-dom`, `@types/node`, `eslint`, `@eslint/js`, `globals`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `typescript-eslint`, and `playwright`.
 
-The scaffold is styling-framework-neutral. Do not add Tailwind, a Tailwind plugin, another required styling framework, or default presentation colors, fonts, spacing scales, card/button treatments, borders, shadows, or theme tokens. Use presentation-local plain CSS unless the host already has a styling framework or the user asks for one. Do not overwrite an existing anchor during a partial scaffold.
+Keep the scaffold styling-framework-neutral. Do not add Tailwind, another required styling framework, or default presentation colors, fonts, spacing scales, card/button treatments, borders, shadows, or theme tokens. Use presentation-local plain CSS unless the host already has a styling framework or the user asks for one. Do not overwrite an existing anchor during a partial scaffold.
 
-## 3. Create or modify
+## 4. Create or modify
 
 For a new presentation, create `src/presentations/<slug>/` with:
 
@@ -51,11 +62,11 @@ For a new presentation, create `src/presentations/<slug>/` with:
 - `Talk.tsx`: render the ordered steps through `<Presentation>` and import local CSS.
 - `presentation.css`: the visual system for this presentation, including locally styled active navigation/TOC/progress and legible attribution when those controls are shown. Start with the user's direction; the CSS template contains no visual preset.
 
-Register it with one explicit entry in `src/presentations/index.ts`, using a dynamic import of `./<slug>/Talk`. Keep other entries and presentation folders intact. The worked example at `src/presentations/how-to-make-a-presentation/` demonstrates the required nine-step content and visual quality; follow its scene and styling conventions.
+Register the presentation with one explicit entry in `src/presentations/index.ts`, using a dynamic import of `./<slug>/Talk`. Keep other entries and folders intact. The worked example demonstrates the required nine-step content and visual quality; follow its scene and styling conventions.
 
-For a modification, first identify the target. If the request does not name a unique presentation, list registered presentations and ask which one before editing. Ask only about the requested change (steps, entities, or style); do not repeat the create interview. Keep changes scoped to that presentation and preserve other routes.
+For a modification, identify the target from the registry. If the request does not name a unique presentation, list registered presentations and ask which one before editing. Ask only about the requested change; do not repeat the create interview. Preserve the target's existing patterns and other routes.
 
-## 4. Self-verify and inspect
+## 5. Self-verify and inspect
 
 Do not report completion until the result builds, renders, and has been visually inspected. Run checks from the presentation app root:
 
@@ -64,8 +75,12 @@ Do not report completion until the result builds, renders, and has been visually
 3. `npm run inspect -- <slug>` to capture settled screenshots and review advisory warnings. Keep screenshots under the project's `.and-scene/screenshots/`. If no local helper exists, put any temporary Playwright helper under the project root so it resolves that project's dependencies.
 4. Review screenshots of the first and last steps and every dense/key step. Use `--narrow` for responsive-sensitive scenes. Inspect with the available browser tooling when needed. Fix accidental overlaps and collisions with captions, TOC, progress, navigation, or other chrome; make the active control distinct and attribution legible. Mark overlap with `data-presentation-allow-overlap` only when it is intentional and remains readable, then inspect again.
 
-Fix any build, route, runtime, console, or composition failure and rerun the relevant checks. Report what was checked, the route, and any remaining advisory warnings accurately; never claim success while a failure remains.
+Fix any build, route, runtime, console, or composition failure and rerun the relevant checks. Report completion with this structure:
 
-## Maintenance
-
-`src/presentation-kit/` is canonical. When it changes, synchronize its non-test files byte-for-byte to `templates/bootstrap/src/presentation-kit/`. Keep root `scripts/verify.mjs`, `scripts/inspect-presentation.mjs`, `scripts/preview-process.mjs`, and `scripts/preview-process.d.mts` byte-aligned with their bootstrap copies. The automated parity integration test guards this release snapshot. Keep `scripts/reference-sample.json` out of the bootstrap so copied `verify` runs in generic mode.
+```text
+Route: /<slug>
+Checks: build <pass/fail>; verify <pass/fail>; inspect <pass/fail>
+Steps reviewed: <list>
+Advisory warnings: <list or none>
+Remaining issues: <list or none>
+```

@@ -21,12 +21,12 @@ import "./fixture.css";
 function Scene({ payload }: { payload: { index: number } }) {
   const [marker, setMarker] = useState("animating-" + payload.index);
   useEffect(() => { setMarker("animating-" + payload.index); const timer = setTimeout(() => setMarker("settled-" + payload.index), 500); return () => clearTimeout(timer); }, [payload.index]);
-  return <div className="fixture-scene"><span data-inspect-settle-marker={marker} />{payload.index === 1 ? <><span className="collision-a">Collision A</span><span className="collision-b">Collision B</span></> : <div data-presentation-allow-overlap className="allowed"><span className="allowed-a">Allowed A</span><span className="allowed-b">Allowed B</span></div>}{payload.index === 3 && <div className="hidden"><span className="hidden-a">Hidden A</span><span className="hidden-b">Hidden B</span></div>}</div>;
+  return <div className="fixture-scene"><span data-inspect-settle-marker={marker} />{payload.index === 1 ? <><span className="collision-a">Collision A</span><span className="collision-b">Collision B</span></> : <div data-presentation-allow-overlap className="allowed"><span className="allowed-a">Allowed A</span><span className="allowed-b">Allowed B</span></div>}{payload.index === 3 && <><span className="caption-collision">Caption collision</span><div className="hidden"><span className="hidden-a">Hidden A</span><span className="hidden-b">Hidden B</span></div></>}</div>;
 }
 const steps: Step<{ index: number }>[] = [1, 2, 3].map(index => ({ id: String(index), era: "fixture", title: "Step " + index, caption: "Caption " + index, Scene, payload: { index } }));
 export default function Talk() { return <Presentation steps={steps} title="Inspection fixture" initialMode="browse" />; }
 `)
-  await writeFile(path.join(fixture, 'fixture.css'), `.fixture-scene{position:absolute;inset:200px 0 auto 0;height:80px}.collision-a,.collision-b,.allowed-a,.allowed-b,.hidden-a,.hidden-b{position:absolute;left:100px;top:0}.collision-b,.allowed-b,.hidden-b{left:110px}.allowed,.hidden{position:relative}.hidden{opacity:0}[data-presentation-attribution]{${polished ? 'color:#345;font-size:14px;text-decoration:none' : ''}}${polished ? '[data-active="true"]{color:white;background:#234;transform:scale(1.1)}' : ''}`)
+  await writeFile(path.join(fixture, 'fixture.css'), `.fixture-scene{position:absolute;inset:200px 0 auto 0;height:80px}.collision-a,.collision-b,.allowed-a,.allowed-b,.hidden-a,.hidden-b{position:absolute;left:100px;top:0}.collision-b,.allowed-b,.hidden-b{left:110px}.caption-collision{position:absolute;left:calc(50% - 40px);top:280px}.allowed,.hidden{position:relative}.hidden{opacity:0}[data-presentation-caption]{position:absolute;left:0;right:0;bottom:52px;text-align:center} [data-presentation-footer] nav{display:flex;gap:12px;position:absolute;bottom:8px;left:50%;transform:translateX(-50%)}${polished ? '.collision-a,.collision-b,.caption-collision{display:none}' : ''}[data-presentation-attribution]{${polished ? 'color:#345;font-size:14px;text-decoration:none' : ''}}${polished ? '[data-active="true"]{color:white;background:#234;transform:scale(1.1)}' : ''}`)
   const registryPath = path.join(dir, 'src/presentations/index.ts')
   await writeFile(registryPath, (await readFile(registryPath, 'utf8')).replace('export const presentations:', 'export const presentations:').replace('[\n', '[\n  { slug: "inspection-fixture", title: "Inspection fixture", load: () => import("./inspection-fixture/Talk") },\n'))
 }
@@ -46,6 +46,7 @@ describe('presentation inspection', () => {
       expect(text).toContain('marker=settled-2')
       expect(text).toContain('marker=settled-3')
       expect(text).toContain('[inspect] WARN step=1 overlap:')
+      expect(text).toMatch(/WARN step=3 overlap:.*Caption collision/)
       expect(text).toContain('active-nav:')
       expect(text).toContain('[inspect] WARN step=1 attribution:')
       expect(text).not.toMatch(/WARN step=2 overlap:.*Allowed A|WARN step=2 overlap:.*Allowed B/)
@@ -63,11 +64,12 @@ describe('presentation inspection', () => {
       await addFixture(dir, true)
       const build = spawnSync('npm', ['run', 'build'], { cwd: dir, encoding: 'utf8', timeout: 120_000 })
       expect(build.status, `${build.stdout}\n${build.stderr}`).toBe(0)
-      const result = spawnSync('node', ['scripts/inspect-presentation.mjs', 'inspection-fixture', '--settle', '50', '--skip-build'], { cwd: dir, encoding: 'utf8', timeout: 120_000 })
+      const result = spawnSync('node', ['scripts/inspect-presentation.mjs', 'inspection-fixture', '--settle', '550', '--skip-build'], { cwd: dir, encoding: 'utf8', timeout: 120_000 })
       const text = `${result.stdout}\n${result.stderr}`
       expect(result.status, text).toBe(0)
       expect(text).not.toContain('active-nav:')
       expect(text).not.toContain('attribution:')
+      expect(text).not.toContain('overlap:')
     } finally { await rm(dir, { recursive: true, force: true }) }
   })
 })

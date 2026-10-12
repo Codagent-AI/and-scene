@@ -45,13 +45,32 @@ export function inspectPage() {
     return `${selector}${text ? ` “${text}”` : ''}`
   }
   const allowed = (a, b) => Boolean(a.closest('[data-presentation-allow-overlap]') || b.closest('[data-presentation-allow-overlap]'))
-  const candidates = [...document.querySelectorAll('body *')].filter(element => visible(element) && ((element.children.length === 0 && (element.innerText || element.textContent || '').trim()) || element.matches('[data-presentation-header], [data-presentation-footer], [data-presentation-caption], [data-presentation-title], [data-presentation-progress], [data-presentation-toc], [data-presentation-attribution], [data-presentation-nav]')))
+  const controls = 'button, a, [role="button"], [data-presentation-dot]'
+  const chromeRegions = '[data-presentation-header], [data-presentation-footer], [data-presentation-progress], [data-presentation-toc], [data-presentation-nav]'
+  const candidates = [...document.querySelectorAll('body *')].flatMap(element => {
+    if (!visible(element) || element.closest('[data-presentation-allow-overlap]')) return []
+    const isControl = element.matches(controls)
+    const isTextHook = element.matches('[data-presentation-caption], [data-presentation-title], [data-presentation-attribution]')
+    if (!isControl && !isTextHook && element.matches(chromeRegions)) return []
+    if (isControl) {
+      const rect = element.getBoundingClientRect()
+      return [{ element, rects: [rect] }]
+    }
+    const rects = []
+    for (const node of element.childNodes) {
+      if (node.nodeType !== Node.TEXT_NODE || !node.textContent?.trim()) continue
+      const range = document.createRange()
+      range.selectNodeContents(node)
+      rects.push(...range.getClientRects())
+    }
+    return rects.length ? [{ element, rects }] : []
+  })
   const overlap = []
   for (let i = 0; i < candidates.length; i += 1) for (let j = i + 1; j < candidates.length; j += 1) {
-    const a = candidates[i]; const b = candidates[j]
+    const { element: a, rects: aRects } = candidates[i]; const { element: b, rects: bRects } = candidates[j]
     if (a.contains(b) || b.contains(a) || allowed(a, b)) continue
-    const x = a.getBoundingClientRect(); const y = b.getBoundingClientRect()
-    if (x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top) overlap.push([description(a), description(b)])
+    const intersects = aRects.some(x => x.width > 0 && x.height > 0 && bRects.some(y => y.width > 0 && y.height > 0 && x.left < y.right && x.right > y.left && x.top < y.bottom && x.bottom > y.top))
+    if (intersects) overlap.push([description(a), description(b)])
   }
   const sameStyle = (a, b) => {
     const keys = ['color', 'backgroundColor', 'borderColor', 'opacity', 'fontWeight', 'boxShadow', 'width', 'height', 'transform']
@@ -181,4 +200,4 @@ export async function main(args = process.argv.slice(2)) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main()
-/* global document, getComputedStyle */
+/* global document, getComputedStyle, Node */

@@ -26,7 +26,7 @@
 [data-presentation-prev], [data-presentation-next], [data-presentation-mode-toggle] { border: 1px solid #cbd4ca; border-radius: 4px; padding: 8px 12px; background: #fffef8; color: var(--ink); font: 600 11px 'DM Mono', monospace; cursor: pointer; }
 [data-presentation-next] { border-color: var(--green); color: #fff; background: var(--green); }
 [data-presentation-mode-toggle] { position: absolute; z-index: 4; right: 38px; top: 22px; }
-[data-presentation-attribution] { right: 38px !important; bottom: 8px !important; color: #687a72; text-decoration: none; font: 500 10px 'DM Mono', monospace; letter-spacing: .04em; }
+[data-presentation-attribution] { right: 38px !important; bottom: 8px !important; color: #687a72; text-decoration: none; font: 500 12px 'DM Mono', monospace; letter-spacing: .04em; }
 
 .sample-scene { position: absolute; inset: 0; color: var(--ink); }
 .sample-scene [data-presentation-box] { box-sizing: border-box; }

@@ -11,7 +11,8 @@
   background: radial-gradient(ellipse at 51% 43%, #fffef8 0, var(--paper) 68%);
   font-family: 'DM Sans', sans-serif;
 }
-[data-presentation-header] { padding: 24px 38px; display: flex; justify-content: space-between; align-items: center; }
+[data-presentation-header] { padding: 24px 168px 24px 38px; display: flex; justify-content: space-between; align-items: center; }
+[data-presentation-header] h1 { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 [data-presentation-title] { margin: 0; font: 600 14px 'Space Grotesk', sans-serif; letter-spacing: .03em; }
 [data-presentation-marker] { font: 500 12px 'DM Mono', monospace; color: var(--green); }
 [data-presentation-toc] { z-index: 3; position: absolute; top: 86px; left: 38px; display: grid; gap: 8px; }
@@ -60,7 +61,7 @@
 .morph-link { position: absolute; left: 111px; top: 1px; display: flex; gap: 4px; align-items: center; color: #b96c42; font: 500 7px 'DM Mono', monospace; }
 .ghost-card { left: 531px; top: 17px; border-style: dashed; background: #f9f8f1; color: #76847c; }
 .ghost-card strong { font-size: 9px; }
-.verify-connector { position: absolute; left: 526px; top: 55px; width: 12px; height: 1px; background: var(--green); }
+.verify-connector { position: absolute; left: 651px; top: 55px; width: 9px; height: 1px; background: var(--green); }
 .verify-card { position: absolute; left: 660px; top: 32px; width: 104px; height: 48px; padding: 8px; border: 1px solid #acd0ba; border-radius: 6px; background: #e7f3e9; display: flex; flex-direction: column; gap: 3px; }
 .verify-card strong { font: 600 10px 'Space Grotesk', sans-serif; }
 .verify-card span { color: #637b68; font: 8px 'DM Mono', monospace; }
@@ -80,7 +81,7 @@
 .reveal-frame span { position: absolute; right: 18px; top: -7px; padding: 0 8px; background: var(--paper); color: #a85a39; font: 500 8px 'DM Mono', monospace; letter-spacing: .12em; }
 
 @media (max-width: 899px) {
-  [data-presentation-header] { padding: 16px 18px; }
+  [data-presentation-header] { padding: 16px 104px 16px 18px; }
   [data-presentation-title] { max-width: calc(100% - 88px); font-size: 12px; }
   [data-presentation-mode-toggle] { top: 12px; right: 18px; padding: 7px 9px; }
   [data-presentation-footer] { height: 134px; padding: 10px 18px 30px; grid-template-columns: 1fr auto; gap: 9px; }

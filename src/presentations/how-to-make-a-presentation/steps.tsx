@@ -50,7 +50,7 @@ const SampleScene: Scene<SamplePayload> = ({ payload }) => <SceneLayer className
     {payload.cards > 2 && <div className="morph-link second" style={{ left: 381, top: 266 }}>↝ <small>morph</small></div>}
     <New show={payload.showVerify}><Box id="verify" className="verify" style={{ left: 652, top: 218 }}><span>BUILD + RENDER</span><strong>✓ PASS</strong></Box></New>
     <AnimatePresence>
-      <New show={payload.showDepth && !payload.showVerify}><Box id="ghost-card" className="step-card ghost-card" style={{ left: 624, top: 218 }}><span className="card-number">··</span><strong>Open slot</strong><span className="mini-line"/><span className="mini-block"/></Box></New>
+      {payload.showDepth && !payload.showVerify && <Appear key="ghost-card"><Box id="ghost-card" className="step-card ghost-card" style={{ left: 624, top: 218 }}><span className="card-number">··</span><strong>Open slot</strong><span className="mini-line"/><span className="mini-block"/></Box></Appear>}
     </AnimatePresence>
     <New show={payload.showDepth}><SymbolChip id="depth-control" className="depth-control" style={{ left: 42, top: 87 }}>partial ↔ full</SymbolChip></New>
   </div>}

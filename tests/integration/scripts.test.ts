@@ -1,8 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { cp, mkdtemp, rm, symlink, readFile, readdir, writeFile, unlink, access, mkdir } from 'node:fs/promises'
+import { cp, mkdtemp, rm, symlink, readFile, readdir, writeFile, unlink, mkdir } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
+import { createConnection } from 'node:net'
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -38,12 +40,13 @@ describe('project-local verification and inspection scripts', () => {
   })
 
   it('captures settled screenshots without writing into the source checkout', async () => {
+    const sourceArtifactsBefore = await sourceArtifactSnapshot()
     const result = await command(temporaryRoot, ['scripts/inspect-presentation.mjs', 'how-to-make-a-presentation', '--settle=25'])
     expect(result.code, result.output).toBe(0)
     expect(result.output).toContain('PASS inspect')
     const screenshots = await readdir(path.join(temporaryRoot, '.and-scene/screenshots/how-to-make-a-presentation'))
     expect(screenshots).toEqual(Array.from({ length: 9 }, (_, index) => `step-${String(index + 1).padStart(2, '0')}.png`))
-    await expectNoSourceArtifacts()
+    expect(await sourceArtifactSnapshot()).toEqual(sourceArtifactsBefore)
   })
 
   it('reports actionable failures for build, sample, runtime, and transition phases', async () => {
@@ -71,7 +74,7 @@ describe('project-local verification and inspection scripts', () => {
       expect(renderFailure.code).not.toBe(0)
       expect(renderFailure.output).toContain('render')
       expect(renderFailure.output).toContain('step 1')
-      await expectPreviewStopped(renderFailure.output)
+      await expectPreviewListenerClosed(renderFailure.output)
       await writeFile(talkPath, talk)
 
       await writeFile(navPath, nav.replace('const next = useCallback(() => setIndex((current) => Math.min(Math.max(0, stepCount - 1), Math.max(0, current) + 1))', 'const next = useCallback(() => setIndex((current) => current)'))
@@ -79,7 +82,7 @@ describe('project-local verification and inspection scripts', () => {
       expect(transitionFailure.code).not.toBe(0)
       expect(transitionFailure.output).toContain('render')
       expect(transitionFailure.output).toContain('step 2')
-      await expectPreviewStopped(transitionFailure.output)
+      await expectPreviewListenerClosed(transitionFailure.output)
     } finally {
       await writeFile(expectationsPath, expectations)
       await writeFile(navPath, nav)
@@ -136,14 +139,28 @@ export default function Talk() { return <Presentation steps={steps} title="Inspe
   })
 })
 
-async function expectNoSourceArtifacts() {
-  const exists = await access(path.join(project, '.and-scene/screenshots/how-to-make-a-presentation/step-01.png')).then(() => true, () => false)
-  expect(exists).toBe(false)
+async function sourceArtifactSnapshot() {
+  const directory = path.join(project, '.and-scene/screenshots/how-to-make-a-presentation')
+  const files = await readdir(directory).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return []
+    throw error
+  })
+  return Object.fromEntries(await Promise.all(files.map(async (filename) => {
+    const contents = await readFile(path.join(directory, filename))
+    return [filename, createHash('sha256').update(contents).digest('hex')]
+  })))
 }
 
-async function expectPreviewStopped(output: string) {
+async function expectPreviewListenerClosed(output: string) {
   const preview = output.match(/http:\/\/127\.0\.0\.1:(\d+)\//)
   expect(preview, output).not.toBeNull()
-  const reachable = await fetch(preview![0], { signal: AbortSignal.timeout(750) }).then(() => true, () => false)
-  expect(reachable).toBe(false)
+  const port = Number(preview![1])
+  const probe = await new Promise<'connected' | NodeJS.ErrnoException['code'] | 'timeout'>((resolve) => {
+    const socket = createConnection({ host: '127.0.0.1', port })
+    const finish = (result: 'connected' | NodeJS.ErrnoException['code'] | 'timeout') => { socket.destroy(); resolve(result) }
+    socket.once('connect', () => finish('connected'))
+    socket.once('error', (error: NodeJS.ErrnoException) => finish(error.code))
+    socket.setTimeout(1000, () => finish('timeout'))
+  })
+  expect(probe, `preview listener remains open at 127.0.0.1:${port}`).toBe('ECONNREFUSED')
 }

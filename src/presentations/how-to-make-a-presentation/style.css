@@ -20,4 +20,19 @@
 .edited { outline: 2px solid #f5c46a; }.card-link,.modify-arc { position: absolute; color: #8ed0c4; }.ghost-card { position: absolute; width: 88px; height: 68px; border: 1px dashed #789399; border-radius: 9px; padding: 18px 7px; color: #a8bec0; }
 .depth-control { position: absolute; border-radius: 999px; padding: 7px 12px; background: #283c43; color: #f5c46a; }.kit-socket { position: absolute; padding: 9px 16px; background: #24473f; border: 1px solid #70b8a8; border-radius: 8px; }.plug { position: absolute; color: #8ed0c4; }.verify-node { position: absolute; padding: 9px 12px; background: #213d35; border: 1px solid #72bd85; border-radius: 8px; }.verify-node strong { color: #8ee0a1; margin-left: 7px; }.verify-link { position: absolute; color: #8ed0c4; }.edit-flag { position: absolute; background: #624b24; color: #ffe0a0; padding: 3px 7px; border-radius: 5px; }
 .reveal-frame { position: absolute; inset: 0; border: 2px solid #f5c46a; border-radius: 20px; pointer-events: none; }.reveal-frame span { position: absolute; right: 20px; bottom: 12px; color: #f5c46a; font-size: 13px; }
-@media (max-width: 700px) { .sample-presentation { padding: 8px; }.sample-presentation [data-presentation-toc] { display: none; }.sample-presentation [data-presentation-mode-toggle] { right: 8px; top: 8px; } }
+@media (max-width: 700px) {
+  .sample-presentation { padding: 8px; }.sample-presentation [data-presentation-toc] { display: none; }.sample-presentation [data-presentation-mode-toggle] { right: 8px; top: 8px; }
+  .sample-scene { font-size: 23px; line-height: 1.2; }
+  .person { width: 96px; padding: 10px 4px; font-size: 27px; }
+  .prompt { padding: 7px 14px; }
+  .question { padding: 3px 9px; }
+  .conversation-arrow { font-size: 34px; top: 36px !important; }
+  .step-card { width: 90px; height: 84px; padding: 9px 6px; }.step-card small { margin-top: 5px; }
+  .card-link, .plug, .verify-link { font-size: 28px; }
+  .ghost-card { width: 112px; height: 84px; padding: 9px 8px; left: 752px !important; }
+  .edit-flag { padding: 2px 8px; margin-top: -5px; }
+  .modify-arc { white-space: nowrap; }
+  .kit-socket { max-width: 290px; padding: 7px 12px; }
+  .verify-node { width: 170px; padding: 7px 10px; }.verify-node strong { display: block; margin: 0; }
+  .reveal-frame span { font-size: 22px; line-height: 1.2; left: 18px; right: auto; width: 240px; bottom: 6px; }
+}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT } from './constants'
+import { DESIGN_H, DESIGN_W, MIN_SCALE, NARROW_STAGE_MARGIN, NARROW_STAGE_WIDTH, STAGE_LAYOUT } from './constants'
 import type { PresentationMode } from './types'
 
 export function calculateFitScale(
@@ -10,7 +10,8 @@ export function calculateFitScale(
   designHeight = DESIGN_H,
 ) {
   const geometry = STAGE_LAYOUT[mode]
-  const availableWidth = Math.max(0, width - geometry.horizontal * 2)
+  const horizontal = width < NARROW_STAGE_WIDTH ? Math.min(geometry.horizontal, NARROW_STAGE_MARGIN) : geometry.horizontal
+  const availableWidth = Math.max(0, width - horizontal * 2)
   const availableHeight = Math.max(0, height - geometry.vertical)
   return Math.max(MIN_SCALE, Math.min(1, availableWidth / designWidth, availableHeight / designHeight))
 }

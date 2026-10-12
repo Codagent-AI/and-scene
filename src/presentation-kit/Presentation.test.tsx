@@ -173,6 +173,12 @@ describe('presentation kit', () => {
     expect(calculateFitScale(400, 140, 'browse')).toBeCloseTo(0.305, 3)
   })
 
+  it('uses compact horizontal margins on narrow viewports to keep scene content legible', () => {
+    expect(calculateFitScale(390, 700, 'browse')).toBeCloseTo((390 - 24) / 880, 4)
+    expect(calculateFitScale(390, 700, 'present')).toBeCloseTo((390 - 24) / 880, 4)
+    expect(calculateFitScale(480, 700, 'browse')).toBeCloseTo((480 - 96) / 880, 4)
+  })
+
   it('keeps the active step valid when the supplied step list shrinks', () => {
     const view = render(<Presentation steps={steps} title="Test" />)
     fireEvent.click(screen.getByRole('button', { name: 'Go to step 3' }))

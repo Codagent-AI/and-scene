@@ -6,8 +6,9 @@ export function shouldIgnoreNavigationKey(target: HTMLElement): boolean {
 }
 export function clampStep(index: number, stepCount: number): number { return Math.max(0, Math.min(stepCount - 1, index)) }
 export type NavigationAction = 'next' | 'prev' | 'toggle' | null
-export function navigationKeyAction(key: string, target?: HTMLElement | null): NavigationAction {
+export function navigationKeyAction(key: string, target?: HTMLElement | null, modifiers?: Partial<Pick<KeyboardEvent, 'ctrlKey' | 'metaKey' | 'altKey'>>): NavigationAction {
   if (target && shouldIgnoreNavigationKey(target)) return null
+  if (modifiers?.ctrlKey || modifiers?.metaKey || modifiers?.altKey) return null
   if (['ArrowRight', ' ', 'PageDown'].includes(key)) return 'next'
   if (['ArrowLeft', 'PageUp'].includes(key)) return 'prev'
   if (key.toLowerCase() === 'p') return 'toggle'
@@ -20,13 +21,13 @@ export function swipeAction(deltaX: number, threshold = 48): 'next' | 'prev' | n
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState<PresentationMode>(initialMode)
-  const next = useCallback(() => setIndex((i) => clampStep(i + 1, stepCount)), [stepCount])
-  const prev = useCallback(() => setIndex((i) => Math.max(0, i - 1)), [])
+  const next = useCallback(() => setIndex((i) => clampStep(clampStep(i, stepCount) + 1, stepCount)), [stepCount])
+  const prev = useCallback(() => setIndex((i) => clampStep(clampStep(i, stepCount) - 1, stepCount)), [stepCount])
   const goTo = useCallback((i: number) => setIndex(clampStep(i, stepCount)), [stepCount])
   const toggleMode = useCallback(() => setMode((m) => m === 'browse' ? 'present' : 'browse'), [])
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const action = navigationKeyAction(event.key, event.target as HTMLElement | null)
+      const action = navigationKeyAction(event.key, event.target as HTMLElement | null, event)
       if (action === 'next') { event.preventDefault(); next() }
       else if (action === 'prev') { event.preventDefault(); prev() }
       else if (action === 'toggle') toggleMode()

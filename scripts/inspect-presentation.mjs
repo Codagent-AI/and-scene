@@ -10,6 +10,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
 const slug = args.find((arg) => !arg.startsWith('-'))
 if (!slug) { console.error('Usage: npm run inspect -- <slug> [--narrow] [--settle=1200]'); process.exit(2) }
+if (!/^[a-z0-9][a-z0-9-]*$/i.test(slug)) { console.error(`Invalid presentation slug '${slug}'; use letters, numbers, and hyphens`); process.exit(2) }
 const narrow = args.includes('--narrow')
 const settleArg = args.find((arg) => arg.startsWith('--settle='))?.split('=')[1]
 const settle = Math.max(0, Number(settleArg ?? process.env.AND_SCENE_SETTLE_MS ?? 1200) || 0)
@@ -31,8 +32,11 @@ async function port() {
 async function ready(url) {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
-    if (previewError) throw new Error(`preview could not start: ${previewError.message}`)
-    try { if ((await fetch(url)).ok) return } catch {}
+    if (previewError || preview?.exitCode !== null && preview?.exitCode !== undefined) throw new Error(`preview could not start: ${previewError?.message ?? `preview exited with code ${preview.exitCode}`}`)
+    let response
+    try { response = await fetch(url) } catch {}
+    if (previewError || preview.exitCode !== null) throw new Error(`preview could not start: ${previewError?.message ?? `preview exited with code ${preview.exitCode}`}`)
+    if (response?.ok) return
     await delay(200)
   }
   throw new Error(`preview did not become ready at ${url}`)
@@ -59,6 +63,7 @@ try {
   const vite = path.resolve(path.dirname(require.resolve('vite')), '../../bin/vite.js')
   preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(selectedPort), '--strictPort'], { cwd: root, stdio: 'inherit' })
   preview.once('error', (error) => { previewError = error })
+  preview.once('exit', (code, signal) => { previewError = new Error(`preview exited with ${code === null ? signal : `code ${code}`}`) })
   const base = `http://127.0.0.1:${selectedPort}`
   await ready(base)
   browser = await chromium.launch({ headless: true })

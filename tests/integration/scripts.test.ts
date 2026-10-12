@@ -39,6 +39,13 @@ describe('project-local verification and inspection scripts', () => {
     expect(result.output).toContain('render')
   })
 
+  it('rejects traversal slugs before building or writing screenshots', async () => {
+    const result = await command(temporaryRoot, ['scripts/inspect-presentation.mjs', '../../outside'])
+    expect(result.code).toBe(2)
+    expect(result.output).toContain('Invalid presentation slug')
+    await expect(readdir(path.join(temporaryRoot, '.and-scene/screenshots'))).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
   it('captures settled screenshots without writing into the source checkout', async () => {
     const sourceArtifactsBefore = await sourceArtifactSnapshot()
     const result = await command(temporaryRoot, ['scripts/inspect-presentation.mjs', 'how-to-make-a-presentation', '--settle=25'])

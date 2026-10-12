@@ -33,8 +33,11 @@ async function freePort() {
 async function waitReady(url) {
   const until = Date.now() + 30000
   while (Date.now() < until) {
-    if (previewError) fail(`preview could not start: ${previewError.message}`)
-    try { if ((await fetch(url)).ok) return } catch {}
+    if (previewError || preview?.exitCode !== null && preview?.exitCode !== undefined) fail(`preview could not start: ${previewError?.message ?? `preview exited with code ${preview.exitCode}`}`)
+    let response
+    try { response = await fetch(url) } catch {}
+    if (previewError || preview.exitCode !== null) fail(`preview could not start: ${previewError?.message ?? `preview exited with code ${preview.exitCode}`}`)
+    if (response?.ok) return
     await delay(200)
   }
   fail(`preview did not become ready at ${url}`)
@@ -73,6 +76,7 @@ try {
   const vite = path.resolve(path.dirname(require.resolve('vite')), '../../bin/vite.js')
   preview = spawn(process.execPath, [vite, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'inherit' })
   preview.once('error', (error) => { previewError = error })
+  preview.once('exit', (code, signal) => { previewError = new Error(`preview exited with ${code === null ? signal : `code ${code}`}`) })
   const base = `http://127.0.0.1:${port}`
   await waitReady(base)
   browser = await chromium.launch({ headless: true })
@@ -99,13 +103,17 @@ try {
       if (reference?.slug === slug) {
         const title = reference.titles[index]
         const caption = reference.captions[index]
-        await page.keyboard.press('P').catch(() => {})
-        await page.waitForTimeout(80)
-        const presentTitle = (await page.locator('[data-presentation-title]').allTextContents()).join(' ').trim()
+        await page.keyboard.press('P')
+        await page.waitForFunction(() => document.querySelector('[data-presentation-mode]')?.getAttribute('data-presentation-mode') === 'present', null, { timeout: 3000 }).catch(() => fail(`step ${index + 1}: P did not switch to present mode`))
+        const titleElement = page.locator('[data-presentation-title]')
+        await titleElement.waitFor({ state: 'visible', timeout: 3000 }).catch(() => fail(`step ${index + 1}: presentation title is not visible in present mode`))
+        const presentTitle = (await titleElement.allTextContents()).join(' ').trim()
         if (!presentTitle.includes(title)) fail(`step ${index + 1}: title mismatch, expected '${title}'`)
         await page.keyboard.press('P')
-        await page.waitForTimeout(80)
-        const browseCaption = (await page.locator('[data-presentation-caption]').allTextContents()).join(' ').trim()
+        await page.waitForFunction(() => document.querySelector('[data-presentation-mode]')?.getAttribute('data-presentation-mode') === 'browse', null, { timeout: 3000 }).catch(() => fail(`step ${index + 1}: P did not switch to browse mode`))
+        const captionElement = page.locator('[data-presentation-caption]')
+        await captionElement.waitFor({ state: 'visible', timeout: 3000 }).catch(() => fail(`step ${index + 1}: presentation caption is not visible in browse mode`))
+        const browseCaption = (await captionElement.allTextContents()).join(' ').trim()
         if (!browseCaption.includes(caption)) fail(`step ${index + 1}: caption mismatch, expected '${caption}'`)
       }
       const currentErrors = errors.filter((entry) => entry.step === index + 1)

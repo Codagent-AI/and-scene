@@ -1,5 +1,15 @@
 # And Scene
 
+For a production render check, run `npm run verify`. To capture and review all
+steps in the committed example, run:
+
+```bash
+npm run inspect -- how-to-make-a-presentation
+```
+
+The helper writes screenshots to the git-ignored `.and-scene/screenshots/`
+directory and reports advisory visual warnings.
+
 Implement the `create-and-scene` OpenSpec change in this repository and verify
 both behavior and visual composition before reporting completion. The target
 application, skill, scene kit, and scripts intentionally do not exist yet.

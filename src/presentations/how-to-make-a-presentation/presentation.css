@@ -126,6 +126,6 @@ body:has([data-presentation-header]) #root { min-height: 100dvh; }
   [data-presentation-progress] { gap: 4px; }
   [data-presentation-progress-item] { width: 20px; height: 20px; }
   [data-presentation-prev], [data-presentation-next] { padding: 7px 9px; font-size: 10px; }
-  [data-presentation-attribution] { right: 14px !important; bottom: 8px !important; font-size: 10px; }
+  [data-presentation-attribution] { right: 14px !important; bottom: 8px !important; font-size: 12px; }
 }
 .card-detail { margin-top: -5px; color: #91aaa8; font-size: 8px; }

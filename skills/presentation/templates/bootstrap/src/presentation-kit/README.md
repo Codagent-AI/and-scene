@@ -7,7 +7,7 @@ typography, borders, spacing, and component appearance in their presentation.
 
 The kit exposes `data-presentation-root`, `data-presentation-mode`,
 `data-presentation-stage`, `data-presentation-canvas`, `data-presentation-header`,
-`data-presentation-footer`, `data-presentation-caption`,
+`data-presentation-footer`, `data-presentation-step-title`, `data-presentation-caption`,
 `data-presentation-title`, `data-presentation-progress`,
 `data-presentation-progress-indicator`, `data-presentation-step-index`,
 `data-presentation-toc`, `data-presentation-toc-entry`,

@@ -29,6 +29,17 @@ describe('Presentation contract', () => {
   expect(document.querySelector('[data-presentation-mode="present"]')).toBeTruthy()
   expect(document.querySelector('[data-presentation-caption]')).toBeNull()
  })
+ it('shows the active step title and caption in browse mode and tracks navigation', () => {
+  const { container, unmount } = render(<Presentation steps={steps} title="Sample" initialMode="browse" />)
+  expect(container.querySelector('[data-presentation-step-title]')?.textContent).toBe('One')
+  expect(container.querySelector('[data-presentation-caption]')?.textContent).toBe('First caption')
+  fireEvent.click(container.querySelector('[data-presentation-next]')!)
+  expect(container.querySelector('[data-presentation-step-title]')?.textContent).toBe('Two')
+  fireEvent.click(container.querySelector('[data-presentation-mode-toggle]')!)
+  expect(container.querySelector('[data-presentation-step-title]')).toBeNull()
+  expect(container.querySelector('[data-presentation-title]')?.textContent).toBe('Two')
+  unmount()
+ })
  it('jumps to the first step of a section and handles keyboard boundaries', () => {
   render(<Presentation steps={steps} title="Sample" initialMode="browse" />)
   fireEvent.click(document.querySelector('[data-presentation-progress-indicator][data-presentation-step-index="1"]')!)

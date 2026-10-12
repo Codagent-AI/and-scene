@@ -43,6 +43,8 @@ try {
     const [title, caption] = SAMPLE_OUTLINE[step]
     const renderedCaption = (await page.locator('[data-presentation-caption]').innerText()).trim()
     if (renderedCaption !== caption) throw new Error(`step ${step}: caption does not match the canonical outline`)
+    const browseTitle = (await page.locator('[data-presentation-step-title]').innerText()).trim()
+    if (browseTitle !== title) throw new Error(`step ${step}: browse title does not match the canonical outline`)
     await page.keyboard.press('p')
     await page.waitForFunction(() => document.querySelector('[data-presentation-root]')?.getAttribute('data-presentation-mode') === 'present')
     const renderedTitle = (await page.locator('[data-presentation-title]').innerText()).trim()

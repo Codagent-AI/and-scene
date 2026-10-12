@@ -1,63 +1,204 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { useEffect } from 'react'
 import { Presentation } from './Presentation'
+import { Box } from './nodes/Box'
 import type { Step } from './types'
+import { calculateFitScale } from './useFitScale'
+import { resolvePresentation } from '../presentations'
 
-function Scene({ step }: { step: Step }) {
-  return <div data-testid="scene">{step.title}</div>
+interface Payload { count: number }
+let mounted = 0
+function TypedScene({ payload }: { payload: Payload }) {
+  useEffect(() => { mounted += 1 }, [])
+  return <div><span>{payload.count}</span><Box id="shared">node</Box></div>
 }
-
-const steps: Step[] = [
-  {
-    id: 'one',
-    era: 'intro',
-    title: 'First step',
-    caption: 'First caption',
-    Scene,
-  },
-  {
-    id: 'two',
-    era: 'intro',
-    title: 'Second step',
-    caption: 'Second caption',
-    Scene,
-  },
+const steps: Step<Payload>[] = [
+  { id: 'a', era: 'Start', title: 'One', caption: 'First caption', Scene: TypedScene, payload: { count: 1 }, groupKey: 'same' },
+  { id: 'b', era: 'Start', title: 'Two', caption: 'Second caption', Scene: TypedScene, payload: { count: 2 }, groupKey: 'same' },
+  { id: 'c', era: 'End', title: 'Three', caption: 'Third caption', Scene: TypedScene, payload: { count: 3 } },
 ]
 
-describe('Presentation chrome hooks', () => {
-  it('exposes data-step-count and data-step-index on the progress chrome', () => {
-    render(<Presentation steps={steps} title="Demo" initialMode="browse" />)
-
-    const chrome = screen.getByTestId('step-progress')
-    expect(chrome).toHaveAttribute('data-step-count', '2')
-    expect(chrome).toHaveAttribute('data-step-index', '0')
-    expect(screen.getByLabelText('Go to step 1: First step')).toHaveAttribute('aria-current', 'step')
+describe('presentation kit', () => {
+  it('derives step numbers from order after inserting, removing, and reordering', () => {
+    const numbered = (items: readonly Step<Payload>[]) => items.map((step, index) => `${index + 1}:${step.id}`)
+    expect(numbered(steps)).toEqual(['1:a', '2:b', '3:c'])
+    expect(numbered([steps[0], { ...steps[0], id: 'x' }, steps[1]])).toEqual(['1:a', '2:x', '3:b'])
+    expect(numbered([steps[2], steps[0]])).toEqual(['1:c', '2:a'])
   })
 
-  it('derives on-screen step numbers from position', () => {
-    render(<Presentation steps={steps} title="Demo" initialMode="browse" />)
-    expect(screen.getAllByText('01').length).toBeGreaterThan(0)
+  it('accepts typed grouped steps through Presentation without casts', () => {
+    const typed: Step<Payload>[] = steps
+    const view = render(<Presentation steps={typed} title="Typed" />)
+    expect(view.container.querySelector('[data-step-count="3"]')).toBeTruthy()
   })
 
-  it('accepts strongly typed step payloads at the presentation boundary', () => {
-    type Payload = { count: number }
-    function TypedScene({ step }: { step: Step<Payload> }) {
-      return <div data-testid="typed-scene">{step.payload?.count}</div>
+  it('preserves grouped scene instances and remounts ungrouped steps', async () => {
+    mounted = 0
+    render(<Presentation steps={steps} title="Test" />)
+    expect(mounted).toBeGreaterThan(0)
+    const initialMounts = mounted
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await waitFor(() => expect(screen.getByText('2', { selector: 'span' })).toBeTruthy())
+    expect(mounted).toBe(initialMounts)
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await waitFor(() => expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('2'))
+    await waitFor(() => expect(mounted).toBeGreaterThan(initialMounts))
+  })
+
+  it('clamps navigation, maps keys, and toggles mode in place', () => {
+    render(<Presentation steps={steps} title="Test" />)
+    const root = document.querySelector('[data-step-index]')!
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(root.getAttribute('data-step-index')).toBe('0')
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('1')
+    fireEvent.keyDown(window, { key: ' ' })
+    expect(root.getAttribute('data-step-index')).toBe('2')
+    fireEvent.keyDown(window, { key: 'PageDown' })
+    expect(root.getAttribute('data-step-index')).toBe('2')
+    fireEvent.keyDown(window, { key: 'p' })
+    expect(root.getAttribute('data-presentation-mode')).toBe('present')
+    expect(root.getAttribute('data-step-index')).toBe('2')
+    expect(screen.queryByRole('button', { name: 'Next' })).toBeNull()
+    expect(document.querySelector('[data-presentation-title]')?.textContent).toBe('Three')
+    expect(document.querySelector('[data-presentation-caption]')).toBeNull()
+    expect(document.querySelector('[data-presentation-toc]')).toBeNull()
+    fireEvent.keyDown(window, { key: 'p' })
+    const next = screen.getByRole('button', { name: 'Next' })
+    next.focus()
+    fireEvent.keyDown(next, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('2')
+    fireEvent.keyDown(next, { key: 'p' })
+    expect(root.getAttribute('data-presentation-mode')).toBe('present')
+    fireEvent.keyDown(next, { key: ' ' })
+    expect(root.getAttribute('data-step-index')).toBe('2')
+    fireEvent.keyDown(window, { key: 'PageUp' })
+    expect(root.getAttribute('data-step-index')).toBe('1')
+  })
+
+  it('preserves navigation keys unless the focused widget consumes them', () => {
+    render(<Presentation steps={steps} title="Test" />)
+    const root = document.querySelector('[data-step-index]')!
+    const next = screen.getByRole('button', { name: 'Next' })
+    next.focus()
+    fireEvent.keyDown(next, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('1')
+    fireEvent.keyDown(next, { key: 'PageUp' })
+    expect(root.getAttribute('data-step-index')).toBe('0')
+    fireEvent.keyDown(next, { key: ' ' })
+    expect(root.getAttribute('data-step-index')).toBe('0')
+
+    const entry = document.createElement('input')
+    document.body.append(entry)
+    fireEvent.keyDown(entry, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('0')
+    entry.remove()
+
+    const slider = document.createElement('div')
+    slider.setAttribute('role', 'slider')
+    slider.tabIndex = 0
+    document.body.append(slider)
+    slider.focus()
+    fireEvent.keyDown(slider, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('0')
+    slider.remove()
+
+    const tablist = document.createElement('div')
+    tablist.setAttribute('role', 'tablist')
+    const tab = document.createElement('button')
+    tab.setAttribute('role', 'tab')
+    tab.tabIndex = 0
+    tablist.append(tab)
+    document.body.append(tablist)
+    tab.focus()
+    fireEvent.keyDown(tab, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('0')
+    tablist.remove()
+
+    const region = document.createElement('div')
+    region.setAttribute('role', 'region')
+    const nestedButton = document.createElement('button')
+    region.append(nestedButton)
+    document.body.append(region)
+    nestedButton.focus()
+    fireEvent.keyDown(nestedButton, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('1')
+    region.remove()
+
+    const attribution = screen.getByRole('link', { name: 'made by and-scene' })
+    attribution.focus()
+    fireEvent.keyDown(attribution, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('2')
+  })
+
+  it('jumps from progress and TOC to the first step in an era with active semantics', () => {
+    render(<Presentation steps={steps} title="Test" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 3' }))
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('2')
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+    expect(document.querySelectorAll('[data-presentation-progress-item][aria-current="step"]')).toHaveLength(1)
+    expect(document.querySelectorAll('[data-presentation-progress-item][data-presentation-active="true"]')).toHaveLength(1)
+    expect(document.querySelectorAll('[data-presentation-toc-item][aria-current="step"]')).toHaveLength(1)
+    expect(document.querySelectorAll('[data-presentation-toc-item][data-presentation-active="true"]')).toHaveLength(1)
+  })
+
+  it('maps left and right touch swipes to next and previous', () => {
+    render(<Presentation steps={steps} title="Test" />)
+    const root = document.querySelector('[data-step-index]')!
+    fireEvent.touchStart(root, { touches: [{ clientX: 240, clientY: 30 }] })
+    fireEvent.touchEnd(root, { changedTouches: [{ clientX: 160, clientY: 32 }] })
+    expect(root.getAttribute('data-step-index')).toBe('1')
+    fireEvent.touchStart(root, { touches: [{ clientX: 160, clientY: 32 }] })
+    fireEvent.touchEnd(root, { changedTouches: [{ clientX: 250, clientY: 31 }] })
+    expect(root.getAttribute('data-step-index')).toBe('0')
+  })
+
+  it('renders default attribution and primitive hooks without inline visual defaults', () => {
+    const { container } = render(<Presentation steps={steps} title="Test" />)
+    const attribution = screen.getByRole('link', { name: 'made by and-scene' })
+    expect(attribution.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene')
+    expect(attribution.hasAttribute('data-presentation-attribution')).toBe(true)
+    expect(container.querySelector('header a')).toBeNull()
+    const node = container.querySelector('[data-presentation-node="shared"]') as HTMLElement
+    expect(node).toBeTruthy()
+    expect(node.style.color).toBe('')
+    expect(node.style.border).toBe('')
+  })
+
+  it('calculates uniform canvas fit at the default dimensions', () => {
+    expect(calculateFitScale(976, 664, 'present')).toBe(1)
+    expect(calculateFitScale(488, 400, 'present')).toBeCloseTo((488 - 2 * 0.04 * 488) / 880, 4)
+    expect(calculateFitScale(400, 140, 'browse')).toBeCloseTo(0.305, 3)
+  })
+
+  it('shrinks horizontal margins with the viewport so narrow scenes stay legible without jumps', () => {
+    expect(calculateFitScale(390, 700, 'browse')).toBeCloseTo((390 - 2 * 0.04 * 390) / 880, 4)
+    expect(calculateFitScale(300, 700, 'present')).toBeCloseTo((300 - 24) / 880, 4)
+    let previous = 0
+    for (let width = 300; width <= 1400; width += 1) {
+      const scale = calculateFitScale(width, 2000, 'browse')
+      expect(scale).toBeGreaterThanOrEqual(previous)
+      if (previous) expect(scale - previous).toBeLessThan(0.005)
+      previous = scale
     }
+  })
 
-    const typedSteps: Step<Payload>[] = [
-      {
-        id: 'typed',
-        era: 'typed',
-        title: 'Typed step',
-        caption: 'Typed caption',
-        payload: { count: 3 },
-        Scene: TypedScene,
-      },
-    ]
+  it('keeps the active step valid when the supplied step list shrinks', () => {
+    const view = render(<Presentation steps={steps} title="Test" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 3' }))
+    view.rerender(<Presentation steps={steps.slice(0, 2)} title="Test" />)
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    expect(document.querySelector('[data-presentation-marker]')?.textContent).toContain('02')
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
+  })
 
-    render(<Presentation steps={typedSteps} title="Typed demo" initialMode="browse" />)
-
-    expect(screen.getByTestId('typed-scene')).toHaveTextContent('3')
+  it('resolves registered routes and falls back for unknown paths', () => {
+    const entries = [{ slug: 'sample', title: 'Sample', load: async () => ({ default: () => null }) }]
+    expect(resolvePresentation('/sample/', entries)?.title).toBe('Sample')
+    expect(resolvePresentation('/unknown', entries)).toBeUndefined()
+    expect(resolvePresentation('/', entries)).toBeUndefined()
   })
 })

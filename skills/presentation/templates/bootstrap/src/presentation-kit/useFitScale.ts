@@ -1,25 +1,33 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useEffect, useState } from 'react'
+import { DESIGN_H, DESIGN_W, MIN_SCALE, MIN_STAGE_MARGIN, STAGE_LAYOUT, STAGE_MARGIN_RATIO } from './constants'
+import type { PresentationMode } from './types'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+export function calculateFitScale(
+  width: number,
+  height: number,
+  mode: PresentationMode,
+  designWidth = DESIGN_W,
+  designHeight = DESIGN_H,
+) {
+  const geometry = STAGE_LAYOUT[mode]
+  const horizontal = Math.min(geometry.horizontal, Math.max(MIN_STAGE_MARGIN, width * STAGE_MARGIN_RATIO))
+  const availableWidth = Math.max(0, width - horizontal * 2)
+  const availableHeight = Math.max(0, height - geometry.vertical)
+  return Math.max(MIN_SCALE, Math.min(1, availableWidth / designWidth, availableHeight / designHeight))
+}
 
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
+export function useFitScale(container: HTMLElement | null, mode: PresentationMode) {
   const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
+  useEffect(() => {
+    if (!container) return
+    const update = () => {
+      const rect = container.getBoundingClientRect()
+      setScale(calculateFitScale(rect.width, rect.height, mode))
     }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [container, mode])
   return scale
 }

@@ -1,523 +1,86 @@
 ---
 name: presentation
-description: >
-  Creates and modifies evolving-scene browser presentations. Use when the user
-  asks to "create a presentation", "build a talk", "add steps", "modify a
-  presentation", "update/resync the scene kit", or scaffold presentation
-  infrastructure. Gathers requirements interactively, bootstraps missing
-  scaffolding (monorepo-aware), registers presentations at their own routes,
-  resyncs a project's vendored scene kit with the latest snapshot, and
-  self-verifies build + render before reporting done.
+description: Create, add steps to, edit, or restyle browser presentations as one evolving animated diagram with the And Scene kit. Use when a user asks for a presentation, slides, deck, talk, explainer, or visual walkthrough, or wants to add, edit, or restyle steps in an existing presentation.
 ---
 
 # Presentation skill
 
-Build **evolving-scene presentations**: one shared diagrammatic canvas where
-entities morph across steps while captions and navigation guide the audience.
-Each presentation is a self-contained folder under `src/presentations/<slug>/`
-that composes the reusable **scene kit** at `src/presentation-kit/`.
+Create one evolving diagram, not a stack of unrelated slides. Stable entities persist between named steps; each step has its own title, caption, visual description, and scene state. The presentation owns its look. The reusable kit owns scene behavior and geometry.
 
-## When to use
-
-- User asks to create, build, or generate a presentation or talk
-- User asks to modify, update, or add steps to an existing presentation
-- Project lacks the scene kit or presentation infrastructure and needs bootstrapping
-- User asks to update, resync, or pull the latest scene kit into a project whose
-  vendored `src/presentation-kit/` has fallen behind the skill (see
-  [Updating the vendored kit](#updating-the-vendored-kit))
-
-## Procedure
-
-Work through these phases in order. Do not skip self-verify.
-
-### 1. Gather requirements
-
-Ask **one question at a time**. Cover:
-
-1. **Topic** — what the presentation is about
-2. **Visual style** — accents, mood, density (sparse diagram vs. rich layout)
-3. **High-level sections** — the major parts of the story, in order
-4. **Each step** — after the sections are agreed, flesh them out one by one.
-   A "step" means one navigable beat in the presentation: the caption/title plus
-   the scene state shown for that moment.
-5. **Per-step visuals** — which entities appear, how they relate, and what
-   morphs between steps
-
-Rules:
-
-- Do **not** assume details the user can still provide
-- Allow the user to proceed with **partial detail** and iterate later — no hard
-  completeness gate
-- Do **not** start by asking how long the talk should be or how many steps it
-  should have. First establish the high-level sections, then expand each section
-  into steps. Ask about length/count only after that structure exists, or when
-  the user explicitly asks the agent to decide or fill in details.
-- If the user says the length/count is TBD, accept that and continue by shaping
-  the high-level sections before implementing any steps.
-- Define skill-specific terms the first time they are used in user-facing
-  conversation. For example: a "step" is one navigable beat of the talk; a
-  "hero" entity is the main visual object that carries continuity across the
-  scene. Do not front-load a glossary; define terms just before they matter.
-- If the prompt already contains topic, style, and all step details, proceed to
-  scaffold/generate without further questions
-- For **key or complex steps**, optionally draw an **ASCII mockup** of the layout
-  and ask the user to confirm before building. Use mockups selectively, not for
-  every step
-
-### 2. Resolve target + scaffold if needed
-
-Before creating or modifying a presentation, ensure three **contract anchors**
-exist. Detection is **contract-level** (presence of the anchor, not byte-identical
-files). Cosmetic differences do not trigger re-scaffolding.
-
-| Anchor | What to look for |
-|--------|------------------|
-| **Build setup** | `vite.config.ts`, `package.json` with a `build` script |
-| **Scene kit** | `src/presentation-kit/types.ts`, `Presentation.tsx`, `Stage.tsx` |
-| **Presentation index** | `src/presentations/index.ts` exporting a `presentations` registry |
-
-**Target resolution:**
-
-| Context | Scaffold location |
-|---------|-------------------|
-| Empty directory, or an existing standalone JS app (a `package.json` at the root, non-monorepo) | Repository root (`.`) |
-| Monorepo (`workspaces` in `package.json`, `pnpm-workspace.yaml`, or `packages/` / `apps/` layout) | Self-contained app under `presentations/` |
-| Non-empty repo that is **not** a JS app (no root `package.json` — e.g. a Python/Go/Rust project) | Self-contained app under `presentation/` |
-| Anchors already present | Use existing app; scaffold only missing anchors |
-
-**Monorepo detection signals:** `package.json` `workspaces`, `pnpm-workspace.yaml`,
-or files under `packages/` or `apps/`.
-
-**Why non-JS repos nest:** the bootstrap is a full Vite + React app. Dropping its
-`package.json`, `vite.config.ts`, and `src/` at the root of a Python/Go/Rust repo
-would collide with the existing project, so the scaffold lands in a dedicated
-`presentation/` subfolder instead. Only a truly empty directory or a repo that is
-already a JS app gets scaffolded in place at the root.
-
-**Scaffolding steps:**
-
-1. Determine which anchors are missing (all, some, or none)
-2. Copy missing pieces from `templates/bootstrap/` in this skill directory.
-   Template paths are relative to this `SKILL.md` file, not necessarily to the
-   user's current working directory.
-   The bootstrap `package.json` ships a neutral `presentation-app` name —
-   rename it to suit the target project (e.g. the repo or monorepo package
-   name) before installing.
-3. **Install dependencies** — never assume they are present. The scaffold must
-   ensure this full set:
-   - **Runtime:** `react`, `react-dom`, `motion`, `lucide-react`
-   - **Dev/build:** `vite`, `@vitejs/plugin-react`, `typescript`,
-     `@types/react`, `@types/react-dom`, `@types/node`, the eslint stack
-     (`@eslint/js`, `eslint`, `eslint-plugin-react-hooks`,
-     `eslint-plugin-react-refresh`, `globals`, `typescript-eslint`), and
-     `playwright` (for render checks)
-4. Run `npm install` in the resolved target directory
-
-**Non-empty project without scaffolding:** state the resolved target location
-(e.g. "I will scaffold into `presentations/`") and proceed only after the user
-confirms.
-
-**Already scaffolded:** skip scaffolding and go directly to generate/modify.
-
-Utility helpers in `scaffold.ts` (alongside this file) implement anchor
-detection, monorepo heuristics, and target resolution for automated checks.
-
-### 3. Generate or modify
-
-#### Create a new presentation
-
-1. Derive a **slug** from the title (kebab-case, e.g. `how-to-use-this-skill`)
-2. Create `src/presentations/<slug>/` from `templates/presentation/`:
-   - `entities.ts` — stable `layoutId` namespace for every morphing entity
-   - `steps/*.tsx` — one file per step; each exports a `Step` object
-   - `Talk.tsx` — imports all steps, renders `<Presentation steps={STEPS} />`
-3. Add presentation-owned styling if the user wants a designed look. The kit is
-   BYO styles: no colors, fonts, borders, spacing scale, or framework defaults
-   are provided by the scaffold. Default to plain CSS in a presentation-local
-   stylesheet. Use Tailwind or another styling system only when the host project
-   already uses it or the user explicitly requests it.
-4. Register in `src/presentations/index.ts`:
-
-```ts
-{
-  slug: '<slug>',
-  title: '<Human title>',
-  load: () => import('./<slug>/Talk'),
-},
-```
-
-5. Preserve all existing registry entries — new presentations must not break others
-
-#### Modify an existing presentation
-
-1. **Identify the target** from the user's request
-2. If unspecified or ambiguous, **lists the existing presentations** from
-   `src/presentations/index.ts` and asks which to modify
-3. Ask only about the **requested changes** (steps, entities, style) — do not
-   re-walk the full create flow
-4. Make scoped edits to that presentation's `entities.ts`, `steps/*`, or `Talk.tsx`
-
-### 4. Self-verify
-
-Before reporting success:
-
-1. Run `npm run build` in the presentation app directory — must complete with no
-   type errors
-2. Run a **render check** on the presentation route — at minimum, the first step
-   must render without runtime or console errors. Use `npm run verify` when
-   available (full multi-step check), or start `npm run preview` and open the
-   route in a browser / Playwright
-3. Run a **visual composition check** in a browser. Capture or inspect
-   screenshots of the first step, the last step, and any dense/key steps at a
-   normal desktop viewport; for responsive-sensitive presentations, also inspect
-   a narrow viewport. Prefer `npm run inspect -- <slug>` when available; it
-   writes project-local screenshots under `artifacts/presentation-inspection/`
-   so Playwright resolves from the project's installed dependencies. The helper
-   waits for morph/fade animations to settle before each screenshot and prints
-   advisory warnings for text/chrome collisions, visually identical active
-   navigation states, and unpolished attribution. Check the screenshots and
-   warnings for accidental overlap, clipped/off-canvas content, unreadable
-   stacking, missing active TOC/progress styling, and collisions with chrome
-   such as captions, progress dots, table of contents, or navigation buttons.
-   `npm run verify` catches crashes and console errors; it does not prove the
-   scene is visually correct.
-4. If any check fails, **fix the issues and re-check** — never report success
-   on broken output
-
-If Chromium is missing, run `npx playwright install chromium`. Do not run
-`--with-deps` unless the environment has OS package privileges and actually
-needs browser system dependencies.
-
-### Output format
-
-Report completion in this structure:
-
-1. **Action** — created or modified, with presentation title and route (`/<slug>`)
-2. **Files changed** — list of paths written or edited
-3. **Verification** — commands run (`npm run build`, render check), visual
-   composition check performed, and their result
-4. **Follow-ups** — any unresolved questions or partial details the user may want to iterate on (omit if none)
-
-## Updating the vendored kit
-
-The scene kit is **vendored** (shadcn-style): every project owns a copy at
-`src/presentation-kit/` rather than depending on a package. That copy does not
-update itself when the skill does — there is no version to bump. When the skill
-ships a kit fix (a new prop, a bug fix), a project's copy must be **resynced**.
-
-The source of truth is the snapshot this skill ships at
-`templates/bootstrap/src/presentation-kit/`, refreshed whenever the plugin is
-updated (`claude plugin update`). The `sync-kit.mjs` script (alongside this file)
-diffs that snapshot against a project's vendored copy and rewrites it on demand.
-
-**When to resync:** the user reports the kit is out of date, asks to pull kit
-updates, or a kit fix shipped in the skill needs to reach an existing project.
-
-**Steps** (run from the consuming project root):
-
-1. **Report drift** — diff the project's copy against the snapshot:
-
-   ```bash
-   node <skill-dir>/sync-kit.mjs
-   ```
-
-   Exit `0` = in sync; exit `1` = files differ (the diff is printed). Local edits
-   to the vendored copy show up as drift too — that is expected, like
-   `shadcn diff`.
-
-2. **Apply** — rewrite the project's copy to match the snapshot:
-
-   ```bash
-   node <skill-dir>/sync-kit.mjs --apply
-   ```
-
-   Added and changed files are written; **target-only files are left untouched**
-   (the script never deletes), so local-only additions survive. Pass an explicit
-   path as the last argument to target a non-default kit location.
-
-3. **Re-apply local theming, then verify** — if the project had local edits the
-   snapshot overwrote, review with `git diff` and re-apply them. Then run
-   `npm run build` and a render check (per [Self-verify](#4-self-verify)) before
-   reporting done.
-
-Resyncing the kit does **not** touch a project's presentations or its host
-config (the `<Presentation>` props it passes) — only the kit files. If a kit
-update adds a capability the host should opt into (e.g. a new slot), call that
-out so the user can wire it up in their `Talk.tsx`.
-
-## Composing the scene kit
-
-Presentations import from `src/presentation-kit/`. Each presentation supplies
-only its own entities and step scenes.
-
-### Step contract
-
-```ts
-interface Step<P extends Record<string, unknown> = Record<string, unknown>> {
-  id: string          // stable key for AnimatePresence
-  era: string         // table-of-contents section label
-  title: string      // presenter-mode one-liner
-  caption: string    // browse-mode paragraph
-  groupKey?: string  // consecutive steps with same groupKey are not remounted
-  payload?: P
-  Scene: ComponentType<{ step: Step<P> }>
-}
-```
-
-For strongly typed grouped scenes, define a payload type and use `Step<Payload>`
-for the steps, scene props, and `<Presentation steps={STEPS} />` boundary
-instead of casting each `payload`.
-
-```tsx
-type PhasePayload = { active: 'idea' | 'system'; count: number }
-
-function GroupedScene({ step }: { step: Step<PhasePayload> }) {
-  const payload = step.payload
-  return <SceneLayer>{/* render from payload */}</SceneLayer>
-}
-
-const STEPS: Step<PhasePayload>[] = [
-  {
-    id: 'idea',
-    era: 'shape',
-    title: 'The idea appears',
-    caption: 'A first shape lands.',
-    groupKey: 'main-scene',
-    payload: { active: 'idea', count: 1 },
-    Scene: GroupedScene,
-  },
-]
-
-export default function Talk() {
-  return <Presentation steps={STEPS} title="Example" initialMode="browse" />
-}
-```
-
-### Entity continuity (`layoutId`)
-
-Define stable ids in `entities.ts`. Any node that should **morph** across steps
-must use the same `layoutId`:
-
-```ts
-export const ENTITIES = { hero: 'hero', flow: 'flow' } as const
-```
-
-### Smooth morph authoring rules
-
-The original reference implementation relies on authoring discipline as much as
-kit code. Follow these rules when generating or modifying step scenes:
-
-- Use a **persistent scene** with shared `groupKey` and `step.payload` for
-  consecutive beats that represent one evolving diagram. Do not split a single
-  evolving picture into many unrelated `Scene` components unless the whole
-  composition should intentionally remount.
-- Put stable `layoutId`s only on the entity that should morph. A new visual
-  object gets a new id; the same conceptual object keeps the same id.
-- Do not put transform or opacity styling directly on an element with
-  `layoutId` (`scale`, `rotate`, `opacity`, or Tailwind equivalents such as
-  `scale-*`, `rotate-*`, `opacity-*`). Motion uses transforms and opacity during
-  layout projection; combine those on a child or wrapper only when it is not the
-  shared layout entity.
-- Do not put conflicting positioning styles on one element, especially
-  `position: relative` plus `position: absolute` through mixed classes. For
-  relative offsets, use relative positioning and offsets without adding
-  absolute positioning; for true absolute placement, put the absolute
-  positioning on a non-`layoutId` wrapper and verify the layout still matches
-  the intended design.
-- When fixing a smooth-morph issue in an existing presentation, preserve the
-  intentional composition. If cards or callouts are meant to overlap, keep that
-  overlap and move only the unsafe positioning/opacity/transform utilities to a
-  wrapper. Do not flatten, spread out, or otherwise redesign the scene just to
-  satisfy the wrapper rule.
-- Use `Appear` only for newcomers. Continuing entities with a shared `layoutId`
-  should persist and morph; they should not fade out and back in.
-- **Let the layout re-center; do not pin it.** The signature move of an
-  evolving scene is that each step lays itself out around whatever is currently
-  on screen and then *re-aligns* when the next entity appears — one box centered
-  alone, two boxes balanced, a row that spreads to frame the tray that grew
-  beneath it. Because every entity carries a `layoutId`, those re-alignments
-  animate for free. Achieve it by keeping the composition **content-sized and
-  centered** (natural widths, `justify-content`/`align-items: center`,
-  `align-self: stretch` to match a sibling's width), and let flow do the
-  positioning. Do **not** freeze positions with fixed pixel/`ch` widths, fixed
-  stage widths, reserved empty slots, or `align-items: flex-start` pinning —
-  those hold entities still across steps and kill the re-centering, which is the
-  most striking thing the framework does. If two entities must share an edge
-  (e.g. a header row framing a panel below it), give them a shared width by
-  construction (`align-self: stretch` against a common parent, or one CSS var
-  both consume) rather than hardcoding a number. When you need to stop a
-  *transient* overshoot during a swap (an exiting element and an entering one
-  briefly widening a row), stack them in one grid cell — do not solve it by
-  fixing the whole row's width.
-- Keep browse-mode chrome in mind while composing scenes. The table of contents
-  can occupy the left side on wide browse viewports, and captions/progress/nav
-  occupy the lower band. Avoid dense horizontal rows that only fit the raw
-  880px stage in isolation; prefer up to three primary boxes per row, compact
-  chips, grouped entities, or wrapping/stacking when a concept list grows.
-- Intentional overlap is allowed and often useful. When an overlap is part of
-  the design and should not be treated as a suspicious visual collision, wrap
-  that region in an element with `data-allow-overlap`.
-
-### Node primitives
-
-Compose steps from kit primitives (all accept `layoutId`):
-
-| Primitive | Use for |
-|-----------|---------|
-| `Box` | Unstyled entity wrapper with optional Lucide icon, label, subtitle |
-| `Label` | Unstyled annotation |
-| `Arrow` | Unstyled connector (default `→`) |
-| `Frame` | Unstyled grouped region with optional frame label |
-| `Emphasis` | Unstyled callout wrapper |
-| `SymbolChip` | Unstyled icon+label entity with `symbol` or `chip` variant hooks |
-| `Appear` | Fade-in for newcomers after persisting entities settle |
-| `SceneLayer` | Absolutely-positioned diagram layer (prevents reflow between steps) |
-
-The kit is intentionally **unstyled**. It supplies motion behavior, stable DOM
-hooks (`data-node`, `data-node-part`, `data-accent`, `data-variant`, and
-`data-presentation-*` chrome hooks), fixed-canvas layout plumbing, active-state
-semantics (`aria-current="step"` plus `data-active="true"`), and a bottom-right
-attribution link (`made by and-scene`) to the GitHub repository. It must not
-impose a palette, font, border treatment, glow, card style, button treatment, or
-Tailwind dependency. Every presentation owns its visual system, including chrome
-polish.
-
-Kit primitives accept `className` and `style` so presentations can use either
-CSS classes or explicit coordinates. For complex diagrams with literal per-step
-pixel coordinates, use primitive `style` props or raw `motion.div` elements with
-the same `layoutId` discipline.
-
-### Layout pattern
-
-```tsx
-import { Box, SceneLayer, Arrow } from '../../presentation-kit'
-import { ENTITIES } from '../entities'
-
-function MyScene() {
-  return (
-    <SceneLayer>
-      <div className="flow">
-        <Box layoutId={ENTITIES.hero} label="Idea" accent="cyan" />
-        <Arrow layoutId={ENTITIES.flow} />
-        <Box layoutId={ENTITIES.result} label="Outcome" accent="green" />
-      </div>
-    </SceneLayer>
-  )
-}
-```
-
-Position entities with the presentation's own classes or styles inside
-`SceneLayer`. The kit scales a fixed design canvas (880×380) to fit between
-header and footer.
-
-Plain CSS example:
-
-```css
-.my-talk .flow {
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-}
-
-.my-talk [data-node='box'] {
-  border: 2px solid currentColor;
-  padding: 1rem 1.5rem;
-}
-
-.my-talk [data-accent='cyan'] {
-  color: #0f766e;
-}
-
-.my-talk [data-presentation-progress-dot][data-active='true'] {
-  background: #0f766e;
-}
-
-.my-talk [data-presentation-toc-item][data-active='true'] {
-  color: #0f766e;
-}
-
-.my-talk [data-presentation-attribution] {
-  color: #475569;
-  font-size: 0.75rem;
-  text-decoration: none;
-}
-```
-
-Optional Tailwind example (only after the project has chosen and installed
-Tailwind):
-
-```tsx
-<SceneLayer>
-  <div className="flex items-center gap-8">
-    <Box layoutId={ENTITIES.hero} label="Idea" accent="cyan" className="border-2 px-6 py-4" />
-    <Arrow layoutId={ENTITIES.flow} className="text-3xl" />
-    <Box layoutId={ENTITIES.result} label="Outcome" accent="green" className="border-2 px-6 py-4" />
-  </div>
-</SceneLayer>
-```
-
-For ad hoc visual checks, put Playwright/screenshot helper scripts under the
-project root (for example `scripts/`) rather than a temp scratchpad outside the
-project, so imports such as `playwright` resolve from local dependencies. Prefer
-the scaffolded `npm run inspect -- <slug>` helper before writing a custom script.
-Use `--settle-ms <ms>` only when a presentation deliberately uses longer custom
-animations than the default settle wait.
-
-### Adding a step
-
-Copy `templates/single-step/step.tsx` into `steps/`, customize metadata and
-layout, then append to the `STEPS` array in `Talk.tsx`.
-
-### Navigation and chrome
-
-The kit provides browse/present modes, captions per step, table of contents,
-progress dots, and prev/next controls. Active TOC and progress items expose
-`aria-current="step"` and `data-active="true"`, but the presentation must make
-that current state visibly distinct in its own CSS. The attribution link also
-needs presentation-owned styling so it is legible and intentional rather than a
-raw browser-default anchor. Users navigate with →/Space/PageDown (next),
-←/PageUp (prev), P (toggle mode), or horizontal swipe.
+Resolve every path below from the directory containing this `SKILL.md` (the skill directory), never from the caller's working directory. The bootstrap snapshot is `templates/bootstrap/`; the presentation starter is `templates/presentation/`.
 
 ## Out of scope
 
-This skill does **not**:
+- For static slide decks or requests to author a native deck, use a slide-authoring skill or application such as Google Slides.
+- For PPTX or PDF export, use a presentation or document export tool that supports that format.
+- For non-Vite or non-React hosts, use the host's native presentation workflow or a skill for that framework.
+- For changes to shared kit behavior, use the repository's implementation workflow and kit specifications; this skill creates presentations with the kit.
 
-- Design or export non-browser slide decks (PowerPoint, Keynote, PDF, images)
-- Process or convert existing slide-deck files
-- Create unrelated React apps or generic frontend features outside presentations
-- Handle image generation, hosting, or publishing
+## 1. Read first
 
-Redirect those requests to the appropriate skill or tool.
+Before interviewing or editing, inspect the presentation registry and the worked example at `src/presentations/how-to-make-a-presentation/` when they exist. Read the example's `entities.ts`, every file in `steps/`, `presentation.css`, and `Talk.tsx`. When the worked example is unavailable, use the skill-relative `templates/presentation/` starter as the reference. For a modification, read the target presentation's `entities.ts`, `steps/`, `presentation.css`, and `Talk.tsx` before editing. Follow its naming, structure, and styling conventions while keeping the requested changes scoped to that presentation.
 
-## Quality bar
+## 2. Gather the brief
 
-Every generated presentation must:
+Use the details already provided. Ask only for missing information, one question at a time:
 
-- Build with `npm run build` — no type errors
-- Render its first step without runtime or console errors
-- Show a caption per step (browse mode) and support next/previous navigation
-- Conform to the evolving-scene model (stable entities morph across steps)
-- Pass a browser visual composition check: important steps fit within the fixed
-  canvas, intentional overlaps remain readable, and scene content does not
-  collide with browse/present chrome
-- Make current-step chrome visibly distinct: active TOC/progress states must be
-  readable, and the `made by and-scene` attribution must be legible and styled
-  by the presentation or host app
+1. Identify the topic or explanation.
+2. Identify the visual style.
+3. For each step in order, capture what it explains, what viewers should see, its title and caption, and which entities appear, persist, move, or leave.
 
-## Templates
+Accept sketches, partial outlines, and requests to proceed with the available information. For an explicit partial brief, proceed with a minimal scaffold and record unknown details as placeholders; iterate from the result. Do not impose a completeness gate. Use an ASCII mockup selectively when a key or complex composition would benefit from confirming its layout.
 
-| Path | Purpose |
-|------|---------|
-| `templates/bootstrap/` | Full app snapshot for bootstrapping fresh/empty projects |
-| `templates/presentation/` | New presentation folder (`entities.ts`, `steps/`, `Talk.tsx`) |
-| `templates/single-step/step.tsx` | Template for adding one step |
+## 3. Resolve the app target and scaffold
 
-Replace `{{PLACEHOLDER}}` tokens in templates with gathered content.
+Inspect the intended project and detect these three contract anchors, regardless of filenames or formatting:
 
-## Scripts
+- **Build setup:** Vite + React + TypeScript with a working `npm run build`.
+- **Scene kit:** a `Step`/`Scene` contract, active-scene host with entity morphs, present/browse navigation and chrome, and fit-scaled canvas.
+- **Presentation index:** a registry mapping each presentation to its route.
 
-| Path | Purpose |
-|------|---------|
-| `sync-kit.mjs` | Diff/resync a project's vendored `src/presentation-kit/` against the shipped snapshot (see [Updating the vendored kit](#updating-the-vendored-kit)) |
-| `templates/bootstrap/scripts/verify.mjs` | Build + render verifier used by scaffolded projects |
-| `templates/bootstrap/scripts/inspect-presentation.mjs` | Project-local screenshot helper for visual composition checks |
+If all anchors exist, use the app and preserve its conventions. If any are missing, resolve the target:
+
+1. Use the project root for an empty directory or standalone project.
+2. For a monorepo, use a self-contained app under `presentations/`. Treat a `workspaces` field in `package.json`, a `pnpm-workspace.yaml`, or a root `packages/` or `apps/` directory as monorepo signals.
+3. When already inside an app with one or more anchors, complete only the missing infrastructure there.
+4. In a non-empty project that needs scaffolding, state the exact target path and wait for confirmation before writing.
+5. Copy only missing infrastructure from the skill-relative bootstrap. Preserve existing files and package entries, merge missing scripts and dependencies, then install dependencies.
+
+Ensure this full dependency set:
+
+- Runtime: `react`, `react-dom`, `motion`, `lucide-react`.
+- Build/lint/render development dependencies: `vite`, `@vitejs/plugin-react`, `typescript`, `@types/react`, `@types/react-dom`, `@types/node`, `eslint`, `@eslint/js`, `globals`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `typescript-eslint`, and `playwright`.
+
+Keep the scaffold styling-framework-neutral. Do not add Tailwind, another required styling framework, or default presentation colors, fonts, spacing scales, card/button treatments, borders, shadows, or theme tokens. Use presentation-local plain CSS unless the host already has a styling framework or the user asks for one. Do not overwrite an existing anchor during a partial scaffold.
+
+## 4. Create or modify
+
+For a new presentation, create `src/presentations/<slug>/` with:
+
+- `entities.ts`: stable, presentation-local identity names for elements that persist or morph.
+- `steps/`: step modules plus a small `steps/index.ts` exporting the ordered `STEPS`. Each step supplies a unique id, era, title, caption, scene component, and payload. Use a shared scene module when steps evolve one grouped scene, as in the worked example. Compose generic nodes from `src/presentation-kit/` so continuing entities retain stable IDs and positions; describe each visual beat in the scene model.
+- `Talk.tsx`: render the ordered steps through `<Presentation>` and import local CSS.
+- `presentation.css`: the visual system for this presentation, including locally styled active navigation/TOC/progress and legible attribution when those controls are shown. Start with the user's direction; the CSS template contains no visual preset.
+
+Register the presentation with one explicit entry in `src/presentations/index.ts`, using a dynamic import of `./<slug>/Talk`. Keep other entries and folders intact. The worked example demonstrates the required nine-step content and visual quality; follow its scene and styling conventions.
+
+For a modification, identify the target from the registry. If the request does not name a unique presentation, list registered presentations and ask which one before editing. Ask only about the requested change; do not repeat the create interview. Preserve the target's existing patterns and other routes.
+
+## 5. Self-verify and inspect
+
+Do not report completion until the result builds, renders, and has been visually inspected. Run checks from the presentation app root:
+
+1. `npm run build`.
+2. `npm run verify` for the production route/render check. At minimum confirm the first step renders without runtime or console errors; the project's full check should cover every step.
+3. `npm run inspect -- <slug>` to capture settled screenshots and review advisory warnings. Keep screenshots under the project's `.and-scene/screenshots/`. If no local helper exists, put any temporary Playwright helper under the project root so it resolves that project's dependencies.
+4. Review screenshots of the first and last steps and every dense/key step. Use `--narrow` for responsive-sensitive scenes. Inspect with the available browser tooling when needed. Fix accidental overlaps and collisions with captions, TOC, progress, navigation, or other chrome; make the active control distinct and attribution legible. Mark overlap with `data-presentation-allow-overlap` only when it is intentional and remains readable, then inspect again.
+
+Fix any build, route, runtime, console, or composition failure and rerun the relevant checks. Report completion with this structure:
+
+```text
+Route: /<slug>
+Checks: build <pass/fail>; verify <pass/fail>; inspect <pass/fail>
+Steps reviewed: <list>
+Advisory warnings: <list or none>
+Remaining issues: <list or none>
+```

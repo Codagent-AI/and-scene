@@ -1,241 +1,111 @@
 import { spawn } from 'node:child_process'
-import { dirname, join } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
-import { chromium } from 'playwright'
-import { REFERENCE_SLUG } from './verify-lib.mjs'
+import { startPreview } from './preview-process.mjs'
+import { setTimeout as delay } from 'node:timers/promises'
+import { createRequire } from 'node:module'
+import { pathToFileURL } from 'node:url'
+import path from 'node:path'
+import fs from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const VITE_BIN = join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'vite.cmd' : 'vite')
-const PREVIEW_URL_RE = /http:\/\/127\.0\.0\.1:(\d+)\//
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const require = createRequire(path.join(root, 'package.json'))
+const { chromium } = require('playwright')
+let phase = 'build'
+let preview
+let browser
 
-/** @param {string} check @param {string} detail */
-function fail(check, detail) {
-  console.error(`FAIL [${check}]: ${detail}`)
-  process.exit(1)
-}
-
-function pass(msg) {
-  console.log(`PASS: ${msg}`)
-}
-
-function runBuild() {
+function fail(message) { throw new Error(`${phase}: ${message}`) }
+function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-    const child = spawn(npm, ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: false })
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`build exited ${code}`))))
-    child.on('error', reject)
+    const child = spawn(command, args, { cwd: root, stdio: 'inherit', ...options })
+    child.once('error', reject)
+    child.once('exit', (code, signal) => code === 0 ? resolve() : reject(new Error(`command exited ${code ?? signal}`)))
   })
 }
-
-/** Read the project's presentation registry. Returns the list of { slug }. */
-async function readRegistry() {
-  const registryUrl = pathToFileURL(join(ROOT, 'src/presentations/index.ts')).href
-  const mod = await import(registryUrl)
-  const presentations = mod.presentations
-  if (!Array.isArray(presentations)) {
-    throw new Error('src/presentations/index.ts does not export a `presentations` array')
+async function cleanup() {
+  await browser?.close().catch(() => {})
+  if (preview && preview.exitCode === null) {
+    preview.kill('SIGTERM')
+    await Promise.race([new Promise((resolve) => preview.once('exit', resolve)), delay(3000)])
+    if (preview.exitCode === null) preview.kill('SIGKILL')
   }
-  return presentations
+}
+for (const [signal, code] of [['SIGINT', 130], ['SIGTERM', 143]]) {
+  process.once(signal, async () => { await cleanup(); process.exit(code) })
+}
+function readRoutes(source) {
+  return [...source.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((match) => match[1])
 }
 
-/** @param {import('node:child_process').ChildProcess} child */
-function childExited(child) {
-  return child.exitCode !== null || child.signalCode !== null
-}
-
-/** @param {string} baseUrl @param {import('node:child_process').ChildProcess} child */
-async function waitForPreview(baseUrl, child, deadlineMs = 30_000) {
-  const started = Date.now()
-  while (Date.now() - started < deadlineMs) {
-    if (childExited(child)) {
-      throw new Error(`vite preview exited before ready (code ${child.exitCode})`)
-    }
-    try {
-      const res = await fetch(baseUrl)
-      const html = await res.text()
-      if (res.ok && html.includes('id="root"')) return
-    } catch {
-      // server not listening yet
-    }
-    await new Promise((r) => setTimeout(r, 200))
+try {
+  await run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'build'])
+  phase = 'sample'
+  const registry = await fs.readFile(path.join(root, 'src/presentations/index.ts'), 'utf8').catch(() => '')
+  const routes = readRoutes(registry)
+  const expectationPath = path.join(root, 'scripts/reference-sample.json')
+  let reference
+  try { reference = JSON.parse(await fs.readFile(expectationPath, 'utf8')) } catch (error) { if (error.code !== 'ENOENT') throw error }
+  if (reference) {
+    if (!routes.includes(reference.slug)) fail(`reference presentation '${reference.slug}' is not registered`)
+    if (!Array.isArray(reference.titles) || !Array.isArray(reference.captions) || reference.titles.length !== reference.captions.length) fail('reference sample expectations are malformed')
   }
-  throw new Error('vite preview did not become ready within 30s')
-}
+  if (!routes.length) fail('no registered presentations found in src/presentations/index.ts')
 
-/** @param {import('node:child_process').ChildProcess} child */
-function stopPreview(child) {
-  return new Promise((resolve) => {
-    if (!child.pid) {
-      resolve()
-      return
-    }
-    child.once('close', () => resolve())
-    try {
-      process.kill(-child.pid, 'SIGTERM')
-    } catch {
-      child.kill('SIGTERM')
-    }
-    setTimeout(() => {
-      if (!childExited(child)) {
-        try {
-          process.kill(-child.pid, 'SIGKILL')
-        } catch {
-          child.kill('SIGKILL')
-        }
-      }
-      resolve()
-    }, 3000)
-  })
-}
-
-function startPreview() {
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      VITE_BIN,
-      ['preview', '--port', '0', '--host', '127.0.0.1'],
-      { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
-    )
-
-    let output = ''
-    let settled = false
-    let readyStarted = false
-
-    const cleanup = () => {
-      clearTimeout(timer)
-      child.stdout?.off('data', onData)
-      child.stderr?.off('data', onData)
-      child.off('error', onError)
-      child.off('close', onClose)
-    }
-    const rejectWith = async (err) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      await stopPreview(child)
-      reject(err)
-    }
-    const resolveWith = (value) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      resolve(value)
-    }
-    const onData = (chunk) => {
-      output += chunk.toString()
-      const match = output.match(PREVIEW_URL_RE)
-      if (!match || readyStarted) return
-      readyStarted = true
-      const baseUrl = match[0]
-      waitForPreview(baseUrl, child)
-        .then(() => resolveWith({ child, baseUrl }))
-        .catch(rejectWith)
-    }
-    const onError = (err) => rejectWith(err)
-    const onClose = (code) => {
-      if (!settled) rejectWith(new Error(`vite preview exited before ready (code ${code})`))
-    }
-    const timer = setTimeout(() => {
-      const detail = output.trim() ? ` Output:\n${output.trim()}` : ''
-      rejectWith(new Error(`vite preview did not print a local URL within 30s.${detail}`))
-    }, 30_000)
-
-    child.stdout?.on('data', onData)
-    child.stderr?.on('data', onData)
-    child.on('error', onError)
-    child.on('close', onClose)
-  })
-}
-
-/** Step a single presentation through every step, capturing render errors. */
-async function renderPresentation(page, baseUrl, slug) {
+  phase = 'render'
+  const vite = path.resolve(path.dirname(require.resolve('vite')), '../../bin/vite.js')
+  const started = startPreview(vite, root)
+  preview = started.child
+  const { url: base } = await started.ready
+  browser = await chromium.launch({ headless: true })
+  const page = await browser.newPage()
+  let activeStep = 1
   const errors = []
-  // Start at 0 so errors during the initial page load (before the step loop
-  // runs) are attributed to step 0 rather than a confusing `step null`.
-  let failingStep = 0
+  page.on('console', (message) => { if (message.type() === 'error') errors.push({ step: activeStep, message: message.text() }) })
+  page.on('pageerror', (error) => errors.push({ step: activeStep, message: error.message }))
 
-  const onConsole = (msg) => {
-    if (msg.type() === 'error') errors.push({ step: failingStep, msg: msg.text() })
-  }
-  const onPageError = (err) => errors.push({ step: failingStep, msg: err.message })
-  page.on('console', onConsole)
-  page.on('pageerror', onPageError)
-
-  try {
-    await page.goto(`${baseUrl}${slug}`, { waitUntil: 'load', timeout: 30_000 })
-
-    const progress = page.locator('[data-testid="step-progress"]')
-    await progress.waitFor({ timeout: 10_000 })
-
-    const stepCount = Number(await progress.getAttribute('data-step-count'))
-    if (!Number.isFinite(stepCount) || stepCount < 1) {
-      throw new Error(`${slug}: invalid data-step-count: ${stepCount}`)
-    }
-
-    for (let i = 0; i < stepCount; i++) {
-      failingStep = i
-      const index = Number(await progress.getAttribute('data-step-index'))
-      if (index !== i) throw new Error(`${slug} step ${i}: expected index ${i}, got ${index}`)
-
-      if (i < stepCount - 1) {
+  for (const slug of routes) {
+    const url = `${base}/${slug}`
+    activeStep = 1
+    await page.goto(url, { waitUntil: 'networkidle' })
+    const rootLocator = page.locator('[data-step-count][data-step-index]').first()
+    try { await rootLocator.waitFor({ timeout: 10000 }) } catch { fail(`step 1: route '${slug}' did not render presentation hooks`) }
+    const count = Number(await rootLocator.getAttribute('data-step-count'))
+    if (!Number.isInteger(count) || count < 1) fail(`step 1: route '${slug}' has invalid data-step-count`)
+    if (reference?.slug === slug && count !== reference.titles.length) fail(`step 1: expected ${reference.titles.length} sample steps, found ${count}`)
+    for (let index = 0; index < count; index++) {
+      activeStep = index + 1
+      await rootLocator.waitFor({ state: 'visible' })
+      const observed = Number(await rootLocator.getAttribute('data-step-index'))
+      if (observed !== index) fail(`step ${index + 1}: expected data-step-index ${index}, got ${observed}`)
+      if (reference?.slug === slug) {
+        const title = reference.titles[index]
+        const caption = reference.captions[index]
+        await page.keyboard.press('P')
+        await page.waitForFunction(() => document.querySelector('[data-presentation-mode]')?.getAttribute('data-presentation-mode') === 'present', null, { timeout: 3000 }).catch(() => fail(`step ${index + 1}: P did not switch to present mode`))
+        const titleElement = page.locator('[data-presentation-title]')
+        await titleElement.waitFor({ state: 'visible', timeout: 3000 }).catch(() => fail(`step ${index + 1}: presentation title is not visible in present mode`))
+        const presentTitle = (await titleElement.allTextContents()).join(' ').trim()
+        if (!presentTitle.includes(title)) fail(`step ${index + 1}: title mismatch, expected '${title}'`)
+        await page.keyboard.press('P')
+        await page.waitForFunction(() => document.querySelector('[data-presentation-mode]')?.getAttribute('data-presentation-mode') === 'browse', null, { timeout: 3000 }).catch(() => fail(`step ${index + 1}: P did not switch to browse mode`))
+        const captionElement = page.locator('[data-presentation-caption]')
+        await captionElement.waitFor({ state: 'visible', timeout: 3000 }).catch(() => fail(`step ${index + 1}: presentation caption is not visible in browse mode`))
+        const browseCaption = (await captionElement.allTextContents()).join(' ').trim()
+        if (!browseCaption.includes(caption)) fail(`step ${index + 1}: caption mismatch, expected '${caption}'`)
+      }
+      const currentErrors = errors.filter((entry) => entry.step === index + 1)
+      if (currentErrors.length) fail(`step ${index + 1}: ${currentErrors.map((entry) => entry.message).join('; ')}`)
+      if (index < count - 1) {
         await page.keyboard.press('ArrowRight')
-        await page.waitForFunction(
-          (expected) => {
-            const el = document.querySelector('[data-testid="step-progress"]')
-            return el && Number(el.getAttribute('data-step-index')) === expected
-          },
-          i + 1,
-          { timeout: 5000 },
-        )
+        await page.waitForFunction((expected) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === expected, index + 1, { timeout: 3000 }).catch(() => fail(`step ${index + 2}: ArrowRight did not advance the public step index`))
       }
     }
-
-    if (errors.length > 0) {
-      const first = errors[0]
-      throw new Error(`${slug} step ${first.step}: ${first.msg}`)
-    }
-  } finally {
-    page.off('console', onConsole)
-    page.off('pageerror', onPageError)
   }
+  if (errors.length) fail(`step ${errors[0].step}: ${errors[0].message}`)
+  console.log(`PASS verify: build, sample${reference ? ', and' : ' and'} render (${routes.length} presentation${routes.length === 1 ? '' : 's'})`)
+} catch (error) {
+  console.error(`FAIL verify [${phase}]: ${error.message}`)
+  process.exitCode = 1
+} finally {
+  await cleanup()
 }
-
-/** @param {string} baseUrl @param {Array<{ slug: string }>} presentations */
-async function renderCheck(baseUrl, presentations) {
-  const browser = await chromium.launch()
-  try {
-    const page = await browser.newPage()
-    for (const { slug } of presentations) {
-      await renderPresentation(page, baseUrl, slug)
-    }
-  } finally {
-    await browser.close()
-  }
-}
-
-async function main() {
-  try {
-    await runBuild()
-    pass('build')
-
-    const presentations = await readRegistry()
-    if (!presentations.some((entry) => entry.slug === REFERENCE_SLUG)) {
-      fail('registry', `reference sample "${REFERENCE_SLUG}" is not registered`)
-    }
-    pass(`registry (${presentations.length} presentation${presentations.length === 1 ? '' : 's'})`)
-
-    const { child, baseUrl } = await startPreview()
-    try {
-      await renderCheck(baseUrl, presentations)
-      pass('render')
-    } finally {
-      await stopPreview(child)
-    }
-
-    console.log('VERIFY: PASS')
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    fail(message.includes(' step ') ? 'render' : 'verify', message)
-  }
-}
-
-main()

@@ -1,2 +1,2 @@
-import type { HTMLAttributes } from 'react'
-export function Label(props: HTMLAttributes<HTMLSpanElement> & { layoutId?: string }) { return <span data-presentation-label {...props} /> }
+import { motion, type HTMLMotionProps } from 'motion/react'
+export function Label({ layoutId, ...props }: HTMLMotionProps<'span'> & { layoutId?: string }) { return <motion.span layout={layoutId ? true : undefined} layoutId={layoutId} data-presentation-label {...props} /> }

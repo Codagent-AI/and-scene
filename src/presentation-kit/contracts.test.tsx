@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { useEffect } from 'react'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { Presentation } from './Presentation'
 import type { Step } from './types'
 let mounts = 0
@@ -10,8 +10,8 @@ const steps: Step<{ text: string }>[] = [
  { id: 'two', section: 'Next', title: 'Two', caption: 'Second caption', Scene, payload: { text: 'second' }, groupKey: 'same' },
 ]
 describe('Presentation contract', () => {
+ beforeEach(() => { mounts = 0 })
  it('accepts a typed step array and exposes navigation, mode, active state, attribution hooks', () => {
-  mounts = 0
   render(<Presentation steps={steps} title="Sample" initialMode="browse" />)
   expect(screen.getByText('first')).toBeTruthy()
   expect(document.querySelector('[data-step-count="2"][data-step-index="0"]')).toBeTruthy()
@@ -23,6 +23,8 @@ describe('Presentation contract', () => {
   expect(screen.getByText('second')).toBeTruthy()
   expect(mounts).toBe(1)
   expect(document.querySelector('[data-step-index="1"]')).toBeTruthy()
+  expect(document.querySelector('[data-presentation-toc-entry][aria-current="step"][data-active="true"]')?.textContent).toBe('Next')
+  expect(document.querySelector('[data-presentation-progress-indicator][aria-current="step"][data-active="true"]')?.getAttribute('data-presentation-step-index')).toBe('1')
   fireEvent.click(document.querySelector('[data-presentation-mode-toggle]')!)
   expect(document.querySelector('[data-presentation-mode="present"]')).toBeTruthy()
   expect(document.querySelector('[data-presentation-caption]')).toBeNull()
@@ -44,5 +46,40 @@ describe('Presentation contract', () => {
  it('does not assign default branding in the header', () => {
   render(<Presentation steps={steps} title="Sample" />)
   expect(document.querySelector('[data-presentation-header] a')).toBeNull()
+ })
+ it('supports every keyboard alias and preserves position when P toggles modes', () => {
+  render(<Presentation steps={steps} title="Sample" initialMode="present" />)
+  for (const key of [' ', 'PageDown']) fireEvent.keyDown(window, { key })
+  expect(document.querySelector('[data-step-index="1"]')).toBeTruthy()
+  for (const key of ['PageUp']) fireEvent.keyDown(window, { key })
+  expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+  fireEvent.keyDown(window, { key: 'p' })
+  expect(document.querySelector('[data-presentation-mode="browse"]')).toBeTruthy()
+  fireEvent.keyDown(window, { key: 'P' })
+  expect(document.querySelector('[data-presentation-mode="present"]')).toBeTruthy()
+  expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+ })
+ it('swipes left to advance and right to go back', () => {
+  render(<Presentation steps={steps} title="Sample" />)
+  const stage = document.querySelector('[data-presentation-stage]')!
+  fireEvent.touchStart(stage, { touches: [{ clientX: 180 }] })
+  fireEvent.touchEnd(stage, { changedTouches: [{ clientX: 100 }] })
+  expect(document.querySelector('[data-step-index="1"]')).toBeTruthy()
+  fireEvent.touchStart(stage, { touches: [{ clientX: 100 }] })
+  fireEvent.touchEnd(stage, { changedTouches: [{ clientX: 180 }] })
+  expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+ })
+ it('does not hijack navigation keys from controls or editable elements', () => {
+  render(<Presentation steps={steps} title="Sample" initialMode="browse" />)
+  const next = document.querySelector<HTMLButtonElement>('[data-presentation-next]')!
+  next.focus()
+  fireEvent.keyDown(next, { key: 'ArrowRight' })
+  expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+  const editable = document.createElement('input')
+  document.body.append(editable)
+  editable.focus()
+  fireEvent.keyDown(editable, { key: 'PageDown' })
+  expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+  editable.remove()
  })
 })

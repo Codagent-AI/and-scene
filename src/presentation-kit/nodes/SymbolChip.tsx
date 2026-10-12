@@ -1,2 +1,2 @@
-import type { HTMLAttributes } from 'react'
-export function SymbolChip(props: HTMLAttributes<HTMLSpanElement> & { layoutId: string }) { return <span data-presentation-symbol-chip {...props} /> }
+import { motion, type HTMLMotionProps } from 'motion/react'
+export function SymbolChip({ layoutId, ...props }: HTMLMotionProps<'span'> & { layoutId: string }) { return <motion.span layout layoutId={layoutId} data-presentation-symbol-chip {...props} /> }

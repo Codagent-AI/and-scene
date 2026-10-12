@@ -15,7 +15,8 @@ Stable hooks:
   `data-presentation-toc-entry`.
 - Diagram: `data-presentation-stage`, `data-presentation-node`, and
   `data-entity-id`; newcomers wrapped in `Appear` expose
-  `data-presentation-appear`.
+  `data-presentation-appear`; entities leaving a grouped scene are wrapped in
+  `Departing` and expose `data-presentation-departing` while they animate out.
 
 Active progress and ToC entries set both `aria-current` and
 `data-active="true"`.

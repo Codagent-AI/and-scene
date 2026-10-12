@@ -15,4 +15,5 @@ export * from "./nodes/Frame";
 export * from "./nodes/Emphasis";
 export * from "./nodes/SymbolChip";
 export * from "./nodes/Appear";
+export * from "./nodes/Departing";
 export * from "./nodes/SceneLayer";

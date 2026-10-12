@@ -32,10 +32,11 @@ const steps: Step<Payload>[] = [
 
 ## Node primitives
 
-`Box`, `Label`, `Arrow`, `Frame`, `Emphasis`, `SymbolChip`, `Appear`, and `SceneLayer`. They accept class, style, and data attributes and supply no visual defaults.
+`Box`, `Label`, `Arrow`, `Frame`, `Emphasis`, `SymbolChip`, `Appear`, `Departing`, and `SceneLayer`. They accept class, style, and data attributes and supply no visual defaults.
 
 - `entityId` sets `data-entity-id` and is the default `layoutId`; pass `layoutId` to override. Reuse the same value for a continuing entity so it morphs.
 - `Box` takes an optional `Icon` (a lucide-react component).
 - `Appear` fades a newcomer in after persisting entities have moved. Wrap only entities that are new in the step, or pass `isNew={false}`; never wrap continuing entities.
+- `Departing` wraps an entity that leaves a grouped scene: render `<Departing show={condition}>` and the entity animates out when `show` turns false instead of vanishing. Entities that do not leave need no wrapper.
 - `SceneLayer` absolutely positions a step's diagram so mounting one layer never reflows another.
 - For coordinate-heavy diagrams, use raw `motion` elements with stable `layoutId`s when a primitive does not fit.

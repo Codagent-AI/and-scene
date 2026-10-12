@@ -1,9 +1,16 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, describe, expect, expectTypeOf, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { Appear } from "../nodes/Appear";
+import { Departing } from "../nodes/Departing";
 import { Presentation } from "../Presentation";
 import {
   DESIGN_H,
@@ -402,6 +409,26 @@ describe("presentation kit", () => {
     );
     expect(container.querySelector("[data-presentation-appear]")).toBeNull();
     expect(container.firstElementChild?.tagName).toBe("SPAN");
+  });
+
+  it("animates a departing entity out before unmounting it", async () => {
+    const { container, rerender } = render(
+      <Departing show>
+        <span>leaving entity</span>
+      </Departing>,
+    );
+    expect(container.textContent).toContain("leaving entity");
+
+    rerender(
+      <Departing show={false}>
+        <span>leaving entity</span>
+      </Departing>,
+    );
+    // Still mounted while the exit animation runs, then removed.
+    expect(container.querySelector("[data-presentation-departing]")).toBeTruthy();
+    await waitFor(() =>
+      expect(container.querySelector("[data-presentation-departing]")).toBeNull(),
+    );
   });
 
   it("calculates uniform fit and enforces the minimum scale", () => {

@@ -1,4 +1,4 @@
-- [ ] [Scene kit, host shell, and test harness](tasks/01-scene-kit-and-host-shell.md)
-- [ ] [Reference sample presentation "How to Use This Skill to Make a Presentation"](tasks/02-reference-sample-presentation.md)
-- [ ] [Verification and visual-inspection scripts](tasks/03-verification-and-inspection-scripts.md)
-- [ ] [Presentation skill and bootstrap templates](tasks/04-presentation-skill-and-templates.md)
+- [x] [Scene kit, host shell, and test harness](tasks/01-scene-kit-and-host-shell.md)
+- [x] [Reference sample presentation "How to Use This Skill to Make a Presentation"](tasks/02-reference-sample-presentation.md)
+- [x] [Verification and visual-inspection scripts](tasks/03-verification-and-inspection-scripts.md)
+- [x] [Presentation skill and bootstrap templates](tasks/04-presentation-skill-and-templates.md)

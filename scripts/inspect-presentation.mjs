@@ -1,11 +1,11 @@
-import { mkdir } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
 import { freePort, waitReady } from './verify.mjs'
 import { validateSample } from './verification-lib.mjs'
 import { spawn } from 'node:child_process'
-import { findOverlaps, stylesIndistinguishable, attributionWarnings } from './inspection-lib.mjs'
+import { findOverlaps, stylesIndistinguishable, attributionWarnings, inspectDocument } from './inspection-lib.mjs'
 
 export { findOverlaps, stylesIndistinguishable, attributionWarnings }
 export function parseInspectArgs(args) {
@@ -42,10 +42,18 @@ export async function inspect({ slug, narrow, settle, root }) {
     await waitReady(base, preview)
     try { browser = await chromium.launch({ headless: true }) } catch (error) { throw new Error(`Playwright Chromium unavailable; run "npx playwright install chromium": ${error.message}`) }
     const page = await browser.newPage({ viewport: narrow ? { width: 390, height: 844 } : { width: 1440, height: 900 } })
+    const pageErrors = []
+    page.on('pageerror', (error) => pageErrors.push(error.message))
     await page.goto(`${base}/${slug}`, { waitUntil: 'networkidle' })
-    const total = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
-    if (!total) throw new Error(`no registered presentation found for ${slug}`)
-    const output = path.join(root, 'artifacts/inspection', `${slug}${narrow ? '-narrow' : ''}`); await mkdir(output, { recursive: true })
+    const countAttribute = await page.locator('[data-step-count]').getAttribute('data-step-count', { timeout: 3000 }).catch(() => null)
+    const total = countAttribute === null ? Number.NaN : Number(countAttribute)
+    if (!Number.isFinite(total) || total <= 0) {
+      const detail = pageErrors.length ? ` (page errors: ${pageErrors.join('; ')})` : ''
+      throw new Error(`no registered presentation found for ${slug}${detail}`)
+    }
+    const output = path.join(root, 'artifacts/inspection', `${slug}${narrow ? '-narrow' : ''}`)
+    await rm(output, { recursive: true, force: true })
+    await mkdir(output, { recursive: true })
     for (let step = 0; step < total; step++) {
       if (step) { await page.keyboard.press('ArrowRight'); await page.waitForFunction((index) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === index, step) }
       const settleStarted = Date.now()
@@ -54,17 +62,10 @@ export async function inspect({ slug, narrow, settle, root }) {
         const activeAnimations = await page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running').length)
         console.log(`CAPTURE step ${step} settled=${Date.now() - settleStarted}ms activeAnimations=${activeAnimations}`)
       }
-      const report = await page.evaluate(() => {
-        const allowed = (element) => Boolean(element.closest('[data-presentation-allow-overlap]'))
-        const nodes = [...document.querySelectorAll('body *')].filter((e) => e.children.length === 0 && e.textContent.trim() && getComputedStyle(e).display !== 'none' && !['arrow','frame'].includes(e.getAttribute('data-presentation-node'))).map((e) => { const range=document.createRange(); range.selectNodeContents(e); const r=range.getBoundingClientRect(); return { label: e.getAttribute('data-presentation-label') || e.getAttribute('data-presentation-node') || e.tagName.toLowerCase(), text: e.textContent.trim(), allowed: allowed(e), rect: { left:r.left,right:r.right,top:r.top,bottom:r.bottom } } })
-        const active = [...document.querySelectorAll('[data-presentation-progress] [data-presentation-active="true"], [data-presentation-toc] [data-presentation-active="true"]')]
-        const controls = active.map((el) => { const inactive = [...el.parentElement.querySelectorAll('button')].find((item) => item !== el); if (!inactive) return false; const a=getComputedStyle(el), b=getComputedStyle(inactive); return ['color','backgroundColor','borderColor','fontWeight','opacity','textDecorationLine'].every((key)=>a[key]===b[key]) })
-        const link = document.querySelector('[data-presentation-attribution]'), s = link && getComputedStyle(link)
-        return { overlaps: nodes, indistinct: controls.some(Boolean), attribution: link ? { fontSize:parseFloat(s.fontSize), defaultLike:s.textDecorationLine.includes('underline') || s.color==='rgb(0, 0, 238)' } : null }
-      })
-      for (const warning of findOverlaps(report.overlaps)) console.warn(`WARN step ${step}: overlapping text/chrome "${warning.first}" and "${warning.second}"`)
-      if (report.indistinct) console.warn(`WARN step ${step}: active progress/ToC is indistinguishable from inactive controls`)
-      for (const warning of attributionWarnings(report.attribution)) console.warn(`WARN step ${step}: ${warning}`)
+      const report = await page.evaluate(inspectDocument)
+      for (const warning of report.overlaps) console.warn(`WARN step ${step}: overlapping text/chrome "${warning.first}" and "${warning.second}"`)
+      for (const warning of report.indistinct) console.warn(`WARN step ${step}: active progress/ToC is indistinguishable from inactive controls`)
+      for (const warning of report.attribution) console.warn(`WARN step ${step}: ${warning}`)
       await page.screenshot({ path: path.join(output, `step-${String(step + 1).padStart(2, '0')}.png`), fullPage: true })
     }
     console.log(`PASS: captured ${total} settled step screenshots in ${output}`)

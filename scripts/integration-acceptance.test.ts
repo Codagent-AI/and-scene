@@ -75,7 +75,7 @@ import type { Step, SceneProps } from '../../presentation-kit/types'
 import './style.css'
 type FixturePayload = { index: number; allow: boolean }
 function FixtureScene({ payload }: SceneProps<FixturePayload>) {
-  return <div className="fixture-scene">{payload.index < 2 && <div className="fixture-collision" data-presentation-allow-overlap={payload.allow ? 'true' : undefined}><span data-presentation-label="collision left">overlapping left label</span><span data-presentation-label="collision right">overlapping right label</span></div>}<span className="settle-probe" style={{ transform: \`translateX(\${payload.index * 80}px)\` }}>settle probe</span></div>
+  return <div className="fixture-scene">{payload.index < 2 && <div className="fixture-collision" data-presentation-allow-overlap={payload.allow ? 'true' : undefined}><span data-presentation-label="collision left">overlapping left label</span><span data-presentation-label="collision right">overlapping right label</span><span className="hidden-ancestor"><span data-presentation-label="hidden ancestor">hidden ancestor text</span></span><span className="transparent-text" data-presentation-label="transparent">transparent text</span><span className="zero-size-text" data-presentation-label="zero size">zero size text</span></div>}<span className="settle-probe" style={{ transform: \`translateX(\${payload.index * 80}px)\` }}>settle probe</span></div>
 }
 const steps: Step<FixturePayload>[] = ['collision', 'allowed overlap', 'indistinct active chrome', 'unpolished attribution'].map((title, index) => ({ id: \`fixture-\${index}\`, era: 'fixture', title, caption: title, Scene: FixtureScene, payload: { index, allow: index === 1 } }))
 export default function Talk() { return <Presentation steps={steps} title="Inspection fixture" initialMode="browse" className="fixture" /> }
@@ -88,7 +88,10 @@ export default function Talk() { return <Presentation steps={steps} title="Inspe
 .fixture-scene { position:relative; width:880px; height:380px; }
 .fixture-collision { position:absolute; left:90px; top:75px; width:320px; height:60px; }
 .fixture-collision span { position:absolute; left:0; top:0; white-space:nowrap; }
-.fixture-collision span:last-child { left:32px; top:5px; color:#ffd977; }
+.fixture-collision > span[data-presentation-label="collision right"] { left:32px; top:5px; color:#ffd977; }
+.fixture-collision .hidden-ancestor { position:absolute; left:0; top:0; visibility:hidden; }
+.fixture-collision .transparent-text { position:absolute; left:0; top:0; opacity:0; }
+.fixture-collision .zero-size-text { position:absolute; left:0; top:0; width:0; height:0; overflow:hidden; }
 .settle-probe { position:absolute; left:20px; top:170px; transition:transform 450ms linear; }
 .fixture footer[data-step-index="2"] [data-presentation-progress] button { color:#e5f1f1; background:#203a46; border-color:#61808c; font-weight:400; }
 .fixture footer[data-step-index="3"] [data-presentation-attribution] { color:#00e; font-size:8px; text-decoration:underline; }
@@ -148,6 +151,9 @@ describe('browser-backed acceptance fault matrix and visual inspection fixture',
     })
     expect(result.code, result.output).toBe(0)
     expect(result.output).toContain('WARN step 0: overlapping text/chrome "collision left" and "collision right"')
+    expect(result.output).not.toContain('hidden ancestor')
+    expect(result.output).not.toContain('transparent')
+    expect(result.output).not.toContain('zero size')
     expect(result.output).not.toContain('WARN step 1: overlapping text/chrome')
     expect(result.output).toContain('WARN step 2: active progress/ToC is indistinguishable from inactive controls')
     expect(result.output).toMatch(/WARN step 3: attribution is too small; style the \[data-presentation-attribution\] hook/)
@@ -157,6 +163,10 @@ describe('browser-backed acceptance fault matrix and visual inspection fixture',
     expect(captureTraces).toHaveLength(4)
     for (const [, , waited, animations] of captureTraces) { expect(Number(waited)).toBeGreaterThanOrEqual(640); expect(Number(animations)).toBe(0) }
     const screenshotDir = path.join(root, 'artifacts/inspection/inspection-fixture')
+    await mkdir(screenshotDir, { recursive: true })
+    await writeFile(path.join(screenshotDir, 'step-09.png'), 'stale screenshot')
+    const rerun = await run('npm', ['run', 'inspect', '--', 'inspection-fixture', '--root', root, '--settle', '0'], { cwd: sourceRoot, timeout: 180_000 })
+    expect(rerun.code, rerun.output).toBe(0)
     const screenshots = (await readdir(screenshotDir)).sort()
     expect(screenshots).toEqual(['step-01.png', 'step-02.png', 'step-03.png', 'step-04.png'])
     for (const filename of screenshots) expect((await readFile(path.join(screenshotDir, filename))).subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))

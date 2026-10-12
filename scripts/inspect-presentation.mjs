@@ -62,7 +62,12 @@ export async function inspect({ slug, narrow, settle, root }) {
         const activeAnimations = await page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running').length)
         console.log(`CAPTURE step ${step} settled=${Date.now() - settleStarted}ms activeAnimations=${activeAnimations}`)
       }
-      const report = await page.evaluate(inspectDocument)
+      const measurements = await page.evaluate(inspectDocument)
+      const report = {
+        overlaps: findOverlaps(measurements.visibleText),
+        indistinct: measurements.navigationStyles.some((styles) => styles && stylesIndistinguishable(...styles)) ? ['navigation'] : [],
+        attribution: attributionWarnings(measurements.attributionInfo),
+      }
       for (const warning of report.overlaps) console.warn(`WARN step ${step}: overlapping text/chrome "${warning.first}" and "${warning.second}"`)
       for (const warning of report.indistinct) console.warn(`WARN step ${step}: active progress/ToC is indistinguishable from inactive controls`)
       for (const warning of report.attribution) console.warn(`WARN step ${step}: ${warning}`)

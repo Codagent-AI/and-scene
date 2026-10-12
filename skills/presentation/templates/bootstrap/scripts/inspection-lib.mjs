@@ -42,21 +42,14 @@ export function inspectDocument() {
     const rect = range.getBoundingClientRect()
     return { label: element.getAttribute('data-presentation-label') || element.getAttribute('data-presentation-node') || element.getAttribute('data-presentation-caption') || element.tagName.toLowerCase(), text: element.textContent.trim(), allowed: allowed(element), rect: { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom } }
   })
-  const overlaps = []
-  for (let i = 0; i < visibleText.length; i++) for (let j = i + 1; j < visibleText.length; j++) {
-    const a = visibleText[i], b = visibleText[j]
-    if (a.allowed || b.allowed || a.rect.left >= b.rect.right || a.rect.right <= b.rect.left || a.rect.top >= b.rect.bottom || a.rect.bottom <= b.rect.top) continue
-    overlaps.push({ first: a.label, second: b.label })
-  }
   const active = [...document.querySelectorAll('[data-presentation-progress] [data-presentation-active="true"], [data-presentation-toc] [data-presentation-active="true"]')]
   const style = (el) => { const s = getComputedStyle(el); return { color: s.color, backgroundColor: s.backgroundColor, borderColor: s.borderColor, fontWeight: s.fontWeight, opacity: s.opacity, textDecorationLine: s.textDecorationLine } }
-  const sameStyle = (a, b) => ['color', 'backgroundColor', 'borderColor', 'fontWeight', 'opacity', 'textDecorationLine'].every((key) => a[key] === b[key])
-  const indistinct = active.some((item) => {
+  const navigationStyles = active.map((item) => {
     const inactive = [...(item.parentElement?.querySelectorAll('button') || [])].find((candidate) => candidate !== item)
-    return Boolean(inactive && sameStyle(style(item), style(inactive)))
+    return inactive ? [style(item), style(inactive)] : null
   })
   const attribution = document.querySelector('[data-presentation-attribution]')
   let attributionInfo = null
   if (attribution) { const s = getComputedStyle(attribution); attributionInfo = { fontSize: parseFloat(s.fontSize), defaultLike: s.textDecorationLine.includes('underline') || s.color === 'rgb(0, 0, 238)' } }
-  return { overlaps, indistinct: indistinct ? ['navigation'] : [], attribution: attributionInfo ? [ ...(attributionInfo.fontSize < 12 ? ['attribution is too small; style the [data-presentation-attribution] hook'] : []), ...(attributionInfo.defaultLike ? ['attribution looks browser-default; style the [data-presentation-attribution] hook'] : []) ] : ['attribution link is missing; style the [data-presentation-attribution] hook'] }
+  return { visibleText, navigationStyles, attributionInfo }
 }

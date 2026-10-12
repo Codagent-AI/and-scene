@@ -77,13 +77,13 @@ describe('presentation kit', () => {
     expect(root.getAttribute('data-step-index')).toBe('1')
   })
 
-  it('leaves navigation keys to focused interactive controls', () => {
+  it('preserves navigation keys unless the focused widget consumes them', () => {
     render(<Presentation steps={steps} title="Test" />)
     const root = document.querySelector('[data-step-index]')!
     const next = screen.getByRole('button', { name: 'Next' })
     next.focus()
     fireEvent.keyDown(next, { key: 'ArrowRight' })
-    expect(root.getAttribute('data-step-index')).toBe('0')
+    expect(root.getAttribute('data-step-index')).toBe('1')
     fireEvent.keyDown(next, { key: 'PageUp' })
     expect(root.getAttribute('data-step-index')).toBe('0')
     fireEvent.keyDown(next, { key: ' ' })
@@ -104,10 +104,20 @@ describe('presentation kit', () => {
     expect(root.getAttribute('data-step-index')).toBe('0')
     slider.remove()
 
+    const region = document.createElement('div')
+    region.setAttribute('role', 'region')
+    const nestedButton = document.createElement('button')
+    region.append(nestedButton)
+    document.body.append(region)
+    nestedButton.focus()
+    fireEvent.keyDown(nestedButton, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('1')
+    region.remove()
+
     const attribution = screen.getByRole('link', { name: 'made by and-scene' })
     attribution.focus()
     fireEvent.keyDown(attribution, { key: 'ArrowRight' })
-    expect(root.getAttribute('data-step-index')).toBe('0')
+    expect(root.getAttribute('data-step-index')).toBe('2')
   })
 
   it('jumps from progress and TOC to the first step in an era with active semantics', () => {

@@ -3,7 +3,7 @@ import type { TouchEvent } from 'react'
 import type { PresentationMode } from './types'
 
 const TEXT_ENTRY = 'input, textarea, select, [contenteditable="true"], [role="textbox"]'
-const INTERACTIVE = 'button, a[href], input, textarea, select, [contenteditable="true"], [role], [tabindex]'
+const ARROW_WIDGET = '[role="slider"], [role="spinbutton"], [role="listbox"], [role="tablist"], [role="menu"], [role="tree"], [role="grid"]'
 
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
   const [index, setIndex] = useState(0)
@@ -17,8 +17,9 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target instanceof Element ? event.target : null
-      if (event.altKey || event.ctrlKey || event.metaKey || target?.closest(TEXT_ENTRY)) return
-      if (target?.closest(INTERACTIVE) && ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp'].includes(event.key)) return
+      if (event.altKey || event.ctrlKey || event.metaKey || target?.matches(TEXT_ENTRY) || target?.closest('[contenteditable="true"]')) return
+      if (event.key === ' ' && target?.matches('button, a[href]')) return
+      if (target?.matches(ARROW_WIDGET) && ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp'].includes(event.key)) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') { event.preventDefault(); next() }
       else if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') { event.preventDefault(); toggleMode() }

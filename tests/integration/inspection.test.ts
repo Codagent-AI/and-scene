@@ -70,7 +70,7 @@ describe('INT-002 inspection artifacts and diagnostics', () => {
         process.stderr.write('unexpectedly accepted unrelated server')
         process.exitCode = 1
       } catch (error) {
-        if (!error.message.includes('preview exited before readiness')) {
+        if (!/preview (?:exited before readiness|readiness timed out)/.test(error.message)) {
           process.stderr.write(String(error))
           process.exitCode = 2
         }

@@ -82,4 +82,20 @@ describe('Presentation contract', () => {
   expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
   editable.remove()
  })
+ it('renders an empty stage when there are no steps', () => {
+  render(<Presentation steps={[]} title="Empty" />)
+  expect(document.querySelector('[data-presentation-stage]')).toBeTruthy()
+  expect(document.querySelector('[data-step-count="0"][data-step-index="0"]')).toBeTruthy()
+ })
+ it('leaves modified browser shortcuts untouched', () => {
+  render(<Presentation steps={steps} title="Sample" initialMode="browse" />)
+  for (const modifier of ['ctrlKey', 'metaKey', 'altKey'] as const) {
+   fireEvent.keyDown(window, { key: 'p', [modifier]: true })
+   fireEvent.keyDown(window, { key: ' ', [modifier]: true })
+   fireEvent.keyDown(window, { key: 'PageDown', [modifier]: true })
+   fireEvent.keyDown(window, { key: 'PageUp', [modifier]: true })
+  }
+  expect(document.querySelector('[data-presentation-mode="browse"]')).toBeTruthy()
+  expect(document.querySelector('[data-step-index="0"]')).toBeTruthy()
+ })
 })

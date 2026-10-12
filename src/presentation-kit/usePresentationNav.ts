@@ -12,6 +12,7 @@ export function usePresentationNav(count: number, initialMode: Mode = 'present')
   const onKey = (event: KeyboardEvent) => {
    const target = event.target
    if (target instanceof Element && target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="textbox"]')) return
+   if (event.ctrlKey || event.metaKey || event.altKey) return
    if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') { event.preventDefault(); next() }
    else if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); prev() }
    else if (event.key.toLowerCase() === 'p') toggleMode()

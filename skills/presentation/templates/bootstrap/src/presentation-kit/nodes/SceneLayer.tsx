@@ -1,0 +1,2 @@
+import type { CSSProperties, HTMLAttributes } from 'react'
+export function SceneLayer(props: HTMLAttributes<HTMLDivElement> & { x?: number; y?: number; allowOverlap?: boolean }) { const { x = 0, y = 0, allowOverlap, style, ...rest } = props; const position: CSSProperties = { position: 'absolute', left: x, top: y, ...style }; return <div data-presentation-scene-layer data-presentation-allow-overlap={allowOverlap ? '' : undefined} style={position} {...rest} /> }

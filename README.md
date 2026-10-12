@@ -35,3 +35,8 @@ Inspection also accepts `--settle <ms>`, `--no-build`, `--port <number>`,
 The repository includes the reusable scene kit, a nine-step reference
 presentation, and production verification and inspection scripts. The
 OpenSpec change defines the distributable skill and scaffold workflow.
+
+The distributable agent skill lives at `skills/presentation/SKILL.md`. When
+changing the canonical scene kit or inspection helper, run
+`npm run sync-templates` to refresh its bootstrap snapshot; contract tests check
+kit and helper parity.

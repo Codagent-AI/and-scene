@@ -16,7 +16,11 @@ export async function freePort() {
 export async function startPreview({ port, onUrl = () => {} } = {}) {
   port ??= await freePort()
   const vite = path.join(rootPath, 'node_modules', 'vite', 'bin', 'vite.js')
-  const child = spawn(process.execPath, [vite, 'preview', '--host', LOOPBACK, '--port', String(port), '--strictPort'], { cwd: rootPath, stdio: ['ignore', 'pipe', 'pipe'] })
+  const child = spawn(process.execPath, [vite, 'preview', '--host', LOOPBACK, '--port', String(port), '--strictPort'], {
+    cwd: rootPath,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+  })
   let output = ''
   child.stdout.setEncoding('utf8').on('data', chunk => { output += chunk })
   child.stderr.setEncoding('utf8').on('data', chunk => { output += chunk })
@@ -25,7 +29,7 @@ export async function startPreview({ port, onUrl = () => {} } = {}) {
   const deadline = Date.now() + 15000
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`preview exited before readiness: ${output}`)
-    if (!/Local:\s+https?:\/\//.test(output)) {
+    if (!/Local:\s+https?:\/\//.test(output.replace(/\x1b\[[0-9;]*m/g, ''))) {
       await delay(50)
       continue
     }

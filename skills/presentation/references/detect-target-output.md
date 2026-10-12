@@ -14,4 +14,4 @@
 - `anchors`: whether each contract anchor is present in `target.dir`.
 - `missing`: the anchors to pass to `scaffold.mjs --anchors`.
 - `empty`: the inspected directory has no entries.
-- `target.kind`: `standalone` (scaffold at the root), `monorepo` (`target.dir` is `<project-dir>/presentations`), or `existing-app` (all anchors present).
+- `target.kind`: `standalone` (scaffold at the root), `monorepo` (`target.dir` is `<project-dir>/presentations`), or `existing-app` (a non-monorepo project with all anchors present). `monorepo` takes precedence over `existing-app`, so a complete monorepo app reports `monorepo` with an empty `missing`; use `missing`, not `kind`, to decide whether to scaffold.

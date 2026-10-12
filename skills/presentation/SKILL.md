@@ -21,14 +21,14 @@ Offer a small ASCII mockup only for key or complex steps when it would clarify c
 
 1. Run `node <skill-dir>/scripts/detect-target.mjs <project-dir>`.
 2. Read these fields from its JSON output (see [references/detect-target-output.md](references/detect-target-output.md)): `anchors` (`build`, `kit`, `index`), `missing`, `empty`, `target.kind`, and `target.dir`. The three app anchors are detected by contract, not byte identity: a Vite + React + TypeScript app with a working `npm run build`; a scene kit (Step/Scene contract, stage/host, navigation, chrome, fit-scale canvas); and a presentation index mapping each presentation to its route.
-3. Branch on the result. `<app-dir>` is `target.dir`:
+3. Branch on the result, checking the rows in order and taking the first match. `<app-dir>` is `target.dir`:
 
-| Result | Action |
-| --- | --- |
-| `empty` is true, `target.kind` is `standalone` | `node <skill-dir>/scripts/scaffold.mjs --target <app-dir> --anchors all` |
-| `target.kind` is `monorepo` | Scaffold a self-contained app under `presentations/` (`target.dir`), not the repo root; use `--anchors all` when `missing` lists all three, otherwise the partial form |
-| `missing` lists only some anchors | `node <skill-dir>/scripts/scaffold.mjs --target <app-dir> --anchors <comma-separated missing anchors>`, e.g. `--anchors kit,index` |
-| `missing` is empty (`target.kind` is `existing-app`) | Skip scaffolding |
+| Order | Condition | Action |
+| --- | --- | --- |
+| 1 | `missing` is empty (whatever `target.kind` is) | Skip scaffolding |
+| 2 | `empty` is true | `node <skill-dir>/scripts/scaffold.mjs --target <app-dir> --anchors all` |
+| 3 | `target.kind` is `monorepo` and `missing` is not empty | Scaffold a self-contained app under `presentations/` (`target.dir`, `<project-dir>/presentations/`), not the repo root: `node <skill-dir>/scripts/scaffold.mjs --target <app-dir> --anchors <comma-separated missing anchors>` |
+| 4 | Any other case (`missing` is not empty) | `node <skill-dir>/scripts/scaffold.mjs --target <app-dir> --anchors <comma-separated missing anchors>`, e.g. `--anchors kit,index` |
 
 4. In a non-empty project that lacks the scene kit or presentation index, state the exact target location and proceed only after the user confirms. Never overwrite existing files or disturb unrelated content.
 5. After scaffolding, run `npm install` in `<app-dir>`. `scaffold.mjs` merges the dependency set declared in `<skill-dir>/templates/bootstrap/package.json` into any existing `package.json`; do not assume packages are already installed.

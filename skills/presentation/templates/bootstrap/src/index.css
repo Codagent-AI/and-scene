@@ -1,0 +1,3 @@
+/* Host reset only. Presentation appearance belongs in each presentation's CSS. */
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; margin: 0; }

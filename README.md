@@ -36,3 +36,9 @@ or `CHROME_PATH` to use a system browser.
 `--height <px>` (default 1440 × 900), and `--skip-build` to use the existing
 `dist/` output. The helper reports advisory `overlap`, `active-nav`, and
 `attribution` warnings; warnings do not make inspection fail.
+
+## Presentation skill and templates
+
+The distributable agent skill is in [`skills/presentation/SKILL.md`](skills/presentation/SKILL.md). It gathers a topic and step descriptions, detects or bootstraps the three app anchors, creates a registered presentation, and runs build, render, and visual inspection checks. Its bootstrap snapshot is a standalone Vite/React/TypeScript app; the presentation starter lives in `skills/presentation/templates/presentation/`.
+
+`src/presentation-kit/` is canonical. Refresh its bootstrap snapshot and the project-local inspection helper with `node skills/presentation/scripts/sync-templates.mjs`. Tests enforce byte-for-byte kit and inspection-helper alignment (excluding kit tests). The standalone bootstrap uses a route-driven verify script that checks every registered presentation through every step; the repository's verify script additionally enforces its canonical nine-step reference sample.

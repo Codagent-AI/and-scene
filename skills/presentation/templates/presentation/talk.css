@@ -1,0 +1,6 @@
+.starter-presentation { min-height: 100vh; color: #263238; font: 16px/1.5 system-ui, sans-serif; background: #f7f8fa; }
+.starter-scene { position: relative; width: 100%; height: 100%; }
+.starter-node { position: absolute; left: 18%; top: 35%; padding: 14px 18px; border: 1px solid #65717a; background: #fff; }
+.starter-idea { left: 58%; top: 48%; }
+.starter-presentation [data-active="true"], .starter-presentation [aria-current="step"] { outline: 2px solid #354f52; outline-offset: 3px; }
+.starter-presentation [data-presentation-attribution] { color: #354f52; font-size: 12px; text-decoration: none; }

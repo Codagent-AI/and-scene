@@ -1,35 +1,61 @@
 # and-scene
 
-And Scene is a project for building a presentation-generation agent skill.
-
-The intended presentation model is not a stack of unrelated slides. It is one
-diagrammatic scene that evolves through named steps: elements appear, move,
-collapse, connect, and re-label as the talk arc develops.
+And Scene is a project for building browser presentations as one evolving
+diagram. Stable entities move through named steps as an explanation develops.
+The reusable React scene kit supplies behavior and geometry; each presentation
+owns its visual style.
 
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev
+npm test
+npm run lint
 npm run build
 ```
 
-## Browser verification and visual inspection
+## Verify and inspect
 
-Install dependencies with `npm ci`, then install the Playwright Chromium browser
-once with `npx playwright install chromium`. `npm run verify` builds the complete
-app and opens every registered presentation in a production preview on
-`127.0.0.1`; when `scripts/reference-sample.json` is present it also checks the
-committed sample's ordered titles and captions. The expectations file is
-deliberately optional so the same script can be copied into a new scaffold.
+Install Playwright Chromium once with `npx playwright install chromium`. Then:
 
-Run `npm run inspect -- <slug>` to capture every step at 1440 × 900 under
-`.and-scene/screenshots/<slug>/`. Use `--narrow` for a 390 × 844 viewport and
-`--settle=1800` (or `AND_SCENE_SETTLE_MS=1800`) to change the animation settle
-time. Diagnostic warnings are advisory. Run `npm run test:integration` for the
-production browser and subprocess checks; that command installs Chromium.
+```bash
+npm run verify
+npm run inspect -- how-to-make-a-presentation
+npm run inspect -- how-to-make-a-presentation --narrow
+npm run test:integration
+```
 
-## Current State
+`verify` builds the app and renders each registered presentation in a production
+preview at `127.0.0.1`; the committed reference sample's ordered titles and
+captions are checked when `scripts/reference-sample.json` exists. That file is
+intentionally omitted from the bootstrap, so a new app verifies registered
+routes in generic mode. `inspect` captures settled per-step screenshots beneath
+`.and-scene/screenshots/<slug>/` and prints advisory visual warnings. Review the
+first, last, dense/key steps, and narrow screenshots when responsive-sensitive;
+fix accidental collisions and polish active controls and attribution. Warnings
+are not a pass/fail gate.
 
-The repository includes the presentation skill and bootstrap templates, a
-reusable scene kit, and the registered `how-to-make-a-presentation` example.
+## Presentation skill
+
+The distributable skill is [skills/presentation/SKILL.md](skills/presentation/SKILL.md).
+It gathers a topic and visual direction, resolves a standalone or monorepo
+scaffold target, creates or modifies registered presentations, and verifies
+and inspects the result. Its templates are resolved relative to the skill file,
+not the caller's current directory. The skill includes a Vite/React/TypeScript
+bootstrap and a presentation starter under `skills/presentation/templates/`.
+The scaffold is CSS-neutral; presentation-local CSS owns the visual design.
+
+## Template maintenance
+
+`src/presentation-kit/` is canonical. Keep all its non-test files byte-aligned
+with `skills/presentation/templates/bootstrap/src/presentation-kit/`. Keep the
+root `scripts/verify.mjs`, `scripts/inspect-presentation.mjs`,
+`scripts/preview-process.mjs`, and `scripts/preview-process.d.mts` byte-aligned
+with the bootstrap copies. `npm run test:integration` checks parity and
+materializes a fresh bootstrap outside the source tree before installing,
+building, and rendering a registered route.
+
+The worked example at
+`src/presentations/how-to-make-a-presentation/` demonstrates the skill's
+nine-step evolving-scene conventions.

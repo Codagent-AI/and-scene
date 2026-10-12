@@ -1,14 +1,14 @@
 /* eslint-disable react-refresh/only-export-components -- exports the step data alongside its private scene renderer. */
 import { AnimatePresence } from 'motion/react'
-import { Arrow } from '../../presentation-kit/nodes/Arrow'
-import { Appear } from '../../presentation-kit/nodes/Appear'
-import { Box } from '../../presentation-kit/nodes/Box'
-import { Emphasis } from '../../presentation-kit/nodes/Emphasis'
-import { Frame } from '../../presentation-kit/nodes/Frame'
-import { Label } from '../../presentation-kit/nodes/Label'
-import { SceneLayer } from '../../presentation-kit/nodes/SceneLayer'
-import { SymbolChip } from '../../presentation-kit/nodes/SymbolChip'
-import type { Scene, Step } from '../../presentation-kit/types'
+import { Arrow } from '../../../presentation-kit/nodes/Arrow'
+import { Appear } from '../../../presentation-kit/nodes/Appear'
+import { Box } from '../../../presentation-kit/nodes/Box'
+import { Emphasis } from '../../../presentation-kit/nodes/Emphasis'
+import { Frame } from '../../../presentation-kit/nodes/Frame'
+import { Label } from '../../../presentation-kit/nodes/Label'
+import { SceneLayer } from '../../../presentation-kit/nodes/SceneLayer'
+import { SymbolChip } from '../../../presentation-kit/nodes/SymbolChip'
+import type { Scene, Step } from '../../../presentation-kit/types'
 
 interface SamplePayload { entities: string[]; cards: number; showSkill: boolean; showQuestion: boolean; showDepth: boolean; showKit: boolean; showVerify: boolean; showModify: boolean; reveal: boolean }
 

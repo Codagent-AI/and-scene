@@ -104,6 +104,18 @@ describe('presentation kit', () => {
     expect(root.getAttribute('data-step-index')).toBe('0')
     slider.remove()
 
+    const tablist = document.createElement('div')
+    tablist.setAttribute('role', 'tablist')
+    const tab = document.createElement('button')
+    tab.setAttribute('role', 'tab')
+    tab.tabIndex = 0
+    tablist.append(tab)
+    document.body.append(tablist)
+    tab.focus()
+    fireEvent.keyDown(tab, { key: 'ArrowRight' })
+    expect(root.getAttribute('data-step-index')).toBe('0')
+    tablist.remove()
+
     const region = document.createElement('div')
     region.setAttribute('role', 'region')
     const nestedButton = document.createElement('button')

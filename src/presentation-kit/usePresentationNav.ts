@@ -3,7 +3,7 @@ import type { TouchEvent } from 'react'
 import type { PresentationMode } from './types'
 
 const TEXT_ENTRY = 'input, textarea, select, [contenteditable="true"], [role="textbox"]'
-const ARROW_WIDGET = '[role="slider"], [role="spinbutton"], [role="listbox"], [role="tablist"], [role="menu"], [role="tree"], [role="grid"]'
+const ARROW_WIDGET = '[role="slider"], [role="spinbutton"], [role="listbox"], [role="option"], [role="tablist"], [role="tab"], [role="menu"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="tree"], [role="treeitem"], [role="grid"], [role="gridcell"]'
 
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
   const [index, setIndex] = useState(0)

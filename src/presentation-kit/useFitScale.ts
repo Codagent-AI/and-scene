@@ -11,7 +11,7 @@ export function calculateFitScale(
 ) {
   const geometry = STAGE_LAYOUT[mode]
   const availableWidth = Math.max(0, width - geometry.horizontal * 2)
-  const availableHeight = Math.max(0, height - geometry.top - geometry.bottom)
+  const availableHeight = Math.max(0, height - geometry.vertical)
   return Math.max(MIN_SCALE, Math.min(1, availableWidth / designWidth, availableHeight / designHeight))
 }
 

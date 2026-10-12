@@ -111,6 +111,17 @@ describe('presentation kit', () => {
   it('calculates uniform canvas fit at the default dimensions', () => {
     expect(calculateFitScale(976, 664, 'present')).toBe(1)
     expect(calculateFitScale(488, 400, 'present')).toBeCloseTo(0.44545, 4)
+    expect(calculateFitScale(400, 140, 'browse')).toBeCloseTo(0.305, 3)
+  })
+
+  it('keeps the active step valid when the supplied step list shrinks', () => {
+    const view = render(<Presentation steps={steps} title="Test" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to step 3' }))
+    view.rerender(<Presentation steps={steps.slice(0, 2)} title="Test" />)
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('1')
+    expect(document.querySelector('[data-presentation-marker]')?.textContent).toContain('02')
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
   })
 
   it('resolves registered routes and falls back for unknown paths', () => {

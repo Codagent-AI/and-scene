@@ -3,7 +3,7 @@ import type { TouchEvent } from 'react'
 import type { PresentationMode } from './types'
 
 const TEXT_ENTRY = 'input, textarea, select, [contenteditable="true"], [role="textbox"]'
-const ACTIVATABLE = 'button, a[href]'
+const INTERACTIVE = 'button, a[href], input, textarea, select, [contenteditable="true"], [role], [tabindex]'
 
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
   const [index, setIndex] = useState(0)
@@ -18,7 +18,7 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target instanceof Element ? event.target : null
       if (event.altKey || event.ctrlKey || event.metaKey || target?.closest(TEXT_ENTRY)) return
-      if (event.key === ' ' && target?.closest(ACTIVATABLE)) return
+      if (target?.closest(INTERACTIVE) && ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp'].includes(event.key)) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') { event.preventDefault(); next() }
       else if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') { event.preventDefault(); toggleMode() }

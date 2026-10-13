@@ -29,6 +29,12 @@ export function compareOutline(expected, actual) {
   return undefined
 }
 
+export function parsePresentationRoutes(registry) {
+  const routes = [...registry.matchAll(/["']?slug["']?\s*:\s*["']([^"']+)["']/g)].map(match => ({ slug: match[1] }))
+  if (routes.length === 0) throw Error('no presentation slugs found in src/presentations/index.ts')
+  return routes
+}
+
 export function formatFailure(phase, message) { return `FAIL [${phase}] ${message}` }
 
 async function freePort() {
@@ -148,7 +154,7 @@ async function run() {
     phase = 'sample'
     await checkSample()
     const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
-    const routes = [...registry.matchAll(/slug: '([^']+)'/g)].map(match => ({ slug: match[1] }))
+    const routes = parsePresentationRoutes(registry)
     phase = 'render'
     await renderRoutes(args.port ?? await freePort(), routes)
     console.log('PASS [verify] build, sample, and registered route rendering completed')

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compareOutline, formatFailure, parseArgs } from '../../scripts/verify.mjs'
+import { compareOutline, formatFailure, parseArgs, parsePresentationRoutes } from '../../scripts/verify.mjs'
 
 const outline = [{ era: 'one', title: 'A', caption: 'words' }]
 
@@ -16,5 +16,11 @@ describe('verification helpers', () => {
   })
   it('formats phase-specific failures unambiguously', () => {
     expect(formatFailure('render', 'step 4 failed')).toBe('FAIL [render] step 4 failed')
+  })
+  it('parses quoted presentation slugs and rejects an empty registry', () => {
+    expect(parsePresentationRoutes("{ slug: 'single' }, { slug: \"double\" }, { \"slug\": 'quoted-key' }"))
+      .toEqual([{ slug: 'single' }, { slug: 'double' }, { slug: 'quoted-key' }])
+    expect(() => parsePresentationRoutes('export const presentations = []'))
+      .toThrow('no presentation slugs found in src/presentations/index.ts')
   })
 })

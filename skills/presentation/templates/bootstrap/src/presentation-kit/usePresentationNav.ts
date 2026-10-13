@@ -2,6 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { PresentationMode } from './types'
 
 const INTERACTIVE = 'button, a, input, textarea, select, [contenteditable="true"], [role="button"]'
+// Gestures starting on these keep their own horizontal drag; scenes opt out with data-presentation-no-swipe.
+const NO_SWIPE = `${INTERACTIVE}, [role="slider"], [data-presentation-no-swipe]`
 
 export function usePresentationNav(stepCount: number, initialMode: PresentationMode = 'browse') {
   const [index, setIndex] = useState(0)
@@ -35,7 +37,11 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
   const bindSwipe = useCallback((element: HTMLElement | null) => {
     if (!element) return () => undefined
     let start: { x: number; y: number } | null = null
-    const onStart = (event: TouchEvent) => { const touch = event.touches[0]; if (touch) start = { x: touch.clientX, y: touch.clientY } }
+    const onStart = (event: TouchEvent) => {
+      const touch = event.touches[0]
+      if (event.target instanceof Element && event.target.closest(NO_SWIPE)) { start = null; return }
+      if (touch) start = { x: touch.clientX, y: touch.clientY }
+    }
     const onEnd = (event: TouchEvent) => {
       const touch = event.changedTouches[0]
       if (!touch || !start) return

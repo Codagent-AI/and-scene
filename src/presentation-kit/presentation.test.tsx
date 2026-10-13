@@ -94,4 +94,19 @@ describe('Presentation', () => {
     fireEvent.touchEnd(shell, { changedTouches: [{ clientX: 270, clientY: 612 }] })
     expect(root).toHaveAttribute('data-step-index', '0')
   })
+
+  it('ignores swipes that start on interactive controls or opt-out regions', () => {
+    const OptOutScene = () => <div data-presentation-no-swipe><span>carousel</span></div>
+    render(<Presentation steps={[{ ...steps[0]!, Scene: OptOutScene }, ...steps.slice(1)]} title="Demo" />)
+    const root = screen.getByRole('region', { name: 'Presentation' })
+    const targets = [
+      document.querySelector('[data-presentation-footer] button')!,
+      screen.getByText('carousel'),
+    ]
+    for (const target of targets) {
+      fireEvent.touchStart(target, { touches: [{ clientX: 270, clientY: 610 }] })
+      fireEvent.touchEnd(target, { changedTouches: [{ clientX: 100, clientY: 612 }] })
+      expect(root).toHaveAttribute('data-step-index', '0')
+    }
+  })
 })

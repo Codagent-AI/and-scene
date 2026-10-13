@@ -14,9 +14,13 @@ npm run dev
 npm test
 npm run lint
 npm run build
+npm run verify
 ```
+
+The browser verification uses Playwright Chromium. Install the browser once with
+`npx playwright install chromium` before running `npm run verify`.
 
 ## Current State
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+The repository includes a reusable presentation scene kit, the reference sample,
+and an OpenSpec proposal for the presentation-generation skill.

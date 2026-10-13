@@ -1,4 +1,4 @@
-- [ ] [Scene kit and presentation host app](tasks/01-scene-kit-and-host-app.md)
-- [ ] [Reference sample presentation and `npm run verify` gate](tasks/02-reference-sample-and-verify.md)
-- [ ] [Screenshot and visual-diagnostics helper](tasks/03-inspection-helper.md)
-- [ ] [Presentation skill and bootstrap templates](tasks/04-presentation-skill-and-bootstrap.md)
+- [x] [Scene kit and presentation host app](tasks/01-scene-kit-and-host-app.md)
+- [x] [Reference sample presentation and `npm run verify` gate](tasks/02-reference-sample-and-verify.md)
+- [x] [Screenshot and visual-diagnostics helper](tasks/03-inspection-helper.md)
+- [x] [Presentation skill and bootstrap templates](tasks/04-presentation-skill-and-bootstrap.md)

@@ -8,7 +8,7 @@ const slug = process.argv[2]
 if (!slug) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
 const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
 if (!registry.includes(`'${slug}'`)) { console.error(`Unknown presentation: ${slug}`); process.exit(2) }
-if (await fetch('http://127.0.0.1:4174/').then(() => true, () => false)) { console.error('127.0.0.1:4174 is already serving; stop the stale preview and retry'); process.exit(1) }
+if (await fetch('http://127.0.0.1:4174/', { signal: AbortSignal.timeout(1000) }).then(() => true, () => false)) { console.error('127.0.0.1:4174 is already serving; stop the stale preview and retry'); process.exit(1) }
 const server = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', '4174', '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] })
 let serverError
 let serverOutput = ''
@@ -21,7 +21,12 @@ try {
   for (let i = 0; i < 60; i++) {
     if (serverError) throw new Error(`preview server failed to start: ${serverError.message}`)
     if (server.exitCode !== null) throw new Error(`preview server exited early with code ${server.exitCode}: ${serverOutput.trim()}`)
-    if (await fetch('http://127.0.0.1:4174/').then((response) => response.ok, () => false)) { ready = true; break }
+    if (await fetch('http://127.0.0.1:4174/', { signal: AbortSignal.timeout(1000) }).then((response) => response.ok, () => false)) {
+      await delay(50)
+      if (server.exitCode !== null) throw new Error(`preview server exited during readiness probe with code ${server.exitCode}: ${serverOutput.trim()}`)
+      ready = true
+      break
+    }
     await delay(250)
   }
   if (serverError) throw new Error(`preview server failed to start: ${serverError.message}`)

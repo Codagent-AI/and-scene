@@ -80,7 +80,12 @@ try {
       await page.keyboard.press('ArrowRight')
       try { await page.waitForFunction((i) => Number(document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index')) === i, index + 1) }
       catch { throw new Error(`step ${index + 2} transition did not advance the public step index`) }
-      if (reference && !(await page.evaluate(() => window.__sceneHost?.isConnected && document.querySelectorAll('[data-presentation-scene]').length === 1 && window.__sceneHost === document.querySelector('[data-presentation-scene]')))) throw new Error(`step ${index + 1} to ${index + 2} remounted the grouped scene host`)
+      if (reference && !(await page.evaluate(() => {
+        const hosts = [...document.querySelectorAll('[data-presentation-scene]')]
+        const group = window.__sceneHost?.getAttribute('data-presentation-group')
+        if (!group || group !== hosts.at(-1)?.getAttribute('data-presentation-group')) return true
+        return hosts.length === 1 && hosts[0] === window.__sceneHost && window.__sceneHost.isConnected
+      }))) throw new Error(`step ${index + 1} to ${index + 2} remounted the grouped scene host`)
     }
   }
   if (process.exitCode) throw new Error('browser emitted errors')

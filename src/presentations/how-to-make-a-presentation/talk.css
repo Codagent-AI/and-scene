@@ -11,6 +11,10 @@
 @media (max-width: 899px) {
   [data-presentation-attribution] { top: 92px; right: 24px; bottom: auto; }
 }
+@media (max-width: 600px) {
+  [data-presentation-header] h1 { max-width: calc(100vw - 160px); }
+  [data-presentation-attribution] { position: fixed !important; top: 88px !important; right: 16px !important; bottom: auto !important; }
+}
 .sample-node, .sample-card, .sample-kit { box-sizing: border-box; display: grid; place-items: center; border-radius: 16px; font-weight: 800; z-index: 1; }
 .sample-node { height: 58px; border: 2px solid #173b3a; background: #fffaf1; font-size: 19px; }
 .sample-node.you { background: #f4c878; }.sample-node.skill { background: #b8d5cc; }

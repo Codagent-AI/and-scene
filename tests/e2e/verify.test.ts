@@ -103,3 +103,38 @@ it('renders additional registered routes even with no configured references', as
   expect(result.output).toContain('PASS')
   expect(result.code).toBe(0)
 })
+
+it('requires landing links for registered routes even with no configured references', async () => {
+  const result = await runFixture(async dir => {
+    await writeFile(join(dir, 'verify.config.json'), '{"referencePresentations": []}')
+    await replace(dir, 'src/Landing.tsx', 'data-presentation-link', 'data-hidden-link')
+  })
+  expect(result.code).not.toBe(0)
+  expect(result.output).toContain('FAIL phase=sample')
+  expect(result.output).toContain('Registered presentation how-to-make-a-presentation is absent from landing links')
+  expect(result.output).not.toContain('PASS')
+})
+
+it('requires landing links for every registered route, including non-reference presentations', async () => {
+  const result = await runFixture(async dir => {
+    await replace(dir, 'src/presentations/index.ts', '\n]\n', "\n  { slug: 'unlinked-presentation', title: 'Unlinked presentation', load: () => import('./how-to-make-a-presentation/Talk') },\n]\n")
+    await replace(dir, 'src/Landing.tsx', 'entries.map(entry =>', "entries.filter(entry => entry.slug !== 'unlinked-presentation').map(entry =>")
+  })
+  expect(result.code).not.toBe(0)
+  expect(result.output).toContain('FAIL phase=sample')
+  expect(result.output).toContain('Registered presentation unlinked-presentation is absent from landing links')
+  expect(result.output).not.toContain('PASS')
+})
+
+it('rejects an empty application instead of claiming to verify zero presentations', async () => {
+  const result = await runFixture(async dir => {
+    await writeFile(join(dir, 'verify.config.json'), '{"referencePresentations": []}')
+    const file = join(dir, 'src/presentations/index.ts')
+    const source = await readFile(file, 'utf8')
+    await writeFile(file, source.replace(/export const presentations: PresentationEntry\[\] = \[[\s\S]*$/, 'export const presentations: PresentationEntry[] = []\n'))
+  })
+  expect(result.code).not.toBe(0)
+  expect(result.output).toContain('FAIL phase=render')
+  expect(result.output).toContain('Landing page exposes no presentation links')
+  expect(result.output).not.toContain('PASS')
+})

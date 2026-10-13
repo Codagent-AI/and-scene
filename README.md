@@ -33,7 +33,9 @@ entry in `src/presentations/index.ts` to register another route.
 presentations, and renders every route exposed by the landing page in production
 Chromium. `verify.config.json` defines reference slugs and their ordered titles
 and captions; an empty `referencePresentations` array supports apps without the
-canonical sample. The distributable verifier and its empty config live in
+canonical sample. Verification requires at least one reachable presentation and
+landing links for every registered route; add the first presentation before
+verifying an empty scaffold. The distributable verifier and its empty config live in
 `skills/presentation/templates/bootstrap/`.
 
 Verification probes an available port on `127.0.0.1`; set `VERIFY_PORT` to reserve

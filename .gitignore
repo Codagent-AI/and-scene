@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+artifacts/inspection/
 dist-ssr
 validator_logs
 *.local

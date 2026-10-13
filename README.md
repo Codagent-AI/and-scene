@@ -1,20 +1,33 @@
-# and-scene
+# And Scene
 
-And Scene is a project for building a presentation-generation agent skill.
+And Scene is a small React and TypeScript app for browser presentations built
+as one diagrammatic scene that evolves through named steps. Stable entities
+appear, move, connect, and change labels while the viewer follows the story.
 
-The intended presentation model is not a stack of unrelated slides. It is one
-diagrammatic scene that evolves through named steps: elements appear, move,
-collapse, connect, and re-label as the talk arc develops.
+The reusable scene kit is in `src/presentation-kit/`. The distributable
+presentation skill and fresh-project templates are in `skills/presentation/`.
+The committed reference presentation, “How to Use This Skill to Make a
+Presentation,” lives under `src/presentations/` and is available at
+`/how-to-make-a-presentation`.
 
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev
+npm test
+npm run lint
 npm run build
+npm run verify
+npm run inspect -- how-to-make-a-presentation
 ```
 
-## Current State
+`npm run verify` builds the app and uses Playwright with Chromium to render all
+nine reference steps from the production preview. `npm run inspect` captures
+settled screenshots in `artifacts/inspection/` and reports advisory visual
+warnings.
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+Presentations support browse and present modes. Use Right/Space/PageDown to
+advance, Left/PageUp to go back, and `P` to switch modes. Progress controls and
+the table of contents jump directly to steps or sections; horizontal touch
+swipes also navigate.

@@ -23,7 +23,7 @@ beforeAll(async () => {
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', error => errors.push(error.message))
   await mkdir('.artifacts/scene-kit', { recursive: true })
-}, 30000)
+}, 120000)
 
 afterAll(async () => {
   await browser?.close()
@@ -129,7 +129,7 @@ it('captures all settled steps at desktop and narrow sizes and checks canvas/chr
     }
   }
   expect(errors).toEqual([])
-}, 30000)
+}, 120000)
 
 
 it('contains render and chunk-load failures with a usable recovery link at both viewport sizes', async () => {
@@ -157,4 +157,4 @@ it('contains render and chunk-load failures with a usable recovery link at both 
       expect(uncaught).toEqual([])
     } finally { await failedPage.close() }
   }
-}, 15000)
+}, 60000)

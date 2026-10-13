@@ -6,7 +6,7 @@
 [data-presentation-toc] button[data-presentation-active], [data-presentation-progress] button[data-presentation-active] { background: #173b3a; color: white; border-color: #173b3a; box-shadow: 0 0 0 3px #dd9d63; }
 [data-presentation-footer] { z-index: 3; }
 [data-presentation-footer] p { max-width: 680px; margin: 0; text-align: center; font-size: 15px; line-height: 1.4; }
-[data-presentation-attribution] { color: #315653; font-family: inherit; font-size: 12px; font-weight: 700; line-height: 1.2; text-decoration: none; }
+[data-presentation-attribution] { color: #315653; display: inline-flex; align-items: center; min-height: 24px; font-family: inherit; font-size: 12px; font-weight: 700; line-height: 1.2; text-decoration: none; }
 [data-presentation-attribution]:hover { text-decoration: underline; }
 @media (max-width: 899px) {
   [data-presentation-attribution] { top: 92px; right: 24px; bottom: auto; }

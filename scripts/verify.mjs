@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { readFile } from 'node:fs/promises'
 import { setTimeout as delay } from 'node:timers/promises'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
 import expectedOutline from './sample-outline.json' with { type: 'json' }
 
@@ -40,17 +40,29 @@ async function freePort() {
 }
 
 let previewChild
+function previewAlive(child) {
+  return child.exitCode === null && child.signalCode === null
+}
+
+function signalPreview(child, signal) {
+  try {
+    if (process.platform !== 'win32') process.kill(-child.pid, signal)
+    else child.kill(signal)
+  } catch (error) {
+    if (error?.code !== 'ESRCH') throw error
+  }
+}
+
 async function stopPreview() {
   const child = previewChild
-  if (!child || child.exitCode !== null) return
-  if (process.platform !== 'win32') process.kill(-child.pid, 'SIGTERM')
-  else child.kill('SIGTERM')
-  await Promise.race([new Promise(resolve => child.once('exit', resolve)), delay(3000)])
-  if (child.exitCode === null) {
-    if (process.platform !== 'win32') process.kill(-child.pid, 'SIGKILL')
-    else child.kill('SIGKILL')
+  if (!child) return
+  try {
+    if (previewAlive(child)) signalPreview(child, 'SIGTERM')
+    if (previewAlive(child)) await Promise.race([new Promise(resolve => child.once('exit', resolve)), delay(3000)])
+    if (previewAlive(child)) signalPreview(child, 'SIGKILL')
+  } finally {
+    previewChild = undefined
   }
-  previewChild = undefined
 }
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
@@ -70,7 +82,8 @@ async function checkSample() {
 
 async function renderRoutes(port, routes) {
   console.log(`[render] preview and readiness probe at http://127.0.0.1:${port}/`)
-  const child = spawn(process.execPath, [new URL('../node_modules/vite/bin/vite.js', import.meta.url).pathname, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32' })
+  const viteBin = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
+  const child = spawn(process.execPath, [viteBin, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32' })
   previewChild = child
   let logs = ''
   child.stdout.setEncoding('utf8').on('data', chunk => { logs += chunk })
@@ -79,10 +92,15 @@ async function renderRoutes(port, routes) {
   try {
     const base = `http://127.0.0.1:${port}`
     let ready = false
-    for (let attempt = 0; attempt < 100; attempt += 1) {
-      if (child.exitCode !== null) throw Error(`preview exited early: ${logs}`)
-      try { const response = await fetch(`${base}/`); if (response.ok) { ready = true; break } } catch {}
-      await delay(100)
+    const readyDeadline = Date.now() + 10_000
+    for (let attempt = 0; attempt < 100 && Date.now() < readyDeadline; attempt += 1) {
+      if (!previewAlive(child)) throw Error(`preview exited early: ${logs}`)
+      try {
+        const timeout = Math.min(1000, readyDeadline - Date.now())
+        const response = await fetch(`${base}/`, { signal: AbortSignal.timeout(timeout) })
+        if (response.ok) { ready = true; break }
+      } catch {}
+      await delay(Math.min(100, Math.max(0, readyDeadline - Date.now())))
     }
     if (!ready) throw Error(`preview readiness timed out: ${logs}`)
     browser = await chromium.launch({ headless: true })

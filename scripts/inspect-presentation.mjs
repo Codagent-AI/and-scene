@@ -131,7 +131,7 @@ async function run() {
     try {
       const build = await stat(dist)
       const sourceTimes = await Promise.all(['src', 'public'].map(directory => latestMtime(path.join(root, directory))))
-      sourceTimes.push((await stat(path.join(root, 'index.html')).catch(() => ({ mtimeMs: 0 }))).mtimeMs)
+      for (const file of ['index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'package.json', 'package-lock.json']) sourceTimes.push((await stat(path.join(root, file)).catch(() => ({ mtimeMs: 0 }))).mtimeMs)
       shouldBuild = Math.max(...sourceTimes) > build.mtimeMs
     } catch { shouldBuild = true }
     if (args.noBuild && shouldBuild) throw new Error('dist is missing or stale; remove --no-build or build first')

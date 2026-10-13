@@ -1,5 +1,5 @@
 import { afterAll, expect, it } from 'vitest'
-import { cp, mkdtemp, readFile, rm, symlink, writeFile, readdir, stat } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, rm, symlink, writeFile, readdir, stat, utimes } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
@@ -67,6 +67,12 @@ it('captures settled fixture steps, reports advisory warnings, and cleans up pre
   } finally {
     await new Promise<void>((resolve, reject) => foreignServer.close(error => error ? reject(error) : resolve()))
   }
+  // Build-config inputs outside src/ and public/ also make dist stale.
+  const future = new Date(Date.now() + 60_000)
+  await utimes(path.join(project, 'vite.config.ts'), future, future)
+  const stale = await run(project, ['run', 'inspect', '--', 'inspect-fixture', '--no-build', '--settle', '0'])
+  expect(stale.code).toBe(1)
+  expect(stale.output).toContain('dist is missing or stale')
 }, 120_000)
 
 function run(cwd: string, args: string[]) {

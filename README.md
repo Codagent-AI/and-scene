@@ -11,6 +11,8 @@ collapse, connect, and re-label as the talk arc develops.
 ```bash
 npm install
 npm run dev
+npm test
+npm run lint
 npm run build
 ```
 

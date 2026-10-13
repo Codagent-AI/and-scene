@@ -4,6 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { createConnection, createServer } from 'node:net'
+import { createServer as createHttpServer } from 'node:http'
 import { fileURLToPath } from 'node:url'
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -47,6 +48,25 @@ it('captures settled fixture steps, reports advisory warnings, and cleans up pre
   expect(unknown.output).toContain('Unknown presentation slug or page failed to render: comment-only-slug')
   // The child process has exited, and the preview listener is closed after completion.
   await expectConnectionRefused(port)
+  let foreignRequests = 0
+  const foreignServer = createHttpServer((_request, response) => {
+    foreignRequests += 1
+    response.writeHead(200, { 'content-type': 'text/plain', connection: 'close' }).end('foreign server')
+  })
+  await new Promise<void>((resolve, reject) => foreignServer.once('error', reject).listen(0, '127.0.0.1', resolve))
+  const foreignAddress = foreignServer.address()
+  if (!foreignAddress || typeof foreignAddress === 'string') throw new Error('Could not allocate foreign-server port')
+  try {
+    const occupied = await run(project, ['run', 'inspect', '--', 'inspect-fixture', '--no-build', '--settle', '0', '--port', String(foreignAddress.port)])
+    expect(occupied.code).toBe(1)
+    expect(occupied.output).toContain(`Port ${foreignAddress.port} is already in use (EADDRINUSE)`)
+    expect(foreignRequests).toBe(0)
+    const foreignResponse = await fetch(`http://127.0.0.1:${foreignAddress.port}/`, { signal: AbortSignal.timeout(2000) })
+    expect(await foreignResponse.text()).toBe('foreign server')
+    expect(foreignRequests).toBe(1)
+  } finally {
+    await new Promise<void>((resolve, reject) => foreignServer.close(error => error ? reject(error) : resolve()))
+  }
 }, 120_000)
 
 function run(cwd: string, args: string[]) {

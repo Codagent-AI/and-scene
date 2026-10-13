@@ -95,6 +95,17 @@ async function freePort() {
   await new Promise(resolve => server.close(resolve))
   return port
 }
+async function assertPortAvailable(port) {
+  const server = createServer()
+  await new Promise((resolve, reject) => {
+    server.once('error', error => {
+      if (error.code === 'EADDRINUSE') reject(new Error(`Port ${port} is already in use (EADDRINUSE)`))
+      else reject(error)
+    })
+    server.listen(port, '127.0.0.1', resolve)
+  })
+  await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
+}
 async function latestMtime(directory) {
   let latest = 0
   const entries = await (await import('node:fs/promises')).readdir(directory, { withFileTypes: true }).catch(() => [])
@@ -129,6 +140,7 @@ async function run() {
       if (result.code !== 0) throw new Error(`npm run build exited ${result.signal ?? result.code}`)
     }
     const port = args.port ?? await freePort()
+    await assertPortAvailable(port)
     preview = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore', detached: process.platform !== 'win32' })
     const base = `http://127.0.0.1:${port}`
     let ready = false

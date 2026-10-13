@@ -1,32 +1,26 @@
-:root {
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  color: #f8f3e6;
-  background: #0d0c0b;
-  font-synthesis: none;
-  line-height: 1.5;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  min-width: 320px;
+/* Host landing page only. Presentation styling belongs to each author. */
+body { margin: 0; }
+.landing {
   min-height: 100vh;
-  margin: 0;
-  background:
-    radial-gradient(circle at 20% 10%, rgba(199, 167, 85, 0.16), transparent 28rem),
-    linear-gradient(135deg, #0d0c0b 0%, #161412 58%, #0d0c0b 100%);
+  box-sizing: border-box;
+  padding: clamp(28px, 6vw, 88px);
+  background: #f5f2eb;
+  color: #202b27;
+  font-family: ui-sans-serif, system-ui, sans-serif;
 }
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
+.landing-heading { max-width: 860px; }
+.landing-eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .22em; }
+.landing h1 { font-size: clamp(44px, 6.5vw, 88px); font-weight: 500; letter-spacing: -.06em; line-height: 1.05; margin: 48px 0 24px; }
+.landing-heading > p:last-child { max-width: 520px; font-size: 18px; line-height: 1.6; color: #58615b; }
+.presentation-library { max-width: 960px; margin-top: 64px; }
+.presentation-library h2 { display: flex; justify-content: space-between; border-bottom: 1px solid #bcc4ba; padding-bottom: 16px; font-size: 14px; font-weight: 600; }
+.presentation-library h2 span { color: #66796b; font-variant-numeric: tabular-nums; }
+.library-empty { border: 1px dashed #bcc4ba; padding: 28px; margin-top: 24px; }
+.library-empty h3 { font-size: 20px; font-weight: 500; margin: 0 0 8px; }
+.library-empty p { margin: 0; color: #58615b; line-height: 1.5; }
+.presentation-library ul { list-style: none; margin: 0; padding: 0; }
+.presentation-library li { border-bottom: 1px solid #bcc4ba; }
+.presentation-library a { display: block; padding: 24px 0; color: inherit; font-size: 24px; text-decoration: none; }
+.presentation-library a:hover { color: #31734f; }
+.presentation-library a:focus-visible { outline: 2px solid #31734f; outline-offset: 4px; }
+.landing-footer { margin-top: 64px; color: #58615b; font-size: 13px; }

@@ -1,0 +1,34 @@
+/* Test presentation styling, deliberately outside the reusable kit. */
+body { margin: 0; }
+.fixture { background: #f5f2eb; color: #202b27; font: 16px/1.5 system-ui, sans-serif; }
+.fixture header { box-sizing: border-box; padding: 24px; }
+.fixture [data-presentation-marker] { font-size: 13px; font-variant-numeric: tabular-nums; }
+.fixture [data-presentation-era] { margin-left: 24px; color: #546f5c; font-size: 13px; }
+.fixture h1 { font-size: 26px; font-weight: 500; margin: 12px 0 0; }
+.fixture [data-presentation-caption] { max-width: 780px; min-height: 48px; }
+.fixture footer nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.fixture button { font: inherit; background: transparent; border: 1px solid #a0b3a1; border-radius: 5px; padding: 8px 12px; color: #202b27; cursor: pointer; }
+.fixture button:disabled { opacity: .4; cursor: default; }
+.fixture [data-presentation-progress] { display: flex; gap: 8px; }
+.fixture [data-presentation-progress-item] { padding: 4px 10px; }
+.fixture [data-presentation-active="true"] { background: #215a3d; color: white; border-color: #215a3d; }
+.fixture [data-presentation-toc] { display: flex; flex-direction: column; gap: 12px; }
+.fixture [data-presentation-attribution] { font-size: 13px; color: #42634b; text-decoration: none; }
+.fixture [data-presentation-node="box"] { display: grid; place-items: center; text-align: center; box-sizing: border-box; border: 1px solid #50765b; border-radius: 12px; padding: 12px; background: #e1e9dd; font-size: 20px; }
+.fixture [data-presentation-node="label"] { font-size: 14px; letter-spacing: .12em; color: #58725b; }
+.fixture [data-presentation-node="symbol-chip"] { padding: 12px; border: 1px dashed #9caa92; border-radius: 32px; }
+.fixture [data-presentation-node="frame"] { border: 1px dashed #a0b3a1; border-radius: 16px; pointer-events: none; }
+.fixture [data-presentation-node="arrow"] { font-size: 30px; }
+.fixture [data-presentation-node="emphasis"] { color: #50765b; font-size: 18px; }
+.fixture[data-presentation-mode="present"] h1 { white-space: nowrap; font-size: clamp(16px, 3vw, 26px); }
+@media (max-width: 600px) {
+  .fixture h1 { font-size: 22px; }
+  .fixture [data-presentation-node="box"] { font-size: 28px; line-height: 1.2; }
+  .fixture [data-presentation-node="label"] { font-size: 26px; }
+  .fixture [data-presentation-node="emphasis"] { font-size: 28px; }
+  .fixture [data-presentation-node="symbol-chip"] { font-size: 28px; }
+  .fixture [data-presentation-caption] { font-size: 14px; line-height: 1.5; }
+  .fixture button { padding: 6px; font-size: 12px; }
+  .fixture [data-presentation-progress] { gap: 4px; }
+  .fixture [data-presentation-progress-item] { padding: 4px 8px; }
+}

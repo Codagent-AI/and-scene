@@ -3,6 +3,7 @@ import { cp, mkdtemp, readFile, rm, symlink, writeFile, readdir, stat } from 'no
 import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
+import { createConnection, createServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -25,7 +26,7 @@ it('captures settled fixture steps, reports advisory warnings, and cleans up pre
   await writeFile(registryPath, registry)
   const build = await run(project, ['run', 'build'])
   expect(build.code, build.output).toBe(0)
-  const port = 48731
+  const port = await getFreePort()
   const result = await run(project, ['run', 'inspect', '--', 'inspect-fixture', '--settle', '180', '--port', String(port)])
   expect(result.code, result.output).toBe(0)
   expect(result.output).toContain('step 1: overlap:')
@@ -35,11 +36,17 @@ it('captures settled fixture steps, reports advisory warnings, and cleans up pre
   const screenshots = await readdir(path.join(project, '.presentation-inspection/inspect-fixture'))
   expect(screenshots.sort()).toEqual(['step-01.png', 'step-02.png'])
   expect((await stat(path.join(project, '.presentation-inspection/inspect-fixture/step-01.png'))).size).toBeGreaterThan(1000)
+  const screenshot = await readFile(path.join(project, '.presentation-inspection/inspect-fixture/step-01.png'))
+  expect(screenshot.readUInt32BE(16)).toBe(1440)
+  expect(screenshot.readUInt32BE(20)).toBe(900)
   expect(result.output).toContain('wrote 2 screenshots')
   expect(result.output).toContain('settled step 2')
   expect(result.output).not.toMatch(/WARN \[inspect\] step 2:/)
+  const unknown = await run(project, ['run', 'inspect', '--', 'comment-only-slug', '--no-build', '--settle', '0'])
+  expect(unknown.code).toBe(1)
+  expect(unknown.output).toContain('Unknown presentation slug or page failed to render: comment-only-slug')
   // The child process has exited, and the preview listener is closed after completion.
-  await expect(fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(300) })).rejects.toThrow()
+  await expectConnectionRefused(port)
 }, 120_000)
 
 function run(cwd: string, args: string[]) {
@@ -51,4 +58,22 @@ function run(cwd: string, args: string[]) {
     child.once('error', reject)
     child.once('exit', code => resolve({ code, output }))
   })
+}
+
+function expectConnectionRefused(port: number) {
+  return new Promise<void>((resolve, reject) => {
+    const socket = createConnection({ host: '127.0.0.1', port })
+    socket.once('connect', () => { socket.destroy(); reject(new Error(`Preview is still listening on ${port}`)) })
+    socket.once('error', error => error.code === 'ECONNREFUSED' ? resolve() : reject(error))
+  })
+}
+
+async function getFreePort() {
+  const server = createServer()
+  await new Promise<void>((resolve, reject) => server.once('error', reject).listen(0, '127.0.0.1', resolve))
+  const address = server.address()
+  if (!address || typeof address === 'string') throw new Error('Could not allocate a test port')
+  const { port } = address
+  await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
+  return port
 }

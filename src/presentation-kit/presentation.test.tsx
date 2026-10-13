@@ -82,4 +82,16 @@ describe('Presentation', () => {
     fireEvent.touchEnd(stage, { changedTouches: [{ clientX: 80, clientY: 22 }] })
     expect(screen.getByRole('region', { name: 'Presentation' })).toHaveAttribute('data-step-index', '2')
   })
+
+  it('navigates on swipes that start outside the scaled stage', () => {
+    render(<Presentation steps={steps} title="Demo" />)
+    const shell = document.querySelector('[data-presentation-stage-shell]')!
+    const root = screen.getByRole('region', { name: 'Presentation' })
+    fireEvent.touchStart(shell, { touches: [{ clientX: 270, clientY: 610 }] })
+    fireEvent.touchEnd(shell, { changedTouches: [{ clientX: 180, clientY: 612 }] })
+    expect(root).toHaveAttribute('data-step-index', '1')
+    fireEvent.touchStart(shell, { touches: [{ clientX: 180, clientY: 610 }] })
+    fireEvent.touchEnd(shell, { changedTouches: [{ clientX: 270, clientY: 612 }] })
+    expect(root).toHaveAttribute('data-step-index', '0')
+  })
 })

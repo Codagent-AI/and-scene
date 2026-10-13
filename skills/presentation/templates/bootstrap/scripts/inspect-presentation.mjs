@@ -8,7 +8,7 @@ const slug = process.argv[2]
 if (!slug) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
 const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
 if (!registry.includes(`'${slug}'`)) { console.error(`Unknown presentation: ${slug}`); process.exit(2) }
-const server = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4174', '--strictPort'], { stdio: 'ignore' })
+const server = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', '4174', '--strictPort'], { stdio: 'ignore' })
 let browser
 try {
   await new Promise(async (resolve, reject) => { for (let i = 0; i < 60; i++) { try { if ((await fetch('http://127.0.0.1:4174')).ok) return resolve() } catch {} await delay(250) } reject(new Error('preview readiness timed out')) })

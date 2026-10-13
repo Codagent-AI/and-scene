@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
+import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
 const run = (command, args) => new Promise((resolve, reject) => {
@@ -34,7 +35,7 @@ try {
     entry = entries[0]
     if (!entry) throw new Error('no presentations are registered yet')
   }
-  server = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { stdio: 'ignore' })
+  server = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { stdio: 'ignore' })
   const url = `http://127.0.0.1:4173/${entry.slug}`
   let ready = false
   for (let i = 0; i < 60; i++) { try { if ((await fetch(url)).ok) { ready = true; break } } catch {} await delay(250) }

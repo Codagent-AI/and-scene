@@ -76,9 +76,11 @@ try {
     if (reference && title !== titles[index]) throw new Error(`step ${index + 1} title mismatch: ${title}`)
     if (index < count - 1) {
       activeStep = index + 1
+      if (reference) await page.evaluate(() => { window.__sceneHost = document.querySelector('[data-presentation-scene]') })
       await page.keyboard.press('ArrowRight')
       try { await page.waitForFunction((i) => Number(document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index')) === i, index + 1) }
       catch { throw new Error(`step ${index + 2} transition did not advance the public step index`) }
+      if (reference && !(await page.evaluate(() => window.__sceneHost?.isConnected && document.querySelectorAll('[data-presentation-scene]').length === 1 && window.__sceneHost === document.querySelector('[data-presentation-scene]')))) throw new Error(`step ${index + 1} to ${index + 2} remounted the grouped scene host`)
     }
   }
   if (process.exitCode) throw new Error('browser emitted errors')

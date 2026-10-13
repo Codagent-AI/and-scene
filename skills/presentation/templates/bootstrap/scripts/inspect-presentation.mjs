@@ -8,10 +8,25 @@ const slug = process.argv[2]
 if (!slug) { console.error('Usage: npm run inspect -- <presentation-slug>'); process.exit(2) }
 const registry = await readFile(new URL('../src/presentations/index.ts', import.meta.url), 'utf8')
 if (!registry.includes(`'${slug}'`)) { console.error(`Unknown presentation: ${slug}`); process.exit(2) }
-const server = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', '4174', '--strictPort'], { stdio: 'ignore' })
+const server = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', '4174', '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] })
+let serverError
+let serverOutput = ''
+server.on('error', (error) => { serverError = error })
+server.stdout.setEncoding('utf8').on('data', (chunk) => { serverOutput += chunk })
+server.stderr.setEncoding('utf8').on('data', (chunk) => { serverOutput += chunk })
 let browser
 try {
-  await new Promise(async (resolve, reject) => { for (let i = 0; i < 60; i++) { try { if ((await fetch('http://127.0.0.1:4174')).ok) return resolve() } catch {} await delay(250) } reject(new Error('preview readiness timed out')) })
+  let ready = false
+  for (let i = 0; i < 60; i++) {
+    if (serverError) throw new Error(`preview server failed to start: ${serverError.message}`)
+    if (server.exitCode !== null) throw new Error(`preview server exited early with code ${server.exitCode}: ${serverOutput.trim()}`)
+    if (serverOutput.includes('http://127.0.0.1:4174/')) { ready = true; break }
+    await delay(250)
+  }
+  if (serverError) throw new Error(`preview server failed to start: ${serverError.message}`)
+  if (server.exitCode !== null) throw new Error(`preview server exited early with code ${server.exitCode}: ${serverOutput.trim()}`)
+  if (!ready) throw new Error('preview readiness timed out')
+  if (!(await fetch('http://127.0.0.1:4174')).ok) throw new Error('preview did not serve 127.0.0.1:4174')
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   await page.goto(`http://127.0.0.1:4174/${slug}`, { waitUntil: 'networkidle' })

@@ -35,11 +35,24 @@ try {
     entry = entries[0]
     if (!entry) throw new Error('no presentations are registered yet')
   }
-  server = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { stdio: 'ignore' })
+  server = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let serverError
+  let serverOutput = ''
+  server.on('error', (error) => { serverError = error })
+  server.stdout.setEncoding('utf8').on('data', (chunk) => { serverOutput += chunk })
+  server.stderr.setEncoding('utf8').on('data', (chunk) => { serverOutput += chunk })
   const url = `http://127.0.0.1:4173/${entry.slug}`
   let ready = false
-  for (let i = 0; i < 60; i++) { try { if ((await fetch(url)).ok) { ready = true; break } } catch {} await delay(250) }
+  for (let i = 0; i < 60; i++) {
+    if (serverError) throw new Error(`preview server failed to start: ${serverError.message}`)
+    if (server.exitCode !== null) throw new Error(`preview server exited early with code ${server.exitCode}: ${serverOutput.trim()}`)
+    if (serverOutput.includes('http://127.0.0.1:4173/')) { ready = true; break }
+    await delay(250)
+  }
+  if (serverError) throw new Error(`preview server failed to start: ${serverError.message}`)
+  if (server.exitCode !== null) throw new Error(`preview server exited early with code ${server.exitCode}: ${serverOutput.trim()}`)
   if (!ready) throw new Error('preview did not become ready at 127.0.0.1:4173')
+  if (!(await fetch(url)).ok) throw new Error(`preview did not serve ${url}`)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   let activeStep = 0

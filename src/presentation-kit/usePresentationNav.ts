@@ -10,8 +10,12 @@ export function usePresentationNav(count: number, initialMode: Mode = 'browse') 
   const toggleMode = useCallback(() => setMode((m) => m === 'browse' ? 'present' : 'browse'), [])
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return
       const target = event.target
-      if (target instanceof Element && target.closest('button,a,input,textarea,select,[contenteditable="true"]')) return
+      if (target instanceof Element) {
+        if (target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])')) return
+        if ((event.key === ' ' || event.key === 'Enter') && target.closest('button,a,[role="button"]')) return
+      }
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') { event.preventDefault(); next() }
       else if (event.key === 'ArrowLeft' || event.key === 'PageUp') { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') toggleMode()

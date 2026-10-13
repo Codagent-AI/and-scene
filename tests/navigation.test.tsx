@@ -18,7 +18,7 @@ describe('presentation navigation', () => {
     expect(result.current.index).toBe(2)
   })
 
-  it('maps keyboard input to step navigation and leaves focused controls alone', () => {
+  it('maps navigation keys while a button has focus and preserves native activation keys', () => {
     const { result } = renderHook(() => usePresentationNav(3))
     fireEvent.keyDown(window, { key: 'ArrowRight' })
     expect(result.current.index).toBe(1)
@@ -29,8 +29,21 @@ describe('presentation navigation', () => {
     const control = document.createElement('button')
     document.body.append(control)
     fireEvent.keyDown(control, { key: 'ArrowRight' })
-    expect(result.current.index).toBe(1)
+    expect(result.current.index).toBe(2)
+    fireEvent.keyDown(control, { key: ' ', cancelable: true })
+    fireEvent.keyDown(control, { key: 'Enter', cancelable: true })
+    expect(result.current.index).toBe(2)
     control.remove()
+  })
+
+  it('ignores modified P shortcuts', () => {
+    const { result } = renderHook(() => usePresentationNav(3))
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true })
+    fireEvent.keyDown(window, { key: 'p', metaKey: true })
+    fireEvent.keyDown(window, { key: 'p', altKey: true })
+    expect(result.current.mode).toBe('browse')
+    fireEvent.keyDown(window, { key: 'p' })
+    expect(result.current.mode).toBe('present')
   })
 })
 

@@ -2,7 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TouchEvent } from 'react'
 import type { PresentationMode } from './types'
 
-const INTERACTIVE = 'button, a[href], input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="textbox"], [role="slider"], [role="combobox"]'
+// Native controls, focusable custom elements, and ARIA widgets own their keys.
+const WIDGET_ROLES = [
+  'button', 'checkbox', 'combobox', 'grid', 'gridcell', 'link', 'listbox',
+  'menu', 'menubar', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option',
+  'progressbar', 'radio', 'radiogroup', 'scrollbar', 'searchbox', 'separator',
+  'slider', 'spinbutton', 'switch', 'tab', 'tablist', 'textbox', 'toolbar',
+  'tree', 'treegrid', 'treeitem',
+]
+const INTERACTIVE = [
+  'button', 'a[href]', 'input', 'textarea', 'select', '[tabindex]',
+  '[contenteditable]:not([contenteditable="false"])',
+  ...WIDGET_ROLES.map(role => `[role~="${role}"]`),
+].join(', ')
 
 export function usePresentationNav(count: number, initialMode: PresentationMode = 'browse') {
   const [position, setPosition] = useState(0)

@@ -59,6 +59,18 @@ it('morphs continuing entities, delays newcomers, removes departures, and preser
 
 it('supports keyboard, controls, era jumps, focus protection, swipes, modes, and boundaries in Chromium', async () => {
   await page.goto(url); await settle()
+  await page.evaluate(() => {
+    const widget = document.createElement('div')
+    widget.id = 'custom-widget'
+    widget.setAttribute('role', 'listbox')
+    widget.tabIndex = 0
+    document.querySelector('[data-presentation-chrome]')!.appendChild(widget)
+    widget.focus()
+  })
+  await page.keyboard.press('p'); await page.keyboard.press('Space')
+  expect(await index()).toBe(0)
+  expect(await page.locator('[data-presentation-chrome]').getAttribute('data-presentation-mode')).toBe('browse')
+  await page.evaluate(() => document.getElementById('custom-widget')!.remove())
   await page.keyboard.press('ArrowLeft'); expect(await index()).toBe(0)
   await page.keyboard.press('Space'); expect(await index()).toBe(1)
   await page.keyboard.press('PageDown'); expect(await index()).toBe(2)
@@ -118,3 +130,31 @@ it('captures all settled steps at desktop and narrow sizes and checks canvas/chr
   }
   expect(errors).toEqual([])
 }, 30000)
+
+
+it('contains render and chunk-load failures with a usable recovery link at both viewport sizes', async () => {
+  for (const failure of ['render', 'chunk']) {
+    const failedPage = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+    const uncaught: string[] = []
+    failedPage.on('pageerror', error => uncaught.push(error.message))
+    try {
+      let blocked = false
+      if (failure === 'chunk') await failedPage.route('**/Talk-*.js', route => { blocked = true; return route.abort('failed') })
+      await failedPage.goto(`${url}${failure === 'render' ? '?empty' : ''}`)
+      await failedPage.getByRole('alert').waitFor()
+      expect(await failedPage.getByRole('alert').textContent()).toContain('Unable to open this presentation')
+      if (failure === 'chunk') expect(blocked).toBe(true)
+      const back = failedPage.getByRole('link', { name: 'Back to presentations' })
+      expect(await back.getAttribute('href')).toBe('/')
+      for (const [name, width, height] of [['desktop', 1440, 900], ['narrow', 390, 844]] as const) {
+        await failedPage.setViewportSize({ width, height })
+        const bounds = (await back.boundingBox())!
+        expect(bounds.x).toBeGreaterThanOrEqual(0)
+        expect(bounds.x + bounds.width).toBeLessThanOrEqual(width)
+        expect(bounds.y + bounds.height).toBeLessThanOrEqual(height)
+        await failedPage.screenshot({ path: `.artifacts/scene-kit/${failure}-error-${name}.png` })
+      }
+      expect(uncaught).toEqual([])
+    } finally { await failedPage.close() }
+  }
+}, 15000)

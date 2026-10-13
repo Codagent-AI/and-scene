@@ -60,3 +60,30 @@ describe('presentation navigation', () => {
     expect(result.current.mode).toBe('present')
   })
 })
+
+it.each([
+  ['tabindex', '0'], ['tabindex', '-1'], ['role', 'listbox'], ['role', 'tab'],
+  ['role', 'menuitem'], ['role', 'option'], ['role', 'switch'], ['role', 'checkbox'],
+  ['role', 'treeitem'], ['role', 'spinbutton'], ['role', 'menuitemradio'],
+])('preserves custom widget keys for %s="%s", including nested targets and active focus', (attribute, value) => {
+  const { result } = renderHook(() => usePresentationNav(3))
+  const widget = document.createElement('div')
+  widget.setAttribute(attribute, value)
+  const child = document.createElement('span')
+  widget.appendChild(child)
+  document.body.appendChild(widget)
+  try {
+    for (const command of ['P', ' ', 'ArrowRight']) {
+      const event = new KeyboardEvent('keydown', { key: command, bubbles: true, cancelable: true })
+      fireEvent(child, event)
+      expect(event.defaultPrevented).toBe(false)
+    }
+    widget.tabIndex = 0
+    widget.focus()
+    const event = new KeyboardEvent('keydown', { key: 'p', cancelable: true })
+    fireEvent(window, event)
+    expect(event.defaultPrevented).toBe(false)
+    expect(result.current.index).toBe(0)
+    expect(result.current.mode).toBe('browse')
+  } finally { widget.remove() }
+})

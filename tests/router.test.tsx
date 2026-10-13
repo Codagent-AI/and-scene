@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { useState } from 'react'
 import { expect, it, vi } from 'vitest'
 import { Host } from '../src/Host'
 import { Landing } from '../src/Landing'
@@ -31,4 +32,48 @@ it('retains the loaded component instance on host rerenders', async () => {
   const input = await screen.findByRole('textbox', { name: 'Draft' })
   rerender(<Host pathname="/stable" entries={entries} />)
   expect(screen.getByRole('textbox', { name: 'Draft' })).toBe(input)
+})
+it.each(['/demo/', '/demo///'])('loads a presentation from trailing-slash route %s', async pathname => {
+  const entries = [{ slug: 'demo', title: 'Demo', load: async () => ({ default: () => <div>Trailing slash presentation</div> }) }]
+  render(<Host pathname={pathname} entries={entries} />)
+  expect(await screen.findByText('Trailing slash presentation')).toBeInTheDocument()
+})
+
+it('recovers from a rejected lazy import and allows navigating to another presentation', async () => {
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+  try {
+    const entries = [
+      { slug: 'broken', title: 'Broken', load: async () => { throw new Error('Chunk unavailable') } },
+      { slug: 'working', title: 'Working', load: async () => ({ default: () => <div>Working presentation</div> }) },
+    ]
+    const { rerender } = render(<Host pathname="/broken" entries={entries} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to open this presentation')
+    expect(screen.getByRole('link', { name: 'Back to presentations' })).toHaveAttribute('href', '/')
+    rerender(<Host pathname="/working" entries={entries} />)
+    expect(await screen.findByText('Working presentation')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
+    rerender(<Host pathname="/" entries={entries} />)
+    expect(screen.getByRole('link', { name: 'Working' })).toHaveAttribute('href', '/working')
+  } finally { logged.mockRestore() }
+})
+
+it('contains render errors when a presentation step list becomes empty', async () => {
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+  try {
+    const { Presentation } = await import('../src/presentation-kit/Presentation')
+    function AsyncPresentation() {
+      const [empty, setEmpty] = useState(false)
+      return <>
+        <button onClick={() => setEmpty(true)}>Clear steps</button>
+        <Presentation title="Async presentation" steps={empty ? [] : [{ id: 'one', era: 'begin', title: 'First', caption: 'Caption', Scene: () => <div>Initial scene</div>, payload: undefined }]} />
+      </>
+    }
+    const entries = [{ slug: 'async', title: 'Async', load: async () => ({ default: AsyncPresentation }) }]
+    const { rerender } = render(<Host pathname="/async" entries={entries} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear steps' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to open this presentation')
+    expect(screen.getByRole('link', { name: 'Back to presentations' })).toHaveAttribute('href', '/')
+    rerender(<Host pathname="/" entries={entries} />)
+    expect(screen.getByRole('link', { name: 'Async' })).toBeInTheDocument()
+  } finally { logged.mockRestore() }
 })

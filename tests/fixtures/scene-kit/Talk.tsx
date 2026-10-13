@@ -41,5 +41,6 @@ const steps: Step<Payload>[] = [
   { id: 'close', era: 'the close', title: 'Carry the idea through', caption: 'A separate scene closes the story. Shared entity identities connect the final transition.', Scene: Closing, payload: { beat: 3 } },
 ]
 export default function Talk() {
-  return <Presentation steps={steps} title="Scene kit exercise" initialMode="browse" className="fixture" />
+  const empty = new URLSearchParams(window.location.search).has('empty')
+  return <Presentation steps={empty ? [] : steps} title="Scene kit exercise" initialMode="browse" className="fixture" />
 }

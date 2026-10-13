@@ -6,13 +6,23 @@ import type { PresentationMode } from './types'
 
 interface StageProps<TPayload> { steps: Step<TPayload>[]; index: number; mode: PresentationMode; swipeRef: (element: HTMLDivElement | null) => void }
 
+const sceneIdentities = new WeakMap<object, number>()
+let nextSceneIdentity = 0
+
+function sceneIdentity(Scene: object) {
+  let identity = sceneIdentities.get(Scene)
+  if (identity === undefined) {
+    identity = nextSceneIdentity++
+    sceneIdentities.set(Scene, identity)
+  }
+  return identity
+}
+
 export function Stage<TPayload>({ steps, index, mode, swipeRef }: StageProps<TPayload>) {
   const step = steps[index]
   const scale = useFitScale(mode)
   if (!step) return null
-  const previous = steps[index - 1]
-  const continuingGroup = Boolean(previous?.groupKey && previous.groupKey === step.groupKey && previous.Scene === step.Scene)
-  const sceneKey = step.groupKey && (continuingGroup || !previous) ? step.groupKey : step.id
+  const sceneKey = step.groupKey ? `${step.groupKey}:${sceneIdentity(step.Scene)}` : step.id
   const SceneComponent = step.Scene
   return (
     <div ref={swipeRef} data-presentation-stage data-step-count={steps.length} data-step-index={index}>

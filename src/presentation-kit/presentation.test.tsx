@@ -52,4 +52,34 @@ describe('Presentation', () => {
     expect(screen.getByText('two')).toBeInTheDocument()
     expect(mounts).toBe(1)
   })
+
+  it('keeps a grouped scene mounted when its group starts after another scene', () => {
+    let groupMounts = 0
+    const OtherScene = ({ payload }: { payload: Payload }) => <div>{payload.label}</div>
+    const GroupScene = ({ payload }: { payload: Payload }) => {
+      useEffect(() => { groupMounts += 1 }, [])
+      return <div>{payload.label}</div>
+    }
+    const afterOtherScene: Step<Payload>[] = [
+      { ...steps[0]!, id: 'other', groupKey: undefined, Scene: OtherScene },
+      { ...steps[1]!, id: 'group-first', groupKey: 'group', Scene: GroupScene },
+      { ...steps[2]!, id: 'group-second', groupKey: 'group', Scene: GroupScene },
+    ]
+    render(<Presentation steps={afterOtherScene} title="Demo" />)
+    const progress = screen.getByRole('navigation', { name: 'Step progress' })
+    fireEvent.click(progress.querySelector('[aria-label="Step 2"]')!)
+    expect(screen.getByText('two')).toBeInTheDocument()
+    fireEvent.click(progress.querySelector('[aria-label="Step 3"]')!)
+    expect(screen.getByText('three')).toBeInTheDocument()
+    expect(groupMounts).toBe(1)
+  })
+
+  it('preserves an in-progress swipe across a navigation rerender', () => {
+    render(<Presentation steps={steps} title="Demo" />)
+    const stage = document.querySelector('[data-presentation-stage]')!
+    fireEvent.touchStart(stage, { touches: [{ clientX: 200, clientY: 20 }] })
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.touchEnd(stage, { changedTouches: [{ clientX: 80, clientY: 22 }] })
+    expect(screen.getByRole('region', { name: 'Presentation' })).toHaveAttribute('data-step-index', '2')
+  })
 })

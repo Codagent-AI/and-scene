@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { PresentationMode } from './types'
 
 const INTERACTIVE = 'button, a, input, textarea, select, [contenteditable="true"], [role="button"]'
@@ -11,6 +11,12 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
   const next = useCallback(() => goTo(index + 1), [goTo, index])
   const prev = useCallback(() => goTo(index - 1), [goTo, index])
   const toggleMode = useCallback(() => setMode(current => current === 'browse' ? 'present' : 'browse'), [])
+  const nextRef = useRef(next)
+  const prevRef = useRef(prev)
+  useLayoutEffect(() => {
+    nextRef.current = next
+    prevRef.current = prev
+  }, [next, prev])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -36,15 +42,15 @@ export function usePresentationNav(stepCount: number, initialMode: PresentationM
       const dx = touch.clientX - start.x
       const dy = touch.clientY - start.y
       if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.3) {
-        if (dx < 0) next()
-        else prev()
+        if (dx < 0) nextRef.current()
+        else prevRef.current()
       }
       start = null
     }
     element.addEventListener('touchstart', onStart, { passive: true })
     element.addEventListener('touchend', onEnd, { passive: true })
     return () => { element.removeEventListener('touchstart', onStart); element.removeEventListener('touchend', onEnd) }
-  }, [next, prev])
+  }, [])
 
   return { index, mode, setMode, goTo, next, prev, toggleMode, bindSwipe }
 }

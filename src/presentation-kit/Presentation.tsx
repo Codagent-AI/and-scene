@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PresentationMode, Step } from './types'
 import { Header } from './chrome/Header'
 import { Footer } from './chrome/Footer'
@@ -25,7 +25,12 @@ export function Presentation<TPayload>({ steps, title, initialMode = 'browse', a
     return () => window.removeEventListener('resize', update)
   }, [])
   const swipeCleanup = useRef<(() => void) | undefined>(undefined)
-  const setStage = (element: HTMLDivElement | null) => { swipeCleanup.current?.(); swipeCleanup.current = nav.bindSwipe(element) }
+  const bindSwipe = nav.bindSwipe
+  const setStage = useCallback((element: HTMLDivElement | null) => {
+    swipeCleanup.current?.()
+    swipeCleanup.current = bindSwipe(element)
+  }, [bindSwipe])
+  useEffect(() => () => swipeCleanup.current?.(), [])
   const active = safeSteps[nav.index]
   return <section aria-label="Presentation" role="region" data-presentation-root data-presentation-mode={nav.mode} data-step-count={safeSteps.length} data-step-index={nav.index} style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
     <Header title={active?.title ?? title} era={active?.era ?? ''} stepNumber={nav.index + 1} mode={nav.mode} brand={brand} />

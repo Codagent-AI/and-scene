@@ -26,3 +26,5 @@ validator_logs
 
 # Local browser inspection artifacts
 .artifacts/
+
+.inspection/

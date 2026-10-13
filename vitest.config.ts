@@ -9,6 +9,6 @@ export default defineConfig({
     testTimeout: 30000,
     setupFiles: ['tests/setup.ts'],
     include: ['tests/**/*.test.{ts,tsx}'],
-    exclude: ['tests/e2e/**'],
+    exclude: ['tests/e2e/**', 'tests/integration/**'],
   },
 })

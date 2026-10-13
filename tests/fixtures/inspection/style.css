@@ -1,0 +1,12 @@
+.inspection-fixture { background: white; color: black; font-family: sans-serif; }
+.inspection-fixture button { color: black; background: white; border: 1px solid black; }
+.inspection-fixture [data-presentation-toc] { display: flex; flex-direction: column; gap: 8px; }
+.inspection-fixture [data-presentation-attribution] { font-size: 9px; }
+.collision { position: absolute; top: 50px; left: 50px; }
+.second { left: 65px; }
+.allowed { position: absolute; top: 150px; left: 50px; }
+.settle-pixel { position: fixed; top: 250px; left: 300px; width: 80px; height: 80px; }
+
+.inspection-fixture:has([data-fixture-beat="2"]) [data-presentation-attribution] {
+  font-size: 16px; color: #0000ee; text-decoration: underline;
+}

@@ -33,9 +33,9 @@ entry in `src/presentations/index.ts` to register another route.
 presentations, and renders every route exposed by the landing page in production
 Chromium. `verify.config.json` defines reference slugs and their ordered titles
 and captions; an empty `referencePresentations` array supports apps without the
-canonical sample. Verification requires at least one reachable presentation and
-landing links for every registered route; add the first presentation before
-verifying an empty scaffold. The distributable verifier and its empty config live in
+canonical sample. An empty registry verifies the landing page only; once registered,
+every presentation must have a reachable landing link and pass all-step rendering.
+The distributable verifier and its empty config live in
 `skills/presentation/templates/bootstrap/`.
 
 Verification probes an available port on `127.0.0.1`; set `VERIFY_PORT` to reserve
@@ -47,3 +47,18 @@ The separate `test:e2e` suite runs production verification in disposable copies
 under ignored `.artifacts/`, injecting build, sample, browser, and navigation
 faults and checking that each preview port is released. It is excluded from
 `npm test`. Browser installation is required for both suites and verification.
+
+## Distributable presentation skill
+
+Use [skills/presentation/SKILL.md](skills/presentation/SKILL.md) to create or modify
+presentations in standalone projects or monorepos. Its bootstrap is a complete,
+style-neutral app with an empty registry and committed dependency lock. The
+per-presentation template provides a typed, two-step evolving scene and a CSS
+stub for the author's visual choices; it carries no reference sample or theme.
+
+After changing the canonical scene kit or browser scripts, run
+`node scripts/sync-templates.mjs` to refresh their release snapshots. Unit
+contracts reject missing, extra, or changed kit files and either driver drifting.
+`npm run test:integration` includes INT-001: copy the bootstrap outside this
+repository, install its own lock with `npm ci`, lint, build, verify the empty app,
+then register the presentation template and verify/inspect its real route.

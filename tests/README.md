@@ -16,7 +16,9 @@ motion, delayed entry, departure, controls, keyboard/touch input, focus behavior
 and mode/viewport changes. It writes settled first-through-last screenshots to
 `.artifacts/scene-kit/{desktop,narrow}-step-{1,2,3,4}.png` for visual review.
 The fixture is not registered in the application.
-The test closes its browser and preview server even after failure.
+Motion probes sample animation frames inside Chromium so browser round-trip
+latency cannot skip the interval being checked. The test closes its browser and
+preview server even after failure.
 
 For interactive inspection, after the browser tests have built the fixture:
 
@@ -46,9 +48,15 @@ browser failures exit nonzero. Only intentional readable compositions should
 use `data-presentation-allow-overlap` on the relevant subtree. Screenshots are
 ignored inspection artifacts and require visual review, not pass/fail evidence.
 
-`npm run test:integration` runs INT-002 separately from `npm test`. It registers
+`npm run test:integration` runs INT-001 and INT-002 separately from `npm test`. It registers
 controlled fixtures only in a disposable repository-local copy, tests advisory
 warnings and exemptions, decodes captured pixels to prove delayed scene content
 settled, checks missing attribution and genuine failures, and confirms the sample
 is warning-free at desktop and narrow sizes. The helper's bootstrap copy must
 remain byte-aligned with `scripts/inspect-presentation.mjs`.
+
+INT-001 materializes the complete bootstrap in an OS temporary directory outside
+the repository, installs from its own lock data (no node_modules symlink), verifies
+the empty registry, then registers the two-step presentation template and lints,
+builds, renders both steps through `npm run verify`, and captures them with its
+local inspection helper. The disposable app is removed after the test.

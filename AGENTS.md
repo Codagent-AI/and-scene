@@ -1,8 +1,9 @@
 # And Scene
 
 Implement the `create-and-scene` OpenSpec change in this repository and verify
-both behavior and visual composition before reporting completion. The target
-application, skill, scene kit, and scripts intentionally do not exist yet.
+both behavior and visual composition before reporting completion. The application
+and canonical scene kit live in `src/`; the distributable skill and scaffold
+templates live in `skills/presentation/`.
 
 ## Source of Truth
 
@@ -17,7 +18,7 @@ repository.
 
 ## Target Project Map
 
-The change creates these primary areas:
+The project has these primary areas:
 
 - `skills/presentation/`: distributable agent skill and scaffold templates
 - `src/presentation-kit/`: canonical vendored React scene kit
@@ -70,7 +71,9 @@ npm run inspect -- how-to-make-a-presentation
 
 - Keep `src/presentation-kit/` byte-aligned with its bootstrap-template copy.
 - Keep root verification and inspection scripts aligned with their bootstrap
-  template copies when changing scaffolded behavior.
+  template copies when changing scaffolded behavior. Run
+  `node scripts/sync-templates.mjs` to refresh both scripts and the kit snapshot;
+  `npm test` checks for drift.
 - Preserve the style-neutral kit contract. Presentations own colors,
   typography, spacing, and component treatments; do not add a required CSS
   framework or design system to the kit.

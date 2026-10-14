@@ -109,7 +109,6 @@ try {
   phase = 'sample'
   for (const reference of references) if (!routes.includes(reference.slug)) fail(`Reference ${reference.slug} is absent from landing links`)
   for (const registered of registry) if (!routes.includes(registered)) fail(`Registered presentation ${registered} is absent from landing links`)
-  if (routes.length === 0) { phase = 'render'; fail('Landing page exposes no presentation links') }
   for (slug of routes) {
     phase = 'render'
     step = 0

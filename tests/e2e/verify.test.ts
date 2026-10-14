@@ -126,15 +126,14 @@ it('requires landing links for every registered route, including non-reference p
   expect(result.output).not.toContain('PASS')
 })
 
-it('rejects an empty application instead of claiming to verify zero presentations', async () => {
+it('verifies the landing page of an empty bootstrap without claiming presentation coverage', async () => {
   const result = await runFixture(async dir => {
     await writeFile(join(dir, 'verify.config.json'), '{"referencePresentations": []}')
     const file = join(dir, 'src/presentations/index.ts')
     const source = await readFile(file, 'utf8')
     await writeFile(file, source.replace(/export const presentations: PresentationEntry\[\] = \[[\s\S]*$/, 'export const presentations: PresentationEntry[] = []\n'))
   })
-  expect(result.code).not.toBe(0)
-  expect(result.output).toContain('FAIL phase=render')
-  expect(result.output).toContain('Landing page exposes no presentation links')
-  expect(result.output).not.toContain('PASS')
+  expect(result.code).toBe(0)
+  expect(result.output).toContain('PASS build, sample, render, transition (0 presentations)')
+  expect(result.output).not.toMatch(/step \d+ OK/)
 })

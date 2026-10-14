@@ -5,7 +5,8 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/integration/**/*.test.ts'],
     fileParallelism: false,
-    testTimeout: 240000,
+    // Filesystem installation plus several production browser subprocesses.
+    testTimeout: 600000,
     reporters: ['verbose'],
   },
 })

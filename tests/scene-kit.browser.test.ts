@@ -39,18 +39,39 @@ it('morphs continuing entities, delays newcomers, removes departures, and preser
   const anchor = page.getByTestId('anchor')
   const handle = await anchor.elementHandle()
   const instance = await page.locator('[data-scene-instance]').getAttribute('data-scene-instance')
-  const before = await anchor.boundingBox()
-  await page.keyboard.press('ArrowRight')
+  // Sample on browser frames: IPC latency must not turn a mid-morph probe into
+  // a settled-state probe on a loaded runner. Navigation is exercised below.
+  const motion = await page.evaluate(async () => {
+    const anchor = document.querySelector('[data-testid="anchor"]')!
+    const before = anchor.getBoundingClientRect().x
+    const positions: number[] = [], opacities: number[] = []
+    let firstVisibleX: number | null = null
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    const start = performance.now()
+    await new Promise<void>(resolve => {
+      function sample() {
+        positions.push(anchor.getBoundingClientRect().x)
+        const newcomer = document.querySelector('[data-testid="new"]')
+        if (newcomer) {
+          const opacity = Number(getComputedStyle(newcomer).opacity)
+          opacities.push(opacity)
+          if (opacity > 0.05 && firstVisibleX === null) firstVisibleX = anchor.getBoundingClientRect().x
+        }
+        if (performance.now() - start >= 950) resolve()
+        else requestAnimationFrame(sample)
+      }
+      requestAnimationFrame(sample)
+    })
+    return { before, after: anchor.getBoundingClientRect().x, positions, opacities, firstVisibleX }
+  })
   await expect.poll(index).toBe(1)
   expect(await page.locator('[data-scene-instance]').getAttribute('data-scene-instance')).toBe(instance)
   expect(await anchor.evaluate((element, prior) => element === prior, handle)).toBe(true)
-  expect(await page.getByTestId('new').evaluate(element => Number(getComputedStyle(element).opacity))).toBeLessThan(0.1)
-  await page.waitForTimeout(150)
-  const during = await anchor.boundingBox()
-  await settle()
-  const after = await anchor.boundingBox()
-  expect(before!.x).toBeLessThan(during!.x)
-  expect(during!.x).toBeLessThan(after!.x)
+  expect(Math.min(...motion.opacities)).toBeLessThan(0.1)
+  expect(motion.firstVisibleX).not.toBeNull()
+  expect(motion.firstVisibleX!).toBeCloseTo(motion.after, 0)
+  expect(motion.after).toBeGreaterThan(motion.before)
+  expect(motion.positions.some(x => x > motion.before + 1 && x < motion.after - 1)).toBe(true)
   expect(await page.getByTestId('new').evaluate(element => Number(getComputedStyle(element).opacity))).toBe(1)
   expect(await page.getByTestId('depart').count()).toBe(0)
   expect(await anchor.evaluate(element => Number(getComputedStyle(element).opacity))).toBe(1)
@@ -93,16 +114,28 @@ it('supports keyboard, controls, era jumps, focus protection, swipes, modes, and
   expect(await index()).toBe(2)
   await page.keyboard.press('PageUp'); expect(await index()).toBe(1)
   await page.keyboard.press('ArrowRight'); await settle()
-  const previous = (await page.getByTestId('anchor').boundingBox())!
-  await page.getByRole('button', { name: 'Go to step 4: Carry the idea through' }).click()
-  await page.waitForTimeout(100)
-  const morphing = (await page.getByTestId('anchor').last().boundingBox())!
+  const morph = await page.evaluate(async () => {
+    const previous = document.querySelector('[data-testid="anchor"]')!.getBoundingClientRect().height
+    const heights: number[] = []
+    document.querySelector<HTMLButtonElement>('[aria-label="Go to step 4: Carry the idea through"]')!.click()
+    const start = performance.now()
+    await new Promise<void>(resolve => {
+      function sample() {
+        const anchors = document.querySelectorAll('[data-testid="anchor"]')
+        heights.push(anchors[anchors.length - 1].getBoundingClientRect().height)
+        if (performance.now() - start >= 950) resolve()
+        else requestAnimationFrame(sample)
+      }
+      requestAnimationFrame(sample)
+    })
+    return { previous, heights }
+  })
   await page.evaluate(() => (document.activeElement as HTMLElement)?.blur())
   await page.keyboard.press('ArrowRight'); expect(await index()).toBe(3)
   await settle()
   const final = (await page.getByTestId('anchor').boundingBox())!
-  expect(morphing.height).toBeGreaterThan(previous.height)
-  expect(morphing.height).toBeLessThan(final.height)
+  expect(final.height).toBeGreaterThan(morph.previous)
+  expect(morph.heights.some(height => height > morph.previous + 0.1 && height < final.height - 0.1)).toBe(true)
   expect(await page.locator('[data-scene-instance]').getAttribute('data-scene-instance')).toBe('closing')
   expect(errors).toEqual([])
 })

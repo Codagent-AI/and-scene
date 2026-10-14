@@ -343,7 +343,8 @@ export function scaffold(projectDir, { confirm = false, install = true } = {}) {
 
 // ── Presentations ────────────────────────────────────────────────────────────
 
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+// Must start with a letter: the slug becomes a CSS class selector, and `.2024-recap` is invalid CSS.
+const SLUG_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/
 
 /** Escapes text for a single-quoted TypeScript string literal. */
 export function tsStringLiteralBody(text) {
@@ -357,7 +358,7 @@ function registeredSlugs(source) {
 /** Copies the presentation template into src/presentations/<slug> and registers it. */
 export function addPresentation(appDir, { slug, title }) {
   if (!SLUG_PATTERN.test(slug ?? '')) {
-    throw new HelperError(`slug "${slug}" must be lowercase words joined by hyphens, e.g. how-to-cook-rice`)
+    throw new HelperError(`slug "${slug}" must start with a lowercase letter and use lowercase words joined by hyphens, e.g. how-to-cook-rice`)
   }
   if (!title || !title.trim() || /[\r\n]/.test(title)) {
     throw new HelperError('title must be a single non-empty line')
@@ -396,7 +397,8 @@ export function addPresentation(appDir, { slug, title }) {
     `${indent}  load: () => import('./${slug}/Talk'),`,
     `${indent}},`,
   ].join('\n')
-  writeFileSync(registryFile, registry.replace(markerLine, `${entry}\n${markerLine}`))
+  // A function replacer keeps `$&`, `$'`, and `$$` in titles literal.
+  writeFileSync(registryFile, registry.replace(markerLine, () => `${entry}\n${markerLine}`))
 
   return { slug, title, dir: relative(appDir, dir), files, registry: REGISTRY }
 }

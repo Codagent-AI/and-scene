@@ -171,6 +171,18 @@ describe('add a presentation', () => {
     expect(registry.indexOf("slug: 'my-talk'")).toBeLessThan(registry.indexOf('// @presentation-registry'))
   })
 
+  it('writes titles containing replacement patterns literally into the registry', () => {
+    const root = tempDir('and-scene-dollar-')
+    run(['scaffold', root, '--no-install'])
+    const title = 'Costs $& and $\' and $$ more'
+    const result = run(['add', root, '--slug', 'costs', '--title', title])
+    expect(result.status, result.stderr).toBe(0)
+    const registry = readFileSync(join(root, 'src/presentations/index.ts'), 'utf8')
+    expect(registry).toContain(`title: '${title.replace(/'/g, "\\'")}',`)
+    expect(registry).toContain('// @presentation-registry')
+    expect(registry.match(/export const PRESENTATIONS/g)).toHaveLength(1)
+  })
+
   it('keeps existing presentations registered when adding another', () => {
     const root = tempDir('and-scene-two-')
     run(['scaffold', root, '--no-install'])
@@ -186,6 +198,8 @@ describe('add a presentation', () => {
     const root = tempDir('and-scene-reject-')
     run(['scaffold', root, '--no-install'])
     expect(run(['add', root, '--slug', 'Bad Slug', '--title', 'x']).status).toBe(1)
+    // A leading digit makes `.<slug>` an invalid CSS class selector, which would silently unstyle the deck.
+    expect(run(['add', root, '--slug', '2024-recap', '--title', 'x']).status).toBe(1)
     expect(run(['add', root, '--slug', 'ok-slug', '--title', '   ']).status).toBe(1)
     expect(run(['add', root, '--slug', 'ok-slug', '--title', 'Fine']).status).toBe(0)
     const duplicate = run(['add', root, '--slug', 'ok-slug', '--title', 'Again'])

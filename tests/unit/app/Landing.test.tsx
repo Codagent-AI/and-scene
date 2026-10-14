@@ -1,12 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { Landing } from '../../../src/Landing'
-import { PRESENTATIONS } from '../../../src/presentations'
 
 describe('Landing', () => {
   it('renders sensibly with an empty registry', () => {
-    expect(PRESENTATIONS).toEqual([])
-    render(<Landing entries={PRESENTATIONS} />)
+    render(<Landing entries={[]} />)
     expect(screen.getByRole('heading', { level: 1 })).toBeTruthy()
     expect(screen.getByText(/no presentations/i)).toBeTruthy()
   })

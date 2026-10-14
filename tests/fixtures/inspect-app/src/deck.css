@@ -1,0 +1,116 @@
+/* Presentation-owned styling for the INT-002 fixture. Variant flags turn individual treatments off. */
+.deck {
+  min-height: 100dvh;
+  line-height: 1.5;
+  background: #f6f3ec;
+  color: #1d2433;
+  font-family: system-ui, sans-serif;
+}
+
+.deck [data-presentation-header] {
+  padding: 0 24px;
+  gap: 14px;
+  box-sizing: border-box;
+}
+
+.deck [data-presentation-marker] {
+  font: 600 13px ui-monospace, monospace;
+  color: #f6f3ec;
+  background: #1d2433;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.deck h1[data-presentation-title] {
+  margin: 0;
+  font: 400 24px Georgia, serif;
+}
+
+.deck [data-presentation-mode-toggle] {
+  right: 24px;
+  font: 600 13px system-ui, sans-serif;
+  color: #1d2433;
+  background: transparent;
+  border: 1px solid #1d2433;
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.deck [data-presentation-toc] {
+  padding: 18px 12px 18px 24px;
+  box-sizing: border-box;
+}
+
+.deck [data-presentation-toc-entry] {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: 500 14px system-ui, sans-serif;
+  color: #5b6475;
+  background: none;
+  border: 0;
+  border-left: 3px solid transparent;
+  padding: 6px 10px;
+}
+
+.deck:not(.is-indistinct) [data-presentation-toc-entry][data-presentation-active='true'] {
+  color: #1d2433;
+  font-weight: 700;
+  background: #e4efe9;
+  border-left-color: #0f6b5c;
+}
+
+.deck [data-presentation-caption] {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 24px;
+  font: 400 16px/1.5 Georgia, serif;
+  text-align: center;
+}
+
+.deck [data-presentation-footer] > div:not([data-presentation-caption]) {
+  justify-content: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.deck [data-presentation-progress] {
+  gap: 10px;
+  align-items: center;
+}
+
+.deck [data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid #5b6475;
+  background: transparent;
+  padding: 0;
+}
+
+.deck:not(.is-indistinct) [data-presentation-progress-item][data-presentation-active='true'] {
+  background: #0f6b5c;
+  border-color: #0f6b5c;
+  box-shadow: 0 0 0 4px #bfdcd3;
+  transform: scale(1.25);
+}
+
+.deck [data-presentation-prev],
+.deck [data-presentation-next] {
+  font: 600 13px system-ui, sans-serif;
+  color: #1d2433;
+  background: #fff;
+  border: 1px solid #c9c4b6;
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.deck:not(.is-plain-attribution) [data-presentation-attribution] {
+  font: 500 13px system-ui, sans-serif;
+  color: #1d2433;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: #f6f3ec;
+  padding: 2px 6px;
+  border-radius: 4px;
+}

@@ -1,0 +1,346 @@
+/* Presentation-owned styling for the reference sample, imported by Talk.tsx. The scene kit ships none of this. */
+
+.how-to-make-a-presentation {
+  --paper: #f6f3ec;
+  --ink: #1d2433;
+  --muted: #5b6475;
+  --rule: #c9c4b6;
+  --accent: #0f6b5c;
+  --amber: #a86412;
+  --green: #22703f;
+
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Header: marker, browse title, and mode toggle. */
+.how-to-make-a-presentation [data-presentation-header] {
+  padding: 0 24px;
+  gap: 14px;
+  box-sizing: border-box;
+}
+
+.how-to-make-a-presentation [data-presentation-marker] {
+  font: 600 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.how-to-make-a-presentation h1[data-presentation-title] {
+  margin: 0;
+  min-width: 0;
+  /* Keeps a long browse title wrapping clear of the Present toggle on narrow viewports. */
+  padding-right: 120px;
+  font: 400 24px Georgia, 'Iowan Old Style', serif;
+  letter-spacing: -0.01em;
+}
+
+.how-to-make-a-presentation [data-presentation-mode-toggle] {
+  right: 24px;
+  font: 600 13px system-ui, sans-serif;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+/* Table of contents: wide browse viewports only. */
+.how-to-make-a-presentation [data-presentation-toc] {
+  padding: 18px 12px 18px 24px;
+  box-sizing: border-box;
+}
+
+.how-to-make-a-presentation [data-presentation-toc-entry] {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: 500 14px system-ui, sans-serif;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-left: 3px solid transparent;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.how-to-make-a-presentation [data-presentation-toc-entry][data-presentation-active='true'] {
+  color: var(--ink);
+  font-weight: 700;
+  background: #e4efe9;
+  border-left-color: var(--accent);
+}
+
+/* Footer: caption, progress, and prev/next. */
+.how-to-make-a-presentation [data-presentation-caption] {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 24px;
+  font: 400 16px/1.5 Georgia, 'Iowan Old Style', serif;
+  text-align: center;
+  color: var(--ink);
+}
+
+.how-to-make-a-presentation [data-presentation-footer] > div:not([data-presentation-caption]) {
+  justify-content: center;
+  gap: 14px;
+  margin: 12px 0 24px;
+}
+
+.how-to-make-a-presentation [data-presentation-prev],
+.how-to-make-a-presentation [data-presentation-next] {
+  font: 600 13px system-ui, sans-serif;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.how-to-make-a-presentation [data-presentation-prev]:disabled,
+.how-to-make-a-presentation [data-presentation-next]:disabled {
+  color: #9aa0ad;
+  cursor: default;
+}
+
+.how-to-make-a-presentation [data-presentation-progress] {
+  gap: 10px;
+  align-items: center;
+}
+
+.how-to-make-a-presentation [data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.how-to-make-a-presentation [data-presentation-progress-item][data-presentation-active='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px #bfdcd3;
+  transform: scale(1.25);
+}
+
+/* Attribution: legible, underlined, and clear of the progress row. */
+.how-to-make-a-presentation [data-presentation-attribution] {
+  font: 500 13px system-ui, sans-serif;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: var(--paper);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Diagram entities on the 880 x 380 canvas. */
+.how-to-make-a-presentation .pn-person,
+.how-to-make-a-presentation .pn-bubble,
+.how-to-make-a-presentation .pn-chip,
+.how-to-make-a-presentation .pn-card,
+.how-to-make-a-presentation .pn-kit,
+.how-to-make-a-presentation .pn-depth {
+  box-sizing: border-box;
+}
+
+.how-to-make-a-presentation .pn-person {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  font: 600 16px system-ui, sans-serif;
+}
+
+.how-to-make-a-presentation .pn-person [data-presentation-glyph] {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+
+.how-to-make-a-presentation .pn-bubble {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fffdf5;
+  border: 1.5px solid var(--amber);
+  border-radius: 14px;
+  font: 500 14px system-ui, sans-serif;
+  color: var(--amber);
+}
+
+.how-to-make-a-presentation .pn-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #fff;
+  font: 600 13px system-ui, sans-serif;
+  white-space: nowrap;
+}
+
+.how-to-make-a-presentation .pn-arrow {
+  color: #3b4456;
+}
+
+.how-to-make-a-presentation .pn-arrow line {
+  stroke-width: 1.6;
+}
+
+.how-to-make-a-presentation .pn-tray {
+  background: rgba(29, 36, 51, 0.045);
+  border-radius: 16px;
+}
+
+.how-to-make-a-presentation .pn-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.how-to-make-a-presentation .pn-card-title {
+  font: 700 13px system-ui, sans-serif;
+}
+
+.how-to-make-a-presentation .pn-card-caption {
+  font: 400 11px/1.35 system-ui, sans-serif;
+  color: var(--muted);
+}
+
+.how-to-make-a-presentation .pn-card-visual {
+  margin-top: auto;
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+}
+
+.how-to-make-a-presentation .pn-card-flagged {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px #f4e2c4;
+}
+
+.how-to-make-a-presentation .pn-flag {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  font: 700 10px system-ui, sans-serif;
+  color: #fff;
+  background: var(--amber);
+  border-radius: 999px;
+  padding: 2px 6px;
+}
+
+.how-to-make-a-presentation .pn-ghost {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--muted);
+}
+
+.how-to-make-a-presentation .pn-ghost .pn-card-title {
+  color: var(--muted);
+}
+
+.how-to-make-a-presentation .pn-depth {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid var(--rule);
+  font: 600 11px system-ui, sans-serif;
+  color: var(--muted);
+}
+
+.how-to-make-a-presentation .pn-depth-on {
+  color: #ffffff;
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.how-to-make-a-presentation .pn-verify {
+  border-color: var(--green);
+}
+
+.how-to-make-a-presentation .pn-verify [data-presentation-glyph] {
+  color: var(--green);
+}
+
+.how-to-make-a-presentation .pn-pass {
+  font: 700 11px system-ui, sans-serif;
+  color: #fff;
+  background: var(--green);
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-top: auto;
+}
+
+.how-to-make-a-presentation .pn-kit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1.5px solid var(--accent);
+  border-radius: 10px;
+  font: 600 14px system-ui, sans-serif;
+  color: var(--accent);
+}
+
+.how-to-make-a-presentation .pn-kit [data-presentation-glyph] {
+  width: 18px;
+  height: 18px;
+}
+
+.how-to-make-a-presentation .pn-plug {
+  color: var(--accent);
+}
+
+.how-to-make-a-presentation .pn-modify {
+  color: var(--amber);
+}
+
+.how-to-make-a-presentation .pn-morph {
+  font: 600 10px system-ui, sans-serif;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.how-to-make-a-presentation .pn-modify-label {
+  font: 600 11px system-ui, sans-serif;
+  white-space: nowrap;
+}
+
+.how-to-make-a-presentation .pn-modify-label {
+  color: var(--amber);
+}
+
+.how-to-make-a-presentation .pn-reveal {
+  border: 2px dashed var(--accent);
+  border-radius: 18px;
+}
+
+.how-to-make-a-presentation .pn-reveal-label {
+  font: 700 12px system-ui, sans-serif;
+  color: var(--accent);
+  white-space: nowrap;
+}

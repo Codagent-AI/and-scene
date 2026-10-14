@@ -1,25 +1,25 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useSyncExternalStore } from 'react'
+import { WIDE_VIEWPORT } from './constants'
+import { computeFitScale, stageRect, type StageRect } from './geometry'
+import type { PresentationMode } from './types'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+function subscribe(onChange: () => void) {
+  window.addEventListener('resize', onChange)
+  return () => window.removeEventListener('resize', onChange)
+}
 
 /**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
+ * Re-renders only on viewport resize or mode change. Step navigation does not
+ * change the scale, so layout morphs stay clean within a mode.
  */
-export function useFitScale(layout: StageLayout) {
-  const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
-    }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+export function useFitScale(mode: PresentationMode): { scale: number; rect: StageRect; wide: boolean } {
+  // Snapshots must be primitives: an object snapshot is a new value per read.
+  const width = useSyncExternalStore(subscribe, () => window.innerWidth, () => 0)
+  const height = useSyncExternalStore(subscribe, () => window.innerHeight, () => 0)
+  const size = { viewportWidth: width, viewportHeight: height, mode }
+  return {
+    scale: computeFitScale(size),
+    rect: stageRect(size),
+    wide: width >= WIDE_VIEWPORT,
+  }
 }

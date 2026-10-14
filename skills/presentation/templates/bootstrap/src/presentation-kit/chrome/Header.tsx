@@ -1,60 +1,36 @@
-import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
-import { EASE } from '../constants'
+import { hookAttrs, HOOK } from '../hooks'
+import type { PresentationMode } from '../types'
 
-/**
- * Top chrome: a thin row carrying optional host branding (top-left) and the
- * step marker (top-right), with the step title centered just below it — in
- * **both** modes.
- * The title is keyed so it remounts and fades in on each step change.
- *
- * The era label is no longer shown here — it drives the table of contents down
- * the left margin instead (see Toc).
- *
- * Branding is configurable so adopters can drop in their own logo and home
- * link. If `brand` is omitted, the top-left slot is empty.
- */
-export function Header({
-  marker,
-  title,
-  brand,
-  homeHref = '/',
-  homeLabel = 'And Scene home',
-}: {
-  marker: string
-  title: string
+export interface HeaderProps {
+  height: number
   brand?: ReactNode
-  homeHref?: string
-  homeLabel?: string
-}) {
+  marker: string
+  title?: string
+  mode: PresentationMode
+  onToggleMode: () => void
+}
+
+/** Top chrome: optional host brand, step marker, browse title, and mode toggle. */
+export function Header({ height, brand, marker, title, mode, onToggleMode }: HeaderProps) {
+  const next = mode === 'browse' ? 'present' : 'browse'
   return (
     <header
-      data-presentation-header
-      style={{ position: 'absolute', left: 0, right: 0, top: 0, zIndex: 20, padding: '24px 40px 0' }}
+      {...hookAttrs(HOOK.header)}
+      style={{ position: 'absolute', left: 0, top: 0, right: 0, height, display: 'flex', alignItems: 'center' }}
     >
-      <div
-        data-presentation-header-row
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}
+      {brand ? <div {...hookAttrs(HOOK.brand)}>{brand}</div> : null}
+      <span {...hookAttrs(HOOK.marker)}>{marker}</span>
+      {mode === 'browse' && title ? <h1 {...hookAttrs(HOOK.title)}>{title}</h1> : null}
+      <button
+        type="button"
+        {...hookAttrs(HOOK.modeToggle)}
+        aria-label={`Switch to ${next} mode`}
+        onClick={onToggleMode}
+        style={{ position: 'absolute', right: 0 }}
       >
-        {brand ? (
-          <a href={homeHref} aria-label={homeLabel} data-presentation-home>
-            {brand}
-          </a>
-        ) : (
-          <span aria-hidden="true" data-presentation-home-spacer />
-        )}
-        <span data-presentation-marker>{marker}</span>
-      </div>
-      <motion.h1
-        key={title}
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: EASE }}
-        data-presentation-title
-        style={{ margin: '12px 0 0', textAlign: 'center' }}
-      >
-        {title}
-      </motion.h1>
+        {next === 'present' ? 'Present' : 'Browse'}
+      </button>
     </header>
   )
 }

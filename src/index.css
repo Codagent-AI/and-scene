@@ -1,0 +1,12 @@
+/* Host app CSS only. The scene kit ships no visual defaults. */
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+.landing {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}

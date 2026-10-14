@@ -1,10 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import { Root } from './Root'
+import { RouteView } from './RouteView'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Root />
+    <RouteView pathname={window.location.pathname} />
   </StrictMode>,
 )

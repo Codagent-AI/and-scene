@@ -1,0 +1,146 @@
+/*
+ * Presentation-owned styling, imported by Talk.tsx. The scene kit ships none of this.
+ * Replace the palette and type below with the look agreed in the gather step.
+ */
+
+.{{SLUG}} {
+  --paper: #f6f3ec;
+  --ink: #1d2433;
+  --muted: #5b6475;
+  --rule: #c9c4b6;
+  --accent: #0f6b5c;
+
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Header: marker, browse title, and mode toggle. */
+.{{SLUG}} [data-presentation-marker] {
+  font: 600 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.{{SLUG}} h1[data-presentation-title] {
+  margin: 0;
+  min-width: 0;
+  /* Keeps a long browse title wrapping clear of the Present toggle on narrow viewports. */
+  padding-right: 120px;
+  font: 400 24px Georgia, 'Iowan Old Style', serif;
+}
+
+.{{SLUG}} [data-presentation-mode-toggle] {
+  font: 600 13px system-ui, sans-serif;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+/* Table of contents: wide browse viewports only. The active entry must read as distinct. */
+.{{SLUG}} [data-presentation-toc-entry] {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: 500 14px system-ui, sans-serif;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-left: 3px solid transparent;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.{{SLUG}} [data-presentation-toc-entry][data-presentation-active='true'] {
+  color: var(--ink);
+  font-weight: 700;
+  background: #e4efe9;
+  border-left-color: var(--accent);
+}
+
+/* Footer: caption, progress, and prev/next. */
+.{{SLUG}} [data-presentation-caption] {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 24px;
+  font: 400 16px/1.5 Georgia, 'Iowan Old Style', serif;
+  text-align: center;
+  color: var(--ink);
+}
+
+/* Keeps the controls clear of the attribution link at the bottom right. */
+.{{SLUG}} [data-presentation-footer] > div:not([data-presentation-caption]) {
+  margin: 12px 0 24px;
+}
+
+.{{SLUG}} [data-presentation-prev],
+.{{SLUG}} [data-presentation-next] {
+  font: 600 13px system-ui, sans-serif;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.{{SLUG}} [data-presentation-prev]:disabled,
+.{{SLUG}} [data-presentation-next]:disabled {
+  color: #9aa0ad;
+  cursor: default;
+}
+
+.{{SLUG}} [data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.{{SLUG}} [data-presentation-progress-item][data-presentation-active='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px #bfdcd3;
+  transform: scale(1.25);
+}
+
+/* Attribution: legible, underlined, and clear of the progress row. */
+.{{SLUG}} [data-presentation-attribution] {
+  font: 500 13px system-ui, sans-serif;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: var(--paper);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Diagram entities on the 880 x 380 canvas. */
+.{{SLUG}} .pn-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+
+.{{SLUG}} .pn-card-title {
+  font: 600 15px system-ui, sans-serif;
+}
+
+.{{SLUG}} .pn-card-caption {
+  font: 400 13px/1.4 system-ui, sans-serif;
+  color: var(--muted);
+}

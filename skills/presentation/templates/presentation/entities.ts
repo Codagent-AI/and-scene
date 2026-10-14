@@ -1,14 +1,10 @@
-/**
- * Stable layoutId namespace for this presentation.
- * Every entity that persists or morphs across steps gets a constant here.
- */
-export const ENTITIES = {
-  /** Primary focal node — rename to match your topic. */
-  hero: 'hero',
-  /** Supporting label or annotation. */
-  caption: 'caption',
-  /** Connector between entities. */
-  flow: 'flow',
-} as const
+// This presentation's layoutId namespace. Each id names one entity for the whole
+// talk: a persisting entity keeps its id from the step it appears in onward, and
+// no two entities share one. Ids are prefixed so they cannot collide with another
+// presentation's layout ids.
+const NS = '{{SLUG}}'
 
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]
+export const ENTITY = {
+  subject: `${NS}:subject`,
+  note: `${NS}:note`,
+} as const

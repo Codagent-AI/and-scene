@@ -1,12 +1,9 @@
-import type { ComponentType } from 'react'
+import type { PresentationEntry } from './types'
 
-export interface PresentationEntry {
-  slug: string
-  title: string
-  load: () => Promise<{ default: ComponentType }>
-}
+// Explicit registry. Adding a presentation means a new folder plus one line here.
+// The scaffold script inserts new entries above the marker below; keep it in place.
+export const PRESENTATIONS: PresentationEntry[] = [
+  // @presentation-registry
+]
 
-/** Explicit registry — add a folder + one line here for each presentation. */
-export const presentations: PresentationEntry[] = []
-
-export const presentationSlugs = new Set(presentations.map((p) => p.slug))
+export type { PresentationEntry } from './types'

@@ -64,6 +64,21 @@ describe('detectAnchors / resolveTarget', () => {
     expect(resolveTarget(d)).toMatchObject({ kind: 'existing-app', target: path.join(d, 'presentations') })
   })
 
+  it('resolves an enclosing app from a nested directory', () => {
+    const d = tmp()
+    cpSync(bootstrap, d, { recursive: true })
+    const nested = path.join(d, 'src', 'presentations', 'starter')
+    expect(resolveTarget(nested)).toMatchObject({ kind: 'existing-app', target: d, needsConfirmation: false })
+  })
+
+  it('does not walk past a repository root', () => {
+    const outer = tmp()
+    cpSync(bootstrap, outer, { recursive: true })
+    const inner = path.join(outer, 'sub')
+    mkdirSync(path.join(inner, '.git'), { recursive: true })
+    expect(resolveTarget(inner).kind).not.toBe('existing-app')
+  })
+
   it('detects a partial scaffold', () => {
     const d = tmp()
     cpSync(bootstrap, d, { recursive: true, filter: (s) => !s.includes('presentation-kit') })

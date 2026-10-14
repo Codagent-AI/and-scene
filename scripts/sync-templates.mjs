@@ -6,13 +6,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const B = 'skills/presentation/templates/bootstrap'
 // Directories mirrored canonical -> bootstrap template (test files excluded).
-export const TEMPLATE_DIRS = [{ from: 'src/presentation-kit', to: `${B}/src/presentation-kit` }]
+export const TEMPLATE_DIRS = [
+  { from: 'src/presentation-kit', to: `${B}/src/presentation-kit` },
+  { from: 'scripts/lib', to: `${B}/scripts/lib` },
+]
 // Single files mirrored canonical -> bootstrap template.
 export const TEMPLATE_FILES = [
   'scripts/verify.mjs',
   'scripts/inspect-presentation.mjs',
-  'scripts/lib/diagnostics.mjs',
-  'scripts/lib/preview.mjs',
 ]
 
 const isTest = (f) => /\.test\.[cm]?[jt]sx?$/.test(f)

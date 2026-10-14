@@ -58,18 +58,29 @@ export function detectAnchors(dir) {
   return { buildSetup, sceneKit, presentationIndex }
 }
 
-/** Find an enclosing presentation app (all three anchors) at `dir` or below `presentations/`. */
+const isApp = (a) => a.buildSetup && a.sceneKit && a.presentationIndex
+
+/** Find an enclosing presentation app (all three anchors) at `dir`, an ancestor, or below `presentations/`. */
 export function resolveTarget(dir) {
   const anchors = detectAnchors(dir)
   const { isMonorepo, signals } = detectMonorepo(dir)
   const empty = !fs.existsSync(dir) || fs.readdirSync(dir).filter((f) => f !== '.git').length === 0
-  if (anchors.buildSetup && anchors.sceneKit && anchors.presentationIndex) {
+  if (isApp(anchors)) {
     return { target: dir, kind: 'existing-app', anchors, isMonorepo, signals, needsConfirmation: false }
+  }
+  // Already inside an app: walk up, stopping at the repository root (or the filesystem root).
+  for (let up = dir; !fs.existsSync(path.join(up, '.git')) && path.dirname(up) !== up; ) {
+    up = path.dirname(up)
+    const upAnchors = detectAnchors(up)
+    if (isApp(upAnchors)) {
+      const m = detectMonorepo(up)
+      return { target: up, kind: 'existing-app', anchors: upAnchors, isMonorepo: m.isMonorepo, signals: m.signals, needsConfirmation: false }
+    }
   }
   const nested = path.join(dir, 'presentations')
   if (isMonorepo && fs.existsSync(nested)) {
     const nestedAnchors = detectAnchors(nested)
-    if (nestedAnchors.buildSetup && nestedAnchors.sceneKit && nestedAnchors.presentationIndex) {
+    if (isApp(nestedAnchors)) {
       return { target: nested, kind: 'existing-app', anchors: nestedAnchors, isMonorepo, signals, needsConfirmation: false }
     }
   }

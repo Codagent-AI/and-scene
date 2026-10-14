@@ -1,4 +1,4 @@
-- [ ] [Scene kit, router, and registry host app](tasks/01-scene-kit-and-host-app.md)
-- [ ] [Reference sample presentation and production verification gate](tasks/02-reference-sample-and-verify.md)
-- [ ] [Project-local screenshot and visual-diagnostics helper](tasks/03-screenshot-helper.md)
-- [ ] [Presentation skill and bootstrap templates](tasks/04-skill-and-bootstrap-templates.md)
+- [x] [Scene kit, router, and registry host app](tasks/01-scene-kit-and-host-app.md)
+- [x] [Reference sample presentation and production verification gate](tasks/02-reference-sample-and-verify.md)
+- [x] [Project-local screenshot and visual-diagnostics helper](tasks/03-screenshot-helper.md)
+- [x] [Presentation skill and bootstrap templates](tasks/04-skill-and-bootstrap-templates.md)

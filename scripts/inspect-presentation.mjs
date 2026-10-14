@@ -390,12 +390,16 @@ function startPreview(root, port) {
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   )
-  const preview = { child, port, output: '' }
+  const preview = { child, port, output: '', error: null }
   const capture = (chunk) => {
     preview.output = (preview.output + chunk.toString()).slice(-8_000)
   }
   child.stdout.on('data', capture)
   child.stderr.on('data', capture)
+  // Without this listener a spawn failure is thrown as an uncaught exception and skips cleanup.
+  child.on('error', (error) => {
+    preview.error = error
+  })
   return preview
 }
 
@@ -418,6 +422,9 @@ async function waitForPreview(preview) {
   const url = `http://127.0.0.1:${preview.port}/`
   const deadline = Date.now() + PREVIEW_READY_TIMEOUT_MS
   while (Date.now() < deadline) {
+    if (preview.error) {
+      throw new HelperFailure('preview', `vite preview failed to start: ${firstLine(preview.error)}`)
+    }
     if (preview.child.exitCode !== null || preview.child.signalCode !== null) {
       throw new HelperFailure('preview', `vite preview exited before it was ready\n${lastLines(preview.output)}`)
     }
@@ -439,6 +446,8 @@ function signalPreview(child, signal) {
 async function stopPreview(preview) {
   if (!preview) return
   const { child } = preview
+  // A child that never spawned has no pid and will never emit 'exit', so there is nothing to wait for.
+  if (child.pid === undefined) return
   if (child.exitCode !== null || child.signalCode !== null) return
   const exited = new Promise((resolveExit) => child.once('exit', resolveExit))
   signalPreview(child, 'SIGTERM')

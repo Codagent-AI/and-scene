@@ -232,18 +232,23 @@ async function waitForPreview(preview) {
   throw new VerifyFailure('preview', `vite preview did not answer at ${url} within ${PREVIEW_READY_TIMEOUT_MS}ms`)
 }
 
-function stopPreview(preview) {
-  if (!preview) return Promise.resolve()
+async function stopPreview(preview) {
+  if (!preview) return
   const { child } = preview
-  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve()
+  if (child.exitCode !== null || child.signalCode !== null) return
   const exited = new Promise((resolveExit) => child.once('exit', resolveExit))
   signalPreview(child, 'SIGTERM')
-  return Promise.race([exited, delay(5_000)]).then(async () => {
-    if (child.exitCode === null && child.signalCode === null) {
-      signalPreview(child, 'SIGKILL')
-      await exited
-    }
+  // Clear the grace timer once the race settles so it cannot keep the event loop alive.
+  let timer
+  const grace = new Promise((resolveGrace) => {
+    timer = setTimeout(resolveGrace, 5_000)
   })
+  await Promise.race([exited, grace])
+  clearTimeout(timer)
+  if (child.exitCode === null && child.signalCode === null) {
+    signalPreview(child, 'SIGKILL')
+    await exited
+  }
 }
 
 function signalPreview(child, signal) {
@@ -303,6 +308,12 @@ async function renderPresentation(browser, baseUrl, slug, expected, log) {
     }
 
     const count = Number(await root.getAttribute('data-step-count'))
+    if (!Number.isInteger(count) || count < 1) {
+      throw new VerifyFailure(
+        'render',
+        `${slug} reports an invalid data-step-count (${count}); expected at least 1 step`,
+      )
+    }
     if (expected && count !== expected.steps.length) {
       throw new VerifyFailure(
         'sample registration',

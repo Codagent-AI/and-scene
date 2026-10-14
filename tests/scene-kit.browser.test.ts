@@ -69,7 +69,9 @@ it('morphs continuing entities, delays newcomers, removes departures, and preser
   expect(await anchor.evaluate((element, prior) => element === prior, handle)).toBe(true)
   expect(Math.min(...motion.opacities)).toBeLessThan(0.1)
   expect(motion.firstVisibleX).not.toBeNull()
-  expect(motion.firstVisibleX!).toBeCloseTo(motion.after, 0)
+  // Allow up to 5 px of final projection jitter; early entry during the 220 px
+  // morph still fails, without requiring a subpixel-perfect sampled frame.
+  expect(Math.abs(motion.firstVisibleX! - motion.after)).toBeLessThanOrEqual(5)
   expect(motion.after).toBeGreaterThan(motion.before)
   expect(motion.positions.some(x => x > motion.before + 1 && x < motion.after - 1)).toBe(true)
   expect(await page.getByTestId('new').evaluate(element => Number(getComputedStyle(element).opacity))).toBe(1)

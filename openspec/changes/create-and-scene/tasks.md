@@ -1,3 +1,3 @@
-- [ ] [Build the style-neutral scene kit, host app routing, and registry](tasks/01-scene-kit-and-host.md)
-- [ ] [Reference sample, production verification, and screenshot inspection](tasks/02-reference-sample-and-verification.md)
-- [ ] [Presentation skill and distributable bootstrap templates](tasks/03-presentation-skill-and-bootstrap.md)
+- [x] [Build the style-neutral scene kit, host app routing, and registry](tasks/01-scene-kit-and-host.md)
+- [x] [Reference sample, production verification, and screenshot inspection](tasks/02-reference-sample-and-verification.md)
+- [x] [Presentation skill and distributable bootstrap templates](tasks/03-presentation-skill-and-bootstrap.md)

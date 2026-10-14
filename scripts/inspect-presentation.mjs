@@ -44,7 +44,10 @@ export async function inspect(opts, root = projectRoot()) {
     if (code !== 0) throw new Error(`build failed (exit ${code})\n${output.trim()}`)
   }
   const outDir = path.resolve(root, opts.out ?? path.join('artifacts', 'inspection', opts.slug))
-  fs.rmSync(outDir, { recursive: true, force: true })
+  // Only clear files this tool wrote, so a mistaken --out never deletes other data.
+  for (const f of fs.existsSync(outDir) ? fs.readdirSync(outDir) : []) {
+    if (/^step-\d+\.png$/.test(f) || f === 'manifest.json') fs.rmSync(path.join(outDir, f))
+  }
   fs.mkdirSync(outDir, { recursive: true })
 
   const warnings = []
@@ -58,6 +61,9 @@ export async function inspect(opts, root = projectRoot()) {
     await page.waitForSelector('[data-presentation-root]', { timeout: 10_000 })
     const root$ = page.locator('[data-presentation-root]')
     const count = Number(await root$.getAttribute('data-step-count'))
+    if (!Number.isInteger(count) || count < 1) {
+      throw new Error(`data-step-count is invalid (${count}) for slug "${opts.slug}"`)
+    }
     for (let i = 0; i < count; i++) {
       const advancedAt = Date.now()
       if (i > 0) {

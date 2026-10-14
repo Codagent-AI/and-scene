@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Skill templates are copied into fresh projects and linted there, not here.
+  globalIgnores(['dist', 'skills/**/templates/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

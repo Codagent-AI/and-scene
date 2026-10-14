@@ -2,7 +2,7 @@
 // talk: a persisting entity keeps its id from the step it appears in onward, and
 // no two entities share one. Ids are prefixed so they cannot collide with another
 // presentation's layout ids.
-const NS = 'how-to'
+const NS = 'how-to-make-a-presentation'
 
 export const ENTITY = {
   you: `${NS}:you`,

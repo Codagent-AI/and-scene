@@ -1,0 +1,7 @@
+/* Host app CSS. Structural only: the app fills the viewport. Presentations own every visual choice. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

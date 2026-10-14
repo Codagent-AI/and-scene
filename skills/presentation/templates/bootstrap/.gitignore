@@ -1,0 +1,13 @@
+# Dependencies and build output
+node_modules
+dist
+dist-ssr
+*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Inspection screenshots and diagnostics from scripts/inspect-presentation.mjs
+.presentation-inspect

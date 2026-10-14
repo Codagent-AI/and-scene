@@ -1,0 +1,4 @@
+- [ ] [Scene kit, router, and registry foundation](tasks/01-scene-kit-and-router.md)
+- [ ] [Reference sample presentation and `npm run verify`](tasks/02-reference-sample-and-verify.md)
+- [ ] [Project-local screenshot and visual-diagnostics helper](tasks/03-inspection-helper.md)
+- [ ] [Presentation skill and bootstrap templates](tasks/04-skill-and-bootstrap-templates.md)

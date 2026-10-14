@@ -68,6 +68,26 @@ describe('Presentation', () => {
     expect(within(after).getByText('two')).toBeTruthy()
   })
 
+  it('gives steps that share a groupKey but use different scenes their own layer', () => {
+    const mixed = [
+      { ...FIXTURE_STEPS[0], groupKey: 'shared' },
+      { ...FIXTURE_STEPS[2], groupKey: 'shared' },
+    ]
+    render(<Presentation steps={mixed} title="Mixed" />)
+    const before = document.querySelector('[data-presentation-scene-layer]')
+
+    press('ArrowRight')
+
+    // Fixture scenes render their own SceneLayer, so take the outermost layer
+    // holding the diagram: document order lists ancestors first.
+    const diagramBox = document.querySelector('[data-presentation-id="diagram-box"]')
+    const outerLayer = Array.from(document.querySelectorAll('[data-presentation-scene-layer]')).find((layer) =>
+      layer.contains(diagramBox),
+    )
+    expect(outerLayer).toBeTruthy()
+    expect(outerLayer).not.toBe(before)
+  })
+
   it('cross-fades into a non-grouped step with a different scene', async () => {
     renderDeck()
     press('ArrowRight')

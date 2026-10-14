@@ -11,9 +11,26 @@ export interface StageProps<TPayload> {
   scale: number
 }
 
-/** Shared-layout identity for a step: grouped steps keep one layer, others swap. */
+// Stable numeric id per scene component, so layer keys can tell scenes apart.
+const sceneIds = new WeakMap<object, number>()
+let lastSceneId = 0
+
+function sceneId(scene: object): number {
+  const known = sceneIds.get(scene)
+  if (known !== undefined) return known
+  lastSceneId += 1
+  sceneIds.set(scene, lastSceneId)
+  return lastSceneId
+}
+
+/**
+ * Shared-layer identity for a step. Grouped steps keep one layer only when both
+ * `groupKey` and `scene` match; otherwise AnimatePresence cross-fades them.
+ */
 function layerKey<TPayload>(step: Step<TPayload>): string {
-  return step.groupKey === undefined ? `step:${step.id}` : `group:${step.groupKey}`
+  return step.groupKey === undefined
+    ? `step:${step.id}`
+    : `group:${step.groupKey}:${sceneId(step.scene)}`
 }
 
 /**

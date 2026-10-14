@@ -52,7 +52,7 @@ export function Presentation<TPayload>({
         height={layout.top}
         brand={brand}
         marker={stepNumber(nav.index)}
-        title={browse ? step.title : undefined}
+        title={step.title}
         mode={nav.mode}
         onToggleMode={nav.toggleMode}
       />

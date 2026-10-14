@@ -1,24 +1,16 @@
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { access, mkdir, readFile, readdir, rm } from 'node:fs/promises'
-import { createServer } from 'node:net'
 import { join } from 'node:path'
-import { setTimeout as delay } from 'node:timers/promises'
 import ts from 'typescript'
 import { chromium } from 'playwright'
+import { availablePort, spawnPreview, stop, waitForPreview } from './browser-preview.mjs'
 
-// Advisory thresholds in CSS pixels. Keep this driver self-contained for bootstrap copies.
+// Advisory diagnostic thresholds in CSS pixels.
 const DIAGNOSTICS = { overlapTolerance: 2, minAttributionFont: 11, minOpacity: 0.05, sizeTolerance: 1 }
 const SETTLE_MARGIN_MS = 150
 let preview, browser, build
 let step = 1
-async function stop(child) {
-  if (!child || child.exitCode !== null || child.signalCode !== null) return
-  const exited = once(child, 'exit')
-  child.kill('SIGTERM')
-  const timer = setTimeout(() => child.kill('SIGKILL'), 3000)
-  try { await exited } finally { clearTimeout(timer) }
-}
 async function cleanup() {
   try { await browser?.close() } finally { await stop(preview); await stop(build) }
 }
@@ -140,23 +132,10 @@ try {
     const [code] = await once(build, 'exit')
     if (code !== 0) throw new Error(`npm run build exited ${code}`)
   }
-  const server = createServer()
-  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve) })
-  const port = server.address().port
-  await new Promise(resolve => server.close(resolve))
+  const port = await availablePort()
   const origin = `http://127.0.0.1:${port}`
-  let previewOutput = ''
-  preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, NODE_ENV: 'production' } })
-  preview.stdout.on('data', data => { previewOutput += data })
-  preview.stderr.on('data', data => { previewOutput += data })
-  let ready = false
-  for (let attempt = 0; attempt < 100; attempt++) {
-    if (preview.exitCode !== null) throw new Error(`Preview exited: ${previewOutput}`)
-    try { ready = (await fetch(origin, { signal: AbortSignal.timeout(500) })).ok } catch { /* not ready yet */ }
-    if (ready) break
-    await delay(150)
-  }
-  if (!ready) throw new Error(`Preview did not become ready: ${previewOutput}`)
+  preview = spawnPreview(port)
+  await waitForPreview(preview, origin)
   console.log(`Inspect ${origin}/${slug} viewport=${viewport.width}x${viewport.height} settle=${settle}ms`)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport })

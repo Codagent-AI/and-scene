@@ -17,8 +17,8 @@ it('ships complete dependencies, build and inspection commands with committed lo
   expect(readFileSync(`${template}.gitignore`, 'utf8')).toContain('.inspection/')
 })
 
-it('keeps both browser drivers byte-aligned with their release snapshots', () => {
-  for (const name of ['verify.mjs', 'inspect-presentation.mjs']) {
+it('keeps browser drivers and their shared preview helper byte-aligned with their release snapshots', () => {
+  for (const name of ['verify.mjs', 'inspect-presentation.mjs', 'browser-preview.mjs']) {
     expect(readFileSync(`${template}scripts/${name}`)).toEqual(readFileSync(`scripts/${name}`))
   }
 })

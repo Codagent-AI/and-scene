@@ -1,10 +1,9 @@
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { readFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
-import { setTimeout as delay } from 'node:timers/promises'
 import ts from 'typescript'
 import { chromium } from 'playwright'
+import { availablePort, spawnPreview, stop, waitForPreview } from './browser-preview.mjs'
 
 // Reference requirements are project data, never baked into this distributable driver.
 let phase = 'build'
@@ -13,16 +12,8 @@ let slug
 let preview
 let browser
 let build
-let previewOutput = ''
 
 function fail(message) { throw new Error(message) }
-async function stop(child) {
-  if (!child || child.exitCode !== null || child.signalCode !== null) return
-  const exited = once(child, 'exit')
-  child.kill('SIGTERM')
-  const timer = setTimeout(() => child.kill('SIGKILL'), 3000)
-  try { await exited } finally { clearTimeout(timer) }
-}
 async function cleanup() {
   try { await browser?.close() } finally { await stop(preview); await stop(build) }
 }
@@ -31,16 +22,6 @@ for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, async () => {
   await cleanup()
   process.exit(1)
 })
-
-async function availablePort() {
-  const server = createServer()
-  const requested = process.env.VERIFY_PORT === undefined ? 0 : Number(process.env.VERIFY_PORT)
-  if (!Number.isInteger(requested) || requested < 0 || requested > 65535) fail('Invalid VERIFY_PORT')
-  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(requested, '127.0.0.1', resolve) })
-  const port = server.address().port
-  await new Promise(resolve => server.close(resolve))
-  return port
-}
 
 function registeredSlugs(source) {
   const file = ts.createSourceFile('index.ts', source, ts.ScriptTarget.Latest, true)
@@ -79,20 +60,13 @@ try {
   }
 
   phase = 'render'
-  const port = await availablePort()
+  const requested = process.env.VERIFY_PORT === undefined ? 0 : Number(process.env.VERIFY_PORT)
+  if (!Number.isInteger(requested) || requested < 0 || requested > 65535) fail('Invalid VERIFY_PORT')
+  const port = await availablePort(requested)
   const origin = `http://127.0.0.1:${port}`
   console.log(`Preview ${origin}`)
-  preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, NODE_ENV: 'production' } })
-  preview.stdout.on('data', data => { previewOutput += data })
-  preview.stderr.on('data', data => { previewOutput += data })
-  let ready = false
-  for (let attempt = 0; attempt < 100; attempt++) {
-    if (preview.exitCode !== null) fail(`Preview exited: ${previewOutput}`)
-    try { ready = (await fetch(origin, { signal: AbortSignal.timeout(500) })).ok } catch { /* not ready yet */ }
-    if (ready) break
-    await delay(150)
-  }
-  if (!ready) fail(`Preview did not become ready: ${previewOutput}`)
+  preview = spawnPreview(port)
+  await waitForPreview(preview, origin)
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   page.setDefaultTimeout(5000)

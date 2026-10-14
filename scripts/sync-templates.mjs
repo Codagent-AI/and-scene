@@ -18,7 +18,7 @@ try {
   // Finish every source copy before touching either committed snapshot.
   await cp(new URL('src/presentation-kit/', root), entries[0].next, { recursive: true })
   await mkdir(entries[1].next)
-  for (const name of ['verify.mjs', 'inspect-presentation.mjs']) {
+  for (const name of ['verify.mjs', 'inspect-presentation.mjs', 'browser-preview.mjs']) {
     await cp(new URL(`scripts/${name}`, root), join(entries[1].next, name))
   }
   await mkdir(join(snapshot, 'src'), { recursive: true })

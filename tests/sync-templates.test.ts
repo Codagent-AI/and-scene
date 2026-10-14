@@ -16,6 +16,7 @@ async function fixture() {
   }
   await cp('scripts/sync-templates.mjs', join(dir, 'scripts/sync-templates.mjs'))
   await writeFile(join(dir, 'src/presentation-kit/new.ts'), 'canonical kit\n')
+  await writeFile(join(dir, 'scripts/browser-preview.mjs'), 'canonical preview helper\n')
   await writeFile(join(dir, 'scripts/verify.mjs'), 'canonical verifier\n')
   await writeFile(join(dir, 'scripts/inspect-presentation.mjs'), 'canonical inspector\n')
   await writeFile(join(snapshot, 'src/presentation-kit/old.ts'), 'previous kit\n')
@@ -82,7 +83,7 @@ it('replaces the complete managed snapshots, removes stale files, and preserves 
   expect(result.code, result.output).toBe(0)
   expect(await readdir(join(snapshot, 'src/presentation-kit'))).toEqual(['new.ts'])
   expect(await readFile(join(snapshot, 'src/presentation-kit/new.ts'), 'utf8')).toBe('canonical kit\n')
-  expect(await readdir(join(snapshot, 'scripts'))).toEqual(['inspect-presentation.mjs', 'verify.mjs'])
+  expect(await readdir(join(snapshot, 'scripts'))).toEqual(['browser-preview.mjs', 'inspect-presentation.mjs', 'verify.mjs'])
   expect(await readFile(join(snapshot, 'scripts/verify.mjs'), 'utf8')).toBe('canonical verifier\n')
   expect(await readFile(join(snapshot, 'scripts/inspect-presentation.mjs'), 'utf8')).toBe('canonical inspector\n')
   expect(await readFile(join(snapshot, 'package.json'), 'utf8')).toBe('{"private":true}\n')

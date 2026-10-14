@@ -16,7 +16,7 @@ export interface ArrowProps extends Omit<SVGAttributes<SVGSVGElement>, 'from' | 
 }
 
 /** A canvas-sized SVG line with an arrowhead; color comes from CSS (`currentColor`). */
-export function Arrow({ id, from, to, ...rest }: ArrowProps) {
+export function Arrow({ id, from, to, style, ...rest }: ArrowProps) {
   const markerId = useId()
   const transition = { duration: LAYOUT_T, ease: EASE }
   return (
@@ -26,7 +26,14 @@ export function Arrow({ id, from, to, ...rest }: ArrowProps) {
       width={DESIGN_W}
       height={DESIGN_H}
       viewBox={`0 0 ${DESIGN_W} ${DESIGN_H}`}
-      style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }}
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        overflow: 'visible',
+        pointerEvents: 'none',
+        ...style,
+      }}
       aria-hidden="true"
       {...rest}
     >

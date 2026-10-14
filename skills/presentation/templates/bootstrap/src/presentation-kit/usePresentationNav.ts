@@ -43,11 +43,6 @@ export function isInteractiveTarget(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest(INTERACTIVE_SELECTOR) !== null
 }
 
-/** Index of the first step whose era matches, or -1. */
-export function firstStepOfEra(steps: readonly { era: string }[], era: string): number {
-  return steps.findIndex((s) => s.era === era)
-}
-
 /** Distinct eras in order of first appearance, with their first step index. */
 export function eraEntries(
   steps: readonly { era: string }[],

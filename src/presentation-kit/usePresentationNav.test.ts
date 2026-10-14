@@ -3,7 +3,6 @@ import {
   classifySwipe,
   clampIndex,
   eraEntries,
-  firstStepOfEra,
   isInteractiveTarget,
   keyToAction,
   stepNumber,
@@ -42,11 +41,9 @@ describe('nav logic', () => {
     expect(isInteractiveTarget(document.body)).toBe(false)
   })
 
-  it('derives numbering and era lookup from order', () => {
+  it('derives numbering and era entries from order', () => {
     const steps = [{ era: 'A' }, { era: 'A' }, { era: 'B' }, { era: 'C' }]
     expect(stepNumber(0)).toBe(1)
-    expect(firstStepOfEra(steps, 'B')).toBe(2)
-    expect(firstStepOfEra(steps, 'Z')).toBe(-1)
     expect(eraEntries(steps)).toEqual([
       { era: 'A', firstIndex: 0 },
       { era: 'B', firstIndex: 2 },

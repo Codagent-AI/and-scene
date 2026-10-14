@@ -181,9 +181,10 @@
 .htp-tray {
   width: 100%;
   height: 100%;
-  border: 1.5px solid var(--htp-line);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
+  /* The tray is a flat band, not a frame: only the final reveal frame outlines the diagram. */
+  border: 0;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.04);
 }
 .htp-card {
   align-items: stretch;

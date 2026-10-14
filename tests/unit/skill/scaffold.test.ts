@@ -222,6 +222,40 @@ describe('routing of a kept host entry point', () => {
     expect(scaffolded.json?.routing).toMatchObject({ routed: false, entry: 'src/host.tsx' })
   })
 
+  it('flags an entry point that only imports the router for its side effects or never uses the binding', () => {
+    const sideEffect = tempDir('and-scene-side-effect-')
+    seedHostEntry(sideEffect, `import './RouteView'\n${HOST_MAIN}`)
+    expect(run(['scaffold', sideEffect, '--confirm', '--no-install']).json?.routing).toMatchObject({ routed: false })
+
+    const unused = tempDir('and-scene-unused-binding-')
+    seedHostEntry(unused, `import { RouteView } from './RouteView'\n${HOST_MAIN}`)
+    expect(run(['scaffold', unused, '--confirm', '--no-install']).json?.routing).toMatchObject({ routed: false })
+
+    const hop = tempDir('and-scene-unused-hop-')
+    seedHostEntry(hop, `import { App } from './App'\n${HOST_MAIN}`)
+    writeProjectFile(hop, 'src/App.tsx', "import { RouteView } from './RouteView'\nexport const App = RouteView\n")
+    expect(run(['scaffold', hop, '--confirm', '--no-install']).json?.routing).toMatchObject({ routed: false })
+  })
+
+  it('counts aliased, namespace, dynamic, and re-exported router imports that are used', () => {
+    const aliased = tempDir('and-scene-aliased-name-')
+    seedHostEntry(aliased, "import { RouteView as Router } from './RouteView'\nconsole.log(<Router pathname=\"/\" />)\n")
+    expect(run(['scaffold', aliased, '--confirm', '--no-install']).json?.routing).toMatchObject({ routed: true })
+
+    const namespaced = tempDir('and-scene-namespace-')
+    seedHostEntry(namespaced, "import * as views from './RouteView'\nconsole.log(views.RouteView)\n")
+    expect(run(['scaffold', namespaced, '--confirm', '--no-install']).json?.routing).toMatchObject({ routed: true })
+
+    const dynamic = tempDir('and-scene-dynamic-')
+    seedHostEntry(dynamic, "const view = () => import('./RouteView')\nvoid view\n")
+    expect(run(['scaffold', dynamic, '--confirm', '--no-install']).json?.routing).toMatchObject({ routed: true })
+
+    const barrel = tempDir('and-scene-barrel-')
+    seedHostEntry(barrel, "import { RouteView } from './views'\nconsole.log(RouteView)\n")
+    writeProjectFile(barrel, 'src/views.ts', "export { RouteView } from './RouteView'\n")
+    expect(run(['scaffold', barrel, '--confirm', '--no-install']).json?.routing).toMatchObject({ routed: true })
+  })
+
   it('follows the entry point named by index.html', () => {
     const root = tempDir('and-scene-html-entry-')
     seedHostEntry(root, "import './RouteView'\n")

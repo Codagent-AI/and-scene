@@ -233,12 +233,44 @@ function resolveImport(appDir, fromFile, specifier) {
 // Import specifiers that conventionally name a tsconfig/Vite path alias rather than a package.
 const ALIAS_SPECIFIER = /^(?:@\/|~\/|#|\$)/
 
+// Static `import ... from` and `export ... from` statements, and dynamic `import('...')` calls.
+const STATIC_IMPORT = /\b(import|export)\s+(type\s+)?([^'";]*?)\s*from\s*['"]([^'"]+)['"]\s*;?/g
+const SIDE_EFFECT_IMPORT = /\bimport\s*['"][^'"]+['"]\s*;?/g
+const DYNAMIC_IMPORT = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g
+
+/** Local names an import clause binds, e.g. `A, { b as c }, * as d` gives A, c, d. */
+function boundNames(clause) {
+  return clause
+    .replace(/\*\s*as\s+/g, ' ')
+    .replace(/[{}]/g, ' ')
+    .split(',')
+    .flatMap((part) => part.trim().split(/\s+as\s+/).slice(-1))
+    .map((name) => name.trim())
+    .filter((name) => /^[A-Za-z_$][\w$]*$/.test(name))
+}
+
 /**
- * Whether the host entry point reaches the presentation router or registry through its imports.
- * Scaffolding never overwrites a host entry file, so a custom one can leave every registered
- * presentation unreachable even though the build passes. `routed` is `null` when the trace hit
- * an import it could not follow (a path alias or an unresolved relative path), so the caller
- * should verify the route instead of editing a host that may already be wired.
+ * The specifiers a file actually depends on at runtime: re-exports and dynamic imports, plus
+ * static imports whose bound names are used outside the import statements. A bare
+ * `import './RouteView'` or an unused binding loads a module without rendering it.
+ */
+function usedSpecifiers(source) {
+  const body = source.replace(STATIC_IMPORT, ' ').replace(SIDE_EFFECT_IMPORT, ' ')
+  const specifiers = [...source.matchAll(DYNAMIC_IMPORT)].map((match) => match[1])
+  for (const [, keyword, typeOnly, clause, specifier] of source.matchAll(STATIC_IMPORT)) {
+    if (typeOnly) continue
+    const used = keyword === 'export' || boundNames(clause).some((name) => new RegExp(`(?<![\\w$.])${name.replace(/\$/g, '\\$')}(?![\\w$])`).test(body))
+    if (used) specifiers.push(specifier)
+  }
+  return specifiers
+}
+
+/**
+ * Whether the host entry point renders or dispatches to the presentation router or registry
+ * through its imports. Scaffolding never overwrites a host entry file, so a custom one can leave
+ * every registered presentation unreachable even though the build passes. `routed` is `null`
+ * when the trace hit an import it could not follow (a path alias or an unresolved relative
+ * path), so the caller should verify the route instead of editing a host that may already be wired.
  */
 export function routingStatus(appDir) {
   const entry = findEntryFile(appDir)
@@ -251,8 +283,7 @@ export function routingStatus(appDir) {
     if (seen.has(file)) continue
     seen.add(file)
     if (routerFiles.has(file)) return { routed: true, entry }
-    const source = readText(join(appDir, file)) ?? ''
-    for (const [, specifier] of source.matchAll(/(?:from\s*|import\s*\(?\s*|import\s+)['"]([^'"]+)['"]/g)) {
+    for (const specifier of usedSpecifiers(readText(join(appDir, file)) ?? '')) {
       if (/^\.{1,2}\//.test(specifier)) {
         const resolved = resolveImport(appDir, file, specifier)
         if (resolved) queue.push(resolved)

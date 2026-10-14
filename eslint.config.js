@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   // Skill templates are copied into fresh projects and linted there, not here.
-  globalIgnores(['dist', 'skills/**/templates/**']),
+  globalIgnores(['dist', 'validator_logs', 'skills/**/templates/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

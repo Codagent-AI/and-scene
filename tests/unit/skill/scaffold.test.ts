@@ -256,6 +256,26 @@ describe('routing of a kept host entry point', () => {
     expect(run(['scaffold', barrel, '--confirm', '--no-install']).json?.routing).toMatchObject({ routed: true })
   })
 
+  it('does not let an export statement or a comment stand in for a used import', () => {
+    const exportAbove = tempDir('and-scene-export-span-')
+    seedHostEntry(exportAbove, "export const label = 'host'\nimport { RouteView } from './RouteView'\nconsole.log(label)\n")
+    expect(run(['scaffold', exportAbove, '--confirm', '--no-install']).json?.routing).toMatchObject({ routed: false })
+
+    const commented = tempDir('and-scene-commented-')
+    seedHostEntry(
+      commented,
+      "// import { RouteView } from './RouteView'\n/* const lazy = () => import('./RouteView') */\nconsole.log('host')\n",
+    )
+    expect(run(['scaffold', commented, '--confirm', '--no-install']).json?.routing).toMatchObject({ routed: false })
+
+    const usedAfterExport = tempDir('and-scene-export-usage-')
+    seedHostEntry(
+      usedAfterExport,
+      "import { RouteView } from './RouteView'\nexport const App = () => RouteView\nconsole.log(App)\n",
+    )
+    expect(run(['scaffold', usedAfterExport, '--confirm', '--no-install']).json?.routing).toMatchObject({ routed: true })
+  })
+
   it('follows the entry point named by index.html', () => {
     const root = tempDir('and-scene-html-entry-')
     seedHostEntry(root, "import './RouteView'\n")

@@ -233,10 +233,21 @@ function resolveImport(appDir, fromFile, specifier) {
 // Import specifiers that conventionally name a tsconfig/Vite path alias rather than a package.
 const ALIAS_SPECIFIER = /^(?:@\/|~\/|#|\$)/
 
-// Static `import ... from` and `export ... from` statements, and dynamic `import('...')` calls.
-const STATIC_IMPORT = /\b(import|export)\s+(type\s+)?([^'";]*?)\s*from\s*['"]([^'"]+)['"]\s*;?/g
+// Static `import ... from`, `export ... from`, side-effect imports, and dynamic `import('...')`.
+// Each clause shape is spelled out so a match cannot span unrelated statements.
+const IMPORT_FROM =
+  /\bimport\s+(type\s+)?((?:\*\s*as\s+[\w$]+|[\w$]+\s*(?:,\s*(?:\*\s*as\s+[\w$]+|\{[^}]*\}))?|\{[^}]*\}))\s*from\s*['"]([^'"]+)['"]\s*;?/g
+const EXPORT_FROM = /\bexport\s+(?:type\s+)?(?:\*(?:\s*as\s+[\w$]+)?|\{[^}]*\})\s*from\s*['"]([^'"]+)['"]\s*;?/g
 const SIDE_EFFECT_IMPORT = /\bimport\s*['"][^'"]+['"]\s*;?/g
 const DYNAMIC_IMPORT = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g
+
+/** Removes `//` and block comments, leaving string and template literals untouched. */
+function stripComments(source) {
+  return source.replace(
+    /("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)|\/\/[^\n]*|\/\*[\s\S]*?\*\//g,
+    (match, literal) => literal ?? ' ',
+  )
+}
 
 /** Local names an import clause binds, e.g. `A, { b as c }, * as d` gives A, c, d. */
 function boundNames(clause) {
@@ -254,12 +265,17 @@ function boundNames(clause) {
  * static imports whose bound names are used outside the import statements. A bare
  * `import './RouteView'` or an unused binding loads a module without rendering it.
  */
-function usedSpecifiers(source) {
-  const body = source.replace(STATIC_IMPORT, ' ').replace(SIDE_EFFECT_IMPORT, ' ')
+function usedSpecifiers(rawSource) {
+  const source = stripComments(rawSource)
+  const body = source
+    .replace(IMPORT_FROM, ' ')
+    .replace(EXPORT_FROM, ' ')
+    .replace(SIDE_EFFECT_IMPORT, ' ')
   const specifiers = [...source.matchAll(DYNAMIC_IMPORT)].map((match) => match[1])
-  for (const [, keyword, typeOnly, clause, specifier] of source.matchAll(STATIC_IMPORT)) {
+  for (const [, specifier] of source.matchAll(EXPORT_FROM)) specifiers.push(specifier)
+  for (const [, typeOnly, clause, specifier] of source.matchAll(IMPORT_FROM)) {
     if (typeOnly) continue
-    const used = keyword === 'export' || boundNames(clause).some((name) => new RegExp(`(?<![\\w$.])${name.replace(/\$/g, '\\$')}(?![\\w$])`).test(body))
+    const used = boundNames(clause).some((name) => new RegExp(`(?<![\\w$.])${name.replace(/\$/g, '\\$')}(?![\\w$])`).test(body))
     if (used) specifiers.push(specifier)
   }
   return specifiers

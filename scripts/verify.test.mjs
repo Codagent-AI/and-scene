@@ -52,4 +52,17 @@ describe('loadConfig', () => {
     fs.writeFileSync(path.join(dir, 'verify.config.json'), '{"slug":"mine"}')
     expect(loadConfig(dir)).toMatchObject({ slug: 'mine', steps: undefined })
   })
+
+  it('rejects bad slugs and an outline without steps', async () => {
+    const { loadConfig } = await import('./verify.mjs')
+    const fs = await import('node:fs')
+    const os = await import('node:os')
+    const path = await import('node:path')
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cfg-'))
+    const write = (o) => fs.writeFileSync(path.join(dir, 'verify.config.json'), JSON.stringify(o))
+    write({ slug: 'a(b' })
+    expect(() => loadConfig(dir)).toThrow(/slug/)
+    write({ slug: 'ok', outline: 'x.ts' })
+    expect(() => loadConfig(dir)).toThrow(/without "steps"/)
+  })
 })

@@ -39,7 +39,12 @@ export function loadConfig(root) {
   } catch (err) {
     throw new PhaseError('sample', `${CONFIG_FILE} is not valid JSON: ${err.message}`)
   }
-  if (typeof raw.slug !== 'string' || !raw.slug) throw new PhaseError('sample', `${CONFIG_FILE} must set "slug"`)
+  if (typeof raw.slug !== 'string' || !/^[a-z0-9-]+$/.test(raw.slug)) {
+    throw new PhaseError('sample', `${CONFIG_FILE} "slug" must match /^[a-z0-9-]+$/`)
+  }
+  if (raw.outline && !Array.isArray(raw.steps)) {
+    throw new PhaseError('sample', `${CONFIG_FILE} sets "outline" without "steps"; the outline is checked against "steps"`)
+  }
   return {
     slug: raw.slug,
     registry: raw.registry ?? REGISTRY_FILE,
@@ -104,11 +109,10 @@ function samplePhase(root, config) {
     throw new PhaseError('sample', `sample "${slug}" is not registered in ${registryFile}`)
   }
   if (!steps) return `${slug} registered`
-  if (outline) {
-    const outlinePath = path.join(root, outline)
-    if (!fs.existsSync(outlinePath)) throw new PhaseError('sample', `sample outline ${outline} not found`)
-    assertOutlineOrder(fs.readFileSync(outlinePath, 'utf8'), steps)
-  }
+  if (!outline) return `${slug} registered; ${steps.length} titles/captions checked at render (no outline file)`
+  const outlinePath = path.join(root, outline)
+  if (!fs.existsSync(outlinePath)) throw new PhaseError('sample', `sample outline ${outline} not found`)
+  assertOutlineOrder(fs.readFileSync(outlinePath, 'utf8'), steps)
   return `${slug} registered; ${steps.length} titles/captions in order`
 }
 

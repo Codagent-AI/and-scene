@@ -1,0 +1,23 @@
+/** layoutId namespace for the sample: every on-screen entity has one stable id. */
+export const E = {
+  you: 'htp-you',
+  skill: 'htp-skill',
+  prompt: 'htp-prompt',
+  arrowOut: 'htp-arrow-out',
+  arrowBack: 'htp-arrow-back',
+  question: 'htp-question',
+  tray: 'htp-tray',
+  card: (i: number) => `htp-card-${i}`,
+  link: (i: number) => `htp-link-${i}`,
+  linkNote: 'htp-link-note',
+  ghost: 'htp-ghost',
+  depth: 'htp-depth',
+  kit: 'htp-kit',
+  kitPlug: 'htp-kit-plug',
+  verify: 'htp-verify',
+  verifyCheck: 'htp-verify-check',
+  modifyArc: 'htp-modify',
+  modifyTag: 'htp-modify-tag',
+  frame: 'htp-frame',
+  frameLabel: 'htp-frame-label',
+} as const

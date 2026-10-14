@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { escapeRegExp } from '../helpers'
 
 // E2E-001: the committed reference sample passes the full production verification gate.
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -55,7 +56,3 @@ describe('E2E-001 reference presentation passes production verification', () => 
     VERIFY_TIMEOUT_MS + 30_000,
   )
 })
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}

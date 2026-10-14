@@ -1,10 +1,11 @@
 // @vitest-environment node
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
+import { listFiles } from '../helpers'
 
 // INT-001: the bootstrap snapshot, materialized into a fresh directory outside this repository
 // by the skill's own helper, builds, lints, and passes its local verification with a presentation
@@ -26,15 +27,6 @@ function tempDir(prefix: string): string {
   const dir = mkdtempSync(join(tmpdir(), prefix))
   disposables.push(dir)
   return dir
-}
-
-function listFiles(root: string, dir = ''): string[] {
-  return readdirSync(join(root, dir), { withFileTypes: true })
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .flatMap((entry) => {
-      const rel = join(dir, entry.name)
-      return entry.isDirectory() ? listFiles(root, rel) : [rel]
-    })
 }
 
 function step(command: string, args: string[], cwd: string, timeout: number) {

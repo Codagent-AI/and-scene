@@ -1,8 +1,9 @@
 // @vitest-environment node
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { listFiles } from '../../helpers'
 
 // Drift control for the skill's bootstrap snapshot. The canonical sources live in the repo;
 // the bootstrap copies must stay byte-aligned or the skill would scaffold a different engine.
@@ -14,15 +15,6 @@ const bootstrap = join(repoRoot, 'skills', 'presentation', 'templates', 'bootstr
 // The reference-sample block is the only part of verify.mjs allowed to differ.
 const SAMPLE_BLOCK_START = '// ── Reference sample expectations'
 const SAMPLE_BLOCK_END = '// ── Pure helpers'
-
-function listFiles(root: string, dir = ''): string[] {
-  return readdirSync(join(root, dir), { withFileTypes: true })
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .flatMap((entry) => {
-      const rel = join(dir, entry.name)
-      return entry.isDirectory() ? listFiles(root, rel) : [rel]
-    })
-}
 
 function read(path: string): string {
   return readFileSync(path, 'utf8')

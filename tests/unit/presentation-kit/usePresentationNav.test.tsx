@@ -1,15 +1,10 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { usePresentationNav } from '../../../src/presentation-kit/usePresentationNav'
+import { press } from '../../helpers'
 
 function setup(count = 3, initialMode: 'browse' | 'present' = 'browse') {
   return renderHook(() => usePresentationNav({ count, initialMode }))
-}
-
-function press(key: string, target: EventTarget = window) {
-  act(() => {
-    target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))
-  })
 }
 
 describe('usePresentationNav', () => {

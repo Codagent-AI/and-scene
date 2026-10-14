@@ -1,11 +1,11 @@
 // @vitest-environment node
 import { spawnSync } from 'node:child_process'
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
-import { createConnection } from 'node:net'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
+import { escapeRegExp, isPortOpen } from '../helpers'
 
 // E2E-002: each verification phase reports its own failure, names the step, and
 // leaves no preview process behind. Every fault is injected into a disposable copy.
@@ -138,17 +138,6 @@ function runVerify(copy: string) {
   })
 }
 
-function isListening(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const socket = createConnection({ host: '127.0.0.1', port })
-    socket.once('connect', () => {
-      socket.destroy()
-      resolve(true)
-    })
-    socket.once('error', () => resolve(false))
-  })
-}
-
 describe('E2E-002 verification failures are actionable', () => {
   it.each(faults.map((fault) => [fault.name, fault] as const))(
     'fails %s with the failing phase and step, and releases the preview port',
@@ -172,13 +161,9 @@ describe('E2E-002 verification failures are actionable', () => {
         expect(port).toBeUndefined()
       }
       if (port) {
-        expect(await isListening(Number(port))).toBe(false)
+        expect(await isPortOpen(Number(port))).toBe(false)
       }
     },
     RUN_TIMEOUT_MS + 30_000,
   )
 })
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}

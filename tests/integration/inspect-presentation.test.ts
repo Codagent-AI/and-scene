@@ -1,11 +1,11 @@
 // @vitest-environment node
 import { spawnSync } from 'node:child_process'
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
-import { createConnection } from 'node:net'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
+import { isPortOpen } from '../helpers'
 
 // INT-002: the screenshot helper drives a production preview of a controlled multi-step
 // presentation and writes one settled screenshot per step plus advisory warnings.
@@ -42,17 +42,6 @@ function runHelper(slug: string, extra: string[] = []): RunResult {
   if (run.status !== 0) console.error(output)
   const portMatch = output.match(/preview http:\/\/127\.0\.0\.1:(\d+)/)
   return { status: run.status, output, outDir, port: portMatch ? Number(portMatch[1]) : null }
-}
-
-function isPortOpen(port: number): Promise<boolean> {
-  return new Promise((resolveOpen) => {
-    const socket = createConnection({ host: '127.0.0.1', port })
-    socket.once('connect', () => {
-      socket.destroy()
-      resolveOpen(true)
-    })
-    socket.once('error', () => resolveOpen(false))
-  })
 }
 
 function warningsFor(output: string, kind: string): string[] {

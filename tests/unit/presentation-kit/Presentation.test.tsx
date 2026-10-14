@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Presentation, type PresentationProps } from '../../../src/presentation-kit/Presentation'
 import { DESIGN_H, DESIGN_W, WIDE_VIEWPORT } from '../../../src/presentation-kit/constants'
 import { computeFitScale } from '../../../src/presentation-kit/geometry'
+import { press } from '../../helpers'
 import { FIXTURE_STEPS } from './fixture-steps'
 import type { CounterPayload } from './fixtures'
 
@@ -16,12 +17,6 @@ function root() {
   const element = document.querySelector<HTMLElement>('[data-presentation-root]')
   if (!element) throw new Error('presentation root missing')
   return element
-}
-
-function press(key: string, target: EventTarget = window) {
-  act(() => {
-    target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))
-  })
 }
 
 function setViewportWidth(width: number) {

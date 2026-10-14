@@ -204,8 +204,14 @@ const ROUTE_VIEW = join('src', 'RouteView.tsx')
 
 /** The app's browser entry: the module script named by index.html, else src/main.*. */
 function findEntryFile(appDir) {
-  const html = readText(join(appDir, 'index.html')) ?? ''
-  const named = html.match(/<script[^>]*\btype=["']module["'][^>]*\bsrc=["']\/?([^"']+)["']/)?.[1]
+  const html = (readText(join(appDir, 'index.html')) ?? '').replace(/<!--[\s\S]*?-->/g, '')
+  const attribute = (tag, name) => tag.match(new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`))?.[1]
+  const named = [...html.matchAll(/<script\b[^>]*>/gi)]
+    .map(([tag]) => tag)
+    .filter((tag) => attribute(tag, 'type') === 'module')
+    .map((tag) => attribute(tag, 'src'))
+    .find(Boolean)
+    ?.replace(/^\.?\//, '')
   const candidates = named ? [named] : SOURCE_EXTENSIONS.map((ext) => `src/main${ext}`)
   return candidates.find((candidate) => existsSync(join(appDir, candidate))) ?? null
 }
@@ -213,32 +219,60 @@ function findEntryFile(appDir) {
 /** Resolves a relative import specifier from `fromFile` to an existing source file, or null. */
 function resolveImport(appDir, fromFile, specifier) {
   const base = posix.join(posix.dirname(fromFile), specifier)
-  const candidates = [base, ...SOURCE_EXTENSIONS.map((ext) => `${base}${ext}`), ...SOURCE_EXTENSIONS.map((ext) => `${base}/index${ext}`)]
+  // TypeScript's ESM style writes the emitted extension: './App.js' names App.ts or App.tsx.
+  const stem = base.replace(/\.(?:js|jsx|mjs)$/, '')
+  const candidates = [
+    base,
+    ...SOURCE_EXTENSIONS.map((ext) => `${base}${ext}`),
+    ...SOURCE_EXTENSIONS.map((ext) => `${stem}${ext}`),
+    ...SOURCE_EXTENSIONS.map((ext) => `${base}/index${ext}`),
+  ]
   return candidates.find((candidate) => existsSync(join(appDir, candidate)) && statSync(join(appDir, candidate)).isFile()) ?? null
 }
 
+// Import specifiers that conventionally name a tsconfig/Vite path alias rather than a package.
+const ALIAS_SPECIFIER = /^(?:@\/|~\/|#|\$)/
+
 /**
- * Whether the host entry point reaches the presentation router or registry through its relative
- * imports. Scaffolding never overwrites a host entry file, so a custom one can leave every
- * registered presentation unreachable even though the build passes.
+ * Whether the host entry point reaches the presentation router or registry through its imports.
+ * Scaffolding never overwrites a host entry file, so a custom one can leave every registered
+ * presentation unreachable even though the build passes. `routed` is `null` when the trace hit
+ * an import it could not follow (a path alias or an unresolved relative path), so the caller
+ * should verify the route instead of editing a host that may already be wired.
  */
 export function routingStatus(appDir) {
   const entry = findEntryFile(appDir)
   const routerFiles = new Set([ROUTE_VIEW, REGISTRY].map((file) => file.split(sep).join('/')))
   const seen = new Set()
   const queue = entry ? [entry] : []
+  let untraced = false
   while (queue.length > 0) {
     const file = queue.shift()
     if (seen.has(file)) continue
     seen.add(file)
     if (routerFiles.has(file)) return { routed: true, entry }
     const source = readText(join(appDir, file)) ?? ''
-    for (const [, specifier] of source.matchAll(/(?:from\s*|import\s*\(?\s*|import\s+)['"](\.{1,2}\/[^'"]*)['"]/g)) {
-      const resolved = resolveImport(appDir, file, specifier)
-      if (resolved) queue.push(resolved)
+    for (const [, specifier] of source.matchAll(/(?:from\s*|import\s*\(?\s*|import\s+)['"]([^'"]+)['"]/g)) {
+      if (/^\.{1,2}\//.test(specifier)) {
+        const resolved = resolveImport(appDir, file, specifier)
+        if (resolved) queue.push(resolved)
+        else if (!/\.(?:css|svg|png|jpe?g|gif|webp|json)$/.test(specifier)) untraced = true
+      } else if (ALIAS_SPECIFIER.test(specifier)) {
+        untraced = true
+      }
     }
   }
   const where = entry ?? 'src/main.tsx'
+  if (untraced) {
+    return {
+      routed: null,
+      entry,
+      message:
+        `${where} imports through a path alias or an unresolved path, so routing could not be traced. ` +
+        'Open the presentation route in the browser to check it; edit the host entry only if it does not render ' +
+        '<RouteView> from src/RouteView.tsx or route to the PRESENTATIONS registry.',
+    }
+  }
   return {
     routed: false,
     entry,

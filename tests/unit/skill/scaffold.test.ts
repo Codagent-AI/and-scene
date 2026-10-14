@@ -191,6 +191,37 @@ describe('routing of a kept host entry point', () => {
     expect(scaffolded.json?.routing).toMatchObject({ routed: true })
   })
 
+  it('resolves TypeScript-style .js import specifiers to their .ts or .tsx sources', () => {
+    const root = tempDir('and-scene-js-ext-')
+    seedHostEntry(root, "import { App } from './App.js'\nvoid App\n")
+    writeProjectFile(root, 'src/App.tsx', "import { RouteView } from './RouteView.js'\nexport const App = RouteView\n")
+    const scaffolded = run(['scaffold', root, '--confirm', '--no-install'])
+    expect(scaffolded.json?.routing).toMatchObject({ routed: true })
+  })
+
+  it('reports unknown rather than unrouted when the entry imports through an alias', () => {
+    const root = tempDir('and-scene-alias-')
+    seedHostEntry(root, "import { App } from '@/App'\nvoid App\n")
+    writeProjectFile(root, 'src/App.tsx', "export const App = 'host'\n")
+    const scaffolded = run(['scaffold', root, '--confirm', '--no-install'])
+    const routing = scaffolded.json?.routing as { routed: unknown; message: string }
+    expect(routing.routed).toBeNull()
+    expect(routing.message).toContain('could not be traced')
+  })
+
+  it('reads the module script from index.html regardless of attribute order, comments, and ./ prefixes', () => {
+    const root = tempDir('and-scene-html-attrs-')
+    seedHostEntry(root, "import './RouteView'\n")
+    writeProjectFile(
+      root,
+      'index.html',
+      '<div id="root"></div>\n<!-- <script type="module" src="/src/main.tsx"></script> -->\n<script src="./src/host.tsx" type="module"></script>\n',
+    )
+    writeProjectFile(root, 'src/host.tsx', HOST_MAIN)
+    const scaffolded = run(['scaffold', root, '--confirm', '--no-install'])
+    expect(scaffolded.json?.routing).toMatchObject({ routed: false, entry: 'src/host.tsx' })
+  })
+
   it('follows the entry point named by index.html', () => {
     const root = tempDir('and-scene-html-entry-')
     seedHostEntry(root, "import './RouteView'\n")

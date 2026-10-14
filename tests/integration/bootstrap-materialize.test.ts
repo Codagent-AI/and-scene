@@ -16,12 +16,14 @@ const helper = join(skillRoot, 'scripts', 'scaffold.mjs')
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 // Dependency install and Chromium provisioning dominate; the cache keeps repeat runs practical.
 const MATERIALIZE_TIMEOUT_MS = 900_000
+// Removing an installed app tree can outlast the default 10s hook timeout when suites run in parallel.
+const CLEANUP_TIMEOUT_MS = 120_000
 
 const disposables: string[] = []
 
 afterAll(() => {
   for (const dir of disposables) rmSync(dir, { recursive: true, force: true })
-})
+}, CLEANUP_TIMEOUT_MS)
 
 function tempDir(prefix: string): string {
   const dir = mkdtempSync(join(tmpdir(), prefix))

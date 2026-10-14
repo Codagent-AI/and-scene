@@ -153,6 +153,54 @@ describe('plan and target resolution', () => {
   })
 })
 
+describe('routing of a kept host entry point', () => {
+  const HOST_MAIN = "import { createRoot } from 'react-dom/client'\ncreateRoot(document.getElementById('root')!).render('Host application')\n"
+
+  function seedHostEntry(root: string, main: string): void {
+    seedBuildSetup(root)
+    writeProjectFile(root, 'src/main.tsx', main)
+  }
+
+  it('reports a scaffolded app as routed', () => {
+    const root = tempDir('and-scene-routed-')
+    const scaffolded = run(['scaffold', root, '--no-install'])
+    expect(scaffolded.json?.routing).toMatchObject({ routed: true, entry: 'src/main.tsx' })
+    const added = run(['add', root, '--slug', 'my-talk', '--title', 'Talk'])
+    expect(added.json?.routing).toMatchObject({ routed: true })
+  })
+
+  it('flags a kept host entry point that never reaches the router or registry', () => {
+    const root = tempDir('and-scene-unrouted-')
+    seedHostEntry(root, HOST_MAIN)
+    const scaffolded = run(['scaffold', root, '--confirm', '--no-install'])
+    expect(scaffolded.status, scaffolded.stderr).toBe(0)
+    expect(readFileSync(join(root, 'src/main.tsx'), 'utf8')).toBe(HOST_MAIN)
+    expect(scaffolded.json?.routing).toMatchObject({ routed: false, entry: 'src/main.tsx' })
+
+    const added = run(['add', root, '--slug', 'my-talk', '--title', 'Talk'])
+    expect(added.status, added.stderr).toBe(0)
+    expect(added.json?.routing).toMatchObject({ routed: false, entry: 'src/main.tsx' })
+    expect(String((added.json?.routing as { message: string }).message)).toContain('RouteView')
+  })
+
+  it('treats an entry point that reaches the router through the host app as routed', () => {
+    const root = tempDir('and-scene-indirect-')
+    seedHostEntry(root, "import { App } from './App'\nvoid App\n")
+    writeProjectFile(root, 'src/App.tsx', "import { RouteView } from './RouteView'\nexport const App = RouteView\n")
+    const scaffolded = run(['scaffold', root, '--confirm', '--no-install'])
+    expect(scaffolded.json?.routing).toMatchObject({ routed: true })
+  })
+
+  it('follows the entry point named by index.html', () => {
+    const root = tempDir('and-scene-html-entry-')
+    seedHostEntry(root, "import './RouteView'\n")
+    writeProjectFile(root, 'index.html', '<div id="root"></div><script type="module" src="/src/host.tsx"></script>\n')
+    writeProjectFile(root, 'src/host.tsx', HOST_MAIN)
+    const scaffolded = run(['scaffold', root, '--confirm', '--no-install'])
+    expect(scaffolded.json?.routing).toMatchObject({ routed: false, entry: 'src/host.tsx' })
+  })
+})
+
 describe('add a presentation', () => {
   it('materializes the presentation template and registers it above the marker', () => {
     const root = tempDir('and-scene-add-')

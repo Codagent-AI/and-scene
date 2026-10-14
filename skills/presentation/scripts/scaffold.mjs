@@ -15,7 +15,7 @@
 // Exit codes: 0 done, 1 error, 2 refused because a non-empty target needs --confirm.
 import { spawnSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, join, posix, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const SKILL_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -197,6 +197,58 @@ export function plan(projectDir) {
   }
 }
 
+// ── Routing of the host entry point ──────────────────────────────────────────
+
+const SOURCE_EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js', '.mjs']
+const ROUTE_VIEW = join('src', 'RouteView.tsx')
+
+/** The app's browser entry: the module script named by index.html, else src/main.*. */
+function findEntryFile(appDir) {
+  const html = readText(join(appDir, 'index.html')) ?? ''
+  const named = html.match(/<script[^>]*\btype=["']module["'][^>]*\bsrc=["']\/?([^"']+)["']/)?.[1]
+  const candidates = named ? [named] : SOURCE_EXTENSIONS.map((ext) => `src/main${ext}`)
+  return candidates.find((candidate) => existsSync(join(appDir, candidate))) ?? null
+}
+
+/** Resolves a relative import specifier from `fromFile` to an existing source file, or null. */
+function resolveImport(appDir, fromFile, specifier) {
+  const base = posix.join(posix.dirname(fromFile), specifier)
+  const candidates = [base, ...SOURCE_EXTENSIONS.map((ext) => `${base}${ext}`), ...SOURCE_EXTENSIONS.map((ext) => `${base}/index${ext}`)]
+  return candidates.find((candidate) => existsSync(join(appDir, candidate)) && statSync(join(appDir, candidate)).isFile()) ?? null
+}
+
+/**
+ * Whether the host entry point reaches the presentation router or registry through its relative
+ * imports. Scaffolding never overwrites a host entry file, so a custom one can leave every
+ * registered presentation unreachable even though the build passes.
+ */
+export function routingStatus(appDir) {
+  const entry = findEntryFile(appDir)
+  const routerFiles = new Set([ROUTE_VIEW, REGISTRY].map((file) => file.split(sep).join('/')))
+  const seen = new Set()
+  const queue = entry ? [entry] : []
+  while (queue.length > 0) {
+    const file = queue.shift()
+    if (seen.has(file)) continue
+    seen.add(file)
+    if (routerFiles.has(file)) return { routed: true, entry }
+    const source = readText(join(appDir, file)) ?? ''
+    for (const [, specifier] of source.matchAll(/(?:from\s*|import\s*\(?\s*|import\s+)['"](\.{1,2}\/[^'"]*)['"]/g)) {
+      const resolved = resolveImport(appDir, file, specifier)
+      if (resolved) queue.push(resolved)
+    }
+  }
+  const where = entry ?? 'src/main.tsx'
+  return {
+    routed: false,
+    entry,
+    message:
+      `${where} does not reach the presentation router, so registered presentations are not reachable. ` +
+      `Edit it minimally to render <RouteView pathname={window.location.pathname} /> from src/RouteView.tsx ` +
+      '(or route to the PRESENTATIONS registry from your own router), then re-run the build and verify.',
+  }
+}
+
 // ── Scaffold ─────────────────────────────────────────────────────────────────
 
 function copyMissing(relPath, appDir, result) {
@@ -338,6 +390,7 @@ export function scaffold(projectDir, { confirm = false, install = true } = {}) {
     missing: [],
     ...result,
     install: installation,
+    routing: routingStatus(appDir),
   }
 }
 
@@ -400,7 +453,7 @@ export function addPresentation(appDir, { slug, title }) {
   // A function replacer keeps `$&`, `$'`, and `$$` in titles literal.
   writeFileSync(registryFile, registry.replace(markerLine, () => `${entry}\n${markerLine}`))
 
-  return { slug, title, dir: relative(appDir, dir), files, registry: REGISTRY }
+  return { slug, title, dir: relative(appDir, dir), files, registry: REGISTRY, routing: routingStatus(appDir) }
 }
 
 // ── CLI ──────────────────────────────────────────────────────────────────────

@@ -59,7 +59,8 @@ Rules:
    - An app that already has all three anchors needs no scaffolding.
 3. If `requiresConfirmation` is `true`, or the target is `presentations`, tell the user the exact target path, what is missing, and what will be written. Wait for their approval.
 4. Run `scaffold <projectDir>` (add `--confirm` once approved). The helper copies only missing files, never overwrites existing ones, merges missing dependencies and scripts into `package.json`, and runs `npm install`.
-5. Confirm `npm --prefix <appDir> run build` passes before you continue. If it fails, fix it (see the repair loop in step 4).
+5. Read `routing` in the result. `routed: false` means a host entry point the helper kept (it never overwrites) does not reach `src/RouteView.tsx` or the `PRESENTATIONS` registry, so presentations would build but not be reachable. Make the smallest edit to that entry (render `<RouteView pathname={window.location.pathname} />`, or route to the registry from the host's own router) and tell the user what you changed.
+6. Confirm `npm --prefix <appDir> run build` passes before you continue. If it fails, fix it (see the repair loop in step 4).
 
 Do not assume dependencies are installed. The helper installs them; check the output.
 
@@ -68,7 +69,7 @@ Do not assume dependencies are installed. The helper installs them; check the ou
 **Create** a new presentation:
 
 1. Choose a slug (lowercase words joined by hyphens) and the title.
-2. Run `add <appDir> --slug <slug> --title "<title>"`. This creates the folder and registers the route. The starter contains `entities.ts`, `Scene.tsx`, `steps/index.ts`, `steps/01-first-step.tsx`, `Talk.tsx`, and `talk.css`.
+2. Run `add <appDir> --slug <slug> --title "<title>"`. This creates the folder and registers the route. Check `routing` in the output again; if `routed` is `false`, wire the host entry as described in section 2 before verifying. The starter contains `entities.ts`, `Scene.tsx`, `steps/index.ts`, `steps/01-first-step.tsx`, `Talk.tsx`, and `talk.css`.
 3. Write the content:
    - `entities.ts`: one `ENTITY` id per entity that persists across steps. Ids are the layout identity, so an entity that appears in step 2 and stays until step 7 keeps the same id throughout.
    - `Scene.tsx`: a single scene component, `EvolvingScene`, whose `TalkPayload` carries `stage`. Each step is a number. The component draws everything that exists at that stage. Entities present from an earlier stage render unconditionally, so they morph in place. Newcomers are wrapped in `<Appear>`. Use the kit primitives `Box`, `Label`, `Arrow`, `Frame`, `Emphasis`, `SymbolChip`, and `SceneLayer` for geometry. Coordinates are on the 880 x 380 design canvas.

@@ -1,0 +1,11 @@
+/* Starter styling is intentionally structural only; restyle or replace this presentation. */
+.st-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  border: 1px solid currentcolor;
+}
+.st-arrow {
+  stroke: currentcolor;
+}

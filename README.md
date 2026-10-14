@@ -29,6 +29,8 @@ npm run lint             # ESLint
 npm run build            # TypeScript and production build
 npm run verify           # build -> sample -> render gate (vite preview on 127.0.0.1); exits non-zero on failure
 npm run test:e2e         # browser-backed suites: verify pass/fail (E2E-001/002) and screenshot helper (INT-002)
+npm run test:integration # alias of test:e2e; includes INT-001 (materialized bootstrap template)
+npm run sync:templates   # copy the canonical kit and scripts into the bootstrap template
 npm run inspect -- how-to-make-a-presentation [--settle <ms>] [--viewport WxH] [--skip-build]
 ```
 
@@ -40,6 +42,17 @@ never change the exit code. Mark intentional overlap with `data-presentation-all
 
 The INT-002 fixture (`src/test-fixtures/inspect-fixture/`) is registered only when
 building with `VITE_INSPECT_FIXTURE=1`; it never ships in the production registry.
+
+## Presentation skill and bootstrap template
+
+`skills/presentation/` is the distributable agent skill (`SKILL.md`, `references/`, `scripts/scaffold-lib.mjs`,
+and `templates/`). `templates/bootstrap/` is a self-contained, style-neutral app snapshot.
+
+**Keep the template aligned.** `src/presentation-kit/` (non-test files), `scripts/verify.mjs`,
+`scripts/inspect-presentation.mjs`, and `scripts/lib/*.mjs` are the canonical sources; their copies under
+`skills/presentation/templates/bootstrap/` must be byte-identical. A Vitest drift guard fails with the list of
+differing files; fix it with `npm run sync:templates`. Refresh the template `package-lock.json` with
+`npm install --package-lock-only` inside the template directory when its dependencies change.
 
 ## Current State
 

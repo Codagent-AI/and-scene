@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "verify": "node scripts/verify.mjs",
     "inspect": "node scripts/inspect-presentation.mjs",
-    "test:e2e": "vitest run --config vitest.e2e.config.ts"
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "sync:templates": "node scripts/sync-templates.mjs",
+    "test:integration": "vitest run --config vitest.e2e.config.ts"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

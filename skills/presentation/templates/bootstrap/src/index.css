@@ -1,0 +1,15 @@
+/* Host CSS: structural resets only. Colors, fonts, and spacing belong to each presentation. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}

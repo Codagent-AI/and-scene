@@ -40,3 +40,16 @@ describe('formatReport', () => {
     expect(out).not.toContain('VERIFY PASS')
   })
 })
+
+describe('loadConfig', () => {
+  it('defaults to the reference sample without a config file', async () => {
+    const { loadConfig, SAMPLE_SLUG } = await import('./verify.mjs')
+    const fs = await import('node:fs')
+    const os = await import('node:os')
+    const path = await import('node:path')
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cfg-'))
+    expect(loadConfig(dir).slug).toBe(SAMPLE_SLUG)
+    fs.writeFileSync(path.join(dir, 'verify.config.json'), '{"slug":"mine"}')
+    expect(loadConfig(dir)).toMatchObject({ slug: 'mine', steps: undefined })
+  })
+})

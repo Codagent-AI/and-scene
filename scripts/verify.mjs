@@ -5,7 +5,12 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { HOST, launchChromium, projectRoot, runCommand, startPreview } from './lib/preview.mjs'
 
-// ---- Project-specific expectations (edit these when copying into a scaffold) ----
+// ---- Defaults for this repository's reference sample ----
+// A scaffolded project overrides them with an optional `verify.config.json` at its root:
+//   { "slug": "starter", "registry"?: "src/presentations/index.ts",
+//     "outline"?: "src/presentations/starter/outline.ts", "steps"?: [{ "title", "caption" }] }
+// Without `steps` the render phase checks every step of `slug` for non-empty title/caption
+// and console/page errors, but not exact text or outline order.
 export const SAMPLE_SLUG = 'how-to-make-a-presentation'
 export const REGISTRY_FILE = 'src/presentations/index.ts'
 export const OUTLINE_FILE = `src/presentations/${SAMPLE_SLUG}/outline.ts`
@@ -20,6 +25,28 @@ export const EXPECTED_STEPS = [
   ['Changed your mind? Loop it.', 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.'],
   ["You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ].map(([title, caption]) => ({ title, caption }))
+export const CONFIG_FILE = 'verify.config.json'
+
+/** Resolve the verification target for a project root (defaults or `verify.config.json`). */
+export function loadConfig(root) {
+  const file = path.join(root, CONFIG_FILE)
+  if (!fs.existsSync(file)) {
+    return { slug: SAMPLE_SLUG, registry: REGISTRY_FILE, outline: OUTLINE_FILE, steps: EXPECTED_STEPS }
+  }
+  let raw
+  try {
+    raw = JSON.parse(fs.readFileSync(file, 'utf8'))
+  } catch (err) {
+    throw new PhaseError('sample', `${CONFIG_FILE} is not valid JSON: ${err.message}`)
+  }
+  if (typeof raw.slug !== 'string' || !raw.slug) throw new PhaseError('sample', `${CONFIG_FILE} must set "slug"`)
+  return {
+    slug: raw.slug,
+    registry: raw.registry ?? REGISTRY_FILE,
+    outline: raw.outline,
+    steps: Array.isArray(raw.steps) ? raw.steps : undefined,
+  }
+}
 // Per-step settle before checking errors / pressing the next key (ms).
 const STEP_SETTLE_MS = Number(process.env.VERIFY_STEP_SETTLE_MS ?? 700)
 const TRANSITION_TIMEOUT_MS = 3000
@@ -68,20 +95,25 @@ async function buildPhase(root) {
   return 'npm run build succeeded'
 }
 
-function samplePhase(root) {
-  const registryPath = path.join(root, REGISTRY_FILE)
-  if (!fs.existsSync(registryPath)) throw new PhaseError('sample', `registry ${REGISTRY_FILE} not found`)
+function samplePhase(root, config) {
+  const { slug, registry: registryFile, outline, steps } = config
+  const registryPath = path.join(root, registryFile)
+  if (!fs.existsSync(registryPath)) throw new PhaseError('sample', `registry ${registryFile} not found`)
   const registry = fs.readFileSync(registryPath, 'utf8')
-  if (!new RegExp(`slug:\\s*['"\`]${SAMPLE_SLUG}['"\`]`).test(registry)) {
-    throw new PhaseError('sample', `sample "${SAMPLE_SLUG}" is not registered in ${REGISTRY_FILE}`)
+  if (!new RegExp(`slug:\\s*['"\`]${slug}['"\`]`).test(registry)) {
+    throw new PhaseError('sample', `sample "${slug}" is not registered in ${registryFile}`)
   }
-  const outlinePath = path.join(root, OUTLINE_FILE)
-  if (!fs.existsSync(outlinePath)) throw new PhaseError('sample', `sample outline ${OUTLINE_FILE} not found`)
-  assertOutlineOrder(fs.readFileSync(outlinePath, 'utf8'))
-  return `${SAMPLE_SLUG} registered; ${EXPECTED_STEPS.length} titles/captions in order`
+  if (!steps) return `${slug} registered`
+  if (outline) {
+    const outlinePath = path.join(root, outline)
+    if (!fs.existsSync(outlinePath)) throw new PhaseError('sample', `sample outline ${outline} not found`)
+    assertOutlineOrder(fs.readFileSync(outlinePath, 'utf8'), steps)
+  }
+  return `${slug} registered; ${steps.length} titles/captions in order`
 }
 
-async function renderPhase(root) {
+async function renderPhase(root, config) {
+  const { slug, steps: expectedSteps } = config
   let preview
   let browser
   let current = 0
@@ -97,7 +129,7 @@ async function renderPhase(root) {
       if (errors.length) throw fail(errors[0].text, errors[0].step)
     }
 
-    const url = `http://${HOST}:${preview.port}/${SAMPLE_SLUG}`
+    const url = `http://${HOST}:${preview.port}/${slug}`
     await page.goto(url)
     try {
       await page.waitForSelector('[data-presentation-root]', { timeout: 10_000 })
@@ -107,8 +139,8 @@ async function renderPhase(root) {
     }
     const root$ = page.locator('[data-presentation-root]')
     const count = Number(await root$.getAttribute('data-step-count'))
-    if (count !== EXPECTED_STEPS.length) {
-      throw fail(`data-step-count is ${count}, expected ${EXPECTED_STEPS.length}`, 0)
+    if (expectedSteps ? count !== expectedSteps.length : !(count >= 1)) {
+      throw fail(`data-step-count is ${count}, expected ${expectedSteps ? expectedSteps.length : 'at least 1'}`, 0)
     }
 
     for (let i = 0; i < count; i++) {
@@ -121,8 +153,12 @@ async function renderPhase(root) {
       if (Number(idx) !== i) throw fail(`expected data-step-index ${i} but found ${idx}`)
       const title = await page.locator('[data-presentation-step-title]').textContent()
       const caption = await page.locator('[data-presentation-caption]').textContent()
-      if (title !== EXPECTED_STEPS[i].title) throw fail(`title ${JSON.stringify(title)} does not match ${JSON.stringify(EXPECTED_STEPS[i].title)}`)
-      if (caption !== EXPECTED_STEPS[i].caption) throw fail(`caption ${JSON.stringify(caption)} does not match the outline`)
+      if (expectedSteps) {
+        if (title !== expectedSteps[i].title) throw fail(`title ${JSON.stringify(title)} does not match ${JSON.stringify(expectedSteps[i].title)}`)
+        if (caption !== expectedSteps[i].caption) throw fail(`caption ${JSON.stringify(caption)} does not match the outline`)
+      } else if (!title?.trim() || !caption?.trim()) {
+        throw fail('step title or caption is empty')
+      }
       await page.waitForTimeout(STEP_SETTLE_MS)
       checkErrors()
       if (i === count - 1) break
@@ -148,6 +184,13 @@ async function renderPhase(root) {
 
 export async function runVerify(root = projectRoot()) {
   const results = []
+  let config
+  try {
+    config = loadConfig(root)
+  } catch (err) {
+    results.push({ phase: 'config', ok: false })
+    return { ok: false, report: formatReport(results, err), failure: err }
+  }
   const phases = [
     ['build', buildPhase],
     ['sample', samplePhase],
@@ -155,7 +198,7 @@ export async function runVerify(root = projectRoot()) {
   ]
   for (const [name, fn] of phases) {
     try {
-      const detail = await fn(root)
+      const detail = await fn(root, config)
       results.push({ phase: name, ok: true, detail })
     } catch (err) {
       const failure =

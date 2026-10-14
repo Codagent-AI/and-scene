@@ -1,0 +1,34 @@
+import { Appear, Arrow, Box, SceneLayer } from '../../presentation-kit'
+import type { SceneProps } from '../../presentation-kit'
+import { E } from './entities'
+
+/** Payload = the active step number (1-based); the scene shows every entity introduced so far. */
+export interface TalkPayload {
+  step: number
+}
+
+const at = (left: number, top: number, width?: number, height?: number) => ({
+  position: 'absolute' as const,
+  left,
+  top,
+  ...(width ? { width } : {}),
+  ...(height ? { height } : {}),
+})
+
+// One scene for the whole group: entities keep their ids, so they morph instead of redrawing.
+export function TalkScene({ payload }: SceneProps<TalkPayload>) {
+  const n = payload.step
+  return (
+    <SceneLayer className="__PREFIX__-scene">
+      <Appear style={at(80, 130, 200, 90)}>
+        <Box id={E.idea} className="__PREFIX__-node">idea</Box>
+      </Appear>
+      <Appear show={n >= 2} style={at(600, 130, 200, 90)}>
+        <Box id={E.detail} className="__PREFIX__-node">detail</Box>
+      </Appear>
+      <Appear show={n >= 2} style={{ position: 'absolute', inset: 0 }}>
+        <Arrow id={E.link} from={{ x: 290, y: 175 }} to={{ x: 590, y: 175 }} className="__PREFIX__-arrow" />
+      </Appear>
+    </SceneLayer>
+  )
+}

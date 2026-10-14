@@ -1,0 +1,11 @@
+import type { Step } from '../../../presentation-kit'
+import { OUTLINE } from '../outline'
+import { TalkScene } from '../TalkScene'
+import type { TalkPayload } from '../TalkScene'
+
+export const step__N__: Step<TalkPayload> = {
+  ...OUTLINE[__I__],
+  Scene: TalkScene,
+  groupKey: 'talk',
+  payload: { step: __N__ },
+}

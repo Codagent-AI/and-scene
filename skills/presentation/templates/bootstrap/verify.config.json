@@ -1,0 +1,8 @@
+{
+  "slug": "starter",
+  "outline": "src/presentations/starter/outline.ts",
+  "steps": [
+    { "title": "One scene", "caption": "A presentation is a single scene that keeps evolving." },
+    { "title": "New beats join it", "caption": "Each step adds to the scene instead of replacing it." }
+  ]
+}

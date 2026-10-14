@@ -22,20 +22,28 @@ describe('Reference sample composition', () => {
 
   it('leaves the step-card tray unframed from step 3 through step 8', async () => {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-    await page.goto(`${preview.url}/how-to-make-a-presentation`, { waitUntil: 'networkidle' })
-    for (let step = 1; step <= 8; step++) {
-      if (step >= 3) {
-        const borders = await page.evaluate(() => {
-          const tray = document.querySelector('[data-presentation-id="htp-tray"]')
-          if (!tray) return null
-          const cs = getComputedStyle(tray)
-          return [cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth, cs.borderLeftWidth, cs.outlineStyle]
-        })
-        expect(borders, `tray at step ${step}`).toEqual(['0px', '0px', '0px', '0px', 'none'])
+    try {
+      await page.goto(`${preview.url}/how-to-make-a-presentation`, { waitUntil: 'networkidle' })
+      const atStep = (index: number) =>
+        page.waitForFunction(
+          (i) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(i),
+          index,
+        )
+      for (let index = 0; index <= 7; index++) {
+        await atStep(index)
+        if (index >= 2) {
+          const borders = await page.evaluate(() => {
+            const tray = document.querySelector('[data-presentation-id="htp-tray"]')
+            if (!tray) return null
+            const cs = getComputedStyle(tray)
+            return [cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth, cs.borderLeftWidth, cs.outlineStyle]
+          })
+          expect(borders, `tray at step ${index + 1}`).toEqual(['0px', '0px', '0px', '0px', 'none'])
+        }
+        await page.keyboard.press('ArrowRight')
       }
-      await page.keyboard.press('ArrowRight')
-      await page.waitForTimeout(150)
+    } finally {
+      await page.close()
     }
-    await page.close()
   })
 })

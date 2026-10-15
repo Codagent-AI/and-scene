@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -134,11 +134,23 @@ describe('scaffold', () => {
   it.each([
     ['only imports the registry and resolver', "import { presentations } from './presentations'\nimport { resolveRoute } from './routes'\n"],
     ['mentions resolveRoute only in comments', "// resolveRoute(path, presentations) -> route.kind === 'presentation'\n/* <Presentation /> */\n"],
+    ['mentions resolveRoute only in a trailing comment', "export const note = 1 // resolveRoute(path, presentations) renders <Presentation />\n"],
   ])('does not treat an entry that %s as wired', (_name, text) => {
     const d = tmp()
     write(d, 'package.json', JSON.stringify({ scripts: { build: 'vite build' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
     write(d, 'index.html', '<script type="module" src="/src/main.tsx"></script>')
     write(d, 'src/main.tsx', text)
+    expect(lib.scaffold(d).routeWiring).toMatchObject({ wired: false, entry: 'src/main.tsx' })
+  })
+
+  it('falls back to the default entry when the module script is a symlink out of the project', () => {
+    const outside = tmp()
+    write(outside, 'entry.tsx', "const r = resolveRoute(p, presentations)\nr.kind === 'presentation'\n")
+    const d = tmp()
+    write(d, 'package.json', JSON.stringify({ scripts: { build: 'vite build' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    write(d, 'index.html', '<script type="module" src="/src/linked.tsx"></script>')
+    write(d, 'src/main.tsx', 'export {}\n')
+    symlinkSync(path.join(outside, 'entry.tsx'), path.join(d, 'src/linked.tsx'))
     expect(lib.scaffold(d).routeWiring).toMatchObject({ wired: false, entry: 'src/main.tsx' })
   })
 

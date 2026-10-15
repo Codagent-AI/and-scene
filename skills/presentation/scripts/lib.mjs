@@ -1,6 +1,6 @@
 // Deterministic helpers shared by detect-anchors.mjs and scaffold.mjs.
 // All template paths resolve from this file's location (the skill directory), never from cwd.
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -127,24 +127,29 @@ function copyMissing(srcRoot, destRoot, rels, report) {
 export function detectRouteWiring(dir) {
   const root = path.resolve(dir)
   const fallback = 'src/main.tsx'
-  const readFile = (file) => {
+  // Reads a regular file that stays inside the project after symlinks are resolved.
+  const readInside = (rel) => {
     try {
-      return statSync(file).isFile() ? readFileSync(file, 'utf8') : undefined
+      const realRoot = realpathSync(root)
+      const real = realpathSync(path.resolve(root, rel))
+      const within = path.relative(realRoot, real)
+      if (!within || within.startsWith('..') || path.isAbsolute(within) || !statSync(real).isFile()) return undefined
+      return readFileSync(real, 'utf8')
     } catch {
       return undefined
     }
   }
   let entry = fallback
-  const html = readFile(path.join(root, 'index.html')) ?? ''
+  const html = readInside('index.html') ?? ''
   const src = html.match(/<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["']([^"']+)["']/i)?.[1] ?? html.match(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*\btype=["']module["']/i)?.[1]
   if (src && !/^[a-z]+:\/\//i.test(src)) {
     const candidate = src.replace(/^\/+/, '')
     const rel = path.relative(root, path.resolve(root, candidate))
     // Only entries inside the project that are regular files count; anything else uses the default.
-    if (rel && !rel.startsWith('..') && !path.isAbsolute(rel) && readFile(path.join(root, rel)) !== undefined) entry = candidate
+    if (rel && !rel.startsWith('..') && !path.isAbsolute(rel) && readInside(rel) !== undefined) entry = candidate
   }
   // Comments never count: the entry must call resolveRoute and render a presentation route.
-  const text = (readFile(path.join(root, entry)) ?? '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  const text = (readInside(entry) ?? '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
   const wired = /\bresolveRoute\s*\(/.test(text) && /<Presentation\b|\.kind\s*===\s*['"]presentation['"]/.test(text)
   const template = path.join(BOOTSTRAP_DIR, 'src', 'main.tsx')
   return {

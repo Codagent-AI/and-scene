@@ -17,6 +17,6 @@ describe('console error filtering', () => {
 describe('reference scene exits', () => {
   it('animates the departing ghost card out instead of unmounting it immediately', async () => {
     const source = await read('src/presentations/how-to-make-a-presentation/ReferenceScene.tsx')
-    expect(source).toMatch(/<AnimatePresence[^>]*>\s*\{beat === 5 && <Box id=\{E\.ghost\}[^\n]*exit=/)
+    expect(source).toMatch(/<AnimatePresence[^>]*>\s*\{beat === 5 && <motion\.div key=\{E\.ghost\} exit=\{\{ opacity: 0 \}\}><Box id=\{E\.ghost\}/)
   })
 })

@@ -35,7 +35,7 @@ const ReferenceScene: Scene<Payload> = ({ payload: { beat } }) => {
             {index < cards - 1 && <span className="ref-morph-link" aria-label="morphs to next step">↗</span>}
             {beat >= 8 && index === 2 && <Emphasis id={E.edited} className="ref-edited">EDITED</Emphasis>}
           </Box>)}
-          <AnimatePresence>{beat === 5 && <Box id={E.ghost} exit={{ opacity: 0 }} className="ref-step-card ref-ghost" style={{ left: 12 + cards * 138, top: 30, width: 120, height: 86 }}><span className="ref-card-index">OPEN SLOT</span><strong>?</strong><small>your call</small></Box>}</AnimatePresence>
+          <AnimatePresence>{beat === 5 && <motion.div key={E.ghost} exit={{ opacity: 0 }}><Box id={E.ghost} className="ref-step-card ref-ghost" style={{ position: 'absolute', left: 12 + cards * 138, top: 30, width: 120, height: 86 }}><span className="ref-card-index">OPEN SLOT</span><strong>?</strong><small>your call</small></Box></motion.div>}</AnimatePresence>
           {beat >= 7 && <motion.div layout layoutId={E.verify} className="ref-verify" style={{ position: 'absolute', left: 570, top: 46, width: 202, height: 54 }}><span>BUILD + RENDER</span><b id={E.pass} className="ref-pass">✓ PASS</b></motion.div>}
         </div>
       </motion.div>

@@ -72,6 +72,11 @@ async function renderSample() {
         await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur() })
         await page.keyboard.press('ArrowRight')
         await page.waitForFunction((next) => Number(document.querySelector('[data-presentation-chrome]')?.getAttribute('data-step-index')) === next, currentStep + 1, { timeout: 4000 }).catch((error) => fail('render', `step ${currentStep + 2}: ArrowRight did not advance (${error.message.split('\n')[0]})`))
+        if (currentStep === 4) {
+          const ghost = page.locator('[data-presentation-node].ref-ghost')
+          if (await ghost.count() !== 1) fail('render', 'step 6: departing ghost card was not retained during its exit animation')
+          await ghost.waitFor({ state: 'detached', timeout: 2000 }).catch(() => fail('render', 'step 6: departing ghost card remained after its exit animation'))
+        }
       }
     }
     if (errors.length) fail('render', `step ${count}: ${errors[0]}`)

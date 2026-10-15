@@ -6,7 +6,7 @@ cli:
     claude:
       allow_tool_use: false
       thinking_budget: low
-      model: claude-sonnet-5-5
+      model: claude-haiku-5-5
 
 # entry_points configured by /validator-setup
 entry_points:

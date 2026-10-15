@@ -80,6 +80,9 @@ npm run inspect -- how-to-make-a-presentation
   differences.
 - Do not commit generated build output, dependency directories, or inspection
   screenshots.
+- Keep bootstrap copies aligned with canonical sources using `npm run sync:templates`;
+  use `npm run sync:templates -- --check` to detect drift. Do not hand-edit copied
+  kit/shared scripts without syncing them.
 - Do not add CI configuration, such as `.github/workflows/`. The npm scripts
   are the verification gate; the repository has no hosted CI.
 

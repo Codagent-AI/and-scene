@@ -23,7 +23,7 @@
 [data-presentation-next] { position: absolute; right: 34px; bottom: 18px; }
 [data-presentation-prev]:disabled, [data-presentation-next]:disabled { opacity: .42; cursor: default; }
 [data-presentation-mode-toggle] { position: absolute; right: 34px; top: 64px; z-index: 4; color: var(--teal); }
-[data-presentation-attribution] { font: 500 10px ui-monospace, SFMono-Regular, monospace; color: #506a65; text-decoration: none; letter-spacing: .04em; bottom: 48px !important; }
+[data-presentation-attribution] { font: 500 12px/20px ui-monospace, SFMono-Regular, monospace; color: #506a65; text-decoration: none; letter-spacing: .04em; padding: 0 4px; bottom: 48px !important; }
 [data-presentation-attribution]:hover { color: var(--orange); text-decoration: underline; }
 
 [data-reference-scene] { color: var(--ink); }
@@ -72,6 +72,6 @@
   [data-presentation-progress] { left: 19px; bottom: 22px; }
   [data-presentation-prev] { right: 105px; bottom: 15px; }
   [data-presentation-next] { right: 17px; bottom: 15px; }
-  [data-presentation-attribution] { right: 17px !important; bottom: 48px !important; font-size: 9px; }
+  [data-presentation-attribution] { right: 17px !important; bottom: 48px !important; font-size: 12px; line-height: 20px; }
   [data-presentation-mode-toggle] { right: 17px; top: 48px; padding: 6px 10px; font-size: 10px; }
 }

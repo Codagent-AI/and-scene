@@ -39,7 +39,7 @@ const ReferenceScene: Scene<Payload> = ({ payload: { beat } }) => {
           {beat >= 7 && <motion.div layout layoutId={E.verify} className="ref-verify" style={{ position: 'absolute', left: 570, top: 46, width: 202, height: 54 }}><span>BUILD + RENDER</span><b id={E.pass} className="ref-pass">✓ PASS</b></motion.div>}
         </div>
       </motion.div>
-      {beat >= 5 && <Label id={E.depth} className="ref-depth" style={{ position: 'absolute', left: 87, top: 103 }}>PARTIAL <span>↔</span> FULL</Label>}
+      {beat >= 5 && <Label id={E.depth} className="ref-depth" style={{ position: 'absolute', left: 286, top: 119 }}>PARTIAL <span>↔</span> FULL</Label>}
       {beat >= 6 && <>
         <motion.div layout layoutId={E.socket} className="ref-kit" data-presentation-allow-overlap="true" style={{ position: 'absolute', left: 322, top: 319, width: 236, height: 45 }}><span className="ref-socket-dot" /><b>SCENE KIT</b><small>shared parts + motion</small></motion.div>
       </>}

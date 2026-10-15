@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Deterministic verification gate: build -> sample -> render.
 //
+// Per-project expectations live in scripts/verify.config.json.
+//
 // Usage: node scripts/verify.mjs [--root <dir>] [--slug <slug>] [--timeout <ms>]
 //   --root     project root to verify (default: the repository root)
 //   --slug     sample route to render (default: SAMPLE.slug)
@@ -11,23 +13,13 @@ import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// ---- Sample-specific constants (the only repository-specific assumptions) ----
-export const SAMPLE = {
-  slug: 'how-to-make-a-presentation',
-  dir: 'src/presentations/how-to-make-a-presentation',
-  registry: 'src/presentations/index.ts',
-  steps: [
-    { era: 'the ask', title: 'You have a topic', caption: 'It starts with you, a topic, and mild overconfidence.' },
-    { era: 'the ask', title: 'The skill interviews you', caption: 'One question at a time: the topic, the look, then each beat of the story.' },
-    { era: 'the gathering', title: 'Answers become steps', caption: 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.' },
-    { era: 'the gathering', title: 'The deck grows', caption: 'Same shapes, new beats. Every answer extends the story without redrawing it.' },
-    { era: 'the gathering', title: 'You set the depth', caption: 'Spell out every step, or sketch a few and see how it looks. You hold the gate.' },
-    { era: 'the build', title: 'It assembles the scene', caption: 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.' },
-    { era: 'the build', title: 'It checks its own work', caption: 'Before saying done, it builds and renders every step — and fixes what breaks.' },
-    { era: 'the loop', title: 'Changed your mind? Loop it.', caption: 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.' },
-    { era: 'the reveal', title: "You're looking at one", caption: 'This presentation was built exactly this way. Thanks for watching.' },
-  ],
-}
+// ---- Project-specific expectations: scripts/verify.config.json (the only per-project input) ----
+// { "slug", "registry", "dir"?, "steps"? }. `dir` + `steps` (era/title/caption) enable the
+// ordered outline check; without them the sample phase only confirms `slug` is registered
+// and the render phase is a route smoke check. The same script serves the repository's
+// nine-step reference sample and the bootstrap template's starter presentation.
+const CONFIG_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'verify.config.json')
+export const SAMPLE = { registry: 'src/presentations/index.ts', steps: [], ...JSON.parse(readFileSync(CONFIG_FILE, 'utf8')) }
 // ------------------------------------------------------------------------------
 
 const HOST = '127.0.0.1'
@@ -75,9 +67,11 @@ function runBuild(root) {
   })
 }
 
+const hasOutline = SAMPLE.steps.length > 0 && Boolean(SAMPLE.dir)
+
 function checkSample(root, slug) {
-  const dir = path.join(root, SAMPLE.dir)
-  if (!existsSync(dir)) throw new PhaseError(`reference sample directory missing: ${SAMPLE.dir}`)
+  const dir = hasOutline ? path.join(root, SAMPLE.dir) : ''
+  if (hasOutline && !existsSync(dir)) throw new PhaseError(`reference sample directory missing: ${SAMPLE.dir}`)
   const registryFile = path.join(root, SAMPLE.registry)
   if (!existsSync(registryFile)) throw new PhaseError(`registry missing: ${SAMPLE.registry}`)
   const registry = readFileSync(registryFile, 'utf8')
@@ -87,6 +81,7 @@ function checkSample(root, slug) {
   if (!registered.includes(slug)) {
     throw new PhaseError(`sample "${slug}" is not registered in ${SAMPLE.registry}`)
   }
+  if (!hasOutline) return
   const stepsDir = path.join(dir, 'steps')
   const files = existsSync(stepsDir) ? readdirSync(stepsDir).filter((f) => /\.tsx?$/.test(f)).sort() : []
   if (files.length === 0) throw new PhaseError(`no step sources found in ${SAMPLE.dir}/steps`)
@@ -168,7 +163,7 @@ async function renderSample(root, slug) {
     }
     const count = Number(await root$.getAttribute('data-step-count'))
     if (!Number.isInteger(count) || count < 1) throw new PhaseError(`unreadable data-step-count at ${url}`)
-    if (slug === SAMPLE.slug && count !== SAMPLE.steps.length) {
+    if (hasOutline && slug === SAMPLE.slug && count !== SAMPLE.steps.length) {
       throw new PhaseError(`expected ${SAMPLE.steps.length} steps, data-step-count is ${count}`)
     }
     const fail = (index, msg) => { throw new PhaseError(`step ${index}: ${msg}${fmt(errors)}`) }
@@ -177,7 +172,7 @@ async function renderSample(root, slug) {
       const index = Number(await root$.getAttribute('data-step-index'))
       if (index !== i) fail(i, `data-step-index is ${index}, expected ${i} (transition did not advance)`)
       await page.waitForTimeout(SETTLE_MS)
-      if (slug === SAMPLE.slug) {
+      if (hasOutline && slug === SAMPLE.slug) {
         const title = (await page.locator('[data-presentation-step-title]').first().textContent())?.trim()
         const caption = (await page.locator('[data-presentation-caption]').first().textContent())?.trim()
         if (title !== SAMPLE.steps[i].title) fail(i, `title ${JSON.stringify(title)} != ${JSON.stringify(SAMPLE.steps[i].title)}`)
@@ -215,7 +210,7 @@ export async function verify(opts) {
   let blocked = false
   const phases = [
     ['build', () => runBuild(opts.root).then(() => 'app builds')],
-    ['sample', async () => { checkSample(opts.root, opts.slug); return `${SAMPLE.steps.length} steps registered in order` }],
+    ['sample', async () => { checkSample(opts.root, opts.slug); return hasOutline && opts.slug === SAMPLE.slug ? `${SAMPLE.steps.length} steps registered in order` : `"${opts.slug}" is registered` }],
     ['render', async () => `${await renderSample(opts.root, opts.slug)} steps rendered cleanly on ${HOST}`],
   ]
   for (const [name, run] of phases) {

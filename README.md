@@ -33,7 +33,27 @@ npm run build
   unpolished attribution. Warnings never change the exit code. Options:
   `--viewport WxH` (or `--narrow`), `--settle <ms>`, `--root <dir>`, `--skip-build`.
 
+## Presentation skill
+
+`skills/presentation/SKILL.md` is the distributable agent skill. Install it by copying (or
+symlinking) the whole `skills/presentation/` directory into your agent's skills directory, then
+ask the agent to make or change a presentation. It gathers details one question at a time,
+scaffolds whatever is missing (build setup, scene kit, presentation index) from
+`skills/presentation/templates/bootstrap/` (at the project root, or under `presentations/` in a
+monorepo), generates the presentation from `templates/presentation/`, and self-verifies with
+`npm run verify` and `npm run inspect`. Helpers: `skills/presentation/scripts/detect-anchors.mjs`
+and `scaffold.mjs`.
+
+**Template-snapshot maintenance rule:** `templates/bootstrap/` holds snapshots of
+`src/presentation-kit/` (byte-identical), `scripts/verify.mjs`, `scripts/inspect-presentation.mjs`,
+`src/main.tsx`, `src/Landing.tsx`, `src/RouteBoundary.tsx`, `src/routes.ts`, and the tsconfigs.
+Update the snapshot whenever the kit or those files change; `npm test` fails on drift. The only
+deliberate difference is `scripts/verify.config.json` (the starter's slug vs. the nine-step sample).
+If `package.json` dependencies change, regenerate the bootstrap `package-lock.json`.
+
 ## Layout
+
+- `skills/presentation/` — the agent skill, helper scripts, and scaffold templates
 
 - `src/presentation-kit/` — style-neutral scene kit (see its README for hooks)
 - `src/presentations/` — registry and the reference sample

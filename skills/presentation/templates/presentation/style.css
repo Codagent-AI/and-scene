@@ -1,0 +1,9 @@
+/* Presentation-owned stylesheet for "__SLUG__". The scene kit ships no CSS: style the
+   kit's data-presentation-* hooks here (see src/presentation-kit/README.md). Make the active
+   progress dot / ToC entry visibly distinct and keep the attribution legible. */
+
+[data-presentation-header] {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}

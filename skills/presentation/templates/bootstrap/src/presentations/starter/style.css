@@ -1,0 +1,11 @@
+/* Presentation-owned stylesheet for "starter". The scene kit ships no CSS and neither does
+   this scaffold: add your colors, fonts, spacing, and component treatments here by targeting
+   the kit's data-presentation-* hooks (see src/presentation-kit/README.md). Make the active
+   progress dot / ToC entry ([aria-current], [data-presentation-active="true"]) visibly
+   distinct and keep the attribution legible. */
+
+[data-presentation-header] {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}

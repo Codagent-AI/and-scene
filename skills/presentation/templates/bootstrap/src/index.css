@@ -1,0 +1,9 @@
+/* Host resets only: the fixed-canvas layout needs these; presentations own all styling. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}

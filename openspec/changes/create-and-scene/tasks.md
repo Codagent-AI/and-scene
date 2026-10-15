@@ -1,4 +1,4 @@
-- [ ] [Scene kit, routing shell, and unit-test harness](tasks/01-scene-kit-and-routing-shell.md)
-- [ ] [Committed reference presentation "How to Use This Skill to Make a Presentation"](tasks/02-reference-presentation.md)
-- [ ] [Production verification and screenshot-inspection scripts](tasks/03-verification-and-inspection-scripts.md)
-- [ ] [Presentation skill and bootstrap templates](tasks/04-presentation-skill-and-templates.md)
+- [x] [Scene kit, routing shell, and unit-test harness](tasks/01-scene-kit-and-routing-shell.md)
+- [x] [Committed reference presentation "How to Use This Skill to Make a Presentation"](tasks/02-reference-presentation.md)
+- [x] [Production verification and screenshot-inspection scripts](tasks/03-verification-and-inspection-scripts.md)
+- [x] [Presentation skill and bootstrap templates](tasks/04-presentation-skill-and-templates.md)

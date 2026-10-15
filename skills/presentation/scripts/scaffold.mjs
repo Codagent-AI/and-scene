@@ -6,12 +6,15 @@
 // register or install anything: follow SKILL.md for the registry line and `npm install`.
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { PRESENTATION_TEMPLATE_DIR, resolveTarget, scaffold } from './lib.mjs'
 
 function arg(name) {
   const i = process.argv.indexOf(name)
   return i >= 0 ? process.argv[i + 1] : undefined
 }
+
+const escapeJsxAttr = (s) => s.replace(/[&<>{}"']/g, (c) => `&#${c.charCodeAt(0)};`).replace(/\s+/g, ' ')
 
 export function createPresentation(target, slug, title) {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error(`slug must be kebab-case: ${slug}`)
@@ -23,14 +26,14 @@ export function createPresentation(target, slug, title) {
       const s = path.join(src, name)
       const o = path.join(out, name)
       if (statSync(s).isDirectory()) walk(s, o)
-      else writeFileSync(o, readFileSync(s, 'utf8').replaceAll('__SLUG__', slug).replaceAll('__TITLE__', title))
+      else writeFileSync(o, readFileSync(s, 'utf8').replaceAll('__SLUG__', slug).replaceAll('__TITLE__', escapeJsxAttr(title)))
     }
   }
   walk(PRESENTATION_TEMPLATE_DIR, dest)
   return dest
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
   const resolved = resolveTarget(process.cwd())
   const target = path.resolve(arg('--target') ?? resolved.target)
   const report = scaffold(target)

@@ -12,10 +12,17 @@ export const PRESENTATION_TEMPLATE_DIR = path.join(TEMPLATES_DIR, 'presentation'
 const IGNORED = new Set(['.git', 'node_modules', 'dist', '.inspect'])
 
 function readJson(file) {
+  let text
   try {
-    return JSON.parse(readFileSync(file, 'utf8'))
-  } catch {
-    return undefined
+    text = readFileSync(file, 'utf8')
+  } catch (err) {
+    if (err.code === 'ENOENT') return undefined
+    throw err
+  }
+  try {
+    return JSON.parse(text)
+  } catch (err) {
+    throw new Error(`invalid JSON in ${file}: ${err.message}`)
   }
 }
 

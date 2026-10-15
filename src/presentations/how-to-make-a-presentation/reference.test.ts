@@ -31,3 +31,16 @@ describe('reference presentation contract', () => {
     expect(new Set(Object.values(ENTITIES)).size).toBe(Object.values(ENTITIES).length)
   })
 })
+
+describe('reference scene legibility', () => {
+  // At a 390px viewport the 880×380 canvas scales to about 0.33, so scene text below 24px lands under 8px on screen.
+  it('keeps every scene text size at or above 24px on the design canvas', async () => {
+    const { readFile } = await import('node:fs/promises')
+    const css = await readFile(new URL('./reference.css', import.meta.url), 'utf8')
+    const sizes = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, selector]) => selector.includes('.ref-'))
+      .flatMap(([, selector, body]) => [...body.matchAll(/font(?:-size)?:\s*(?:[^;]*?\s)?(\d+(?:\.\d+)?)px/g)].map(([, px]) => ({ selector: selector.trim(), px: Number(px) })))
+    expect(sizes.length).toBeGreaterThan(0)
+    expect(sizes.filter(({ px }) => px < 24)).toEqual([])
+  })
+})

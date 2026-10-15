@@ -5,7 +5,8 @@ export function stepNumber(index: number): number { return index + 1 }
 export function clampIndex(index: number, total: number): number {
   return Math.max(0, Math.min(Math.max(0, total - 1), index))
 }
-export function keyToAction(key: string, target?: EventTarget | null): NavAction {
+export function keyToAction(key: string, target?: EventTarget | null, modifiers: { ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean } = {}): NavAction {
+  if (modifiers.ctrlKey || modifiers.metaKey || modifiers.altKey) return null
   const control = target as (EventTarget & { tagName?: string; isContentEditable?: boolean }) | null | undefined
   if (control && (control.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(control.tagName ?? ''))) return null
   if (['ArrowRight', ' ', 'PageDown'].includes(key)) return 'next'

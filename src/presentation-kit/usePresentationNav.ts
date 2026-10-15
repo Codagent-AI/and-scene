@@ -11,7 +11,7 @@ export function usePresentationNav(total: number, initialMode: PresentationMode 
   const toggleMode = useCallback(() => setMode((current) => current === 'browse' ? 'present' : 'browse'), [])
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const action = keyToAction(event.key, event.target)
+      const action = keyToAction(event.key, event.target, event)
       if (!action) return
       event.preventDefault()
       if (action === 'next') setIndex((value) => clampIndex(value + 1, total))

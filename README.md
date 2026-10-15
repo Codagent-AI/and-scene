@@ -27,7 +27,7 @@ renders every step in Chromium against a production preview on `127.0.0.1`. It
 exits non-zero and names the failed phase (and step for render faults). Install
 the browser once with `npx playwright install chromium`.
 
-`inspect` builds when `dist/index.html` is missing and writes settled screenshots
+`inspect` builds the production app and writes settled screenshots
 to `.inspection/<slug>/step-NN.png` (git-ignored). The default viewport is
 1440×900 and the default settle delay is 1300ms; use `--viewport=WxH`,
 `--settle=MS`, or `AND_SCENE_SETTLE_MS` to adjust them. Visual warnings are

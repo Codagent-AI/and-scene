@@ -4,8 +4,8 @@ export function overlapArea(a, b) {
     Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
 }
 
-export function isOverlapAllowed(a, b) {
-  return Boolean(a.allowed || b.allowed)
+export function isOverlapAllowed(firstAllowed, secondAllowed) {
+  return Boolean(firstAllowed || secondAllowed)
 }
 
 export function stylesDistinct(active, inactive) {

@@ -1,5 +1,6 @@
 import { access, readFile } from 'node:fs/promises'
 import path from 'node:path'
+import { createRequire } from 'node:module'
 
 export const referenceOutline = [
   ['the ask', 'You have a topic', 'It starts with you, a topic, and mild overconfidence.'],
@@ -13,13 +14,29 @@ export const referenceOutline = [
   ['the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ]
 
-export async function validateSample(root, slug = 'how-to-make-a-presentation') {
+export async function validateRegistration(root, slug) {
   const fail = (message) => { throw new Error(`[sample] ${message}`) }
   const registryPath = path.join(root, 'src/presentations/index.ts')
-  const sampleDir = path.join(root, 'src/presentations', slug)
   const registry = await readFile(registryPath, 'utf8').catch(() => fail('presentation registry missing'))
+  const ts = createRequire(path.join(root, 'package.json'))('typescript')
+  const source = ts.createSourceFile(registryPath, registry, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+  const declaration = source.statements.find((statement) => ts.isVariableStatement(statement) && statement.declarationList.declarations.some((item) => ts.isIdentifier(item.name) && item.name.text === 'presentations'))
+  const registryArray = declaration?.declarationList.declarations.find((item) => ts.isIdentifier(item.name) && item.name.text === 'presentations')?.initializer
+  const registered = registryArray && ts.isArrayLiteralExpression(registryArray) && registryArray.elements.some((entry) => {
+    if (!ts.isObjectLiteralExpression(entry)) return false
+    const properties = new Map(entry.properties.filter(ts.isPropertyAssignment).map((property) => [property.name.getText(source).replaceAll(/["']/g, ''), property.initializer]))
+    const slugValue = properties.get('slug')
+    const loadValue = properties.get('load')
+    return slugValue && ts.isStringLiteral(slugValue) && slugValue.text === slug && loadValue && ts.isArrowFunction(loadValue) && ts.isCallExpression(loadValue.body) && loadValue.body.expression.kind === ts.SyntaxKind.ImportKeyword && loadValue.body.arguments[0] && ts.isStringLiteral(loadValue.body.arguments[0]) && loadValue.body.arguments[0].text === `./${slug}/Talk`
+  })
+  if (!registered || source.parseDiagnostics.length) throw new Error(`registry does not register ${slug} as a presentation entry`)
+}
+
+export async function validateSample(root, slug = 'how-to-make-a-presentation') {
+  const fail = (message) => { throw new Error(`[sample] ${message}`) }
+  const sampleDir = path.join(root, 'src/presentations', slug)
   await access(sampleDir).catch(() => fail(`sample directory missing: ${slug}`))
-  if (!registry.includes(`slug: '${slug}'`) || !registry.includes(`./${slug}/Talk`)) fail(`registry does not register ${slug}`)
+  await validateRegistration(root, slug).catch((error) => fail(error.message.replace(/^\[sample\] /, '')))
   const outline = await readFile(path.join(sampleDir, 'steps/index.tsx'), 'utf8').catch(() => fail('sample outline missing'))
   let cursor = 0
   for (let index = 0; index < referenceOutline.length; index++) {

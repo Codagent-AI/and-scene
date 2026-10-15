@@ -1,7 +1,6 @@
 import { spawn } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { createRequire } from 'node:module'
-import { pathToFileURL } from 'node:url'
 import path from 'node:path'
 import process from 'node:process'
 import { validateSample, referenceOutline } from './sample-outline.mjs'
@@ -33,9 +32,9 @@ async function renderSample() {
   const errors = []
   try {
     preview = spawn(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1', '--port', String(portServer), '--strictPort'], { cwd: root, stdio: 'ignore' })
-    interrupt = () => {
+    interrupt = async () => {
       preview?.kill('SIGTERM')
-      void browser?.close()
+      await browser?.close().catch(() => {})
       process.exit(130)
     }
     process.once('SIGINT', interrupt)
@@ -48,7 +47,11 @@ async function renderSample() {
     }
     browser = await chromium.launch({ headless: true })
     const page = await browser.newPage()
-    page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
+    page.on('console', (message) => {
+      if (message.type() !== 'error') return
+      if (/favicon/i.test(message.text()) || /favicon/i.test(message.location().url || '')) return
+      errors.push(message.text())
+    })
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto(`${url}/${slug}`, { waitUntil: 'networkidle' })
     const chrome = page.locator('[data-presentation-chrome]')
@@ -58,10 +61,17 @@ async function renderSample() {
       await chrome.waitFor({ state: 'visible' })
       const actual = Number(await chrome.getAttribute('data-step-index'))
       if (actual !== currentStep) fail('render', `step ${currentStep + 1}: expected index ${currentStep}, observed ${actual}`)
+      await page.locator('[data-presentation-mode-toggle]').click()
+      const visibleTitle = (await page.locator('[data-presentation-title]').textContent()).replace(/^\d+\s*\/\s*\d+\s*·\s*/, '').trim()
+      if (visibleTitle !== referenceOutline[currentStep][1]) fail('render', `step ${currentStep + 1}: expected visible title "${referenceOutline[currentStep][1]}", observed "${visibleTitle}"`)
+      await page.locator('[data-presentation-mode-toggle]').click()
+      const visibleCaption = (await page.locator('[data-presentation-caption]').innerText()).trim()
+      if (visibleCaption !== referenceOutline[currentStep][2]) fail('render', `step ${currentStep + 1}: expected visible caption "${referenceOutline[currentStep][2]}", observed "${visibleCaption}"`)
       if (errors.length) fail('render', `step ${currentStep + 1}: ${errors.shift()}`)
       if (currentStep + 1 < count) {
+        await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur() })
         await page.keyboard.press('ArrowRight')
-        await page.waitForFunction((next) => Number(document.querySelector('[data-presentation-chrome]')?.getAttribute('data-step-index')) === next, currentStep + 1, { timeout: 4000 }).catch(() => fail('render', `step ${currentStep + 2}: ArrowRight did not advance`))
+        await page.waitForFunction((next) => Number(document.querySelector('[data-presentation-chrome]')?.getAttribute('data-step-index')) === next, currentStep + 1, { timeout: 4000 }).catch((error) => fail('render', `step ${currentStep + 2}: ArrowRight did not advance (${error.message.split('\n')[0]})`))
       }
     }
     if (errors.length) fail('render', `step ${count}: ${errors[0]}`)

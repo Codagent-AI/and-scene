@@ -8,8 +8,8 @@ describe('inspection diagnostics', () => {
   })
 
   it('exempts a collision when either element has an intentional overlap marker', () => {
-    expect(isOverlapAllowed({ allowed: true }, { allowed: false })).toBe(true)
-    expect(isOverlapAllowed({ allowed: false }, { allowed: false })).toBe(false)
+    expect(isOverlapAllowed(true, false)).toBe(true)
+    expect(isOverlapAllowed(false, false)).toBe(false)
   })
 
   it('compares visible active and inactive style properties', () => {

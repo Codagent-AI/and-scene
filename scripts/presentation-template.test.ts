@@ -59,6 +59,11 @@ describe('presentation bootstrap template', () => {
     const verifyDrift = invoke(['--check', '--template-root', target])
     expect(verifyDrift.status).not.toBe(0)
     expect(verifyDrift.stderr).toContain('scripts/verify.mjs: content differs')
+    await cp(path.join(root, 'scripts/verify-presentation.mjs'), path.join(target, 'scripts/verify-presentation.mjs'))
+    await writeFile(path.join(target, 'scripts/verify-presentation.mjs'), 'drift')
+    const presentationVerifierDrift = invoke(['--check', '--template-root', target])
+    expect(presentationVerifierDrift.status).not.toBe(0)
+    expect(presentationVerifierDrift.stderr).toContain('scripts/verify-presentation.mjs: content differs')
   })
 
   it('refuses to synchronize into an unapproved external directory', async () => {

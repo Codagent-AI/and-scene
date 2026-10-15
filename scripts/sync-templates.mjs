@@ -13,6 +13,7 @@ const templateRoot = targetAt >= 0 ? path.resolve(args[targetAt + 1]) : path.joi
 const pairs = [
   ['src/presentation-kit', 'src/presentation-kit'],
   ['scripts/verify.mjs', 'scripts/verify.mjs'],
+  ['scripts/verify-presentation.mjs', 'scripts/verify-presentation.mjs'],
   ['scripts/inspect-presentation.mjs', 'scripts/inspect-presentation.mjs'],
   ['scripts/inspection-diagnostics.mjs', 'scripts/inspection-diagnostics.mjs'],
   ['scripts/sample-outline.mjs', 'scripts/sample-outline.mjs'],

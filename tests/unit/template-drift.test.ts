@@ -24,6 +24,7 @@ describe('template snapshot drift', () => {
   it.each([
     'scripts/verify.mjs',
     'scripts/inspect-presentation.mjs',
+    'scripts/preview-lib.mjs',
     'src/main.tsx',
     'src/Landing.tsx',
     'src/RouteBoundary.tsx',

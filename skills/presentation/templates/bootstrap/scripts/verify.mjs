@@ -8,10 +8,10 @@
 //   --slug     sample route to render (default: SAMPLE.slug)
 // Env equivalents: VERIFY_ROOT, VERIFY_SLUG, VERIFY_TIMEOUT.
 import { spawn } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs'
-import net from 'node:net'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { HOST, advanceTo, isEntryPoint, startPreview } from './preview-lib.mjs'
 
 // ---- Project-specific expectations: scripts/verify.config.json (the only per-project input) ----
 // { "slug", "registry", "dir"?, "steps"? }. `dir` + `steps` (era/title/caption) enable the
@@ -22,7 +22,6 @@ const CONFIG_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'ver
 export const SAMPLE = { registry: 'src/presentations/index.ts', steps: [], ...JSON.parse(readFileSync(CONFIG_FILE, 'utf8')) }
 // ------------------------------------------------------------------------------
 
-const HOST = '127.0.0.1'
 const MAX_TIMEOUT_MS = 2 ** 31 - 1 // largest delay setTimeout supports
 const SETTLE_MS = 1300 // layout move + newcomer enter + scene fade, with margin
 
@@ -47,11 +46,6 @@ function parseArgs(argv, env) {
 }
 
 class PhaseError extends Error {}
-
-// Preview processes are killed on any exit path, including signals and the overall timeout.
-const stoppers = new Set()
-process.on('exit', () => stoppers.forEach((stop) => stop()))
-for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => process.exit(130))
 
 function runBuild(root) {
   return new Promise((resolve, reject) => {
@@ -99,52 +93,9 @@ function checkSample(root, slug) {
   })
 }
 
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const srv = net.createServer()
-    srv.on('error', reject)
-    srv.listen(0, HOST, () => {
-      const { port } = srv.address()
-      srv.close(() => resolve(port))
-    })
-  })
-}
-
-async function startPreview(root) {
-  const port = await freePort()
-  const vite = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')
-  const child = spawn(process.execPath, [vite, 'preview', '--host', HOST, '--port', String(port), '--strictPort'], {
-    cwd: root,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    detached: true,
-  })
-  let log = ''
-  child.stdout.on('data', (d) => (log += d))
-  child.stderr.on('data', (d) => (log += d))
-  let exited = false
-  child.on('exit', () => (exited = true))
-  const stop = () => {
-    if (exited) return
-    try { process.kill(-child.pid, 'SIGKILL') } catch { /* already gone */ }
-  }
-  stoppers.add(stop)
-  const origin = `http://${HOST}:${port}`
-  const deadline = Date.now() + 30000
-  for (;;) {
-    if (exited) { stop(); throw new PhaseError(`vite preview exited early\n${log.trim()}`) }
-    try {
-      const res = await fetch(`${origin}/`)
-      if (res.ok) break
-    } catch { /* not ready */ }
-    if (Date.now() > deadline) { stop(); throw new PhaseError(`vite preview not ready at ${origin}\n${log.trim()}`) }
-    await new Promise((r) => setTimeout(r, 150))
-  }
-  return { origin, stop }
-}
-
 async function renderSample(root, slug) {
   const { chromium } = await import('playwright')
-  const preview = await startPreview(root)
+  const preview = await startPreview(root, PhaseError)
   let browser
   try {
     browser = await chromium.launch()
@@ -181,16 +132,7 @@ async function renderSample(root, slug) {
       if (errors.length) fail(i, 'runtime/console error')
       if (i < count - 1) {
         current = i + 1 // errors raised while entering the next step belong to it
-        await page.keyboard.press('ArrowRight')
-        try {
-          await page.waitForFunction(
-            (n) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(n),
-            i + 1,
-            { timeout: 3000 },
-          )
-        } catch {
-          fail(i + 1, `ArrowRight from step ${i} did not advance data-step-index to ${i + 1}`)
-        }
+        if (!(await advanceTo(page, i + 1))) fail(i + 1, `ArrowRight from step ${i} did not advance data-step-index to ${i + 1}`)
       }
     }
     if (errors.length) fail(count - 1, 'runtime/console error')
@@ -237,18 +179,7 @@ export async function verify(opts) {
   return failed.length ? 1 : 0
 }
 
-// Treat the file as the entry point unless it was demonstrably imported by another script.
-// (An unresolvable argv[1], e.g. `node -`, must run rather than silently exit 0.)
-function isEntryPoint() {
-  if (!process.argv[1]) return true
-  try {
-    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
-  } catch {
-    return true
-  }
-}
-
-if (isEntryPoint()) {
+if (isEntryPoint(import.meta.url)) {
   let opts
   try { opts = parseArgs(process.argv.slice(2), process.env) } catch (e) { console.error(e.message); process.exit(2) }
   const timer = setTimeout(() => { console.log(`FAIL verify: overall timeout after ${opts.timeout}ms`); process.exit(1) }, opts.timeout)

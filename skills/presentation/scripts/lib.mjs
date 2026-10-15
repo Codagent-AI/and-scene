@@ -122,7 +122,7 @@ function copyMissing(srcRoot, destRoot, rels, report) {
 const BUILD_FILES = ['index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'eslint.config.js', '.gitignore', 'src/main.tsx', 'src/Landing.tsx', 'src/RouteBoundary.tsx', 'src/routes.ts', 'src/index.css']
 const KIT = ['src/presentation-kit']
 const INDEX_FILES = ['src/presentations/index.ts']
-const SCRIPTS = ['scripts/verify.mjs', 'scripts/inspect-presentation.mjs', 'scripts/verify.config.json']
+const SCRIPTS = ['scripts/verify.mjs', 'scripts/inspect-presentation.mjs', 'scripts/preview-lib.mjs', 'scripts/verify.config.json']
 
 /**
  * Copy only the missing anchors from templates/bootstrap into `target`. Existing files are never

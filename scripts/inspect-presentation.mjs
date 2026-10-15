@@ -6,20 +6,15 @@
 // Screenshots go to <root>/.inspect/<slug>/step-NN.png (NN is one-based).
 // Advisory warnings never affect the exit code; only operational errors do.
 import { spawn } from 'node:child_process'
-import { mkdirSync, realpathSync } from 'node:fs'
-import net from 'node:net'
+import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { advanceTo, isEntryPoint, startPreview } from './preview-lib.mjs'
 
-const HOST = '127.0.0.1'
 const DEFAULT_SETTLE_MS = 1500 // layout move + newcomer enter + scene fade, with margin
 const MIN_ATTRIBUTION_PX = 11
 
 class OperationalError extends Error {}
-
-const stoppers = new Set()
-process.on('exit', () => stoppers.forEach((stop) => stop()))
-for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => process.exit(130))
 
 function parseArgs(argv, env) {
   const opts = {
@@ -61,48 +56,6 @@ function run(cmd, args, cwd) {
       code === 0 ? resolve() : reject(new OperationalError(`${cmd} ${args.join(' ')} failed (${code})\n${out.trim().split('\n').slice(-25).join('\n')}`)),
     )
   })
-}
-
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const srv = net.createServer()
-    srv.on('error', reject)
-    srv.listen(0, HOST, () => {
-      const { port } = srv.address()
-      srv.close(() => resolve(port))
-    })
-  })
-}
-
-async function startPreview(root) {
-  const port = await freePort()
-  const vite = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')
-  const child = spawn(process.execPath, [vite, 'preview', '--host', HOST, '--port', String(port), '--strictPort'], {
-    cwd: root,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    detached: true,
-  })
-  let log = ''
-  child.stdout.on('data', (d) => (log += d))
-  child.stderr.on('data', (d) => (log += d))
-  let exited = false
-  child.on('exit', () => (exited = true))
-  const stop = () => {
-    if (exited) return
-    try { process.kill(-child.pid, 'SIGKILL') } catch { /* already gone */ }
-  }
-  stoppers.add(stop)
-  const origin = `http://${HOST}:${port}`
-  const deadline = Date.now() + 30000
-  for (;;) {
-    if (exited) throw new OperationalError(`vite preview exited early\n${log.trim()}`)
-    try {
-      if ((await fetch(`${origin}/`)).ok) break
-    } catch { /* not ready */ }
-    if (Date.now() > deadline) { stop(); throw new OperationalError(`vite preview not ready at ${origin}\n${log.trim()}`) }
-    await new Promise((r) => setTimeout(r, 150))
-  }
-  return { origin, stop }
 }
 
 /** Runs in the page. Returns advisory findings for the current step. */
@@ -211,7 +164,7 @@ export async function inspect(opts) {
   const { chromium } = await import('playwright')
   if (opts.build) await run('npm', ['run', 'build'], opts.root)
   mkdirSync(opts.out, { recursive: true })
-  const preview = await startPreview(opts.root)
+  const preview = await startPreview(opts.root, OperationalError)
   let browser
   const warnings = []
   try {
@@ -238,16 +191,7 @@ export async function inspect(opts) {
       for (const msg of found.attribution) warnings.push(`WARN step ${n} [attribution] ${msg}`)
       console.log(`captured step-${n}.png`)
       if (i < count - 1) {
-        await page.keyboard.press('ArrowRight')
-        try {
-          await page.waitForFunction(
-            (k) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(k),
-            i + 1,
-            { timeout: 3000 },
-          )
-        } catch {
-          throw new OperationalError(`step ${n}: ArrowRight did not advance data-step-index`)
-        }
+        if (!(await advanceTo(page, i + 1))) throw new OperationalError(`step ${n}: ArrowRight did not advance data-step-index`)
       }
     }
     warnings.forEach((w) => console.log(w))
@@ -259,18 +203,7 @@ export async function inspect(opts) {
   }
 }
 
-// Treat the file as the entry point unless it was demonstrably imported by another script.
-// (An unresolvable argv[1], e.g. `node -`, must run rather than silently exit 0.)
-function isEntryPoint() {
-  if (!process.argv[1]) return true
-  try {
-    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
-  } catch {
-    return true
-  }
-}
-
-if (isEntryPoint()) {
+if (isEntryPoint(import.meta.url)) {
   try {
     process.exit(await inspect(parseArgs(process.argv.slice(2), process.env)))
   } catch (e) {

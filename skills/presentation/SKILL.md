@@ -141,6 +141,6 @@ collide with chrome (captions, progress, ToC, navigation); and it conforms to th
 ## Maintenance
 
 `templates/bootstrap/src/presentation-kit/` and the aligned scripts (`scripts/verify.mjs`,
-`scripts/inspect-presentation.mjs`, plus `src/main.tsx`, `Landing.tsx`, `RouteBoundary.tsx`, `routes.ts`)
+`scripts/inspect-presentation.mjs`, `scripts/preview-lib.mjs`, plus `src/main.tsx`, `Landing.tsx`, `RouteBoundary.tsx`, `routes.ts`)
 are snapshots of the repository's canonical copies. Update the snapshot whenever those change; the drift
 test (`npm test`) fails otherwise.

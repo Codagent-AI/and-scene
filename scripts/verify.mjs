@@ -49,7 +49,7 @@ async function renderSample() {
     const page = await browser.newPage()
     page.on('console', (message) => {
       if (message.type() !== 'error') return
-      if (/favicon/i.test(message.text()) || /favicon/i.test(message.location().url || '')) return
+      if (/\/favicon\.ico(?:[?#]|$)/.test(message.location().url || '')) return
       errors.push(message.text())
     })
     page.on('pageerror', (error) => errors.push(error.message))

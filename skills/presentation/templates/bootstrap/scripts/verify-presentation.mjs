@@ -57,7 +57,7 @@ async function render(slugs) {
     browser = await chromium.launch({ headless: true })
     for (const slug of slugs) {
       const page = await browser.newPage()
-      page.on('console', (message) => { if (message.type() === 'error' && !/favicon/i.test(message.text())) errors.push(message.text()) })
+      page.on('console', (message) => { if (message.type() === 'error' && !/\/favicon\.ico(?:[?#]|$)/.test(message.location().url || '')) errors.push(message.text()) })
       page.on('pageerror', (error) => errors.push(error.message))
       await page.goto(`${base}/${slug}`, { waitUntil: 'networkidle' })
       const chrome = page.locator('[data-presentation-chrome]')

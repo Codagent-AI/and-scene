@@ -149,7 +149,7 @@ export function detectRouteWiring(dir) {
     if (rel && !rel.startsWith('..') && !path.isAbsolute(rel) && readInside(rel) !== undefined) entry = candidate
   }
   // Comments never count: the entry must call resolveRoute and render a presentation route.
-  const text = (readInside(entry) ?? '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+  const text = (readInside(entry) ?? '').replace(/("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`[^`]*`)|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m, str) => str ?? '')
   const wired = /\bresolveRoute\s*\(/.test(text) && /<Presentation\b|\.kind\s*===\s*['"]presentation['"]/.test(text)
   const template = path.join(BOOTSTRAP_DIR, 'src', 'main.tsx')
   return {

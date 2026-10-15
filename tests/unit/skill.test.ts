@@ -131,6 +131,14 @@ describe('scaffold', () => {
     expect(lib.scaffold(h).routeWiring).toMatchObject({ wired: true, entry: 'src/app.tsx' })
   })
 
+  it('keeps code after a string literal containing // when detecting a wired entry', () => {
+    const d = tmp()
+    write(d, 'package.json', JSON.stringify({ scripts: { build: 'vite build' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    write(d, 'index.html', '<script type="module" src="/src/main.tsx"></script>')
+    write(d, 'src/main.tsx', `const u = "a//b"; const r = resolveRoute(p, presentations); /* x */ r.kind === 'presentation'\n`)
+    expect(lib.scaffold(d).routeWiring).toMatchObject({ wired: true, entry: 'src/main.tsx' })
+  })
+
   it.each([
     ['only imports the registry and resolver', "import { presentations } from './presentations'\nimport { resolveRoute } from './routes'\n"],
     ['mentions resolveRoute only in comments', "// resolveRoute(path, presentations) -> route.kind === 'presentation'\n/* <Presentation /> */\n"],

@@ -4,7 +4,7 @@
 // resolved target for the current directory). With --presentation it also creates a new
 // presentation folder from templates/presentation. Never overwrites existing files, and does not
 // register or install anything: follow SKILL.md for the registry line and `npm install`.
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, realpathSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PRESENTATION_TEMPLATE_DIR, resolveTarget, scaffold } from './lib.mjs'
@@ -33,11 +33,22 @@ export function createPresentation(target, slug, title) {
   return dest
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
+function isEntryPoint() {
+  try {
+    return Boolean(process.argv[1]) && realpathSync(path.resolve(process.argv[1])) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+
+if (isEntryPoint()) {
   const resolved = resolveTarget(process.cwd())
   const target = path.resolve(arg('--target') ?? resolved.target)
   const report = scaffold(target)
   const slug = arg('--presentation')
   if (slug) report.presentation = createPresentation(target, slug, arg('--title') ?? slug)
   console.log(JSON.stringify(report, null, 2))
+} else if (process.argv[1] && /scaffold\.mjs$/.test(process.argv[1])) {
+  console.error('scaffold.mjs could not confirm it was run as the entry point')
+  process.exitCode = 1
 }

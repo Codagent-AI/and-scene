@@ -127,8 +127,30 @@ describe('scaffold', () => {
     const h = tmp()
     write(h, 'package.json', JSON.stringify({ scripts: { build: 'vite build' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
     write(h, 'index.html', '<script type="module" src="/src/app.tsx"></script>')
-    write(h, 'src/app.tsx', "import { presentations } from './presentations'\nimport { resolveRoute } from './routes'\n")
+    write(h, 'src/app.tsx', "import { presentations } from './presentations'\nimport { resolveRoute } from './routes'\nconst route = resolveRoute(location.pathname, presentations)\nexport const page = route.kind === 'presentation' ? <Presentation steps={[]} title=\"t\" /> : null\n")
     expect(lib.scaffold(h).routeWiring).toMatchObject({ wired: true, entry: 'src/app.tsx' })
+  })
+
+  it.each([
+    ['only imports the registry and resolver', "import { presentations } from './presentations'\nimport { resolveRoute } from './routes'\n"],
+    ['mentions resolveRoute only in comments', "// resolveRoute(path, presentations) -> route.kind === 'presentation'\n/* <Presentation /> */\n"],
+  ])('does not treat an entry that %s as wired', (_name, text) => {
+    const d = tmp()
+    write(d, 'package.json', JSON.stringify({ scripts: { build: 'vite build' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    write(d, 'index.html', '<script type="module" src="/src/main.tsx"></script>')
+    write(d, 'src/main.tsx', text)
+    expect(lib.scaffold(d).routeWiring).toMatchObject({ wired: false, entry: 'src/main.tsx' })
+  })
+
+  it.each([
+    ['escapes the project root', '/../../outside.tsx'],
+    ['is a directory', '/src/'],
+  ])('falls back to the default entry when the module script %s', (_name, src) => {
+    const d = tmp()
+    write(d, 'package.json', JSON.stringify({ scripts: { build: 'vite build' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    write(d, 'index.html', `<script type="module" src="${src}"></script>`)
+    write(d, 'src/main.tsx', 'export {}\n')
+    expect(lib.scaffold(d).routeWiring).toMatchObject({ wired: false, entry: 'src/main.tsx' })
   })
 
   it('is a no-op on a full scaffold', () => {

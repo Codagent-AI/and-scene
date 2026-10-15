@@ -125,15 +125,27 @@ function copyMissing(srcRoot, destRoot, rels, report) {
  * a project whose build passes but whose presentation routes render nothing.
  */
 export function detectRouteWiring(dir) {
-  let entry = 'src/main.tsx'
-  try {
-    const html = readFileSync(path.join(dir, 'index.html'), 'utf8')
-    const src = html.match(/<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["']([^"']+)["']/i)?.[1] ?? html.match(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*\btype=["']module["']/i)?.[1]
-    if (src && !/^[a-z]+:\/\//i.test(src)) entry = src.replace(/^\/+/, '')
-  } catch { /* no index.html: fall back to the default entry */ }
-  const file = path.join(dir, entry)
-  const text = existsSync(file) ? readFileSync(file, 'utf8') : ''
-  const wired = /\bresolveRoute\b/.test(text) || /from\s+['"][^'"]*\/presentations(\/index)?(\.\w+)?['"]/.test(text)
+  const root = path.resolve(dir)
+  const fallback = 'src/main.tsx'
+  const readFile = (file) => {
+    try {
+      return statSync(file).isFile() ? readFileSync(file, 'utf8') : undefined
+    } catch {
+      return undefined
+    }
+  }
+  let entry = fallback
+  const html = readFile(path.join(root, 'index.html')) ?? ''
+  const src = html.match(/<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["']([^"']+)["']/i)?.[1] ?? html.match(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*\btype=["']module["']/i)?.[1]
+  if (src && !/^[a-z]+:\/\//i.test(src)) {
+    const candidate = src.replace(/^\/+/, '')
+    const rel = path.relative(root, path.resolve(root, candidate))
+    // Only entries inside the project that are regular files count; anything else uses the default.
+    if (rel && !rel.startsWith('..') && !path.isAbsolute(rel) && readFile(path.join(root, rel)) !== undefined) entry = candidate
+  }
+  // Comments never count: the entry must call resolveRoute and render a presentation route.
+  const text = (readFile(path.join(root, entry)) ?? '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  const wired = /\bresolveRoute\s*\(/.test(text) && /<Presentation\b|\.kind\s*===\s*['"]presentation['"]/.test(text)
   const template = path.join(BOOTSTRAP_DIR, 'src', 'main.tsx')
   return {
     wired,

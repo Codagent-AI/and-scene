@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
-import { Box, Frame, Label, Presentation, SymbolChip, type Step } from '../presentation-kit'
+import { Box, Frame, Label, Presentation, SceneLayer, SymbolChip, type Step } from '../presentation-kit'
 import { ExitScene } from './fixtures'
 
 afterEach(cleanup)
@@ -32,5 +32,20 @@ describe('departing entities', () => {
     act(() => void fireEvent.keyDown(window, { key: 'ArrowRight' }))
     expect(node(), 'entity is removed with no exit animation').not.toBeNull()
     await waitFor(() => expect(node()).toBeNull(), { timeout: 3000 })
+  })
+})
+
+describe('Presence', () => {
+  it('rejects two keyless children that share an entity id', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(() =>
+      render(
+        <SceneLayer>
+          <Box id="same" />
+          <Frame id="same" />
+        </SceneLayer>,
+      ),
+    ).toThrow(/duplicate entity id "same"/)
+    spy.mockRestore()
   })
 })

@@ -26,13 +26,13 @@ export function usePresentationNav(count: number, initialMode: Mode = 'browse') 
       e.preventDefault()
       run(action)
     }
-    let start: { x: number; y: number } | null = null
+    let start: { id: number; x: number; y: number } | null = null
     const onTouchStart = (e: TouchEvent) => {
       const t = e.touches[0]
-      start = t ? { x: t.clientX, y: t.clientY } : null
+      start = e.touches.length === 1 && t ? { id: t.identifier, x: t.clientX, y: t.clientY } : null
     }
     const onTouchEnd = (e: TouchEvent) => {
-      const t = e.changedTouches[0]
+      const t = Array.from(e.changedTouches).find((c) => c.identifier === start?.id)
       if (!start || !t) return
       run(swipeToAction(t.clientX - start.x, t.clientY - start.y))
       start = null

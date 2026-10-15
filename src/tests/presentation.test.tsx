@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { Presentation } from '../presentation-kit'
 import { typedSteps } from './steps'
+import { OtherScene } from './fixtures'
 import { counter } from './counter'
 import Landing from '../Landing'
 
@@ -32,13 +33,13 @@ describe('<Presentation>', () => {
   it('swipes', () => {
     const { container } = render(<Presentation steps={typedSteps} title="Talk" />)
     act(() => {
-      fireEvent.touchStart(window, { touches: [{ clientX: 200, clientY: 0 }] })
-      fireEvent.touchEnd(window, { changedTouches: [{ clientX: 100, clientY: 0 }] })
+      fireEvent.touchStart(window, { touches: [{ identifier: 1, clientX: 200, clientY: 0 }] })
+      fireEvent.touchEnd(window, { changedTouches: [{ identifier: 1, clientX: 100, clientY: 0 }] })
     })
     expect(idx(container)).toBe('1')
     act(() => {
-      fireEvent.touchStart(window, { touches: [{ clientX: 100, clientY: 0 }] })
-      fireEvent.touchEnd(window, { changedTouches: [{ clientX: 200, clientY: 0 }] })
+      fireEvent.touchStart(window, { touches: [{ identifier: 1, clientX: 100, clientY: 0 }] })
+      fireEvent.touchEnd(window, { changedTouches: [{ identifier: 1, clientX: 200, clientY: 0 }] })
     })
     expect(idx(container)).toBe('0')
   })
@@ -120,6 +121,27 @@ describe('<Presentation>', () => {
     )
     expect(container.querySelector('[data-presentation-attribution]')).toBeNull()
     expect(container.querySelector('[data-presentation-brand]')!.textContent).toBe('home')
+  })
+})
+
+describe('step validation', () => {
+  it('rejects duplicate ids', () => {
+    const dup = [typedSteps[0], typedSteps[0]]
+    expect(() => render(<Presentation steps={dup} title="x" />)).toThrow(/duplicate step id/)
+  })
+  it('ignores multi-touch sequences', () => {
+    const { container } = render(<Presentation steps={typedSteps} title="Talk" />)
+    act(() => {
+      fireEvent.touchStart(window, { touches: [{ identifier: 1, clientX: 200, clientY: 0 }, { identifier: 2, clientX: 300, clientY: 0 }] })
+      fireEvent.touchEnd(window, { changedTouches: [{ identifier: 2, clientX: 50, clientY: 0 }] })
+    })
+    expect(idx(container)).toBe('0')
+  })
+  it('rejects mismatched Scene/payload pairs at compile time', () => {
+    const bad = { id: 'z', era: 'E', title: 'Z', caption: 'c', Scene: OtherScene, payload: { label: 'x' } }
+    // @ts-expect-error payload does not match OtherScene's props
+    const el = <Presentation steps={[bad]} title="x" />
+    expect(el).toBeTruthy()
   })
 })
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Mode } from './constants'
-import type { AnyStep } from './types'
+import type { AnyStep, ValidSteps } from './types'
 import { usePresentationNav } from './usePresentationNav'
 import { deriveEras } from './navLogic'
 import { Stage } from './Stage'
@@ -8,6 +8,14 @@ import { Header } from './chrome/Header'
 import { Footer, type Attribution } from './chrome/Footer'
 import { Toc } from './chrome/Toc'
 import { useWideViewport } from './useWideViewport'
+
+function assertUniqueIds(steps: readonly AnyStep[]) {
+  const seen = new Set<string>()
+  for (const s of steps) {
+    if (seen.has(s.id)) throw new Error(`duplicate step id: ${s.id}`)
+    seen.add(s.id)
+  }
+}
 
 export interface PresentationProps<TSteps extends readonly AnyStep[]> {
   steps: TSteps
@@ -25,7 +33,8 @@ export function Presentation<const TSteps extends readonly AnyStep[]>({
   initialMode = 'browse',
   brand,
   attribution,
-}: PresentationProps<TSteps>) {
+}: PresentationProps<ValidSteps<TSteps>>) {
+  assertUniqueIds(steps)
   const nav = usePresentationNav(steps.length, initialMode)
   const wide = useWideViewport()
   if (steps.length === 0) return null

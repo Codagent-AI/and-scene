@@ -29,5 +29,18 @@ export interface Step<TPayload = undefined> extends StepMeta {
   groupKey?: string
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyStep = Step<any>
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/** Loose structural step shape; use `ValidSteps` to enforce the Scene/payload link. */
+export interface AnyStep extends StepMeta {
+  Scene: Scene<any>
+  payload: unknown
+  groupKey?: string
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+type PayloadOf<S> = S extends { Scene: Scene<infer P> } ? P : never
+
+/** Maps each step to itself if its payload matches its Scene's props, otherwise to `never`. */
+export type ValidSteps<T extends readonly unknown[]> = {
+  [K in keyof T]: T[K] extends { payload: PayloadOf<T[K]> } ? T[K] : never
+}

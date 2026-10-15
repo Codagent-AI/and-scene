@@ -1,4 +1,5 @@
 import { StrictMode, Suspense, lazy } from 'react'
+import { RouteBoundary } from './RouteBoundary.tsx'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import Landing from './Landing.tsx'
@@ -10,9 +11,11 @@ function mount() {
   const Page = route.kind === 'presentation' ? lazy(route.entry.load) : Landing
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <Suspense fallback={null}>
-        <Page />
-      </Suspense>
+      <RouteBoundary>
+        <Suspense fallback={null}>
+          <Page />
+        </Suspense>
+      </RouteBoundary>
     </StrictMode>,
   )
 }

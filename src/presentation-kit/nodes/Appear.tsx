@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { ENTER_DELAY, ENTER_T } from '../constants'
+import { ENTER_DELAY, ENTER_T, EXIT } from '../constants'
 
 export interface AppearProps {
   children: ReactNode
@@ -22,7 +22,7 @@ export function Appear({ children, delay = 0, className, style }: AppearProps) {
       style={style}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: { ...ENTER_T, delay: ENTER_DELAY + delay } }}
-      exit={{ opacity: 0, transition: { duration: ENTER_T.duration / 2 } }}
+      exit={EXIT}
     >
       {children}
     </motion.div>

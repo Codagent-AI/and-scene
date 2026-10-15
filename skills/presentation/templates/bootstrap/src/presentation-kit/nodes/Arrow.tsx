@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { LAYOUT_T } from '../constants'
+import { EXIT, LAYOUT_T } from '../constants'
 
 export interface Point {
   x: number
@@ -24,7 +24,8 @@ export function Arrow({ id, from, to, headSize = 10, className, style }: ArrowPr
     y: to.y + headSize * Math.sin(angle + d),
   }))
   return (
-    <svg
+    <motion.svg
+      exit={EXIT}
       data-presentation-node="arrow"
       data-presentation-id={id}
       className={className}
@@ -44,6 +45,6 @@ export function Arrow({ id, from, to, headSize = 10, className, style }: ArrowPr
         fill="none"
         stroke="currentColor"
       />
-    </svg>
+    </motion.svg>
   )
 }

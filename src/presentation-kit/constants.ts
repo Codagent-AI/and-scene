@@ -2,6 +2,8 @@ export const EASE = [0.22, 1, 0.36, 1] as const
 
 export const LAYOUT_T = { duration: 0.6, ease: EASE }
 export const ENTER_T = { duration: 0.35, ease: EASE }
+/** Departing entities fade out; shared by the node primitives and `Appear`. */
+export const EXIT = { opacity: 0, transition: { duration: ENTER_T.duration / 2, ease: EASE } }
 /** Newcomers wait for persisting entities to finish their layout move. */
 export const ENTER_DELAY = LAYOUT_T.duration
 

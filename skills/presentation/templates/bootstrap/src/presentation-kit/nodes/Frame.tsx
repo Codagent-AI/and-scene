@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { LAYOUT_T } from '../constants'
+import { EXIT, LAYOUT_T } from '../constants'
 
 export interface FrameProps extends Omit<HTMLMotionProps<'div'>, 'id' | 'children' | 'layoutId'> {
   id: string
@@ -10,10 +10,11 @@ export interface FrameProps extends Omit<HTMLMotionProps<'div'>, 'id' | 'childre
 }
 
 /** Grouping container for related entities. */
-export function Frame({ id, label, children, ...rest }: FrameProps) {
+export function Frame({ id, label, children, exit = EXIT, ...rest }: FrameProps) {
   return (
     <motion.div
       {...rest}
+      exit={exit}
       layout
       layoutId={id}
       transition={LAYOUT_T}

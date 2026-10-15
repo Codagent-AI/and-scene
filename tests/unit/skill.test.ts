@@ -109,6 +109,28 @@ describe('scaffold', () => {
     expect(existsSync(path.join(d, 'src/presentations/starter'))).toBe(false)
   })
 
+  it('reports an existing entry point that does not mount the presentation registry', () => {
+    const d = tmp()
+    write(d, 'package.json', JSON.stringify({ scripts: { build: 'vite build' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    write(d, 'index.html', '<div id="root"></div><script type="module" src="/src/main.tsx"></script>')
+    write(d, 'src/main.tsx', "import { createRoot } from 'react-dom/client'\ncreateRoot(document.body).render(null)\n")
+    const rep = lib.scaffold(d)
+    expect(rep.skipped).toContain('src/main.tsx')
+    expect(rep.routeWiring).toMatchObject({ wired: false, entry: 'src/main.tsx' })
+    expect(rep.routeWiring.action).toMatch(/resolveRoute/)
+    expect(path.isAbsolute(rep.routeWiring.template)).toBe(true)
+  })
+
+  it('reports the entry point as wired for a fresh scaffold and for a hand-wired entry', () => {
+    const d = tmp()
+    expect(lib.scaffold(d).routeWiring).toMatchObject({ wired: true, entry: 'src/main.tsx' })
+    const h = tmp()
+    write(h, 'package.json', JSON.stringify({ scripts: { build: 'vite build' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    write(h, 'index.html', '<script type="module" src="/src/app.tsx"></script>')
+    write(h, 'src/app.tsx', "import { presentations } from './presentations'\nimport { resolveRoute } from './routes'\n")
+    expect(lib.scaffold(h).routeWiring).toMatchObject({ wired: true, entry: 'src/app.tsx' })
+  })
+
   it('is a no-op on a full scaffold', () => {
     const d = tmp()
     lib.scaffold(d)

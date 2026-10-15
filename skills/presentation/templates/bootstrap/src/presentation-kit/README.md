@@ -8,6 +8,10 @@ It imports only npm packages (`react`, `motion`, `lucide-react`).
 Usage: `<Presentation steps={STEPS} title="…" initialMode="browse" brand={…} attribution={…} />`.
 Steps sharing `groupKey` and `Scene` keep one scene instance; only `payload` changes.
 
+Entities that leave a step fade out instead of vanishing: node primitives carry an `exit` animation, and
+`SceneLayer` (or `Presence`, for any other parent) keeps removed children mounted until it finishes. Render
+departing entities as direct children of `SceneLayer` or `Presence`; nested inside a plain element they unmount at once.
+
 ## Stable hooks (`data-presentation-*`)
 
 | Hook | Element |

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { LAYOUT_T } from '../constants'
+import { EXIT, LAYOUT_T } from '../constants'
 
 export interface BoxProps extends Omit<HTMLMotionProps<'div'>, 'id' | 'children' | 'layoutId'> {
   /** Stable entity identity; used as the shared layoutId. */
@@ -11,10 +11,11 @@ export interface BoxProps extends Omit<HTMLMotionProps<'div'>, 'id' | 'children'
   Icon?: LucideIcon
 }
 
-export function Box({ id, Icon, children, ...rest }: BoxProps) {
+export function Box({ id, Icon, children, exit = EXIT, ...rest }: BoxProps) {
   return (
     <motion.div
       {...rest}
+      exit={exit}
       layout
       layoutId={id}
       transition={LAYOUT_T}

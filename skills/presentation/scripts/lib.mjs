@@ -119,6 +119,32 @@ function copyMissing(srcRoot, destRoot, rels, report) {
   }
 }
 
+/**
+ * Does the app's browser entry (the module script in index.html, default src/main.tsx) mount the
+ * presentation registry? An existing entry is never overwritten, so a partial scaffold can leave
+ * a project whose build passes but whose presentation routes render nothing.
+ */
+export function detectRouteWiring(dir) {
+  let entry = 'src/main.tsx'
+  try {
+    const html = readFileSync(path.join(dir, 'index.html'), 'utf8')
+    const src = html.match(/<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["']([^"']+)["']/i)?.[1] ?? html.match(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*\btype=["']module["']/i)?.[1]
+    if (src && !/^[a-z]+:\/\//i.test(src)) entry = src.replace(/^\/+/, '')
+  } catch { /* no index.html: fall back to the default entry */ }
+  const file = path.join(dir, entry)
+  const text = existsSync(file) ? readFileSync(file, 'utf8') : ''
+  const wired = /\bresolveRoute\b/.test(text) || /from\s+['"][^'"]*\/presentations(\/index)?(\.\w+)?['"]/.test(text)
+  const template = path.join(BOOTSTRAP_DIR, 'src', 'main.tsx')
+  return {
+    wired,
+    entry,
+    template,
+    ...(wired
+      ? {}
+      : { action: `${entry} does not mount the presentation registry, so presentation routes will not render. Edit it (keeping the existing app) to call resolveRoute(window.location.pathname, presentations) from src/routes.ts and render the matched presentation; ${template} shows the wiring. Then confirm the new route renders [data-presentation-root].` }),
+  }
+}
+
 const BUILD_FILES = ['index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'eslint.config.js', '.gitignore', 'src/main.tsx', 'src/Landing.tsx', 'src/RouteBoundary.tsx', 'src/routes.ts', 'src/index.css']
 const KIT = ['src/presentation-kit']
 const INDEX_FILES = ['src/presentations/index.ts']
@@ -133,7 +159,7 @@ export function scaffold(target, { bootstrapDir = BOOTSTRAP_DIR } = {}) {
   mkdirSync(target, { recursive: true })
   const before = detectAnchors(target)
   const report = { target, copied: [], skipped: [], missing: before.missing, needsInstall: false }
-  if (before.complete) return report
+  if (before.complete) return { ...report, routeWiring: detectRouteWiring(target) }
   if (!before.anchors.buildSetup) {
     copyMissing(bootstrapDir, target, [...BUILD_FILES, 'package-lock.json', ...SCRIPTS], report)
     const pkg = path.join(target, 'package.json')
@@ -147,6 +173,7 @@ export function scaffold(target, { bootstrapDir = BOOTSTRAP_DIR } = {}) {
   if (!before.anchors.presentationIndex) {
     copyMissing(bootstrapDir, target, [...INDEX_FILES, 'src/presentations/starter'], report)
   }
+  report.routeWiring = detectRouteWiring(target)
   return report
 }
 

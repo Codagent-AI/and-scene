@@ -1,16 +1,17 @@
 import type { ReactNode } from 'react'
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { LAYOUT_T } from '../constants'
+import { EXIT, LAYOUT_T } from '../constants'
 
 export interface LabelProps extends Omit<HTMLMotionProps<'span'>, 'id' | 'children' | 'layoutId'> {
   id: string
   children?: ReactNode
 }
 
-export function Label({ id, children, ...rest }: LabelProps) {
+export function Label({ id, children, exit = EXIT, ...rest }: LabelProps) {
   return (
     <motion.span
       {...rest}
+      exit={exit}
       layout
       layoutId={id}
       transition={LAYOUT_T}

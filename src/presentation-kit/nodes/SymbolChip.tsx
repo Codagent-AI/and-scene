@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { LAYOUT_T } from '../constants'
+import { EXIT, LAYOUT_T } from '../constants'
 
 export interface SymbolChipProps extends Omit<HTMLMotionProps<'span'>, 'id' | 'children' | 'layoutId'> {
   id: string
@@ -9,10 +9,11 @@ export interface SymbolChipProps extends Omit<HTMLMotionProps<'span'>, 'id' | 'c
   symbol: string
 }
 
-export function SymbolChip({ id, symbol, children, ...rest }: SymbolChipProps) {
+export function SymbolChip({ id, symbol, children, exit = EXIT, ...rest }: SymbolChipProps) {
   return (
     <motion.span
       {...rest}
+      exit={exit}
       layout
       layoutId={id}
       transition={LAYOUT_T}

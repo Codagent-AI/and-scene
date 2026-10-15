@@ -1,0 +1,3 @@
+- [ ] [Scene kit engine, router, registry, and landing page](tasks/01-scene-kit-and-host-app.md)
+- [ ] [Reference sample presentation and verification tooling](tasks/02-reference-sample-and-verification.md)
+- [ ] [Presentation skill and distributable bootstrap templates](tasks/03-presentation-skill-and-bootstrap.md)

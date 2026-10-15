@@ -37,10 +37,21 @@ describe('reference scene legibility', () => {
   it('keeps every scene text size at or above 24px on the design canvas', async () => {
     const { readFile } = await import('node:fs/promises')
     const css = await readFile(new URL('./reference.css', import.meta.url), 'utf8')
-    const sizes = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    const declarations = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
       .filter(([, selector]) => selector.includes('.ref-'))
-      .flatMap(([, selector, body]) => [...body.matchAll(/font(?:-size)?:\s*(?:[^;]*?\s)?(\d+(?:\.\d+)?)px/g)].map(([, px]) => ({ selector: selector.trim(), px: Number(px) })))
-    expect(sizes.length).toBeGreaterThan(0)
-    expect(sizes.filter(({ px }) => px < 24)).toEqual([])
+      .flatMap(([, selector, body]) => [...body.matchAll(/(?:^|[;\s])font(?:-size)?:\s*([^;]+)/g)].map(([, value]) => ({ selector: selector.trim(), value: value.trim() })))
+    expect(declarations.length).toBeGreaterThan(0)
+    // Every declaration must state a px size (a unit-less, rem, em, %, or var() size cannot be checked) of at least 24.
+    const tooSmallOrUnchecked = declarations.filter(({ value }) => {
+      const px = /(?:^|\s)(\d+(?:\.\d+)?)px(?=$|[\s/])/.exec(value)
+      return !px || Number(px[1]) < 24
+    })
+    expect(tooSmallOrUnchecked).toEqual([])
+  })
+
+  it('does not size scene text through inline styles', async () => {
+    const { readFile } = await import('node:fs/promises')
+    const source = await readFile(new URL('./ReferenceScene.tsx', import.meta.url), 'utf8')
+    expect(source).not.toMatch(/fontSize|font-size/)
   })
 })

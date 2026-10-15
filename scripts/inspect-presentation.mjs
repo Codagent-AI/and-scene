@@ -6,7 +6,7 @@
 // Screenshots go to <root>/.inspect/<slug>/step-NN.png (NN is one-based).
 // Advisory warnings never affect the exit code; only operational errors do.
 import { spawn } from 'node:child_process'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, realpathSync } from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -259,7 +259,7 @@ export async function inspect(opts) {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   try {
     process.exit(await inspect(parseArgs(process.argv.slice(2), process.env)))
   } catch (e) {

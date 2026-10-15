@@ -6,10 +6,10 @@
 //   --slug     sample route to render (default: SAMPLE.slug)
 // Env equivalents: VERIFY_ROOT, VERIFY_SLUG, VERIFY_TIMEOUT.
 import { spawn } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 // ---- Sample-specific constants (the only repository-specific assumptions) ----
 export const SAMPLE = {
@@ -47,6 +47,7 @@ function parseArgs(argv, env) {
     else throw new Error(`unknown argument: ${a}`)
   }
   opts.root = path.resolve(opts.root)
+  if (!Number.isFinite(opts.timeout) || opts.timeout <= 0) throw new Error(`timeout must be a positive number of ms, got ${opts.timeout}`)
   return opts
 }
 
@@ -77,7 +78,8 @@ function checkSample(root, slug) {
   const registryFile = path.join(root, SAMPLE.registry)
   if (!existsSync(registryFile)) throw new PhaseError(`registry missing: ${SAMPLE.registry}`)
   const registry = readFileSync(registryFile, 'utf8')
-  if (!new RegExp(`slug:\\s*['"]${slug}['"]`).test(registry)) {
+  const registered = [...registry.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
+  if (!registered.includes(slug)) {
     throw new PhaseError(`sample "${slug}" is not registered in ${SAMPLE.registry}`)
   }
   const stepsDir = path.join(dir, 'steps')
@@ -235,7 +237,7 @@ export async function verify(opts) {
   return failed.length ? 1 : 0
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   let opts
   try { opts = parseArgs(process.argv.slice(2), process.env) } catch (e) { console.error(e.message); process.exit(2) }
   const timer = setTimeout(() => { console.log(`FAIL verify: overall timeout after ${opts.timeout}ms`); process.exit(1) }, opts.timeout)

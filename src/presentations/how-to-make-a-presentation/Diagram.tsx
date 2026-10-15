@@ -4,7 +4,7 @@ import { beats } from './beats'
 
 export interface DiagramPayload {
   /** One-based beat; the scene shows every beat up to and including this one. */
-  beat: number
+  beat: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 }
 
 /** Continuing entities render bare (they morph); only the newest beat's entities fade in. */

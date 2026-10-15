@@ -259,7 +259,15 @@ export async function inspect(opts) {
   }
 }
 
-if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+function isEntryPoint() {
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+
+if (process.argv[1] && isEntryPoint()) {
   try {
     process.exit(await inspect(parseArgs(process.argv.slice(2), process.env)))
   } catch (e) {

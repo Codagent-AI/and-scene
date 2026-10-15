@@ -259,15 +259,18 @@ export async function inspect(opts) {
   }
 }
 
+// Treat the file as the entry point unless it was demonstrably imported by another script.
+// (An unresolvable argv[1], e.g. `node -`, must run rather than silently exit 0.)
 function isEntryPoint() {
+  if (!process.argv[1]) return true
   try {
     return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
   } catch {
-    return false
+    return true
   }
 }
 
-if (process.argv[1] && isEntryPoint()) {
+if (isEntryPoint()) {
   try {
     process.exit(await inspect(parseArgs(process.argv.slice(2), process.env)))
   } catch (e) {

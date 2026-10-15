@@ -81,7 +81,8 @@ function checkSample(root, slug) {
   const registryFile = path.join(root, SAMPLE.registry)
   if (!existsSync(registryFile)) throw new PhaseError(`registry missing: ${SAMPLE.registry}`)
   const registry = readFileSync(registryFile, 'utf8')
-  const code = registry.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+  // Strip comments while leaving string literals (which may contain `//`) intact.
+  const code = registry.replace(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (_, str) => str ?? '')
   const registered = [...code.matchAll(/(?<![\w$])slug\s*:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
   if (!registered.includes(slug)) {
     throw new PhaseError(`sample "${slug}" is not registered in ${SAMPLE.registry}`)
@@ -241,15 +242,18 @@ export async function verify(opts) {
   return failed.length ? 1 : 0
 }
 
+// Treat the file as the entry point unless it was demonstrably imported by another script.
+// (An unresolvable argv[1], e.g. `node -`, must run rather than silently exit 0.)
 function isEntryPoint() {
+  if (!process.argv[1]) return true
   try {
     return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
   } catch {
-    return false
+    return true
   }
 }
 
-if (process.argv[1] && isEntryPoint()) {
+if (isEntryPoint()) {
   let opts
   try { opts = parseArgs(process.argv.slice(2), process.env) } catch (e) { console.error(e.message); process.exit(2) }
   const timer = setTimeout(() => { console.log(`FAIL verify: overall timeout after ${opts.timeout}ms`); process.exit(1) }, opts.timeout)

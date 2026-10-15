@@ -18,7 +18,10 @@ export function resolvePage(pathname: string) {
 
 const Page = resolvePage(window.location.pathname)
 
-createRoot(document.getElementById('root')!).render(
+const container = document.getElementById('root')
+if (!container) throw new Error('Missing #root mount element in index.html')
+
+createRoot(container).render(
   <StrictMode>
     <PageErrorBoundary><Suspense fallback={<div role="status">Loading presentation…</div>}><Page /></Suspense></PageErrorBoundary>
   </StrictMode>,

@@ -8,11 +8,16 @@ export function clampIndex(index: number, total: number): number {
 export function keyToAction(key: string, target?: EventTarget | null, modifiers: { ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean } = {}): NavAction {
   if (modifiers.ctrlKey || modifiers.metaKey || modifiers.altKey) return null
   const control = target as (EventTarget & { tagName?: string; isContentEditable?: boolean }) | null | undefined
-  if (control && (control.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(control.tagName ?? ''))) return null
+  const activationKey = key === ' ' || key === 'Enter'
+  if (control && (control.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(control.tagName ?? '') || (activationKey && /^(BUTTON|A)$/.test(control.tagName ?? '')))) return null
   if (['ArrowRight', ' ', 'PageDown'].includes(key)) return 'next'
   if (['ArrowLeft', 'PageUp'].includes(key)) return 'prev'
   if (key.toLowerCase() === 'p') return 'toggle-mode'
   return null
+}
+export function touchToAction(startX: number | null, endX: number | undefined, threshold = 48): NavAction {
+  if (startX === null || endX === undefined) return null
+  return swipeToAction(endX - startX, threshold)
 }
 export function swipeToAction(deltaX: number, threshold = 48): NavAction {
   return deltaX <= -threshold ? 'next' : deltaX >= threshold ? 'prev' : null
@@ -29,5 +34,9 @@ export function resolveGroup<T>(steps: readonly { groupKey?: string; Scene: T }[
   while (start > 0 && steps[start - 1].groupKey === active.groupKey && steps[start - 1].Scene === active.Scene) start--
   while (end + 1 < steps.length && steps[end + 1].groupKey === active.groupKey && steps[end + 1].Scene === active.Scene) end++
   return { key: active.groupKey, scene: active.Scene, start, end }
+}
+export function sceneTransitionKey<T>(steps: readonly { id: string; groupKey?: string; Scene: T }[], index: number): string {
+  const group = resolveGroup(steps, index)
+  return group ? `group:${group.key}:${group.start}` : `step:${steps[index]?.id ?? index}`
 }
 export function modeFrom(value: PresentationMode): PresentationMode { return value }

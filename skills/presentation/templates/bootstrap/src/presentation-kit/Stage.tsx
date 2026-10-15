@@ -1,19 +1,15 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { useFitScale } from './useFitScale'
 import { DESIGN_H, DESIGN_W, ENTER_DELAY, ENTER_T, STAGE_LAYOUT } from './constants'
-import { resolveGroup } from './navigation'
+import { sceneTransitionKey } from './navigation'
 import type { PresentationMode, Step } from './types'
 
 export function Stage<T>({ steps, index, mode }: { steps: readonly Step<T>[]; index: number; mode: PresentationMode }) {
   const { scale, overflowing } = useFitScale(mode)
   const step = steps[index]
   if (!step) return null
-  const group = resolveGroup(steps, index)
-  const GroupScene = group?.scene === step.Scene ? step.Scene : null
+  const transitionKey = sceneTransitionKey(steps, index)
   const SceneComponent = step.Scene
-  const content = GroupScene
-    ? <GroupScene payload={step.payload} step={step} index={index} total={steps.length} />
-    : <AnimatePresence mode="sync" initial={false}><motion.div key={step.id} data-step-id={step.id} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: ENTER_T, delay: ENTER_DELAY } }} exit={{ opacity: 0, transition: { duration: ENTER_T } }}><SceneComponent payload={step.payload} step={step} index={index} total={steps.length} /></motion.div></AnimatePresence>
   const geometry = STAGE_LAYOUT[mode]
   return <div
     data-presentation-stage
@@ -23,7 +19,7 @@ export function Stage<T>({ steps, index, mode }: { steps: readonly Step<T>[]; in
   >
     <div style={{ width: DESIGN_W * scale, height: DESIGN_H * scale, position: 'relative', flex: 'none' }}>
       <LayoutGroup key={mode} id={`presentation-${mode}`}>
-        <div style={{ width: DESIGN_W, height: DESIGN_H, position: 'absolute', left: 0, top: 0, transform: `scale(${scale})`, transformOrigin: 'top left' }}>{content}</div>
+        <div style={{ width: DESIGN_W, height: DESIGN_H, position: 'absolute', left: 0, top: 0, transform: `scale(${scale})`, transformOrigin: 'top left' }}><AnimatePresence mode="sync" initial={false}><motion.div key={transitionKey} data-step-id={step.id} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: ENTER_T, delay: ENTER_DELAY } }} exit={{ opacity: 0, transition: { duration: ENTER_T } }}><SceneComponent payload={step.payload} step={step} index={index} total={steps.length} /></motion.div></AnimatePresence></div>
       </LayoutGroup>
     </div>
   </div>

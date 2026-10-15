@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
-import { overlapArea, isOverlapAllowed, stylesDistinct, attributionIssues } from './inspection-diagnostics.mjs'
+import { overlapArea, isOverlapAllowed, stylesDistinct, attributionIssues, previewReadinessFailure } from './inspection-diagnostics.mjs'
 import { validateRegistration } from './sample-outline.mjs'
 
 // Diagnostic thresholds: flag overlaps above 4px²; attribution below 12px or 44×20px;
@@ -36,10 +36,16 @@ const base = `http://127.0.0.1:${port}`
 const artifacts = path.join(root, '.inspection', slug)
 await mkdir(artifacts, { recursive: true })
 let preview
+let previewSpawnError
+let previewStderr = ''
+let lastFetchError = ''
 let browser
 let interrupt
 try {
-  preview = spawn(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' })
+  preview = spawn(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: ['ignore', 'ignore', 'pipe'] })
+  preview.stderr.setEncoding('utf8')
+  preview.stderr.on('data', (chunk) => { previewStderr = (previewStderr + chunk).slice(-6000) })
+  preview.on('error', (error) => { previewSpawnError = error })
   interrupt = async () => {
     preview?.kill('SIGTERM')
     await browser?.close().catch(() => {})
@@ -49,11 +55,12 @@ try {
   process.once('SIGTERM', interrupt)
   let ready = false
   for (let attempt = 0; attempt < 100; attempt++) {
-    if (preview.exitCode !== null) throw new Error('preview exited before readiness')
-    try { const response = await fetch(`${base}/`); if (response.ok) { ready = true; break } } catch {}
+    if (previewSpawnError) throw new Error(`preview failed to start: ${previewSpawnError.message}`)
+    if (preview.exitCode !== null) throw new Error(`preview exited before readiness${previewStderr.trim() ? `: ${previewStderr.trim()}` : ''}`)
+    try { const response = await fetch(`${base}/`); if (response.ok) { ready = true; lastFetchError = ''; break } lastFetchError = `HTTP ${response.status}` } catch (error) { lastFetchError = error.message }
     await delay(100)
   }
-  if (!ready) throw new Error('preview readiness timed out')
+  if (!ready) throw new Error(previewReadinessFailure(lastFetchError, previewStderr))
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width, height } })
   await page.goto(`${base}/${slug}`, { waitUntil: 'networkidle' })

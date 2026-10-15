@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampIndex, keyToAction, resolveGroup, resolveRoute, stepNumber, swipeToAction } from './navigation'
+import { clampIndex, keyToAction, resolveGroup, resolveRoute, sceneTransitionKey, stepNumber, swipeToAction, touchToAction } from './navigation'
 import { DESIGN_H, DESIGN_W } from './constants'
 import { computeFitScale, computeFitScaleState } from './useFitScale'
 import { isValidRegistry } from '../presentations'
@@ -14,9 +14,21 @@ describe('presentation kit pure contracts', () => {
     expect(keyToAction('p', null, { ctrlKey: true })).toBeNull()
     expect(keyToAction('p', null, { metaKey: true })).toBeNull()
     expect(keyToAction('ArrowLeft', null, { altKey: true })).toBeNull()
-    expect(keyToAction(' ', { tagName: 'BUTTON', isContentEditable: false } as unknown as EventTarget)).toBeNull()
+    const button = { tagName: 'BUTTON', isContentEditable: false } as unknown as EventTarget
+    expect(keyToAction(' ', button)).toBeNull()
+    expect(keyToAction('Enter', button)).toBeNull()
+    expect(keyToAction('ArrowRight', button)).toBe('next')
+    expect(keyToAction('ArrowLeft', button)).toBe('prev')
+    expect(keyToAction('PageDown', button)).toBe('next')
+    expect(keyToAction('PageUp', button)).toBe('prev')
   })
-  it('interprets horizontal swipes with a threshold', () => { expect([swipeToAction(-60), swipeToAction(60), swipeToAction(20)]).toEqual(['next', 'prev', null]) })
+  it('interprets horizontal swipes with a threshold and requires a matching start', () => {
+    expect([swipeToAction(-60), swipeToAction(60), swipeToAction(20)]).toEqual(['next', 'prev', null])
+    expect(touchToAction(null, 100)).toBeNull()
+    expect(touchToAction(100, undefined)).toBeNull()
+    expect(touchToAction(100, 40)).toBe('next')
+    expect(touchToAction(40, 100)).toBe('prev')
+  })
   it('fits the fixed canvas uniformly in both modes', () => {
     expect([DESIGN_W, DESIGN_H]).toEqual([880, 380])
     expect(computeFitScale(1200, 900, 'browse')).toBeCloseTo(Math.min((1200 - 96) / 880, (900 - 340) / 380))
@@ -32,8 +44,11 @@ describe('presentation kit pure contracts', () => {
   it('groups only contiguous steps sharing both key and scene identity', () => {
     const scene = () => null
     const other = () => null
-    const steps = [{ groupKey: 'a', Scene: scene }, { groupKey: 'a', Scene: scene }, { groupKey: 'a', Scene: other }]
+    const steps = [{ id: 'one', groupKey: 'a', Scene: scene }, { id: 'two', groupKey: 'a', Scene: scene }, { id: 'three', groupKey: 'a', Scene: other }]
     expect(resolveGroup(steps, 1)).toEqual({ key: 'a', scene, start: 0, end: 1 })
     expect(resolveGroup(steps, 2)).toEqual({ key: 'a', scene: other, start: 2, end: 2 })
+    expect([sceneTransitionKey(steps, 0), sceneTransitionKey(steps, 1)]).toEqual(['group:a:0', 'group:a:0'])
+    const mixed = [steps[0], { id: 'alone', Scene: other }]
+    expect([sceneTransitionKey(mixed, 0), sceneTransitionKey(mixed, 1)]).toEqual(['group:a:0', 'step:alone'])
   })
 })

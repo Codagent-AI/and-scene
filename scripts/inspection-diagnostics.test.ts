@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { attributionIssues, isOverlapAllowed, overlapArea, stylesDistinct } from './inspection-diagnostics.mjs'
+import { attributionIssues, isOverlapAllowed, overlapArea, previewReadinessFailure, stylesDistinct } from './inspection-diagnostics.mjs'
 
 describe('inspection diagnostics', () => {
   it('measures overlapping rectangles and treats touching edges as clear', () => {
@@ -15,6 +15,11 @@ describe('inspection diagnostics', () => {
   it('compares visible active and inactive style properties', () => {
     expect(stylesDistinct({ color: 'red', fontWeight: '700' }, { color: 'red', fontWeight: '400' })).toBe(true)
     expect(stylesDistinct({ color: 'red', fontWeight: '400' }, { color: 'red', fontWeight: '400' })).toBe(false)
+  })
+
+  it('includes the final fetch error and preview stderr in readiness diagnostics', () => {
+    expect(previewReadinessFailure('ECONNREFUSED', 'vite bind failed')).toBe('preview readiness timed out; last fetch error: ECONNREFUSED; preview stderr: vite bind failed')
+    expect(previewReadinessFailure('', '')).toBe('preview readiness timed out; last fetch error: none')
   })
 
   it('flags undersized and browser-default attribution', () => {

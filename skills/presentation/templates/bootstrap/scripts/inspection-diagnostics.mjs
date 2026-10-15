@@ -19,3 +19,9 @@ export function attributionIssues(style, rect, link) {
   if (link && style.color === 'rgb(0, 0, 238)' && style.textDecorationLine.includes('underline')) issues.push('browser-default link styling')
   return issues
 }
+
+export function previewReadinessFailure(lastFetchError, stderr) {
+  const details = [`last fetch error: ${lastFetchError || 'none'}`]
+  if (stderr?.trim()) details.push(`preview stderr: ${stderr.trim()}`)
+  return `preview readiness timed out; ${details.join('; ')}`
+}

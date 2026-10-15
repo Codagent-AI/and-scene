@@ -65,8 +65,9 @@ export async function advanceTo(page, next) {
       { timeout: 3000 },
     )
     return true
-  } catch {
-    return false
+  } catch (e) {
+    if (e?.name === 'TimeoutError') return false
+    throw e
   }
 }
 

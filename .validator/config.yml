@@ -24,6 +24,9 @@ entry_points:
     reviews:
       - all-reviewers:
           builtin: all-reviewers
+      - task-compliance:
+          builtin: task-compliance
+          enabled: false # Opt-in: Runner enables it per task with --enable-review task-compliance --context-file <task>
 
 # -------------------------------------------------------------------
 # All settings below are optional. Uncomment and change as needed.

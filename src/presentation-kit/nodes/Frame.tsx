@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { motion, type HTMLMotionProps } from 'motion/react'
 import { LAYOUT_T } from '../constants'
 
-export interface FrameProps extends Omit<HTMLMotionProps<'div'>, 'id' | 'children'> {
+export interface FrameProps extends Omit<HTMLMotionProps<'div'>, 'id' | 'children' | 'layoutId'> {
   id: string
   children?: ReactNode
   /** Optional caption rendered as the first child with a styling hook. */
@@ -13,12 +13,12 @@ export interface FrameProps extends Omit<HTMLMotionProps<'div'>, 'id' | 'childre
 export function Frame({ id, label, children, ...rest }: FrameProps) {
   return (
     <motion.div
+      {...rest}
       layout
       layoutId={id}
       transition={LAYOUT_T}
       data-presentation-node="frame"
       data-presentation-id={id}
-      {...rest}
     >
       {label && <span data-presentation-frame-label="">{label}</span>}
       {children}

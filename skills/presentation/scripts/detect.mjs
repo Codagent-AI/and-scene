@@ -96,6 +96,17 @@ export function detectAnchors(dir) {
 /** Where the registry and the app's entry point are; used by the scaffold to wire routing. */
 export const locate = (dir) => ({ entry: entryFile(dir), registry: findRegistry(dir, findKit(dir)) })
 
+/**
+ * Where the kit directory, the registry file and the presentation folders live, relative to `dir`.
+ * Creation must use these, not the canonical names: detection accepts renamed anchors.
+ */
+export function locations(dir) {
+  const kit = findKit(dir)
+  const registry = findRegistry(dir, kit)
+  const rel = (p) => (p ? path.relative(dir, p).split(path.sep).join('/') : undefined)
+  return { kit: rel(kit), registry: rel(registry), presentations: registry ? rel(path.dirname(registry)) : undefined }
+}
+
 const isEmptyDir = (dir) => !fs.existsSync(dir) || fs.readdirSync(dir).filter((f) => f !== '.git').length === 0
 
 export function isMonorepo(dir) {
@@ -129,6 +140,7 @@ export function resolveTarget(dir) {
     reason,
     anchors,
     missing,
+    locations: locations(target),
     empty: isEmptyDir(dir),
     // A non-empty project without the kit or index must have its target confirmed before writing.
     needsConfirmation: !isEmptyDir(dir) && (!anchors.kit || !anchors.index),

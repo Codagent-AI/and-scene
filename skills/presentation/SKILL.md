@@ -33,11 +33,11 @@ then ask only about the requested changes (steps, entities, or style).
 A presentation app needs three **contract anchors**:
 
 1. **Build setup**: a Vite + React + TypeScript app with a working `npm run build`.
-2. **Scene kit**: `src/presentation-kit/` (step contract, stage, nav, chrome, fit-scale canvas, primitives).
-3. **Presentation index**: `src/presentations/index.ts`, mapping each presentation to its own route.
+2. **Scene kit**: `src/presentation-kit/` in a fresh scaffold (step contract, stage, nav, chrome, fit-scale canvas, primitives); a project may name the directory differently.
+3. **Presentation index**: `src/presentations/index.ts` in a fresh scaffold, mapping each presentation to its own route; a project may name the file and folder differently.
 
 ```bash
-node SKILL_DIR/scripts/detect.mjs <project-dir>      # JSON: target, anchors, missing, needsConfirmation
+node SKILL_DIR/scripts/detect.mjs <project-dir>      # JSON: target, anchors, missing, locations, needsConfirmation
 node SKILL_DIR/scripts/scaffold.mjs <target> [--anchors build,kit,index]
 ```
 
@@ -54,27 +54,29 @@ Then:
 - All anchors present: skip scaffolding.
 - Some missing: scaffold **only the missing anchors**; `scaffold.mjs` never overwrites an existing file and merges missing dependencies into an existing `package.json`.
 - If `needsConfirmation` is true (non-empty project lacking the kit or index), **state the target directory and wait for the user to confirm before writing anything.**
-- If the project already has its own entry point (e.g. `src/main.tsx`) that does not reach the presentation registry, `scaffold.mjs` moves it to `app-main` and installs a router entry that serves presentation routes and keeps the old app for every other path; `detect.mjs` only counts the index anchor once the entry point reaches the registry. Detection keys on contracts (a kit directory exporting `Presentation` with a stage, and a `{ slug, load }` registry reachable from the entry), so renamed files still count.
+- If the project already has its own entry point (e.g. `src/main.tsx`) that does not reach the presentation registry, `scaffold.mjs` moves it to `app-main` (`.ts`, `.tsx`, `.js` and `.jsx` entries are handled; `index.html` is repointed at the new `.tsx` router entry and a plain-JS host gets an `app-main.d.ts` so it builds) and installs a router entry that serves presentation routes and keeps the old app for every other path; `detect.mjs` only counts the index anchor once the entry point reaches the registry. Detection keys on contracts (a kit directory exporting `Presentation` with a stage, and a `{ slug, load }` registry reachable from the entry), so renamed files still count.
 - Run `npm install` in the target afterwards. Never assume the dependencies (react, react-dom, motion, lucide-react, vite, @vitejs/plugin-react, typescript, @types/*, eslint stack, playwright) are installed. Install Chromium for Playwright if needed (`npx playwright install chromium`).
 - The scaffold is styling-framework-neutral and ships zero visual defaults. Do not add Tailwind or another framework unless the host already uses one or the user asks.
 
 ### 3. Generate or modify
 
-**Create**: copy `templates/presentation/` to `src/presentations/<slug>/`, replace `__SLUG__` and `__TITLE__`, then register it with one line in `src/presentations/index.ts`:
+**Create**: use the locations `detect.mjs` reported, never assume the canonical names. Anchors may be renamed (`src/scene-kit/`, `src/talks/registry.ts`, ...) and the project still counts as scaffolded:
 
-```ts
-{ slug: '<slug>', title: '<Title>', load: () => import('./<slug>/Talk') },
+```bash
+node SKILL_DIR/scripts/create.mjs <target> <slug> "<Title>"
 ```
+
+It copies `templates/presentation/` into `locations.presentations/<slug>/`, replaces `__SLUG__` and `__TITLE__`, points the kit imports at `locations.kit`, and registers `{ slug, title, load: () => import('./<slug>/Talk') }` in `locations.registry`. It refuses to overwrite an existing presentation. If it cannot register (unusual registry shape), add that one entry to `locations.registry` by hand. Any hand edit must still import the kit from `locations.kit` and register in `locations.registry`, not at `src/presentation-kit/` or `src/presentations/index.ts` unless those are the detected locations. Inside a presentation, import the kit through its public entry (for example `../../presentation-kit`, or whatever relative path reaches `locations.kit`).
 
 Each presentation is a self-contained folder: `entities.ts` (its `layoutId` namespace and canvas geometry), `steps/` (the persistent `Scene` and the `STEPS` array), `Talk.tsx`, and `talk.css`. Leave every other presentation untouched.
 
-**Modify**: if the target is missing or ambiguous, list the registered presentations (`src/presentations/index.ts`) and ask which one before changing anything. Then edit only that presentation (plus its registry line if renamed).
+**Modify**: if the target is missing or ambiguous, list the registered presentations (`locations.registry`) and ask which one before changing anything. Then edit only that presentation (plus its registry line if renamed).
 
 Model rules:
 
 - Each step has `id`, `era` (section label), `title` (one line, present mode), `caption` (paragraph, browse mode), `Scene`, `payload`. Step numbers come from array position; never number steps by hand.
 - Put consecutive steps of one evolving diagram in a shared `groupKey` with the same `Scene`: the scene stays mounted and only `payload` changes. Entities that persist keep the same `layoutId` (use the primitive's `id` prop) and morph in place; wrap only **new** entities in `Appear` (it waits for persisting entities to settle) and put them under `AnimatePresence` so departing ones animate out. Do not fade persisting entities in.
-- Compose with the kit's primitives (`Box`, `Label`, `Arrow`, `Frame`, `Emphasis`, `SymbolChip`, `SceneLayer`, `Appear`) imported from the kit's public entry (`../../presentation-kit`); for coordinate-heavy diagrams use raw `motion` elements with stable `layoutId`s. Lay out on the fixed **880 x 380** canvas inside a `SceneLayer`.
+- Compose with the kit's primitives (`Box`, `Label`, `Arrow`, `Frame`, `Emphasis`, `SymbolChip`, `SceneLayer`, `Appear`) imported from the kit's public entry (`../../presentation-kit` in a standard scaffold; the relative path to `locations.kit` otherwise); for coordinate-heavy diagrams use raw `motion` elements with stable `layoutId`s. Lay out on the fixed **880 x 380** canvas inside a `SceneLayer`.
 - Keep intentional overlaps and stacking when that is the composition; do not spread things out just to avoid them.
 
 **Styling** belongs to the presentation (`talk.css`, plain CSS by default) or the host app, never the kit. The kit only exposes `data-presentation-*` hooks. At minimum style:

@@ -67,6 +67,14 @@ describe('reference sample', () => {
     expect(AT.plug.y + AT.plug.h).toBe(AT.socket.y)
   })
 
+  it('draws the tray without an outline, so the step-9 reveal frame is the only frame', () => {
+    const css = fs.readFileSync(path.join(REPO, 'src/presentations/how-to-make-a-presentation/talk.css'), 'utf8')
+    const rule = css.match(/\[data-presentation-kind='tray'\]\s*\{([^}]*)\}/)?.[1] ?? ''
+    expect(rule).not.toBe('')
+    expect(rule).toMatch(/border\s*:\s*(0|none)\b/)
+    expect(rule).not.toMatch(/outline|box-shadow|border(-width)?\s*:\s*[1-9]/)
+  })
+
   it('imports the kit only through its public entry point', () => {
     const files = walk(path.join(REPO, 'src/presentations'), (f) => /\.tsx?$/.test(f))
     for (const f of files) {

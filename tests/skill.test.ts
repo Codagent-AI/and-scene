@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 import { detectAnchors, resolveTarget } from '../skills/presentation/scripts/detect.mjs'
 // @ts-expect-error plain ESM scripts without type declarations
 import { scaffold } from '../skills/presentation/scripts/scaffold.mjs'
+// @ts-expect-error plain ESM scripts without type declarations
+import { createPresentation } from '../skills/presentation/scripts/create.mjs'
 import { REPO, isTest, walk } from './helpers'
 
 const SKILL = path.join(REPO, 'skills/presentation')
@@ -44,6 +46,7 @@ describe('SKILL.md contract', () => {
     ['narrow viewport', /--viewport 390x844/],
     ['project-local helper', /npm run inspect/],
     ['allow-overlap marker', /data-presentation-allow-overlap/],
+    ['creation at detected locations', /locations\.registry[\s\S]*create\.mjs|create\.mjs[\s\S]*locations\.registry/],
     ['no success while failing', /Never report success while a check fails/],
   ])('covers %s', (_n, re) => expect(text).toMatch(re))
 })
@@ -113,6 +116,23 @@ describe('anchor detection and target resolution', () => {
     expect(detectAnchors(dir).index).toBe(true)
   })
 
+  it.each([
+    ['main.jsx', 'jsx'],
+    ['main.js', 'js'],
+  ])('wires a %s host entry to the router, keeping the host app and its typings', (name, ext) => {
+    const dir = tmp()
+    scaffold(dir, ['build'])
+    write(dir, 'index.html', `<div id="root"></div><script type="module" src="/src/${name}"></script>`)
+    write(dir, `src/${name}`, "console.log('mine')\n")
+    scaffold(dir, ['kit', 'index'])
+    expect(fs.existsSync(path.join(dir, `src/${name}`))).toBe(false)
+    expect(fs.readFileSync(path.join(dir, `src/app-main.${ext}`), 'utf8')).toContain('mine')
+    expect(fs.existsSync(path.join(dir, 'src/app-main.d.ts'))).toBe(true)
+    expect(fs.readFileSync(path.join(dir, 'src/main.tsx'), 'utf8')).toContain("import('./app-main')")
+    expect(fs.readFileSync(path.join(dir, 'index.html'), 'utf8')).toContain('/src/main.tsx')
+    expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
   it('scaffolds a monorepo into presentations/ and preserves the root', () => {
     const dir = monorepoRoot()
     const before = Object.fromEntries(walk(dir).map((f) => [f, fs.readFileSync(f, 'utf8')]))
@@ -165,6 +185,49 @@ describe('anchor detection and target resolution', () => {
       process.chdir(prev)
     }
     expect(fs.existsSync(path.join(dir, 'src/presentation-kit/Presentation.tsx'))).toBe(true)
+  })
+})
+
+describe('creating a presentation at the detected locations', () => {
+  const renamed = () => {
+    const dir = tmp()
+    scaffold(dir, ['build', 'kit', 'index'])
+    fs.renameSync(path.join(dir, 'src/presentation-kit'), path.join(dir, 'src/scene-kit'))
+    fs.renameSync(path.join(dir, 'src/presentations'), path.join(dir, 'src/talks'))
+    fs.renameSync(path.join(dir, 'src/talks/index.ts'), path.join(dir, 'src/talks/registry.ts'))
+    for (const f of walk(path.join(dir, 'src'), (x) => /\.tsx?$/.test(x))) {
+      const t = fs.readFileSync(f, 'utf8').replaceAll("presentation-kit'", "scene-kit'").replace(/(['"])\.\/presentations\1/, "'./talks/registry'")
+      fs.writeFileSync(f, t)
+    }
+    return dir
+  }
+
+  it('reports where the kit and registry are', () => {
+    const dir = renamed()
+    expect(resolveTarget(dir).locations).toEqual({ kit: 'src/scene-kit', registry: 'src/talks/registry.ts', presentations: 'src/talks' })
+  })
+
+  it('writes into the detected folder, imports the detected kit and registers in the detected registry', () => {
+    const dir = renamed()
+    const r = createPresentation(dir, 'my-talk', 'My Talk')
+    expect(r.folder).toBe('src/talks/my-talk')
+    const talk = fs.readFileSync(path.join(dir, 'src/talks/my-talk/Talk.tsx'), 'utf8')
+    expect(talk).toContain("from '../../scene-kit'")
+    expect(talk).not.toMatch(/__SLUG__|__TITLE__/)
+    expect(fs.readFileSync(path.join(dir, 'src/talks/my-talk/steps/Scene.tsx'), 'utf8')).toContain("from '../../../scene-kit'")
+    const registry = fs.readFileSync(path.join(dir, 'src/talks/registry.ts'), 'utf8')
+    expect(registry).toContain("slug: 'my-talk'")
+    expect(registry).toContain("import('./my-talk/Talk')")
+    expect(registry).toContain("slug: 'example'")
+  })
+
+  it('creates at the canonical paths in a standard scaffold and refuses to overwrite a presentation', () => {
+    const dir = tmp()
+    scaffold(dir, ['build', 'kit', 'index'])
+    expect(createPresentation(dir, 'second', 'Second').folder).toBe('src/presentations/second')
+    expect(fs.readFileSync(path.join(dir, 'src/presentations/second/Talk.tsx'), 'utf8')).toContain("from '../../presentation-kit'")
+    expect(() => createPresentation(dir, 'second', 'Second')).toThrow(/already/)
+    expect(fs.readFileSync(path.join(dir, 'src/presentations/index.ts'), 'utf8').match(/slug: 'second'/g)).toHaveLength(1)
   })
 })
 

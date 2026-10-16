@@ -44,17 +44,24 @@ function mergePackage(target) {
 /**
  * An existing entry point that does not reach the registry keeps running its app
  * for non-presentation paths: it moves to `app-main` and a router entry replaces it.
+ * The router entry is always `.tsx`; `index.html` is repointed when the host entry had another extension.
  */
 function wireEntry(target, written) {
   if (detectAnchors(target).index) return
   const { entry } = locate(target)
-  if (!fs.existsSync(entry) || !/\.tsx?$/.test(entry)) return
-  const moved = path.join(path.dirname(entry), `app-main${path.extname(entry)}`)
+  if (!fs.existsSync(entry) || !/\.[tj]sx?$/.test(entry)) return
+  const ext = path.extname(entry)
+  const dir = path.dirname(entry)
+  const moved = path.join(dir, `app-main${ext}`)
   if (fs.existsSync(moved)) return
-  // The router entry contains JSX, so a `.ts` entry is replaced by a `.tsx` one that index.html points at.
-  const next = entry.replace(/\.ts$/, '.tsx')
+  const next = path.join(dir, `${path.basename(entry, ext)}.tsx`)
   fs.renameSync(entry, moved)
   fs.copyFileSync(HOSTED_MAIN, next)
+  // A plain JS host module has no types: declare it so the router entry's dynamic import builds under `tsc -b`.
+  if (/^\.[jm]?jsx?$/.test(ext)) {
+    const decl = path.join(dir, 'app-main.d.ts')
+    if (!fs.existsSync(decl)) fs.writeFileSync(decl, 'export {}\n')
+  }
   const html = path.join(target, 'index.html')
   if (next !== entry && fs.existsSync(html)) {
     fs.writeFileSync(html, fs.readFileSync(html, 'utf8').replace(path.basename(entry), path.basename(next)))

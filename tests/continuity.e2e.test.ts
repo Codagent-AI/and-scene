@@ -71,4 +71,38 @@ describe('sample scene continuity in a production preview', () => {
       preview.stop()
     }
   })
+
+  it('keeps the header title inside the viewport on every step at narrow widths, and draws the tray without an outline', async () => {
+    const preview = await startPreview(REPO)
+    const browser = await chromium.launch()
+    try {
+      for (const [width, height] of [[390, 844], [360, 740], [320, 640]]) {
+        const page = await browser.newPage({ viewport: { width, height } })
+        await page.goto(`${preview.base}/how-to-make-a-presentation`)
+        await page.waitForSelector('[data-step-count]')
+        for (let i = 0; i < 9; i++) {
+          if (i > 0) await page.keyboard.press('ArrowRight')
+          await page.waitForTimeout(150)
+          const title = await page.locator('[data-presentation-title]').evaluate((e) => {
+            const r = e.getBoundingClientRect()
+            return { text: e.textContent, left: r.left, right: r.right, scrollWidth: e.scrollWidth, clientWidth: e.clientWidth }
+          })
+          expect(title.left, `${width}px step ${i + 1} left`).toBeGreaterThanOrEqual(0)
+          expect(title.right, `${width}px step ${i + 1} "${title.text}"`).toBeLessThanOrEqual(width)
+          expect(title.scrollWidth, `${width}px step ${i + 1} text not clipped`).toBeLessThanOrEqual(title.clientWidth)
+          if (i === 5) {
+            const tray = await page.locator('[data-presentation-entity="htm/tray"]').evaluate((e) => {
+              const c = getComputedStyle(e)
+              return { border: c.borderTopWidth, outline: c.outlineStyle }
+            })
+            expect(tray, 'tray is not framed').toEqual({ border: '0px', outline: 'none' })
+          }
+        }
+        await page.close()
+      }
+    } finally {
+      await browser.close()
+      preview.stop()
+    }
+  })
 })

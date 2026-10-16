@@ -70,7 +70,7 @@
 .how-to-make-a-presentation [data-presentation-kind='card'] { align-items: flex-start; justify-content: flex-start; padding: 10px 12px; font-size: 12px; }
 .how-to-make-a-presentation [data-presentation-kind='card'] strong { color: var(--gold); font-size: 13px; }
 .how-to-make-a-presentation [data-presentation-kind='card'] [data-part] { color: var(--muted); border-top: 1px dashed var(--line); width: 100%; text-align: left; padding-top: 3px; }
-.how-to-make-a-presentation [data-presentation-kind='tray'] { background: rgba(248, 243, 230, 0.04); border: 1px solid var(--line); border-radius: 14px; }
+.how-to-make-a-presentation [data-presentation-kind='tray'] { background: rgba(248, 243, 230, 0.07); border: 0; border-radius: 14px; }
 .how-to-make-a-presentation [data-presentation-kind='ghost'] { border-style: dashed; color: var(--muted); font-size: 12px; background: transparent; }
 .how-to-make-a-presentation [data-presentation-kind='depth'] { flex-direction: row; font-size: 12px; border-color: var(--gold); color: var(--gold); border-radius: 999px; }
 .how-to-make-a-presentation [data-presentation-kind='socket'] { flex-direction: row; border-color: var(--gold); gap: 8px; }

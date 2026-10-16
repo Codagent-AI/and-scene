@@ -57,8 +57,9 @@ export function drift(root = ROOT, bootstrap = BOOTSTRAP) {
 }
 
 export function sync(root = ROOT, bootstrap = BOOTSTRAP) {
+  const files = plan(root) // throws before anything is deleted
   fs.rmSync(path.join(bootstrap, KIT_DIR), { recursive: true, force: true })
-  for (const [rel, src] of plan(root)) {
+  for (const [rel, src] of files) {
     const dest = path.join(bootstrap, rel)
     fs.mkdirSync(path.dirname(dest), { recursive: true })
     fs.copyFileSync(src, dest)

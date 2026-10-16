@@ -229,7 +229,7 @@ describe('creating a presentation at the detected locations', () => {
     fs.writeFileSync(reg, text)
     createPresentation(dir, 'second', 'Second')
     const out = fs.readFileSync(reg, 'utf8')
- {2}  expect(out).toMatch(/\},\n  \{\n    slug: 'second'/)
+    expect(out).toMatch(/\},\n {2}\{\n {4}slug: 'second'/)
     expect(out.indexOf("slug: 'second'")).toBeLessThan(out.indexOf('export const other'))
     expect(out).toContain('export const other = [\n  1,\n  2\n]')
   })

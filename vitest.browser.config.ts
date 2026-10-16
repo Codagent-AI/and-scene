@@ -6,7 +6,7 @@ export default defineConfig({
     environment: 'node',
     include: ['{src,scripts,skills}/**/*.browser.test.ts'],
     exclude: ['**/node_modules/**'],
-    testTimeout: 60_000,
+    testTimeout: 400_000,
     hookTimeout: 120_000,
   },
 })

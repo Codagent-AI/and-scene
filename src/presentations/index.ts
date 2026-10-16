@@ -21,5 +21,10 @@ export function validateRegistry(entries: readonly PresentationEntry[]): void {
 
 /** Explicit registry: add a presentation = new folder + one line here. */
 export const presentations: PresentationEntry[] = [
+  {
+    slug: 'how-to-make-a-presentation',
+    title: 'How to Use This Skill to Make a Presentation',
+    load: () => import('./how-to-make-a-presentation/Talk'),
+  },
   // { slug: 'my-talk', title: 'My Talk', load: () => import('./my-talk/Talk') },
 ]

@@ -1,0 +1,407 @@
+/* Presentation-local look for "How to Use This Skill to Make a Presentation".
+   The scene kit supplies hooks only; every visual decision lives here. */
+[data-presentation-root] {
+  --paper: #f7f2e8;
+  --paper-deep: #efe7d6;
+  --ink: #1d2733;
+  --muted: #5b6573;
+  --line: #c9bfa9;
+  --accent: #0f766e;
+  --accent-soft: #d5ede9;
+  --warm: #b45309;
+  --warm-soft: #fdebd0;
+  --serif: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+/* ---------- chrome ---------- */
+[data-presentation-root] [data-presentation-header] {
+  padding: 14px 24px 6px;
+  gap: 4px 16px;
+}
+[data-presentation-root] [data-presentation-marker] {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+[data-presentation-root] [data-presentation-marker] > * {
+  white-space: nowrap;
+}
+[data-presentation-root] [data-presentation-deck-title] {
+  font-family: var(--serif);
+  font-style: italic;
+}
+[data-presentation-root] [data-presentation-step-number] {
+  font-weight: 700;
+  color: var(--accent);
+}
+[data-presentation-root] [data-presentation-step-total]::before {
+  content: '/ ';
+}
+[data-presentation-root] [data-presentation-era] {
+  padding: 2px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-deep);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+[data-presentation-root] [data-presentation-header] [data-presentation-title] {
+  margin: 4px 0 0;
+  font-family: var(--serif);
+  font-size: clamp(22px, 3.2vw, 34px);
+  line-height: 1.15;
+}
+[data-presentation-root][data-presentation-mode='present'] [data-presentation-footer] [data-presentation-title] {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(22px, 3vw, 34px);
+}
+
+[data-presentation-root] [data-presentation-toc] {
+  width: 168px;
+  padding: 12px 8px 12px 24px;
+}
+[data-presentation-root] [data-presentation-toc] ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+[data-presentation-root] [data-presentation-toc-item] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+[data-presentation-root] [data-presentation-toc-item]:hover {
+  background: var(--paper-deep);
+}
+[data-presentation-root] [data-presentation-toc-item][data-presentation-active='true'] {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+[data-presentation-root] [data-presentation-footer] {
+  padding: 8px 24px 14px;
+  gap: 8px 12px;
+}
+[data-presentation-root] [data-presentation-caption] {
+  margin: 0 0 4px;
+  max-width: 62ch;
+  min-height: 2.9em; /* reserve two lines so the stage never rescales between steps */
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+[data-presentation-root] [data-presentation-prev],
+[data-presentation-root] [data-presentation-next] {
+  padding: 6px 14px;
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  box-shadow: 0 2px 0 var(--ink);
+  cursor: pointer;
+}
+[data-presentation-root] [data-presentation-prev]:disabled,
+[data-presentation-root] [data-presentation-next]:disabled {
+  opacity: 0.35;
+  box-shadow: none;
+  cursor: default;
+}
+[data-presentation-root] [data-presentation-progress] {
+  list-style: none;
+  margin: 0 4px;
+  padding: 0;
+  gap: 8px;
+  align-items: center;
+}
+[data-presentation-root] [data-presentation-progress-item] {
+  display: block;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 1.5px solid var(--muted);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+[data-presentation-root] [data-presentation-progress-item][data-presentation-active='true'] {
+  width: 28px;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+[data-presentation-root] [data-presentation-attribution] {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--paper-deep);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  border: 1px solid var(--line);
+}
+[data-presentation-root] [data-presentation-attribution]:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---------- scene ---------- */
+.htmp-scene {
+  font-family: var(--sans);
+  color: var(--ink);
+}
+.htmp-scene [data-presentation-node='box'],
+.htmp-scene [data-presentation-node='symbol-chip'],
+.htmp-scene [data-presentation-node='label'] {
+  box-sizing: border-box;
+}
+.htmp-you,
+.htmp-skill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 4px 4px 0 var(--ink);
+  font-family: var(--serif);
+  font-size: 22px;
+}
+.htmp-skill {
+  border-color: var(--accent);
+  box-shadow: 4px 4px 0 var(--accent);
+  color: var(--accent);
+}
+.htmp-you svg,
+.htmp-skill svg {
+  width: 22px;
+  height: 22px;
+}
+.htmp-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 16px 16px 16px 4px;
+  background: var(--paper-deep);
+  font-size: 15px;
+  font-style: italic;
+  text-align: center;
+}
+.htmp-arrow {
+  color: var(--accent);
+}
+.htmp-arrow line {
+  stroke-width: 2;
+}
+.htmp-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.htmp-control {
+  border-color: var(--ink);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 0 0 10px 10px;
+}
+.htmp-rail {
+  border-radius: 3px;
+  background: var(--ink);
+}
+.htmp-card,
+.htmp-ghost,
+.htmp-verify {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 3px 3px 0 var(--line);
+}
+.htmp-card-title {
+  font-family: var(--serif);
+  font-size: 14px;
+  font-weight: 700;
+}
+.htmp-card-caption {
+  font-size: 12px;
+  color: var(--muted);
+}
+.htmp-card-visual {
+  flex: 1;
+  border-radius: 6px;
+  background: repeating-linear-gradient(135deg, var(--accent-soft) 0 6px, #fff 6px 12px);
+  border: 1px solid var(--accent);
+}
+.htmp-card[data-emphasis='new'] {
+  border-color: var(--accent);
+}
+.htmp-card[data-emphasis='edited'] {
+  border-color: var(--warm);
+  background: var(--warm-soft);
+  box-shadow: 3px 3px 0 var(--warm);
+}
+.htmp-card[data-emphasis='edited']::after {
+  content: 'edited';
+  position: absolute;
+  top: -9px;
+  right: -6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--warm);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.htmp-link {
+  color: var(--muted);
+}
+.htmp-link-label {
+  display: block;
+  font-size: 11px;
+  font-style: italic;
+  text-align: center;
+  color: var(--muted);
+}
+.htmp-ghost {
+  border-style: dashed;
+  border-color: var(--muted);
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+.htmp-socket {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--accent);
+  border-radius: 0 0 12px 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+.htmp-plug {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  width: 36px;
+  height: 12px;
+  margin-left: -18px;
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+}
+.htmp-verify {
+  border-color: var(--accent);
+  box-shadow: 3px 3px 0 var(--accent);
+}
+.htmp-verify svg:first-child {
+  display: none;
+}
+.htmp-check-row {
+  font-size: 13px;
+  color: var(--ink);
+}
+.htmp-pass {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: auto;
+  padding: 3px 0;
+  border-radius: 6px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.htmp-pass svg {
+  width: 14px;
+  height: 14px;
+}
+.htmp-modify {
+  color: var(--warm);
+}
+.htmp-modify path:first-child {
+  stroke: var(--warm);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 4;
+}
+.htmp-modify-label {
+  border-color: var(--warm);
+  background: var(--warm-soft);
+  color: var(--warm);
+}
+.htmp-frame {
+  border: 3px double var(--ink);
+  border-radius: 18px;
+  pointer-events: none;
+}
+.htmp-frame-label {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  padding: 4px 16px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  font-family: var(--serif);
+  font-size: 16px;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* ---------- narrow viewports ---------- */
+@media (max-width: 640px) {
+  [data-presentation-root] [data-presentation-header] {
+    padding: 10px 14px 4px;
+  }
+  [data-presentation-root] [data-presentation-deck-title] {
+    display: none;
+  }
+  [data-presentation-root] [data-presentation-footer] {
+    padding: 6px 14px 12px;
+  }
+  [data-presentation-root] [data-presentation-caption] {
+    font-size: 14px;
+    min-height: 5.8em;
+  }
+}

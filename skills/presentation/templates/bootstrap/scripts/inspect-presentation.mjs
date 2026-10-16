@@ -1,6 +1,6 @@
 // Visual inspection helper: settled per-step screenshots plus advisory warnings. Never fails on warnings.
 // Usage: npm run inspect -- <slug> [--viewport 1440x900] [--settle 1200] [--out dir] [--skip-build]
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { chromium } from 'playwright'
 import { ROOT, STEP_HOOK, advance, readRegistry, runBuild, startPreview, stepCount } from './lib.mjs'
@@ -106,6 +106,19 @@ function diagnose() {
   return warnings
 }
 
+/** After the settle interval, also wait for entering elements and running animations to finish. */
+async function waitSettled(page, timeoutMs = 5000) {
+  await page
+    .waitForFunction(
+      () =>
+        [...document.querySelectorAll('[data-presentation-appear]')].every((el) => Number(getComputedStyle(el).opacity) >= 0.999) &&
+        document.getAnimations().every((a) => a.playState !== 'running'),
+      undefined,
+      { timeout: timeoutMs },
+    )
+    .catch(() => console.log('[inspect] note: animations were still running after the settle wait'))
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2))
   if (!opts.slug) throw new Error('usage: npm run inspect -- <slug> [--viewport 1440x900] [--settle ms] [--out dir] [--skip-build]')
@@ -127,6 +140,7 @@ async function main() {
   const preview = await startPreview()
   let browser
   let total = 0
+  const manifest = []
   try {
     browser = await chromium.launch()
     const page = await browser.newPage({ viewport: { width, height }, hasTouch: false })
@@ -136,9 +150,11 @@ async function main() {
     for (let i = 0; i < count; i++) {
       if (i > 0) await advance(page, i)
       await page.waitForTimeout(opts.settle)
+      await waitSettled(page)
       const file = path.join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
       await page.screenshot({ path: file })
       const title = (await page.textContent('[data-presentation-title]'))?.trim() ?? ''
+      manifest.push({ step: i + 1, title, file: path.basename(file), settleMs: opts.settle })
       console.log(`[inspect] step ${i + 1}/${count} "${title}" -> ${file}`)
       for (const w of await page.evaluate(diagnose)) {
         total++
@@ -149,6 +165,7 @@ async function main() {
     await browser?.close()
     preview.stop()
   }
+  writeFileSync(path.join(outDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
   console.log(`[inspect] done: ${total} advisory warning(s); screenshots in ${outDir}`)
 }
 

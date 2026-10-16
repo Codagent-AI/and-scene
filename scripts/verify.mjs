@@ -86,6 +86,7 @@ async function phaseRender(slugs) {
   const preview = await startPreview().catch((err) => {
     throw new Failure('render', err.message)
   })
+  console.log(`[verify]   preview ready at ${preview.base}`)
   let browser
   try {
     browser = await chromium.launch()

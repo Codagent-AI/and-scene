@@ -1,0 +1,4 @@
+- [ ] [Scene Kit, Router, and Registry Shell](tasks/01-scene-kit-and-app-shell.md)
+- [ ] [Reference Presentation and Production Verification Gate](tasks/02-reference-presentation-and-verify-gate.md)
+- [ ] [Project-Local Screenshot and Visual-Diagnostics Helper](tasks/03-inspection-helper.md)
+- [ ] [Presentation Skill and Bootstrap Templates](tasks/04-presentation-skill-and-bootstrap-templates.md)

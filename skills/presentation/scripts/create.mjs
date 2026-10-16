@@ -23,23 +23,34 @@ export function createPresentation(target, slug, title) {
   const folder = path.join(target, where.presentations, slug)
   if (fs.existsSync(folder)) throw new Error(`presentation folder ${path.relative(target, folder)} already exists`)
 
+  // Edit the registry text first: nothing is written until registration is known to work.
   const source = fs.readFileSync(registry, 'utf8')
-  const close = source.lastIndexOf('\n]')
+  const last = [...source.matchAll(/\bslug\s*:/g)].at(-1)
+  // The array holding the entries closes at the first line-start `]` after the last entry, not at the file's last one.
+  const close = last ? source.indexOf('\n]', last.index) : -1
   if (close === -1 || new RegExp(`slug:\\s*['"]${slug}['"]`).test(source)) {
     throw new Error(`cannot register "${slug}" in ${where.registry}: add it by hand or pick a new slug`)
   }
-
-  for (const src of walk(TEMPLATE)) {
-    const dest = path.join(folder, path.relative(TEMPLATE, src))
-    fs.mkdirSync(path.dirname(dest), { recursive: true })
-    const text = fs.readFileSync(src, 'utf8').replaceAll('__SLUG__', slug).replaceAll('__TITLE__', title)
-    // The template imports the kit by its canonical name; point it at wherever the kit actually is.
-    const spec = path.relative(path.dirname(dest), kit).split(path.sep).join('/')
-    fs.writeFileSync(dest, text.replace(/(['"])(?:\.\.\/)+presentation-kit\1/g, `'${spec.startsWith('.') ? spec : `./${spec}`}'`))
-  }
-
+  const head = source.slice(0, close)
+  // A previous entry written without a trailing comma needs one before the new entry.
+  const sep = /[,[]\s*$/.test(head) ? '' : ','
   const entry = `  {\n    slug: '${slug}',\n    title: '${title}',\n    load: () => import('./${slug}/Talk'),\n  },`
-  fs.writeFileSync(registry, `${source.slice(0, close)}\n${entry}${source.slice(close)}`)
+  const registered = `${head}${sep}\n${entry}${source.slice(close)}`
+
+  try {
+    for (const src of walk(TEMPLATE)) {
+      const dest = path.join(folder, path.relative(TEMPLATE, src))
+      fs.mkdirSync(path.dirname(dest), { recursive: true })
+      const text = fs.readFileSync(src, 'utf8').replaceAll('__SLUG__', slug).replaceAll('__TITLE__', title)
+      // The template imports the kit by its canonical name; point it at wherever the kit actually is.
+      const spec = path.relative(path.dirname(dest), kit).split(path.sep).join('/')
+      fs.writeFileSync(dest, text.replace(/(['"])(?:\.\.\/)+presentation-kit\1/g, `'${spec.startsWith('.') ? spec : `./${spec}`}'`))
+    }
+    fs.writeFileSync(registry, registered)
+  } catch (e) {
+    fs.rmSync(folder, { recursive: true, force: true })
+    throw e
+  }
   return { folder: path.relative(target, folder).split(path.sep).join('/'), registry: where.registry }
 }
 

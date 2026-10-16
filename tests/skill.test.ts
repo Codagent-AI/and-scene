@@ -221,6 +221,28 @@ describe('creating a presentation at the detected locations', () => {
     expect(registry).toContain("slug: 'example'")
   })
 
+  it('registers in a registry whose last entry has no trailing comma, ignoring later arrays', () => {
+    const dir = tmp()
+    scaffold(dir, ['build', 'kit', 'index'])
+    const reg = path.join(dir, 'src/presentations/index.ts')
+    const text = fs.readFileSync(reg, 'utf8').replace('    load: () => import(\'./example/Talk\'),\n  },\n]', "    load: () => import('./example/Talk'),\n  }\n]") + "\nexport const other = [\n  1,\n  2\n]\n"
+    fs.writeFileSync(reg, text)
+    createPresentation(dir, 'second', 'Second')
+    const out = fs.readFileSync(reg, 'utf8')
+ {2}  expect(out).toMatch(/\},\n  \{\n    slug: 'second'/)
+    expect(out.indexOf("slug: 'second'")).toBeLessThan(out.indexOf('export const other'))
+    expect(out).toContain('export const other = [\n  1,\n  2\n]')
+  })
+
+  it('leaves no folder behind when the registry cannot take the entry', () => {
+    const dir = tmp()
+    scaffold(dir, ['build', 'kit', 'index'])
+    const reg = path.join(dir, 'src/presentations/index.ts')
+    fs.writeFileSync(reg, "export const presentations = [{ slug: 'example', title: 'E', load: () => import('./example/Talk') }]\n")
+    expect(() => createPresentation(dir, 'second', 'Second')).toThrow(/cannot register/)
+    expect(fs.existsSync(path.join(dir, 'src/presentations/second'))).toBe(false)
+  })
+
   it('creates at the canonical paths in a standard scaffold and refuses to overwrite a presentation', () => {
     const dir = tmp()
     scaffold(dir, ['build', 'kit', 'index'])

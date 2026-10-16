@@ -23,6 +23,7 @@ export interface VerifyApi {
   selectEntries<T extends { slug: string }>(entries: T[], slug?: string): T[]
   checkStepsInSource(source: string, steps: { title: string; caption: string }[]): string | null
   parseArgs(argv: string[]): { slug?: string }
+  registeredSlugs(root?: string): string[]
 }
 
 export async function loadInspect(): Promise<Detectors> {

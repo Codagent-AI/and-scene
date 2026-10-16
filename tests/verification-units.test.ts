@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { loadInspect, loadVerify } from './helpers/scripts'
 
 const box = (x: number, y: number, w = 100, h = 20) => ({ x, y, width: w, height: h })
@@ -61,5 +64,29 @@ describe('argument and config parsing', () => {
     expect(checkStepsInSource(`title: 'One', caption: 'It\\'s one', title: "Two", caption: 'two'`, steps)).toBeNull()
     expect(checkStepsInSource(`title: 'Two', caption: 'two', title: 'One', caption: 'It\\'s one'`, steps)).toMatch(/out of order/)
     expect(checkStepsInSource(`title: 'One'`, steps)).toMatch(/not found/)
+  })
+})
+
+describe('registry slug detection', () => {
+  it('ignores slugs that only appear in comments', async () => {
+    const { registeredSlugs } = await loadVerify()
+    const root = mkdtempSync(join(tmpdir(), 'slugs-'))
+    try {
+      mkdirSync(join(root, 'src', 'presentations'), { recursive: true })
+      writeFileSync(
+        join(root, 'src', 'presentations', 'index.ts'),
+        [
+          '/** e.g.',
+          " *  { slug: 'doc-block', title: 'X' } */",
+          "// { slug: 'doc-line', title: 'Y' }",
+          'export const presentations = [',
+          "  { slug: 'real', title: 'Real' }, // { slug: 'trailing', title: 'Z' }",
+          ']',
+        ].join('\n'),
+      )
+      expect(registeredSlugs(root)).toEqual(['real'])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 })

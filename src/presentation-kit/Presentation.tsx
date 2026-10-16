@@ -40,7 +40,7 @@ export function Presentation<TPayload = undefined>({
 }: PresentationProps<TPayload>) {
   const nav = usePresentationNav(steps.length, initialMode)
   const regionRef = useRef<HTMLDivElement>(null)
-  const scale = useFitScale(regionRef, nav.mode)
+  const scale = useFitScale(regionRef, nav.mode, undefined, undefined, steps.length > 0)
   const wide = useViewportWidth() >= tocMinWidth
   const step = steps[nav.index]
   if (!step) return null

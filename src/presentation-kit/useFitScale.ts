@@ -11,6 +11,8 @@ export function useFitScale(
   mode: PresentationMode,
   designW: number = DESIGN_W,
   designH: number = DESIGN_H,
+  /** Re-attach measurement when the region element mounts later (e.g. steps load async). */
+  enabled = true,
 ): number {
   const geometry = STAGE_LAYOUT[mode]
   const [size, setSize] = useState<{ w: number; h: number }>(() => ({
@@ -34,7 +36,7 @@ export function useFitScale(
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [regionRef])
+  }, [regionRef, enabled])
 
   return computeFitScale(size.w, size.h, geometry, designW, designH)
 }

@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
+import { motion } from 'motion/react'
 import { Box, Presentation, SceneLayer, defineStep, type SceneProps } from './index.ts'
 
 let mounts = 0
@@ -159,5 +160,18 @@ describe('<Presentation>', () => {
     unmount()
     render(<Presentation steps={steps} title="Deck" design={{ width: 400, height: 200 }} />)
     expect([canvas().style.width, canvas().style.height]).toEqual(['400px', '200px'])
+  })
+
+  it('supports raw motion elements with stable layoutIds and layers that are out of normal flow', () => {
+    const Raw = () => (
+      <SceneLayer data-layer="a">
+        <motion.div key="raw" layoutId="raw-entity" data-raw="" style={{ position: 'absolute', left: 12, top: 34 }}>raw</motion.div>
+      </SceneLayer>
+    )
+    const raw = [defineStep({ id: 'r', era: 'e', title: 'R', caption: 'c', Scene: Raw, payload: undefined })]
+    render(<Presentation steps={raw} title="Raw" />)
+    expect(screen.getByText('raw').getAttribute('data-raw')).toBe('')
+    const layer = document.querySelector('[data-layer="a"]') as HTMLElement
+    expect([layer.style.position, layer.style.inset]).toEqual(['absolute', '0px'])
   })
 })

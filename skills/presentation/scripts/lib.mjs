@@ -17,6 +17,15 @@ export const listFiles = (dir) =>
     return statSync(p).isDirectory() ? listFiles(p) : [p]
   })
 
+/** The kit index must export `Presentation`, and a relative re-export must resolve to a real module. */
+function exportsPresentation(file, src) {
+  if (/\bexport\s+(function|const|class)\s+Presentation\b/.test(src)) return true
+  const named = src.match(/export\s*(?:type\s*)?\{[^}]*\bPresentation\b[^}]*\}\s*from\s*['"](\.[^'"]+)['"]/)
+  if (!named) return false
+  const base = path.resolve(path.dirname(file), named[1])
+  return ['.ts', '.tsx', '/index.ts', '/index.tsx'].some((e) => existsSync(base + e))
+}
+
 /** The three contract anchors, detected by function rather than byte-identical files. */
 export function detectAnchors(target) {
   let build = false
@@ -35,9 +44,11 @@ export function detectAnchors(target) {
     }
   }
   const find = (rel) => ['ts', 'tsx'].map((e) => path.join(target, `${rel}/index.${e}`)).find(existsSync)
+  const code = (file) => read(file).replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '')
   const kitIndex = find('src/presentation-kit')
-  const kit = Boolean(kitIndex) && /\bPresentation\b/.test(read(kitIndex))
-  const index = Boolean(find('src/presentations'))
+  const kit = Boolean(kitIndex) && exportsPresentation(kitIndex, code(kitIndex))
+  const registry = find('src/presentations')
+  const index = Boolean(registry) && /\bexport\b[^;]*=\s*\[|\bexport\s+default\s+\[/.test(code(registry))
   return { build, kit, index }
 }
 
@@ -70,11 +81,12 @@ export function detect(dir) {
   const rootAnchors = detectAnchors(dir)
   let target = dir
   let reason = 'standalone or empty project: scaffold at the root'
-  if (rootAnchors.kit || rootAnchors.index) {
-    reason = 'already a presentation app: reuse it'
-  } else if (isMonorepo(dir)) {
+  const complete = rootAnchors.build && rootAnchors.kit && rootAnchors.index
+  if (isMonorepo(dir) && !complete) {
     target = path.join(dir, 'presentations')
     reason = 'monorepo: scaffold a self-contained app under presentations/'
+  } else if (rootAnchors.kit || rootAnchors.index) {
+    reason = 'already a presentation app: reuse it'
   }
   const anchors = target === dir ? rootAnchors : detectAnchors(target)
   const missing = Object.keys(anchors).filter((k) => !anchors[k])
@@ -91,11 +103,15 @@ export function detect(dir) {
   }
 }
 
+const isTooling = (f) => f === 'package.json' || f === 'package-lock.json' || f.startsWith('scripts/')
+const isKit = (f) => f.startsWith('src/presentation-kit/')
+const isIndex = (f) => /^src\/(main\.tsx|Landing\.tsx|route\.ts|presentations\/)/.test(f)
 const GROUPS = {
-  kit: (files) => files.filter((f) => f.startsWith('src/presentation-kit/')),
-  index: (files) =>
-    files.filter((f) => /^src\/(main\.tsx|Landing\.tsx|route\.ts|presentations\/)/.test(f)),
-  build: (files) => files.filter((f) => !GROUPS.kit(files).includes(f) && !GROUPS.index(files).includes(f)),
+  kit: (files) => files.filter(isKit),
+  index: (files) => files.filter(isIndex),
+  build: (files) => files.filter((f) => !isKit(f) && !isIndex(f) && !isTooling(f)),
+  /** Dependencies, npm scripts, and verify/inspect tooling that every anchor depends on. */
+  tooling: (files) => files.filter(isTooling),
 }
 
 function mergePackageJson(dest, templatePkg) {
@@ -118,14 +134,15 @@ function mergePackageJson(dest, templatePkg) {
 export function scaffold(target, only, { install = false } = {}) {
   target = path.resolve(target)
   const files = listFiles(BOOTSTRAP).map((f) => path.relative(BOOTSTRAP, f).split(path.sep).join('/'))
-  const result = { target, created: [], skipped: [], merged: [] }
-  for (const group of only) {
+  const result = { target, created: [], skipped: [], merged: [], manual: [] }
+  for (const group of [...new Set(['tooling', ...only])]) {
     if (!GROUPS[group]) throw new Error(`unknown anchor "${group}" (expected build, kit, or index)`)
     for (const rel of GROUPS[group](files)) {
       if (rel === 'package-lock.json' && existsSync(path.join(target, 'package.json'))) continue
       const dest = path.join(target, rel)
       if (existsSync(dest)) {
-        if (rel === 'package.json') {
+        if (rel === 'src/main.tsx') wireEntry(dest, result)
+        else if (rel === 'package.json') {
           const added = mergePackageJson(dest, json(path.join(BOOTSTRAP, rel)))
           if (added.length) result.merged.push(`package.json (+${added.join(', ')})`)
           else result.skipped.push(rel)
@@ -139,6 +156,25 @@ export function scaffold(target, only, { install = false } = {}) {
   }
   if (install) execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['install'], { cwd: target, stdio: 'inherit' })
   return result
+}
+
+const MOUNT_IMPORT = "import { mountPresentations } from './presentations/mount'"
+
+/**
+ * An existing app entry point keeps working: route to a presentation first, otherwise run the
+ * original entry code. If the entry cannot be patched safely it is reported for manual wiring.
+ */
+function wireEntry(file, result) {
+  const src = read(file)
+  if (src.includes('mountPresentations')) return result.skipped.push('src/main.tsx')
+  const lines = src.split('\n')
+  const multiline = lines.some((l) => /^import\b[^'"]*$/.test(l))
+  const lastImport = lines.map((l) => /^import\b.*['"];?\s*$/.test(l)).lastIndexOf(true)
+  if (multiline || lastImport < 0) return result.manual.push('src/main.tsx: call mountPresentations() from ./presentations/mount before rendering your app')
+  const rest = lines.slice(lastImport + 1).join('\n')
+  const patched = `${lines.slice(0, lastImport + 1).join('\n')}\n${MOUNT_IMPORT}\n\nif (!mountPresentations()) {${rest.replace(/\n$/, '')}\n}\n`
+  writeFileSync(file, patched)
+  result.merged.push('src/main.tsx (routes registered presentations before the existing entry)')
 }
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/

@@ -54,6 +54,21 @@ describe('E2E-002: verification failures are actionable', () => {
       },
     },
     {
+      name: 'error emitted after a slow entrance',
+      expect: /FAIL phase=render step=8: .*late reveal failure/,
+      edit: (d) => {
+        write(d, 'src/presentation-kit/constants.ts', read(d, 'src/presentation-kit/constants.ts').replace('ENTER_DELAY = LAYOUT_T', 'ENTER_DELAY = 1.8'))
+        const f = `${SAMPLE}/steps/Scene.tsx`
+        write(
+          d,
+          f,
+          read(d, f)
+            .replace("import { AnimatePresence } from 'motion/react'", "import { useEffect } from 'react'\nimport { AnimatePresence } from 'motion/react'")
+            .replace('const { n } = payload', "const { n } = payload\n  useEffect(() => {\n    if (n !== 9) return\n    const t = setTimeout(() => console.error('late reveal failure'), 2000)\n    return () => clearTimeout(t)\n  }, [n])"),
+        )
+      },
+    },
+    {
       name: 'transition that does not advance',
       expect: /FAIL phase=transition step=3/,
       edit: (d) => write(d, 'src/presentation-kit/navigation.ts', read(d, 'src/presentation-kit/navigation.ts').replace('Math.min(count - 1, index)', 'Math.min(count - 1, 2, index)')),

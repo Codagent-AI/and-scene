@@ -1,5 +1,5 @@
 // Refresh skills/presentation/templates/bootstrap from the canonical sources:
-// kit (minus tests), verification/inspection scripts, and the registered starter presentation.
+// kit (minus tests), app entry/router files, verification/inspection scripts, and the registered starter presentation.
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,6 +14,7 @@ for (const file of listFiles(path.join(root, 'src/presentation-kit')).filter((f)
   mkdirSync(path.dirname(dest), { recursive: true })
   cpSync(file, dest)
 }
+for (const f of ['src/main.tsx', 'src/Landing.tsx', 'src/route.ts', 'src/index.css', 'src/presentations/mount.tsx']) cpSync(path.join(root, f), path.join(bootstrap, f))
 for (const f of ['lib.mjs', 'verify.mjs', 'inspect-presentation.mjs']) cpSync(path.join(root, 'scripts', f), path.join(bootstrap, 'scripts', f))
 
 rmSync(path.join(bootstrap, 'src/presentations/starter'), { recursive: true, force: true })

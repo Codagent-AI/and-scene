@@ -1,7 +1,8 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
-import { REPO, cleanupTmp, exists, materialize, run } from '../helpers'
+import { mkdirSync, renameSync, symlinkSync, writeFileSync } from 'node:fs'
+import { REPO, SKILL_CLI, cleanupTmp, exists, materialize, run, tmpDir } from '../helpers'
 
 afterAll(cleanupTmp)
 
@@ -44,5 +45,24 @@ describe('INT-001: materialized bootstrap is complete and style-neutral', () => 
       expect(src, f).not.toMatch(/tailwind/i)
       if (f.endsWith('.css')) expect(src, f).not.toMatch(/(^|[;{\s])(color|background|font-family|border)\s*:/m)
     }
+  })
+
+  it('wires a partially scaffolded existing app and tolerates a renamed registry', () => {
+    const app = tmpDir('partial-')
+    expect(run('node', [SKILL_CLI, 'scaffold', app, '--only', 'build'], app).status).toBe(0)
+    symlinkSync(path.join(REPO, 'node_modules'), path.join(app, 'node_modules'), 'dir')
+    // An existing working entry point that knows nothing about presentations.
+    mkdirSync(path.join(app, 'src'), { recursive: true })
+    writeFileSync(
+      path.join(app, 'src/main.tsx'),
+      "import { createRoot } from 'react-dom/client'\n\ncreateRoot(document.getElementById('root')!).render(<p>Existing working app</p>)\n",
+    )
+    const res = run('node', [SKILL_CLI, 'scaffold', app], app)
+    expect(res.status, res.out).toBe(0)
+    expect(res.out).toContain('src/main.tsx (routes registered presentations')
+    renameSync(path.join(app, 'src/presentations/index.ts'), path.join(app, 'src/presentations/index.tsx'))
+    const verify = run('npm', ['run', 'verify'], app)
+    expect(verify.status, verify.out).toBe(0)
+    expect(verify.out).toContain('starter: 2 steps rendered cleanly')
   })
 })

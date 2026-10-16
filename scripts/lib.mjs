@@ -1,6 +1,6 @@
 // Shared helpers for verify.mjs and inspect-presentation.mjs (kept byte-aligned with the bootstrap template).
 import { spawn, spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,7 +9,9 @@ export const HOST = '127.0.0.1'
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 export function readRegistry() {
-  const src = readFileSync(path.join(ROOT, 'src/presentations/index.ts'), 'utf8')
+  const file = ['ts', 'tsx'].map((e) => path.join(ROOT, `src/presentations/index.${e}`)).find(existsSync)
+  if (!file) throw new Error('no presentation index found at src/presentations/index.ts(x)')
+  const src = readFileSync(file, 'utf8')
   return [...src.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
 }
 
@@ -90,4 +92,23 @@ export async function advance(page, to) {
     [STEP_HOOK, to],
     { timeout: 3000 },
   )
+}
+
+/**
+ * Wait for the step's normal entrance lifecycle: entering elements fully visible and no
+ * running animations, then a short grace period so timers scheduled by the entrance fire.
+ * Returns false when animations were still running at the timeout.
+ */
+export async function waitSettled(page, timeoutMs = 6000, graceMs = 250) {
+  const settled = await page
+    .waitForFunction(
+      () =>
+        [...document.querySelectorAll('[data-presentation-appear]')].every((el) => Number(getComputedStyle(el).opacity) >= 0.999) &&
+        document.getAnimations().every((a) => a.playState !== 'running'),
+      undefined,
+      { timeout: timeoutMs },
+    )
+    .then(() => true, () => false)
+  await page.waitForTimeout(graceMs)
+  return settled
 }

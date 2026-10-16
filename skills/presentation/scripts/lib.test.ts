@@ -42,12 +42,34 @@ describe('target detection', () => {
     }
   })
 
+  it('keeps targeting presentations/ for a partially scaffolded monorepo root', () => {
+    const d = tmp()
+    put(d, 'package.json', '{"workspaces":["packages/*"]}')
+    scaffold(d, ['kit'])
+    expect(detect(d).target).toBe(path.join(d, 'presentations'))
+    const e = tmp()
+    put(e, 'package.json', '{"workspaces":["packages/*"]}')
+    scaffold(e, ['index'])
+    expect(detect(e).target).toBe(path.join(e, 'presentations'))
+  })
+
+  it('does not accept placeholder files as kit or index anchors', () => {
+    const d = tmp()
+    put(d, 'src/presentation-kit/index.ts', '// TODO: implement Presentation')
+    put(d, 'src/presentations/index.ts', '// registry goes here')
+    expect(detectAnchors(d)).toMatchObject({ kit: false, index: false })
+    put(d, 'src/presentation-kit/index.ts', "export { Presentation } from './Missing'")
+    expect(detectAnchors(d).kit).toBe(false)
+    scaffold(d, ['kit', 'index'])
+    expect(detectAnchors(d)).toMatchObject({ kit: false, index: false }) // files existed, never overwritten
+  })
+
   it('uses an existing presentation app and detects anchors by function, not identical files', () => {
     const d = tmp()
     scaffold(d, ['build', 'kit', 'index'])
     expect(detect(d)).toMatchObject({ missing: [], needsConfirmation: false, target: d })
     // Cosmetic differences: reformatted index, extra dependency, renamed vite config.
-    put(d, 'src/presentations/index.tsx', 'export const x = 1')
+    put(d, 'src/presentations/index.tsx', 'export const REGISTRY = []')
     rmSync(path.join(d, 'src/presentations/index.ts'))
     expect(detectAnchors(d).index).toBe(true)
     const pkg = JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8'))
@@ -89,6 +111,37 @@ describe('scaffold', () => {
     expect(readFileSync(path.join(d, 'src/presentation-kit/Presentation.tsx'), 'utf8')).toBe('custom')
     const again = scaffold(d, ['build', 'kit', 'index'])
     expect(again.created).toEqual([])
+  })
+
+  it('adds dependencies, verify tooling, and entry wiring when only kit and index are missing', () => {
+    const d = tmp()
+    scaffold(d, ['build'])
+    const pkgPath = path.join(d, 'package.json')
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+    for (const k of ['motion', 'lucide-react']) delete pkg.dependencies[k]
+    delete pkg.devDependencies.playwright
+    delete pkg.scripts.verify
+    writeFileSync(pkgPath, JSON.stringify(pkg))
+    rmSync(path.join(d, 'scripts'), { recursive: true })
+    put(d, 'src/main.tsx', "import { createRoot } from 'react-dom/client'\nimport App from './App'\n\ncreateRoot(document.getElementById('root')!).render(<App />)\n")
+    const res = scaffold(d, ['kit', 'index'])
+    const merged = JSON.parse(readFileSync(pkgPath, 'utf8'))
+    expect(merged.dependencies.motion).toBeTruthy()
+    expect(merged.dependencies['lucide-react']).toBeTruthy()
+    expect(merged.devDependencies.playwright).toBeTruthy()
+    expect(merged.scripts.verify).toBeTruthy()
+    expect(existsSync(path.join(d, 'scripts/verify.mjs'))).toBe(true)
+    const main = readFileSync(path.join(d, 'src/main.tsx'), 'utf8')
+    expect(main).toContain('if (!mountPresentations()) {')
+    expect(main.indexOf("from './presentations/mount'")).toBeLessThan(main.indexOf('createRoot('))
+    expect(res.manual).toEqual([])
+    expect(scaffold(d, ['index']).merged).toEqual([]) // idempotent: no double wrapping
+  })
+
+  it('reports an entry point it cannot patch safely', () => {
+    const d = tmp()
+    put(d, 'src/main.tsx', "import {\n  a,\n} from 'x'\nconsole.log(a)\n")
+    expect(scaffold(d, ['index']).manual[0]).toMatch(/mountPresentations/)
   })
 
   it('merges only missing scripts and dependencies into an existing package.json', () => {
@@ -170,6 +223,12 @@ describe('template parity and neutrality', () => {
     expect(rel(snap, walk(snap))).toEqual(rel(canon, canonFiles))
     for (const f of canonFiles) {
       expect(readFileSync(path.join(snap, path.relative(canon, f)), 'utf8'), path.relative(canon, f)).toBe(readFileSync(f, 'utf8'))
+    }
+  })
+
+  it('keeps the app entry and router files aligned with the template copies', () => {
+    for (const f of ['src/main.tsx', 'src/Landing.tsx', 'src/route.ts', 'src/index.css', 'src/presentations/mount.tsx']) {
+      expect(readFileSync(path.join(BOOTSTRAP, f), 'utf8'), f).toBe(readFileSync(path.join(root, f), 'utf8'))
     }
   })
 

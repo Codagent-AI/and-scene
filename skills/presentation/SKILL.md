@@ -53,6 +53,10 @@ dependencies into an existing `package.json`) and install. Do not assume any dep
 node <skill>/scripts/presentation.mjs scaffold <target> --install   # add --only build,kit,index to force groups
 ```
 
+Scaffolding always ensures the dependencies, npm scripts, and verify/inspect tooling, even when only the kit or
+index is missing. If an existing `src/main.tsx` is found it is patched to route registered presentations first
+(`mountPresentations()` from `./presentations/mount`); if the JSON result lists `manual` items, wire them by hand.
+
 The scaffold sets up React, Vite, TypeScript, Motion, Lucide icons, ESLint, and Playwright (render
 verification; run `npx playwright install chromium` if no Chromium is available). It is
 **styling-framework-neutral and ships no visual defaults** (no Tailwind, theme, colors, fonts, card or

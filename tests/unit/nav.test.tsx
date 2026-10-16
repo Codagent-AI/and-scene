@@ -83,6 +83,13 @@ describe('usePresentationNav', () => {
     host.remove()
   })
 
+  it('re-clamps the index when the step count shrinks', () => {
+    const { result, rerender } = renderHook(({ n }) => usePresentationNav(n), { initialProps: { n: 5 } })
+    act(() => result.current.goTo(4))
+    rerender({ n: 2 })
+    expect(result.current.index).toBe(1)
+  })
+
   it('ignores modified key chords', () => {
     const { result } = renderHook(() => usePresentationNav(4))
     act(() => void fireEvent.keyDown(window, { key: 'ArrowRight', metaKey: true }))

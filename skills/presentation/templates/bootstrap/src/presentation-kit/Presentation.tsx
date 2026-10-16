@@ -40,6 +40,7 @@ export function Presentation({
   canvas = { width: DESIGN_W, height: DESIGN_H },
   className,
 }: PresentationProps) {
+  if (steps.length === 0) throw new Error('Presentation requires at least one step')
   const nav = usePresentationNav(steps.length, initialMode)
   const wide = useIsWide()
   const eras = useMemo(() => eraEntries(steps), [steps])

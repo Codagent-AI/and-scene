@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useEffect, useRef } from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Presentation, type SceneProps, type Step } from '../../src/presentation-kit'
 
 afterEach(cleanup)
@@ -132,6 +132,14 @@ describe('Presentation chrome', () => {
     expect(container.querySelector('[data-presentation-attribution]')?.textContent).toBe('custom')
     rerender(<Presentation steps={STEPS} title="Deck" attribution={false} />)
     expect(container.querySelector('[data-presentation-attribution]')).toBeNull()
+  })
+})
+
+describe('Presentation guards', () => {
+  it('fails with a clear message when given no steps', () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    expect(() => render(<Presentation steps={[]} title="Empty" />)).toThrow('Presentation requires at least one step')
+    quiet.mockRestore()
   })
 })
 

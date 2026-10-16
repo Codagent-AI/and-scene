@@ -33,8 +33,11 @@ export interface Nav {
 }
 
 export function usePresentationNav(count: number, initialMode: Mode = 'browse'): Nav {
-  const [index, setIndex] = useState(0)
+  const [rawIndex, setIndex] = useState(0)
   const [mode, setMode] = useState<Mode>(initialMode)
+
+  // Steps can shrink after mount (hot reload, swapped arrays); never expose a stale out-of-range index.
+  const index = clampIndex(rawIndex, count)
 
   const goTo = useCallback((i: number) => setIndex(clampIndex(i, count)), [count])
   const next = useCallback(() => setIndex((i) => clampIndex(i + 1, count)), [count])

@@ -14,8 +14,8 @@ export function copyRepo(): string {
   return dest
 }
 
-export function node(cwd: string, args: string[], timeout = 240_000) {
-  const r = spawnSync('node', args, { cwd, encoding: 'utf8', timeout })
+export function node(cwd: string, args: string[], env: Record<string, string> = {}, timeout = 240_000) {
+  const r = spawnSync('node', args, { cwd, encoding: 'utf8', timeout, env: { ...process.env, ...env } })
   return { code: r.status, out: `${r.stdout}${r.stderr}` }
 }
 

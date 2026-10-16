@@ -3,7 +3,7 @@ import { Check, CircleHelp, Flag, Puzzle, ShieldCheck, Shuffle, SlidersHorizonta
 import type { ReactNode } from 'react'
 import { Appear, Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip } from '../../../presentation-kit'
 import type { SceneProps } from '../../../presentation-kit'
-import { AT, FIRST_STEP, ID } from '../entities'
+import { AT, FIRST_STEP, ID, TRAY_WIDE } from '../entities'
 import type { Box as Geometry } from '../entities'
 
 export interface ScenePayload {
@@ -37,6 +37,7 @@ function CardParts({ n }: { n: number }) {
 export function SampleScene({ payload }: SceneProps<ScenePayload>) {
   const { n } = payload
   const on = (k: keyof typeof ID) => n >= FIRST_STEP[k]
+  const tray = { ...AT.tray, w: n >= 7 ? TRAY_WIDE : AT.tray.w }
   const link1 = { ...AT.link1, w: n >= 4 ? AT.link1.w : 22 }
 
   return (
@@ -67,6 +68,11 @@ export function SampleScene({ payload }: SceneProps<ScenePayload>) {
             <SymbolChip id={ID.question} kind="question" Icon={CircleHelp} style={size(AT.question)}>
               what is the topic?
             </SymbolChip>
+          </Placed>
+        )}
+        {on('tray') && (
+          <Placed key="tray" at={tray}>
+            <Box id={ID.tray} kind="tray" style={size(tray)} />
           </Placed>
         )}
         {on('card1') && (

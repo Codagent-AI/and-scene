@@ -41,11 +41,30 @@ describe('reference sample', () => {
     expect(ids.every((i) => i.startsWith('htm/'))).toBe(true)
   })
 
-  it('verify.config.json matches the normative table', () => {
-    const cfg = JSON.parse(fs.readFileSync(path.join(REPO, 'verify.config.json'), 'utf8'))
-    expect(cfg.reference.steps.map((s: { title: string; caption: string }) => [s.title, s.caption])).toEqual(
-      NORMATIVE.map(([, t, c]) => [t, c]),
-    )
+  it('is produced from the presentation template of the skill', () => {
+    const tpl = path.join(REPO, 'skills/presentation/templates/presentation')
+    const sample = path.join(REPO, 'src/presentations/how-to-make-a-presentation')
+    const fill = (t: string) =>
+      t.replaceAll('__SLUG__', 'how-to-make-a-presentation').replaceAll('__TITLE__', 'How to Use This Skill to Make a Presentation')
+    for (const f of walk(tpl)) {
+      const rel = path.relative(tpl, f)
+      expect(fs.existsSync(path.join(sample, rel)), `${rel} exists in the sample`).toBe(true)
+    }
+    // The entry and the stylesheet scope come from the template; steps and entities are authored content.
+    expect(fs.readFileSync(path.join(sample, 'Talk.tsx'), 'utf8')).toBe(fill(fs.readFileSync(path.join(tpl, 'Talk.tsx'), 'utf8')))
+    expect(fs.readFileSync(path.join(sample, 'talk.css'), 'utf8')).toContain('.how-to-make-a-presentation ')
+  })
+
+  it('has a tray holding the cards, widening to take the verify node, with the kit socket on its bottom edge', async () => {
+    const { AT, FIRST_STEP, TRAY_WIDE } = await import('../src/presentations/how-to-make-a-presentation/entities')
+    expect(FIRST_STEP.tray).toBe(FIRST_STEP.card1)
+    const inside = (o: typeof AT.tray, w = AT.tray.w) =>
+      o.x >= AT.tray.x && o.x + o.w <= AT.tray.x + w && o.y >= AT.tray.y && o.y + o.h <= AT.tray.y + AT.tray.h
+    for (const k of ['card1', 'card2', 'card3', 'ghost'] as const) expect(inside(AT[k]), k).toBe(true)
+    expect(inside(AT.verify)).toBe(false)
+    expect(inside(AT.verify, TRAY_WIDE)).toBe(true)
+    expect(AT.plug.y).toBe(AT.tray.y + AT.tray.h)
+    expect(AT.plug.y + AT.plug.h).toBe(AT.socket.y)
   })
 
   it('imports the kit only through its public entry point', () => {

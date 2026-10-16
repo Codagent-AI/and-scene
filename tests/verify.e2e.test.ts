@@ -1,8 +1,9 @@
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { copyRepo, node } from './helpers'
+import { REPO, copyRepo, node } from './helpers'
 
 const edit = (dir: string, rel: string, fn: (s: string) => string) => {
   const f = path.join(dir, rel)
@@ -24,6 +25,21 @@ const faults: { name: string; apply: (dir: string) => void; expect: RegExp }[] =
     apply: (d) =>
       edit(d, 'src/presentations/index.ts', (s) => s.replace(/\s*\{\s*slug: 'how-to-make-a-presentation'[\s\S]*?\},\n/, '\n')),
     expect: /VERIFY FAILED phase=sample.*not registered/,
+  },
+  {
+    name: 'canonical sample replaced by another reference and configuration',
+    apply: (d) => {
+      const tpl = path.join(d, 'skills/presentation/templates/bootstrap')
+      fs.cpSync(path.join(tpl, 'src/presentations/example'), path.join(d, 'src/presentations/example'), { recursive: true })
+      fs.copyFileSync(path.join(tpl, 'verify.config.json'), path.join(d, 'verify.config.json'))
+      fs.rmSync(path.join(d, SAMPLE), { recursive: true })
+      fs.rmSync(path.join(d, 'tests'), { recursive: true }) // the repo tests import the sample
+      fs.writeFileSync(
+        path.join(d, 'src/presentations/index.ts'),
+        fs.readFileSync(path.join(tpl, 'src/presentations/index.ts'), 'utf8'),
+      )
+    },
+    expect: /VERIFY FAILED phase=sample.*how-to-make-a-presentation/,
   },
   {
     name: 'steps out of order',
@@ -71,6 +87,36 @@ describe('E2E-002 verification failures', () => {
     expect(r.code, r.out).toBe(0)
     expect(r.out).toContain('VERIFY PASSED')
     expect(r.out).toContain('9 steps rendered without errors on 127.0.0.1')
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('cleans up the preview when the browser cannot launch', () => {
+    const dir = copyRepo()
+    const r = node(dir, ['scripts/verify.mjs'], { PLAYWRIGHT_BROWSERS_PATH: '/nonexistent-browsers' })
+    expect(r.code).not.toBe(0)
+    expect(r.out).toMatch(/VERIFY FAILED phase=render.*browser launch failed/)
+    const left = spawnSync('pgrep', ['-f', path.join(dir, 'node_modules/.bin/vite')], { encoding: 'utf8' })
+    expect(left.stdout.trim()).toBe('')
+    const i = node(dir, ['scripts/inspect-presentation.mjs', 'how-to-make-a-presentation', '--no-build'], { PLAYWRIGHT_BROWSERS_PATH: '/nonexistent-browsers' })
+    expect(i.code).not.toBe(0)
+    expect(spawnSync('pgrep', ['-f', path.join(dir, 'node_modules/.bin/vite')], { encoding: 'utf8' }).stdout.trim()).toBe('')
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('keeps a scaffolded presentation reachable in an existing app with its own entry point', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'and-scene-partial-'))
+    const skill = path.join(REPO, 'skills/presentation/scripts/scaffold.mjs')
+    expect(node(os.tmpdir(), [skill, dir, '--anchors', 'build']).code).toBe(0)
+    fs.symlinkSync(path.join(REPO, 'node_modules'), path.join(dir, 'node_modules'))
+    fs.mkdirSync(path.join(dir, 'src'))
+    const ownMain = "document.getElementById('root')!.textContent = 'existing app'\n"
+    fs.writeFileSync(path.join(dir, 'src/main.tsx'), ownMain)
+    const r = node(os.tmpdir(), [skill, dir, '--anchors', 'kit,index'])
+    expect(r.code, r.out).toBe(0)
+    expect(fs.readFileSync(path.join(dir, 'src/app-main.tsx'), 'utf8')).toBe(ownMain)
+    const v = node(dir, ['scripts/verify.mjs'])
+    expect(v.code, v.out).toBe(0)
+    expect(v.out).toContain('VERIFY PASSED')
     fs.rmSync(dir, { recursive: true, force: true })
   })
 

@@ -1,5 +1,5 @@
 /* Presentation-owned styling; the scene kit supplies hooks only. */
-.htm {
+.how-to-make-a-presentation {
   --ink: #f8f3e6;
   --muted: #b9b09a;
   --gold: #e8c76a;
@@ -10,90 +10,93 @@
   font-size: 16px;
 }
 
-.htm [data-presentation-header] {
+.how-to-make-a-presentation [data-presentation-header] {
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
   padding: 0.9rem 1.5rem 0;
   color: var(--muted);
 }
-.htm [data-presentation-marker] { color: var(--gold); font-variant-numeric: tabular-nums; font-weight: 600; }
-.htm [data-presentation-era] { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem; }
-.htm [data-presentation-header] [data-presentation-title] { margin: 0 0 0 auto; font-size: 1.25rem; color: var(--ink); }
+.how-to-make-a-presentation [data-presentation-marker] { color: var(--gold); font-variant-numeric: tabular-nums; font-weight: 600; }
+.how-to-make-a-presentation [data-presentation-era] { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem; }
+.how-to-make-a-presentation [data-presentation-header] [data-presentation-stack] { margin-left: auto; }
+.how-to-make-a-presentation [data-presentation-header] h1 { margin: 0; font-size: 1.25rem; color: var(--ink); text-align: right; }
 
-.htm [data-presentation-footer] { padding: 0.75rem 1.5rem 2.6rem; display: grid; gap: 0.75rem; justify-items: center; }
-.htm [data-presentation-footer][data-presentation-mode='present'] { padding-bottom: 3rem; }
-.htm [data-presentation-footer] [data-presentation-title] { margin: 0; font-size: 2rem; text-align: center; }
-.htm [data-presentation-caption] { margin: 0; max-width: 46rem; text-align: center; color: var(--ink); line-height: 1.5; }
+.how-to-make-a-presentation [data-presentation-footer] { padding: 0.75rem 1.5rem 2.6rem; display: grid; gap: 0.75rem; justify-items: center; }
+.how-to-make-a-presentation [data-presentation-footer][data-presentation-mode='present'] { padding-bottom: 3rem; }
+.how-to-make-a-presentation [data-presentation-footer] [data-presentation-stack] { max-width: 46rem; }
+.how-to-make-a-presentation [data-presentation-footer] h1 { margin: 0; font-size: 2rem; text-align: center; }
+.how-to-make-a-presentation [data-presentation-footer] p { margin: 0; text-align: center; color: var(--ink); line-height: 1.5; }
 
-.htm [data-presentation-progress] { display: flex; gap: 0.5rem; }
-.htm [data-presentation-dot] {
+.how-to-make-a-presentation [data-presentation-progress] { display: flex; gap: 0.5rem; }
+.how-to-make-a-presentation [data-presentation-dot] {
   width: 0.75rem; height: 0.75rem; padding: 0; border-radius: 999px;
   border: 1px solid var(--muted); background: transparent; cursor: pointer;
 }
-.htm [data-presentation-dot][data-active='true'] { background: var(--gold); border-color: var(--gold); transform: scale(1.5); }
+.how-to-make-a-presentation [data-presentation-dot][data-active='true'] { background: var(--gold); border-color: var(--gold); transform: scale(1.5); }
 
-.htm [data-presentation-controls] { display: flex; gap: 0.75rem; }
-.htm [data-presentation-prev], .htm [data-presentation-next] {
+.how-to-make-a-presentation [data-presentation-controls] { display: flex; gap: 0.75rem; }
+.how-to-make-a-presentation [data-presentation-prev], .how-to-make-a-presentation [data-presentation-next] {
   font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line);
   border-radius: 0.5rem; padding: 0.35rem 1rem; cursor: pointer;
 }
-.htm button:disabled { opacity: 0.4; cursor: default; }
-.htm button:focus-visible, .htm a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.how-to-make-a-presentation button:disabled { opacity: 0.4; cursor: default; }
+.how-to-make-a-presentation button:focus-visible, .how-to-make-a-presentation a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
-.htm [data-presentation-toc] { width: 11rem; padding: 1rem 0 0 1.5rem; flex: none; }
-.htm [data-presentation-toc] ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; }
-.htm [data-presentation-toc-entry] {
+.how-to-make-a-presentation [data-presentation-toc] { width: 11rem; padding: 1rem 0 0 1.5rem; flex: none; }
+.how-to-make-a-presentation [data-presentation-toc] ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; }
+.how-to-make-a-presentation [data-presentation-toc-entry] {
   font: inherit; width: 100%; text-align: left; color: var(--muted); background: none;
   border: 0; border-left: 3px solid transparent; padding: 0.35rem 0.6rem; cursor: pointer;
 }
-.htm [data-presentation-toc-entry][data-active='true'] {
+.how-to-make-a-presentation [data-presentation-toc-entry][data-active='true'] {
   color: var(--gold); border-left-color: var(--gold); background: rgba(232, 199, 106, 0.12); font-weight: 600;
 }
 
-.htm [data-presentation-attribution] {
+.how-to-make-a-presentation [data-presentation-attribution] {
   right: 1rem !important; bottom: 0.75rem !important;
   font-size: 0.8125rem; color: var(--muted); text-decoration: underline; text-underline-offset: 3px;
 }
-.htm [data-presentation-attribution]:hover { color: var(--gold); }
+.how-to-make-a-presentation [data-presentation-attribution]:hover { color: var(--gold); }
 
 /* Diagram entities */
-.htm [data-presentation-node] { color: var(--ink); font-size: 14px; }
-.htm [data-presentation-node='box'], .htm [data-presentation-node='chip'] {
+.how-to-make-a-presentation [data-presentation-node] { color: var(--ink); font-size: 14px; }
+.how-to-make-a-presentation [data-presentation-node='box'], .how-to-make-a-presentation [data-presentation-node='chip'] {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   background: var(--panel); border: 1.5px solid var(--line); border-radius: 12px; text-align: center;
 }
-.htm [data-presentation-kind='actor'] { border-color: var(--gold); font-size: 18px; font-weight: 600; flex-direction: row; gap: 8px; }
-.htm [data-presentation-kind='prompt'], .htm [data-presentation-kind='question'] { border-radius: 999px; flex-direction: row; font-size: 13px; color: var(--muted); }
-.htm [data-presentation-kind='card'] { align-items: flex-start; justify-content: flex-start; padding: 10px 12px; font-size: 12px; }
-.htm [data-presentation-kind='card'] strong { color: var(--gold); font-size: 13px; }
-.htm [data-presentation-kind='card'] [data-part] { color: var(--muted); border-top: 1px dashed var(--line); width: 100%; text-align: left; padding-top: 3px; }
-.htm [data-presentation-kind='ghost'] { border-style: dashed; color: var(--muted); font-size: 12px; background: transparent; }
-.htm [data-presentation-kind='depth'] { flex-direction: row; font-size: 12px; border-color: var(--gold); color: var(--gold); border-radius: 999px; }
-.htm [data-presentation-kind='socket'] { flex-direction: row; border-color: var(--gold); gap: 8px; }
-.htm [data-presentation-kind='verify'] { font-size: 12px; border-color: var(--good); color: var(--good); }
-.htm [data-presentation-kind='morph'] { border-radius: 999px; padding: 0; }
-.htm [data-presentation-icon] { width: 18px; height: 18px; flex: none; }
-.htm [data-presentation-kind='morph'] [data-presentation-icon] { width: 14px; height: 14px; }
+.how-to-make-a-presentation [data-presentation-kind='actor'] { border-color: var(--gold); font-size: 18px; font-weight: 600; flex-direction: row; gap: 8px; }
+.how-to-make-a-presentation [data-presentation-kind='prompt'], .how-to-make-a-presentation [data-presentation-kind='question'] { border-radius: 999px; flex-direction: row; font-size: 13px; color: var(--muted); }
+.how-to-make-a-presentation [data-presentation-kind='card'] { align-items: flex-start; justify-content: flex-start; padding: 10px 12px; font-size: 12px; }
+.how-to-make-a-presentation [data-presentation-kind='card'] strong { color: var(--gold); font-size: 13px; }
+.how-to-make-a-presentation [data-presentation-kind='card'] [data-part] { color: var(--muted); border-top: 1px dashed var(--line); width: 100%; text-align: left; padding-top: 3px; }
+.how-to-make-a-presentation [data-presentation-kind='tray'] { background: rgba(248, 243, 230, 0.04); border: 1px solid var(--line); border-radius: 14px; }
+.how-to-make-a-presentation [data-presentation-kind='ghost'] { border-style: dashed; color: var(--muted); font-size: 12px; background: transparent; }
+.how-to-make-a-presentation [data-presentation-kind='depth'] { flex-direction: row; font-size: 12px; border-color: var(--gold); color: var(--gold); border-radius: 999px; }
+.how-to-make-a-presentation [data-presentation-kind='socket'] { flex-direction: row; border-color: var(--gold); gap: 8px; }
+.how-to-make-a-presentation [data-presentation-kind='verify'] { font-size: 12px; border-color: var(--good); color: var(--good); }
+.how-to-make-a-presentation [data-presentation-kind='morph'] { border-radius: 999px; padding: 0; }
+.how-to-make-a-presentation [data-presentation-icon] { width: 18px; height: 18px; flex: none; }
+.how-to-make-a-presentation [data-presentation-kind='morph'] [data-presentation-icon] { width: 14px; height: 14px; }
 
-.htm [data-presentation-node='arrow'] { background: var(--muted); position: relative; }
-.htm [data-presentation-node='arrow'][data-presentation-variant='stub'] { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 8px); }
-.htm [data-presentation-node='arrow']::after {
+.how-to-make-a-presentation [data-presentation-node='arrow'] { background: var(--muted); position: relative; }
+.how-to-make-a-presentation [data-presentation-node='arrow'][data-presentation-variant='stub'] { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 8px); }
+.how-to-make-a-presentation [data-presentation-node='arrow']::after {
   content: ''; position: absolute; right: -2px; top: -4px; border: 5px solid transparent; border-left: 8px solid var(--muted); border-right: 0;
 }
-.htm [data-presentation-bidirectional='true']::before {
+.how-to-make-a-presentation [data-presentation-bidirectional='true']::before {
   content: ''; position: absolute; left: -2px; top: -4px; border: 5px solid transparent; border-right: 8px solid var(--muted); border-left: 0;
 }
-.htm [data-presentation-variant='arc'] {
+.how-to-make-a-presentation [data-presentation-variant='arc'] {
   background: none; border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); border-bottom-right-radius: 60px;
 }
-.htm [data-presentation-variant='arc']::after { right: auto; left: -9px; top: auto; bottom: -6px; border: 5px solid transparent; border-right: 0; border-left: 0; border-top: 8px solid var(--gold); transform: rotate(90deg); }
+.how-to-make-a-presentation [data-presentation-variant='arc']::after { right: auto; left: -9px; top: auto; bottom: -6px; border: 5px solid transparent; border-right: 0; border-left: 0; border-top: 8px solid var(--gold); transform: rotate(90deg); }
 
-.htm [data-presentation-node='label'] { color: var(--gold); font-size: 13px; }
-.htm [data-presentation-kind='plug'] { background: var(--gold); border-radius: 0 0 6px 6px; }
-.htm [data-presentation-kind='pass'] { color: var(--good); display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--good); border-radius: 999px; }
-.htm [data-presentation-kind='pass'] svg { width: 18px; height: 18px; }
-.htm [data-presentation-kind='flag'] { color: var(--gold); font-size: 12px; display: flex; align-items: center; gap: 4px; }
-.htm [data-presentation-kind='flag'] svg { width: 12px; height: 12px; }
-.htm [data-presentation-node='frame'] { border: 2px dashed var(--gold); border-radius: 18px; pointer-events: none; }
-.htm [data-presentation-node='label'][data-presentation-entity='htm/frame-label'] { text-align: right; padding-right: 8px; }
+.how-to-make-a-presentation [data-presentation-node='label'] { color: var(--gold); font-size: 13px; }
+.how-to-make-a-presentation [data-presentation-kind='plug'] { background: var(--gold); border-radius: 0 0 6px 6px; }
+.how-to-make-a-presentation [data-presentation-kind='pass'] { color: var(--good); display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--good); border-radius: 999px; }
+.how-to-make-a-presentation [data-presentation-kind='pass'] svg { width: 18px; height: 18px; }
+.how-to-make-a-presentation [data-presentation-kind='flag'] { color: var(--gold); font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.how-to-make-a-presentation [data-presentation-kind='flag'] svg { width: 12px; height: 12px; }
+.how-to-make-a-presentation [data-presentation-node='frame'] { border: 2px dashed var(--gold); border-radius: 18px; pointer-events: none; }
+.how-to-make-a-presentation [data-presentation-node='label'][data-presentation-entity='htm/frame-label'] { text-align: right; padding-right: 8px; }

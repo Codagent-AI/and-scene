@@ -44,7 +44,7 @@ export function Presentation<T = undefined>({
       {...touchHandlers}
       style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100dvh', width: '100%' }}
     >
-      <Header mode={mode} marker={`${index + 1} / ${steps.length}`} era={step.era} title={step.title} brand={brand} />
+      <Header mode={mode} marker={`${index + 1} / ${steps.length}`} era={step.era} titles={steps.map((s) => s.title)} index={index} brand={brand} />
       <div style={{ display: 'flex', flex: '1 1 0', minHeight: 0 }}>
         {mode === 'browse' && wide && <Toc steps={steps} index={index} go={go} />}
         <Stage steps={steps} index={index} mode={mode} />

@@ -1,4 +1,5 @@
 import type { Mode, StepMeta } from '../types'
+import { Stacked } from './Stacked'
 
 interface FooterProps {
   mode: Mode
@@ -16,17 +17,16 @@ const press = (fn: () => void) => (e: React.MouseEvent<HTMLElement>) => {
 }
 
 export function Footer({ mode, steps, index, go, next, prev }: FooterProps) {
-  const step = steps[index]
   if (mode === 'present') {
     return (
       <footer data-presentation-footer="" data-presentation-mode="present">
-        <h1 data-presentation-title="">{step.title}</h1>
+        <Stacked texts={steps.map((s) => s.title)} active={index} hook="data-presentation-title" as="h1" />
       </footer>
     )
   }
   return (
     <footer data-presentation-footer="" data-presentation-mode="browse">
-      <p data-presentation-caption="">{step.caption}</p>
+      <Stacked texts={steps.map((s) => s.caption)} active={index} hook="data-presentation-caption" />
       <nav aria-label="Steps" data-presentation-progress="">
         {steps.map((s, i) => (
           <button

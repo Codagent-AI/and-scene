@@ -105,9 +105,10 @@ async function main() {
   fs.mkdirSync(outDir, { recursive: true })
 
   const preview = await startPreview(projectRoot)
-  const browser = await chromium.launch()
+  let browser
   const report = []
   try {
+    browser = await chromium.launch()
     const page = await browser.newPage({ viewport: { width, height } })
     await page.goto(`${preview.base}/${slug}`)
     await page.waitForSelector('[data-step-count]', { timeout: 10_000 })
@@ -126,7 +127,7 @@ async function main() {
       for (const w of warnings) console.log(`  WARN step ${i + 1}: ${w}`)
     }
   } finally {
-    await browser.close()
+    await browser?.close()
     preview.stop()
   }
   fs.writeFileSync(path.join(outDir, 'report.json'), JSON.stringify({ slug, viewport: { width, height }, steps: report }, null, 2))

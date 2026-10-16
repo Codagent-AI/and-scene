@@ -68,6 +68,38 @@ describe('anchor detection and target resolution', () => {
     expect(resolveTarget(dir).missing).toEqual([])
   })
 
+  it('detects contracts, not file names: a renamed kit directory and registry file still count', () => {
+    const dir = tmp()
+    scaffold(dir, ['build', 'kit', 'index'])
+    fs.renameSync(path.join(dir, 'src/presentation-kit'), path.join(dir, 'src/scene-kit'))
+    fs.renameSync(path.join(dir, 'src/presentations/index.ts'), path.join(dir, 'src/presentations/registry.ts'))
+    for (const f of walk(path.join(dir, 'src'), (x) => /\.tsx?$/.test(x))) {
+      const t = fs.readFileSync(f, 'utf8').replaceAll("presentation-kit'", "scene-kit'").replace("from './presentations'", "from './presentations/registry'")
+      fs.writeFileSync(f, t)
+    }
+    expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('does not count a registry the entry point never reaches', () => {
+    const dir = tmp()
+    scaffold(dir, ['build', 'kit'])
+    write(dir, 'src/main.tsx', "console.log('own app')\n")
+    write(dir, 'src/presentations/index.ts', "export const p = [{ slug: 'a', load: () => import('./a') }]\n")
+    expect(detectAnchors(dir).index).toBe(false)
+  })
+
+  it('wires an existing entry point to the router, keeping its app for other paths', () => {
+    const dir = tmp()
+    scaffold(dir, ['build'])
+    const own = "document.getElementById('root')!.textContent = 'mine'\n"
+    write(dir, 'src/main.tsx', own)
+    const r = scaffold(dir, ['kit', 'index'])
+    expect(fs.readFileSync(path.join(dir, 'src/app-main.tsx'), 'utf8')).toBe(own)
+    expect(fs.readFileSync(path.join(dir, 'src/main.tsx'), 'utf8')).toContain("import('./app-main')")
+    expect(r.written.some((w: string) => w.includes('router entry'))).toBe(true)
+    expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
   it('scaffolds a monorepo into presentations/ and preserves the root', () => {
     const dir = monorepoRoot()
     const before = Object.fromEntries(walk(dir).map((f) => [f, fs.readFileSync(f, 'utf8')]))

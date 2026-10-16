@@ -44,4 +44,31 @@ describe('sample scene continuity in a production preview', () => {
       preview.stop()
     }
   })
+
+  it('keeps the canvas scale constant while navigating within a mode', async () => {
+    const preview = await startPreview(REPO)
+    const browser = await chromium.launch()
+    try {
+      for (const [width, height] of [[1000, 500], [390, 844]]) {
+        const page = await browser.newPage({ viewport: { width, height } })
+        await page.goto(`${preview.base}/how-to-make-a-presentation`)
+        await page.waitForSelector('[data-step-count]')
+        for (const mode of ['browse', 'present']) {
+          if ((await page.getAttribute('[data-presentation-root]', 'data-presentation-mode')) !== mode) await page.keyboard.press('p')
+          const scales = new Set<string>()
+          for (let i = 0; i < 9; i++) await page.keyboard.press('ArrowLeft')
+          for (let i = 0; i < 9; i++) {
+            if (i > 0) await page.keyboard.press('ArrowRight')
+            await page.waitForTimeout(150)
+            scales.add((await page.getAttribute('[data-presentation-stage]', 'data-presentation-scale'))!)
+          }
+          expect([...scales], `${width}x${height} ${mode}`).toHaveLength(1)
+        }
+        await page.close()
+      }
+    } finally {
+      await browser.close()
+      preview.stop()
+    }
+  })
 })

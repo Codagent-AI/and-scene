@@ -5,10 +5,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { detectAnchors } from './detect.mjs'
+import { detectAnchors, locate } from './detect.mjs'
 
 const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 export const BOOTSTRAP = path.join(SKILL_DIR, 'templates', 'bootstrap')
+const HOSTED_MAIN = path.join(SKILL_DIR, 'templates', 'hosted-main.tsx')
 
 const FILES = {
   build: ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'vite.config.ts', 'eslint.config.js', 'index.html', '.gitignore'],
@@ -40,6 +41,21 @@ function mergePackage(target) {
   fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + '\n')
 }
 
+/**
+ * An existing entry point that does not reach the registry keeps running its app
+ * for non-presentation paths: it moves to `app-main` and a router entry replaces it.
+ */
+function wireEntry(target, written) {
+  if (detectAnchors(target).index) return
+  const { entry } = locate(target)
+  if (!fs.existsSync(entry) || !/\.tsx?$/.test(entry)) return
+  const moved = path.join(path.dirname(entry), `app-main${path.extname(entry)}`)
+  if (fs.existsSync(moved)) return
+  fs.renameSync(entry, moved)
+  fs.copyFileSync(HOSTED_MAIN, entry)
+  written.push(`${path.relative(target, entry)} (router entry; previous entry moved to ${path.relative(target, moved)})`)
+}
+
 export function scaffold(target, anchors) {
   const written = []
   const write = (rel) => {
@@ -62,6 +78,7 @@ export function scaffold(target, anchors) {
       FILES[anchor].forEach(write)
     }
   }
+  if (anchors.includes('index')) wireEntry(target, written)
   // Every scaffold needs the dependency set, even when package.json already existed.
   mergePackage(target)
   return { written, needsInstall: !hadPackage || anchors.length > 0 }

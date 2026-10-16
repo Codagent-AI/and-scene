@@ -65,6 +65,11 @@ the presentation with `ArrowRight`, waits the settle interval (default 1200 ms) 
 step change, and writes `.inspection/<slug>/step-01.png`, `step-02.png`, … (git-ignored).
 Default viewport is 1280x800; use `--viewport 390x844` for a narrow check.
 
+Each run removes only the `step-NN.png` files it owns in the output directory; other files
+there are left alone. The helper needs a Playwright Chromium matching the installed
+Playwright version; if the browser is missing or one version behind, run
+`npx playwright install chromium`.
+
 It also prints advisory warnings as `warn step NN [kind] ...`. They never change the exit
 code (non-zero only for operational failures such as an unknown slug):
 

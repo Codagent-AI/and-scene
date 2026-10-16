@@ -41,7 +41,12 @@ describe('INT-001 materialized bootstrap', () => {
       .replaceAll('__TITLE__', 'Throwaway')
       .trimEnd()
     const idx = path.join(app, 'src/presentations/index.ts')
-    writeFileSync(idx, readFileSync(idx, 'utf8').replace(/(presentations: PresentationEntry\[\] = \[\n)/, `$1${entry}\n`))
+    const registrySource = readFileSync(idx, 'utf8')
+    const registryAnchor = /(presentations: PresentationEntry\[\] = \[\n)/
+    if (!registryAnchor.test(registrySource)) {
+      throw new Error('bootstrap registry no longer matches the entry-splice anchor in src/presentations/index.ts')
+    }
+    writeFileSync(idx, registrySource.replace(registryAnchor, `$1${entry}\n`))
   })
 
   afterAll(() => {

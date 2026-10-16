@@ -1,5 +1,5 @@
 import { DEFAULT_ATTRIBUTION } from '../constants.ts'
-import { blurOnPointer } from './blur.ts'
+import { pointerSafe } from './blur.ts'
 import type { AnyStep, Mode } from '../types.ts'
 
 export interface AttributionOptions {
@@ -36,10 +36,7 @@ export function Footer({ mode, steps, index, onJump, onPrev, onNext, attribution
             data-presentation-prev=""
             aria-label="Previous step"
             disabled={index === 0}
-            onClick={(e) => {
-              onPrev()
-              blurOnPointer(e)
-            }}
+            onClick={pointerSafe(onPrev)}
           >
             ←
           </button>
@@ -54,10 +51,7 @@ export function Footer({ mode, steps, index, onJump, onPrev, onNext, attribution
                   data-active={active ? 'true' : 'false'}
                   aria-current={active ? 'step' : undefined}
                   aria-label={`Step ${i + 1}: ${s.title}`}
-                  onClick={(e) => {
-                    onJump(i)
-                    blurOnPointer(e)
-                  }}
+                  onClick={pointerSafe(() => onJump(i))}
                 />
               )
             })}
@@ -67,10 +61,7 @@ export function Footer({ mode, steps, index, onJump, onPrev, onNext, attribution
             data-presentation-next=""
             aria-label="Next step"
             disabled={index === steps.length - 1}
-            onClick={(e) => {
-              onNext()
-              blurOnPointer(e)
-            }}
+            onClick={pointerSafe(onNext)}
           >
             →
           </button>

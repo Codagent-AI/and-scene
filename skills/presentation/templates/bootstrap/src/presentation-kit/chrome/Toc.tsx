@@ -1,4 +1,4 @@
-import { blurOnPointer } from './blur.ts'
+import { pointerSafe } from './blur.ts'
 import type { EraGroup } from '../steps.ts'
 
 interface TocProps {
@@ -20,10 +20,7 @@ export function Toc({ eras, index, onJump }: TocProps) {
                 data-presentation-toc-entry=""
                 data-active={active ? 'true' : 'false'}
                 aria-current={active ? 'step' : undefined}
-                onClick={(e) => {
-                  onJump(era.start)
-                  blurOnPointer(e)
-                }}
+                onClick={pointerSafe(() => onJump(era.start))}
               >
                 {era.era}
               </button>

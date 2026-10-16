@@ -83,8 +83,15 @@ Then:
   tell the user the exact target directory and what will be added, and wait for
   their confirmation before writing anything. Never write first.
 - **Scaffold**: `node "$SKILL_DIR/scripts/scaffold.mjs" bootstrap <project-dir> [--confirmed]`.
-  It copies only missing files, merges missing dependencies and scripts into
-  `package.json` without removing anything, and runs `npm install`. Do not assume
+  It copies only missing files (including the `scripts/` that `npm run verify`
+  and `npm run inspect` call), merges missing dependencies and scripts into
+  `package.json` without removing anything, mounts the router in an existing
+  `src/main.*` entry (the host app stays the fallback route), and runs
+  `npm install`. If it cannot wire the entry automatically it exits with code 3:
+  render the router in the entry yourself (host app as its `fallback`), then
+  re-run `detect`. A renamed kit or registry is recognized by what it exports
+  and does; `new` follows it and records a non-default registry path in
+  `scripts/verify.config.json`. Do not assume
   any dependency is installed. If the render check needs a browser, run
   `npx playwright install chromium` when Chromium is not available.
 

@@ -194,7 +194,7 @@ export function bootstrap(dir, { confirmed = false, install = true } = {}) {
   const plan = detect(dir)
   if (!plan.needsScaffold) return { ...plan, wrote: [] }
   if (plan.confirmationRequired && !confirmed) {
-    const err = new Error(`target ${plan.target} is non-empty; confirm with the user, then re-run with --confirmed`)
+    const err = new Error(`target ${plan.target} needs the user's confirmation before writing into a non-empty project; confirm, then re-run with --confirmed`)
     err.code = 'CONFIRMATION_REQUIRED'
     err.plan = plan
     throw err

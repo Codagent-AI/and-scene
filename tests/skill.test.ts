@@ -100,6 +100,19 @@ describe('anchor detection and target resolution', () => {
     expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
   })
 
+  it('replaces a .ts entry with a .tsx router entry and repoints index.html', () => {
+    const dir = tmp()
+    scaffold(dir, ['build'])
+    write(dir, 'index.html', '<script type="module" src="/src/main.ts"></script>')
+    write(dir, 'src/main.ts', "console.log('mine')\n")
+    scaffold(dir, ['kit', 'index'])
+    expect(fs.existsSync(path.join(dir, 'src/main.ts'))).toBe(false)
+    expect(fs.readFileSync(path.join(dir, 'src/app-main.ts'), 'utf8')).toContain('mine')
+    expect(fs.readFileSync(path.join(dir, 'src/main.tsx'), 'utf8')).toContain("import('./app-main')")
+    expect(fs.readFileSync(path.join(dir, 'index.html'), 'utf8')).toContain('/src/main.tsx')
+    expect(detectAnchors(dir).index).toBe(true)
+  })
+
   it('scaffolds a monorepo into presentations/ and preserves the root', () => {
     const dir = monorepoRoot()
     const before = Object.fromEntries(walk(dir).map((f) => [f, fs.readFileSync(f, 'utf8')]))

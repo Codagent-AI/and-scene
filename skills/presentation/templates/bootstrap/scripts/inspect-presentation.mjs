@@ -13,7 +13,8 @@ const opt = (name, fallback) => {
   const i = args.indexOf(`--${name}`)
   return i === -1 ? fallback : args[i + 1]
 }
-const slug = args.find((a, i) => !a.startsWith('--') && !args[i - 1]?.startsWith('--'))
+const VALUE_FLAGS = new Set(['--out', '--settle', '--viewport'])
+const slug = args.find((a, i) => !a.startsWith('--') && !VALUE_FLAGS.has(args[i - 1]))
 if (!slug) {
   console.error('usage: inspect-presentation.mjs <slug> [--out dir] [--settle ms] [--viewport WxH] [--no-build]')
   process.exit(2)

@@ -51,9 +51,15 @@ function wireEntry(target, written) {
   if (!fs.existsSync(entry) || !/\.tsx?$/.test(entry)) return
   const moved = path.join(path.dirname(entry), `app-main${path.extname(entry)}`)
   if (fs.existsSync(moved)) return
+  // The router entry contains JSX, so a `.ts` entry is replaced by a `.tsx` one that index.html points at.
+  const next = entry.replace(/\.ts$/, '.tsx')
   fs.renameSync(entry, moved)
-  fs.copyFileSync(HOSTED_MAIN, entry)
-  written.push(`${path.relative(target, entry)} (router entry; previous entry moved to ${path.relative(target, moved)})`)
+  fs.copyFileSync(HOSTED_MAIN, next)
+  const html = path.join(target, 'index.html')
+  if (next !== entry && fs.existsSync(html)) {
+    fs.writeFileSync(html, fs.readFileSync(html, 'utf8').replace(path.basename(entry), path.basename(next)))
+  }
+  written.push(`${path.relative(target, next)} (router entry; previous entry moved to ${path.relative(target, moved)})`)
 }
 
 export function scaffold(target, anchors) {

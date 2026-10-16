@@ -17,7 +17,7 @@ const size = (g: Geometry) => ({ width: g.w, height: g.h })
 /** Newcomer wrapper: positions the entity and fades it in after persisting ones settle. */
 function Placed({ at, delay, children }: { at: Geometry; delay?: number; children: ReactNode }) {
   return (
-    <Appear style={place(at)} transition={delay === undefined ? undefined : { delay }}>
+    <Appear style={place(at)} delay={delay}>
       {children}
     </Appear>
   )

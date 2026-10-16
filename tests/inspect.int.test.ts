@@ -51,7 +51,7 @@ describe('INT-002 inspection helper', () => {
       ),
     )
     const started = Date.now()
-    const r = node(dir, ['scripts/inspect-presentation.mjs', 'fixture', '--settle', '700'])
+    const r = node(dir, ['scripts/inspect-presentation.mjs', '--settle', '700', 'fixture'])
     const elapsed = Date.now() - started
     expect(r.code, r.out).toBe(0)
 

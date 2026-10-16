@@ -33,7 +33,7 @@ describe('bootstrap template drift', () => {
     }
   })
 
-  it.each(['verify.mjs', 'inspect-presentation.mjs'])('scripts/%s matches its template copy', (f) => {
+  it.each(['verify.mjs', 'inspect-presentation.mjs', 'preview-server.mjs'])('scripts/%s matches its template copy', (f) => {
     expect(read(path.join(BOOTSTRAP, 'scripts', f)).equals(read(path.join(REPO, 'scripts', f)))).toBe(true)
   })
 

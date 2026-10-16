@@ -6,13 +6,11 @@
 // exit code; only operational failures (unknown slug, preview/browser failure) do.
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
-import http from 'node:http'
-import net from 'node:net'
 import path from 'node:path'
 import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
+import { HOST, freePort, killTree, run, waitReady } from './preview-server.mjs'
 
-export const HOST = '127.0.0.1'
 export const DEFAULT_SETTLE_MS = 1200
 export const DEFAULT_VIEWPORT = { width: 1280, height: 800 }
 const ADVANCE_TIMEOUT_MS = 4000
@@ -282,64 +280,6 @@ function collectInPage() {
     }
   }
   return { elements, groups, attribution }
-}
-
-// ---------- process helpers ----------
-
-function run(cmd, args, cwd) {
-  return new Promise((resolve) => {
-    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
-    let out = ''
-    child.stdout.on('data', (d) => (out += d))
-    child.stderr.on('data', (d) => (out += d))
-    child.on('error', (e) => resolve({ code: 1, out: String(e) }))
-    child.on('close', (code) => resolve({ code: code ?? 1, out }))
-  })
-}
-
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const s = net.createServer()
-    s.once('error', reject)
-    s.listen(0, HOST, () => {
-      const { port } = s.address()
-      s.close(() => resolve(port))
-    })
-  })
-}
-
-function probe(url) {
-  return new Promise((resolve) => {
-    const req = http.get(url, (res) => {
-      res.resume()
-      resolve(res.statusCode === 200)
-    })
-    req.on('error', () => resolve(false))
-    req.setTimeout(1000, () => req.destroy())
-  })
-}
-
-async function waitReady(url, child, timeoutMs = 30000) {
-  const end = Date.now() + timeoutMs
-  while (Date.now() < end) {
-    if (child.exitCode !== null) return false
-    if (await probe(url)) return true
-    await new Promise((r) => setTimeout(r, 150))
-  }
-  return false
-}
-
-function killTree(child) {
-  if (!child || child.exitCode !== null) return
-  try {
-    process.kill(-child.pid, 'SIGTERM')
-  } catch {
-    try {
-      child.kill('SIGTERM')
-    } catch {
-      /* already gone */
-    }
-  }
 }
 
 // ---------- main ----------

@@ -5,13 +5,11 @@
 // key of the root package.json; without it every registered presentation is rendered.
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
-import http from 'node:http'
-import net from 'node:net'
 import path from 'node:path'
 import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
+import { HOST, freePort, killTree, run, waitReady } from './preview-server.mjs'
 
-export const HOST = '127.0.0.1'
 const STEP_SETTLE_MS = 700
 const ADVANCE_TIMEOUT_MS = 4000
 
@@ -64,15 +62,17 @@ export function selectSlugs({ reference, registry, slugs }) {
   return [...new Set([...registry.map((e) => e.slug), ...slugs])]
 }
 
+function describeFailure(f) {
+  return [f?.slug ? `slug "${f.slug}"` : '', f?.step !== undefined ? `step index ${f.step}` : ''].filter(Boolean).join(', ')
+}
+
 /** Results: [{ phase, ok, detail?, failures?: [{ slug?, step?, message }] }] → printable report + exit code. */
 export function formatReport(results) {
   const lines = []
   for (const r of results) {
     lines.push(`${r.ok ? 'ok  ' : 'FAIL'} ${r.phase}${r.detail ? `: ${r.detail}` : ''}`)
     for (const f of r.failures ?? []) {
-      const where = [f.slug ? `slug "${f.slug}"` : '', f.step !== undefined ? `step index ${f.step}` : '']
-        .filter(Boolean)
-        .join(', ')
+      const where = describeFailure(f)
       lines.push(`       - ${where ? `[${where}] ` : ''}${f.message}`)
     }
   }
@@ -83,9 +83,7 @@ export function formatReport(results) {
   }
   const named = failed.map((r) => {
     const f = (r.failures ?? [])[0]
-    const where = [f?.slug ? `slug "${f.slug}"` : '', f?.step !== undefined ? `step index ${f.step}` : '']
-      .filter(Boolean)
-      .join(', ')
+    const where = describeFailure(f)
     return `${r.phase}${where ? ` (${where})` : ''}`
   })
   lines.push(`FAIL: ${named.join('; ')}`)
@@ -102,64 +100,6 @@ export function parseArgs(argv) {
     else if (a.startsWith('--root=')) out.root = a.slice(7)
   }
   return out
-}
-
-// ---------- process helpers ----------
-
-function run(cmd, args, cwd) {
-  return new Promise((resolve) => {
-    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
-    let out = ''
-    child.stdout.on('data', (d) => (out += d))
-    child.stderr.on('data', (d) => (out += d))
-    child.on('error', (e) => resolve({ code: 1, out: String(e) }))
-    child.on('close', (code) => resolve({ code: code ?? 1, out }))
-  })
-}
-
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const s = net.createServer()
-    s.once('error', reject)
-    s.listen(0, HOST, () => {
-      const { port } = s.address()
-      s.close(() => resolve(port))
-    })
-  })
-}
-
-function probe(url) {
-  return new Promise((resolve) => {
-    const req = http.get(url, (res) => {
-      res.resume()
-      resolve(res.statusCode === 200)
-    })
-    req.on('error', () => resolve(false))
-    req.setTimeout(1000, () => req.destroy())
-  })
-}
-
-async function waitReady(url, child, timeoutMs = 30000) {
-  const end = Date.now() + timeoutMs
-  while (Date.now() < end) {
-    if (child.exitCode !== null) return false
-    if (await probe(url)) return true
-    await new Promise((r) => setTimeout(r, 150))
-  }
-  return false
-}
-
-function killTree(child) {
-  if (!child || child.exitCode !== null) return
-  try {
-    process.kill(-child.pid, 'SIGTERM')
-  } catch {
-    try {
-      child.kill('SIGTERM')
-    } catch {
-      /* already gone */
-    }
-  }
 }
 
 // ---------- browser render ----------

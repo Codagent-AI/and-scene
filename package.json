@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:browser": "vitest run --config vitest.browser.config.ts --passWithNoTests",
-    "verify": "node scripts/verify.mjs"
+    "verify": "node scripts/verify.mjs",
+    "inspect": "node scripts/inspect-presentation.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

@@ -34,6 +34,27 @@ shadows, or CSS framework; presentations (or the host app) own all styling.
   `data-presentation-attribution`, `data-presentation-allow-overlap`.
 - Keys: Right/Space/PageDown next, Left/PageUp previous, `P` toggles present/browse; swipe left/right on touch.
 
+## Visual inspection
+
+```bash
+npm run inspect -- <slug> [--out <dir>] [--settle <ms>] [--viewport <WxH>] [--no-build]
+```
+
+Builds if `dist/` is missing, serves a production preview on `127.0.0.1`, steps through
+the presentation with `ArrowRight`, waits the settle interval (default 1200 ms) after each
+step change, and writes `.inspection/<slug>/step-01.png`, `step-02.png`, … (git-ignored).
+Default viewport is 1280x800; use `--viewport 390x844` for a narrow check.
+
+It also prints advisory warnings as `warn step NN [kind] ...`. They never change the exit
+code (non-zero only for operational failures such as an unknown slug):
+
+- `overlap`: visible text or chrome rects intersect without being nested. Mark intentional
+  overlap with `data-presentation-allow-overlap` on a subtree root.
+- `active-chrome`: the active progress item / TOC entry looks identical to its inactive
+  siblings. Style `[data-presentation-active="true"]` / `[aria-current="step"]`.
+- `attribution`: the attribution link is missing, too small, or browser-default. Style
+  `[data-presentation-attribution]`.
+
 ## Presentation registry
 
 `src/main.tsx` routes `/` to `Landing` and `/<slug>` to a lazily loaded

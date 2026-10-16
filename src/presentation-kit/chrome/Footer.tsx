@@ -34,7 +34,7 @@ export function Footer({ steps, index, mode, onGoTo, onPrev, onNext }: FooterPro
                 const active = i === index
                 return (
                   <button
-                    key={s.id}
+                    key={`${i}:${s.id}`}
                     type="button"
                     data-presentation-progress-item={i}
                     data-presentation-active={active ? 'true' : undefined}

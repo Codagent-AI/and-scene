@@ -1,19 +1,20 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { DESIGN_H, DESIGN_W, ENTER_T } from './constants'
 import { sceneKey } from './nav'
-import { stageInsets, useFitScale } from './useFitScale'
+import { stageInsets } from './useFitScale'
 import type { AnyStep, PresentationMode } from './types'
 
 export interface StageProps {
   step: AnyStep
   stepIndex: number
   mode: PresentationMode
+  scale: number
+  viewportW: number
   designW?: number
   designH?: number
 }
 
-export function Stage({ step, stepIndex, mode, designW = DESIGN_W, designH = DESIGN_H }: StageProps) {
-  const { scale, viewportW } = useFitScale(mode, designW, designH)
+export function Stage({ step, stepIndex, mode, scale, viewportW, designW = DESIGN_W, designH = DESIGN_H }: StageProps) {
   const g = stageInsets(mode, viewportW)
   const Scene = step.scene
   return (

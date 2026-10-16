@@ -35,7 +35,7 @@ export function Presentation({
   designHeight = DESIGN_H,
 }: PresentationProps) {
   const nav = usePresentationNav(steps.length, initialMode)
-  const { viewportW } = useFitScale(nav.mode)
+  const { scale, viewportW } = useFitScale(nav.mode, designWidth, designHeight)
   if (steps.length === 0) return null
   const step = steps[nav.index]
   const attr = attribution === false ? null : { ...DEFAULT_ATTRIBUTION, ...attribution }
@@ -53,6 +53,8 @@ export function Presentation({
         step={step}
         stepIndex={nav.index}
         mode={nav.mode}
+        scale={scale}
+        viewportW={viewportW}
         designW={designWidth}
         designH={designHeight}
       />

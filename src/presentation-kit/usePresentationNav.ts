@@ -57,5 +57,5 @@ export function usePresentationNav(
     }
   }, [next, prev, toggleMode])
 
-  return { index, mode, next, prev, goTo, toggleMode }
+  return { index: clampIndex(index, count), mode, next, prev, goTo, toggleMode }
 }

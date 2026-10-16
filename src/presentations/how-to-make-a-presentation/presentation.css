@@ -59,7 +59,7 @@
 .htmp [data-kind="chip"], .htmp [data-kind="pass"] { border-radius: 50%; border: 1px solid var(--gold); background: var(--panel); color: var(--gold); font-weight: 700; }
 .htmp [data-kind="pass"] { color: var(--ok); border-color: var(--ok); }
 .htmp [data-kind="tray"] { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
-.htmp [data-kind="tray-label"] { justify-content: flex-start; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.htmp [data-kind="tray-label"] { justify-content: flex-end; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
 .htmp [data-kind="card"], .htmp [data-kind="ghost"] {
   flex-direction: column; justify-content: flex-start; align-items: stretch;
   gap: 4px; padding: 8px; font-size: 11px; border-radius: 8px; background: var(--panel); border: 1px solid var(--gold);
@@ -75,11 +75,17 @@
 .htmp [data-kind="verify"] { flex-direction: column; border: 1px solid var(--ok); border-radius: 8px; background: var(--panel); color: var(--ok); }
 .htmp [data-kind="flag"] { border: 2px solid var(--gold); border-radius: 10px; }
 .htmp [data-kind="flag"] [data-part="flag"] {
-  position: absolute; top: -12px; right: 6px; font-size: 10px; padding: 1px 6px;
+  position: absolute; top: -12px; left: 8px; font-size: 10px; padding: 1px 6px;
   background: var(--gold); color: #1a1710; border-radius: 4px; font-weight: 700;
 }
 .htmp [data-kind="reveal"] { border: 2px solid var(--gold); border-radius: 18px; }
 .htmp [data-kind="reveal"] [data-presentation-frame-label] {
-  position: absolute; top: -12px; left: 24px; padding: 0 10px; font-size: 12px;
-  background: #121110; color: var(--gold); letter-spacing: 0.06em; text-transform: uppercase;
+  position: absolute; top: 8px; left: 24px; font-size: 12px;
+  color: var(--gold); letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+.htmp [data-presentation-marker] { white-space: nowrap; }
+@media (max-width: 600px) {
+  .htmp [data-presentation-title] { font-size: 0.8rem; }
+  .htmp [data-presentation-step-title] { font-size: 1.25rem; }
 }

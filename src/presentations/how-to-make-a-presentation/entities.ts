@@ -37,7 +37,7 @@ export const AT = {
   skill: { x: 670, y: 36, w: 150, h: 60 },
   question: { x: 410, y: 28, w: 60, h: 26 },
   tray: { x: 30, y: 150, w: 820, h: 180 },
-  trayLabel: { x: 46, y: 154, w: 300, h: 22 },
+  trayLabel: { x: 540, y: 154, w: 296, h: 22 },
   depth: { x: 222, y: 104, w: 120, h: 28 },
   kit: { x: 330, y: 322, w: 220, h: 48 },
   verify: { x: 700, y: CARD_Y, w: 110, h: CARD_H },
@@ -60,7 +60,7 @@ export const POINTS = {
   chainFrom: { x: GHOST_AT.x + CARD_W + 2, y: CARD_Y + CARD_H / 2 },
   chainTo: { x: AT.verify.x - 2, y: CARD_Y + CARD_H / 2 },
   modifyFrom: { x: 740, y: 100 },
-  modifyTo: { x: cardAt(1).x + CARD_W / 2 + 20, y: CARD_Y - 6 },
+  modifyTo: { x: cardAt(1).x + CARD_W - 4, y: CARD_Y - 10 },
 } satisfies Record<string, Point>
 
 export const linkPoints = (i: number): { from: Point; to: Point } => ({

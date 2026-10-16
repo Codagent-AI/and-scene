@@ -42,8 +42,10 @@ describe('scaffold detect', () => {
   it('skips scaffolding when all anchors are present, by contract rather than exact files', () => {
     const d = tmp()
     put(d, 'package.json', buildOnlyPackage)
-    put(d, 'src/presentation-kit/index.tsx', 'export const Presentation = 1\n')
-    put(d, 'src/presentations/index.tsx', "export const all = [{ slug: 'x' }]\n")
+    put(d, 'src/presentation-kit/index.tsx', 'export const Presentation = 1\nexport const usePresentationNav = 2\n')
+    put(d, 'src/presentations/index.tsx', "export const all = [{ slug: 'x', load: () => import('./x') }]\n")
+    put(d, 'src/Router.tsx', 'export default function R({ fallback }) { return window.location.pathname && all[0].load && fallback }\n')
+    put(d, 'src/main.tsx', "import R from './Router'\n")
     const r = detect(d)
     expect(r.anchors).toEqual({ build: true, kit: true, index: true })
     expect(r.needsScaffold).toBe(false)
@@ -113,11 +115,16 @@ describe('scaffold bootstrap', () => {
     const pkg = { name: 'mine', private: true, scripts: { build: 'tsc -b && vite build', custom: 'echo hi' }, dependencies: { react: '^19.0.0' }, devDependencies: { vite: '^8.0.0', typescript: '^6.0.0' } }
     put(d, 'package.json', JSON.stringify(pkg))
     put(d, 'vite.config.ts', '// mine\n')
-    put(d, 'src/main.tsx', '// my main\n')
+    put(d, 'src/main.tsx', "import { createRoot } from 'react-dom/client'\nimport App from './App.tsx'\n\ncreateRoot(document.getElementById('root')!).render(<App />)\n")
     const r = cli('bootstrap', d, '--confirmed', '--no-install')
     expect(r.status).toBe(0)
     expect(readFileSync(path.join(d, 'vite.config.ts'), 'utf8')).toBe('// mine\n')
-    expect(readFileSync(path.join(d, 'src/main.tsx'), 'utf8')).toBe('// my main\n')
+    const main = readFileSync(path.join(d, 'src/main.tsx'), 'utf8')
+    expect(main).toContain("import Router from './Router.tsx'")
+    expect(main).toContain('<Router fallback={<App />} />')
+    for (const f of ['verify.mjs', 'inspect-presentation.mjs', 'lib/preview.mjs', 'verify.config.json']) {
+      expect(existsSync(path.join(d, 'scripts', f)), f).toBe(true)
+    }
     expect(existsSync(path.join(d, 'src/presentation-kit/index.ts'))).toBe(true)
     expect(existsSync(path.join(d, 'src/presentations/index.ts'))).toBe(true)
     const merged = JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8'))
@@ -144,6 +151,61 @@ describe('scaffold bootstrap', () => {
     const d = tmp()
     expect(cli('bootstrap', d, '--no-install').status).toBe(0)
     expect(detect(d).needsScaffold).toBe(false)
+  })
+})
+
+describe('scaffold wiring and contract-level detection', () => {
+  it('stops with exit 3 when the existing entry cannot be wired automatically', () => {
+    const d = tmp()
+    put(d, 'package.json', buildOnlyPackage)
+    put(d, 'src/main.tsx', '// custom bootstrap\n')
+    const r = cli('bootstrap', d, '--confirmed', '--no-install')
+    expect(r.status).toBe(3)
+    expect(r.err).toMatch(/wire/)
+  })
+
+  it('treats a renamed kit and registry as present anchors and registers new presentations there', () => {
+    const d = tmp()
+    cpSync(bootstrapDir, d, { recursive: true })
+    cpSync(path.join(d, 'src/presentation-kit'), path.join(d, 'src/scene-kit'), { recursive: true })
+    rmSync(path.join(d, 'src/presentation-kit'), { recursive: true })
+    cpSync(path.join(d, 'src/presentations/index.ts'), path.join(d, 'src/registry.ts'))
+    rmSync(path.join(d, 'src/presentations/index.ts'))
+    const r = detect(d)
+    expect(r.anchors).toEqual({ build: true, kit: true, index: true })
+    expect(r.kitDir).toBe(path.join(d, 'src/scene-kit'))
+    expect(r.registry).toBe(path.join(d, 'src/registry.ts'))
+    expect(cli('new', d, 'renamed', 'Renamed').status).toBe(0)
+    expect(readFileSync(path.join(d, 'src/registry.ts'), 'utf8')).toContain("import('./renamed/Talk')")
+    expect(readFileSync(path.join(d, 'src/renamed/Talk.tsx'), 'utf8')).toContain("from '../scene-kit'")
+    expect(readFileSync(path.join(d, 'src/renamed/steps/Scene.tsx'), 'utf8')).toContain("from '../../scene-kit'")
+  })
+
+  it.each([
+    ['closing bracket on the same line', (r: string) => r.replace(/\n\]/, ' ]')],
+    ['no trailing comma', (r: string) => r.replace('  },\n]', '  }\n]')],
+    ['CRLF line endings', (r: string) => r.replace(/\n/g, '\r\n')],
+    ['an inline array', (r: string) => r.replace(/= \[[\s\S]*\n\]/, "= [{ slug: 'starter', title: 'Starter', load: () => import('./starter/Talk') }]")],
+  ])('registers a presentation when the registry has %s', (_name, mutate) => {
+    const d = tmp()
+    cpSync(bootstrapDir, d, { recursive: true })
+    const file = path.join(d, 'src/presentations/index.ts')
+    writeFileSync(file, mutate(readFileSync(file, 'utf8')))
+    const r = cli('new', d, 'second', 'Second')
+    expect(r.status, r.err).toBe(0)
+    const after = readFileSync(file, 'utf8')
+    expect(after).toContain("slug: 'second'")
+    expect(after).toContain("slug: 'starter'")
+    expect(existsSync(path.join(d, 'src/presentations/second/Talk.tsx'))).toBe(true)
+  })
+
+  it('writes nothing when the registry cannot be edited', () => {
+    const d = tmp()
+    cpSync(bootstrapDir, d, { recursive: true })
+    const file = path.join(d, 'src/presentations/index.ts')
+    writeFileSync(file, "export const x = 1\n// slug: 'a' import('x')\n")
+    expect(cli('new', d, 'second', 'Second').status).toBe(1)
+    expect(existsSync(path.join(d, 'src/presentations/second'))).toBe(false)
   })
 })
 

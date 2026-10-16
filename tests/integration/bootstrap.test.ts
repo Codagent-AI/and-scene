@@ -1,6 +1,8 @@
-import { cpSync, existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { rmSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { chromium } from 'playwright'
 import { afterAll, describe, expect, it } from 'vitest'
+import { startPreview } from '../../scripts/lib/preview.mjs'
 import { bootstrapTemplate, cleanupTemp, repoRoot, run, scaffoldScript, tempDir } from './helpers'
 
 afterAll(cleanupTemp)
@@ -78,5 +80,74 @@ describe('INT-001: materialized bootstrap is complete and style-neutral', () => 
     cpSync(scaffoldScript, path.join(copyOfSkillCaller, 'unrelated.mjs')) // a stray copy must not matter
     const out = run('node', [scaffoldScript, 'detect', other], { cwd: copyOfSkillCaller })
     expect(JSON.parse(out.output).target).toBe(other)
+  })
+})
+
+describe('INT-001: partial scaffolds produce a working, routed app', () => {
+  const hostApp = () => {
+    const d = tempDir('partial')
+    for (const f of ['index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json']) {
+      cpSync(path.join(bootstrapTemplate, f), path.join(d, f))
+    }
+    const pkg = JSON.parse(readFileSync(path.join(bootstrapTemplate, 'package.json'), 'utf8'))
+    pkg.scripts = { build: pkg.scripts.build }
+    delete pkg.devDependencies.playwright
+    writeFileSync(path.join(d, 'package.json'), JSON.stringify(pkg, null, 2))
+    mkdirSync(path.join(d, 'src'))
+    writeFileSync(path.join(d, 'src/App.tsx'), 'export default function App() { return <h1>Existing application</h1> }\n')
+    writeFileSync(path.join(d, 'src/main.tsx'), "import { StrictMode } from 'react'\nimport { createRoot } from 'react-dom/client'\nimport App from './App.tsx'\n\ncreateRoot(document.getElementById('root')!).render(\n  <StrictMode>\n    <App />\n  </StrictMode>,\n)\n")
+    symlinkSync(path.join(repoRoot, 'node_modules'), path.join(d, 'node_modules'), 'dir')
+    return d
+  }
+
+  it('wires the existing entry, ships the verification scripts, and routes the new presentation while keeping the host app', async () => {
+    const d = hostApp()
+    const cwd = tempDir('cwd')
+    expect(run('node', [scaffoldScript, 'bootstrap', d, '--confirmed', '--no-install'], { cwd }).status).toBe(0)
+    const created = run('node', [scaffoldScript, 'new', d, 'added', 'Added'], { cwd })
+    expect(created.status, created.output).toBe(0)
+    const build = run('npm', ['run', 'build'], { cwd: d })
+    expect(build.status, build.output).toBe(0)
+    const verify = run('npm', ['run', 'verify'], { cwd: d })
+    expect(verify.status, verify.output).toBe(0)
+    expect(verify.output).toMatch(/rendered added: 2 steps/)
+
+    const preview = await startPreview(d)
+    const browser = await chromium.launch({ args: ['--no-sandbox'] })
+    try {
+      const page = await browser.newPage()
+      await page.goto(`${preview.origin}/added`)
+      await page.waitForSelector('[data-presentation-root]')
+      await page.goto(`${preview.origin}/`)
+      expect(await page.textContent('h1')).toBe('Existing application')
+    } finally {
+      await browser.close()
+      preview.stop()
+    }
+  })
+
+  it('builds and verifies an app whose kit and registry were renamed', async () => {
+    const d = tempDir('renamed')
+    cpSync(bootstrapTemplate, d, { recursive: true, filter: (s) => path.basename(s) !== 'package-lock.json' })
+    symlinkSync(path.join(repoRoot, 'node_modules'), path.join(d, 'node_modules'), 'dir')
+    cpSync(path.join(d, 'src/presentation-kit'), path.join(d, 'src/scene-kit'), { recursive: true })
+    rmSync(path.join(d, 'src/presentation-kit'), { recursive: true })
+    for (const f of ['src/Router.tsx', 'src/Landing.tsx', 'src/presentations/starter/Talk.tsx']) {
+      writeFileSync(path.join(d, f), readFileSync(path.join(d, f), 'utf8').replace(/presentation-kit/g, 'scene-kit'))
+    }
+    cpSync(path.join(d, 'src/presentations/index.ts'), path.join(d, 'src/registry.ts'))
+    rmSync(path.join(d, 'src/presentations/index.ts'))
+    for (const f of ['src/Router.tsx', 'src/Landing.tsx']) {
+      writeFileSync(path.join(d, f), readFileSync(path.join(d, f), 'utf8').replace("'./presentations'", "'./registry'"))
+    }
+    writeFileSync(path.join(d, 'src/registry.ts'), readFileSync(path.join(d, 'src/registry.ts'), 'utf8').replace("'./starter/Talk'", "'./presentations/starter/Talk'"))
+    const cwd = tempDir('cwd')
+    const plan = JSON.parse(run('node', [scaffoldScript, 'detect', d], { cwd }).output)
+    expect(plan.needsScaffold).toBe(false)
+    expect(run('node', [scaffoldScript, 'new', d, 'second', 'Second'], { cwd }).status).toBe(0)
+    writeFileSync(path.join(d, 'scripts/verify.config.json'), JSON.stringify({ registry: 'src/registry.ts', required: [] }))
+    const verify = run('npm', ['run', 'verify'], { cwd: d })
+    expect(verify.status, verify.output).toBe(0)
+    expect(verify.output).toMatch(/rendered second: 2 steps/)
   })
 })

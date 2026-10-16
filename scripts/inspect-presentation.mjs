@@ -37,7 +37,7 @@ function parseArgs(argv) {
 }
 
 /** Runs in the page: returns advisory findings for the active step. */
-function diagnose() {
+export function diagnose() {
   const findings = []
   const describe = (el) => {
     const hook = [...el.attributes].find((a) => a.name === 'data-presentation-id') ??
@@ -69,7 +69,7 @@ function diagnose() {
   for (const el of chrome) {
     if (!visible(el)) continue
     const r = el.getBoundingClientRect()
-    if (r.width >= 1 && r.height >= 1) items.push({ el, text: el.textContent.trim() || el.getAttribute('aria-label') || '', r, allowed: false, chrome: true })
+    if (r.width >= 1 && r.height >= 1) items.push({ el, text: el.textContent.trim() || el.getAttribute('aria-label') || '', r, allowed: el.closest('[data-presentation-allow-overlap]') !== null, chrome: true })
   }
   const seen = new Set()
   for (let i = 0; i < items.length; i++) {
@@ -102,7 +102,7 @@ function diagnose() {
     const all = [...document.querySelectorAll(selector)]
     const active = all.find((e) => e.getAttribute('data-presentation-active') === 'true')
     const inactive = all.filter((e) => e !== active)
-    if (active && inactive.length && inactive.every((e) => styleKey(e) === styleKey(active))) {
+    if (active && inactive.length && inactive.some((e) => styleKey(e) === styleKey(active))) {
       findings.push({ kind: 'active-chrome', message: `active ${label} is visually indistinct from inactive ones; style [data-presentation-active="true"]` })
     }
   }
@@ -163,7 +163,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(`[inspect] ${err.message}`)
-  process.exitCode = 1
-})
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((err) => {
+    console.error(`[inspect] ${err.message}`)
+    process.exitCode = 1
+  })
+}

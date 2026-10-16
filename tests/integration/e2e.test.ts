@@ -47,6 +47,16 @@ describe('E2E-002: verification failures are actionable', () => {
       expectText: /does not match/,
     },
     {
+      name: 'a wrong caption when the sample opens in present mode',
+      phase: 'render',
+      step: 0,
+      mutate: (d) => {
+        edit(d, 'src/presentations/how-to-make-a-presentation/Talk.tsx', (s) => s.replace('initialMode="browse"', 'initialMode="present"'))
+        edit(d, 'src/presentations/how-to-make-a-presentation/steps/01-topic.ts', (s) => s.replace('mild overconfidence.', 'WRONG CAPTION'))
+      },
+      expectText: /caption .*WRONG CAPTION.* does not match/,
+    },
+    {
       name: 'a step that emits a browser error',
       phase: 'render',
       step: 2,

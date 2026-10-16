@@ -1,6 +1,8 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { chromium } from 'playwright'
+import { diagnose } from '../../scripts/inspect-presentation.mjs'
 import { bootstrapTemplate, cleanupTemp, repoRoot, run, tempDir } from './helpers'
 
 afterAll(cleanupTemp)
@@ -104,5 +106,44 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
   it('stays quiet for a polished presentation and never fails the command on warnings', () => {
     const { warnings } = inspect('polished')
     expect(warnings).toEqual([])
+  })
+})
+
+describe('INT-002: diagnostics edge cases', () => {
+  const html = (body: string, css = '') => `<style>${css}</style><body>${body}</body>`
+  const findings = async (content: string) => {
+    const browser = await chromium.launch({ args: ['--no-sandbox'] })
+    try {
+      const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+      await page.setContent(content)
+      return (await page.evaluate(diagnose)) as { kind: string; message: string }[]
+    } finally {
+      await browser.close()
+    }
+  }
+  const dots = (activeIndex: number, n = 5) =>
+    `<footer data-presentation-footer><nav>${Array.from({ length: n }, (_, i) => `<button data-presentation-dot data-presentation-active="${i === activeIndex}"></button>`).join('')}</nav></footer>
+     <a data-presentation-attribution style="font-size:14px;color:#222">made</a>`
+
+  it('warns when the active indicator matches any inactive one, even if another inactive differs', async () => {
+    const css = '[data-presentation-dot]:nth-child(4){background:red;width:30px}'
+    const f = await findings(html(dots(0), css))
+    expect(f.some((x) => x.kind === 'active-chrome')).toBe(true)
+  })
+
+  it('does not warn when the active indicator is distinct from all inactive ones', async () => {
+    const css = '[data-presentation-dot][data-presentation-active="true"]{background:gold;width:30px}'
+    const f = await findings(html(dots(0), css))
+    expect(f.filter((x) => x.kind === 'active-chrome')).toEqual([])
+  })
+
+  it('exempts overlapping chrome inside an allow-overlap subtree but not outside it', async () => {
+    const overlap = (marked: boolean) =>
+      `<header data-presentation-header ${marked ? 'data-presentation-allow-overlap' : ''}>
+         <button style="position:absolute;left:10px;top:10px;width:100px;height:30px">one</button>
+         <button style="position:absolute;left:20px;top:15px;width:100px;height:30px">two</button>
+       </header>`
+    expect((await findings(html(overlap(false)))).some((x) => x.kind === 'overlap')).toBe(true)
+    expect((await findings(html(overlap(true)))).filter((x) => x.kind === 'overlap')).toEqual([])
   })
 })

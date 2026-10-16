@@ -6,10 +6,21 @@ const NEXT_KEYS = ['ArrowRight', ' ', 'PageDown']
 const PREV_KEYS = ['ArrowLeft', 'PageUp']
 const SWIPE_MIN = 40
 
-const INTERACTIVE = 'button, a, input, select, textarea, summary, [role="button"], [contenteditable="true"]'
+const INTERACTIVE = [
+  'button',
+  'a[href]',
+  'input',
+  'select',
+  'textarea',
+  'summary',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[role="button"],[role="slider"],[role="textbox"],[role="searchbox"],[role="spinbutton"],[role="combobox"],[role="listbox"],[role="option"],[role="checkbox"],[role="radio"],[role="switch"],[role="tab"],[role="menuitem"],[role="scrollbar"]',
+].join(',')
 
+/** True when the key event target is a control that owns its own keyboard behavior. */
 export function isInteractiveTarget(target: EventTarget | null) {
-  return target instanceof Element && target.closest(INTERACTIVE) !== null
+  if (!(target instanceof Element)) return false
+  return (target instanceof HTMLElement && target.isContentEditable) || target.closest(INTERACTIVE) !== null
 }
 
 export interface Nav {

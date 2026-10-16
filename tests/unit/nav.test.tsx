@@ -53,6 +53,36 @@ describe('usePresentationNav', () => {
     expect(result.current.index).toBe(0)
   })
 
+  it.each([
+    ['contenteditable', '<div contenteditable="" tabindex="0">edit</div>'],
+    ['contenteditable=true', '<div contenteditable="true">edit</div>'],
+    ['role=slider', '<div role="slider" tabindex="0" aria-valuenow="1"></div>'],
+    ['input', '<input type="range" />'],
+    ['textarea', '<textarea></textarea>'],
+    ['select', '<select><option>a</option></select>'],
+  ])('leaves keys to a focused %s control', (_name, html) => {
+    const { result } = renderHook(() => usePresentationNav(4))
+    const host = document.createElement('div')
+    host.innerHTML = html
+    document.body.appendChild(host)
+    const control = host.firstElementChild as HTMLElement
+    key('ArrowRight', control)
+    key(' ', control)
+    key('PageDown', control)
+    expect(result.current.index).toBe(0)
+    host.remove()
+  })
+
+  it('still navigates from a non-editable contenteditable=false element', () => {
+    const { result } = renderHook(() => usePresentationNav(4))
+    const host = document.createElement('div')
+    host.innerHTML = '<div contenteditable="false">x</div>'
+    document.body.appendChild(host)
+    key('ArrowRight', host.firstElementChild as HTMLElement)
+    expect(result.current.index).toBe(1)
+    host.remove()
+  })
+
   it('ignores modified key chords', () => {
     const { result } = renderHook(() => usePresentationNav(4))
     act(() => void fireEvent.keyDown(window, { key: 'ArrowRight', metaKey: true }))

@@ -8,6 +8,8 @@ import { buildApp, loadChromium, startPreview } from './lib/preview.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const config = JSON.parse(readFileSync(path.join(root, 'scripts', 'verify.config.json'), 'utf8'))
+// A host with a renamed registry records its path in verify.config.json.
+const registryFile = config.registry ?? 'src/presentations/index.ts'
 const STEP_TIMEOUT = 5_000
 
 class VerifyError extends Error {
@@ -25,9 +27,9 @@ function build() {
 function registeredSlugs() {
   let text
   try {
-    text = readFileSync(path.join(root, 'src', 'presentations', 'index.ts'), 'utf8')
+    text = readFileSync(path.join(root, registryFile), 'utf8')
   } catch {
-    throw new VerifyError('registry', 'src/presentations/index.ts is missing')
+    throw new VerifyError('registry', `${registryFile} is missing`)
   }
   return [...text.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
 }
@@ -74,11 +76,12 @@ async function renderPresentation(browser, origin, slug, outline) {
       if (outline) {
         const title = await textOf(page, '[data-presentation-step-title]')
         if (title !== outline[step].title) fail(`title "${title}" does not match "${outline[step].title}"`)
+        // Captions are only rendered in browse mode; toggle there for the check, then restore.
         const mode = await page.getAttribute('[data-presentation-root]', 'data-presentation-mode')
-        if (mode === 'browse') {
-          const caption = await textOf(page, '[data-presentation-caption]')
-          if (caption !== outline[step].caption) fail(`caption "${caption}" does not match "${outline[step].caption}"`)
-        }
+        if (mode === 'present') await page.keyboard.press('p')
+        const caption = await textOf(page, '[data-presentation-caption]')
+        if (mode === 'present') await page.keyboard.press('p')
+        if (caption !== outline[step].caption) fail(`caption "${caption}" does not match "${outline[step].caption}"`)
       }
       await page.waitForTimeout(250)
       flush()

@@ -40,15 +40,17 @@ export function Stage<TPayload>({ step, index, mode, canvas }: StageProps<TPaylo
         data-presentation-scale={scale.toFixed(3)}
         style={{ position: 'relative', width: canvas.width * scale, height: canvas.height * scale }}
       >
-        <div
+        <motion.div
+          layoutRoot
           style={{
             position: 'absolute',
             left: 0,
             top: 0,
             width: canvas.width,
             height: canvas.height,
-            transform: `scale(${scale})`,
-            transformOrigin: '0 0',
+            scale,
+            originX: 0,
+            originY: 0,
           }}
         >
           <LayoutGroup>
@@ -66,7 +68,7 @@ export function Stage<TPayload>({ step, index, mode, canvas }: StageProps<TPaylo
               </motion.div>
             </AnimatePresence>
           </LayoutGroup>
-        </div>
+        </motion.div>
       </div>
     </div>
   )

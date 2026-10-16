@@ -12,8 +12,8 @@ export const ATTRIBUTION_HREF = 'https://github.com/Codagent-AI/and-scene'
 
 /** Per-mode fit geometry: free space kept around the canvas and the largest scale allowed. */
 export const STAGE_LAYOUT = {
-  browse: { inset: 24, maxScale: 2.2 },
-  present: { inset: 12, maxScale: 3 },
+  browse: { inset: 8, maxScale: 2.2 },
+  present: { inset: 4, maxScale: 3 },
 } as const
 
 /** Viewport width (px) from which browse mode shows the table of contents. */

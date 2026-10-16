@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import type { HTMLMotionProps } from 'motion/react'
-import { EASE, LAYOUT_T } from '../constants'
+import { entityProps } from './entity'
 
 export interface ArrowProps extends HTMLMotionProps<'div'> {
   id: string
@@ -17,13 +17,9 @@ export interface ArrowProps extends HTMLMotionProps<'div'> {
 export function Arrow({ id, bidirectional, variant, transition, ...rest }: ArrowProps) {
   return (
     <motion.div
-      layout
-      layoutId={id}
-      data-presentation-node="arrow"
-      data-presentation-entity={id}
+      {...entityProps(id, 'arrow', undefined, transition)}
       data-presentation-bidirectional={bidirectional ? 'true' : undefined}
       data-presentation-variant={variant}
-      transition={transition ?? { duration: LAYOUT_T, ease: EASE }}
       {...rest}
     />
   )

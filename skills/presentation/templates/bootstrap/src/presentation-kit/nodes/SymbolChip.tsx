@@ -2,7 +2,7 @@ import { motion } from 'motion/react'
 import type { HTMLMotionProps } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
+import { entityProps } from './entity'
 
 export interface SymbolChipProps extends Omit<HTMLMotionProps<'div'>, 'children'> {
   children?: ReactNode
@@ -14,15 +14,7 @@ export interface SymbolChipProps extends Omit<HTMLMotionProps<'div'>, 'children'
 
 export function SymbolChip({ id, Icon, kind, children, transition, ...rest }: SymbolChipProps) {
   return (
-    <motion.div
-      layout
-      layoutId={id}
-      data-presentation-node="chip"
-      data-presentation-entity={id}
-      data-presentation-kind={kind}
-      transition={transition ?? { duration: LAYOUT_T, ease: EASE }}
-      {...rest}
-    >
+    <motion.div {...entityProps(id, 'chip', kind, transition)} {...rest}>
       {Icon && <Icon aria-hidden="true" data-presentation-icon="" />}
       {children}
     </motion.div>

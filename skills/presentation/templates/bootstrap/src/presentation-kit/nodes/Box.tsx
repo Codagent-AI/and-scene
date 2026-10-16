@@ -2,7 +2,7 @@ import { motion } from 'motion/react'
 import type { HTMLMotionProps } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
+import { entityProps } from './entity'
 
 export interface BoxProps extends Omit<HTMLMotionProps<'div'>, 'children'> {
   children?: ReactNode
@@ -17,15 +17,7 @@ export interface BoxProps extends Omit<HTMLMotionProps<'div'>, 'children'> {
 /** Generic box primitive: identity and style hooks only, no visual defaults. */
 export function Box({ id, Icon, kind, children, transition, ...rest }: BoxProps) {
   return (
-    <motion.div
-      layout
-      layoutId={id}
-      data-presentation-node="box"
-      data-presentation-entity={id}
-      data-presentation-kind={kind}
-      transition={transition ?? { duration: LAYOUT_T, ease: EASE }}
-      {...rest}
-    >
+    <motion.div {...entityProps(id, 'box', kind, transition)} {...rest}>
       {Icon && <Icon aria-hidden="true" data-presentation-icon="" />}
       {children}
     </motion.div>

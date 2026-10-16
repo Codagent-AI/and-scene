@@ -6,13 +6,11 @@ export interface PresentationEntry {
   load: () => Promise<{ default: ComponentType }>
 }
 
-/** Explicit registry — add a folder + one line here for each presentation. */
-export const presentations: PresentationEntry[] = [
+/** Explicit registry: adding a presentation is a new folder plus one line here. */
+export const PRESENTATIONS: PresentationEntry[] = [
   {
     slug: 'how-to-make-a-presentation',
     title: 'How to Use This Skill to Make a Presentation',
-    load: () => import('./how-to-make-a-presentation/Talk'),
+    load: () => import('./how-to-make-a-presentation/Talk.tsx'),
   },
 ]
-
-export const presentationSlugs = new Set(presentations.map((p) => p.slug))

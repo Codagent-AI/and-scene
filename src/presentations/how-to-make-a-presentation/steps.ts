@@ -1,37 +1,87 @@
-import type { Step } from '../../presentation-kit'
-import { ReferenceScene, type RefPayload } from './ReferenceScene'
-import { REFERENCE_STEP_OUTLINE } from './outline'
+import { defineStep } from '../../presentation-kit/index.ts'
+import { Scene } from './Scene.tsx'
 
-const GROUP = 'reference-demo'
-
-/**
- * What each beat adds to the one evolving scene. Payloads are cumulative on
- * purpose: a step is "the previous picture, plus one thing" — that continuity
- * is the whole trick this demo is teaching.
- */
-const PAYLOADS: Record<(typeof REFERENCE_STEP_OUTLINE)[number]['id'], RefPayload> = {
-  'you-have-a-topic': { bubble: true },
-  'skill-interviews-you': { skill: true, question: 'what’s it about?' },
-  'answers-become-steps': { skill: true, question: 'and step 1?', cards: 1 },
-  'the-deck-grows': { skill: true, question: 'step 2… step 3?', cards: 3 },
-  'you-set-the-depth': { skill: true, question: 'how deep?', cards: 3, ghost: true, depth: true },
-  'assembles-the-scene': { skill: true, cards: 3, depth: true, route: true },
-  'checks-its-work': { skill: true, cards: 3, depth: true, route: true, verify: true },
-  'loop-it': {
-    skill: true,
-    question: 'change step 2?',
-    cards: 3,
-    depth: true,
-    route: true,
-    verify: true,
-    loop: true,
-  },
-  reveal: { skill: true, cards: 3, depth: true, route: true, verify: true, reveal: true },
-}
-
-export const STEPS: Step<RefPayload>[] = REFERENCE_STEP_OUTLINE.map((step) => ({
-  ...step,
-  groupKey: GROUP,
-  payload: PAYLOADS[step.id],
-  Scene: ReferenceScene,
-}))
+/** Ordered steps; all nine share one scene group so a single scene instance persists. */
+export const STEPS = [
+  defineStep({
+    id: 'step-1',
+    era: 'the ask',
+    title: 'You have a topic',
+    caption: 'It starts with you, a topic, and mild overconfidence.',
+    Scene,
+    groupKey: 'scene',
+    payload: { beat: 1 },
+  }),
+  defineStep({
+    id: 'step-2',
+    era: 'the ask',
+    title: 'The skill interviews you',
+    caption: 'One question at a time: the topic, the look, then each beat of the story.',
+    Scene,
+    groupKey: 'scene',
+    payload: { beat: 2 },
+  }),
+  defineStep({
+    id: 'step-3',
+    era: 'the gathering',
+    title: 'Answers become steps',
+    caption: 'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.',
+    Scene,
+    groupKey: 'scene',
+    payload: { beat: 3 },
+  }),
+  defineStep({
+    id: 'step-4',
+    era: 'the gathering',
+    title: 'The deck grows',
+    caption: 'Same shapes, new beats. Every answer extends the story without redrawing it.',
+    Scene,
+    groupKey: 'scene',
+    payload: { beat: 4 },
+  }),
+  defineStep({
+    id: 'step-5',
+    era: 'the gathering',
+    title: 'You set the depth',
+    caption: 'Spell out every step, or sketch a few and see how it looks. You hold the gate.',
+    Scene,
+    groupKey: 'scene',
+    payload: { beat: 5 },
+  }),
+  defineStep({
+    id: 'step-6',
+    era: 'the build',
+    title: 'It assembles the scene',
+    caption: 'Your steps are wired into one evolving scene, drawn with a shared scene kit — ready-made boxes, arrows, and motion that make entities morph.',
+    Scene,
+    groupKey: 'scene',
+    payload: { beat: 6 },
+  }),
+  defineStep({
+    id: 'step-7',
+    era: 'the build',
+    title: 'It checks its own work',
+    caption: 'Before saying done, it builds and renders every step — and fixes what breaks.',
+    Scene,
+    groupKey: 'scene',
+    payload: { beat: 7 },
+  }),
+  defineStep({
+    id: 'step-8',
+    era: 'the loop',
+    title: 'Changed your mind? Loop it.',
+    caption: 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.',
+    Scene,
+    groupKey: 'scene',
+    payload: { beat: 8 },
+  }),
+  defineStep({
+    id: 'step-9',
+    era: 'the reveal',
+    title: "You're looking at one",
+    caption: 'This presentation was built exactly this way. Thanks for watching.',
+    Scene,
+    groupKey: 'scene',
+    payload: { beat: 9 },
+  }),
+]

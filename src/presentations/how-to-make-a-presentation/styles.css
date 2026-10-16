@@ -1,0 +1,259 @@
+/* Visual design for "How to Use This Skill to Make a Presentation". Owned by this presentation, not the kit: restyle freely. */
+.p-how-to-make-a-presentation {
+  height: 100%;
+  padding: 0.75rem 1.25rem;
+  box-sizing: border-box;
+  color: #f1e7d0;
+  background: #14110f;
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+}
+.p-how-to-make-a-presentation *,
+.p-how-to-make-a-presentation *::before,
+.p-how-to-make-a-presentation *::after {
+  box-sizing: border-box;
+}
+.p-how-to-make-a-presentation button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* chrome */
+.p-how-to-make-a-presentation [data-presentation-marker] {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color: #e0a63a;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+.p-how-to-make-a-presentation [data-presentation-title] {
+  margin: 0;
+  font-size: clamp(1.1rem, 2.2vw, 1.7rem);
+}
+.p-how-to-make-a-presentation [data-presentation-footer] [data-presentation-title] {
+  font-size: clamp(1.4rem, 3.2vw, 2.4rem);
+}
+.p-how-to-make-a-presentation [data-presentation-caption] {
+  margin: 0;
+  max-width: 60rem;
+  color: #cfc3a8;
+  line-height: 1.5;
+}
+.p-how-to-make-a-presentation [data-presentation-footer] {
+  padding-top: 0.5rem;
+  gap: 0.35rem;
+}
+.p-how-to-make-a-presentation [data-presentation-controls] {
+  padding: 0.25rem 0;
+}
+.p-how-to-make-a-presentation [data-presentation-prev],
+.p-how-to-make-a-presentation [data-presentation-next] {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid #8a7a5a;
+  border-radius: 50%;
+  background: transparent;
+}
+.p-how-to-make-a-presentation [data-presentation-progress] {
+  gap: 0.5rem;
+}
+.p-how-to-make-a-presentation [data-presentation-dot] {
+  width: 0.7rem;
+  height: 0.7rem;
+  padding: 0;
+  border: 1px solid #9c8e72;
+  border-radius: 50%;
+  background: transparent;
+}
+.p-how-to-make-a-presentation [data-presentation-dot][data-active='true'] {
+  border-color: #e0a63a;
+  background: #e0a63a;
+  box-shadow: 0 0 0 3px rgba(224, 166, 58, 0.3);
+  transform: scale(1.5);
+}
+.p-how-to-make-a-presentation [data-presentation-toc] {
+  width: 11rem;
+  flex: none;
+  align-self: center;
+}
+.p-how-to-make-a-presentation [data-presentation-toc-entry] {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: #9c8e72;
+  text-align: left;
+}
+.p-how-to-make-a-presentation [data-presentation-toc-entry][data-active='true'] {
+  border-left-color: #e0a63a;
+  background: #2a2118;
+  color: #f1e7d0;
+  font-weight: 700;
+  border-left-width: 4px;
+}
+.p-how-to-make-a-presentation [data-presentation-attribution] {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color: #e0a63a;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  border-bottom: 1px dotted #e0a63a;
+}
+
+/* diagram */
+.p-how-to-make-a-presentation [data-presentation-node='arrow'] {
+  color: #b9a97f;
+}
+.p-how-to-make-a-presentation [data-presentation-node='arrow'] path[stroke] {
+  stroke-width: 1.6;
+}
+.p-how-to-make-a-presentation [data-presentation-node='arrow'][data-dashed='true'] path[stroke] {
+  stroke-dasharray: 5 4;
+}
+.p-how-to-make-a-presentation [data-presentation-node='box'],
+.p-how-to-make-a-presentation [data-presentation-node='chip'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  border: 1.5px solid #8a7a5a;
+  border-radius: 8px;
+  background: #1d1814;
+  color: #f1e7d0;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10px;
+  text-align: center;
+}
+.p-how-to-make-a-presentation [data-presentation-node='chip'] {
+  border-radius: 999px;
+  gap: 4px;
+  white-space: nowrap;
+}
+.p-how-to-make-a-presentation [data-presentation-icon] {
+  width: 11px;
+  height: 11px;
+  flex: none;
+}
+.p-how-to-make-a-presentation [data-presentation-node='box'] strong {
+  font-family: Georgia, 'Iowan Old Style', serif;
+  font-size: 17px;
+  font-weight: 700;
+}
+.p-how-to-make-a-presentation [data-presentation-node='box'] small {
+  display: block;
+  font-size: 9px;
+  color: #b9a97f;
+}
+.p-how-to-make-a-presentation [data-role='you'],
+.p-how-to-make-a-presentation [data-role='skill'],
+.p-how-to-make-a-presentation [data-role='socket'],
+.p-how-to-make-a-presentation [data-role='verify'],
+.p-how-to-make-a-presentation [data-role='ghost'] {
+  flex-direction: column;
+  gap: 2px;
+}
+.p-how-to-make-a-presentation [data-role='you'],
+.p-how-to-make-a-presentation [data-role='skill'] {
+  border-color: #e0a63a;
+}
+.p-how-to-make-a-presentation [data-role='bubble'] {
+  border-style: dashed;
+  color: #cfc3a8;
+}
+.p-how-to-make-a-presentation [data-role='control'] {
+  border-color: #e0a63a;
+  color: #e0a63a;
+}
+.p-how-to-make-a-presentation [data-role='socket'] {
+  border-color: #e0a63a;
+  border-radius: 8px 8px 22px 22px;
+}
+.p-how-to-make-a-presentation [data-role='verify'] {
+  border-color: #b9a97f;
+}
+.p-how-to-make-a-presentation [data-role='ghost'] {
+  border-style: dashed;
+  background: transparent;
+  color: #b9a97f;
+}
+.p-how-to-make-a-presentation [data-role='ghost'] strong {
+  font-size: 13px;
+  font-weight: 400;
+  font-style: italic;
+}
+.p-how-to-make-a-presentation [data-role='card'] {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  text-align: left;
+}
+.p-how-to-make-a-presentation [data-role='card'][data-edited='true'] {
+  border-color: #e0a63a;
+  background: #2a2118;
+  box-shadow: 0 0 0 2px rgba(224, 166, 58, 0.35);
+}
+.p-how-to-make-a-presentation [data-part='head'] {
+  font-family: Georgia, 'Iowan Old Style', serif;
+  font-size: 13px;
+}
+.p-how-to-make-a-presentation [data-part='row'] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.p-how-to-make-a-presentation [data-part='row'] i {
+  width: 38px;
+  font-style: normal;
+  font-size: 9px;
+  color: #b9a97f;
+}
+.p-how-to-make-a-presentation [data-bar] {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: #e0a63a;
+  opacity: 0.8;
+}
+.p-how-to-make-a-presentation [data-bar='short'] { width: 28px; }
+.p-how-to-make-a-presentation [data-bar='long'] { width: 52px; background: #cfc3a8; opacity: 0.6; }
+.p-how-to-make-a-presentation [data-bar='block'] { width: 22px; height: 12px; border-radius: 2px; background: #8a7a5a; }
+.p-how-to-make-a-presentation [data-role='flag'] {
+  border-color: #e0a63a;
+  background: #e0a63a;
+  color: #14110f;
+  font-weight: 700;
+}
+.p-how-to-make-a-presentation [data-state='pass'] {
+  border-color: #6fbf73;
+  color: #8fd694;
+}
+.p-how-to-make-a-presentation [data-presentation-node='label'] {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  color: #b9a97f;
+  text-align: center;
+  text-transform: lowercase;
+}
+.p-how-to-make-a-presentation [data-role='tray-label'] {
+  text-align: left;
+  text-transform: uppercase;
+}
+.p-how-to-make-a-presentation [data-presentation-node='frame'] {
+  border: 1.5px solid #e0a63a;
+  border-radius: 18px;
+}
+.p-how-to-make-a-presentation [data-role='frame-label'] {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: #e0a63a;
+}

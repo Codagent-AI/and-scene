@@ -1,0 +1,122 @@
+/* Visual design for "Getting Started". Owned by this presentation, not the kit: restyle freely. */
+.p-getting-started {
+  height: 100%;
+  padding: 0.75rem 1.25rem;
+  box-sizing: border-box;
+  color: #1d2733;
+  background: #f6f4ef;
+  font-family: system-ui, sans-serif;
+}
+.p-getting-started *,
+.p-getting-started *::before,
+.p-getting-started *::after {
+  box-sizing: border-box;
+}
+.p-getting-started button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* chrome */
+.p-getting-started [data-presentation-marker] {
+  color: #2b6cb0;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+.p-getting-started [data-presentation-title] {
+  margin: 0;
+  font-size: clamp(1.1rem, 2.2vw, 1.7rem);
+}
+.p-getting-started [data-presentation-footer] [data-presentation-title] {
+  font-size: clamp(1.4rem, 3.2vw, 2.4rem);
+}
+.p-getting-started [data-presentation-caption] {
+  margin: 0;
+  max-width: 60rem;
+  color: #46515e;
+  line-height: 1.5;
+}
+.p-getting-started [data-presentation-footer] {
+  padding-top: 0.5rem;
+  gap: 0.35rem;
+}
+.p-getting-started [data-presentation-controls] {
+  padding: 0.25rem 0;
+}
+.p-getting-started [data-presentation-prev],
+.p-getting-started [data-presentation-next] {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid #9aa5b1;
+  border-radius: 50%;
+  background: transparent;
+}
+.p-getting-started [data-presentation-progress] {
+  gap: 0.5rem;
+}
+.p-getting-started [data-presentation-dot] {
+  width: 0.7rem;
+  height: 0.7rem;
+  padding: 0;
+  border: 1px solid #5b6672;
+  border-radius: 50%;
+  background: transparent;
+}
+.p-getting-started [data-presentation-dot][data-active='true'] {
+  border-color: #2b6cb0;
+  background: #2b6cb0;
+  transform: scale(1.5);
+}
+.p-getting-started [data-presentation-toc] {
+  width: 11rem;
+  flex: none;
+  align-self: center;
+}
+.p-getting-started [data-presentation-toc-entry] {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: #5b6672;
+  text-align: left;
+}
+.p-getting-started [data-presentation-toc-entry][data-active='true'] {
+  border-left-color: #2b6cb0;
+  background: #e3ecf6;
+  color: #1d2733;
+  font-weight: 700;
+}
+.p-getting-started [data-presentation-attribution] {
+  color: #2b6cb0;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  border-bottom: 1px dotted #2b6cb0;
+}
+
+/* diagram */
+.p-getting-started [data-presentation-node='arrow'] {
+  color: #5b6672;
+}
+.p-getting-started [data-presentation-node='arrow'] path[stroke] {
+  stroke-width: 2;
+}
+.p-getting-started [data-presentation-node='box'],
+.p-getting-started [data-presentation-node='chip'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  border: 1.5px solid #5b6672;
+  border-radius: 10px;
+  background: #ffffff;
+  font-size: 18px;
+  text-align: center;
+}
+.p-getting-started [data-presentation-node='chip'] {
+  border-radius: 999px;
+  font-size: 14px;
+}

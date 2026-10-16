@@ -5,7 +5,7 @@
 // prints advisory warnings (overlap, active-chrome, attribution). Warnings never change the
 // exit code; only operational failures (unknown slug, preview/browser failure) do.
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import http from 'node:http'
 import net from 'node:net'
 import path from 'node:path'
@@ -399,8 +399,9 @@ export async function inspect({ root, slug, outDir, settle = DEFAULT_SETTLE_MS, 
     if (!Number.isInteger(count) || count < 1) throw new OperationalError('invalid data-step-count')
 
     const dir = path.resolve(outDir ?? path.join(root, '.inspection', slug))
-    rmSync(dir, { recursive: true, force: true })
     mkdirSync(dir, { recursive: true })
+    // Only clear screenshots this helper owns; --out may point at a directory holding other files.
+    for (const f of readdirSync(dir)) if (/^step-\d+\.png$/.test(f)) rmSync(path.join(dir, f))
     const readIndex = () =>
       page.locator('[data-step-index]').first().getAttribute('data-step-index', { timeout: 1000 }).then(Number, () => NaN)
 

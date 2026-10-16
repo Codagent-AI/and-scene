@@ -1,0 +1,85 @@
+/* Presentation-owned look. The scene kit itself ships no visual styles. */
+.htmp {
+  --ink: #f8f3e6;
+  --muted: #b9b09a;
+  --gold: #e6c76a;
+  --panel: rgba(255, 248, 230, 0.06);
+  --line: rgba(248, 243, 230, 0.35);
+  --ok: #6fcf8f;
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.htmp button {
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.htmp button:disabled { opacity: 0.35; cursor: default; }
+.htmp button:focus-visible, .htmp a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.htmp [data-presentation-title] { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); }
+.htmp [data-presentation-marker] { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.htmp [data-presentation-step-title] { font-size: 1.5rem; font-weight: 700; color: var(--gold); }
+.htmp [data-presentation-caption] { max-width: 60rem; font-size: 1rem; line-height: 1.5; color: var(--ink); }
+.htmp [data-presentation-mode="present"] [data-presentation-step-title] { font-size: 2rem; }
+
+.htmp [data-presentation-dot] {
+  width: 12px; height: 12px; padding: 0; border-radius: 50%;
+  background: transparent; border: 1px solid var(--line);
+}
+.htmp [data-presentation-dot][data-presentation-active="true"] {
+  width: 28px; border-radius: 6px; background: var(--gold); border-color: var(--gold);
+}
+.htmp [data-presentation-toc-entry] { font-size: 0.8rem; color: var(--muted); }
+.htmp [data-presentation-toc-entry][data-presentation-active="true"] {
+  color: #1a1710; background: var(--gold); border-color: var(--gold); font-weight: 700;
+}
+
+.htmp [data-presentation-attribution] {
+  font-size: 0.8rem; color: var(--muted); text-decoration: underline;
+  text-underline-offset: 3px; padding: 2px 6px;
+}
+.htmp [data-presentation-attribution]:hover { color: var(--gold); }
+
+/* Scene entities */
+.htmp [data-presentation-node="box"],
+.htmp [data-presentation-node="label"],
+.htmp [data-presentation-node="symbol-chip"] {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 15px; box-sizing: border-box;
+}
+.htmp [data-presentation-glyph] { width: 20px; height: 20px; flex: none; }
+.htmp [data-presentation-node="arrow"] { color: var(--muted); }
+.htmp [data-kind="actor"] { background: var(--panel); border: 2px solid var(--gold); border-radius: 12px; font-weight: 700; font-size: 18px; }
+.htmp [data-kind="bubble"] { border: 1px dashed var(--line); border-radius: 14px; font-size: 12px; font-style: italic; color: var(--muted); }
+.htmp [data-kind="chip"], .htmp [data-kind="pass"] { border-radius: 50%; border: 1px solid var(--gold); background: var(--panel); color: var(--gold); font-weight: 700; }
+.htmp [data-kind="pass"] { color: var(--ok); border-color: var(--ok); }
+.htmp [data-kind="tray"] { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+.htmp [data-kind="tray-label"] { justify-content: flex-start; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.htmp [data-kind="card"], .htmp [data-kind="ghost"] {
+  flex-direction: column; justify-content: flex-start; align-items: stretch;
+  gap: 4px; padding: 8px; font-size: 11px; border-radius: 8px; background: var(--panel); border: 1px solid var(--gold);
+}
+.htmp [data-kind="card"] [data-part="num"], .htmp [data-kind="ghost"] [data-part="num"] { color: var(--gold); font-weight: 700; }
+.htmp [data-kind="card"] [data-part="title"], .htmp [data-kind="card"] [data-part="caption"], .htmp [data-kind="card"] [data-part="visual"] {
+  border-top: 1px solid var(--line); padding-top: 3px; color: var(--muted);
+}
+.htmp [data-kind="ghost"] { border-style: dashed; border-color: var(--line); color: var(--muted); }
+.htmp [data-kind="note"] { font-size: 11px; color: var(--muted); }
+.htmp [data-kind="control"] { border: 1px solid var(--gold); border-radius: 999px; font-size: 12px; background: var(--panel); }
+.htmp [data-kind="socket"] { border: 2px solid var(--gold); border-radius: 10px; background: #1b1812; font-weight: 700; color: var(--gold); }
+.htmp [data-kind="verify"] { flex-direction: column; border: 1px solid var(--ok); border-radius: 8px; background: var(--panel); color: var(--ok); }
+.htmp [data-kind="flag"] { border: 2px solid var(--gold); border-radius: 10px; }
+.htmp [data-kind="flag"] [data-part="flag"] {
+  position: absolute; top: -12px; right: 6px; font-size: 10px; padding: 1px 6px;
+  background: var(--gold); color: #1a1710; border-radius: 4px; font-weight: 700;
+}
+.htmp [data-kind="reveal"] { border: 2px solid var(--gold); border-radius: 18px; }
+.htmp [data-kind="reveal"] [data-presentation-frame-label] {
+  position: absolute; top: -12px; left: 24px; padding: 0 10px; font-size: 12px;
+  background: #121110; color: var(--gold); letter-spacing: 0.06em; text-transform: uppercase;
+}

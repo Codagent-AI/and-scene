@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -174,6 +174,36 @@ describe('scaffold helper', () => {
     expect(readFileSync(join(dir, 'src/presentations/my-talk/Talk.tsx'), 'utf8')).toContain('p-my-talk')
     expect(() => newPresentation(dir, 'my-talk', 'dup')).toThrow(/already exists/)
     expect(() => newPresentation(dir, 'Bad Slug', 't')).toThrow(/kebab-case/)
+  })
+
+  it('repairs a missing build anchor including the app entry index.html needs', () => {
+    const dir = standalone()
+    for (const f of ['package.json', 'tsconfig.json', 'vite.config.ts', 'index.html', 'src/main.tsx']) rmSync(join(dir, f))
+    expect(detect(dir).missing).toEqual(['build'])
+    scaffold(dir, { confirm: true })
+    expect(detect(dir).missing).toEqual([])
+    expect(existsSync(join(dir, 'src/main.tsx'))).toBe(true)
+    expect(readFileSync(join(dir, 'index.html'), 'utf8')).toContain('/src/main.tsx')
+  })
+
+  it('treats a renamed registry and reformatted entries as the same contract', () => {
+    const dir = standalone()
+    renameSync(join(dir, 'src/presentations/index.ts'), join(dir, 'src/presentations/catalog.ts'))
+    const catalog = join(dir, 'src/presentations/catalog.ts')
+    writeFileSync(catalog, readFileSync(catalog, 'utf8').replaceAll("'", '"'))
+    expect(detect(dir).anchors.index).toBe(true)
+    expect(listPresentations(dir)).toEqual([{ slug: 'getting-started', title: 'Getting Started' }])
+    newPresentation(dir, 'second', 'Second')
+    expect(existsSync(join(dir, 'src/presentations/second/Talk.tsx'))).toBe(true)
+    expect(listPresentations(dir).map((p: { slug: string }) => p.slug)).toEqual(['getting-started', 'second'])
+  })
+
+  it('imports the kit from wherever the project keeps it', () => {
+    const dir = standalone()
+    renameSync(join(dir, 'src/presentation-kit'), join(dir, 'src/scene-kit'))
+    expect(detect(dir).anchors.kit).toBe(true)
+    newPresentation(dir, 'third', 'Third')
+    expect(readFileSync(join(dir, 'src/presentations/third/Scene.tsx'), 'utf8')).toContain("'../../scene-kit/index.ts'")
   })
 
   it('resolves templates from the skill directory regardless of cwd', () => {

@@ -1,4 +1,4 @@
-import { useId, type CSSProperties } from 'react'
+import { useEffect, useId, useState, type CSSProperties } from 'react'
 import { motion } from 'motion/react'
 import { DESIGN_H, DESIGN_W, EASE, LAYOUT_T } from '../constants.ts'
 import type { Point } from './common.ts'
@@ -17,6 +17,9 @@ export interface ArrowProps {
   style?: CSSProperties
   canvas?: { width: number; height: number }
 }
+
+/** Last drawn path per arrow id, so a remounted arrow (another step's scene) morphs from where its predecessor was. */
+const lastPath = new Map<string, string>()
 
 const pathFor = (from: Point, to: Point, bend: number) => {
   if (!bend) return `M ${from.x} ${from.y} L ${to.x} ${to.y}`
@@ -39,6 +42,11 @@ export function Arrow({ id, from, to, bidirectional, bend = 0, dashed, className
   const w = canvas?.width ?? DESIGN_W
   const h = canvas?.height ?? DESIGN_H
   const transition = { duration: LAYOUT_T, ease: EASE }
+  const d = pathFor(from, to, bend)
+  const [initialD] = useState(() => lastPath.get(id))
+  useEffect(() => {
+    lastPath.set(id, d)
+  }, [id, d])
   return (
     <svg
       data-presentation-node="arrow"
@@ -59,8 +67,8 @@ export function Arrow({ id, from, to, bidirectional, bend = 0, dashed, className
       <motion.path
         fill="none"
         stroke="currentColor"
-        initial={false}
-        animate={{ d: pathFor(from, to, bend) }}
+        initial={initialD ? { d: initialD } : false}
+        animate={{ d }}
         transition={transition}
         markerEnd={`url(#${marker})`}
         markerStart={bidirectional ? `url(#${marker})` : undefined}

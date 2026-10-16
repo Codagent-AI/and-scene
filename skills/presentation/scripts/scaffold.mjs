@@ -8,7 +8,7 @@
 //   node scaffold.mjs list     [dir]                        -> registered presentations (JSON)
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const SKILL_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -25,17 +25,38 @@ function walk(dir) {
   })
 }
 
-const REGISTRY_FILES = ['src/presentations/index.ts', 'src/presentations/index.tsx']
-const registryPath = (app) => REGISTRY_FILES.map((f) => join(app, f)).find(existsSync)
+const SOURCE_FILE = /\.(ts|tsx)$/
+const sourceFiles = (app) => (existsSync(join(app, 'src')) ? walk(join(app, 'src')).filter((f) => SOURCE_FILE.test(f) && !/\.test\./.test(f)) : [])
 
-/** Contract-level anchor detection: keyed on what the files provide, not on byte-identical scaffolds. */
+/** Registry contract: a module mapping `slug` + `title` to a lazy `load: () => import(...)`, whatever it is named. */
+const isRegistry = (text) =>
+  /\bexport\s+(const|let)\s+PRESENTATIONS\b/.test(text) || (/\bslug\s*:/.test(text) && /\bload\s*:/.test(text) && /\bimport\s*\(/.test(text))
+/** Kit contract: a module that exports a `Presentation` host. */
+const isKitHost = (text) => /\bexport\s+(function|const)\s+Presentation\b|\bexport\s*\{[^}]*\bPresentation\b[^}]*\}/.test(text)
+
+const registryPath = (app) => sourceFiles(app).find((f) => isRegistry(readText(f)))
+
+/** The module a presentation imports the kit from: the kit directory's index when there is one. */
+function kitEntry(app) {
+  const host = sourceFiles(app).find((f) => isKitHost(readText(f)))
+  if (!host) return undefined
+  const index = ['index.ts', 'index.tsx'].map((n) => join(dirname(host), n)).find(existsSync)
+  return index ?? host
+}
+
+const appEntryResolves = (app) => {
+  const html = existsSync(join(app, 'index.html')) ? readText(join(app, 'index.html')) : ''
+  const entry = /<script[^>]*\bsrc="([^"]+)"/.exec(html)?.[1]
+  return Boolean(entry) && existsSync(join(app, entry.replace(/^\//, '')))
+}
+
+/** Contract-level anchor detection: keyed on what the files provide, not on file names or formatting. */
 export function detectAnchors(app) {
   const pkg = readPkg(app)
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies }
-  const kitIndex = ['index.ts', 'index.tsx'].map((f) => join(app, 'src/presentation-kit', f)).find(existsSync)
   return {
-    build: Boolean(pkg?.scripts?.build && deps.vite && deps.react && deps.typescript && existsSync(join(app, 'tsconfig.json'))),
-    kit: Boolean(kitIndex && /\bPresentation\b/.test(readText(kitIndex))),
+    build: Boolean(pkg?.scripts?.build && deps.vite && deps.react && deps.typescript && existsSync(join(app, 'tsconfig.json')) && appEntryResolves(app)),
+    kit: Boolean(kitEntry(app)),
     index: Boolean(registryPath(app)),
   }
 }
@@ -77,14 +98,16 @@ export function detect(dir) {
 }
 
 const TOOLING = ['scripts/lib.mjs', 'scripts/verify.mjs', 'scripts/inspect-presentation.mjs']
+// The app entry (and the shell it imports) belongs to the build anchor: index.html cannot build without it.
+const ENTRY_FILES = ['src/main.tsx', 'src/App.tsx', 'src/Landing.tsx', 'src/routes.ts', 'src/index.css']
 const BUILD_FILES = ['tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'vite.config.ts', 'eslint.config.js', 'index.html', '.npmrc', 'public/favicon.svg']
-const INDEX_FILES = ['src/main.tsx', 'src/App.tsx', 'src/Landing.tsx', 'src/routes.ts', 'src/index.css', 'scripts/verify.config.json']
+const INDEX_FILES = ['scripts/verify.config.json']
 
 function filesFor(anchor) {
   const all = walk(BOOTSTRAP).map((f) => relative(BOOTSTRAP, f))
-  if (anchor === 'build') return BUILD_FILES
+  if (anchor === 'build') return [...BUILD_FILES, ...ENTRY_FILES]
   if (anchor === 'kit') return all.filter((f) => f.startsWith('src/presentation-kit/'))
-  return [...INDEX_FILES, ...all.filter((f) => f.startsWith('src/presentations/'))]
+  return [...INDEX_FILES, ...(anchor === 'index' ? ENTRY_FILES : []), ...all.filter((f) => f.startsWith('src/presentations/'))]
 }
 
 function copyIfMissing(rel, app, report) {
@@ -148,11 +171,17 @@ export function scaffold(dir, { install = false, confirm = false } = {}) {
 
 const render = (text, values) => text.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in values ? values[k] : m))
 
+const stringProp = (block, name) => {
+  const m = new RegExp(`\\b${name}\\s*:\\s*(['"\`])((?:\\\\.|(?!\\1).)*)\\1`, 's').exec(block)
+  return m?.[2].replace(/\\(['"`])/g, '$1')
+}
+
 export function listPresentations(dir) {
-  const app = resolveTarget(dir)
-  const path = registryPath(app)
+  const path = registryPath(resolveTarget(dir))
   if (!path) return []
-  return [...readText(path).matchAll(/slug:\s*'([^']+)',\s*title:\s*'((?:[^'\\]|\\.)*)'/g)].map((m) => ({ slug: m[1], title: m[2].replace(/\\'/g, "'") }))
+  return [...readText(path).matchAll(/\{[^{}]*\bslug\s*:[^{}]*\}/g)]
+    .map((m) => ({ slug: stringProp(m[0], 'slug'), title: stringProp(m[0], 'title') ?? '' }))
+    .filter((p) => p.slug)
 }
 
 export function newPresentation(dir, slug, title) {
@@ -160,17 +189,21 @@ export function newPresentation(dir, slug, title) {
   const app = resolveTarget(dir)
   const anchors = detectAnchors(app)
   if (!anchors.kit || !anchors.index) throw new Error(`scaffold first: missing anchors at ${app}: ${Object.keys(anchors).filter((k) => !anchors[k]).join(', ')}`)
-  const folder = join(app, 'src/presentations', slug)
+  const path = registryPath(app)
+  const folder = join(dirname(path), slug)
   if (existsSync(folder) || listPresentations(dir).some((p) => p.slug === slug)) throw new Error(`presentation "${slug}" already exists`)
-  const safeTitle = title.replace(/[\\'"<>&{}]/g, '')
+  const safeTitle = title.replace(/[\\'"<>&{}`]/g, '')
   const values = { slug, title: safeTitle }
   ;[1, 2, 3].forEach((n) => Object.assign(values, { [`era${n}`]: 'start', [`title${n}`]: `Step ${n}`, [`caption${n}`]: 'Describe this step.' }))
+  // Templates import the kit as `../../presentation-kit/index.ts`; point that at wherever this project keeps it.
+  const kit = kitEntry(app)
+  let kitImport = relative(folder, kit).split(sep).join('/')
+  if (!kitImport.startsWith('.')) kitImport = `./${kitImport}`
   for (const file of walk(PRESENTATION_TEMPLATE)) {
     const to = join(folder, relative(PRESENTATION_TEMPLATE, file))
     mkdirSync(dirname(to), { recursive: true })
-    writeFileSync(to, render(readText(file), values))
+    writeFileSync(to, render(readText(file), values).replaceAll('../../presentation-kit/index.ts', kitImport))
   }
-  const path = registryPath(app)
   const source = readText(path)
   const entry = `  {\n    slug: '${slug}',\n    title: '${safeTitle}',\n    load: () => import('./${slug}/Talk.tsx'),\n  },\n`
   const end = source.lastIndexOf('\n]')

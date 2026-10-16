@@ -4,6 +4,8 @@ import { join } from 'node:path'
 import { CheckError, HOST, ROOT, SELECTORS, launchBrowser, readJson, registeredSlugs, run, sleep, startPreview } from './lib.mjs'
 
 const STEP_TIMEOUT = 5000
+// Longer than the kit's slowest entrance (layout settle + newcomer fade), so late errors surface in their step.
+const SETTLE_MS = 1300
 
 function loadReference() {
   try {
@@ -48,7 +50,7 @@ async function renderPresentation(browser, base, slug) {
           throw new CheckError('render', `/${slug}: step ${current}: transition did not advance data-step-index to ${i}`, current)
         }
       }
-      await sleep(250)
+      await sleep(SETTLE_MS)
       seen.push({
         title: (await page.textContent(SELECTORS.title))?.trim(),
         caption: (await page.textContent(SELECTORS.caption))?.trim(),
@@ -73,8 +75,9 @@ async function verify() {
 
   console.log(`[verify] phase preview: vite preview on ${HOST}`)
   const preview = await startPreview()
-  const browser = await launchBrowser()
+  let browser
   try {
+    browser = await launchBrowser()
     const probe = await browser.newPage()
     const slugs = await registeredSlugs(probe, preview.base)
     await probe.close()
@@ -102,7 +105,7 @@ async function verify() {
       })
     }
   } finally {
-    await browser.close()
+    await browser?.close()
     preview.stop()
   }
 }

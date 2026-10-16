@@ -39,6 +39,12 @@ describe('actionForKey', () => {
     expect(key(' ', { target: button })).toBeNull()
     expect(key('ArrowRight', { target: input })).toBeNull()
     expect(key('ArrowRight', { target: div })).toBe('next')
+    for (const value of ['', 'true', 'plaintext-only']) {
+      const editor = document.createElement('div')
+      editor.setAttribute('contenteditable', value)
+      document.body.append(editor)
+      expect(key('ArrowRight', { target: editor }), `contenteditable="${value}"`).toBeNull()
+    }
   })
 })
 

@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react'
+import { createElement, type ComponentType, type ReactElement } from 'react'
 
 export type Mode = 'browse' | 'present'
 
@@ -30,11 +30,19 @@ export interface Step<TPayload = undefined> extends StepMeta {
   payload: TPayload
 }
 
-/** Any step, whatever its payload type. Lets `<Presentation>` accept typed steps without casts. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyStep = Step<any>
+/**
+ * A step with its scene and payload bound together and their types erased, so a
+ * presentation can hold steps with different payload types. The only way to make
+ * one is `defineStep`, which checks `payload` against the scene's payload type.
+ */
+export interface AnyStep extends StepMeta {
+  groupKey?: string
+  /** Renders the bound scene for the active step. */
+  render: (stepIndex: number) => ReactElement
+}
 
-/** Identity helper that infers a step's payload type from its `Scene`. */
-export function defineStep<TPayload>(step: Step<TPayload>): Step<TPayload> {
-  return step
+/** Binds a step's `Scene` to its `payload` (type-checked) and returns a step `<Presentation>` accepts without casts. */
+export function defineStep<TPayload>(step: Step<TPayload>): AnyStep {
+  const { Scene, payload, ...rest } = step
+  return { ...rest, render: (stepIndex) => createElement(Scene, { payload, stepIndex }) }
 }

@@ -10,10 +10,10 @@ export type NavAction = 'next' | 'prev' | 'toggle-mode'
 
 /** Interactive controls keep their own keys; deck navigation must not also fire. */
 const INTERACTIVE =
-  'a[href], button, input, select, textarea, summary, [contenteditable=""], [contenteditable="true"], [role="button"], [role="link"], [role="tab"], [role="slider"]'
+  'a[href], button, input, select, textarea, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [role="tab"], [role="slider"]'
 
 export function isInteractiveTarget(target: EventTarget | null): boolean {
-  return target instanceof Element && target.closest(INTERACTIVE) !== null
+  return target instanceof Element && (target.closest(INTERACTIVE) !== null || (target as HTMLElement).isContentEditable === true)
 }
 
 /** Maps a key event to a navigation action, or null when the deck should not react. */

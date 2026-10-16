@@ -111,6 +111,10 @@ export const SELECTORS = {
 }
 
 export async function launchBrowser() {
-  const { chromium } = await import('playwright')
-  return chromium.launch()
+  try {
+    const { chromium } = await import('playwright')
+    return await chromium.launch()
+  } catch (e) {
+    throw new CheckError('browser', `could not launch Chromium (try \`npx playwright install chromium\`): ${String(e.message).split('\n')[0]}`)
+  }
 }

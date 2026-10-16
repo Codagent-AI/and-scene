@@ -22,7 +22,6 @@ export function Stage({ step, index, mode, design }: StageProps) {
   const width = design?.width ?? DESIGN_W
   const height = design?.height ?? DESIGN_H
   const sceneKey = step.groupKey ? `group:${step.groupKey}` : `step:${step.id}`
-  const { Scene } = step
 
   return (
     <div
@@ -55,7 +54,7 @@ export function Stage({ step, index, mode, design }: StageProps) {
               exit={{ opacity: 0, transition: { duration: EXIT_T } }}
               style={{ position: 'absolute', inset: 0 }}
             >
-              <Scene payload={step.payload} stepIndex={index} />
+              {step.render(index)}
             </motion.div>
           </AnimatePresence>
         </LayoutGroup>

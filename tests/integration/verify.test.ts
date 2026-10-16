@@ -68,4 +68,27 @@ describe('E2E-002: verification failures are actionable', () => {
     expect(res.code).not.toBe(0)
     expect(res.out).toMatch(/FAIL phase=render step=2: .*transition did not advance/)
   })
+
+  it('fails the render phase on an error that fires after the last step\'s animations start', () => {
+    const res = verifyWithFault((dir) => {
+      replaceIn(dir, 'src/presentations/how-to-make-a-presentation/Scene.tsx', "import type { ReactNode } from 'react'", "import { useEffect, type ReactNode } from 'react'")
+      replaceIn(
+        dir,
+        'src/presentations/how-to-make-a-presentation/Scene.tsx',
+        'export function HowToScene({ payload }: SceneProps<HowToPayload>) {\n',
+        "export function HowToScene({ payload }: SceneProps<HowToPayload>) {\n  useEffect(() => {\n    if (payload.beat !== 9) return\n    const t = setTimeout(() => console.error('late failure'), 1100)\n    return () => clearTimeout(t)\n  }, [payload.beat])\n",
+      )
+    })
+    expect(res.code).not.toBe(0)
+    expect(res.out).toMatch(/FAIL phase=render step=9: .*late failure/)
+  })
+
+  it('reports a browser launch failure and still stops the preview server', () => {
+    const dir = copyRepo()
+    copies.push(dir)
+    const res = run('node', ['scripts/verify.mjs'], dir, { PLAYWRIGHT_BROWSERS_PATH: join(dir, 'no-browsers') })
+    expect(res.code).not.toBe(0)
+    expect(res.out).toMatch(/FAIL phase=browser: could not launch Chromium/)
+    expect(run('pgrep', ['-f', join(dir, 'node_modules/vite/bin/vite.js')], ROOT).out.trim()).toBe('')
+  })
 })

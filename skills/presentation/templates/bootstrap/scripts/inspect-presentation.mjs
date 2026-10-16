@@ -108,11 +108,12 @@ async function inspect(opts) {
     await run('npm', ['run', 'build'], 'build')
   }
   const preview = await startPreview()
-  const browser = await launchBrowser()
+  let browser
   const dir = join(opts.out, opts.slug)
   mkdirSync(dir, { recursive: true })
   const report = { slug: opts.slug, settleMs: opts.settle, viewport: opts.size, steps: [], warnings: [] }
   try {
+    browser = await launchBrowser()
     const page = await browser.newPage({ viewport: opts.size })
     const errors = []
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
@@ -131,14 +132,14 @@ async function inspect(opts) {
       const file = join(dir, `step-${String(i + 1).padStart(2, '0')}.png`)
       await page.screenshot({ path: file })
       report.steps.push({ step: i + 1, file, pressedAt, capturedAt: Date.now() })
-      for (const f of await page.evaluate(diagnose, { checkAttribution: i === 0 })) {
+      for (const f of await page.evaluate(diagnose, { checkAttribution: true })) {
         report.warnings.push({ step: i + 1, ...f })
         console.log(`[inspect] warning step ${i + 1} ${f.kind}: ${f.message}`)
       }
     }
     if (errors.length) console.log(`[inspect] warning browser errors: ${errors.join(' | ')}`)
   } finally {
-    await browser.close()
+    await browser?.close()
     preview.stop()
   }
   writeFileSync(join(dir, 'report.json'), JSON.stringify(report, null, 2))

@@ -89,7 +89,7 @@ export default function Talk() {
 
 describe('INT-002: screenshot helper emits artifacts and advisory warnings', () => {
   const SETTLE = 1100
-  const slugs = { collision: 'fx-collision', allowed: 'fx-allowed', plain: 'fx-plain' }
+  const slugs = { collision: 'fx-collision', allowed: 'fx-allowed', plain: 'fx-plain', late: 'fx-late', arrow: 'fx-arrow' }
   let registry: string
 
   beforeAll(() => {
@@ -97,6 +97,28 @@ describe('INT-002: screenshot helper emits artifacts and advisory warnings', () 
     fixture(slugs.collision, { css: true })
     fixture(slugs.allowed, { css: true, wrap: true })
     fixture(slugs.plain, { css: false })
+    fixture(slugs.late, { css: true })
+    // Attribution is polished on step 1 only: step 2 shrinks it to 6px.
+    write(app, `src/presentations/${slugs.late}/styles.css`, `${CHROME_CSS}\n.fx [data-presentation-root][data-step-index='1'] [data-presentation-attribution] { font-size: 6px; }\n`)
+    write(app, `src/presentations/${slugs.late}/Talk.tsx`, readFileSync(join(app, `src/presentations/${slugs.late}/Talk.tsx`), 'utf8').replace('first colliding text', 'one').replace('second colliding text', 'two').replace('at={{ x: 150, y: 100', 'at={{ x: 500, y: 200'))
+    // Two *separate* scenes (no groupKey) drawing the same arrow id with a different endpoint.
+    write(
+      app,
+      `src/presentations/${slugs.arrow}/Talk.tsx`,
+      `import { Arrow, Presentation, SceneLayer, defineStep } from '../../presentation-kit/index.ts'
+
+const draw = (x: number) => function Scene() {
+  return <SceneLayer><Arrow key="a" id="the-arrow" from={{ x: 100, y: 80 }} to={{ x, y: 80 }} /></SceneLayer>
+}
+const steps = [
+  defineStep({ id: 'a', era: 'e', title: 'A', caption: 'a', Scene: draw(200), payload: undefined }),
+  defineStep({ id: 'b', era: 'e', title: 'B', caption: 'b', Scene: draw(600), payload: undefined }),
+]
+export default function Talk() {
+  return <div style={{ height: '100%' }}><Presentation steps={steps} title="arrow" /></div>
+}
+`,
+    )
     registry = readFileSync(join(app, 'src/presentations/index.ts'), 'utf8')
     const entries = Object.values(slugs).map((s) => `  { slug: '${s}', title: '${s}', load: () => import('./${s}/Talk.tsx') },\n`).join('')
     write(app, 'src/presentations/index.ts', registry.replace(/\n\]/, `\n${entries}]`))
@@ -129,6 +151,35 @@ describe('INT-002: screenshot helper emits artifacts and advisory warnings', () 
 
   it('exempts a subtree marked allow-overlap', () => {
     expect(inspect(slugs.allowed).warnings).toEqual([])
+  })
+
+  it('reports an attribution defect that only appears after step 1', () => {
+    const { warnings } = inspect(slugs.late)
+    expect(warnings.filter((w) => /attribution/.test(w))).toHaveLength(1)
+    expect(warnings.join('\n')).toMatch(/step 2 attribution: .*font-size 6px is too small/)
+  })
+
+  it('morphs a stable arrow id between separate steps instead of only cross-fading', async () => {
+    const { startPreview, launchBrowser } = await import(join(app, 'scripts/lib.mjs'))
+    const preview = await startPreview()
+    const browser = await launchBrowser()
+    try {
+      const page = await browser.newPage()
+      await page.goto(`${preview.base}/${slugs.arrow}`)
+      await page.waitForSelector('[data-presentation-node="arrow"]')
+      await page.waitForTimeout(1500)
+      await page.keyboard.press('ArrowRight')
+      const seen = new Set<string>()
+      for (let i = 0; i < 20; i++) {
+        await page.waitForTimeout(40)
+        for (const d of await page.$$eval('[data-presentation-node="arrow"] path[stroke]', (ps) => ps.map((p) => p.getAttribute('d') ?? ''))) seen.add(d)
+      }
+      const ends = [...seen].map((d) => Number(/L (\d+(?:\.\d+)?) /.exec(d)?.[1]))
+      expect(ends.some((x) => x > 205 && x < 595), `intermediate endpoints: ${ends}`).toBe(true)
+    } finally {
+      await browser.close()
+      preview.stop()
+    }
   })
 
   it('reports indistinct active chrome and unpolished attribution with their styling hooks', () => {

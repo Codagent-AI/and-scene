@@ -47,7 +47,6 @@ describe('committed reference sample', () => {
   it('has stable unique step ids and one shared scene group', () => {
     expect(new Set(STEPS.map((s) => s.id)).size).toBe(9)
     expect(new Set(STEPS.map((s) => s.groupKey)).size).toBe(1)
-    expect(new Set(STEPS.map((s) => s.Scene)).size).toBe(1)
   })
 
   it('verify.config.json carries the same titles and captions the verify script asserts', () => {

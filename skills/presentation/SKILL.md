@@ -54,6 +54,7 @@ Then:
 - All anchors present: skip scaffolding.
 - Some missing: scaffold **only the missing anchors**; `scaffold.mjs` never overwrites an existing file and merges missing dependencies into an existing `package.json`.
 - If `needsConfirmation` is true (non-empty project lacking the kit or index), **state the target directory and wait for the user to confirm before writing anything.**
+- If the project already has its own entry point (e.g. `src/main.tsx`) that does not reach the presentation registry, `scaffold.mjs` moves it to `app-main` and installs a router entry that serves presentation routes and keeps the old app for every other path; `detect.mjs` only counts the index anchor once the entry point reaches the registry. Detection keys on contracts (a kit directory exporting `Presentation` with a stage, and a `{ slug, load }` registry reachable from the entry), so renamed files still count.
 - Run `npm install` in the target afterwards. Never assume the dependencies (react, react-dom, motion, lucide-react, vite, @vitejs/plugin-react, typescript, @types/*, eslint stack, playwright) are installed. Install Chromium for Playwright if needed (`npx playwright install chromium`).
 - The scaffold is styling-framework-neutral and ships zero visual defaults. Do not add Tailwind or another framework unless the host already uses one or the user asks.
 
@@ -80,7 +81,7 @@ Model rules:
 
 - the active progress dot and active table-of-contents entry (`[data-active='true']`, also `aria-current="step"`), so the current step is visibly distinct;
 - `[data-presentation-attribution]` (the default bottom-right "made by and-scene" link) so it is legible and intentional;
-- headers, captions, controls, and every node kind (`[data-presentation-kind=...]`).
+- headers, captions, controls, and every node kind (`[data-presentation-kind=...]`). Header and footer titles and captions sit in `[data-presentation-stack]` wrappers (all step texts share one grid cell so the chrome height, and therefore the canvas scale, stays constant); scope rules for the wrapper to the header or footer, e.g. `[data-presentation-header] [data-presentation-stack]`, so a header alignment rule does not also move the caption.
 
 Mark a subtree whose overlap is intentional and readable with `data-presentation-allow-overlap`. Use it only there.
 

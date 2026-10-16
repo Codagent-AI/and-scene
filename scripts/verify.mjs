@@ -110,6 +110,7 @@ async function renderPresentation(browser, origin, slug, outline) {
 async function render(slugs) {
   const chromium = await loadChromium(root)
   const preview = await startPreview(root)
+  console.log(`[verify] preview: ${preview.origin}`)
   let browser
   try {
     browser = await chromium.launch({ args: ['--no-sandbox'] })

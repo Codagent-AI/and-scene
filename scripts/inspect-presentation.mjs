@@ -92,8 +92,13 @@ function diagnose() {
   }
 
   // 2. Active progress / table-of-contents state must look different from inactive.
-  const props = ['backgroundColor', 'color', 'borderTopColor', 'borderTopWidth', 'width', 'height', 'fontWeight', 'opacity', 'boxShadow', 'textDecorationLine', 'outlineStyle', 'transform']
-  const styleKey = (el) => { const cs = getComputedStyle(el); return props.map((p) => cs[p]).join('|') }
+  const props = ['backgroundColor', 'color', 'borderTopColor', 'borderTopWidth', 'fontWeight', 'opacity', 'boxShadow', 'textDecorationLine', 'outlineStyle', 'transform']
+  // Text-sized controls differ in width by content alone; only icon-like (textless) ones compare size.
+  const styleKey = (el) => {
+    const cs = getComputedStyle(el)
+    const size = el.textContent.trim() ? '' : `${cs.width}x${cs.height}`
+    return [...props.map((p) => cs[p]), size].join('|')
+  }
   for (const [label, selector] of [['progress indicator', '[data-presentation-dot]'], ['table-of-contents entry', '[data-presentation-toc-entry]']]) {
     const all = [...document.querySelectorAll(selector)]
     const active = all.find((e) => e.getAttribute('data-presentation-active') === 'true')

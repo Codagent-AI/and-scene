@@ -59,7 +59,8 @@ export function selectEntries(entries, slug) {
 export function registeredSlugs(root = ROOT) {
   const raw = fs.readFileSync(path.join(root, 'src', 'presentations', 'index.ts'), 'utf8')
   // Comments carry documentation examples such as `{ slug: 'my-talk', ... }`; they are not registrations.
-  const src = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1')
+  // Strings are matched first so a glob like './*/Talk.tsx' is not mistaken for a comment opener.
+  const src = raw.replace(/('(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`)|\/\*[\s\S]*?\*\/|\/\/.*$/gm, '$1')
   return [...src.matchAll(/slug:\s*(['"`])([^'"`]+)\1/g)].map((m) => m[2])
 }
 

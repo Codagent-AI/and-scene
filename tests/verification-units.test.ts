@@ -81,10 +81,12 @@ describe('registry slug detection', () => {
           "// { slug: 'doc-line', title: 'Y' }",
           'export const presentations = [',
           "  { slug: 'real', title: 'Real' }, // { slug: 'trailing', title: 'Z' }",
+          "  { slug: 'globbed', title: 'src/*/deck.tsx', loader: () => import('./a//b') },",
+          "  { slug: 'after-glob', title: 'After' },",
           ']',
         ].join('\n'),
       )
-      expect(registeredSlugs(root)).toEqual(['real'])
+      expect(registeredSlugs(root)).toEqual(['real', 'globbed', 'after-glob'])
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

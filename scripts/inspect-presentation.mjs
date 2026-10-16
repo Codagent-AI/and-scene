@@ -204,6 +204,7 @@ export async function inspectPresentation({ slug, root = ROOT, settle = DEFAULT_
     const chrome = page.locator('[data-presentation-chrome]')
     await chrome.waitFor({ state: 'attached', timeout: 10000 })
     const count = Number(await chrome.getAttribute('data-step-count'))
+    if (!Number.isInteger(count) || count < 1) throw new PhaseError('inspect', `${slug}: invalid data-step-count`)
     log(`[inspect] ${url} — ${count} steps at ${viewport.width}x${viewport.height}, settle ${settle}ms`)
     for (let i = 0; i < count; i++) {
       if (i > 0) {

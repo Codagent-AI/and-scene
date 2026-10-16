@@ -184,4 +184,14 @@ describe('Presentation', () => {
       expect(document.querySelector(`[data-presentation-${hook}]`), hook).toBeTruthy()
     }
   })
+
+  it('keeps the toc in sync when repeated era labels are reordered', () => {
+    const mk = (eras: string[]): Step<Payload>[] =>
+      eras.map((era, i) => ({ ...steps[0], id: `r${eras.join('')}${i}`, era, groupKey: 'g', payload: { n: i } }))
+    const { rerender } = render(<Presentation<Payload> steps={mk(['a', 'b', 'a'])} title="Deck" />)
+    const entries = () => [...document.querySelectorAll('[data-presentation-toc-entry]')].map((e) => e.textContent)
+    expect(entries()).toEqual(['a', 'b', 'a'])
+    rerender(<Presentation<Payload> steps={mk(['b', 'a'])} title="Deck" />)
+    expect(entries()).toEqual(['b', 'a'])
+  })
 })

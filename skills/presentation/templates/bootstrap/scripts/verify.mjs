@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { chromium } from 'playwright'
-import { ROOT, STEP_HOOK, advance, readRegistry, runBuild, startPreview, stepCount, stepIndex } from './lib.mjs'
+import { ROOT, STEP_HOOK, advance, readRegistry, runBuild, startPreview, stepCount, stepIndex, waitSettled } from './lib.mjs'
 
 class Failure extends Error {
   constructor(phase, message, step) {
@@ -64,7 +64,7 @@ async function renderPresentation(browser, base, slug, reference) {
           throw fail('transition', `ArrowRight did not advance to step index ${i} (stuck at ${await stepIndex(page)})`)
         }
       }
-      await page.waitForTimeout(150)
+      await waitSettled(page)
       if (reference) {
         const want = reference.steps[i]
         const title = (await page.textContent('[data-presentation-title]'))?.trim()

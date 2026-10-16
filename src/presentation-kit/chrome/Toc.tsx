@@ -15,7 +15,7 @@ export function Toc({ steps, index, onGoTo }: TocProps) {
         {groupEras(steps).map((g) => {
           const active = index >= g.start && index <= g.end
           return (
-            <li key={g.era}>
+            <li key={`${g.era}:${g.start}`}>
               <button
                 type="button"
                 data-presentation-toc-entry={g.era}

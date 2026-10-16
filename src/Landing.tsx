@@ -2,7 +2,7 @@ import { PRESENTATIONS } from './presentations/index.ts'
 
 export default function Landing() {
   return (
-    <main className="landing">
+    <main className="landing" data-presentation-landing="">
       <h1>Presentations</h1>
       <ul>
         {PRESENTATIONS.map((p) => (

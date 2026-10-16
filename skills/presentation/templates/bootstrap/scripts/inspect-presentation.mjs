@@ -70,7 +70,7 @@ function diagnose({ checkAttribution }) {
   }
 
   // Active navigation must differ visibly from its inactive siblings.
-  const props = ['backgroundColor', 'color', 'borderTopColor', 'borderLeftColor', 'borderTopWidth', 'borderLeftWidth', 'width', 'height', 'opacity', 'transform', 'fontWeight', 'boxShadow', 'outlineStyle', 'textDecorationLine']
+  const props = ['backgroundColor', 'color', 'borderTopColor', 'borderLeftColor', 'borderTopWidth', 'borderLeftWidth', 'opacity', 'transform', 'fontWeight', 'boxShadow', 'outlineStyle', 'textDecorationLine']
   for (const [name, hook] of [['progress indicator', 'dot'], ['table-of-contents entry', 'toc-entry']]) {
     const items = [...document.querySelectorAll(`[data-presentation-${hook}]`)].filter(visible)
     const active = items.find((el) => el.getAttribute('data-active') === 'true' || el.getAttribute('aria-current'))
@@ -78,7 +78,9 @@ function diagnose({ checkAttribution }) {
     if (!active || !inactive) continue
     const a = getComputedStyle(active)
     const b = getComputedStyle(inactive)
-    if (props.every((p) => a[p] === b[p])) {
+    // Text-bearing entries differ in size by content alone, so only compare size for empty indicators.
+    const sized = hook === 'dot' ? ['width', 'height'] : []
+    if ([...props, ...sized].every((p) => a[p] === b[p])) {
       findings.push({ kind: 'active-nav', message: `active ${name} looks identical to inactive ones: style [data-presentation-${hook}][data-active='true'] in your presentation CSS` })
     }
   }

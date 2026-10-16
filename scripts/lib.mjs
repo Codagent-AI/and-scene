@@ -100,7 +100,7 @@ export function readJson(path) {
 /** Slugs of every registered presentation, read from the landing page links. */
 export async function registeredSlugs(page, base) {
   await page.goto(`${base}/`)
-  await page.waitForSelector('a[data-presentation-link]', { timeout: 10000 })
+  await page.waitForSelector('[data-presentation-landing]', { timeout: 10000 })
   return page.$$eval('a[data-presentation-link]', (as) => as.map((a) => a.getAttribute('data-presentation-link')))
 }
 

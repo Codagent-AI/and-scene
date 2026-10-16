@@ -5,10 +5,11 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { CheckError, HOST, ROOT, SELECTORS, launchBrowser, run, sleep, startPreview } from './lib.mjs'
 
+const DEFAULT_VIEWPORT = '1440x900'
 const USAGE = 'usage: npm run inspect -- <slug> [--settle <ms>] [--viewport <WxH>] [--mode browse|present] [--out <dir>] [--no-build]'
 
 function parseArgs(argv) {
-  const opts = { slug: undefined, settle: 1200, viewport: '1440x900', mode: undefined, out: join(ROOT, '.presentation-inspect'), build: true }
+  const opts = { slug: undefined, settle: 1200, viewport: DEFAULT_VIEWPORT, mode: undefined, out: join(ROOT, '.presentation-inspect'), build: true }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--settle') opts.settle = Number(argv[++i])
@@ -109,7 +110,8 @@ async function inspect(opts) {
   }
   const preview = await startPreview()
   let browser
-  const dir = join(opts.out, opts.slug)
+  // Non-default viewports get their own folder so they never overwrite the desktop screenshots.
+  const dir = join(opts.out, opts.viewport === DEFAULT_VIEWPORT ? opts.slug : `${opts.slug}-${opts.viewport}`)
   mkdirSync(dir, { recursive: true })
   const report = { slug: opts.slug, settleMs: opts.settle, viewport: opts.size, steps: [], warnings: [] }
   try {

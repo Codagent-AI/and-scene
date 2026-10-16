@@ -143,6 +143,13 @@ export default function Talk() {
     }
   })
 
+  it('keeps narrow-viewport screenshots apart from the desktop ones', () => {
+    const res = run('node', ['scripts/inspect-presentation.mjs', slugs.collision, '--no-build', '--settle', '300', '--viewport', '390x844'], app)
+    expect(res.code, res.out).toBe(0)
+    expect(exists(app, `.presentation-inspect/${slugs.collision}-390x844/step-01.png`)).toBe(true)
+    expect(exists(app, `.presentation-inspect/${slugs.collision}/step-01.png`)).toBe(true)
+  })
+
   it('reports the unmarked collision for step 2 only, and nothing for polished chrome', () => {
     const { warnings } = inspect(slugs.collision)
     expect(warnings).toHaveLength(1)

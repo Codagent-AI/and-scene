@@ -41,6 +41,8 @@ describe('SKILL.md', () => {
       'data-presentation-allow-overlap',
       'never report success while a check fails',
       'scaffold.mjs list',
+      'getting-started',
+      'screenshot of a marked overlap',
     ]) {
       expect(skillText.replace(/\s+/g, ' ').toLowerCase(), phrase).toContain(phrase.toLowerCase())
     }
@@ -87,6 +89,7 @@ describe('scaffold helper', () => {
     expect(info).toMatchObject({ target: dir, empty: true, missing: ['build', 'kit', 'index'], needsConfirmation: false })
     const report = scaffold(dir)
     expect(report.written).toBe(true)
+    expect(report.skipped).toEqual([])
     expect(detect(dir).missing).toEqual([])
     expect(existsSync(join(dir, 'package-lock.json'))).toBe(true)
     expect(existsSync(join(dir, 'src/presentation-kit/index.ts'))).toBe(true)

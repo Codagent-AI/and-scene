@@ -112,6 +112,7 @@ function filesFor(anchor) {
 
 function copyIfMissing(rel, app, report) {
   const to = join(app, rel)
+  if (report.created.includes(rel)) return
   if (existsSync(to)) return report.skipped.push(rel)
   mkdirSync(dirname(to), { recursive: true })
   writeFileSync(to, readText(join(BOOTSTRAP, rel)))

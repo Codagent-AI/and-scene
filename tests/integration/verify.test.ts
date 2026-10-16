@@ -50,14 +50,19 @@ describe('E2E-002: verification failures are actionable', () => {
   })
 
   it('fails the reference phase when the sample steps are out of order, naming the step', () => {
-    const res = verifyWithFault((dir) => replaceIn(dir, 'src/presentations/how-to-make-a-presentation/steps/index.ts', '[s1, s2,', '[s2, s1,'))
+    const res = verifyWithFault((dir) => {
+      const steps = 'src/presentations/how-to-make-a-presentation/steps.ts'
+      replaceIn(dir, steps, "title: 'You have a topic'", "title: '@@'")
+      replaceIn(dir, steps, "title: 'The skill interviews you'", "title: 'You have a topic'")
+      replaceIn(dir, steps, "title: '@@'", "title: 'The skill interviews you'")
+    })
     expect(res.code).not.toBe(0)
     expect(res.out).toMatch(/FAIL phase=reference step=1: reference step 1 mismatch/)
   })
 
   it('fails the render phase on a console error, naming the step', () => {
     const res = verifyWithFault((dir) =>
-      replaceIn(dir, 'src/presentations/how-to-make-a-presentation/Scene.tsx', 'return (\n    <SceneLayer>', "if (payload.beat === 4) console.error('boom at four')\n  return (\n    <SceneLayer>"),
+      replaceIn(dir, 'src/presentations/how-to-make-a-presentation/Scene.tsx', 'const { beat } = payload\n', "const { beat } = payload\n  if (beat === 4) console.error('boom at four')\n"),
     )
     expect(res.code).not.toBe(0)
     expect(res.out).toMatch(/FAIL phase=render step=4: .*console\.error: boom at four/)
@@ -71,12 +76,13 @@ describe('E2E-002: verification failures are actionable', () => {
 
   it('fails the render phase on an error that fires after the last step\'s animations start', () => {
     const res = verifyWithFault((dir) => {
-      replaceIn(dir, 'src/presentations/how-to-make-a-presentation/Scene.tsx', "import type { ReactNode } from 'react'", "import { useEffect, type ReactNode } from 'react'")
+      const scene = 'src/presentations/how-to-make-a-presentation/Scene.tsx'
+      replaceIn(dir, scene, "import { ArrowLeftRight, Check } from 'lucide-react'", "import { useEffect } from 'react'\nimport { ArrowLeftRight, Check } from 'lucide-react'")
       replaceIn(
         dir,
-        'src/presentations/how-to-make-a-presentation/Scene.tsx',
-        'export function HowToScene({ payload }: SceneProps<HowToPayload>) {\n',
-        "export function HowToScene({ payload }: SceneProps<HowToPayload>) {\n  useEffect(() => {\n    if (payload.beat !== 9) return\n    const t = setTimeout(() => console.error('late failure'), 1100)\n    return () => clearTimeout(t)\n  }, [payload.beat])\n",
+        scene,
+        'const { beat } = payload\n',
+        "const { beat } = payload\n  useEffect(() => {\n    if (beat !== 9) return\n    const t = setTimeout(() => console.error('late failure'), 1100)\n    return () => clearTimeout(t)\n  }, [beat])\n",
       )
     })
     expect(res.code).not.toBe(0)

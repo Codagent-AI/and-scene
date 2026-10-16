@@ -60,8 +60,14 @@ trigger a re-scaffold.
   the eslint stack, playwright) without assuming any is installed, and runs `npm install`.
   Do not assume Chromium is present: if the render check cannot launch a browser, run
   `npx playwright install chromium`.
-- Files the helper reports as `skipped` already existed (for example an existing
-  `src/main.tsx`); wire them by hand to the router in `templates/bootstrap/src/App.tsx`.
+- Files the helper reports as `skipped` already existed **before this run** (for example
+  an existing `src/main.tsx` in a project that had its own entry); wire those by hand to the
+  router in `templates/bootstrap/src/App.tsx`. A fresh scaffold lists nothing as skipped.
+- A fresh scaffold also adds and registers a small `getting-started` starter presentation, and
+  `scripts/verify.config.json` names it as the reference that `npm run verify` checks. Keep it,
+  or delete its folder and registry line and point `verify.config.json` at a presentation of
+  yours (slug plus the exact titles and captions of its steps).
+- The scaffold has no `npm test`; the gates are `build`, `lint`, `verify`, and `inspect`.
 
 The scaffold is **styling-framework-neutral**: no Tailwind, theme, colors, fonts, card or
 button styles. Add a styling framework only if the host already uses one or the user asks.
@@ -73,6 +79,8 @@ writes `src/presentations/<slug>/` (`entities.ts`, `Scene.tsx`, `steps.ts`, `Tal
 `styles.css`) and registers it in `src/presentations/index.ts`, leaving other presentations
 untouched. Then edit those files for the gathered content:
 
+- Captions: if the user gave no caption text, ask for it or write one short caption per
+  step and say so; never leave the template's "Describe this step." placeholders.
 - `entities.ts`: the presentation's `layoutId` namespace and canvas geometry (880 × 380).
 - `Scene.tsx` / `steps.ts`: compose kit primitives (`Box`, `Label`, `Arrow`, `Frame`,
   `Emphasis`, `SymbolChip`, `SceneLayer`) from `src/presentation-kit`. Steps in one
@@ -86,7 +94,10 @@ untouched. Then edit those files for the gathered content:
   attribution (`[data-presentation-attribution]`) legible. Never put colors, fonts,
   borders, or theme tokens in `src/presentation-kit/`.
 - Mark an intentional, readable overlap with `data-presentation-allow-overlap` on that
-  subtree only.
+  subtree only. The attribute must reach a DOM element (`Box`, `Label`, `Frame`, `Emphasis`,
+  and `SymbolChip` pass extra props through; otherwise wrap the subtree in a `<div>`).
+  DOM order decides stacking: an overlapping element drawn *under* a later sibling can be
+  unreadable yet raise no warning, so always look at the screenshot of a marked overlap.
 
 **Modify**: if the target is unnamed or ambiguous, run `scaffold.mjs list` and ask which
 presentation to change before editing anything. Then ask only about the requested change
@@ -104,15 +115,17 @@ Fix failures yourself and re-check; never report success while a check fails.
 3. Visual composition: run `npm run inspect -- <slug>` (project-local helper; screenshots
    land in `.presentation-inspect/<slug>/step-NN.png`, captured after animations settle) and
    **look at** the first step, the last step, and any dense or key steps; also a narrow
-   viewport (`npm run inspect -- <slug> --viewport 390x844`) for responsive-sensitive
-   presentations. Confirm important content fits the canvas, intentional overlaps stay
+   viewport (`npm run inspect -- <slug> --viewport 390x844`, saved separately in
+   `.presentation-inspect/<slug>-390x844/`) for responsive-sensitive presentations. Confirm important content fits the canvas, intentional overlaps stay
    readable, and nothing collides with captions, progress dots, ToC, or nav controls.
    If no helper exists, write any temporary Playwright script **inside the project root**
    so it resolves local dependencies.
 4. Review every advisory warning the helper prints (`overlap`, `active-nav`,
-   `attribution`): fix accidental collisions, make the active chrome distinct, polish the
-   attribution via its hook, and only mark genuinely intentional readable overlaps with
-   `data-presentation-allow-overlap`. Re-run until warnings are resolved or explained.
+   `attribution`). The overlap check compares text with text and chrome, so it can miss a
+   label crossing a box border: the screenshots remain the authority. Fix accidental collisions, make the active chrome distinct, polish the
+   attribution via its hook (avoid `transform: scale` on dots or ToC entries: it makes
+   neighbours touch and trips the overlap check), and only mark genuinely intentional readable overlaps with
+   `data-presentation-allow-overlap`. Re-run until every warning is resolved or explained in your report (what overlaps, and why it is intentional and readable).
 5. Report the final build, render, and visual-check results and any remaining advisory
    warnings accurately.
 

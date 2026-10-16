@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { PRESENTATIONS } from '../../src/presentations/index.ts'
-import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps/index.ts'
+import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps.ts'
 import { resolvePresentation } from '../../src/routes.ts'
 
 const ROOT = join(import.meta.dirname, '..', '..')

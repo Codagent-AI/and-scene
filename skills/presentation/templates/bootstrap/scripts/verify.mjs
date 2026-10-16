@@ -46,15 +46,35 @@ function loadReferences() {
   return refs
 }
 
+const SOURCE = /\.[tj]sx?$/
+const SKIP = new Set(['node_modules', 'dist', '.git', '.inspection'])
+
+function sourceFiles(dir) {
+  if (!fs.existsSync(dir)) return []
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const full = path.join(dir, e.name)
+    if (e.isDirectory()) return SKIP.has(e.name) ? [] : sourceFiles(full)
+    return SOURCE.test(e.name) ? [full] : []
+  })
+}
+
+/**
+ * The reference must be a registry entry (`slug` + lazy `load`) whose imported module exists.
+ * The registry is found by contract, not by name, so renamed registry files and folders verify too.
+ */
 function checkRegistered(slug) {
-  const index = path.join(root, 'src', 'presentations', 'index.ts')
-  if (!fs.existsSync(index)) throw new Failure('sample', 'src/presentations/index.ts is missing')
-  if (!fs.readFileSync(index, 'utf8').includes(`slug: '${slug}'`)) {
-    throw new Failure('sample', `reference presentation "${slug}" is not registered in src/presentations/index.ts`)
+  const entry = new RegExp(`slug:\\s*['"]${slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"][\\s\\S]*?load:[\\s\\S]*?import\\(\\s*['"]([^'"]+)['"]`)
+  for (const file of sourceFiles(path.join(root, 'src'))) {
+    const found = fs.readFileSync(file, 'utf8').match(entry)
+    if (!found) continue
+    const base = path.resolve(path.dirname(file), found[1])
+    const rel = path.relative(root, file)
+    if (!['', '.ts', '.tsx', '.js', '.jsx'].some((x) => fs.existsSync(base + x) && fs.statSync(base + x).isFile())) {
+      throw new Failure('sample', `reference presentation "${slug}" is registered in ${rel} but ${found[1]} does not exist`)
+    }
+    return
   }
-  if (!fs.existsSync(path.join(root, 'src', 'presentations', slug))) {
-    throw new Failure('sample', `reference presentation folder src/presentations/${slug}/ is missing`)
-  }
+  throw new Failure('sample', `reference presentation "${slug}" is not registered in any presentation registry under src/`)
 }
 
 async function render(reference, preview, browser) {

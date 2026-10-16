@@ -103,6 +103,32 @@ describe('E2E-002 verification failures', () => {
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
+  it('verifies a project whose kit and registry were renamed, using a presentation made by create.mjs', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'and-scene-renamed-'))
+    const scripts = path.join(REPO, 'skills/presentation/scripts')
+    expect(node(os.tmpdir(), [path.join(scripts, 'scaffold.mjs'), dir]).code).toBe(0)
+    fs.symlinkSync(path.join(REPO, 'node_modules'), path.join(dir, 'node_modules'))
+    fs.renameSync(path.join(dir, 'src/presentation-kit'), path.join(dir, 'src/scene-kit'))
+    fs.renameSync(path.join(dir, 'src/presentations'), path.join(dir, 'src/talks'))
+    fs.renameSync(path.join(dir, 'src/talks/index.ts'), path.join(dir, 'src/talks/registry.ts'))
+    for (const rel of ['src/Router.tsx', 'src/Landing.tsx', 'src/route.ts', 'src/talks/example/Talk.tsx', 'src/talks/example/steps/Scene.tsx', 'src/talks/example/steps/index.ts']) {
+      edit(dir, rel, (s) => s.replaceAll("presentation-kit'", "scene-kit'").replace(/(['"])\.\/presentations\1/g, "'./talks/registry'"))
+    }
+    const made = node(dir, [path.join(scripts, 'create.mjs'), dir, 'round-one', 'Round One'])
+    expect(made.code, made.out).toBe(0)
+    fs.writeFileSync(
+      path.join(dir, 'verify.config.json'),
+      JSON.stringify({ reference: { slug: 'round-one', steps: [
+        { title: 'Round One', caption: 'Replace this caption with the first beat of the story.' },
+        { title: 'A second beat', caption: 'Entities from the previous step stay put; new ones enter after they settle.' },
+      ] } }),
+    )
+    const v = node(dir, ['scripts/verify.mjs'])
+    expect(v.code, v.out).toBe(0)
+    expect(v.out).toContain('VERIFY PASSED')
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
   it('keeps a scaffolded presentation reachable in an existing app with its own entry point', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'and-scene-partial-'))
     const skill = path.join(REPO, 'skills/presentation/scripts/scaffold.mjs')

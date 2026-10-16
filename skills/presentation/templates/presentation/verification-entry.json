@@ -1,0 +1,3 @@
+Append to the "presentations" array of scripts/verification.config.json (keep existing entries; omit expectedSteps unless you want titles/captions asserted in order):
+
+    { "slug": "{{slug}}" }

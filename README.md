@@ -36,6 +36,26 @@ npx playwright install chromium
   `data-presentation-allow-overlap`; style attribution via
   `data-presentation-attribution`.
 
+## Presentation skill
+
+`skills/presentation/SKILL.md` is the distributable agent skill. Its
+`templates/bootstrap/` folder is a self-contained, style-neutral app snapshot
+(Vite + React + TypeScript, the scene kit, a registered `starter` presentation,
+and the verify/inspect scripts); `templates/presentation/` holds the files for a
+new presentation. Template paths are resolved relative to `SKILL.md`.
+
+The snapshot copies of `src/presentation-kit/`, `src/main.tsx`,
+`src/Landing.tsx`, `src/routes.ts`, and the two scripts must stay identical to
+the canonical sources. After changing any of them run:
+
+```bash
+npm run sync:templates            # regenerate the snapshot copies
+node scripts/sync-bootstrap-templates.mjs --check   # fail on drift
+```
+
+`npm test` asserts alignment and builds and verifies a materialized copy of the
+bootstrap outside the repository (needs network or an npm cache for `npm ci`).
+
 ## Current State
 
 This repository currently contains a minimal Vite, React, and TypeScript

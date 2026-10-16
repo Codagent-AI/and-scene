@@ -10,7 +10,8 @@
     "test": "vitest run",
     "preview": "vite preview",
     "verify": "node scripts/verify.mjs",
-    "inspect": "node scripts/inspect-presentation.mjs"
+    "inspect": "node scripts/inspect-presentation.mjs",
+    "sync:templates": "node scripts/sync-bootstrap-templates.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

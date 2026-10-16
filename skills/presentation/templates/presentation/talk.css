@@ -1,0 +1,10 @@
+/* All visual styling for this presentation lives here; the kit is style-neutral.
+   Replace the {{placeholders}} with the designed look. */
+
+/* ---- chrome: use the stable data-presentation-* hooks ---- */
+[data-presentation-progress-item][data-presentation-active='true'] { /* make the current step visibly distinct */ }
+[data-presentation-toc-entry][data-presentation-active='true'] { /* make the current entry visibly distinct */ }
+[data-presentation-attribution] { /* keep the attribution legible against the stage */ }
+
+/* ---- scene ---- */
+.scene .subject { position: absolute; }

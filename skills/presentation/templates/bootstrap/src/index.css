@@ -1,0 +1,8 @@
+/* Minimal sizing only. Palette, typography, and spacing belong to each presentation. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

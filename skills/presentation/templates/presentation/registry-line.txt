@@ -1,0 +1,3 @@
+Append inside the `presentations` array of src/presentations/index.ts (one new line, keep existing entries):
+
+  { slug: '{{slug}}', title: '{{Presentation Title}}', load: () => import('./{{slug}}/Talk') },

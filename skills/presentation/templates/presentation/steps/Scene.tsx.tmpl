@@ -1,0 +1,32 @@
+import { Appear, Box, Label, SceneLayer, type SceneProps } from '../../../presentation-kit'
+import { AT, ID } from '../entities'
+
+export interface Payload {
+  /** 1-based beat; entities appear at a threshold and then persist (never redrawn). */
+  n: number
+}
+
+/**
+ * One evolving scene. Persisting entities keep their id and morph in place when
+ * their `at` changes; only newcomers are wrapped in <Appear>.
+ */
+export function Scene({ payload: { n } }: SceneProps<Payload>) {
+  return (
+    <SceneLayer>
+      {n >= 1 && (
+        <Appear key="subject">
+          <Box id={ID.subject} at={AT.subject} data-kind="subject">
+            subject
+          </Box>
+        </Appear>
+      )}
+      {n >= 2 && (
+        <Appear key="detail">
+          <Label id={ID.detail} at={AT.detail} data-kind="detail">
+            detail
+          </Label>
+        </Appear>
+      )}
+    </SceneLayer>
+  )
+}

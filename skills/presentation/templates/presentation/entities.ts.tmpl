@@ -1,0 +1,12 @@
+import type { Rect } from '../../presentation-kit'
+
+/** __TITLE__: layoutId namespace and canvas coordinates (default canvas is 880 × 380). */
+export const ID = {
+  subject: '__PREFIX__-subject',
+  detail: '__PREFIX__-detail',
+} as const
+
+export const AT = {
+  subject: { x: 60, y: 120, w: 220, h: 90 },
+  detail: { x: 400, y: 130, w: 300, h: 70 },
+} satisfies Record<string, Rect>

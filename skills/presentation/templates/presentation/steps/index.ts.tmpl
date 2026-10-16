@@ -1,0 +1,24 @@
+import type { Step } from '../../../presentation-kit'
+import { Scene, type Payload } from './Scene'
+
+/** Order defines numbering. Steps sharing a groupKey keep one mounted Scene. */
+export const STEPS: Step<Payload>[] = [
+  {
+    id: 'one',
+    era: 'opening',
+    title: 'First beat',
+    caption: 'What the first state of the scene shows.',
+    groupKey: 'scene',
+    Scene,
+    payload: { n: 1 },
+  },
+  {
+    id: 'two',
+    era: 'opening',
+    title: 'Second beat',
+    caption: 'What changes in the scene; the first entity stays put.',
+    groupKey: 'scene',
+    Scene,
+    payload: { n: 2 },
+  },
+]

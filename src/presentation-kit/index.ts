@@ -1,0 +1,8 @@
+export * from './constants'
+export * from './types'
+export { computeFitScale } from './fitScale'
+export { Presentation, type PresentationProps } from './Presentation'
+export { Stage, type StageProps } from './Stage'
+export { usePresentationNav } from './usePresentationNav'
+export { useFitScale } from './useFitScale'
+export * from './nodes'

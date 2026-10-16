@@ -5,11 +5,10 @@
 // Screenshots and warnings are review artifacts, not pass/fail evidence.
 //
 // usage: npm run inspect -- <slug> [--narrow] [--viewport WxH] [--settle ms] [--out dir] [--no-build]
-import { spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { loadChromium, startPreview } from './lib/preview.mjs'
+import { buildApp, loadChromium, startPreview } from './lib/preview.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const NARROW = { width: 390, height: 844 }
@@ -123,10 +122,7 @@ function diagnose() {
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2))
-  if (opts.build) {
-    const res = spawnSync('npm', ['run', 'build'], { cwd: root, stdio: 'inherit' })
-    if (res.status !== 0) throw new Error('npm run build failed')
-  }
+  if (opts.build && !buildApp(root)) throw new Error('npm run build failed')
   rmSync(opts.out, { recursive: true, force: true })
   mkdirSync(opts.out, { recursive: true })
 

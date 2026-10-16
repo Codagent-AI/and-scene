@@ -1,9 +1,14 @@
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import net from 'node:net'
 import path from 'node:path'
 
 export const HOST = '127.0.0.1'
+
+/** Run `npm run build` for `root`; returns whether it succeeded. */
+export function buildApp(root) {
+  return spawnSync('npm', ['run', 'build'], { cwd: root, stdio: 'inherit' }).status === 0
+}
 
 function freePort() {
   return new Promise((resolve, reject) => {

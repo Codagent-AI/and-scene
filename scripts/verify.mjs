@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 // Deterministic verification gate: build, reference-outline check, then render
 // every step of each presentation in Chromium against `vite preview` on 127.0.0.1.
-import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { loadChromium, startPreview } from './lib/preview.mjs'
+import { buildApp, loadChromium, startPreview } from './lib/preview.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const config = JSON.parse(readFileSync(path.join(root, 'scripts', 'verify.config.json'), 'utf8'))
@@ -20,8 +19,7 @@ class VerifyError extends Error {
 }
 
 function build() {
-  const res = spawnSync('npm', ['run', 'build'], { cwd: root, stdio: 'inherit' })
-  if (res.status !== 0) throw new VerifyError('build', 'npm run build failed')
+  if (!buildApp(root)) throw new VerifyError('build', 'npm run build failed')
 }
 
 function registeredSlugs() {

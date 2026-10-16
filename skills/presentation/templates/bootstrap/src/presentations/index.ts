@@ -1,0 +1,16 @@
+import type { ComponentType } from 'react'
+
+export interface PresentationEntry {
+  slug: string
+  title: string
+  load: () => Promise<{ default: ComponentType }>
+}
+
+/** Explicit registry: one line per presentation keeps registration diffable. */
+export const PRESENTATIONS: readonly PresentationEntry[] = [
+  {
+    slug: 'starter',
+    title: 'Starter presentation',
+    load: () => import('./starter/Talk'),
+  },
+]

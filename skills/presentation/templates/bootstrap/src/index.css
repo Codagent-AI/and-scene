@@ -1,0 +1,11 @@
+/* Host/app CSS only: structural reset. The reusable kit ships no visual defaults. */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

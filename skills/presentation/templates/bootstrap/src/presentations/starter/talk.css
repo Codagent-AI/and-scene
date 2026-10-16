@@ -1,0 +1,13 @@
+/*
+ * Presentation-owned styling for "Starter presentation". Plain CSS, scoped under .p-starter.
+ * The scene kit ships no visual defaults; style these stable hooks here:
+ *
+ *   [data-presentation-root] [data-presentation-header] [data-presentation-marker]
+ *   [data-presentation-title] [data-presentation-caption] [data-presentation-footer]
+ *   [data-presentation-dot][data-presentation-active]            progress indicators
+ *   [data-presentation-toc-entry][data-presentation-active]      table of contents
+ *   [data-presentation-attribution]                              "made by and-scene" link
+ *   [data-presentation-node="box|label|arrow|frame|emphasis|chip"]  plus your own classNames
+ *
+ * Make the active progress/ToC entry visibly distinct and the attribution legible.
+ */

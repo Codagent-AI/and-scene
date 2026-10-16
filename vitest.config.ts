@@ -7,7 +7,7 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: { name: 'unit', environment: 'jsdom', include: ['src/**/*.test.{ts,tsx}', 'skills/**/*.test.{ts,tsx}'] },
+        test: { name: 'unit', environment: 'jsdom', setupFiles: ['tests/setup.ts'], include: ['src/**/*.test.{ts,tsx}', 'skills/**/*.test.{ts,tsx}'] },
       },
       {
         extends: true,

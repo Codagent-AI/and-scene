@@ -12,6 +12,7 @@
     "test:integration": "vitest run --project integration",
     "test:e2e": "vitest run --project e2e",
     "verify": "node scripts/verify.mjs",
+    "sync:templates": "node scripts/sync-templates.mjs",
     "inspect": "node scripts/inspect-presentation.mjs"
   },
   "dependencies": {

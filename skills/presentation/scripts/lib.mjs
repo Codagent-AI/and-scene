@@ -11,7 +11,7 @@ export const BOOTSTRAP = path.join(TEMPLATES, 'bootstrap')
 
 const read = (p) => readFileSync(p, 'utf8')
 const json = (p) => JSON.parse(read(p))
-const listFiles = (dir) =>
+export const listFiles = (dir) =>
   readdirSync(dir).flatMap((n) => {
     const p = path.join(dir, n)
     return statSync(p).isDirectory() ? listFiles(p) : [p]

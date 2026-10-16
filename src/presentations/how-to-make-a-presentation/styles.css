@@ -1,0 +1,261 @@
+/* Visual design for "How to Use This Skill to Make a Presentation". Owned by this presentation, not the kit. */
+.htmp {
+  --paper: #14110f;
+  --ink: #f4ecda;
+  --muted: #b3a78f;
+  --line: #5a4f3f;
+  --accent: #e0a63a;
+  --green: #6fcf8f;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 1.25rem;
+  color: var(--ink);
+  background: radial-gradient(circle at 20% 0%, #2a2118 0%, var(--paper) 55%);
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+}
+.htmp *,
+.htmp *::before,
+.htmp *::after {
+  box-sizing: border-box;
+}
+
+/* chrome */
+.htmp [data-presentation-header] {
+  padding-bottom: 0.5rem;
+}
+.htmp [data-presentation-marker] {
+  color: var(--accent);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+}
+.htmp [data-presentation-title] {
+  margin: 0;
+  font-size: clamp(1.1rem, 2.2vw, 1.7rem);
+  font-weight: 600;
+}
+.htmp [data-presentation-name] {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.htmp [data-presentation-footer] {
+  padding-top: 0.5rem;
+  gap: 0.35rem;
+}
+.htmp [data-presentation-footer] [data-presentation-title] {
+  font-size: clamp(1.4rem, 3.2vw, 2.4rem);
+}
+.htmp [data-presentation-caption] {
+  margin: 0;
+  max-width: 60rem;
+  min-height: 3em;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.htmp [data-presentation-controls] {
+  padding: 0.25rem 0;
+}
+.htmp button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.htmp [data-presentation-prev],
+.htmp [data-presentation-next] {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+}
+.htmp [data-presentation-prev]:disabled,
+.htmp [data-presentation-next]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.htmp [data-presentation-progress] {
+  gap: 0.5rem;
+}
+.htmp [data-presentation-dot] {
+  width: 0.7rem;
+  height: 0.7rem;
+  padding: 0;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  background: transparent;
+  transition: transform 0.2s, background 0.2s;
+}
+.htmp [data-presentation-dot][data-active='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.5);
+}
+.htmp [data-presentation-toc] {
+  width: 11rem;
+  flex: none;
+  padding-right: 1rem;
+  align-self: center;
+}
+.htmp [data-presentation-toc-entry] {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  text-transform: capitalize;
+}
+.htmp [data-presentation-toc-entry][data-active='true'] {
+  border-left-color: var(--accent);
+  background: rgba(224, 166, 58, 0.16);
+  color: var(--ink);
+  font-weight: 700;
+}
+.htmp [data-presentation-attribution] {
+  color: var(--accent);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+}
+.htmp [data-presentation-attribution]:hover {
+  color: var(--ink);
+}
+
+/* diagram */
+.htmp [data-presentation-node='arrow'] {
+  color: var(--muted);
+}
+.htmp [data-presentation-node='arrow'] path[stroke] {
+  stroke-width: 2;
+}
+.htmp [data-presentation-node='arrow'][data-dashed='true'] path[stroke] {
+  stroke-dasharray: 5 4;
+}
+.htmp [data-presentation-node='box'],
+.htmp [data-presentation-node='chip'] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.3rem;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: #211b15;
+  font-size: 15px;
+  text-align: center;
+}
+.htmp [data-presentation-icon] {
+  width: 1.1em;
+  height: 1.1em;
+  flex: none;
+}
+.htmp [data-role='you'],
+.htmp [data-role='skill'] {
+  font-size: 20px;
+  border-color: var(--accent);
+}
+.htmp [data-role='prompt'],
+.htmp [data-role='question'],
+.htmp [data-role='depth'],
+.htmp [data-role='check'],
+.htmp [data-role='pass'],
+.htmp [data-role='flag'] {
+  flex-direction: row;
+  border-radius: 999px;
+  font-size: 12px;
+  font-style: italic;
+}
+.htmp [data-role='check'] {
+  font-style: normal;
+}
+.htmp [data-role='card'] {
+  align-items: stretch;
+  justify-content: flex-start;
+  font-size: 11px;
+  text-align: left;
+}
+.htmp [data-role='card'] [data-part] {
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgba(244, 236, 218, 0.07);
+}
+.htmp [data-role='card'] [data-part='index'] {
+  background: none;
+  color: var(--accent);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+.htmp [data-role='card'] [data-part='visual'] {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px dashed var(--line);
+  background: none;
+}
+.htmp [data-role='ghost'] {
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+}
+.htmp [data-role='socket'] {
+  border-style: dashed;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-size: 12px;
+}
+.htmp [data-role='verify'] {
+  justify-content: flex-start;
+  padding-top: 0.5rem;
+  border-color: var(--green);
+  color: var(--green);
+}
+.htmp [data-role='pass'] {
+  border-color: var(--green);
+  color: var(--green);
+  font-style: normal;
+}
+.htmp [data-role='flag'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--paper);
+  font-style: normal;
+  font-size: 11px;
+  padding: 0 4px;
+}
+.htmp [data-role='tray'],
+.htmp [data-role='link-label'] {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: italic;
+  text-align: center;
+  white-space: nowrap;
+}
+.htmp [data-role='tray'] {
+  text-align: left;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.htmp [data-presentation-node='emphasis'] {
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 0 18px rgba(224, 166, 58, 0.45);
+}
+.htmp [data-presentation-node='frame'] {
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+}
+.htmp [data-role='frame-label'] {
+  color: var(--accent);
+  font-size: 15px;
+  font-style: italic;
+  text-align: right;
+}

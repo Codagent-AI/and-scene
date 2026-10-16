@@ -77,7 +77,8 @@ untouched. Then edit those files for the gathered content:
 - `Scene.tsx` / `steps.ts`: compose kit primitives (`Box`, `Label`, `Arrow`, `Frame`,
   `Emphasis`, `SymbolChip`, `SceneLayer`) from `src/presentation-kit`. Steps in one
   `groupKey` with the same `Scene` keep a single mounted scene, so only `payload` changes.
-  Wrap **newcomers** in `<Appear>`; never wrap entities that continue. Accumulate or
+  Wrap **newcomers** in `<Appear>`; never wrap entities that continue. Give every direct
+  child of `<SceneLayer>` a unique `key` (needed for exit animations). Accumulate or
   transform entities rather than redrawing them.
 - `styles.css`: **all visual design lives here** (or in the host's CSS), targeting the kit's
   `data-presentation-*` hooks, `data-active`, and `aria-current`. Plain CSS by default.

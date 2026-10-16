@@ -111,12 +111,8 @@ export function checkSample(entry, root = ROOT) {
   if (problem) throw new PhaseError('sample', `${entry.slug}: ${problem}`)
 }
 
-function ROOT_OF_VITE() {
-  return path.join(ROOT, 'node_modules')
-}
-
 function viteBin() {
-  const dir = path.join(ROOT_OF_VITE(), 'vite')
+  const dir = path.join(ROOT, 'node_modules', 'vite')
   return path.join(dir, JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')).bin.vite)
 }
 

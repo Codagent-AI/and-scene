@@ -209,6 +209,19 @@ describe('scaffold helper', () => {
     expect(readFileSync(join(dir, 'src/presentations/third/Scene.tsx'), 'utf8')).toContain("'../../scene-kit/index.ts'")
   })
 
+  it('sanitizes titles that would break the registry string or the CSS comment', () => {
+    const dir = standalone()
+    newPresentation(dir, 'odd', "Line one\nline */ two 'x'")
+    expect(listPresentations(dir).find((p: { slug: string }) => p.slug === 'odd')?.title).toBe('line one line two x'.replace('line one', 'Line one'))
+    expect(readFileSync(join(dir, 'src/presentations/odd/styles.css'), 'utf8').split('*/')[0]).not.toContain('\n')
+  })
+
+  it('names the file when package.json is not valid JSON', () => {
+    const dir = tmp()
+    writeFileSync(join(dir, 'package.json'), '{ nope')
+    expect(() => detect(dir)).toThrow(/invalid JSON in .*package\.json/)
+  })
+
   it('resolves templates from the skill directory regardless of cwd', () => {
     const dir = tmp()
     const elsewhere = tmp()

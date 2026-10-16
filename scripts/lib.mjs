@@ -16,6 +16,17 @@ export class CheckError extends Error {
   }
 }
 
+/** Cleanup callbacks (preview server, browser) run on Ctrl-C / SIGTERM before exiting. */
+export const cleanups = new Set()
+let signalled = false
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => {
+    if (signalled) return
+    signalled = true
+    Promise.allSettled([...cleanups].map((fn) => fn())).finally(() => process.exit(130))
+  })
+}
+
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 export function freePort() {
@@ -65,24 +76,18 @@ export async function startPreview() {
       child.kill('SIGTERM')
     }
   }
-  const onSignal = () => {
-    stop()
-    process.exit(130)
-  }
-  process.once('SIGINT', onSignal)
-  process.once('SIGTERM', onSignal)
   const cleanup = () => {
     stop()
-    process.off('SIGINT', onSignal)
-    process.off('SIGTERM', onSignal)
+    cleanups.delete(cleanup)
   }
+  cleanups.add(cleanup)
   for (let i = 0; i < 100; i++) {
     if (exited) {
       cleanup()
       throw new CheckError('preview', `preview server exited early:\n${output}`)
     }
     try {
-      const res = await fetch(`${base}/`)
+      const res = await fetch(`${base}/`, { signal: AbortSignal.timeout(1000) })
       if (res.ok) return { base, stop: cleanup }
     } catch {
       /* not ready yet */

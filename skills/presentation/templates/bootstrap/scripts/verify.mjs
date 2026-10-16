@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Deterministic verification: build, reference sample check, production render of every step.
 import { join } from 'node:path'
-import { CheckError, HOST, ROOT, SELECTORS, launchBrowser, readJson, registeredSlugs, run, sleep, startPreview } from './lib.mjs'
+import { CheckError, cleanups, HOST, ROOT, SELECTORS, launchBrowser, readJson, registeredSlugs, run, sleep, startPreview } from './lib.mjs'
 
 const STEP_TIMEOUT = 5000
 // Longer than the kit's slowest entrance (layout settle + newcomer fade), so late errors surface in their step.
@@ -78,6 +78,7 @@ async function verify() {
   let browser
   try {
     browser = await launchBrowser()
+    cleanups.add(() => browser.close())
     const probe = await browser.newPage()
     const slugs = await registeredSlugs(probe, preview.base)
     await probe.close()

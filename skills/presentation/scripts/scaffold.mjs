@@ -16,7 +16,15 @@ const BOOTSTRAP = join(SKILL_DIR, 'templates', 'bootstrap')
 const PRESENTATION_TEMPLATE = join(SKILL_DIR, 'templates', 'presentation')
 
 const readText = (p) => readFileSync(p, 'utf8')
-const readPkg = (dir) => (existsSync(join(dir, 'package.json')) ? JSON.parse(readText(join(dir, 'package.json'))) : null)
+const readPkg = (dir) => {
+  const path = join(dir, 'package.json')
+  if (!existsSync(path)) return null
+  try {
+    return JSON.parse(readText(path))
+  } catch (e) {
+    throw new Error(`invalid JSON in ${path}: ${e.message}`)
+  }
+}
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -193,7 +201,7 @@ export function newPresentation(dir, slug, title) {
   const path = registryPath(app)
   const folder = join(dirname(path), slug)
   if (existsSync(folder) || listPresentations(dir).some((p) => p.slug === slug)) throw new Error(`presentation "${slug}" already exists`)
-  const safeTitle = title.replace(/[\\'"<>&{}`]/g, '')
+  const safeTitle = title.replace(/[\\'"<>&{}`]|\*\/|[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()
   const values = { slug, title: safeTitle }
   ;[1, 2, 3].forEach((n) => Object.assign(values, { [`era${n}`]: 'start', [`title${n}`]: `Step ${n}`, [`caption${n}`]: 'Describe this step.' }))
   // Templates import the kit as `../../presentation-kit/index.ts`; point that at wherever this project keeps it.

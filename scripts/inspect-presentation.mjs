@@ -3,7 +3,7 @@
 // visual-quality warnings. Warnings never change the exit code: they are inspection evidence.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { CheckError, HOST, ROOT, SELECTORS, launchBrowser, run, sleep, startPreview } from './lib.mjs'
+import { CheckError, cleanups, HOST, ROOT, SELECTORS, launchBrowser, run, sleep, startPreview } from './lib.mjs'
 
 const DEFAULT_VIEWPORT = '1440x900'
 const USAGE = 'usage: npm run inspect -- <slug> [--settle <ms>] [--viewport <WxH>] [--mode browse|present] [--out <dir>] [--no-build]'
@@ -116,12 +116,17 @@ async function inspect(opts) {
   const report = { slug: opts.slug, settleMs: opts.settle, viewport: opts.size, steps: [], warnings: [] }
   try {
     browser = await launchBrowser()
+    cleanups.add(() => browser.close())
     const page = await browser.newPage({ viewport: opts.size })
     const errors = []
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
     page.on('pageerror', (e) => errors.push(e.message))
     await page.goto(`${preview.base}/${opts.slug}`)
-    await page.waitForSelector(SELECTORS.root, { timeout: 10000 })
+    try {
+      await page.waitForSelector(SELECTORS.root, { timeout: 10000 })
+    } catch {
+      throw new CheckError('render', `/${opts.slug}: presentation did not render (is the slug registered in the presentation index?)`)
+    }
     if (opts.mode && (await page.getAttribute(SELECTORS.root, 'data-mode')) !== opts.mode) await page.keyboard.press('p')
     const count = Number(await page.getAttribute(SELECTORS.root, 'data-step-count'))
     for (let i = 0; i < count; i++) {

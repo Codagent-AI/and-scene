@@ -1,0 +1,4 @@
+- [ ] [Build the style-neutral scene kit, router, and registry](tasks/01-scene-kit-and-host.md)
+- [ ] [Build the committed reference presentation](tasks/02-reference-presentation.md)
+- [ ] [Add production verification and screenshot inspection](tasks/03-verification-and-inspection.md)
+- [ ] [Author the presentation skill and bootstrap templates](tasks/04-skill-and-bootstrap.md)

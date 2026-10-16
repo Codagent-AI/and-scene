@@ -1,0 +1,19 @@
+{
+  "reference": {
+    "slug": "getting-started",
+    "steps": [
+      {
+        "title": "Name the idea",
+        "caption": "Every presentation starts as one idea on one canvas."
+      },
+      {
+        "title": "Let it grow",
+        "caption": "Each step changes the same scene instead of replacing it."
+      },
+      {
+        "title": "Make it yours",
+        "caption": "Replace this starter with a presentation about your topic."
+      }
+    ]
+  }
+}

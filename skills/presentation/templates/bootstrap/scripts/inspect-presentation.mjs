@@ -70,16 +70,17 @@ function diagnose() {
     }
   }
 
-  const looks = (el) => {
+  // Entries of different text length differ in width, so size only counts for progress dots.
+  const looks = (el, withSize) => {
     const s = getComputedStyle(el)
-    return ['backgroundColor', 'color', 'borderTopColor', 'borderLeftColor', 'width', 'height', 'transform', 'opacity', 'fontWeight', 'boxShadow', 'textDecorationLine']
+    return ['backgroundColor', 'color', 'borderTopColor', 'borderLeftColor', 'transform', 'opacity', 'fontWeight', 'boxShadow', 'textDecorationLine', ...(withSize ? ['width', 'height'] : [])]
       .map((k) => s[k])
       .join('|')
   }
-  for (const [name, sel] of [['progress indicator', '[data-presentation-dot]'], ['table-of-contents entry', '[data-presentation-toc-entry]']]) {
+  for (const [name, sel, withSize] of [['progress indicator', '[data-presentation-dot]', true], ['table-of-contents entry', '[data-presentation-toc-entry]', false]]) {
     const active = document.querySelector(`${sel}[data-active="true"]`)
     const inactive = document.querySelector(`${sel}:not([data-active="true"])`)
-    if (active && inactive && looks(active) === looks(inactive)) {
+    if (active && inactive && looks(active, withSize) === looks(inactive, withSize)) {
       warnings.push(`active-chrome: the active ${name} looks identical to inactive ones; style ${sel}[data-active="true"]`)
     }
   }

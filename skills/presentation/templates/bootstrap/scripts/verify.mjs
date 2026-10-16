@@ -39,9 +39,10 @@ async function render(reference) {
   const browser = await chromium.launch()
   try {
     const page = await browser.newPage()
-    let step = 0
+    // `current` is the step being rendered, so errors raised by a transition belong to its target.
+    let current = 0
     const errors = []
-    const note = (kind, text) => errors.push(new Failure('render', `${kind}: ${text}`, step))
+    const note = (kind, text) => errors.push(new Failure('render', `${kind}: ${text}`, current))
     page.on('console', (m) => m.type() === 'error' && note('console.error', m.text()))
     page.on('pageerror', (e) => note('pageerror', e.message))
 
@@ -59,7 +60,8 @@ async function render(reference) {
     }
     if (!(await page.$('[data-presentation-caption]'))) await page.keyboard.press('p')
 
-    for (step = 0; step < count; step++) {
+    for (let step = 0; step < count; step++) {
+      current = step
       if (!(await waitForIndex(page, step))) {
         throw new Failure('transition', `step index did not advance to ${step} (at ${await readIndex(page)})`, step)
       }
@@ -71,7 +73,10 @@ async function render(reference) {
         throw new Failure('sample', `step ${step} title/caption differ from the reference (got "${title}")`, step)
       }
       if (errors.length) throw errors[0]
-      if (step < count - 1) await page.keyboard.press('ArrowRight')
+      if (step < count - 1) {
+        current = step + 1
+        await page.keyboard.press('ArrowRight')
+      }
     }
     await page.waitForTimeout(500)
     if (errors.length) throw errors[0]

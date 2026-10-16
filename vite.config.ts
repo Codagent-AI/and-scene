@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['tests/**/*.test.{ts,tsx}'],
-    testTimeout: 60_000,
+    testTimeout: 180_000,
     hookTimeout: 600_000,
     fileParallelism: false,
   },

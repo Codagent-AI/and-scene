@@ -1,0 +1,36 @@
+// Controlled fixture, copied to src/presentations/inspection-fixture/Talk.tsx in disposable repo copies only.
+import { Presentation } from '../../presentation-kit'
+import type { SceneProps, Step } from '../../presentation-kit'
+
+const abs = { position: 'absolute', left: 100, top: 100, fontSize: 24 } as const
+
+function Calm({ stepIndex }: SceneProps) {
+  return <div style={abs}>calm {stepIndex}</div>
+}
+function Collision() {
+  return (
+    <div>
+      <div style={abs}>collision alpha</div>
+      <div style={{ ...abs, top: 108 }}>collision beta</div>
+    </div>
+  )
+}
+function Allowed() {
+  return (
+    <div data-presentation-allow-overlap="">
+      <div style={abs}>allowed alpha</div>
+      <div style={{ ...abs, top: 108 }}>allowed beta</div>
+    </div>
+  )
+}
+
+const meta = (id: string, n: number) => ({ id, era: 'fixture', title: `Fixture ${n}`, caption: `caption ${n}` })
+const steps: Step[] = [
+  { ...meta('calm', 1), scene: Calm, payload: undefined },
+  { ...meta('collision', 2), scene: Collision, payload: undefined },
+  { ...meta('allowed', 3), scene: Allowed, payload: undefined },
+]
+
+export default function Talk() {
+  return <Presentation steps={steps} title="Fixture" initialMode="browse" />
+}

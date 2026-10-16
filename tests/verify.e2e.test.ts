@@ -27,6 +27,17 @@ const faults: { name: string; apply: (dir: string) => void; expect: RegExp }[] =
     expect: /VERIFY FAILED phase=sample.*not registered/,
   },
   {
+    name: 'sample entry without a loader of its own, followed by another entry that has one',
+    apply: (d) =>
+      edit(d, 'src/presentations/index.ts', (s) =>
+        s
+          .replace("load: () => import('./how-to-make-a-presentation/Talk'),", 'load: loader,')
+          .replace('export const presentations', "const loader = () => import('./how-to-make-a-presentation/Talk')\nexport const presentations")
+          .replace(/\n\]\s*$/, "\n  { slug: 'decoy', title: 'Decoy', load: () => import('./how-to-make-a-presentation/Talk') },\n]\n"),
+      ),
+    expect: /VERIFY FAILED phase=sample.*"how-to-make-a-presentation" is not registered/,
+  },
+  {
     name: 'canonical sample replaced by another reference and configuration',
     apply: (d) => {
       const tpl = path.join(d, 'skills/presentation/templates/bootstrap')

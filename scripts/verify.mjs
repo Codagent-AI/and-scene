@@ -59,22 +59,24 @@ function sourceFiles(dir) {
 }
 
 /**
- * The reference must be a registry entry (`slug` + lazy `load`) whose imported module exists.
+ * The reference must be a registry entry (`slug` + lazy `load`, matched within that one entry) whose imported module exists.
  * The registry is found by contract, not by name, so renamed registry files and folders verify too.
  */
 function checkRegistered(slug) {
-  const entry = new RegExp(`slug:\\s*['"]${slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"][\\s\\S]*?load:[\\s\\S]*?import\\(\\s*['"]([^'"]+)['"]`)
+  const entry = new RegExp(`slug:\\s*['"]${slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"][^{}]*?load:[^{}]*?import\\(\\s*['"]([^'"]+)['"]`)
   for (const file of sourceFiles(path.join(root, 'src'))) {
     const found = fs.readFileSync(file, 'utf8').match(entry)
     if (!found) continue
     const base = path.resolve(path.dirname(file), found[1])
     const rel = path.relative(root, file)
-    if (!['', '.ts', '.tsx', '.js', '.jsx'].some((x) => fs.existsSync(base + x) && fs.statSync(base + x).isFile())) {
+    const exts = ['.ts', '.tsx', '.js', '.jsx']
+    const candidates = [base, ...exts.map((x) => base + x), ...exts.map((x) => path.join(base, `index${x}`))]
+    if (!candidates.some((c) => fs.existsSync(c) && fs.statSync(c).isFile())) {
       throw new Failure('sample', `reference presentation "${slug}" is registered in ${rel} but ${found[1]} does not exist`)
     }
     return
   }
-  throw new Failure('sample', `reference presentation "${slug}" is not registered in any presentation registry under src/`)
+  throw new Failure('sample', `reference presentation "${slug}" is not registered in any presentation registry under src/ (an entry needs its own { slug, load: () => import('./...') })`)
 }
 
 async function render(reference, preview, browser) {

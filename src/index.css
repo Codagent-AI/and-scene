@@ -1,0 +1,26 @@
+/* Host app styles only; the presentation kit ships no CSS. */
+:root {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #f8f3e6;
+  background: #0d0c0b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #0d0c0b;
+}
+
+.landing {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+.landing a {
+  color: #e8c76a;
+}

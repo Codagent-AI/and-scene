@@ -1,25 +1,27 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT } from './constants'
+import type { Mode } from './types'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+export function fitScale(w: number, h: number, mode: Mode, dw = DESIGN_W, dh = DESIGN_H): number {
+  const { insetX, insetY } = STAGE_LAYOUT[mode]
+  const s = Math.min((w - insetX * 2) / dw, (h - insetY * 2) / dh)
+  return Math.max(Number.isFinite(s) ? s : MIN_SCALE, MIN_SCALE)
+}
 
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
+/** Uniform scale fitting the design canvas inside the observed element. */
+export function useFitScale(mode: Mode, dw = DESIGN_W, dh = DESIGN_H) {
+  const ref = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
+
   useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
-    }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+    const el = ref.current
+    if (!el) return
+    const update = () => setScale(fitScale(el.clientWidth, el.clientHeight, mode, dw, dh))
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [mode, dw, dh])
+
+  return { ref, scale }
 }

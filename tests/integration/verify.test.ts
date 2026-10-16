@@ -44,7 +44,7 @@ describe('E2E-002: verification failures are actionable', () => {
   })
 
   it('fails the reference phase when the sample is not registered', () => {
-    const res = verifyWithFault((dir) => replaceIn(dir, 'src/presentations/index.ts', /  \{[^}]*how-to-make-a-presentation[^}]*\},\n/s, ''))
+    const res = verifyWithFault((dir) => replaceIn(dir, 'src/presentations/index.ts', / {2}\{[^}]*how-to-make-a-presentation[^}]*\},\n/s, ''))
     expect(res.code).not.toBe(0)
     expect(res.out).toMatch(/FAIL phase=reference: reference presentation "how-to-make-a-presentation" is not registered/)
   })

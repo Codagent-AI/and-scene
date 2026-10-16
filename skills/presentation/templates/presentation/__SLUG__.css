@@ -1,0 +1,16 @@
+/* Presentation-local styling for "__TITLE__".
+   The scene kit supplies hooks only; every visual decision lives in this file.
+   Scope rules under [data-presentation-root]. Plain CSS by default. */
+
+/* [data-presentation-root] { background / color / font-family go here } */
+
+/* Chrome hooks to style: [data-presentation-header], [data-presentation-toc-item],
+   [data-presentation-progress-item], and the attribution link. */
+
+/* Make the active step visibly distinct (progress + TOC): */
+/* [data-presentation-root] [data-presentation-active="true"] { ... } */
+
+/* Attribution must stay legible: */
+/* [data-presentation-root] [data-presentation-attribution] { ... } */
+
+/* Entity classes used by Scene.tsx: .__SLUG__-scene, .__SLUG__-subject, .__SLUG__-detail */

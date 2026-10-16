@@ -1,10 +1,28 @@
 # and-scene
 
-And Scene is a project for building a presentation-generation agent skill.
+And Scene is a presentation-generation agent skill plus the React scene kit it targets.
+The skill lives in [`skills/presentation/SKILL.md`](skills/presentation/SKILL.md): it interviews
+you one question at a time, self-bootstraps a missing scaffold (standalone at the root, or a
+self-contained app under `presentations/` in a monorepo), generates or modifies a registered
+presentation, and self-verifies with build, render, and visual inspection.
 
 The intended presentation model is not a stack of unrelated slides. It is one
 diagrammatic scene that evolves through named steps: elements appear, move,
 collapse, connect, and re-label as the talk arc develops.
+
+## Repository layout
+
+- `skills/presentation/` — the distributable skill: `SKILL.md`, `templates/bootstrap/`
+  (complete buildable app snapshot with its own `package-lock.json`, an empty registry, and
+  byte-identical copies of the kit and scripts) and `templates/presentation/` (new-presentation
+  files plus the one-line registry entry).
+- `src/presentation-kit/` — canonical style-neutral scene kit.
+- `src/presentations/` — explicit registry and the worked sample `how-to-make-a-presentation`.
+- `scripts/verify.mjs`, `scripts/inspect-presentation.mjs` — render gate and screenshot helper.
+
+Drift tests (`npm test`) keep the template kit and scripts byte-aligned with the canonical
+copies; `npm run test:browser` materializes the bootstrap in a temp dir (outside the repo),
+installs from its lockfile, and builds and verifies a template-made presentation.
 
 ## Development
 
@@ -15,6 +33,8 @@ npm test            # Vitest unit + contract tests (jsdom)
 npm run test:browser # Playwright-backed *.browser.test.ts files only
 npm run lint
 npm run build
+npm run verify       # build + browser render of every step
+npm run inspect -- how-to-make-a-presentation
 ```
 
 ## Scene kit contract

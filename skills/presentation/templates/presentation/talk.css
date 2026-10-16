@@ -1,0 +1,6 @@
+/*
+ * Presentation-owned styling. The scene kit ships no visual defaults and only
+ * exposes data-presentation-* hooks; style them here with plain CSS, e.g.
+ *   .__SLUG__ [data-presentation-dot][data-active='true'] { ... }
+ *   .__SLUG__ [data-presentation-attribution] { ... }
+ */

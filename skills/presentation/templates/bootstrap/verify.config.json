@@ -1,0 +1,9 @@
+{
+  "reference": {
+    "slug": "example",
+    "steps": [
+      { "title": "Example Presentation", "caption": "Replace this caption with the first beat of the story." },
+      { "title": "A second beat", "caption": "Entities from the previous step stay put; new ones enter after they settle." }
+    ]
+  }
+}

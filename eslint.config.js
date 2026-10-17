@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', '.inspection', '.fixture-dist', 'skills/**/templates/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -17,6 +17,17 @@ export default defineConfig([
     ],
     languageOptions: {
       globals: globals.browser,
+    },
+  },
+  {
+    files: ['**/__tests__/**', 'tests/**'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
+  {
+    files: ['**/*.{js,mjs}'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
     },
   },
 ])

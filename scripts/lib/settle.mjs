@@ -4,7 +4,10 @@
  */
 export const DEFAULT_SETTLE_MS = 900
 
-/** Precedence: command-line flag, then INSPECT_SETTLE_MS, then the default. */
+/**
+ * Precedence: command-line flag, then INSPECT_SETTLE_MS, then the default.
+ * @param {{ flag?: string, env?: Record<string, string | undefined> }} [options]
+ */
 export function resolveSettleMs({ flag, env = process.env } = {}) {
   for (const candidate of [flag, env.INSPECT_SETTLE_MS]) {
     if (candidate === undefined || candidate === '') continue

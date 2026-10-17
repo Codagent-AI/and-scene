@@ -16,7 +16,6 @@ export const CHROME_SELECTOR = [
   '[data-presentation-marker]',
 ].join(',')
 
-/* eslint-disable no-undef */
 export function collectDiagnostics(options) {
   const { tolerance, minFont, minHit, defaultLinkColor, chromeSelector, allowAttribute } = options
 
@@ -150,7 +149,6 @@ export function collectDiagnostics(options) {
 
   return { overlaps: overlaps.slice(0, 20), indistinct, attribution, minFont, minHit }
 }
-/* eslint-enable no-undef */
 
 export function formatWarnings(step, findings) {
   const warnings = []

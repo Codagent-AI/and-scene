@@ -35,8 +35,8 @@ export function Stage({ step, mode, canvas }: StageProps) {
           top: '50%',
           width,
           height,
-          marginLeft: -width / 2,
-          marginTop: -height / 2,
+          x: '-50%',
+          y: '-50%',
           scale,
         }}
       >

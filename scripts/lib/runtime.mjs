@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url'
 
 export const HOST = '127.0.0.1'
 
+const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
+
 /** The project root is derived from this file's location, never from the caller's cwd. */
 export const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -74,7 +76,7 @@ export function runNpm(script, cwd = projectRoot) {
  * Returns the url the server reports for itself and the url used for the readiness probe.
  */
 export async function startPreview({ root = projectRoot, port } = {}) {
-  const chosen = port ?? Number(process.env.VERIFY_PORT || 0) ?? 0
+  const chosen = port ?? Number(process.env.VERIFY_PORT || 0)
   const previewPort = chosen || (await freePort())
   const vite = join(root, 'node_modules', 'vite', 'bin', 'vite.js')
   if (!existsSync(vite)) throw new Error(`vite is not installed under ${root}`)
@@ -104,7 +106,7 @@ export async function startPreview({ root = projectRoot, port } = {}) {
     await sleep(100)
   }
   // Vite prints its own "Local:" url a moment after it starts listening.
-  const stripAnsi = (text) => text.replace(/\u001b\[[0-9;]*m/g, '')
+  const stripAnsi = (text) => text.replace(ANSI, '')
   const urlPattern = /https?:\/\/[^\s/]+:\d+/
   for (let wait = 0; wait < 20 && !urlPattern.test(stripAnsi(output)); wait++) await sleep(100)
   const reported = stripAnsi(output).match(urlPattern)?.[0]

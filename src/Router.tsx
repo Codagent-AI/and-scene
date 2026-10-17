@@ -1,17 +1,21 @@
-import { lazy, Suspense } from 'react'
+import { createElement, Suspense, use } from 'react'
 import { Landing } from './Landing'
 import { PRESENTATIONS, type PresentationEntry } from './presentations'
 import { resolveRoute } from './route'
 
-const lazyEntries = new WeakMap<PresentationEntry, ReturnType<typeof lazy>>()
+const loads = new WeakMap<PresentationEntry, ReturnType<PresentationEntry['load']>>()
 
-function lazyFor(entry: PresentationEntry) {
-  let component = lazyEntries.get(entry)
-  if (!component) {
-    component = lazy(entry.load)
-    lazyEntries.set(entry, component)
+function loadOnce(entry: PresentationEntry) {
+  let load = loads.get(entry)
+  if (!load) {
+    load = entry.load()
+    loads.set(entry, load)
   }
-  return component
+  return load
+}
+
+function Loaded({ entry }: { entry: PresentationEntry }) {
+  return createElement(use(loadOnce(entry)).default)
 }
 
 export interface RouterProps {
@@ -25,10 +29,9 @@ export function Router({
 }: RouterProps) {
   const route = resolveRoute(pathname, registry)
   if (route.kind === 'landing') return <Landing registry={registry} />
-  const Presentation = lazyFor(route.entry)
   return (
     <Suspense fallback={null}>
-      <Presentation />
+      <Loaded entry={route.entry} />
     </Suspense>
   )
 }

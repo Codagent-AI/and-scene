@@ -1,4 +1,4 @@
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, render, waitFor } from '@testing-library/react'
 import { Box as BoxIcon } from 'lucide-react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Appear } from './nodes/Appear.tsx'
@@ -82,5 +82,26 @@ describe('node primitives', () => {
     expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
     const { container } = render(<Appear>child</Appear>)
     expect(container.querySelector('[data-presentation-appear]')).not.toBeNull()
+  })
+})
+
+describe('Appear', () => {
+  it('fades in newcomers only; an entity that persists is not re-animated when others arrive', async () => {
+    const scene = (ids: string[]) => (
+      <SceneLayer>
+        {ids.map((id) => (
+          <Appear key={id}>
+            <Box id={id} />
+          </Appear>
+        ))}
+      </SceneLayer>
+    )
+    const opacityOf = (id: string) =>
+      Number(document.querySelector(`[data-presentation-id="${id}"]`)!.closest<HTMLElement>('[data-presentation-appear]')!.style.opacity)
+    const view = render(scene(['a']))
+    await waitFor(() => expect(opacityOf('a')).toBe(1), { timeout: 4000 })
+    view.rerender(scene(['a', 'b']))
+    expect(opacityOf('b')).toBeLessThan(1)
+    expect(opacityOf('a')).toBe(1)
   })
 })

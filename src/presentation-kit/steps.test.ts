@@ -27,3 +27,23 @@ describe('step helpers', () => {
     expect([clampIndex(-1, 4), clampIndex(2, 4), clampIndex(9, 4)]).toEqual([0, 2, 3])
   })
 })
+
+describe('step contract', () => {
+  it('requires every narration and identity field at compile time', () => {
+    const complete = { id: 'a', era: 'e', title: 't', caption: 'c', Scene: () => null, payload: null }
+    const steps: AnyStep[] = [
+      complete,
+      // @ts-expect-error id is required
+      { ...complete, id: undefined },
+      // @ts-expect-error era is required
+      { ...complete, era: undefined },
+      // @ts-expect-error title is required
+      { ...complete, title: undefined },
+      // @ts-expect-error caption is required
+      { ...complete, caption: undefined },
+      // @ts-expect-error Scene is required
+      { ...complete, Scene: undefined },
+    ]
+    expect(steps).toHaveLength(6)
+  })
+})

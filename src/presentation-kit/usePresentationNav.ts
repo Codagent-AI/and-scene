@@ -14,7 +14,9 @@ export interface PresentationNav {
 }
 
 export function usePresentationNav(count: number, initialMode: Mode = 'present'): PresentationNav {
-  const [index, setIndex] = useState(0)
+  const [rawIndex, setIndex] = useState(0)
+  // Steps can shrink while mounted (hot reload), so the exposed index is always in range.
+  const index = clampIndex(rawIndex, count)
   const [mode, setMode] = useState<Mode>(initialMode)
 
   const goTo = useCallback((i: number) => setIndex(clampIndex(i, count)), [count])

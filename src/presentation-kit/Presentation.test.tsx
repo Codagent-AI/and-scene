@@ -219,6 +219,23 @@ describe('navigation', () => {
   })
 })
 
+describe('degenerate step lists', () => {
+  it('renders nothing for an empty step list', () => {
+    const { container } = render(<Presentation steps={[]} title="Deck" />)
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('stays in range when the steps shrink while mounted', () => {
+    const view = render(<Presentation steps={STEPS} title="Deck" />)
+    press('ArrowRight')
+    press('ArrowRight')
+    press('ArrowRight')
+    view.rerender(<Presentation steps={STEPS.slice(0, 2)} title="Deck" />)
+    expect(index()).toBe(1)
+    expect(document.querySelector('[data-presentation-step-title]')!.textContent).toBe('Title b')
+  })
+})
+
 describe('grouped scenes', () => {
   it('keeps one scene instance across steps that share a group and Scene', () => {
     render(<Presentation steps={STEPS} title="Deck" />)

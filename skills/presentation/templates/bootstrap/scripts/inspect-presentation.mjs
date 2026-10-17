@@ -4,7 +4,7 @@
 //   npm run inspect -- <slug> [--out <dir>] [--settle <ms>] [--viewport <WxH>] [--mode browse|present]
 //                             [--skip-build] [--report <file.json>]
 // Warnings are advisory: they never change the exit code.
-import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { launchBrowser, projectRoot, registeredSlugs, runBuild, startPreview } from './lib/preview.mjs'
 
@@ -114,7 +114,10 @@ async function main() {
     const build = await runBuild(root)
     if (!build.ok) throw new Error(`npm run build failed\n${build.output}`)
   }
-  rmSync(outDir, { recursive: true, force: true })
+  // Only clear previous screenshots, never the directory itself, so a mistaken --out cannot delete anything else.
+  if (existsSync(outDir)) {
+    for (const name of readdirSync(outDir)) if (/^step-\d+\.png$/.test(name)) rmSync(path.join(outDir, name))
+  }
   mkdirSync(outDir, { recursive: true })
 
   const preview = await startPreview(root)
@@ -149,7 +152,7 @@ async function main() {
     preview.stop()
   }
   if (opts.report) writeFileSync(path.resolve(root, opts.report), JSON.stringify(report, null, 2))
-  console.log(`inspected ${readdirSync(outDir).length} steps of ${opts.slug} into ${path.relative(root, outDir)}; ${warningCount} advisory warning(s)`)
+  console.log(`inspected ${report.length} steps of ${opts.slug} into ${path.relative(root, outDir)}; ${warningCount} advisory warning(s)`)
 }
 
 main().catch((error) => {

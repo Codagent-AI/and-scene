@@ -12,6 +12,7 @@ export function Presentation({ steps, title, initialMode = 'present', brand, att
   const { width } = useViewport()
   const step = steps[index]
   const count = steps.length
+  if (!step) return null
 
   return (
     <div

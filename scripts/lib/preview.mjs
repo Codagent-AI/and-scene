@@ -3,13 +3,13 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import net from 'node:net'
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 /** Verification and inspection always use the IPv4 loopback address, so name resolution never matters. */
 export const HOST = '127.0.0.1'
 
 export function projectRoot(importMetaUrl) {
-  return path.resolve(path.dirname(new URL(importMetaUrl).pathname), '..')
+  return path.resolve(path.dirname(fileURLToPath(importMetaUrl)), '..')
 }
 
 export function registeredSlugs(root) {

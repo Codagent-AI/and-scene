@@ -1,0 +1,5 @@
+[data-presentation-progress-item] { display: block; width: 10px; height: 10px; border: 1px solid #b8730a; border-radius: 99px; background: none; padding: 0; }
+[data-presentation-progress-item][data-presentation-active] { width: 24px; background: #b8730a; }
+[data-presentation-toc-item] { display: block; border: 0; border-left: 2px solid transparent; background: none; padding: 6px 10px; }
+[data-presentation-toc-item][data-presentation-active] { border-left-color: #b8730a; background: #f1e6d0; font-weight: 700; }
+[data-presentation-footer] { gap: 12px; justify-content: flex-start; padding: 6px 24px 40px; }

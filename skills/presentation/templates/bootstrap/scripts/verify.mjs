@@ -67,6 +67,7 @@ async function tour(page, baseUrl, slug, expected, state) {
       }
     }
     await page.waitForTimeout(SETTLE_MS)
+    console.log(`[verify] /${slug} step ${i + 1}/${count} rendered`)
     if (expected) {
       const title = normalize(await page.textContent('[data-presentation-title]'))
       const caption = normalize(await page.textContent('[data-presentation-caption]').catch(() => null))

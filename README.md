@@ -1,20 +1,32 @@
 # and-scene
 
-And Scene is a project for building a presentation-generation agent skill.
+And Scene turns a topic into a browser presentation that works as **one evolving diagram**: entities
+keep their identity while they appear, move, connect and re-label from step to step.
 
-The intended presentation model is not a stack of unrelated slides. It is one
-diagrammatic scene that evolves through named steps: elements appear, move,
-collapse, connect, and re-label as the talk arc develops.
+- `skills/presentation/` — the agent skill (`SKILL.md`), its scaffold script and templates.
+- `src/presentation-kit/` — the style-neutral React scene kit (motion, canvas scaling, navigation, chrome).
+- `src/presentations/` — the presentation registry and the worked example,
+  "How to Use This Skill to Make a Presentation" (`/how-to-make-a-presentation`).
+- `scripts/verify.mjs` — build plus real-browser render of every step of every registered presentation.
+- `scripts/inspect-presentation.mjs` — settled per-step screenshots and advisory visual warnings.
 
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev
+npm test                    # fast unit and contract tests (Vitest)
+npm run lint
 npm run build
+npm run verify              # build + Chromium render of every step on 127.0.0.1
+npm run inspect -- how-to-make-a-presentation   # screenshots in inspection-output/<slug>/
+npm run test:integration    # slower browser/filesystem integration and end-to-end tests
 ```
 
-## Current State
+`npm run verify` and `npm run inspect` need a Playwright Chromium (`npx playwright install chromium`).
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+## Keeping copies aligned
+
+`skills/presentation/templates/bootstrap/` is a snapshot used to scaffold new projects. Its
+`src/presentation-kit/` (without tests) and `scripts/` must stay byte-identical to the root copies.
+After changing either, run `npm run sync:template`; a unit test fails on drift.

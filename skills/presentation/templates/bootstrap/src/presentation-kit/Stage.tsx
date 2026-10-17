@@ -21,7 +21,8 @@ export function Stage<TPayload>({ step, index, mode }: StageProps<TPayload>) {
       data-presentation-stage=""
       style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, position: 'relative', overflow: 'hidden' }}
     >
-      <div
+      <motion.div
+        layout
         data-presentation-canvas=""
         data-presentation-scale={scale.toFixed(4)}
         style={{
@@ -30,8 +31,11 @@ export function Stage<TPayload>({ step, index, mode }: StageProps<TPayload>) {
           top: '50%',
           width: DESIGN_W,
           height: DESIGN_H,
-          transform: `translate(-50%, -50%) scale(${scale})`,
-          transformOrigin: 'center center',
+          x: '-50%',
+          y: '-50%',
+          scale,
+          originX: 0.5,
+          originY: 0.5,
         }}
       >
         <LayoutGroup>
@@ -49,7 +53,7 @@ export function Stage<TPayload>({ step, index, mode }: StageProps<TPayload>) {
             </motion.div>
           </AnimatePresence>
         </LayoutGroup>
-      </div>
+      </motion.div>
     </div>
   )
 }

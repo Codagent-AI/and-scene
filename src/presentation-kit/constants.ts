@@ -12,6 +12,10 @@ export const EXIT_T = 0.3
 export const TOC_MIN_WIDTH = 1024
 /** Width reserved for the table of contents on wide browse viewports. */
 export const TOC_WIDTH = 220
+/** Viewport width below which the stage uses the narrow gutter, so a phone gives the canvas as much width as it can. */
+export const NARROW_MAX_WIDTH = 600
+/** Gutter on each side of the stage on narrow viewports. */
+export const NARROW_SIDE = 8
 /** Swipe distance threshold in CSS pixels. */
 export const SWIPE_MIN_DISTANCE = 50
 

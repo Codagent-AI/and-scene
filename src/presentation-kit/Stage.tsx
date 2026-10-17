@@ -3,6 +3,7 @@ import { DESIGN_H, DESIGN_W, ENTER_T, EXIT_T, STAGE_LAYOUT, TOC_MIN_WIDTH, TOC_W
 import type { Mode } from './constants.ts'
 import { sceneKey } from './sceneKey.ts'
 import type { AnyStep } from './types.ts'
+import { stageSide } from './fitScale.ts'
 import { useFitScale } from './useFitScale.ts'
 import { useViewport } from './useViewport.ts'
 
@@ -15,7 +16,8 @@ interface StageProps {
 export function Stage({ step, stepIndex, mode }: StageProps) {
   const scale = useFitScale(mode)
   const { width } = useViewport()
-  const { top, bottom, side } = STAGE_LAYOUT[mode]
+  const { top, bottom } = STAGE_LAYOUT[mode]
+  const side = stageSide(width, mode)
   const tocSpace = mode === 'browse' && width >= TOC_MIN_WIDTH ? TOC_WIDTH : 0
   const { Scene, payload } = step
 

@@ -85,7 +85,7 @@ describe('reference sample', () => {
 
 describe('reference sample legibility on a narrow viewport', () => {
   // The fixed 880 x 380 canvas is scaled uniformly, so a 390 px phone shows scene text at ~0.4x.
-  const MIN_EFFECTIVE_PX = 6
+  const MIN_EFFECTIVE_PX = 9
 
   it('declares scene text large enough to stay readable after fit scaling at 390 x 844', () => {
     const scale = computeScale(390, 844, 'browse')

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT, TOC_MIN_WIDTH, TOC_WIDTH } from './constants.ts'
-import { availableSpace, computeScale } from './fitScale.ts'
+import { DESIGN_H, DESIGN_W, MIN_SCALE, NARROW_MAX_WIDTH, NARROW_SIDE, STAGE_LAYOUT, TOC_MIN_WIDTH, TOC_WIDTH } from './constants.ts'
+import { availableSpace, computeScale, stageSide } from './fitScale.ts'
 
 describe('fit scale', () => {
   it('defaults the design canvas to 880 x 380', () => {
@@ -21,6 +21,15 @@ describe('fit scale', () => {
     expect(availableSpace(TOC_MIN_WIDTH, 800, 'browse').width).toBe(TOC_MIN_WIDTH - STAGE_LAYOUT.browse.side * 2 - TOC_WIDTH)
     expect(availableSpace(TOC_MIN_WIDTH - 1, 800, 'browse').width).toBe(TOC_MIN_WIDTH - 1 - STAGE_LAYOUT.browse.side * 2)
     expect(availableSpace(TOC_MIN_WIDTH, 800, 'present').width).toBe(TOC_MIN_WIDTH - STAGE_LAYOUT.present.side * 2)
+  })
+
+  it('narrows the gutter on phone-width viewports so the canvas gets more width', () => {
+    expect(stageSide(NARROW_MAX_WIDTH, 'browse')).toBe(STAGE_LAYOUT.browse.side)
+    expect(stageSide(NARROW_MAX_WIDTH - 1, 'browse')).toBe(NARROW_SIDE)
+    expect(stageSide(390, 'present')).toBe(NARROW_SIDE)
+    expect(availableSpace(390, 844, 'browse').width).toBe(390 - NARROW_SIDE * 2)
+    expect(computeScale(390, 844, 'browse')).toBeCloseTo((390 - NARROW_SIDE * 2) / DESIGN_W)
+    expect(computeScale(390, 844, 'browse')).toBeGreaterThan((390 - STAGE_LAYOUT.browse.side * 2) / DESIGN_W)
   })
 
   it('never drops below the minimum scale and honours a custom canvas', () => {

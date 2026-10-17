@@ -35,14 +35,14 @@
 .how-to-make-a-presentation [data-presentation-attribution]:hover { color: var(--accent); }
 
 /* Scene entities */
-/* Scene text is sized for the 880 x 380 canvas, which a phone scales to about 0.4x, so it is large here on purpose. */
-.how-to-make-a-presentation .ent { box-sizing: border-box; color: var(--fg); font-size: 20px; }
+/* Scene text is sized for the 880 x 380 canvas, which a phone scales to about 0.43x, so it is large here on purpose. */
+.how-to-make-a-presentation .ent { box-sizing: border-box; color: var(--fg); font-size: 22px; }
 .how-to-make-a-presentation [data-presentation-node='box'] {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
 }
 .how-to-make-a-presentation [data-presentation-glyph] { width: 24px; height: 24px; flex: none; }
-.how-to-make-a-presentation .ent-you, .how-to-make-a-presentation .ent-skill { font-weight: 600; font-size: 24px; }
+.how-to-make-a-presentation .ent-you, .how-to-make-a-presentation .ent-skill { font-weight: 600; font-size: 28px; }
 .how-to-make-a-presentation .ent-you [data-presentation-glyph] { color: var(--accent); }
 .how-to-make-a-presentation .ent-skill { border-color: var(--accent); }
 .how-to-make-a-presentation .ent-skill [data-presentation-glyph] { color: var(--accent); }
@@ -53,18 +53,18 @@
 .how-to-make-a-presentation .ent-modify-label,
 .how-to-make-a-presentation .ent-socket-caption,
 .how-to-make-a-presentation .ent-tray-label,
-.how-to-make-a-presentation .ent-reveal-label { color: var(--muted); font-size: 19px; display: flex; align-items: center; white-space: nowrap; }
+.how-to-make-a-presentation .ent-reveal-label { color: var(--muted); font-size: 22px; display: flex; align-items: center; white-space: nowrap; }
 .how-to-make-a-presentation .ent-prompt { justify-content: center; font-style: italic; border: 1px solid var(--line); border-radius: 14px; }
 .how-to-make-a-presentation .ent-link-label, .how-to-make-a-presentation .ent-socket-caption, .how-to-make-a-presentation .ent-verify-label { justify-content: center; }
-.how-to-make-a-presentation .ent-tray-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 16px; }
+.how-to-make-a-presentation .ent-tray-label { text-transform: uppercase; letter-spacing: 0.06em; font-size: 22px; }
 .how-to-make-a-presentation .ent-modify-label { color: var(--amber); }
 .how-to-make-a-presentation .ent-reveal-label { justify-content: flex-end; color: var(--accent); }
 
 .how-to-make-a-presentation [data-presentation-node='symbol-chip'] {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 999px; font-size: 19px; white-space: nowrap;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px; font-size: 22px; white-space: nowrap;
 }
-.how-to-make-a-presentation [data-presentation-node='symbol-chip'] [data-presentation-glyph] { width: 18px; height: 18px; }
+.how-to-make-a-presentation [data-presentation-node='symbol-chip'] [data-presentation-glyph] { width: 20px; height: 20px; }
 .how-to-make-a-presentation .ent-question { color: var(--accent); border-color: var(--accent); }
 .how-to-make-a-presentation .ent-depth { border-color: var(--accent); }
 .how-to-make-a-presentation .ent-check { background: var(--green); border-color: var(--green); color: #06281c; }
@@ -77,11 +77,11 @@
 .how-to-make-a-presentation .ent-step-card, .how-to-make-a-presentation .ent-ghost-card {
   flex-direction: column; justify-content: flex-start; align-items: stretch; gap: 6px; padding: 10px 12px; border-radius: 10px;
 }
-.how-to-make-a-presentation .ent-step-card [data-presentation-box-label] { font-weight: 600; font-size: 22px; }
+.how-to-make-a-presentation .ent-step-card [data-presentation-box-label] { font-weight: 600; font-size: 26px; }
 .how-to-make-a-presentation .card-part { display: block; border-radius: 4px; background: var(--line); }
 .how-to-make-a-presentation .card-caption { height: 8px; width: 80%; opacity: 0.7; }
 .how-to-make-a-presentation .card-visual { flex: 1; background: rgba(94, 234, 212, 0.18); border: 1px solid rgba(94, 234, 212, 0.4); }
-.how-to-make-a-presentation .ent-ghost-card { border: 1.5px dashed var(--muted); background: transparent; color: var(--muted); justify-content: center; align-items: center; font-size: 19px; text-align: center; }
+.how-to-make-a-presentation .ent-ghost-card { border: 1.5px dashed var(--muted); background: transparent; color: var(--muted); justify-content: center; align-items: center; font-size: 22px; text-align: center; }
 .how-to-make-a-presentation .ent-verify { border-color: var(--green); color: var(--fg); flex-direction: column; }
 .how-to-make-a-presentation .ent-verify [data-presentation-glyph] { color: var(--green); width: 28px; height: 28px; }
 .how-to-make-a-presentation .ent-socket { border-color: var(--accent); border-style: solid; border-radius: 0 0 12px 12px; border-top: 3px solid var(--accent); }

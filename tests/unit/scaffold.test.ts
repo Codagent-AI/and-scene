@@ -234,6 +234,13 @@ describe('createPresentation', () => {
     expect(css).toContain('.p-second-talk')
   })
 
+  it('writes titles with quotes and backslashes as valid string literals', async () => {
+    await apply(dir, ['build', 'kit', 'index'], { install: false })
+    await createPresentation(dir, 'quoted', 'Say "hi" \\ {now}')
+    const talk = await readFile(path.join(dir, 'src/presentations/quoted/Talk.tsx'), 'utf8')
+    expect(talk).toContain('title={"Say \\"hi\\" \\\\ {now}"}')
+  })
+
   it('rejects bad or duplicate slugs', async () => {
     await apply(dir, ['build', 'kit', 'index'], { install: false })
     await expect(createPresentation(dir, 'Bad Slug', 't')).rejects.toThrow(/invalid slug/)

@@ -119,7 +119,14 @@ async function verifyPresentations(config) {
 }
 
 async function main() {
-  const config = JSON.parse(await readFile(path.join(root, 'verify.config.json'), 'utf8'))
+  let config
+  try {
+    config = JSON.parse(await readFile(path.join(root, 'verify.config.json'), 'utf8'))
+  } catch (error) {
+    fail('config', `cannot read verify.config.json: ${error.message}`)
+    console.error('\nVERIFY FAILED (config)')
+    process.exit(1)
+  }
   if (await verifyBuild()) {
     try {
       await verifyPresentations(config)

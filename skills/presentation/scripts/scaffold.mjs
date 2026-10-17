@@ -208,7 +208,8 @@ export async function apply(appDir, missing, { starter = false, install = true }
 
 /** Fills the placeholders of the new-presentation template. */
 export function fillTemplate(text, slug, title) {
-  return text.replaceAll('__SLUG__', slug).replaceAll('__TITLE__', title)
+  // `__TITLE_JSON__` is a JS string literal (safe inside TSX attributes); `__TITLE__` is the raw text
+  return text.replaceAll('__SLUG__', slug).replaceAll('__TITLE_JSON__', JSON.stringify(title)).replaceAll('__TITLE__', title)
 }
 
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/

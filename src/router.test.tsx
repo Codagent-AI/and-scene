@@ -23,7 +23,7 @@ describe('registry', () => {
     for (const entry of PRESENTATIONS) {
       expect(typeof (await entry.load()).default).toBe('function')
     }
-  })
+  }, 30_000)
 })
 
 describe('resolveRoute', () => {

@@ -108,11 +108,16 @@ describe('E2E-003: browse chrome is never clipped at a narrow viewport', () => {
       await page.goto(`${preview.origin}/how-to-make-a-presentation`)
       await page.waitForSelector('[data-presentation-root]')
       const count = Number(await page.getAttribute('[data-presentation-root]', 'data-step-count'))
+      expect(count).toBeGreaterThan(0)
       const clipped: string[] = []
       for (let step = 0; step < count; step++) {
         await page.waitForTimeout(200)
-        const found = await page.evaluate(() =>
-          ['[data-presentation-step-title]', '[data-presentation-caption]', '[data-presentation-progress]'].flatMap((sel) => {
+        const found = await page.evaluate(() => {
+          const canvas = document.querySelector('[data-presentation-canvas]')?.getBoundingClientRect()
+          const title = document.querySelector('[data-presentation-step-title]')?.getBoundingClientRect()
+          const collision =
+            canvas && title && title.top < canvas.bottom ? [`footer text (top ${title.top}) overlaps the scene (bottom ${canvas.bottom})`] : []
+          return [...collision, ...['[data-presentation-step-title]', '[data-presentation-caption]', '[data-presentation-progress]'].flatMap((sel) => {
             const el = document.querySelector(sel)
             if (!el) return [`${sel} missing`]
             const r = el.getBoundingClientRect()
@@ -123,8 +128,8 @@ describe('E2E-003: browse chrome is never clipped at a narrow viewport', () => {
               clip = { top: Math.max(clip.top, b.top), bottom: Math.min(clip.bottom, b.bottom) }
             }
             return r.top < clip.top - 0.5 || r.bottom > clip.bottom + 0.5 ? [`${sel} spans ${r.top}-${r.bottom}, visible ${clip.top}-${clip.bottom}`] : []
-          }),
-        )
+          })]
+        })
         clipped.push(...found.map((f) => `step ${step + 1}: ${f}`))
         if (step < count - 1) await page.keyboard.press('ArrowRight')
       }

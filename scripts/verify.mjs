@@ -8,7 +8,9 @@ import { HOST, launchChromium, runCommand, startPreview } from './lib/preview.mj
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const STEP_TIMEOUT_MS = 5000
-const SETTLE_MS = 400
+// Longer than the kit's slowest entry (newcomers start after 0.6 s and fade in over 0.5 s), so errors raised
+// while a step animates in are attributed to that step.
+const SETTLE_MS = 1400
 const failures = []
 let currentSlug
 
@@ -84,8 +86,9 @@ async function tour(page, baseUrl, slug, expected, state) {
 async function verifyPresentations(config) {
   const reference = config.reference
   const preview = await startPreview(root)
-  const browser = await launchChromium(root)
+  let browser
   try {
+    browser = await launchChromium(root)
     const page = await browser.newPage()
     const state = { step: 0 }
     page.on('console', (message) => {
@@ -110,7 +113,7 @@ async function verifyPresentations(config) {
       console.log(`PASS [sample] ${reference.steps.length} steps match the reference outline`)
     }
   } finally {
-    await browser.close()
+    await browser?.close()
     preview.stop()
   }
 }

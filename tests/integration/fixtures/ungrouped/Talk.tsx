@@ -1,4 +1,4 @@
-import { Presentation, Box, SceneLayer, type Step } from '../../presentation-kit/index.ts'
+import { Presentation, Arrow, Box, SceneLayer, type Step } from '../../presentation-kit/index.ts'
 import '../_shared/active.css'
 import '../_shared/attribution.css'
 
@@ -12,6 +12,7 @@ function First() {
       <Box id="peer-box" style={{ left: 700, top: 300, width: 100, height: 40 }}>
         peer
       </Box>
+      <Arrow id="shared-arrow" from={{ x: 100, y: 330 }} to={{ x: 300, y: 330 }} />
     </SceneLayer>
   )
 }
@@ -25,6 +26,7 @@ function Second() {
       <Box id="peer-box" style={{ left: 700, top: 300, width: 100, height: 40 }}>
         peer
       </Box>
+      <Arrow id="shared-arrow" from={{ x: 100, y: 330 }} to={{ x: 600, y: 200 }} />
     </SceneLayer>
   )
 }

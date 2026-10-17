@@ -120,9 +120,10 @@ async function main() {
   await mkdir(outDir, { recursive: true })
 
   const preview = await startPreview(root)
-  const browser = await launchChromium(root)
+  let browser
   let warningCount = 0
   try {
+    browser = await launchChromium(root)
     const page = await browser.newPage({ viewport: options.narrow ? NARROW : DESKTOP })
     await page.goto(`${preview.url}/${options.slug}`, { waitUntil: 'networkidle' })
     await page.waitForSelector('[data-presentation-step-count]', { timeout: 10000 })
@@ -145,7 +146,7 @@ async function main() {
     }
     console.log(`captured ${count} screenshots in ${path.relative(root, outDir)} (${warningCount} advisory warnings)`)
   } finally {
-    await browser.close()
+    await browser?.close()
     preview.stop()
   }
 }

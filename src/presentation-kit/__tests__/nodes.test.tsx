@@ -36,6 +36,25 @@ describe('generic primitives', () => {
     expect(container.querySelector('[data-presentation-id="e"]')).not.toBeNull()
   })
 
+  it('passes className and style through on every primitive', () => {
+    const { container } = render(
+      <SceneLayer className="c-layer" style={{ left: 1 }}>
+        <Box id="b" className="c-b" style={{ left: 2 }} />
+        <Label id="l" className="c-l" style={{ left: 3 }} />
+        <Frame id="f" className="c-f" style={{ left: 4 }} />
+        <SymbolChip id="s" className="c-s" style={{ left: 5 }} />
+        <Emphasis id="e" className="c-e" style={{ left: 6 }} />
+        <Appear id="a" className="c-a" style={{ left: 7 }} />
+        <Arrow id="r" className="c-r" from={{ x: 0, y: 0 }} to={{ x: 1, y: 1 }} />
+      </SceneLayer>,
+    )
+    const left = (cls: string) => container.querySelector<HTMLElement>(`.${cls}`)?.style.left
+    expect([left('c-layer'), left('c-b'), left('c-l'), left('c-f'), left('c-s'), left('c-e'), left('c-a')]).toEqual([
+      '1px', '2px', '3px', '4px', '5px', '6px', '7px',
+    ])
+    expect(container.querySelector('svg.c-r')).not.toBeNull()
+  })
+
   it('renders an optional Lucide icon component', () => {
     const { container } = render(
       <>

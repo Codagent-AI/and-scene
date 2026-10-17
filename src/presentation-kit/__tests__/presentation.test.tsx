@@ -88,6 +88,26 @@ describe('step hooks and numbering', () => {
   })
 })
 
+describe('order-derived numbering', () => {
+  const markerAndTitle = (container: HTMLElement) => [
+    container.querySelector('[data-presentation-marker]')?.textContent,
+    container.querySelector('[data-presentation-title]')?.textContent,
+  ]
+
+  it('renumbers after removing or reordering steps', () => {
+    const { container, rerender } = render(<Presentation steps={steps} />)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(markerAndTitle(container)).toEqual(['02', 'Title 2'])
+    rerender(<Presentation steps={[steps[0], steps[2], steps[3]]} />)
+    expect(markerAndTitle(container)).toEqual(['02', 'Title 3'])
+    rerender(<Presentation steps={[steps[3], steps[2], steps[0]]} />)
+    expect(markerAndTitle(container)).toEqual(['02', 'Title 3'])
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(markerAndTitle(container)).toEqual(['03', 'Title 1'])
+    expect(root(container).getAttribute('data-presentation-step-count')).toBe('3')
+  })
+})
+
 describe('navigation controls', () => {
   it('jumps via progress indicators and exposes current-step semantics', () => {
     const { container } = render(<Presentation steps={steps} />)

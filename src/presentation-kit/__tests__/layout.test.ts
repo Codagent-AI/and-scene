@@ -58,8 +58,11 @@ describe('sections and identity', () => {
     expect(formatMarker(11)).toBe('12')
   })
 
-  it('shares a scene key across a group and separates ungrouped steps', () => {
-    expect(sceneKey({ id: 'a', groupKey: 'g' })).toBe(sceneKey({ id: 'b', groupKey: 'g' }))
-    expect(sceneKey({ id: 'a' })).not.toBe(sceneKey({ id: 'b' }))
+  it('shares a scene key across a group with one Scene and separates other steps', () => {
+    const A = () => null
+    const B = () => null
+    expect(sceneKey({ id: 'a', groupKey: 'g', Scene: A })).toBe(sceneKey({ id: 'b', groupKey: 'g', Scene: A }))
+    expect(sceneKey({ id: 'a', groupKey: 'g', Scene: A })).not.toBe(sceneKey({ id: 'b', groupKey: 'g', Scene: B }))
+    expect(sceneKey({ id: 'a', Scene: A })).not.toBe(sceneKey({ id: 'b', Scene: A }))
   })
 })

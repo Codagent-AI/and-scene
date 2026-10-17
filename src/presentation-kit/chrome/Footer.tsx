@@ -21,6 +21,7 @@ export function Footer({ steps, index, onGoTo, onPrev, onNext }: FooterProps) {
       <button
         type="button"
         data-presentation-prev=""
+        data-presentation-chrome-item=""
         aria-label="Previous step"
         disabled={index <= 0}
         onClick={onPointerAwareClick(onPrev)}
@@ -47,6 +48,7 @@ export function Footer({ steps, index, onGoTo, onPrev, onNext }: FooterProps) {
       <button
         type="button"
         data-presentation-next=""
+        data-presentation-chrome-item=""
         aria-label="Next step"
         disabled={index >= last}
         onClick={onPointerAwareClick(onNext)}

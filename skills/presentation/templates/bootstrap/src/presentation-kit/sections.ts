@@ -15,7 +15,15 @@ export function formatMarker(index: number): string {
   return String(index + 1).padStart(2, '0')
 }
 
-/** Identity of the mounted scene: grouped steps share one, others get their own. */
-export function sceneKey(step: { id: string; groupKey?: string }): string {
-  return step.groupKey ? `group:${step.groupKey}` : `step:${step.id}`
+const sceneIds = new WeakMap<object, number>()
+let nextSceneId = 1
+
+/** Identity of the mounted scene: grouped steps sharing a Scene component share it; anything else gets its own. */
+export function sceneKey(step: { id: string; groupKey?: string; Scene: object }): string {
+  let sceneId = sceneIds.get(step.Scene)
+  if (sceneId === undefined) {
+    sceneId = nextSceneId++
+    sceneIds.set(step.Scene, sceneId)
+  }
+  return step.groupKey ? `group:${step.groupKey}:${sceneId}` : `step:${step.id}`
 }

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useId } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { arrowPath, type Point } from './geometry.ts'
 import { DESIGN_H, DESIGN_W, EASE, ENTER_DELAY, ENTER_T, EXIT_T, LAYOUT_T } from '../constants.ts'
 
@@ -15,9 +15,17 @@ export interface ArrowProps {
   className?: string
 }
 
+/** Last drawn path per arrow id, so an arrow in a newly mounted scene morphs from where its predecessor was. */
+const lastPaths = new Map<string, string>()
+
 /** Line or curve between canvas points, drawn in an SVG layer; stroke follows `currentColor`. */
 export function Arrow({ id, from, to, curve, bidirectional = false, when = true, className }: ArrowProps) {
   const uid = useId()
+  const d = arrowPath(from, to, curve)
+  const [previous] = useState(() => lastPaths.get(id))
+  useEffect(() => {
+    lastPaths.set(id, d)
+  }, [id, d])
   const headId = `${uid}-head`
   return (
     <AnimatePresence>
@@ -31,8 +39,8 @@ export function Arrow({ id, from, to, curve, bidirectional = false, when = true,
           height={DESIGN_H}
           viewBox={`0 0 ${DESIGN_W} ${DESIGN_H}`}
           style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { delay: ENTER_DELAY, duration: ENTER_T } }}
+          initial={{ opacity: previous ? 1 : 0 }}
+          animate={{ opacity: 1, transition: { delay: previous ? 0 : ENTER_DELAY, duration: ENTER_T } }}
           exit={{ opacity: 0, transition: { duration: EXIT_T } }}
         >
           <defs>
@@ -46,8 +54,8 @@ export function Arrow({ id, from, to, curve, bidirectional = false, when = true,
             stroke="currentColor"
             markerEnd={`url(#${headId})`}
             markerStart={bidirectional ? `url(#${headId})` : undefined}
-            initial={{ d: arrowPath(from, to, curve) }}
-            animate={{ d: arrowPath(from, to, curve) }}
+            initial={{ d: previous ?? d }}
+            animate={{ d }}
             transition={{ duration: LAYOUT_T, ease: EASE }}
           />
         </motion.svg>

@@ -2,7 +2,7 @@ import { cp } from 'node:fs/promises'
 import path from 'node:path'
 import { copyApp, editFile, run } from './helpers.ts'
 
-export const FIXTURES = ['polished', 'collision', 'allowed', 'indistinct', 'unpolished', 'noattr', 'settle', 'morph', 'ungrouped']
+export const FIXTURES = ['polished', 'collision', 'allowed', 'indistinct', 'unpolished', 'noattr', 'settle', 'morph', 'ungrouped', 'tiny', 'strayprev']
 
 /** A throwaway app copy that registers the test-owned fixture presentations next to the sample. */
 export async function buildFixtureApp(): Promise<string> {

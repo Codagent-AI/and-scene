@@ -93,6 +93,24 @@ describe('E2E-002: verification failures are actionable', () => {
     expect(await leftoverProcesses(dir)).toBe('')
   })
 
+  it('attributes an error raised during a step delayed entry animation to that step', async () => {
+    const { code, output, dir } = await faulty((d) =>
+      editFile(d, 'src/main.tsx', (t) => `${t}\n${onStep(4, "setTimeout(() => console.error('late entry failure'), 900)")}`),
+    )
+    expect(code).not.toBe(0)
+    expect(output).toMatch(/FAIL \[render\] \/how-to-make-a-presentation step 5: console error: late entry failure/)
+    expect(await leftoverProcesses(dir)).toBe('')
+  })
+
+  it('stops the preview when Chromium cannot launch', async () => {
+    const dir = await copyApp()
+    copies.push(dir)
+    const { code, output } = await run('npm', ['run', 'verify'], dir, { PLAYWRIGHT_BROWSERS_PATH: '/nonexistent' })
+    expect(code).not.toBe(0)
+    expect(output).toContain('FAIL [render]')
+    expect(await leftoverProcesses(dir)).toBe('')
+  })
+
   it('fails when a transition does not advance the step index and names the step', async () => {
     const { code, output, dir } = await faulty((d) =>
       editFile(

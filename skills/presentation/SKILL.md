@@ -18,7 +18,7 @@ directory.
 ## 1. Decide what the user wants
 
 - **Create** a presentation: go to step 2.
-- **Modify** an existing one: go to "Modify an existing presentation" below.
+- **Modify** an existing one: go to "Modify an existing presentation" below. Step 3 (detect and, if needed, scaffold) applies to modification too and runs before any edit.
 
 ## 2. Gather the requirements, one question at a time
 
@@ -75,8 +75,8 @@ Then:
 node "$SKILL_DIR/scripts/scaffold.mjs" apply            # add --target <dir> to follow a corrected target
 ```
 
-`apply` copies the missing parts from `$SKILL_DIR/templates/bootstrap/`, never overwrites existing
-files, merges `package.json` instead of replacing it, and runs `npm install` so the full
+`apply` also reports `notes` when something needs manual wiring (for example an existing `src/main.tsx` that does not render `<Router />`); do that wiring before continuing. `apply` copies the missing parts from `$SKILL_DIR/templates/bootstrap/`, never overwrites existing
+files (an incomplete existing kit folder is filled in file by file), merges `package.json` instead of replacing it (dependencies, `verify` and `inspect` scripts are added even when a build setup already exists), and runs `npm install` so the full
 dependency set is present (React, Vite, TypeScript and its types, Motion, Lucide, ESLint,
 Playwright). Do not assume any dependency is already installed. Playwright also needs a Chromium
 (`npx playwright install chromium` if none is available). The scaffold requires no Tailwind or other
@@ -141,6 +141,7 @@ The screenshot directory `inspection-output/` is gitignored; do not commit scree
 
 ## Modify an existing presentation
 
+0. Run step 3 first (`scaffold.mjs detect`): modification needs the kit, the registry and the build setup too. If an anchor is missing, scaffold it (with the confirmation rule) before editing anything.
 1. Identify the target. If the user did not name one, or the name is ambiguous, list the
    presentations from `src/presentations/index.ts` (slug and title) and ask which one **before
    changing anything**.

@@ -87,6 +87,18 @@ describe('INT-002: the screenshot helper', () => {
     }
   })
 
+  it('warns about undersized attribution that is otherwise styled', async () => {
+    const { warnings } = await inspect('tiny')
+    expect(warnings).toHaveLength(2)
+    expect(warnings[0]).toMatch(/WARN step 1 attribution: .*9px.*\[data-presentation-attribution\]/)
+  })
+
+  it('warns when text overlaps the icon-only previous control', async () => {
+    const { warnings } = await inspect('strayprev')
+    expect(warnings.length).toBeGreaterThan(0)
+    expect(warnings[0]).toMatch(/^WARN step 1 overlap: .*oops.*data-presentation-prev/)
+  })
+
   it('warns when the attribution is missing', async () => {
     const { code, warnings } = await inspect('noattr')
     expect(code).toBe(0)
@@ -172,6 +184,25 @@ describe('kit motion in a real browser', () => {
     const peerAfter = (await rect('peer-box'))!
     expect(Math.abs(peerAfter.left - peerBefore.left)).toBeLessThan(1)
     expect(Math.abs(peerAfter.top - peerBefore.top)).toBeLessThan(1)
+  })
+
+  it('morphs a persisting arrow between scenes instead of fading it out and back in', async () => {
+    await page.goto(`${url}/ungrouped`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(1500)
+    const pathD = () =>
+      page.evaluate(() => [...document.querySelectorAll('[data-presentation-id="shared-arrow"] path[data-presentation-arrow-line]')].map((p) => p.getAttribute('d')))
+    const start = await pathD()
+    expect(start).toEqual(['M 100 330 L 300 330'])
+    await page.keyboard.press('ArrowRight')
+    await page.waitForTimeout(250)
+    const mid = await pathD()
+    const entering = mid.find((d) => d !== 'M 100 330 L 300 330')!
+    expect(entering).toBeDefined()
+    const x = Number(entering.match(/L (\d+(?:\.\d+)?)/)![1])
+    expect(x).toBeGreaterThan(300)
+    expect(x).toBeLessThan(600)
+    await page.waitForTimeout(1500)
+    expect(await pathD()).toEqual(['M 100 330 L 600 200'])
   })
 
   it('keeps one scale and still entities across steps whose captions differ in length', async () => {

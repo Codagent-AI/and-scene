@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -173,6 +173,44 @@ describe('apply', () => {
       process.chdir(original)
     }
     expect(await detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+})
+
+describe('partial scaffolding of an existing project', () => {
+  it('adds dependencies, scripts and tooling when only the kit and index are missing', async () => {
+    await buildAnchor()
+    await write('src/main.tsx', "console.log('app')")
+    const result = await apply(dir, ['kit', 'index'], { install: false })
+    const pkg = JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf8'))
+    for (const name of ['motion', 'lucide-react']) expect(pkg.dependencies).toHaveProperty(name)
+    expect(pkg.devDependencies).toHaveProperty('playwright')
+    expect(pkg.scripts).toMatchObject({ build: 'vite build', verify: expect.any(String), inspect: expect.any(String) })
+    expect(existsSync(path.join(dir, 'scripts/verify.mjs'))).toBe(true)
+    expect(existsSync(path.join(dir, 'verify.config.json'))).toBe(true)
+    expect(result.notes.join(' ')).toMatch(/Router/)
+    expect(await readFile(path.join(dir, 'src/main.tsx'), 'utf8')).toBe("console.log('app')")
+  })
+
+  it('fills in an incomplete existing kit folder without touching its files', async () => {
+    await buildAnchor()
+    await write('src/presentation-kit/custom.ts', 'mine')
+    await apply(dir, ['kit', 'index'], { install: false })
+    expect(await readFile(path.join(dir, 'src/presentation-kit/custom.ts'), 'utf8')).toBe('mine')
+    expect(await detectAnchors(dir)).toMatchObject({ kit: true, index: true })
+  })
+
+  it('creates a presentation in a project whose files differ cosmetically', async () => {
+    await apply(dir, ['build', 'kit', 'index'], { install: false })
+    await rename(path.join(dir, 'src/presentations/index.ts'), path.join(dir, 'src/presentations/index.tsx'))
+    await writeFile(
+      path.join(dir, 'src/presentations/index.tsx'),
+      "export const presentations = [\n  { slug: 'old', title: 'Old', load: () => import('./old/Talk.tsx') }\n]\n",
+    )
+    await createPresentation(dir, 'fresh', 'Fresh')
+    const registry = await readFile(path.join(dir, 'src/presentations/index.tsx'), 'utf8')
+    expect(registry).toContain("slug: 'old'")
+    expect(registry).toContain("slug: 'fresh'")
+    expect(existsSync(path.join(dir, 'src/presentations/index.ts'))).toBe(false)
   })
 })
 

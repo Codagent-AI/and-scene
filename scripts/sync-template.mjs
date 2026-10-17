@@ -35,8 +35,11 @@ async function writeStarter() {
   await rm(target, { recursive: true, force: true })
   await mkdir(target, { recursive: true })
   for (const name of await readdir(source)) {
-    const text = await readFile(path.join(source, name), 'utf8')
-    await writeFile(path.join(target, name), fillTemplate(text, 'starter', 'Starter presentation'))
+    // The scaffold ships no styling: the starter keeps the kit's hooks and omits the template stylesheet.
+    if (name.endsWith('.css')) continue
+    let text = fillTemplate(await readFile(path.join(source, name), 'utf8'), 'starter', 'Starter presentation')
+    if (name === 'Talk.tsx') text = text.replace(/import '\.\/talk\.css'\n/, '').replace(' className="p-starter"', '')
+    await writeFile(path.join(target, name), text)
   }
   await writeFile(
     path.join(bootstrap, 'src', 'presentations', 'index.ts'),

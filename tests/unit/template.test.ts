@@ -42,14 +42,20 @@ describe('bootstrap template alignment', () => {
     for (const script of ['build', 'lint', 'verify', 'inspect']) expect(pkg.scripts).toHaveProperty(script)
   })
 
-  it('has no default colors or fonts in the host stylesheet', () => {
-    const css = readFileSync(path.join(BOOTSTRAP, 'src/index.css'), 'utf8')
-    expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(|font-family|--[\w-]+\s*:/i)
+  it('ships no stylesheet with colors, fonts or tokens anywhere in the scaffold', () => {
+    const sheets = walk(BOOTSTRAP).filter((f) => /\.(css|scss|less)$/.test(f))
+    expect(sheets.map((f) => rel(BOOTSTRAP, f))).toEqual(['src/index.css'])
+    for (const file of walk(path.join(BOOTSTRAP, 'src'))) {
+      const source = readFileSync(file, 'utf8')
+      expect(source, file).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(|font-family|--[\w-]+\s*:/i)
+    }
   })
 
-  it('derives the starter from the new-presentation template', () => {
-    const starter = readFileSync(path.join(BOOTSTRAP, 'src/presentations/starter/talk.css'), 'utf8')
-    expect(starter).toContain('.p-starter')
-    expect(starter).not.toContain('__SLUG__')
+  it('derives an unstyled starter from the new-presentation template', () => {
+    const starter = path.join(BOOTSTRAP, 'src/presentations/starter')
+    expect(existsSync(path.join(starter, 'talk.css'))).toBe(false)
+    const talk = readFileSync(path.join(starter, 'Talk.tsx'), 'utf8')
+    expect(talk).not.toMatch(/\.css|className|__SLUG__/)
+    expect(readFileSync(path.join(starter, 'steps.ts'), 'utf8')).not.toContain('__')
   })
 })

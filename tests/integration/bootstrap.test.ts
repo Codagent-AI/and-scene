@@ -34,7 +34,8 @@ describe('INT-001: the materialized bootstrap is complete and style-neutral', ()
     const inspect = await run('npm', ['run', 'inspect', '--prefix', app, '--', 'starter', '--no-build', '--settle', '1500'], caller)
     expect(inspect.code, inspect.output).toBe(0)
     expect(inspect.output).toContain('captured 3 screenshots')
-    expect(inspect.output).not.toContain('WARN')
+    // the unstyled starter legitimately earns advisory warnings about unstyled active chrome and attribution
+    expect(inspect.output).toContain('WARN step 1 indistinct active chrome')
 
     const installed = (await readdir(path.join(app, 'node_modules'))).concat(await readdir(path.join(app, 'node_modules/@types')))
     for (const name of ['react', 'react-dom', 'motion', 'lucide-react', 'vite', 'typescript', 'eslint', 'playwright', 'react', 'node']) {

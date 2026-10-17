@@ -15,27 +15,26 @@ export function Toc({ sections, index, onGoTo }: TocProps) {
       aria-label="Table of contents"
       style={{ flex: '0 0 auto' }}
     >
-      <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
         {sections.map((section) => {
           const active = index >= section.firstIndex && index <= section.lastIndex
           return (
-            <li key={section.firstIndex}>
-              <button
-                type="button"
-                data-presentation-toc-item=""
-                data-presentation-active={active ? 'true' : undefined}
-                aria-current={active ? 'true' : undefined}
-                onClick={(event) => {
-                  onGoTo(section.firstIndex)
-                  releaseFocusOnPointer(event)
-                }}
-              >
-                {section.era}
-              </button>
-            </li>
+            <button
+              key={section.firstIndex}
+              type="button"
+              data-presentation-toc-item=""
+              data-presentation-active={active ? 'true' : undefined}
+              aria-current={active ? 'true' : undefined}
+              onClick={(event) => {
+                onGoTo(section.firstIndex)
+                releaseFocusOnPointer(event)
+              }}
+            >
+              {section.era}
+            </button>
           )
         })}
-      </ol>
+      </div>
     </nav>
   )
 }

@@ -45,6 +45,8 @@ function StepCard({ n, left, flagged }: { n: number; left: number; flagged: bool
 export function SampleScene({ payload }: SceneProps<SamplePayload>) {
   const beat = payload.beat
   const cardCount = beat >= 4 ? CARD_SLOTS.length : beat >= 3 ? 1 : 0
+  // the first card shows a link stub toward the next slot; later cards link to their successor
+  const linkCount = cardCount === 1 ? 1 : Math.max(0, cardCount - 1)
 
   return (
     <SceneLayer className="htm-scene">
@@ -76,7 +78,7 @@ export function SampleScene({ payload }: SceneProps<SamplePayload>) {
       {CARD_SLOTS.slice(0, cardCount).map((left, i) => (
         <StepCard key={left} n={i + 1} left={left} flagged={beat >= 8 && i === 1} />
       ))}
-      {CARD_SLOTS.slice(0, cardCount === 1 ? 1 : cardCount - 1).map((left, i) => {
+      {CARD_SLOTS.slice(0, linkCount).map((left, i) => {
         const link = linkBetween(left + CARD_SIZE.width, CARD_SLOTS[i + 1])
         return (
           <div key={left}>

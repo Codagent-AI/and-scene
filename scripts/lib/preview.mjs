@@ -3,7 +3,7 @@ import net from 'node:net'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 
-/** Verification and inspection always use the IPv4 loopback address, never `localhost`. */
+/** Verification and inspection always use the IPv4 loopback address, never a hostname that may resolve to IPv6. */
 export const HOST = '127.0.0.1'
 
 export function freePort() {

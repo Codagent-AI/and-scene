@@ -1,0 +1,10 @@
+/* Host app CSS. The scene kit ships no styles; each presentation owns its own look. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

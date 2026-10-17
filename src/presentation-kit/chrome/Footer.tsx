@@ -30,27 +30,26 @@ export function Footer({ steps, index, onGoTo, onPrev, onNext }: FooterProps) {
       >
         <ChevronLeft aria-hidden="true" />
       </button>
-      <ol data-presentation-progress="" style={{ display: 'flex', listStyle: 'none', margin: 0, padding: 0 }}>
+      <div data-presentation-progress="" role="group" aria-label="Progress" style={{ display: 'flex' }}>
         {steps.map((step, i) => {
           const active = i === index
           return (
-            <li key={i}>
-              <button
-                type="button"
-                data-presentation-progress-item=""
-                data-presentation-chrome-item=""
-                data-presentation-active={active ? 'true' : undefined}
-                aria-current={active ? 'step' : undefined}
-                aria-label={`Step ${i + 1}: ${step.title}`}
-                onClick={(event) => {
-                  onGoTo(i)
-                  releaseFocusOnPointer(event)
-                }}
-              />
-            </li>
+            <button
+              key={i}
+              type="button"
+              data-presentation-progress-item=""
+              data-presentation-chrome-item=""
+              data-presentation-active={active ? 'true' : undefined}
+              aria-current={active ? 'step' : undefined}
+              aria-label={`Step ${i + 1}: ${step.title}`}
+              onClick={(event) => {
+                onGoTo(i)
+                releaseFocusOnPointer(event)
+              }}
+            />
           )
         })}
-      </ol>
+      </div>
       <button
         type="button"
         data-presentation-next=""

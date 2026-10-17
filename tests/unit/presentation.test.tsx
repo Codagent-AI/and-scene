@@ -35,6 +35,14 @@ const index = () => root().getAttribute('data-step-index')
 const press = (k: string) => act(() => void fireEvent.keyDown(window, { key: k }))
 
 describe('Presentation chrome', () => {
+  it('lets the footer grow instead of clipping wrapped title and caption text', () => {
+    render(<Presentation steps={STEPS} title="Deck" />)
+    const footer = document.querySelector('[data-presentation-footer]') as HTMLElement
+    expect(footer.style.overflow).not.toBe('hidden')
+    expect(footer.style.height).toBe('')
+    expect(footer.style.minHeight).not.toBe('')
+  })
+
   it('exposes step count and index hooks', () => {
     render(<Presentation steps={STEPS} title="Deck" />)
     expect(root().getAttribute('data-step-count')).toBe('3')

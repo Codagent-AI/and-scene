@@ -25,13 +25,13 @@ export function Footer({ mode, steps, eras, index, showToc, onPrev, onNext, onJu
         left: 0,
         right: 0,
         bottom: 0,
-        height: STAGE_LAYOUT[mode].bottom,
+        // Reserved stage space is a floor, not a clip: wrapped titles/captions at narrow widths grow upward.
+        minHeight: STAGE_LAYOUT[mode].bottom,
         padding: '0 24px 36px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
         gap: 8,
-        overflow: 'hidden',
       }}
     >
       <h2 data-presentation-step-title="" style={{ margin: 0 }}>{step.title}</h2>

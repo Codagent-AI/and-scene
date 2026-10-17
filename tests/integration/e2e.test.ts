@@ -95,3 +95,43 @@ describe('E2E-002: verification failures are actionable', () => {
     })
   }
 })
+
+describe('E2E-003: browse chrome is never clipped at a narrow viewport', () => {
+  it('keeps the title, caption, and controls of every sample step fully visible at 390 x 844', async () => {
+    const { chromium } = await import('playwright')
+    const { buildApp, startPreview } = await import('../../scripts/lib/preview.mjs')
+    expect(buildApp(repoRoot)).toBe(true)
+    const preview = await startPreview(repoRoot)
+    const browser = await chromium.launch()
+    try {
+      const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+      await page.goto(`${preview.origin}/how-to-make-a-presentation`)
+      await page.waitForSelector('[data-presentation-root]')
+      const count = Number(await page.getAttribute('[data-presentation-root]', 'data-step-count'))
+      const clipped: string[] = []
+      for (let step = 0; step < count; step++) {
+        await page.waitForTimeout(200)
+        const found = await page.evaluate(() =>
+          ['[data-presentation-step-title]', '[data-presentation-caption]', '[data-presentation-progress]'].flatMap((sel) => {
+            const el = document.querySelector(sel)
+            if (!el) return [`${sel} missing`]
+            const r = el.getBoundingClientRect()
+            let clip = { top: 0, bottom: innerHeight }
+            for (let a = el.parentElement; a; a = a.parentElement) {
+              if (getComputedStyle(a).overflowY === 'visible') continue
+              const b = a.getBoundingClientRect()
+              clip = { top: Math.max(clip.top, b.top), bottom: Math.min(clip.bottom, b.bottom) }
+            }
+            return r.top < clip.top - 0.5 || r.bottom > clip.bottom + 0.5 ? [`${sel} spans ${r.top}-${r.bottom}, visible ${clip.top}-${clip.bottom}`] : []
+          }),
+        )
+        clipped.push(...found.map((f) => `step ${step + 1}: ${f}`))
+        if (step < count - 1) await page.keyboard.press('ArrowRight')
+      }
+      expect(clipped).toEqual([])
+    } finally {
+      await browser.close()
+      await preview.stop()
+    }
+  })
+})

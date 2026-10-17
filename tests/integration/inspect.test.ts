@@ -52,8 +52,16 @@ function Extras({ kind }: { kind: 'negatives' | 'sub' | 'over' }) {
   const second = useRef<HTMLSpanElement>(null)
   useLayoutEffect(() => {
     if (kind === 'negatives') return
-    const box = first.current!.getBoundingClientRect()
-    second.current!.style.top = box.bottom - (kind === 'sub' ? 1 : 3) + 'px'
+    const textRect = (el: HTMLElement) => {
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      return range.getBoundingClientRect()
+    }
+    // place the second line's glyph box exactly 1px (sub) or 3px (over) into the first's
+    const target = textRect(first.current!).bottom - (kind === 'sub' ? 1 : 3)
+    const el = second.current!
+    el.style.top = '400px'
+    el.style.top = 400 + (target - textRect(el).top) + 'px'
   }, [kind])
   const fixed = (left: number, top: number) => ({ position: 'fixed' as const, left, top, fontSize: 20 })
   if (kind === 'negatives') {

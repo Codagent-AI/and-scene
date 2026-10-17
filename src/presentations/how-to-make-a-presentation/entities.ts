@@ -2,35 +2,42 @@ import { ArrowLeftRight, Bot, Check, FileText, MessageCircleQuestion, PackageOpe
 import type { LucideIcon } from 'lucide-react'
 import type { Placement } from '../../presentation-kit/nodes/props.ts'
 
-/** The sample's `layoutId` namespace. Every entity keeps its id and coordinates once introduced. */
+/**
+ * This presentation's `layoutId` namespace. An entity keeps its id (and, to morph
+ * cleanly, its coordinates) across steps. `step` is the one-based step at which
+ * the entity first appears; it stays on screen afterwards.
+ */
 export type EntityKind = 'box' | 'label' | 'chip' | 'frame' | 'emphasis' | 'arrow' | 'card'
 
 export interface Entity {
   id: string
-  /** One-based step at which the entity first appears. */
   step: number
   kind: EntityKind
+  /** Space-separated; each becomes an `ent-<role>` class that styles.css targets. */
   role: string
   at?: Placement
   from?: { x: number; y: number }
   to?: { x: number; y: number }
-  bend?: number
-  bidirectional?: boolean
   text?: string
   Icon?: LucideIcon
+  bidirectional?: boolean
+  bend?: number
   state?: string
 }
 
-const SLOT_X = [40, 210, 380, 550, 720]
-const CARD_Y = 172
-const CARD_W = 130
-const CARD_H = 92
-const card = (slot: number): Placement => ({ x: SLOT_X[slot], y: CARD_Y, w: CARD_W, h: CARD_H })
-const link = (from: number, to: number) => ({
-  from: { x: SLOT_X[from] + CARD_W + 4, y: CARD_Y + CARD_H / 2 },
-  to: { x: SLOT_X[to] - 4, y: CARD_Y + CARD_H / 2 },
+// The canvas is 880 x 380 design pixels. Step cards sit in one row inside the tray.
+const CARD_W = 138
+const CARD_H = 100
+const CARD_Y = 168
+const CARD_PITCH = 168
+const CARD_X0 = 40
+
+const card = (i: number): Placement => ({ x: CARD_X0 + i * CARD_PITCH, y: CARD_Y, w: CARD_W, h: CARD_H })
+const link = (a: number, b: number) => ({
+  from: { x: card(a).x + CARD_W + 2, y: CARD_Y + CARD_H / 2 },
+  to: { x: card(b).x - 2, y: CARD_Y + CARD_H / 2 },
 })
-const gapLabel = (from: number): Placement => ({ x: SLOT_X[from] + CARD_W + 20 - 50, y: 272, w: 100, h: 20 })
+const gapLabel = (i: number): Placement => ({ x: card(i).x + CARD_W + (CARD_PITCH - CARD_W) / 2 - 40, y: 272, w: 80, h: 20 })
 
 export const ENTITIES: readonly Entity[] = [
   { id: 'you', step: 1, kind: 'box', role: 'you', at: { x: 40, y: 20, w: 150, h: 56 }, text: 'you', Icon: User },

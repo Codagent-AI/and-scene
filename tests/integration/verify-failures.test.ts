@@ -65,8 +65,9 @@ describe('verification failures', () => {
 
   it('fails the sample phase when steps are out of order', async () => {
     const result = await verifyCopy((file) =>
-      file(`${SAMPLE}/steps/index.ts`, (t) => t.replace("beat('topic'", "beat('tmp'").replace("beat('interview'", "beat('topic'").replace("beat('tmp'", "beat('interview'")
-        .replace("'You have a topic'", "'@@'").replace("'The skill interviews you'", "'You have a topic'").replace("'@@'", "'The skill interviews you'")),
+      file(`${SAMPLE}/steps/index.ts`, (t) =>
+        t.replace('"You have a topic"', '"@@"').replace('"The skill interviews you"', '"You have a topic"').replace('"@@"', '"The skill interviews you"'),
+      ),
     )
     expect(result.status).not.toBe(0)
     expect(result.output).toMatch(/FAIL \[sample\] step 0/)
@@ -85,7 +86,7 @@ describe('verification failures', () => {
   ])('fails the render phase and names the step for %s', async (_name, injected, step) => {
     const result = await verifyCopy((file) =>
       file(`${SAMPLE}/steps/scene.tsx`, (t) =>
-        t.replace("import { Image } from 'lucide-react'", "import { Image } from 'lucide-react'\nimport { useEffect } from 'react'").replace('  return (\n    <SceneLayer>', `  ${injected}\n  return (\n    <SceneLayer>`),
+        t.replace("import { Appear }", "import { useEffect } from 'react'\nimport { Appear }").replace('  return (\n    <SceneLayer>', `  ${injected}\n  return (\n    <SceneLayer>`),
       ),
     )
     expect(result.status).not.toBe(0)

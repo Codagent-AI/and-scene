@@ -1,5 +1,5 @@
 import type { Section } from '../types.ts'
-import { releaseFocusOnPointer } from './focus.ts'
+import { onPointerAwareClick } from './focus.ts'
 
 interface TocProps {
   sections: Section[]
@@ -25,10 +25,7 @@ export function Toc({ sections, index, onGoTo }: TocProps) {
               data-presentation-toc-item=""
               data-presentation-active={active ? 'true' : undefined}
               aria-current={active ? 'true' : undefined}
-              onClick={(event) => {
-                onGoTo(section.firstIndex)
-                releaseFocusOnPointer(event)
-              }}
+              onClick={onPointerAwareClick(() => onGoTo(section.firstIndex))}
             >
               {section.era}
             </button>

@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Step } from '../types.ts'
-import { releaseFocusOnPointer } from './focus.ts'
+import { onPointerAwareClick } from './focus.ts'
 
 interface FooterProps {
   steps: ReadonlyArray<Pick<Step<unknown>, 'title'>>
@@ -23,10 +23,7 @@ export function Footer({ steps, index, onGoTo, onPrev, onNext }: FooterProps) {
         data-presentation-prev=""
         aria-label="Previous step"
         disabled={index <= 0}
-        onClick={(event) => {
-          onPrev()
-          releaseFocusOnPointer(event)
-        }}
+        onClick={onPointerAwareClick(onPrev)}
       >
         <ChevronLeft aria-hidden="true" />
       </button>
@@ -42,10 +39,7 @@ export function Footer({ steps, index, onGoTo, onPrev, onNext }: FooterProps) {
               data-presentation-active={active ? 'true' : undefined}
               aria-current={active ? 'step' : undefined}
               aria-label={`Step ${i + 1}: ${step.title}`}
-              onClick={(event) => {
-                onGoTo(i)
-                releaseFocusOnPointer(event)
-              }}
+              onClick={onPointerAwareClick(() => onGoTo(i))}
             />
           )
         })}
@@ -55,10 +49,7 @@ export function Footer({ steps, index, onGoTo, onPrev, onNext }: FooterProps) {
         data-presentation-next=""
         aria-label="Next step"
         disabled={index >= last}
-        onClick={(event) => {
-          onNext()
-          releaseFocusOnPointer(event)
-        }}
+        onClick={onPointerAwareClick(onNext)}
       >
         <ChevronRight aria-hidden="true" />
       </button>

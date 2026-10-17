@@ -1,2 +1,2 @@
-.settle-overlay { position: fixed; left: 0; top: 0; width: 40px; height: 40px; animation: settle 900ms linear forwards; z-index: 9; }
+.settle-overlay { position: fixed; left: 0; top: 0; width: 40px; height: 40px; animation: settle 1500ms linear forwards; z-index: 9; }
 @keyframes settle { from { background: rgb(255, 0, 0); } to { background: rgb(0, 128, 0); } }

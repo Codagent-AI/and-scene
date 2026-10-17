@@ -23,6 +23,7 @@ export function Stage<TPayload>({ step, index, mode }: StageProps<TPayload>) {
     >
       <motion.div
         layout
+        transition={{ layout: { duration: 0 } }}
         data-presentation-canvas=""
         data-presentation-scale={scale.toFixed(4)}
         style={{

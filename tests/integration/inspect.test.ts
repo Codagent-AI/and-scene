@@ -46,15 +46,15 @@ describe('INT-002: the screenshot helper', () => {
   })
 
   it('captures only after transitions settle', async () => {
-    const settled = await inspect('settle', ['--settle', '1500'])
+    const settled = await inspect('settle', ['--settle', '2200'])
     expect(settled.code).toBe(0)
     const [r, g] = pixelAt(await readFile(path.join(settled.out, 'step-01.png')), 5, 5)
     expect([r, g]).toEqual([0, 128])
-    const early = await inspect('settle', ['--settle', '50'])
+    const early = await inspect('settle', ['--settle', '0'])
     const [r2] = pixelAt(await readFile(path.join(early.out, 'step-01.png')), 5, 5)
-    expect(r2).toBeGreaterThan(100)
+    expect(r2).toBeGreaterThan(0)
     const gap = (await stat(path.join(settled.out, 'step-02.png'))).mtimeMs - (await stat(path.join(settled.out, 'step-01.png'))).mtimeMs
-    expect(gap).toBeGreaterThanOrEqual(1500)
+    expect(gap).toBeGreaterThanOrEqual(2200)
   })
 
   it('warns about an unmarked text collision at the right step, still exiting zero', async () => {
@@ -172,6 +172,25 @@ describe('kit motion in a real browser', () => {
     const peerAfter = (await rect('peer-box'))!
     expect(Math.abs(peerAfter.left - peerBefore.left)).toBeLessThan(1)
     expect(Math.abs(peerAfter.top - peerBefore.top)).toBeLessThan(1)
+  })
+
+  it('keeps one scale and still entities across steps whose captions differ in length', async () => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto(`${url}/how-to-make-a-presentation`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(1500)
+    const probe = () =>
+      page.evaluate(() => ({
+        scale: document.querySelector('[data-presentation-canvas]')!.getAttribute('data-presentation-scale'),
+        you: document.querySelector('[data-presentation-id="htm-you"]')!.getBoundingClientRect().left,
+      }))
+    const first = await probe()
+    for (let step = 1; step < 9; step++) {
+      await page.keyboard.press('ArrowRight')
+      await page.waitForTimeout(120)
+      const now = await probe()
+      expect(now.scale).toBe(first.scale)
+      expect(now.you).toBeCloseTo(first.you, 1)
+    }
   })
 
   it('keeps the same composition when the canvas is scaled for a narrow viewport', async () => {

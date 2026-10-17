@@ -66,7 +66,7 @@ export function Presentation<TPayload>({
         {browse && wide ? <Toc sections={sections} index={index} onGoTo={goTo} /> : null}
         <Stage step={step} index={index} mode={mode} />
       </div>
-      <Narration step={step} index={index} mode={mode} />
+      <Narration steps={steps} index={index} mode={mode} />
       {browse ? <Footer steps={steps} index={index} onGoTo={goTo} onPrev={prev} onNext={next} /> : null}
       {attribution === false ? null : <Attribution {...attribution} />}
     </div>

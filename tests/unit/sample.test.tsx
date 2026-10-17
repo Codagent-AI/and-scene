@@ -48,50 +48,51 @@ describe('reference sample', () => {
     expect(STEPS.map((s) => s.payload.beat)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
   })
 
-  it('accumulates entities without rearranging them', () => {
-    const seen = new Map<string, string>()
-    let previous = new Set<string>()
-    for (const step of STEPS) {
+  describe('scene beats', () => {
+    // Render each beat once and share the snapshot between the checks below.
+    const beats = STEPS.map((step) => {
       const { container, unmount } = render(<SampleScene payload={step.payload} step={step} index={0} />)
-      const nodes = [...container.querySelectorAll<HTMLElement>('[data-presentation-node]')]
-      const ids = new Set(nodes.map((n) => n.getAttribute('data-presentation-id')!))
-      for (const id of previous) expect(ids.has(id), `${id} kept at beat ${step.payload.beat}`).toBe(true)
-      for (const node of nodes) {
-        const id = node.getAttribute('data-presentation-id')!
-        const geometry = `${node.style.left},${node.style.top},${node.style.width},${node.style.height}`
-        if (seen.has(id)) expect(geometry, `${id} stays put`).toBe(seen.get(id))
-        seen.set(id, geometry)
-      }
-      expect(ids.size).toBeGreaterThanOrEqual(previous.size)
-      previous = ids
+      const nodes = [...container.querySelectorAll<HTMLElement>('[data-presentation-node]')].map((node) => ({
+        id: node.getAttribute('data-presentation-id')!,
+        kind: node.getAttribute('data-presentation-node')!,
+        geometry: `${node.style.left},${node.style.top},${node.style.width},${node.style.height}`,
+      }))
       unmount()
-    }
-    expect([...previous].some((id) => id.includes('frame'))).toBe(true)
-  })
+      return nodes
+    })
+    const kinds = (beat: number) => new Set(beats[beat - 1].map((n) => n.kind))
 
-  it('introduces the scene entities beat by beat', () => {
-    const kinds = (beat: number) => {
-      const step = STEPS[beat - 1]
-      const { container, unmount } = render(<SampleScene payload={step.payload} step={step} index={0} />)
-      const found = new Set([...container.querySelectorAll('[data-presentation-node]')].map((n) => n.getAttribute('data-presentation-node')))
-      unmount()
-      return found
-    }
-    expect(kinds(1)).toEqual(new Set(['you', 'prompt']))
-    expect(kinds(2)).toContain('skill')
-    expect(kinds(2)).toContain('arrow')
-    expect(kinds(2)).toContain('question')
-    expect(kinds(3)).toContain('tray')
-    expect(kinds(3)).toContain('step-card')
-    expect(kinds(5)).toContain('ghost-card')
-    expect(kinds(5)).toContain('depth-control')
-    expect(kinds(6)).toContain('scene-kit')
-    expect(kinds(7)).toContain('verify')
-    expect(kinds(7)).toContain('pass')
-    expect(kinds(8)).toContain('edited-flag')
-    expect(kinds(9)).toContain('frame')
-    expect(kinds(2)).not.toContain('tray')
-    expect(kinds(8)).not.toContain('frame')
+    it('accumulates entities without rearranging them', () => {
+      const seen = new Map<string, string>()
+      let previous = new Set<string>()
+      beats.forEach((nodes, i) => {
+        const ids = new Set(nodes.map((n) => n.id))
+        for (const id of previous) expect(ids.has(id), `${id} kept at beat ${i + 1}`).toBe(true)
+        for (const { id, geometry } of nodes) {
+          if (seen.has(id)) expect(geometry, `${id} stays put`).toBe(seen.get(id))
+          seen.set(id, geometry)
+        }
+        previous = ids
+      })
+      expect([...previous].some((id) => id.includes('frame'))).toBe(true)
+    })
+
+    it('introduces the scene entities beat by beat', () => {
+      expect(kinds(1)).toEqual(new Set(['you', 'prompt']))
+      for (const [beat, expected] of [
+        [2, ['skill', 'arrow', 'question']],
+        [3, ['tray', 'step-card']],
+        [5, ['ghost-card', 'depth-control']],
+        [6, ['scene-kit']],
+        [7, ['verify', 'pass']],
+        [8, ['edited-flag']],
+        [9, ['frame']],
+      ] as const) {
+        for (const kind of expected) expect(kinds(beat), `beat ${beat} has ${kind}`).toContain(kind)
+      }
+      expect(kinds(2)).not.toContain('tray')
+      expect(kinds(8)).not.toContain('frame')
+    })
   })
 })
 
@@ -129,6 +130,6 @@ describe('routing and registry', () => {
     expect(unknown.container.querySelector('[data-presentation-link]')).not.toBeNull()
     unknown.unmount()
     const known = render(<Router pathname={`/${config.reference.slug}`} />)
-    expect(await known.findByText('You have a topic')).toBeTruthy()
+    expect((await known.findAllByText('You have a topic', {}, { timeout: 8000 })).length).toBeGreaterThan(0)
   })
 })

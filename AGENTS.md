@@ -50,10 +50,8 @@ repository checks required by the specs.
 
 ## Implementation Workflow
 
-Use test-driven development for behavior changes and bug fixes: add a focused
-failing test, implement the smallest fix, then run the targeted test before the
-full suite. Tests are not required for prose-only documentation or
-configuration-only changes.
+Keep `npm test` to fast unit and contract tests. Put slower integration,
+end-to-end, and browser-backed tests in a separate npm script.
 
 Once the project scaffold exists, use:
 

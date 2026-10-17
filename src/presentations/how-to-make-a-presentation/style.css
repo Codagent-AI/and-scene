@@ -1,0 +1,253 @@
+.htmp {
+  --ink: #f8f3e6;
+  --muted: #b9b09b;
+  --accent: #e0bd5b;
+  --line: #6d6552;
+  --panel: #1d1a16;
+  --ok: #6fcf8a;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: radial-gradient(circle at 20% 0%, #2a2418 0%, #0d0c0b 60%);
+}
+
+/* chrome */
+.htmp [data-presentation-header] {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.5rem 0.25rem;
+}
+.htmp [data-presentation-marker] {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.htmp [data-presentation-era] {
+  color: var(--accent);
+}
+.htmp [data-presentation-header] [data-presentation-title] {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 650;
+}
+.htmp [data-presentation-footer] {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  padding: 0.5rem 1.5rem 2.5rem;
+}
+.htmp [data-presentation-footer] [data-presentation-title] {
+  grid-column: 1 / -1;
+  margin: 0;
+  overflow: hidden;
+  font-size: clamp(1.4rem, 4vw, 2.25rem);
+  font-weight: 700;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.htmp [data-presentation-caption] {
+  grid-column: 1 / -1;
+  max-width: 60rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.htmp [data-presentation-progress] {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.htmp [data-presentation-progress-item] {
+  width: 0.65rem;
+  height: 0.65rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: width 0.2s;
+}
+.htmp [data-presentation-progress-item][data-presentation-active='true'] {
+  width: 1.8rem;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.htmp [data-presentation-nav] {
+  display: flex;
+  gap: 0.5rem;
+}
+.htmp [data-presentation-nav] button {
+  min-width: 5.5rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--panel);
+  font: inherit;
+  cursor: pointer;
+}
+.htmp [data-presentation-nav] button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.htmp [data-presentation-toc] {
+  width: 12rem;
+  padding: 1rem 0 0 1.5rem;
+}
+.htmp [data-presentation-toc] ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.htmp [data-presentation-toc-entry] {
+  width: 100%;
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.htmp [data-presentation-toc-entry][data-presentation-active='true'] {
+  border-left-color: var(--accent);
+  color: var(--ink);
+  background: rgba(224, 189, 91, 0.14);
+  font-weight: 700;
+}
+.htmp [data-presentation-attribution] {
+  margin: 0 1.5rem 0.75rem 0;
+  padding: 0.15rem 0.4rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+.htmp [data-presentation-attribution]:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* scene */
+.htmp [data-presentation-canvas] {
+  font-size: 13px;
+}
+.htmp .htmp-actor,
+.htmp .htmp-card,
+.htmp .htmp-socket,
+.htmp .htmp-verify,
+.htmp .htmp-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.htmp .htmp-actor {
+  font-size: 1.2rem;
+  font-weight: 650;
+  border-color: var(--accent);
+}
+.htmp .htmp-card {
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 6px;
+  font-size: 11px;
+}
+.htmp .htmp-card-title {
+  font-weight: 700;
+}
+.htmp .htmp-card-caption {
+  color: var(--muted);
+}
+.htmp .htmp-card-visual {
+  width: 100%;
+  padding: 4px 0;
+  border-radius: 4px;
+  background: #2b261d;
+  text-align: center;
+}
+.htmp .htmp-ghost {
+  border-style: dashed;
+  color: var(--muted);
+  font-size: 1.5rem;
+}
+.htmp .htmp-socket {
+  border-color: var(--accent);
+  font-weight: 650;
+}
+.htmp .htmp-verify {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 10px;
+  font-weight: 650;
+}
+.htmp .htmp-bubble,
+.htmp .htmp-chip,
+.htmp .htmp-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 999px;
+  background: #2b261d;
+  color: var(--ink);
+  font-size: 12px;
+}
+.htmp .htmp-control {
+  border: 1px solid var(--accent);
+}
+.htmp .htmp-morph,
+.htmp .htmp-plug,
+.htmp .htmp-flag-chip,
+.htmp .htmp-pass {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+.htmp .htmp-pass {
+  border-radius: 999px;
+  color: #0d0c0b;
+  background: var(--ok);
+}
+.htmp .htmp-morph svg,
+.htmp .htmp-plug svg,
+.htmp .htmp-flag-chip svg,
+.htmp .htmp-pass svg {
+  width: 16px;
+  height: 16px;
+}
+.htmp .htmp-arrow {
+  color: var(--muted);
+}
+.htmp .htmp-arrow path {
+  stroke-width: 1.6;
+}
+.htmp .htmp-arrow-modify {
+  color: var(--accent);
+}
+.htmp .htmp-flag {
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+}
+.htmp .htmp-frame {
+  border: 2px dashed var(--accent);
+  border-radius: 18px;
+}
+.htmp .htmp-frame-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #0d0c0b;
+  background: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}

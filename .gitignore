@@ -23,3 +23,7 @@ validator_logs
 *.njsproj
 *.sln
 *.sw?
+
+# generated inspection screenshots and fixture builds
+.inspection
+.fixture-dist

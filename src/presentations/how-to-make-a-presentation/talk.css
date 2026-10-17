@@ -1,0 +1,372 @@
+/* Look of "How to Use This Skill to Make a Presentation". Owned by this presentation, not the kit. */
+.htm {
+  --htm-ink: #f8f3e6;
+  --htm-muted: rgba(248, 243, 230, 0.62);
+  --htm-gold: #c7a755;
+  --htm-gold-soft: rgba(199, 167, 85, 0.45);
+  --htm-surface: rgba(248, 243, 230, 0.05);
+  --htm-pass: #4fae7a;
+  color: var(--htm-ink);
+}
+
+.htm button {
+  color: inherit;
+  cursor: pointer;
+}
+
+/* chrome */
+.htm [data-presentation-header] {
+  padding: 0.9rem 1.5rem 0.2rem;
+  min-height: 2.4rem;
+}
+
+.htm [data-presentation-deck-title] {
+  margin-left: auto;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--htm-muted);
+}
+
+.htm [data-presentation-toc] {
+  width: 11.5rem;
+  padding: 0.5rem 0 0 1.5rem;
+}
+
+.htm [data-presentation-toc-item] {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: none;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--htm-muted);
+}
+
+.htm [data-presentation-toc-item][data-presentation-active] {
+  border-left-color: var(--htm-gold);
+  background: rgba(199, 167, 85, 0.14);
+  color: var(--htm-ink);
+  font-weight: 700;
+}
+
+.htm [data-presentation-narration] {
+  padding: 0.5rem 1.5rem 0.4rem;
+  max-width: 60rem;
+}
+
+.htm [data-presentation-marker] {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  color: var(--htm-gold);
+}
+
+.htm [data-presentation-title] {
+  margin: 0.1rem 0 0;
+  font-size: 1.7rem;
+  line-height: 1.2;
+}
+
+.htm [data-presentation-caption] {
+  margin: 0.4rem 0 0;
+  max-width: 46rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--htm-muted);
+}
+
+.htm[data-presentation-mode='present'] [data-presentation-narration] {
+  padding-bottom: 1.4rem;
+}
+
+.htm[data-presentation-mode='present'] [data-presentation-marker] {
+  font-size: 1.1rem;
+}
+
+.htm[data-presentation-mode='present'] [data-presentation-title] {
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+}
+
+.htm [data-presentation-footer] {
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 0.3rem 1.5rem 1rem;
+}
+
+.htm [data-presentation-prev],
+.htm [data-presentation-next] {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--htm-gold-soft);
+  border-radius: 50%;
+  background: none;
+}
+
+.htm [data-presentation-prev]:disabled,
+.htm [data-presentation-next]:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.htm [data-presentation-prev] svg,
+.htm [data-presentation-next] svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.htm [data-presentation-progress] {
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.htm [data-presentation-progress-item] {
+  display: block;
+  width: 0.6rem;
+  height: 0.6rem;
+  padding: 0;
+  border: 1px solid var(--htm-gold);
+  border-radius: 999px;
+  background: none;
+  opacity: 0.6;
+}
+
+.htm [data-presentation-progress-item][data-presentation-active] {
+  width: 1.5rem;
+  background: var(--htm-gold);
+  opacity: 1;
+}
+
+.htm [data-presentation-attribution] {
+  margin: 0 1rem 1rem 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--htm-gold);
+  text-decoration: none;
+  border-bottom: 1px solid var(--htm-gold-soft);
+}
+
+.htm [data-presentation-attribution]:hover {
+  color: var(--htm-ink);
+}
+
+/* scene */
+.htm .entity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--htm-gold-soft);
+  border-radius: 10px;
+  background: var(--htm-surface);
+  font-size: 15px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.htm .entity svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.htm .entity-you,
+.htm .entity-skill {
+  border-color: var(--htm-gold);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.htm .entity-prompt {
+  border-radius: 14px;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--htm-muted);
+}
+
+.htm .entity-question {
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.htm .entity-tray {
+  border: 0;
+  border-radius: 14px;
+  background: rgba(248, 243, 230, 0.04);
+}
+
+.htm .entity-route {
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--htm-muted);
+}
+
+.htm .step-card {
+  display: block;
+  padding: 0;
+  border: 1px solid var(--htm-gold-soft);
+  border-radius: 10px;
+  background: var(--htm-surface);
+  white-space: normal;
+}
+
+.htm .step-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  padding: 8px;
+  border-radius: 9px;
+  font-size: 11px;
+  text-align: left;
+  transition:
+    box-shadow 0.4s,
+    background-color 0.4s;
+}
+
+.htm .step-card-body[data-flagged] {
+  background: rgba(199, 167, 85, 0.2);
+  box-shadow: inset 0 0 0 2px var(--htm-gold);
+}
+
+.htm .step-card-title,
+.htm .step-card-visual {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.htm .step-card-title {
+  font-weight: 700;
+}
+
+.htm .step-card-caption {
+  color: var(--htm-muted);
+}
+
+.htm .step-card-visual {
+  flex: 1;
+  justify-content: center;
+  border: 1px dashed var(--htm-gold-soft);
+  border-radius: 6px;
+}
+
+.htm .step-card svg {
+  width: 12px;
+  height: 12px;
+}
+
+.htm .entity-morph {
+  padding: 0;
+  border-radius: 50%;
+  border-color: var(--htm-gold);
+}
+
+.htm .entity-ghost {
+  border-style: dashed;
+  color: var(--htm-muted);
+  font-size: 12px;
+  white-space: normal;
+}
+
+.htm .entity-depth {
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+.htm .entity-kit {
+  border-style: solid;
+  border-color: var(--htm-gold);
+  border-radius: 0 0 12px 12px;
+  font-size: 13px;
+}
+
+.htm .entity-verify {
+  flex-direction: column;
+  gap: 4px;
+  white-space: normal;
+}
+
+.htm .verify-checks {
+  font-size: 12px;
+  color: var(--htm-muted);
+}
+
+.htm .entity-pass {
+  padding: 0;
+  border-color: var(--htm-pass);
+  border-radius: 50%;
+  background: var(--htm-pass);
+  color: #0d0c0b;
+}
+
+.htm .entity-modify-label {
+  border: 0;
+  background: none;
+  color: var(--htm-gold);
+  font-size: 13px;
+}
+
+.htm .entity-edited {
+  border-color: var(--htm-gold);
+  background: #2a2411;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.htm .entity-frame {
+  padding: 0;
+  border: 2px solid var(--htm-gold);
+  border-radius: 20px;
+  background: none;
+}
+
+.htm .entity-frame-label {
+  border: 0;
+  background: none;
+  font-size: 14px;
+  color: var(--htm-gold);
+}
+
+.htm .arrow {
+  color: var(--htm-gold);
+}
+
+.htm .arrow [data-presentation-arrow-line] {
+  stroke-width: 2;
+}
+
+.htm .arrow-link {
+  color: var(--htm-muted);
+}
+
+.htm .arrow-modify {
+  color: var(--htm-gold);
+}
+
+.htm .arrow-modify [data-presentation-arrow-line] {
+  stroke-dasharray: 5 4;
+}
+
+/* narrow viewports: keep the controls above the bottom-right attribution */
+@media (max-width: 640px) {
+  .htm [data-presentation-footer] {
+    padding-bottom: 2.8rem;
+  }
+
+  .htm [data-presentation-title] {
+    font-size: 1.3rem;
+  }
+}

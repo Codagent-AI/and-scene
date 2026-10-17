@@ -52,7 +52,7 @@ describe('reference sample', () => {
     const additions: Record<number, string[]> = {
       1: [E.you, E.prompt],
       2: [E.skill, E.conversation, E.question],
-      3: [E.card1, E.link1, E.morph1],
+      3: [E.tray, E.card1, E.link1, E.morph1],
       4: [E.card2, E.card3, E.card4, E.link2, E.link3, E.morph2, E.morph3],
       5: [E.ghost, E.depth],
       6: [E.plug, E.socket],
@@ -74,6 +74,11 @@ describe('reference sample', () => {
     const ids = Object.values(E)
     expect(new Set(ids).size).toBe(ids.length)
     for (const id of ids) expect(id.startsWith('htmp-')).toBe(true)
+  })
+
+  it('marks the sample\'s intentional overlaps as allowed', () => {
+    const marked = SAMPLE_ENTITIES.filter((e) => (e.node as { props: Record<string, unknown> }).props['data-presentation-allow-overlap'] !== undefined)
+    expect(marked.map((e) => e.key).sort()).toEqual([E.flagChip, E.flagRing, E.frame, E.frameLabel].sort())
   })
 
   it('keeps the closing reveal labelled and framing the whole diagram', () => {

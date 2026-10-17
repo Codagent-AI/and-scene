@@ -5,6 +5,7 @@ export const E = {
   skill: 'htmp-skill',
   conversation: 'htmp-conversation',
   question: 'htmp-question',
+  tray: 'htmp-tray',
   card1: 'htmp-card-1',
   card2: 'htmp-card-2',
   card3: 'htmp-card-3',

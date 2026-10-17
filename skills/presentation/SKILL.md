@@ -27,7 +27,7 @@ path from it, never from the current working directory.
 ## Procedure
 
 Work through these steps in order. For a modification, follow "Modify an existing presentation"
-instead of steps 1 and 4.
+in place of steps 1 and 3; step 2 still applies if anchors are missing, and step 4 always applies.
 
 ### 1. Gather (one question at a time)
 

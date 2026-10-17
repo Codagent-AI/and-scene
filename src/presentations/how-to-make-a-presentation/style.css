@@ -183,10 +183,25 @@
   font-weight: 650;
 }
 .htmp .htmp-verify {
+  flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
+  gap: 4px;
   padding: 10px;
   font-weight: 650;
+}
+.htmp .htmp-tray {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.htmp .htmp-verify-checks {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
 }
 .htmp .htmp-bubble,
 .htmp .htmp-chip,

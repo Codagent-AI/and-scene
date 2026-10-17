@@ -32,6 +32,11 @@ export const SAMPLE_ENTITIES: { from: number; key: string; node: ReactNode }[] =
     key: E.question,
     node: <Label id={E.question} x={380} y={38} w={120} h={22} className="htmp-chip">question?</Label>,
   },
+  {
+    from: 3,
+    key: E.tray,
+    node: <Label id={E.tray} x={30} y={170} w={140} h={22} className="htmp-tray">your steps</Label>,
+  },
   { from: 3, key: E.card1, node: <StepCard id={E.card1} x={CARD_X[0]} index={1} /> },
   {
     from: 3,
@@ -62,7 +67,7 @@ export const SAMPLE_ENTITIES: { from: number; key: string; node: ReactNode }[] =
   {
     from: 5,
     key: E.depth,
-    node: <SymbolChip id={E.depth} x={40} y={142} w={160} h={28} icon={SlidersHorizontal} className="htmp-control">partial ↔ full</SymbolChip>,
+    node: <SymbolChip id={E.depth} x={40} y={10} w={160} h={22} icon={SlidersHorizontal} className="htmp-control">partial ↔ full</SymbolChip>,
   },
   {
     from: 6,
@@ -82,7 +87,10 @@ export const SAMPLE_ENTITIES: { from: number; key: string; node: ReactNode }[] =
   {
     from: 7,
     key: E.verify,
-    node: <Box id={E.verify} x={730} y={CARD_Y} w={120} h={CARD_H} className="htmp-verify">verify</Box>,
+    node: <Box id={E.verify} x={730} y={CARD_Y} w={120} h={CARD_H} className="htmp-verify">
+        <span>verify</span>
+        <span className="htmp-verify-checks">build · render</span>
+      </Box>,
   },
   {
     from: 7,
@@ -102,21 +110,21 @@ export const SAMPLE_ENTITIES: { from: number; key: string; node: ReactNode }[] =
   {
     from: 8,
     key: E.flagRing,
-    node: <Emphasis id={E.flagRing} x={CARD_X[1] - 6} y={CARD_Y - 6} w={CARD_W + 12} h={CARD_H + 12} className="htmp-flag" />,
+    node: <Emphasis id={E.flagRing} x={CARD_X[1] - 6} y={CARD_Y - 6} w={CARD_W + 12} h={CARD_H + 12} className="htmp-flag" data-presentation-allow-overlap="" />,
   },
   {
     from: 8,
     key: E.flagChip,
-    node: <SymbolChip id={E.flagChip} x={CARD_X[1] + CARD_W - 14} y={CARD_Y - 18} w={24} h={24} icon={FilePenLine} className="htmp-flag-chip" />,
+    node: <SymbolChip id={E.flagChip} x={CARD_X[1] + CARD_W - 14} y={CARD_Y - 18} w={24} h={24} icon={FilePenLine} className="htmp-flag-chip" data-presentation-allow-overlap="" />,
   },
   {
     from: 9,
     key: E.frame,
-    node: <Frame id={E.frame} x={4} y={4} w={872} h={372} className="htmp-frame" />,
+    node: <Frame id={E.frame} x={4} y={4} w={872} h={372} className="htmp-frame" data-presentation-allow-overlap="" />,
   },
   {
     from: 9,
     key: E.frameLabel,
-    node: <Label id={E.frameLabel} x={310} y={8} w={260} h={22} className="htmp-frame-label">you are looking at one</Label>,
+    node: <Label id={E.frameLabel} x={310} y={8} w={260} h={22} className="htmp-frame-label" data-presentation-allow-overlap="">you are looking at one</Label>,
   },
 ]

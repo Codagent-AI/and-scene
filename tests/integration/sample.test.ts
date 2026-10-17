@@ -195,7 +195,7 @@ describe('sample scene', () => {
       await page.waitForTimeout(150)
       counts.push(await count())
     }
-    expect(counts).toEqual([2, 5, 8, 15, 17, 19, 22, 26, 28])
+    expect(counts).toEqual([2, 5, 9, 16, 18, 20, 23, 27, 29])
     for (let step = 8; step > 0; step--) await page.keyboard.press('ArrowLeft')
     await page.waitForTimeout(800)
     expect(await count()).toBe(2)

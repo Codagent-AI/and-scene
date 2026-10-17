@@ -1,9 +1,11 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { DEFAULT_ATTRIBUTION, TOC_BREAKPOINT } from '../constants'
 import { Presentation, type PresentationProps } from '../Presentation'
-import { CountingScene, makeSteps, mounts } from './helpers'
+import { defineStep } from '../steps'
+import type { SceneProps } from '../types'
+import { CountingScene, makeSteps, mounts, type LabelPayload } from './helpers'
 
 const root = () => document.querySelector('[data-presentation-root]') as HTMLElement
 const index = () => Number(root().getAttribute('data-step-index'))
@@ -352,17 +354,30 @@ describe('scene hosting', () => {
     expect(mounts.count).toBe(3)
   })
 
-  it('treats a different Scene component in the same group as a new instance', () => {
-    function OtherScene() {
-      return <div data-testid="other" />
+  it('treats a different Scene component in the same group as a new instance', async () => {
+    function OtherScene({ payload }: SceneProps<LabelPayload>) {
+      return <div data-testid="scene" data-instance="other">{payload.label}</div>
     }
-    const [a] = makeSteps(1, { groupKey: 'g' })
-    const b = { ...a, id: 'other', sceneId: a.sceneId + 100, render: () => <OtherScene /> }
-    render(<Presentation title="Deck" steps={[a, b]} initialMode="browse" />)
+    const meta = { era: 'e', caption: 'c' }
+    const steps = [
+      defineStep({ ...meta, id: 'a1', title: 'A1', Scene: CountingScene, groupKey: 'g', payload: { label: 'a1' } }),
+      defineStep({ ...meta, id: 'a2', title: 'A2', Scene: CountingScene, groupKey: 'g', payload: { label: 'a2' } }),
+      defineStep({ ...meta, id: 'b1', title: 'B1', Scene: OtherScene, groupKey: 'g', payload: { label: 'b1' } }),
+      defineStep({ ...meta, id: 'a3', title: 'A3', Scene: CountingScene, groupKey: 'g', payload: { label: 'a3' } }),
+    ]
+    render(<Presentation title="Deck" steps={steps} initialMode="browse" />)
+    // an outgoing scene may linger while it fades, so look the active one up by its payload
+    const scene = (label: string) => screen.getAllByTestId('scene').find((el) => el.textContent === label)!
+    const first = scene('a1').dataset.instance
+    press('ArrowRight')
+    expect(scene('a2').dataset.instance).toBe(first)
     expect(mounts.count).toBe(1)
     press('ArrowRight')
-    expect(screen.getByTestId('other')).toBeTruthy()
-    void CountingScene
+    expect(scene('b1').dataset.instance).toBe('other')
+    await waitFor(() => expect(screen.getAllByTestId('scene')).toHaveLength(1), { timeout: 8000 })
+    press('ArrowRight')
+    expect(scene('a3').dataset.instance).not.toBe(first)
+    expect(mounts.count).toBe(2)
   })
 
   it('retains scene state within a group when switching modes, without remounting', () => {

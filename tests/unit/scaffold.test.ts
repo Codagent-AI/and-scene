@@ -1,4 +1,5 @@
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
+import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -9,6 +10,7 @@ import {
   createPresentation,
   detect,
   detectAnchors,
+  INSTALL_ARGS,
 } from '../../skills/presentation/scripts/scaffold.mjs'
 
 let dir: string
@@ -252,5 +254,17 @@ describe('createPresentation', () => {
     const source = "export const presentations: PresentationEntry[] = [\n  { slug: 'a', title: 'A', load: () => import('./a/Talk.tsx') }\n]\n"
     const updated = addRegistryEntry(source, 'b', 'B')
     expect(updated).toContain("load: () => import('./a/Talk.tsx') },\n  {\n    slug: 'b'")
+  })
+})
+
+describe('install isolation', () => {
+  it('installs a nested app without touching a workspace monorepo root', async () => {
+    await write('package.json', JSON.stringify({ private: true, workspaces: ['presentations'] }))
+    await write('presentations/package.json', JSON.stringify({ name: 'deck', version: '1.0.0', private: true }))
+    const result = spawnSync('npm', [...INSTALL_ARGS, '--offline'], { cwd: path.join(dir, 'presentations'), encoding: 'utf8' })
+    expect(result.status, result.stderr).toBe(0)
+    expect(existsSync(path.join(dir, 'package-lock.json'))).toBe(false)
+    expect(existsSync(path.join(dir, 'node_modules'))).toBe(false)
+    expect(existsSync(path.join(dir, 'presentations/package-lock.json'))).toBe(true)
   })
 })

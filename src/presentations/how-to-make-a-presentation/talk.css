@@ -166,34 +166,40 @@
   border: 1px solid var(--htm-gold-soft);
   border-radius: 10px;
   background: var(--htm-surface);
-  font-size: 15px;
+  font-size: 18px;
   text-align: center;
   white-space: nowrap;
 }
 
 .htm .entity svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   flex: none;
 }
 
 .htm .entity-you,
 .htm .entity-skill {
   border-color: var(--htm-gold);
-  font-size: 17px;
+  font-size: 24px;
   font-weight: 700;
+}
+
+.htm .entity-you svg,
+.htm .entity-skill svg {
+  width: 24px;
+  height: 24px;
 }
 
 .htm .entity-prompt {
   border-radius: 14px;
-  font-size: 13px;
+  font-size: 18px;
   font-style: italic;
   color: var(--htm-muted);
 }
 
 .htm .entity-question {
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 18px;
 }
 
 .htm .entity-tray {
@@ -207,7 +213,7 @@
   padding: 0;
   border: 0;
   background: none;
-  font-size: 12px;
+  font-size: 16px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--htm-muted);
@@ -229,7 +235,7 @@
   height: 100%;
   padding: 8px;
   border-radius: 9px;
-  font-size: 11px;
+  font-size: 15px;
   text-align: left;
   transition:
     box-shadow 0.4s,
@@ -264,8 +270,8 @@
 }
 
 .htm .step-card svg {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
 }
 
 .htm .entity-morph {
@@ -277,12 +283,12 @@
 .htm .entity-ghost {
   border-style: dashed;
   color: var(--htm-muted);
-  font-size: 12px;
+  font-size: 16px;
   white-space: normal;
 }
 
 .htm .entity-depth {
-  font-size: 12px;
+  font-size: 18px;
   border-radius: 999px;
 }
 
@@ -290,17 +296,18 @@
   border-style: solid;
   border-color: var(--htm-gold);
   border-radius: 0 0 12px 12px;
-  font-size: 13px;
+  font-size: 18px;
 }
 
 .htm .entity-verify {
   flex-direction: column;
   gap: 4px;
+  font-size: 20px;
   white-space: normal;
 }
 
 .htm .verify-checks {
-  font-size: 12px;
+  font-size: 15px;
   color: var(--htm-muted);
 }
 
@@ -316,14 +323,14 @@
   border: 0;
   background: none;
   color: var(--htm-gold);
-  font-size: 13px;
+  font-size: 18px;
 }
 
 .htm .entity-edited {
   border-color: var(--htm-gold);
   background: #2a2411;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 16px;
 }
 
 .htm .entity-frame {
@@ -336,7 +343,7 @@
 .htm .entity-frame-label {
   border: 0;
   background: none;
-  font-size: 14px;
+  font-size: 18px;
   color: var(--htm-gold);
 }
 

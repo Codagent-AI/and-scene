@@ -13,6 +13,9 @@ const skillDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 export const BOOTSTRAP_DIR = path.join(skillDir, 'templates', 'bootstrap')
 export const PRESENTATION_TEMPLATE_DIR = path.join(skillDir, 'templates', 'presentation')
 
+/** `--workspaces=false` keeps a nested app's install (lockfile, node_modules) out of a monorepo root. */
+export const INSTALL_ARGS = ['install', '--workspaces=false']
+
 const IGNORED = new Set(['.git', '.DS_Store'])
 const MONOREPO_FILES = ['pnpm-workspace.yaml', 'lerna.json', 'turbo.json']
 const MONOREPO_DIRS = ['packages', 'apps']
@@ -199,7 +202,7 @@ export async function apply(appDir, missing, { starter = false, install = true }
 
   let installed = false
   if (install && missing.length) {
-    const result = spawnSync('npm', ['install'], { cwd: appDir, stdio: 'inherit' })
+    const result = spawnSync('npm', INSTALL_ARGS, { cwd: appDir, stdio: 'inherit' })
     installed = result.status === 0
     if (!installed) throw new Error('npm install failed in ' + appDir)
   }

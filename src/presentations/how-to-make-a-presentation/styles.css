@@ -21,8 +21,7 @@
   padding: 0.75rem 1.5rem;
 }
 .how-to-make-a-presentation [data-presentation-attribution] {
-  right: 1.5rem;
-  bottom: 0.75rem;
+  margin: 0 1.5rem 0.75rem 0;
 }
 .how-to-make-a-presentation [data-presentation-controls],
 .how-to-make-a-presentation [data-presentation-progress] {
@@ -273,4 +272,24 @@
   font-size: 13px;
   font-weight: 650;
   text-align: right;
+}
+
+/* narrow viewports: compact controls so the attribution link keeps its own space */
+@media (max-width: 600px) {
+  .how-to-make-a-presentation [data-presentation-controls],
+  .how-to-make-a-presentation [data-presentation-progress] {
+    gap: 0.35rem;
+  }
+  .how-to-make-a-presentation [data-presentation-prev],
+  .how-to-make-a-presentation [data-presentation-next] {
+    width: 2rem;
+    height: 2rem;
+  }
+  .how-to-make-a-presentation [data-presentation-progress-item] {
+    width: 0.5rem;
+    height: 0.5rem;
+  }
+  .how-to-make-a-presentation [data-presentation-progress-item][data-presentation-active='true'] {
+    width: 1rem;
+  }
 }

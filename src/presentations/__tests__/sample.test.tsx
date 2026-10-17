@@ -4,7 +4,7 @@ import { PRESENTATIONS } from '..'
 import Talk from '../how-to-make-a-presentation/Talk'
 import { E } from '../how-to-make-a-presentation/entities'
 import { OUTLINE } from '../how-to-make-a-presentation/outline'
-import { SAMPLE_ENTITIES } from '../how-to-make-a-presentation/steps/scene'
+import { SAMPLE_ENTITIES } from '../how-to-make-a-presentation/steps/layout'
 import { STEPS } from '../how-to-make-a-presentation/steps'
 
 afterEach(cleanup)

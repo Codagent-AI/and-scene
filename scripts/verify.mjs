@@ -10,10 +10,11 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const STEP_TIMEOUT_MS = 5000
 const SETTLE_MS = 400
 const failures = []
+let currentSlug
 
 const fail = (phase, message, step) => {
   failures.push({ phase, message, step })
-  console.error(`FAIL [${phase}]${step === undefined ? '' : ` step ${step + 1}`}: ${message}`)
+  console.error(`FAIL [${phase}]${currentSlug ? ` /${currentSlug}` : ''}${step === undefined ? '' : ` step ${step + 1}`}: ${message}`)
 }
 const normalize = (text) => (text ?? '').replace(/\s+/g, ' ').trim()
 const readIndex = (page) =>
@@ -36,6 +37,7 @@ async function verifyBuild() {
 
 /** Steps through one presentation, checking every step renders; compares text when an outline is given. */
 async function tour(page, baseUrl, slug, expected, state) {
+  currentSlug = slug
   await page.goto(`${baseUrl}/${slug}`, { waitUntil: 'networkidle' })
   try {
     await page.waitForSelector('[data-presentation-step-count]', { timeout: STEP_TIMEOUT_MS })
@@ -99,6 +101,7 @@ async function verifyPresentations(config) {
     }
     if (!slugs.length) fail('render', 'no presentation is registered')
     for (const slug of slugs) {
+      currentSlug = undefined
       const before = failures.length
       const count = await tour(page, preview.url, slug, slug === reference?.slug ? reference.steps : undefined, state)
       if (failures.length === before) console.log(`PASS [render] /${slug}: ${count} steps without console or page errors on ${HOST}`)

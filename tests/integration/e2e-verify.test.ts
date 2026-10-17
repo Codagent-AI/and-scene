@@ -71,7 +71,7 @@ describe('E2E-002: verification failures are actionable', () => {
       ),
     )
     expect(code).not.toBe(0)
-    expect(output).toMatch(/FAIL \[sample\] step 1: title\/caption mismatch/)
+    expect(output).toMatch(/FAIL \[sample\] \/how-to-make-a-presentation step 1: title\/caption mismatch/)
     expect(await leftoverProcesses(dir)).toBe('')
   })
 
@@ -80,7 +80,7 @@ describe('E2E-002: verification failures are actionable', () => {
       editFile(d, 'src/main.tsx', (t) => `${t}\n${onStep(2, "console.error('injected console failure')")}`),
     )
     expect(code).not.toBe(0)
-    expect(output).toMatch(/FAIL \[render\] step 3: console error: injected console failure/)
+    expect(output).toMatch(/FAIL \[render\] \/how-to-make-a-presentation step 3: console error: injected console failure/)
     expect(await leftoverProcesses(dir)).toBe('')
   })
 
@@ -89,7 +89,7 @@ describe('E2E-002: verification failures are actionable', () => {
       editFile(d, 'src/main.tsx', (t) => `${t}\n${onStep(3, "setTimeout(() => { throw new Error('injected page failure') })")}`),
     )
     expect(code).not.toBe(0)
-    expect(output).toMatch(/FAIL \[render\] step 4: uncaught page error: injected page failure/)
+    expect(output).toMatch(/FAIL \[render\] \/how-to-make-a-presentation step 4: uncaught page error: injected page failure/)
     expect(await leftoverProcesses(dir)).toBe('')
   })
 
@@ -102,7 +102,7 @@ describe('E2E-002: verification failures are actionable', () => {
       ),
     )
     expect(code).not.toBe(0)
-    expect(output).toMatch(/FAIL \[render\] step 5: transition did not advance the step index \(still 3\)/)
+    expect(output).toMatch(/FAIL \[render\] \/how-to-make-a-presentation step 5: transition did not advance the step index \(still 3\)/)
     expect(await leftoverProcesses(dir)).toBe('')
   })
 })

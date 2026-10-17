@@ -1,29 +1,9 @@
 import type { ReactNode } from 'react'
-import { ArrowLeftRight, Check, FilePenLine, Plug, SlidersHorizontal } from 'lucide-react'
+import { Check, FilePenLine, Plug, SlidersHorizontal } from 'lucide-react'
 import { Arrow, Box, Emphasis, Frame, Label, SymbolChip } from '../../../presentation-kit'
 import { E } from '../entities'
-
-const CARD_X = [30, 170, 310, 450] as const
-const CARD_Y = 200
-const CARD_W = 96
-const CARD_H = 100
-const MID_Y = CARD_Y + CARD_H / 2
-
-function StepCard({ id, x, index }: { id: string; x: number; index: number }) {
-  return (
-    <Box id={id} x={x} y={CARD_Y} w={CARD_W} h={CARD_H} className="htmp-card">
-      <span className="htmp-card-title">Title {index}</span>
-      <span className="htmp-card-caption">Caption</span>
-      <span className="htmp-card-visual">Visual</span>
-    </Box>
-  )
-}
-
-function Morph({ id, x }: { id: string; x: number }) {
-  return (
-    <SymbolChip id={id} x={x} y={MID_Y - 34} w={24} h={24} icon={ArrowLeftRight} className="htmp-morph" />
-  )
-}
+import { CARD_H, CARD_W, CARD_X, CARD_Y, MID_Y } from './geometry'
+import { Morph, StepCard } from './parts'
 
 /** Each entity enters at `from` and then stays; positions never change between beats. */
 export const SAMPLE_ENTITIES: { from: number; key: string; node: ReactNode }[] = [

@@ -1,0 +1,252 @@
+.how-to-make-a-presentation {
+  --ink: #e8ecf2;
+  --muted: #9aa5b8;
+  --line: #3a4560;
+  --panel: #171d2c;
+  --accent: #5eead4;
+  --warn: #fbbf24;
+  background: #0d111c;
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.4;
+}
+
+/* chrome */
+.how-to-make-a-presentation [data-presentation-marker] {
+  color: var(--accent);
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.how-to-make-a-presentation [data-presentation-deck-title] {
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.how-to-make-a-presentation [data-presentation-step-title] {
+  font-size: 1.5rem;
+  font-weight: 650;
+}
+.how-to-make-a-presentation [data-presentation-caption] {
+  max-width: 46rem;
+  color: var(--muted);
+  font-size: 1rem;
+}
+.how-to-make-a-presentation button {
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+.how-to-make-a-presentation [data-presentation-prev],
+.how-to-make-a-presentation [data-presentation-next] {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+.how-to-make-a-presentation [data-presentation-prev]:disabled,
+.how-to-make-a-presentation [data-presentation-next]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.how-to-make-a-presentation [data-presentation-progress-item] {
+  width: 0.75rem;
+  height: 0.75rem;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+}
+.how-to-make-a-presentation [data-presentation-progress-item][data-presentation-active='true'] {
+  width: 1.5rem;
+  background: var(--accent);
+  border-color: var(--accent);
+  border-radius: 0.5rem;
+}
+.how-to-make-a-presentation [data-presentation-toc] {
+  padding: 0.5rem 1.5rem;
+  box-sizing: border-box;
+}
+.how-to-make-a-presentation [data-presentation-toc-item] {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  margin: 0.15rem 0;
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  color: var(--muted);
+  text-align: left;
+  text-transform: capitalize;
+}
+.how-to-make-a-presentation [data-presentation-toc-item][data-presentation-active='true'] {
+  color: var(--ink);
+  font-weight: 700;
+  border-left-color: var(--accent);
+  background: var(--panel);
+}
+.how-to-make-a-presentation [data-presentation-attribution] {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--muted);
+}
+.how-to-make-a-presentation [data-presentation-attribution]:hover {
+  color: var(--accent);
+}
+
+/* entities */
+.how-to-make-a-presentation .ent {
+  box-sizing: border-box;
+  font-size: 13px;
+}
+.how-to-make-a-presentation .ent-you,
+.how-to-make-a-presentation .ent-skill,
+.how-to-make-a-presentation .ent-socket,
+.how-to-make-a-presentation .ent-verify,
+.how-to-make-a-presentation .ent-step-card,
+.how-to-make-a-presentation .ent-ghost-card {
+  display: flex;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.how-to-make-a-presentation .ent-you,
+.how-to-make-a-presentation .ent-skill,
+.how-to-make-a-presentation .ent-socket,
+.how-to-make-a-presentation .ent-verify {
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.how-to-make-a-presentation .ent-skill {
+  border-color: var(--accent);
+}
+.how-to-make-a-presentation .ent-verify {
+  flex-direction: column;
+  border-color: var(--accent);
+}
+.how-to-make-a-presentation .ent-socket {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: 3px solid var(--accent);
+}
+.how-to-make-a-presentation .ent-step-card,
+.how-to-make-a-presentation .ent-ghost-card {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+}
+.how-to-make-a-presentation .ent-ghost-card {
+  border-style: dashed;
+  color: var(--muted);
+  background: transparent;
+  align-items: center;
+  text-align: center;
+}
+.how-to-make-a-presentation .ent-ghost-card .part {
+  display: none;
+}
+.how-to-make-a-presentation .part {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.how-to-make-a-presentation .part-title {
+  color: var(--ink);
+  font-weight: 650;
+  font-size: 12px;
+}
+.how-to-make-a-presentation .part-name {
+  display: none;
+}
+.how-to-make-a-presentation .ent-ghost-card .part-name {
+  display: block;
+  font-size: 12px;
+}
+.how-to-make-a-presentation .ent-prompt,
+.how-to-make-a-presentation .ent-question,
+.how-to-make-a-presentation .ent-depth,
+.how-to-make-a-presentation .ent-edited-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  white-space: nowrap;
+}
+.how-to-make-a-presentation .ent-question,
+.how-to-make-a-presentation .ent-depth {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.how-to-make-a-presentation .ent-edited-flag {
+  color: var(--warn);
+  border-color: var(--warn);
+  font-size: 11px;
+  padding: 0 6px;
+}
+.how-to-make-a-presentation .ent-tray {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 14px;
+}
+.how-to-make-a-presentation .ent-tray-label,
+.how-to-make-a-presentation .ent-link-label,
+.how-to-make-a-presentation .ent-socket-caption,
+.how-to-make-a-presentation .ent-verify-label {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+.how-to-make-a-presentation .ent-tray-label {
+  text-align: left;
+}
+.how-to-make-a-presentation .ent-check {
+  display: grid;
+  place-items: center;
+  color: #0d111c;
+  background: #34d399;
+  border-radius: 50%;
+}
+.how-to-make-a-presentation svg.ent {
+  color: var(--muted);
+}
+.how-to-make-a-presentation svg.ent path {
+  stroke-width: 2;
+}
+.how-to-make-a-presentation svg.ent-ghost-link path {
+  stroke-dasharray: 4 4;
+}
+.how-to-make-a-presentation svg.ent-modify {
+  color: var(--warn);
+}
+.how-to-make-a-presentation .ent-modify-label {
+  color: var(--warn);
+  text-align: center;
+}
+.how-to-make-a-presentation .ent-edited-ring {
+  border: 2px solid var(--warn);
+  border-radius: 12px;
+}
+.how-to-make-a-presentation .ent-reveal-frame {
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+}
+.how-to-make-a-presentation .ent-reveal-label {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 650;
+  text-align: right;
+}

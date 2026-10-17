@@ -5,7 +5,7 @@ import net from 'node:net'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-/** Verification and inspection always use the IPv4 loopback address, never `localhost`. */
+/** Verification and inspection always use the IPv4 loopback address, so name resolution never matters. */
 export const HOST = '127.0.0.1'
 
 export function projectRoot(importMetaUrl) {

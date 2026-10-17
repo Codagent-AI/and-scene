@@ -12,6 +12,30 @@
 }
 
 /* chrome */
+.how-to-make-a-presentation [data-presentation-header] {
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+}
+.how-to-make-a-presentation [data-presentation-footer] {
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+}
+.how-to-make-a-presentation [data-presentation-attribution] {
+  right: 1.5rem;
+  bottom: 0.75rem;
+}
+.how-to-make-a-presentation [data-presentation-controls],
+.how-to-make-a-presentation [data-presentation-progress] {
+  gap: 0.6rem;
+}
+.how-to-make-a-presentation h1,
+.how-to-make-a-presentation h2,
+.how-to-make-a-presentation p,
+.how-to-make-a-presentation ol {
+  margin: 0;
+  padding: 0;
+}
+
 .how-to-make-a-presentation [data-presentation-marker] {
   color: var(--accent);
   font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;

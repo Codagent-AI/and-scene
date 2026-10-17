@@ -16,7 +16,7 @@ export function Toc({ steps, index, onGoTo }: TocProps) {
       aria-label="Table of contents"
       style={{ position: 'absolute', top: 64, bottom: 200, left: 0, width: TOC_WIDTH, overflow: 'auto' }}
     >
-      <ol style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+      <ol style={{ listStyle: 'none' }}>
         {sectionsOf(steps).map((section, i) => {
           const active = i === current
           return (

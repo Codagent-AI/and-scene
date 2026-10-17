@@ -1,0 +1,8 @@
+/*
+ * Presentation-owned styling for "Starter presentation". The scene kit supplies no colors, fonts,
+ * borders, shadows or spacing; target its stable hooks from here, scoped to .starter:
+ *   [data-presentation-marker]  [data-presentation-step-title]  [data-presentation-caption]
+ *   [data-presentation-progress-item][data-presentation-active='true']
+ *   [data-presentation-toc-item][data-presentation-active='true']
+ *   [data-presentation-attribution]   .ent-<role> classes from entities.ts
+ */

@@ -19,16 +19,16 @@ export function Footer({ mode, step, steps, index, onGoTo, onPrev, onNext, attri
   return (
     <footer
       data-presentation-footer
-      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', gap: '0.5em', padding: '0.75em 1.5em' }}
+      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column' }}
     >
-      <h2 data-presentation-step-title style={{ margin: 0 }}>{step.title}</h2>
-      {browse ? <p data-presentation-caption style={{ margin: 0 }}>{step.caption}</p> : null}
+      <h2 data-presentation-step-title>{step.title}</h2>
+      {browse ? <p data-presentation-caption>{step.caption}</p> : null}
       {browse ? (
-        <div data-presentation-controls style={{ display: 'flex', alignItems: 'center', gap: '0.75em' }}>
+        <div data-presentation-controls style={{ display: 'flex', alignItems: 'center' }}>
           <button type="button" data-presentation-prev data-presentation-chrome aria-label="Previous step" disabled={index === 0} onClick={onPrev}>
             <ChevronLeft aria-hidden="true" />
           </button>
-          <nav data-presentation-progress aria-label="Progress" style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+          <nav data-presentation-progress aria-label="Progress" style={{ display: 'flex', alignItems: 'center' }}>
             {steps.map((s, i) => {
               const active = i === index
               return (
@@ -55,7 +55,7 @@ export function Footer({ mode, step, steps, index, onGoTo, onPrev, onNext, attri
           data-presentation-attribution
           data-presentation-chrome
           href={attribution?.href ?? DEFAULT_ATTRIBUTION_HREF}
-          style={{ position: 'absolute', right: '1.5em', bottom: '0.75em' }}
+          style={{ position: 'absolute', right: 0, bottom: 0 }}
         >
           {attribution?.label ?? DEFAULT_ATTRIBUTION_LABEL}
         </a>

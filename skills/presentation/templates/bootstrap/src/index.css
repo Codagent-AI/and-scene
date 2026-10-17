@@ -1,0 +1,7 @@
+/* Host app styles. The scene kit supplies none; styling belongs to each presentation. */
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}

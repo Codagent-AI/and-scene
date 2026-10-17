@@ -175,6 +175,35 @@ describe('creating presentations', () => {
     expect(existsSync(path.join(dir, 'src/presentations/starter/Talk.tsx'))).toBe(true)
   })
 
+  it('registers inside the registry array even when later code contains other `]` characters', () => {
+    const dir = scaffolded()
+    const file = path.join(dir, 'src/presentations/index.ts')
+    writeFileSync(
+      file,
+      `${readFileSync(file, 'utf8')}\ntype RegistryAlias = unknown[];\nconst note = "ends with ]"; // trailing ] in a comment\nexport const OTHER: string[] = []\n`,
+    )
+    newPresentation(dir, 'added-through-tool', 'Added Through Tool')
+    const registry = readFileSync(file, 'utf8')
+    expect(registry).toContain('type RegistryAlias = unknown[];')
+    expect(registry).toContain('export const OTHER: string[] = []')
+    const array = registry.slice(registry.indexOf('PRESENTATIONS'), registry.indexOf('type RegistryAlias'))
+    expect(array).toContain("slug: 'starter'")
+    expect(array).toContain("slug: 'added-through-tool'")
+    expect(array.trimEnd().endsWith(']')).toBe(true)
+  })
+
+  it('registers into an empty registry array declared with a bracketed type annotation', () => {
+    const dir = scaffolded()
+    const file = path.join(dir, 'src/presentations/index.ts')
+    writeFileSync(
+      file,
+      "import type { ComponentType } from 'react'\nexport interface PresentationEntry { slug: string; title: string; load: () => Promise<{ default: ComponentType }> }\nexport const PRESENTATIONS: readonly PresentationEntry[] = []\n",
+    )
+    newPresentation(dir, 'first-one', 'First')
+    const registry = readFileSync(file, 'utf8')
+    expect(registry).toMatch(/= \[\s*\{\s*slug: 'first-one'[\s\S]*\},\s*\]/)
+  })
+
   it('refuses duplicate or invalid slugs and a missing index, changing nothing', () => {
     const dir = scaffolded()
     const registry = readFileSync(path.join(dir, 'src/presentations/index.ts'), 'utf8')

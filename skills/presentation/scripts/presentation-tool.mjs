@@ -136,6 +136,38 @@ export function bootstrap(target, { anchors, install = true } = {}) {
 
 const fill = (text, vars) => text.replace(/__(SLUG|TITLE_JSON|TITLE)__/g, (_, k) => vars[k])
 
+/** Index just past the `]` that closes the array literal opened at `open`, skipping strings and comments; -1 if unbalanced. */
+function arrayLiteralEnd(source, open) {
+  let depth = 0
+  for (let i = open; i < source.length; i++) {
+    const ch = source[i]
+    if (ch === "'" || ch === '"' || ch === '`') {
+      for (i++; i < source.length && source[i] !== ch; i++) if (source[i] === '\\') i++
+    } else if (ch === '/' && source[i + 1] === '/') {
+      while (i < source.length && source[i] !== '\n') i++
+    } else if (ch === '/' && source[i + 1] === '*') {
+      const end = source.indexOf('*/', i + 2)
+      if (end < 0) return -1
+      i = end + 1
+    } else if (ch === '[') depth++
+    else if (ch === ']' && --depth === 0) return i
+  }
+  return -1
+}
+
+/** Position of the `]` that closes the registry array, ignoring any other array or `[]` elsewhere in the file. */
+function registryArrayEnd(source) {
+  const declaration = /(?:\b(?:const|let|var)\s+(\w+)\s*(?::[^=]+)?=|\bexport\s+default)\s*\[/g
+  const candidates = []
+  for (const match of source.matchAll(declaration)) {
+    const open = match.index + match[0].length - 1
+    const close = arrayLiteralEnd(source, open)
+    if (close >= 0) candidates.push({ close, text: source.slice(match.index, close), name: match[0] })
+  }
+  const registry = candidates.find((c) => /\bslug\b/.test(c.text) || /presentation/i.test(c.name)) ?? candidates[0]
+  return registry ? registry.close : -1
+}
+
 /** Create `src/presentations/<slug>/` from the presentation templates and register it. */
 export function newPresentation(appDir, slug, title) {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error(`invalid slug "${slug}" (use lowercase kebab-case)`)
@@ -156,7 +188,7 @@ export function newPresentation(appDir, slug, title) {
   }
 
   const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk.tsx'),\n  },\n`
-  const close = registry.lastIndexOf(']')
+  const close = registryArrayEnd(registry)
   if (close < 0) throw new Error('could not find the end of the registry array')
   const before = registry.slice(0, close).replace(/[ \t]*$/, '')
   writeFileSync(registryFile, `${before}${before.endsWith('\n') ? '' : '\n'}${entry}${registry.slice(close)}`)

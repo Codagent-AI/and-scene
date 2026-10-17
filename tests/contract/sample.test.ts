@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { computeScale } from '../../src/presentation-kit/fitScale.ts'
 import { ENTITIES, visibleAt } from '../../src/presentations/how-to-make-a-presentation/entities.ts'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps/index.ts'
 import { PRESENTATIONS } from '../../src/presentations/index.ts'
@@ -79,5 +80,23 @@ describe('reference sample', () => {
       expect(e.at!.x + (e.at!.w ?? 0), e.id).toBeLessThanOrEqual(880)
       expect(e.at!.y + (e.at!.h ?? 0), e.id).toBeLessThanOrEqual(380)
     }
+  })
+})
+
+describe('reference sample legibility on a narrow viewport', () => {
+  // The fixed 880 x 380 canvas is scaled uniformly, so a 390 px phone shows scene text at ~0.4x.
+  const MIN_EFFECTIVE_PX = 6
+
+  it('declares scene text large enough to stay readable after fit scaling at 390 x 844', () => {
+    const scale = computeScale(390, 844, 'browse')
+    const css = read('src/presentations/how-to-make-a-presentation/styles.css')
+    const sizes: { selector: string; px: number }[] = []
+    for (const [, selector, body] of css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)) {
+      if (!/\.ent|data-presentation-node=|box-label/.test(selector)) continue
+      const px = /font-size:\s*([\d.]+)px/.exec(body)
+      if (px) sizes.push({ selector: selector.trim(), px: Number(px[1]) })
+    }
+    expect(sizes.length).toBeGreaterThan(5)
+    for (const { selector, px } of sizes) expect(px * scale, selector).toBeGreaterThanOrEqual(MIN_EFFECTIVE_PX)
   })
 })

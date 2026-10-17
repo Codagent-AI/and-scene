@@ -164,6 +164,28 @@ async function renderSample(reference) {
       }
       log(`step index ${index}: ok`)
     }
+
+    // Every other registered presentation must at least render its first step cleanly.
+    const registry = readFileSync(join(projectRoot, 'src', 'presentations', 'index.ts'), 'utf8')
+    const others = [...registry.matchAll(/slug:\s*['"]([^'"]+)['"]/g)]
+      .map((match) => match[1])
+      .filter((slug) => slug !== reference.slug)
+    for (const slug of others) {
+      currentStep = 0
+      errors.length = 0
+      await page.goto(`${preview.baseUrl}/${slug}`)
+      try {
+        await page.waitForSelector('[data-step-count]', { timeout: STEP_TIMEOUT_MS })
+      } catch {
+        failIfErrors()
+        throw new VerifyError(phase, `presentation "${slug}" step index 0: did not render`)
+      }
+      await sleep(SETTLE_MS)
+      if (errors.length) {
+        throw new VerifyError(phase, `presentation "${slug}" step index 0: browser error: ${errors[0].text}`)
+      }
+      log(`presentation ${slug}: first step ok`)
+    }
   } finally {
     await browser.close()
   }

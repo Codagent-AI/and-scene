@@ -1,0 +1,20 @@
+{
+  "reference": {
+    "slug": "starter",
+    "title": "Starter",
+    "outline": "src/presentations/starter/outline.ts",
+    "initialMode": "browse",
+    "steps": [
+      {
+        "era": "the start",
+        "title": "Replace this opening beat",
+        "caption": "Say what the viewer is looking at and why it matters."
+      },
+      {
+        "era": "the start",
+        "title": "Replace this second beat",
+        "caption": "Each beat adds to the same scene instead of starting a new slide."
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+/*
+ * This presentation owns its look: palette, type, spacing, and the chrome treatments
+ * (progress, table of contents, buttons, attribution). The scene kit ships no styles;
+ * target its data-presentation-* hooks from here, for example:
+ *
+ *   .__SLUG__ [data-presentation-progress-item][data-presentation-active='true'] { ... }
+ *   .__SLUG__ [data-presentation-toc-entry][data-presentation-active='true'] { ... }
+ *   .__SLUG__ [data-presentation-attribution] { ... }
+ */
+.__SLUG__-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

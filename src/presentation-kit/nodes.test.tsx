@@ -105,3 +105,26 @@ describe('Appear', () => {
     expect(opacityOf('a')).toBe(1)
   })
 })
+
+describe('Arrow continuity', () => {
+  it('morphs through intermediate geometry when its endpoints change instead of snapping', async () => {
+    const draw = (to: { x: number; y: number }) => <Arrow id="a" from={{ x: 0, y: 0 }} to={to} />
+    const view = render(draw({ x: 100, y: 0 }))
+    const path = () => view.container.querySelector('path')!.getAttribute('d')!
+    const start = path()
+    view.rerender(draw({ x: 400, y: 200 }))
+    await waitFor(() => expect(path()).not.toBe(start), { timeout: 2000 })
+    const middle = path()
+    expect(middle).not.toBe(start)
+    await waitFor(() => expect(path()).toBe('M0,0 Q200,100 400,200'), { timeout: 3000 })
+    expect(middle).not.toBe('M0,0 Q200,100 400,200')
+  })
+
+  it('keeps a straight arrow straight and moves its head with the tip', async () => {
+    const view = render(<Arrow id="a" from={{ x: 0, y: 0 }} to={{ x: 100, y: 0 }} />)
+    const head = () => view.container.querySelector('polygon')!.getAttribute('points')!
+    expect(head().startsWith('100,0 ')).toBe(true)
+    view.rerender(<Arrow id="a" from={{ x: 0, y: 0 }} to={{ x: 300, y: 0 }} />)
+    await waitFor(() => expect(head().startsWith('300,0 ')).toBe(true), { timeout: 3000 })
+  })
+})

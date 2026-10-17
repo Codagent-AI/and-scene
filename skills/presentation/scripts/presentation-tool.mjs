@@ -31,17 +31,25 @@ function packageJson(dir) {
   }
 }
 
+/** The scene kit contract: a Presentation host, the Step contract, a morph stage and keyboard navigation. */
+function hasKitContract(kitDir) {
+  const source = listFiles(kitDir).filter((f) => /\.tsx?$/.test(f)).map((f) => read(path.join(kitDir, f))).join('\n')
+  return /export\s+(default\s+)?(function|const)\s+Presentation\b|export\s*\{[^}]*\bPresentation\b/.test(source) &&
+    /export\s+(interface|type)\s+Step\b/.test(source) && /AnimatePresence/.test(source) && /keydown/.test(source)
+}
+
 /** Anchors are detected by contract, not by byte-identical scaffold files. */
 export function detectAnchors(appDir) {
   const pkg = packageJson(appDir)
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies }
   const hasViteConfig = listFiles(appDir).some((f) => /^vite\.config\.[cm]?[jt]s$/.test(f) && !f.includes(path.sep))
   const build = Boolean(pkg?.scripts?.build && deps.vite && deps.react && deps.typescript && hasViteConfig)
-  const kitDir = path.join(appDir, 'src', 'presentation-kit')
-  const kit = listFiles(kitDir).some(
-    (f) => /\.tsx?$/.test(f) && /export\s+(default\s+)?(function|const)\s+Presentation\b|export\s*\{[^}]*\bPresentation\b/.test(read(path.join(kitDir, f))),
-  )
-  const index = ['index.ts', 'index.tsx', 'index.js'].some((f) => existsSync(path.join(appDir, 'src', 'presentations', f)))
+  const kit = hasKitContract(path.join(appDir, 'src', 'presentation-kit'))
+  const srcFiles = listFiles(path.join(appDir, 'src')).filter((f) => /^[^/\\]+\.[jt]sx?$/.test(f))
+  const registryFile = ['index.ts', 'index.tsx', 'index.js'].map((f) => path.join(appDir, 'src', 'presentations', f)).find(existsSync)
+  // The registry maps slugs to loaders, and some app entry resolves a pathname to a registered slug.
+  const index = Boolean(registryFile) && /\bslug\b/.test(read(registryFile)) && /\bload\b/.test(read(registryFile)) &&
+    srcFiles.some((f) => /pathname/.test(read(path.join(appDir, 'src', f))))
   return { build, kit, index }
 }
 
@@ -126,7 +134,7 @@ export function bootstrap(target, { anchors, install = true } = {}) {
   return missing
 }
 
-const fill = (text, vars) => text.replace(/__(SLUG|TITLE)__/g, (_, k) => vars[k])
+const fill = (text, vars) => text.replace(/__(SLUG|TITLE_JSON|TITLE)__/g, (_, k) => vars[k])
 
 /** Create `src/presentations/<slug>/` from the presentation templates and register it. */
 export function newPresentation(appDir, slug, title) {
@@ -139,13 +147,12 @@ export function newPresentation(appDir, slug, title) {
   const registry = read(registryFile)
   if (registry.includes(`slug: '${slug}'`)) throw new Error(`slug "${slug}" is already registered`)
 
-  const safeTitle = title.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
   for (const rel of listFiles(PRESENTATION_TEMPLATE_DIR)) {
     const src = path.join(PRESENTATION_TEMPLATE_DIR, rel)
     if (statSync(src).isDirectory()) continue
     const out = path.join(folder, rel.replace(/\.tmpl$/, ''))
     mkdirSync(path.dirname(out), { recursive: true })
-    writeFileSync(out, fill(read(src), { SLUG: slug, TITLE: safeTitle }))
+    writeFileSync(out, fill(read(src), { SLUG: slug, TITLE_JSON: JSON.stringify(title), TITLE: title.replace(/\*\//g, '* /') }))
   }
 
   const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk.tsx'),\n  },\n`

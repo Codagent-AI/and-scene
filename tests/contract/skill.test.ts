@@ -121,9 +121,24 @@ describe('anchor detection and target resolution', () => {
     const dir = temp()
     write(path.join(dir, 'package.json'), JSON.stringify({ scripts: { build: 'vite build' }, dependencies: { react: '1', lodash: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
     write(path.join(dir, 'vite.config.mjs'), 'export default {}')
-    write(path.join(dir, 'src/presentation-kit/Deck.tsx'), 'export function Presentation() { return null }\n')
-    write(path.join(dir, 'src/presentations/index.ts'), 'export const PRESENTATIONS = []\n')
+    write(
+      path.join(dir, 'src/presentation-kit/Deck.tsx'),
+      "import { AnimatePresence } from 'motion/react'\nexport interface Step { id: string }\nwindow.addEventListener('keydown', () => {})\nexport function Presentation() { return <AnimatePresence /> }\n",
+    )
+    write(path.join(dir, 'src/presentations/index.ts'), 'export const ALL = [] as { slug: string; load: () => Promise<unknown> }[]\n')
+    write(path.join(dir, 'src/entry.tsx'), 'const route = window.location.pathname\n')
     expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('does not accept stand-ins that lack the kit or routing contract', () => {
+    const dir = temp()
+    write(path.join(dir, 'src/presentation-kit/Presentation.tsx'), 'export function Presentation() { return null }\n')
+    write(path.join(dir, 'src/presentations/index.ts'), 'export const PRESENTATIONS = []\n')
+    expect(detectAnchors(dir)).toMatchObject({ kit: false, index: false })
+    write(path.join(dir, 'src/presentations/index.ts'), 'export const PRESENTATIONS: { slug: string; load: () => void }[] = []\n')
+    expect(detectAnchors(dir).index).toBe(false)
+    write(path.join(dir, 'src/router.ts'), 'export const r = (pathname: string) => pathname\n')
+    expect(detectAnchors(dir).index).toBe(true)
   })
 
   it('merges missing dependencies into an existing package.json without removing anything', () => {
@@ -156,7 +171,7 @@ describe('creating presentations', () => {
     expect(registry).toContain("slug: 'starter'")
     expect(registry).toContain("slug: 'my-talk'")
     expect(registry).toContain('title: "My \\"Talk\\""')
-    expect(readFileSync(path.join(dir, 'src/presentations/my-talk/Talk.tsx'), 'utf8')).toContain('title="My \\"Talk\\""')
+    expect(readFileSync(path.join(dir, 'src/presentations/my-talk/Talk.tsx'), 'utf8')).toContain('title={"My \\"Talk\\""}')
     expect(existsSync(path.join(dir, 'src/presentations/starter/Talk.tsx'))).toBe(true)
   })
 

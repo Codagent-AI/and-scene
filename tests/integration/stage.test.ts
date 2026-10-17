@@ -9,6 +9,7 @@ afterAll(cleanup)
 
 // Browser fixture for scene persistence, layer isolation and cross-fade across a group change.
 const TALK = `import { Presentation } from '../../presentation-kit/Presentation.tsx'
+import { Arrow } from '../../presentation-kit/nodes/Arrow.tsx'
 import { Box } from '../../presentation-kit/nodes/Box.tsx'
 import { SceneLayer } from '../../presentation-kit/nodes/SceneLayer.tsx'
 import type { Step } from '../../presentation-kit/types.ts'
@@ -18,6 +19,7 @@ function SceneA({ stepIndex }: { payload: null; stepIndex: number }) {
     <>
       <SceneLayer>
         <Box id="shared" at={{ x: 100, y: 100, w: 120, h: 60 }}>shared</Box>
+        <Arrow id="link" from={{ x: 100, y: 300 }} to={{ x: stepIndex >= 1 ? 700 : 300, y: 300 }} />
       </SceneLayer>
       {stepIndex >= 1 ? (
         <SceneLayer>
@@ -86,8 +88,15 @@ describe('stage in a real browser', () => {
       const before = await rect('shared')
 
       // Step 2 mounts a second layer inside the same group: nothing already on screen moves.
+      const arrowPath = () => page.evaluate(() => document.querySelector('[data-presentation-id="link"] path')!.getAttribute('d'))
+      const arrowStart = await arrowPath()
       await page.keyboard.press('ArrowRight')
-      await page.waitForTimeout(1500)
+      await page.waitForTimeout(250)
+      const arrowMid = await arrowPath()
+      await page.waitForTimeout(1300)
+      const arrowEnd = await arrowPath()
+      expect(new Set([arrowStart, arrowMid, arrowEnd]).size).toBe(3)
+      expect(arrowEnd).toContain('700,300')
       expect(await rect('shared')).toEqual(before)
       expect(await page.locator('[data-presentation-layer]').count()).toBe(2)
       expect(await page.evaluate(() => (document.querySelector('[data-presentation-scene]') as HTMLElement & { marker?: string }).marker)).toBe('kept')

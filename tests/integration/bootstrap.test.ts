@@ -15,6 +15,9 @@ describe('materialized bootstrap', () => {
     expect(result.status, result.output).toBe(0)
     expect(JSON.parse(result.output.trim()).scaffolded).toEqual(['build', 'kit', 'index'])
     expect(run('node', [TOOL, 'detect', app], elsewhere).output).toContain('"missing": []')
+    // Titles with quotes, backslashes, comment terminators and braces must still generate buildable code.
+    const created = run('node', [TOOL, 'new', app, 'quoted-title', 'Say "hi" \\ */ {x} <b>'], elsewhere)
+    expect(created.status, created.output).toBe(0)
   })
 
   it('installs from the committed lock data, builds, lints and passes the route smoke check', () => {
@@ -24,6 +27,7 @@ describe('materialized bootstrap', () => {
       if (label === 'verify') {
         expect(result.output).toContain('PASS')
         expect(result.output).toContain('starter: rendered 2 steps')
+        expect(result.output).toContain('quoted-title: rendered 2 steps')
       }
     }
   })

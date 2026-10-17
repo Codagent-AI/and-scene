@@ -69,15 +69,20 @@ function diagnose() {
 
   // Active chrome must look different from inactive chrome.
   const props = ['color', 'backgroundColor', 'borderTopColor', 'borderTopWidth', 'borderTopStyle', 'borderLeftColor',
-    'borderLeftWidth', 'opacity', 'fontWeight', 'textDecorationLine', 'boxShadow', 'width', 'height', 'transform', 'outlineStyle']
-  for (const [name, selector] of [['progress', '[data-presentation-progress-item]'], ['table of contents', '[data-presentation-toc-item]']]) {
+    'borderLeftWidth', 'opacity', 'fontWeight', 'textDecorationLine', 'boxShadow', 'transform', 'outlineStyle']
+  // Progress indicators have fixed boxes, so size differences count; ToC entries size to their labels, so they do not.
+  const progressProps = [...props, 'width', 'height']
+  for (const [name, selector, compared] of [
+    ['progress', '[data-presentation-progress-item]', progressProps],
+    ['table of contents', '[data-presentation-toc-item]', props],
+  ]) {
     const all = [...document.querySelectorAll(selector)]
     const active = all.find((el) => el.getAttribute('data-presentation-active') === 'true')
     const inactive = all.find((el) => el.getAttribute('data-presentation-active') !== 'true')
     if (!active || !inactive) continue
     const a = getComputedStyle(active)
     const b = getComputedStyle(inactive)
-    if (props.every((p) => a[p] === b[p])) {
+    if (compared.every((p) => a[p] === b[p])) {
       warnings.push({ kind: 'active-chrome', message: `active ${name} item ${describe(active)} is indistinct from inactive items; style [data-presentation-active="true"]` })
     }
   }

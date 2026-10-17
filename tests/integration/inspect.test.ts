@@ -13,6 +13,8 @@ interface Variant {
   allowOverlap?: boolean
   css: string
   attribution?: false
+  /** Era label per step; defaults to a single era. */
+  eras?: string[]
 }
 
 const POLISHED_ATTRIBUTION = "[data-presentation-attribution] { font-size: 12px; color: #444; text-decoration: none; }"
@@ -27,6 +29,9 @@ const VARIANTS: Variant[] = [
   { slug: 'small-attribution', css: `${DISTINCT_ACTIVE} [data-presentation-attribution] { font-size: 8px; color: #444; text-decoration: none; }` },
   { slug: 'default-attribution', css: DISTINCT_ACTIVE },
   { slug: 'no-attribution', css: GOOD, attribution: false },
+  // Differently sized ToC labels must not hide identical active and inactive styling.
+  { slug: 'toc-indistinct', css: GOOD, eras: ['short', 'a much longer era label', 'mid'] },
+  { slug: 'toc-distinct', css: `${GOOD} [data-presentation-toc-item][data-presentation-active='true'] { font-weight: 700; }`, eras: ['short', 'a much longer era label', 'mid'] },
 ]
 
 const talk = (v: Variant) => `import { Presentation } from '../../presentation-kit/Presentation.tsx'
@@ -50,7 +55,8 @@ function Scene({ stepIndex }: { payload: null; stepIndex: number }) {
   )
 }
 
-const steps: Step<null>[] = [1, 2, 3].map((n) => ({ id: 's' + n, era: 'only', title: 'Title ' + n, caption: 'Caption ' + n, Scene, payload: null, groupKey: 'g' }))
+const ERAS = ${JSON.stringify(v.eras ?? ['only', 'only', 'only'])}
+const steps: Step<null>[] = [1, 2, 3].map((n) => ({ id: 's' + n, era: ERAS[n - 1], title: 'Title ' + n, caption: 'Caption ' + n, Scene, payload: null, groupKey: 'g' }))
 
 export default function Talk() {
   return <Presentation steps={steps} title="Fixture" initialMode="browse" ${v.attribution === false ? 'attribution={false}' : ''} />
@@ -135,6 +141,13 @@ describe('inspection helper', () => {
     expect(result.status).toBe(0)
     expect(result.output).toMatch(pattern)
     expect(existsSync(path.join(project, 'inspection', slug, 'step-03.png'))).toBe(true)
+  })
+
+  it('warns about an indistinct active table-of-contents entry even when label widths differ, and not when it is styled', () => {
+    const indistinct = inspect('toc-indistinct')
+    expect(indistinct.status).toBe(0)
+    expect(indistinct.output).toMatch(/WARN \[active-chrome\] step 1: active table of contents item/)
+    expect(inspect('toc-distinct').output).not.toContain('active table of contents')
   })
 
   it('does not warn about polished attribution', () => {

@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import net from 'node:net'
 import { readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -37,8 +38,19 @@ function expectFailure(result: { code: number | null; output: string }, phase: s
   if (detail) expect(result.output).toMatch(detail)
 }
 
-function noPreviewLeft(copy: Workspace) {
+function noPreviewLeft(copy: Workspace, output = '') {
   expect(listProcesses(`${copy.dir}/node_modules/vite/bin/vite.js`)).toEqual([])
+  const port = /preview probe http:\/\/127\.0\.0\.1:(\d+)/.exec(output)?.[1]
+  if (port) {
+    return new Promise<void>((done, fail) => {
+      const socket = net.connect(Number(port), '127.0.0.1')
+      socket.once('connect', () => {
+        socket.destroy()
+        fail(new Error(`port ${port} is still bound`))
+      })
+      socket.once('error', () => done())
+    })
+  }
 }
 
 describe('E2E-001: reference presentation passes production verification', () => {
@@ -57,7 +69,7 @@ describe('E2E-001: reference presentation passes production verification', () =>
     for (const url of [probe, bound, browserUrl]) expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+/)
     expect(new URL(browserUrl).pathname).toBe('/how-to-make-a-presentation')
     expect(result.output).not.toMatch(/localhost/)
-    noPreviewLeft(copy)
+    await noPreviewLeft(copy, result.output)
   })
 })
 
@@ -141,20 +153,22 @@ describe('E2E-002: browser faults', () => {
   it.each([
     ['console.error on the first step', 1, "useEffect(() => { if (payload.stage === 1) console.error('first boom') }, [payload.stage])", 0],
     ['console.error on a later step', 5, "useEffect(() => { if (payload.stage === 5) console.error('later boom') }, [payload.stage])", 4],
+    ['an uncaught exception on the first step', 1, "useEffect(() => { if (payload.stage === 1) setTimeout(() => { throw new Error('first late boom') }, 450) }, [payload.stage])", 0],
     ['an uncaught exception after the transition settles', 3, "useEffect(() => { if (payload.stage === 3) setTimeout(() => { throw new Error('late boom') }, 450) }, [payload.stage])", 2],
   ])('fails render and names the step for %s', async (_label, _stage, code, index) => {
     const copy = fresh()
     edit(copy, scene, (t) => inject(code)(t).replace("import type { ReactNode } from 'react'", "import { useEffect, type ReactNode } from 'react'"))
     const result = await verify(copy)
     expectFailure(result, 'render', new RegExp(`step index ${index}: browser error`))
-    noPreviewLeft(copy)
+    await noPreviewLeft(copy, result.output)
   })
 
   it('fails render and names the step when a scene throws while rendering', async () => {
     const copy = fresh()
     edit(copy, scene, inject("if (payload.stage === 4) throw new Error('render boom')"))
-    expectFailure(await verify(copy), 'render', /step index 3/)
-    noPreviewLeft(copy)
+    const result = await verify(copy)
+    expectFailure(result, 'render', /step index 3/)
+    await noPreviewLeft(copy, result.output)
   })
 
   it('fails render within the bounded timeout when a transition never advances the step index', async () => {
@@ -166,7 +180,7 @@ describe('E2E-002: browser faults', () => {
     const result = await verify(copy)
     expectFailure(result, 'render', /step index 4: transition did not advance/)
     expect(Date.now() - started).toBeLessThan(120_000)
-    noPreviewLeft(copy)
+    await noPreviewLeft(copy, result.output)
   })
 
   it('does not report a presentation that never renders as success', async () => {
@@ -192,7 +206,7 @@ describe('E2E-002: cleanup', () => {
     const code = await exited
     expect(code).not.toBe(0)
     await new Promise((r) => setTimeout(r, 500))
-    noPreviewLeft(copy)
+    await noPreviewLeft(copy, output)
     expect(output).not.toContain('[verify] PASS')
   })
 })

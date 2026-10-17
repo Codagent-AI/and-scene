@@ -8,12 +8,14 @@ import { listProcesses, materialize, repoRoot, run, scaffoldScript, type Workspa
 // registered fixture presentations each contain one known visual defect (or none).
 
 const LIB = `
+import { useLayoutEffect, useRef } from 'react'
 import { Appear, Box, Label, Presence, Presentation, SceneLayer, defineStep, type SceneProps } from '../presentation-kit'
 
 export interface Variant {
   collision?: 'unmarked' | 'marked' | 'mixed'
   attribution?: false
   animated?: boolean
+  extra?: 'negatives' | 'sub' | 'over'
 }
 
 interface Payload { stage: number; variant: Variant }
@@ -44,12 +46,48 @@ function FixtureScene({ payload }: SceneProps<Payload>) {
   )
 }
 
+// Fixed-position text outside the scene, so the overlap is exact in viewport pixels.
+function Extras({ kind }: { kind: 'negatives' | 'sub' | 'over' }) {
+  const first = useRef<HTMLSpanElement>(null)
+  const second = useRef<HTMLSpanElement>(null)
+  useLayoutEffect(() => {
+    if (kind === 'negatives') return
+    const box = first.current!.getBoundingClientRect()
+    second.current!.style.top = box.bottom - (kind === 'sub' ? 1 : 3) + 'px'
+  }, [kind])
+  const fixed = (left: number, top: number) => ({ position: 'fixed' as const, left, top, fontSize: 20 })
+  if (kind === 'negatives') {
+    return (
+      <>
+        <p style={fixed(100, 100)}>
+          parent text <span>nested child text</span>
+        </p>
+        <span style={fixed(400, 300)}>visible one</span>
+        <span style={{ ...fixed(400, 300), visibility: 'hidden' }}>hidden same place</span>
+        <span style={{ ...fixed(400, 300), display: 'none' }}>display none same place</span>
+        <span style={{ ...fixed(400, 300), opacity: 0 }}>transparent same place</span>
+      </>
+    )
+  }
+  return (
+    <>
+      <span ref={first} style={fixed(100, 300)}>overlap alpha</span>
+      <span ref={second} style={fixed(100, 340)}>overlap beta</span>
+    </>
+  )
+}
+
 export function makeTalk(variant: Variant) {
   const steps = [1, 2, 3].map((stage) =>
     defineStep({ id: 'f' + stage, era: stage === 1 ? 'one' : 'two', title: 'Fixture ' + stage, caption: 'Caption ' + stage, Scene: FixtureScene, groupKey: 'fx', payload: { stage, variant } }),
   )
   return function Talk() {
-    return <Presentation className="fx" steps={steps} title="Fixture" initialMode="browse" attribution={variant.attribution === false ? false : undefined} />
+    return (
+      <>
+        <Presentation className="fx" steps={steps} title="Fixture" initialMode="browse" attribution={variant.attribution === false ? false : undefined} />
+        {variant.extra ? <Extras kind={variant.extra} /> : null}
+      </>
+    )
   }
 }
 `
@@ -68,6 +106,7 @@ const TOC = `
 `
 const attribution = (css: string) => `.fx [data-presentation-attribution] { ${css} }\n`
 const POLISHED = attribution('color: #444; font-size: 14px; text-decoration: none; padding: 4px 8px; margin: 0 16px 8px 0;')
+const CHROME = `.fx [data-presentation-footer] { position: absolute; top: 0; left: 0; right: 0; }\n`
 const PULSE = `@keyframes pulse { from { opacity: 0.2; } to { opacity: 1; } } .pulse { background: #888; animation: pulse 700ms 1 forwards; }`
 
 interface Fixture {
@@ -91,6 +130,11 @@ const FIXTURES: Fixture[] = [
   { slug: 'fx-att-default', variant: '{}', css: PROGRESS + TOC },
   { slug: 'fx-att-missing', variant: '{ attribution: false }', css: BASE + PROGRESS + TOC },
   { slug: 'fx-att-hidden', variant: '{}', css: BASE + PROGRESS + TOC + attribution('display: none;') },
+  { slug: 'fx-att-bluecustom', variant: '{}', css: BASE + PROGRESS + TOC + attribution('color: rgb(0, 0, 238); text-decoration: underline; font-size: 14px; padding: 4px 8px;') },
+  { slug: 'fx-chrome', variant: '{}', css: BASE + PROGRESS + TOC + POLISHED + CHROME },
+  { slug: 'fx-negatives', variant: "{ extra: 'negatives' }", css: BASE + PROGRESS + TOC + POLISHED },
+  { slug: 'fx-sub', variant: "{ extra: 'sub' }", css: BASE + PROGRESS + TOC + POLISHED },
+  { slug: 'fx-over', variant: "{ extra: 'over' }", css: BASE + PROGRESS + TOC + POLISHED },
   { slug: 'fx-delayed', variant: '{ animated: true }', css: BASE + PROGRESS + TOC + POLISHED + PULSE },
 ]
 
@@ -245,6 +289,30 @@ describe('overlap diagnostics', () => {
   })
 })
 
+describe('overlap diagnostics: chrome and negatives', () => {
+  it('reports text colliding with chrome, naming the step and both elements', async () => {
+    const { report } = await inspect('fx-chrome')
+    const overlaps = kinds(report!.warnings, 'overlap')
+    for (let step = 0; step < 3; step++) {
+      const hit = overlaps.filter((w) => w.step === step)
+      expect(hit.length, `step ${step}`).toBeGreaterThan(0)
+      expect(hit.some((w) => w.message.includes('data-presentation-caption') && w.message.includes('data-presentation-marker')), `step ${step}`).toBe(true)
+    }
+  })
+
+  it('stays quiet for hidden, transparent, parent/child and non-overlapping text', async () => {
+    const { report } = await inspect('fx-negatives')
+    expect(kinds(report!.warnings, 'overlap')).toEqual([])
+  })
+
+  it('ignores an intersection within the 2 px tolerance and reports one beyond it', async () => {
+    expect(kinds((await inspect('fx-sub')).report!.warnings, 'overlap')).toEqual([])
+    const over = kinds((await inspect('fx-over')).report!.warnings, 'overlap')
+    expect(over.map((w) => w.step)).toEqual([0, 1, 2])
+    expect(over.every((w) => w.message.includes('overlap alpha') && w.message.includes('overlap beta'))).toBe(true)
+  })
+})
+
 describe('active chrome diagnostics', () => {
   it('reports indistinct progress and ToC independently, per step', async () => {
     const both = (await inspect('fx-indistinct')).report!.warnings.filter((w) => w.kind === 'active-chrome')
@@ -280,6 +348,10 @@ describe('attribution diagnostics', () => {
     expect(short.length).toBeGreaterThan(0)
     expect(short.every((w) => w.message.includes('hit box') && w.message.includes('data-presentation-attribution'))).toBe(true)
     expect(await attribution('fx-att-hitok')).toEqual([])
+  })
+
+  it('does not call a blue underlined link browser-default when its font family is customised', async () => {
+    expect(await attribution('fx-att-bluecustom')).toEqual([])
   })
 
   it('warns about a browser-default link look', async () => {

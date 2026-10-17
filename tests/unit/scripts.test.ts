@@ -89,6 +89,11 @@ describe('verification scripts', () => {
     expect(read('scripts/verify.mjs')).not.toMatch(/diagnostics|inspect/)
   })
 
+  it('bound every step transition to five seconds', () => {
+    expect(read('scripts/verify.mjs')).toContain('STEP_TIMEOUT_MS = 5000')
+    expect(read('scripts/verify.mjs')).toMatch(/waitForFunction\([\s\S]*?timeout: STEP_TIMEOUT_MS/)
+  })
+
   it('exit non-zero on failure and print a final PASS or FAIL line', () => {
     const source = read('scripts/verify.mjs')
     expect(source).toContain('process.exit(1)')
@@ -117,6 +122,10 @@ describe('repository hygiene', () => {
       'src/presentations/index.ts',
       'src/presentations/how-to-make-a-presentation/Talk.tsx',
       'src/presentations/how-to-make-a-presentation/entities.ts',
+      'src/presentations/how-to-make-a-presentation/outline.ts',
+      'src/presentations/how-to-make-a-presentation/style.css',
+      'src/presentations/how-to-make-a-presentation/steps/index.ts',
+      'src/presentations/how-to-make-a-presentation/steps/scene.tsx',
       'src/presentation-kit/Presentation.tsx',
     ]) {
       expect(tracked, file).toContain(file)

@@ -89,6 +89,11 @@ describe('generic node primitives', () => {
     expect(without.container.querySelector('svg')).toBeNull()
   })
 
+  it('keeps the allow-overlap marker on the rendered element', () => {
+    const { container } = render(<Box id="m" data-presentation-allow-overlap="" />)
+    expect(container.firstElementChild?.hasAttribute('data-presentation-allow-overlap')).toBe(true)
+  })
+
   it('lets authors place raw coordinates through style', () => {
     const { container } = render(<Box id="r" style={{ left: 5, top: 6 }} />)
     const el = container.firstElementChild as HTMLElement

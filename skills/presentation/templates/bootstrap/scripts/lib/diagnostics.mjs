@@ -101,9 +101,12 @@ export function collectDiagnostics(options) {
   const signature = (element) => {
     const style = getComputedStyle(element)
     const box = element.getBoundingClientRect()
+    // Text-bearing items differ in width just because their labels differ, which is not a
+    // visual distinction, so width counts only for items without text (such as dots).
+    const hasText = element.textContent.trim() !== ''
     return JSON.stringify([
       ...styleKeys.map((key) => style[key]),
-      Math.round(box.width),
+      hasText ? null : Math.round(box.width),
       Math.round(box.height),
     ])
   }

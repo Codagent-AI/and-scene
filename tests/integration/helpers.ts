@@ -137,3 +137,14 @@ export function tmpDir(prefix: string): string {
 export function ensureDir(path: string) {
   if (!existsSync(path)) mkdirSync(path, { recursive: true })
 }
+
+export const scaffoldScript = join(repoRoot, 'skills', 'presentation', 'scripts', 'scaffold.mjs')
+
+/** Materializes the bootstrap template from outside the repository (unrelated cwd). */
+export async function materialize(options: { dir?: string; linkModules?: boolean } = {}): Promise<Workspace> {
+  const dir = options.dir ?? mkdtempSync(join(tmpdir(), 'and-scene-app-'))
+  const result = await run('node', [scaffoldScript, 'bootstrap', '--dir', dir, '--apply', '--confirmed'], tmpdir())
+  if (result.code !== 0) throw new Error(`bootstrap failed: ${result.output}`)
+  if (options.linkModules) symlinkSync(join(repoRoot, 'node_modules'), join(dir, 'node_modules'))
+  return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) }
+}

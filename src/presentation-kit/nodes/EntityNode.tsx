@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { motion, type HTMLMotionProps } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
 import { EASE, EXIT_T, LAYOUT_T } from '../constants'
+import { useLayoutSnap } from '../layoutSnap'
 import { geometryStyle, type Geometry } from './geometry'
 
 export type NodeKind = 'box' | 'label' | 'frame' | 'emphasis' | 'symbol-chip'
@@ -28,11 +29,12 @@ export function EntityNode({
   children,
   ...rest
 }: NodeProps & { kind: NodeKind }) {
+  const snap = useLayoutSnap()
   return (
     <motion.div
       layout
       layoutId={id}
-      transition={{ layout: { duration: LAYOUT_T, ease: EASE } }}
+      transition={{ layout: { duration: snap ? 0 : LAYOUT_T, ease: EASE } }}
       exit={{ opacity: 0, transition: { duration: EXIT_T } }}
       data-presentation-entity={id}
       data-presentation-node={kind}

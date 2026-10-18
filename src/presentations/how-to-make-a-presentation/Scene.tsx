@@ -31,9 +31,13 @@ export interface ScenePayload {
 
 const EDITED_CARD: EntityId = 'step-card-2'
 
+function rect(id: EntityId): Rect {
+  return GEOMETRY[id as keyof typeof GEOMETRY]
+}
+
 function StepCard({ id, edited }: { id: EntityId; edited: boolean }) {
   return (
-    <Box id={id} at={GEOMETRY[id as keyof typeof GEOMETRY]} data-state={edited ? 'edited' : undefined}>
+    <Box id={id} at={rect(id)} data-state={edited ? 'edited' : undefined}>
       <b>title</b>
       <span>caption</span>
       <span data-part="visual">
@@ -41,10 +45,6 @@ function StepCard({ id, edited }: { id: EntityId; edited: boolean }) {
       </span>
     </Box>
   )
-}
-
-function rect(id: EntityId): Rect {
-  return GEOMETRY[id as keyof typeof GEOMETRY]
 }
 
 function arrow(id: EntityId) {

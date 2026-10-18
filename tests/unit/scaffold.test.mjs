@@ -293,4 +293,15 @@ describe('creating a presentation in a renamed app', () => {
     expect(readFileSync(path.join(folder, 'steps/index.ts'), 'utf8')).toContain("from '../../../engine/deck'")
     expect(readFileSync(path.join(folder, 'meta.ts'), 'utf8')).toContain("from '../../engine/deck'")
   })
+
+  it('copies titles containing replacement patterns literally', () => {
+    const dir = tmp()
+    applyScaffold(dir)
+    const title = "Cost: $& $' $$ $` end"
+    const folder = createPresentation(dir, { slug: 'dollars', title })
+    const registry = readFileSync(path.join(dir, 'src/presentations/index.ts'), 'utf8')
+    expect(registry).toContain(`title: ${JSON.stringify(title)}`)
+    expect(registry.match(/presentations:end/g)).toHaveLength(1)
+    expect(readFileSync(path.join(folder, 'Talk.tsx'), 'utf8')).toContain(`title={'${escapeTitle(title)}'}`)
+  })
 })

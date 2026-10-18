@@ -210,7 +210,7 @@ export function escapeTitle(title) {
     .replace(/\\/g, '\\\\')
     .replace(/'/g, "\\'")
     .replace(/"/g, '\\"')
-    .replace(/\r?\n/g, ' ')
+    .replace(/[\r\n\u2028\u2029]+/g, ' ')
     .replace(/\*\//g, '* /')
 }
 
@@ -241,9 +241,9 @@ export function createPresentation(target, { slug, title }, { neutralStyle = fal
   const steps = relativeImport(path.join(folder, 'steps'), kitDir)
   const fill = (text, file) =>
     text
-      .replaceAll('__KIT__', file.includes(`steps${path.sep}`) ? steps : kitImport)
-      .replaceAll('__SLUG__', slug)
-      .replaceAll('__TITLE__', escapeTitle(title))
+      .replaceAll('__KIT__', () => (file.includes(`steps${path.sep}`) ? steps : kitImport))
+      .replaceAll('__SLUG__', () => slug)
+      .replaceAll('__TITLE__', () => escapeTitle(title))
   for (const file of sourceFiles(PRESENTATION_TEMPLATE_DIR)) {
     const rel = path.relative(PRESENTATION_TEMPLATE_DIR, file).replace(/\.tmpl$/, '')
     const dest = path.join(folder, rel)
@@ -252,7 +252,7 @@ export function createPresentation(target, { slug, title }, { neutralStyle = fal
     writeFileSync(dest, content)
   }
   const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk'),\n  },\n  ${REGISTRY_MARKER}`
-  writeFileSync(registry, source.replace(REGISTRY_MARKER, entry))
+  writeFileSync(registry, source.replace(REGISTRY_MARKER, () => entry))
   return folder
 }
 

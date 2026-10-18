@@ -205,13 +205,22 @@ export function analyze(step, diag) {
 
 export function parseArgs(argv) {
   const args = { settle: DEFAULT_SETTLE_MS, viewport: DEFAULT_VIEWPORT, build: true, out: undefined, slug: undefined }
+  const value = (i, flag) => {
+    if (argv[i] === undefined || argv[i].startsWith('--')) throw new Error(`${flag} needs a value`)
+    return argv[i]
+  }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
-    if (arg === '--settle') args.settle = Number(argv[++i])
-    else if (arg === '--viewport') {
-      const [width, height] = argv[++i].split('x').map(Number)
+    if (arg === '--settle') {
+      const raw = value(++i, arg)
+      args.settle = Number(raw)
+      if (!/^\d+(\.\d+)?$/.test(raw) || !Number.isFinite(args.settle)) throw new Error(`--settle must be a non-negative number of milliseconds, got "${raw}"`)
+    } else if (arg === '--viewport') {
+      const raw = value(++i, arg)
+      if (!/^\d+x\d+$/.test(raw)) throw new Error(`--viewport must look like 1440x900, got "${raw}"`)
+      const [width, height] = raw.split('x').map(Number)
       args.viewport = { width, height }
-    } else if (arg === '--out') args.out = argv[++i]
+    } else if (arg === '--out') args.out = value(++i, arg)
     else if (arg === '--no-build') args.build = false
     else if (!arg.startsWith('--')) args.slug = arg
   }
@@ -220,7 +229,13 @@ export function parseArgs(argv) {
 
 async function main() {
   const root = projectRoot()
-  const args = parseArgs(process.argv.slice(2))
+  let args
+  try {
+    args = parseArgs(process.argv.slice(2))
+  } catch (err) {
+    console.error(`inspect: ${err.message}`)
+    process.exit(2)
+  }
   if (!args.slug) {
     console.error('usage: npm run inspect -- <slug> [--settle <ms>] [--viewport <WxH>] [--out <dir>] [--no-build]')
     process.exit(2)

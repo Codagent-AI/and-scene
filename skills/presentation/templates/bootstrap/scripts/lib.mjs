@@ -93,7 +93,12 @@ export function spawnPreview(root, port) {
 export async function withPreview(root, port, fn) {
   const preview = spawnPreview(root, port)
   const onSignal = (signal) => {
-    preview.stop().finally(() => process.exit(signal === 'SIGINT' ? 130 : 143))
+    // Drop the listeners so a second signal terminates the process by default, and bound the stop.
+    process.off('SIGINT', onSignal)
+    process.off('SIGTERM', onSignal)
+    const code = signal === 'SIGINT' ? 130 : 143
+    setTimeout(() => process.exit(code), 5000).unref()
+    preview.stop().finally(() => process.exit(code))
   }
   process.once('SIGINT', onSignal)
   process.once('SIGTERM', onSignal)

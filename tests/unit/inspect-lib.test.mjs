@@ -106,4 +106,11 @@ describe('options', () => {
     })
     expect(parseArgs(['talk']).settle).toBe(DEFAULT_SETTLE_MS)
   })
+
+  it('rejects malformed option values with a clear error', () => {
+    expect(() => parseArgs(['t', '--settle', 'abc'])).toThrow(/--settle must be/)
+    expect(() => parseArgs(['t', '--settle'])).toThrow(/needs a value/)
+    expect(() => parseArgs(['t', '--viewport', '10x'])).toThrow(/--viewport must look like/)
+    expect(() => parseArgs(['t', '--viewport', '--no-build'])).toThrow(/needs a value/)
+  })
 })

@@ -181,7 +181,7 @@ async function main() {
       }
     })
   } catch (err) {
-    failures.push(`preview/browser error: ${err.message}`)
+    failures.push(`preview/browser error: ${err.stack ?? err.message}`)
   }
   if (failures.length) fail('render', failures)
   console.log(`VERIFY PASSED: build, sample, render (${slugs.length} presentation(s) at ${HOST})`)

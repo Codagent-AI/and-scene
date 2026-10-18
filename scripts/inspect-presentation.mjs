@@ -134,7 +134,10 @@ export function collectSnapshot(cfg) {
   })
   const style = (el) => {
     const cs = getComputedStyle(el)
-    return Object.fromEntries(cfg.styleKeys.map((k) => [k, cs[k]]))
+    // Text controls differ in width simply because their labels differ; only compare the size of
+    // empty indicators such as progress dots.
+    const keys = el.textContent.trim() ? cfg.styleKeys.filter((k) => k !== 'width' && k !== 'height') : cfg.styleKeys
+    return Object.fromEntries(keys.map((k) => [k, cs[k]]))
   }
   const groups = [
     ['progress', '[data-presentation-progress-item]'],

@@ -62,6 +62,16 @@ describe('style-neutral kit', () => {
   })
 })
 
+describe('attribution URL', () => {
+  it('is one exported constant matching the package repository', async () => {
+    const { ATTRIBUTION_URL } = await import('../../src/presentation-kit/constants')
+    const repo = JSON.parse(readFileSync('package.json', 'utf8')).repository.url as string
+    expect(ATTRIBUTION_URL).toBe(repo.replace(/\.git$/, ''))
+    const hits = kitSources.filter(([, src]) => src.includes('github.com'))
+    expect(hits.map(([f]) => f)).toEqual([path.join(KIT, 'constants.ts')])
+  })
+})
+
 describe('topic-agnostic kit', () => {
   it('imports only react, motion, lucide-react and its own files', () => {
     for (const [f, src] of kitSources) {

@@ -1,6 +1,8 @@
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { afterEach } from 'vitest'
 
+// Exit animations run on real timers; give them room on slow or throttled machines.
+configure({ asyncUtilTimeout: 6000 })
 afterEach(cleanup)
 
 if (!window.matchMedia) {

@@ -297,6 +297,10 @@
     gap: 0.5rem;
   }
 
+  .hmp [data-presentation-marker-era] {
+    display: none;
+  }
+
   .hmp [data-presentation-title] {
     font-size: 1rem;
   }

@@ -108,7 +108,14 @@ export function collectSnapshot(cfg) {
           : { l: r.left, t: r.top, r: r.right, b: r.bottom }
       }
     }
-    return box && { x: box.l, y: box.t, w: box.r - box.l, h: box.b - box.t }
+    if (!box) return null
+    // Text clipped by its own element (overflow hidden / ellipsis) is not visible past the box.
+    if (getComputedStyle(el).overflowX !== 'visible') {
+      const own = el.getBoundingClientRect()
+      box = { l: Math.max(box.l, own.left), t: box.t, r: Math.min(box.r, own.right), b: box.b }
+      if (box.r <= box.l) return null
+    }
+    return { x: box.l, y: box.t, w: box.r - box.l, h: box.b - box.t }
   }
   const describe = (el) => {
     const hooks = [...el.attributes]

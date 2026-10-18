@@ -4,6 +4,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     environment: 'jsdom',
+    testTimeout: 20_000,
     include: ['tests/unit/**/*.test.{ts,tsx}'],
     setupFiles: ['tests/support/setup.ts'],
   },

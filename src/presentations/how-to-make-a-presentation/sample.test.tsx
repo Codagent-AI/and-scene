@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { ARROWS, ENTITIES, FIRST_STEP, GEOMETRY, MORPH_CHIPS, type EntityId } from './entities'
 import { Scene } from './Scene'
 import { STEPS } from './steps'
@@ -17,10 +17,16 @@ const SPEC = [
   ['the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ] as const
 
-const present = (stage: number) => {
-  const { container } = render(<Scene payload={{ stage }} stepIndex={stage} />)
-  return [...container.querySelectorAll<HTMLElement>('[data-presentation-entity]')]
-}
+// Each beat is rendered once; detached clones keep the assertions cheap.
+const stages: HTMLElement[][] = []
+beforeAll(() => {
+  for (let stage = 0; stage < 9; stage++) {
+    const { container, unmount } = render(<Scene payload={{ stage }} stepIndex={stage} />)
+    stages.push([...container.querySelectorAll<HTMLElement>('[data-presentation-entity]')].map((e) => e.cloneNode(true) as HTMLElement))
+    unmount()
+  }
+})
+const present = (stage: number) => stages[stage]
 const ids = (stage: number) => present(stage).map((e) => e.dataset.presentationEntity)
 const geo = (id: EntityId) => GEOMETRY[id as keyof typeof GEOMETRY]
 
@@ -51,7 +57,6 @@ describe('sample scene accumulation', () => {
       const expected = ENTITIES.filter((id) => FIRST_STEP[id] <= stage)
       const shown = ids(stage).filter((id) => !id!.startsWith('morph-') && id !== 'reveal-label')
       expect(new Set(shown), `step ${stage + 1}`).toEqual(new Set(expected))
-      document.body.innerHTML = ''
     }
   })
 
@@ -64,8 +69,7 @@ describe('sample scene accumulation', () => {
         const el = present(stage).find((e) => e.dataset.presentationEntity === id)
         expect(el, `${id} at step ${stage + 1}`).toBeDefined()
         samples.add([el!.style.left, el!.style.top, el!.style.width, el!.style.height].join('|'))
-        document.body.innerHTML = ''
-      }
+        }
       expect(samples.size, `${id} geometry`).toBe(1)
     }
   })
@@ -172,7 +176,8 @@ describe('sample scene accumulation', () => {
   })
 
   it('keeps the pass check as the only marked intentional overlap', () => {
-    const marked = [...present(8)[0].ownerDocument.querySelectorAll('[data-presentation-allow-overlap]')]
+    const { container } = render(<Scene payload={{ stage: 8 }} stepIndex={8} />)
+    const marked = [...container.querySelectorAll('[data-presentation-allow-overlap]')]
     expect(marked.map((m) => m.querySelector('[data-presentation-entity]')!.getAttribute('data-presentation-entity'))).toEqual(['pass-check'])
   })
 })

@@ -59,7 +59,7 @@ describe('manifests', () => {
     const css = listFiles(path.join(BOOTSTRAP, 'src')).filter((f) => f.endsWith('.css') && f !== 'index.css')
     expect(css).toEqual(['presentations/example/talk.css'])
     const text = read(BOOTSTRAP, 'src/presentations', 'example/talk.css')
-    const selectors = [...text.matchAll(/([^{}/]+)\{/g)].map((m) => m[1].trim()).filter(Boolean)
+    const selectors = [...text.matchAll(/([^{}/]+)\{/g)].map((m) => m[1].trim()).filter((s) => s && !s.startsWith('@'))
     for (const s of selectors) expect(s.startsWith('.p-example'), s).toBe(true)
     const importers = listFiles(path.join(BOOTSTRAP, 'src')).filter((f) => /\.tsx?$/.test(f) && read(BOOTSTRAP, 'src', f).includes('talk.css'))
     expect(importers).toEqual(['presentations/example/Talk.tsx'])

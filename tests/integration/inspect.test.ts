@@ -237,6 +237,17 @@ describe('screenshot capture', () => {
     expect(listProcesses(`${app.dir}/node_modules/vite/bin/vite.js preview`)).toEqual([])
   })
 
+  it('refuses slugs and output paths that could escape the inspection directory, deleting nothing', async () => {
+    writeFileSync(join(app.dir, 'keep.txt'), 'precious')
+    for (const args of [['..'], ['../..'], ['/tmp'], ['fx-clean', '--out', '.'], ['fx-clean', '--out', '..']]) {
+      const result = await run('node', ['scripts/inspect-presentation.mjs', ...args, '--no-build'], app.dir)
+      expect(result.code, args.join(' ')).not.toBe(0)
+      expect(result.output).toContain('FAIL')
+    }
+    expect(readFileSync(join(app.dir, 'keep.txt'), 'utf8')).toBe('precious')
+    expect(readFileSync(join(app.dir, 'package.json'), 'utf8')).toContain('presentations')
+  })
+
   it('fails operationally when the preview cannot start (nothing built), without false success', async () => {
     const bare = await materialize({ linkModules: true })
     try {

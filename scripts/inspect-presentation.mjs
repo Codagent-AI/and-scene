@@ -4,7 +4,7 @@
 //
 //   npm run inspect -- <slug> [--settle ms] [--viewport WxH] [--out dir] [--no-build]
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import { chromium } from 'playwright'
 import { collectDiagnostics, diagnosticOptions, formatWarnings } from './lib/diagnostics.mjs'
 import {
@@ -43,7 +43,13 @@ async function main() {
   installSignalCleanup()
   const options = parseArgs(process.argv.slice(2))
   const settleMs = resolveSettleMs({ flag: options.settle })
-  const outDir = resolve(projectRoot, options.out, options.slug)
+  // the output directory is wiped below, so it must stay strictly inside the inspection root
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(options.slug)) throw new Error(`invalid slug: ${options.slug}`)
+  const base = resolve(projectRoot, options.out)
+  const outDir = resolve(base, options.slug)
+  if (!outDir.startsWith(base + sep) || !base.startsWith(projectRoot + sep)) {
+    throw new Error(`output path ${outDir} must be inside a dedicated directory under the project`)
+  }
   rmSync(outDir, { recursive: true, force: true })
   mkdirSync(outDir, { recursive: true })
 

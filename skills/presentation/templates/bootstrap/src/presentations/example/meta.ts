@@ -1,0 +1,23 @@
+import type { StepMeta } from '../../presentation-kit/types'
+
+/** Narration for each beat: stable id, era label, one-line title, browse caption. */
+export const STEP_META: readonly StepMeta[] = [
+  {
+    id: 'start',
+    era: 'the start',
+    title: 'Where we begin',
+    caption: 'Replace this with the first beat of Example Presentation.',
+  },
+  {
+    id: 'connect',
+    era: 'the start',
+    title: 'Something joins in',
+    caption: 'A second entity arrives and connects; the first one stays where it is.',
+  },
+  {
+    id: 'wrap',
+    era: 'the end',
+    title: 'Pull it together',
+    caption: 'A frame draws around everything already on screen.',
+  },
+]

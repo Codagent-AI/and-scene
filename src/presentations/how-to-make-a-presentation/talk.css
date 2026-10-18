@@ -1,0 +1,256 @@
+/* Visual design for "How to Use This Skill to Make a Presentation". The kit ships no styling. */
+.hmp {
+  --paper: #f7f2e8;
+  --ink: #1d2433;
+  --muted: #5b6477;
+  --accent: #0b6e66;
+  --accent-soft: #d5ece8;
+  --warm: #c2570c;
+  --line: #2b3448;
+  background: radial-gradient(circle at 20% 0%, #fffaf0, var(--paper) 60%);
+  color: var(--ink);
+  font-family: 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  box-sizing: border-box;
+}
+.hmp *,
+.hmp *::before,
+.hmp *::after {
+  box-sizing: border-box;
+}
+
+/* chrome */
+.hmp [data-presentation-header] {
+  padding: 0 32px;
+}
+.hmp [data-presentation-marker] {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.hmp [data-presentation-header] [data-presentation-title] {
+  margin: 0;
+  font-family: 'Iowan Old Style', Georgia, serif;
+  font-size: 32px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+.hmp [data-presentation-footer] {
+  padding: 0 32px;
+}
+.hmp [data-presentation-footer] > [data-presentation-title] {
+  margin: 0;
+  font-family: 'Iowan Old Style', Georgia, serif;
+  font-size: 40px;
+  font-weight: 600;
+  align-self: center;
+  line-height: 56px;
+}
+.hmp [data-presentation-caption] {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.hmp [data-presentation-progress] {
+  gap: 8px;
+}
+.hmp [data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: width 0.25s, background 0.25s;
+}
+.hmp [data-presentation-progress-item][data-presentation-active] {
+  width: 32px;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.hmp [data-presentation-prev],
+.hmp [data-presentation-next] {
+  margin-left: 8px;
+  padding: 6px 16px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.hmp [data-presentation-prev]:disabled,
+.hmp [data-presentation-next]:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.hmp [data-presentation-toc] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0 0 32px;
+}
+.hmp [data-presentation-toc-item] {
+  text-align: left;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+.hmp [data-presentation-toc-item][data-presentation-active] {
+  color: var(--ink);
+  font-weight: 700;
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+.hmp [data-presentation-attribution] {
+  margin-right: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+.hmp [data-presentation-attribution]:hover {
+  text-decoration: underline;
+}
+
+/* scene */
+.hmp [data-presentation-node] {
+  font-size: 14px;
+  line-height: 1.2;
+}
+.hmp [data-presentation-node='box'],
+.hmp [data-presentation-node='symbol-chip'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 3px 3px 0 var(--line);
+  font-weight: 600;
+}
+.hmp [data-presentation-node='symbol-chip'] {
+  border-radius: 999px;
+  box-shadow: none;
+  font-size: 11px;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.hmp [data-presentation-icon] {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.hmp [data-presentation-id='hmp-card-1'],
+.hmp [data-presentation-id='hmp-card-2'],
+.hmp [data-presentation-id='hmp-card-3'],
+.hmp [data-presentation-id='hmp-card-4'],
+.hmp [data-presentation-id='hmp-verify'],
+.hmp [data-presentation-id='hmp-ghost'] {
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+.hmp [data-part='title'] {
+  font-weight: 700;
+}
+.hmp [data-part='caption'] {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 11px;
+}
+.hmp [data-part='visual'] {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  font-size: 11px;
+  font-weight: 500;
+}
+.hmp [data-presentation-id='hmp-prompt'] {
+  background: #fff6e0;
+  border-radius: 12px 12px 12px 2px;
+}
+.hmp [data-presentation-ghost] {
+  border-style: dashed;
+  box-shadow: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+}
+.hmp [data-presentation-id='hmp-scene-kit'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 3px 3px 0 var(--line);
+}
+.hmp [data-presentation-id='hmp-pass'] {
+  background: #1f9d55;
+  border-color: #1f9d55;
+  color: #fff;
+}
+.hmp [data-presentation-node='frame'] {
+  border: 2px dashed var(--muted);
+  border-radius: 16px;
+}
+.hmp [data-presentation-id='hmp-frame'] {
+  border: 3px solid var(--warm);
+}
+.hmp [data-presentation-frame-label] {
+  position: absolute;
+  top: 6px;
+  left: 14px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+.hmp [data-presentation-id='hmp-frame'] > [data-presentation-node='label'] {
+  color: var(--warm);
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hmp [data-presentation-node='emphasis'] {
+  border: 3px solid var(--warm);
+  border-radius: 16px;
+  pointer-events: none;
+}
+.hmp [data-presentation-id='hmp-edited'] {
+  background: #ffe9d6;
+  border-color: var(--warm);
+  color: var(--warm);
+}
+.hmp [data-presentation-arrow-line] {
+  height: 2px;
+  margin-top: -1px;
+  background: var(--line);
+}
+.hmp [data-presentation-arrow-head] {
+  width: 9px;
+  height: 9px;
+  margin-top: -5px;
+  border-top: 2px solid var(--line);
+  border-right: 2px solid var(--line);
+  transform: rotate(45deg);
+}
+.hmp [data-presentation-arrow-head='start'] {
+  transform: rotate(-135deg);
+}
+.hmp [data-presentation-arrow-head='end'] {
+  margin-right: 1px;
+}

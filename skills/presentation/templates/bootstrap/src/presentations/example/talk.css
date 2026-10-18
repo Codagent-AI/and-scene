@@ -1,0 +1,149 @@
+/* Visual design for Example Presentation. The scene kit ships no styling, so everything here is local. */
+.deck-example {
+  --ink: #1f2933;
+  --muted: #52606d;
+  --accent: #0b6e66;
+  --accent-soft: #d6eeea;
+  background: #f8f6f1;
+  color: var(--ink);
+  font-family: system-ui, sans-serif;
+  box-sizing: border-box;
+}
+.deck-example *,
+.deck-example *::before,
+.deck-example *::after {
+  box-sizing: border-box;
+}
+
+/* chrome: header, caption, progress, table of contents, navigation, attribution */
+.deck-example [data-presentation-header],
+.deck-example [data-presentation-footer] {
+  padding: 0 32px;
+}
+.deck-example [data-presentation-marker] {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.deck-example [data-presentation-title] {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.2;
+}
+.deck-example [data-presentation-footer] > [data-presentation-title] {
+  font-size: 36px;
+  line-height: 56px;
+}
+.deck-example [data-presentation-caption] {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.deck-example [data-presentation-progress] {
+  gap: 8px;
+}
+.deck-example [data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+.deck-example [data-presentation-progress-item][data-presentation-active] {
+  width: 32px;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.deck-example [data-presentation-prev],
+.deck-example [data-presentation-next] {
+  margin-left: 8px;
+  padding: 6px 16px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.deck-example [data-presentation-prev]:disabled,
+.deck-example [data-presentation-next]:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.deck-example [data-presentation-toc] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0 0 32px;
+}
+.deck-example [data-presentation-toc-item] {
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+.deck-example [data-presentation-toc-item][data-presentation-active] {
+  color: var(--ink);
+  font-weight: 700;
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+.deck-example [data-presentation-attribution] {
+  margin-right: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+.deck-example [data-presentation-attribution]:hover {
+  text-decoration: underline;
+}
+
+/* scene entities */
+.deck-example [data-presentation-node='box'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+}
+.deck-example [data-presentation-node='frame'] {
+  border: 2px dashed var(--muted);
+  border-radius: 16px;
+}
+.deck-example [data-presentation-frame-label] {
+  position: absolute;
+  top: 8px;
+  left: 14px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.deck-example [data-presentation-arrow-line] {
+  height: 2px;
+  margin-top: -1px;
+  background: var(--ink);
+}
+.deck-example [data-presentation-arrow-head] {
+  width: 9px;
+  height: 9px;
+  margin-top: -5px;
+  border-top: 2px solid var(--ink);
+  border-right: 2px solid var(--ink);
+  transform: rotate(45deg);
+}

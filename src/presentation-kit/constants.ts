@@ -28,8 +28,8 @@ export interface StageGeometry {
 
 /** Space the chrome reserves around the fixed canvas, per mode. */
 export const STAGE_LAYOUT: Record<Mode, StageGeometry> = {
-  browse: { top: 72, bottom: 190, left: 24, right: 24, tocWidth: 240 },
-  present: { top: 64, bottom: 120, left: 24, right: 24, tocWidth: 0 },
+  browse: { top: 72, bottom: 190, left: 12, right: 12, tocWidth: 240 },
+  present: { top: 64, bottom: 120, left: 12, right: 12, tocWidth: 0 },
 }
 
 export const ATTRIBUTION_HREF = 'https://github.com/and-scene/and-scene'

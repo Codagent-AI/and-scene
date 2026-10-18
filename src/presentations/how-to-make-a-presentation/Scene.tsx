@@ -122,11 +122,11 @@ const RENDER: Record<EntityId, (edited: boolean) => ReactNode> = {
     </span>
   ),
   'modify-arc': () => arrow('modify-arc'),
-  'modify-chip': () => chip('modify-chip', 'modify', Pencil),
+  'modify-chip': () => chip('modify-chip', 'modify'),
   'edited-flag': () => chip('edited-flag', 'edited', Pencil),
   'reveal-frame': () => (
     <Frame id="reveal-frame" at={rect('reveal-frame')}>
-      <Label id="reveal-label" at={{ x: 600, y: 348, w: 260, h: 22 }}>
+      <Label id="reveal-label" at={{ x: 590, y: 340, w: 270, h: 30 }}>
         you&apos;re looking at one
       </Label>
     </Frame>

@@ -153,8 +153,9 @@
 
 /* Scene entities */
 .htmp [data-presentation-node] {
-  font-size: 13px;
-  line-height: 1.25;
+  box-sizing: border-box;
+  font-size: 22px;
+  line-height: 1.2;
   color: var(--ink);
 }
 
@@ -171,8 +172,8 @@
 }
 
 .htmp [data-presentation-glyph] {
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
   flex: none;
 }
 
@@ -180,14 +181,15 @@
   flex-direction: row;
   border-style: solid;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 18px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.htmp [data-presentation-entity^='step-card'] span {
+.htmp [data-presentation-entity^='step-card'] span,
+.htmp [data-presentation-entity='verify'] span {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 20px;
 }
 
 .htmp [data-presentation-entity^='step-card'][data-state='edited'] {
@@ -198,9 +200,11 @@
   border-style: dashed;
   color: var(--muted);
   background: transparent;
+  font-size: 18px;
 }
 
 .htmp [data-presentation-entity='verify'] {
+  gap: 0;
   border-color: var(--ok);
 }
 
@@ -230,7 +234,7 @@
   border-radius: 12px;
   background: #2a261e;
   border: 1px solid var(--line);
-  font-size: 11px;
+  font-size: 18px;
 }
 
 .htmp [data-presentation-entity='pass-check'] {
@@ -272,7 +276,7 @@
 .htmp [data-presentation-entity='reveal-label'] {
   border: 0;
   color: var(--accent);
-  font-size: 13px;
+  font-size: 20px;
   font-style: italic;
 }
 

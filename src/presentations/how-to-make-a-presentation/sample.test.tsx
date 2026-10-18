@@ -1,5 +1,9 @@
+/// <reference types="node" />
 import { fireEvent, render } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { STAGE_LAYOUT } from '../../presentation-kit/constants'
+import { computeFit } from '../../presentation-kit/fit'
 import { ARROWS, ENTITIES, FIRST_STEP, GEOMETRY, MORPH_CHIPS, type EntityId } from './entities'
 import { Scene } from './Scene'
 import { STEPS } from './steps'
@@ -205,5 +209,22 @@ describe('sample presentation', () => {
     expect(index()).toBe('7')
     for (let i = 0; i < 10; i++) click('[data-presentation-prev]')
     expect(index()).toBe('0')
+  })
+})
+
+describe('sample scene readability at a narrow viewport', () => {
+  const css = readFileSync('src/presentations/how-to-make-a-presentation/talk.css', 'utf8')
+  // Canvas text is scaled with the canvas, so its canvas size must survive the phone-width fit.
+  const sizes = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, selector]) => /data-presentation-(node|entity)/.test(selector))
+    .flatMap(([, , body]) => [...body.matchAll(/font-size:\s*(\d+)px/g)].map((m) => Number(m[1])))
+
+  it('sizes entity text so it renders at 7px or more on a 390 × 844 screen', () => {
+    expect(sizes.length).toBeGreaterThan(0)
+    for (const mode of ['browse', 'present'] as const) {
+      const { scale } = computeFit(390, 844, STAGE_LAYOUT[mode], false)
+      expect(scale, mode).toBeGreaterThan(0.4)
+      expect(Math.min(...sizes) * scale, mode).toBeGreaterThanOrEqual(7)
+    }
   })
 })

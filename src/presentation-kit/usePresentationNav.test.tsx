@@ -106,6 +106,16 @@ describe('usePresentationNav', () => {
     expect(state()).toBe('1:present')
     swipe(90)
     expect(state()).toBe('0:present')
+    swipe(90)
+    expect(state()).toBe('0:present')
+  })
+
+  it('clamps swipes at the last step', () => {
+    const { state, out } = setup(3)
+    act(() => out.nav!.goTo(2))
+    fireEvent.touchStart(window, { changedTouches: [{ clientX: 300, clientY: 300 }] })
+    fireEvent.touchEnd(window, { changedTouches: [{ clientX: 200, clientY: 300 }] })
+    expect(state()).toBe('2:present')
   })
 
   it('lets interactive controls keep their keys', () => {

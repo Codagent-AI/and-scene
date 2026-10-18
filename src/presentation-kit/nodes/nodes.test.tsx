@@ -117,6 +117,30 @@ describe('entity continuity in a persistent layer', () => {
     expect(entity(view.container, 'b')).not.toBeNull()
   })
 
+  it('preserves intentional overlap and stacking while a payload changes', () => {
+    function Stack({ moved }: { moved: boolean }) {
+      return (
+        <SceneLayer>
+          <Appear key="under">
+            <Box id="under" at={{ x: 100, y: 100, w: 80, h: 80 }} z={1} />
+          </Appear>
+          <Appear key="over">
+            <Box id="over" at={{ x: moved ? 400 : 120, y: 120, w: 80, h: 80 }} z={5} />
+          </Appear>
+        </SceneLayer>
+      )
+    }
+    const view = render(<Stack moved={false} />)
+    const under = entity(view.container, 'under')!
+    const before = [under.style.left, under.style.top, under.style.zIndex]
+    expect(entity(view.container, 'over')!.style.left).toBe('120px')
+    view.rerender(<Stack moved />)
+    expect(entity(view.container, 'under')).toBe(under)
+    expect([under.style.left, under.style.top, under.style.zIndex]).toEqual(before)
+    expect(entity(view.container, 'over')!.style.zIndex).toBe('5')
+    expect(entity(view.container, 'over')!.style.left).toBe('400px')
+  })
+
   it('keeps a departing entity during its exit, then removes it', async () => {
     const view = render(
       <Layer

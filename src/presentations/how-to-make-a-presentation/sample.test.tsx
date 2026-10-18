@@ -1,8 +1,12 @@
-import { render } from '@testing-library/react'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { fireEvent, render } from '@testing-library/react'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { ARROWS, ENTITIES, FIRST_STEP, GEOMETRY, MORPH_CHIPS, type EntityId } from './entities'
 import { Scene } from './Scene'
 import { STEPS } from './steps'
+import Talk from './Talk'
+
+// Structure and content are under test here, not animation.
+vi.mock('motion/react', async () => (await import('../../test-utils/plainMotion')).plainMotion)
 
 // The normative outline, copied from the presentation-verification spec.
 const SPEC = [
@@ -179,5 +183,27 @@ describe('sample scene accumulation', () => {
     const { container } = render(<Scene payload={{ stage: 8 }} stepIndex={8} />)
     const marked = [...container.querySelectorAll('[data-presentation-allow-overlap]')]
     expect(marked.map((m) => m.querySelector('[data-presentation-entity]')!.getAttribute('data-presentation-entity'))).toEqual(['pass-check'])
+  })
+})
+
+describe('sample presentation', () => {
+  it('shows every step caption in browse mode and moves with next/previous, clamping at the ends', () => {
+    const { container } = render(<Talk />)
+    const root = container.querySelector('[data-presentation-root]')!
+    const index = () => root.getAttribute('data-step-index')
+    const click = (sel: string) => fireEvent.click(container.querySelector(sel)!)
+    STEPS.forEach((step, i) => {
+      expect(index()).toBe(String(i))
+      const caption = container.querySelector('[data-presentation-caption]')!.textContent
+      expect(caption).toBeTruthy()
+      expect(caption).toBe(step.caption)
+      expect(container.querySelector('[data-presentation-title]')!.textContent).toBe(step.title)
+      click('[data-presentation-next]')
+    })
+    expect(index()).toBe('8')
+    click('[data-presentation-prev]')
+    expect(index()).toBe('7')
+    for (let i = 0; i < 10; i++) click('[data-presentation-prev]')
+    expect(index()).toBe('0')
   })
 })

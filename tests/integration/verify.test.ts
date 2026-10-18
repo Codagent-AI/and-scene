@@ -157,7 +157,7 @@ describe('E2E-002: browser faults', () => {
     ['an uncaught exception after the transition settles', 3, "useEffect(() => { if (payload.stage === 3) setTimeout(() => { throw new Error('late boom') }, 450) }, [payload.stage])", 2],
   ])('fails render and names the step for %s', async (_label, _stage, code, index) => {
     const copy = fresh()
-    edit(copy, scene, (t) => inject(code)(t).replace("import type { ReactNode } from 'react'", "import { useEffect, type ReactNode } from 'react'"))
+    edit(copy, scene, (t) => `import { useEffect } from 'react'\n${inject(code)(t)}`)
     const result = await verify(copy)
     expectFailure(result, 'render', new RegExp(`step index ${index}: browser error`))
     await noPreviewLeft(copy, result.output)

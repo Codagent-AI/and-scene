@@ -25,6 +25,7 @@ function build() {
     let output = ''
     child.stdout.on('data', (chunk) => (output += chunk))
     child.stderr.on('data', (chunk) => (output += chunk))
+    child.on('error', reject)
     child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`npm run build failed\n${output.trim()}`))))
   })
 }
@@ -113,6 +114,7 @@ async function main() {
     await page.goto(`${preview.origin}/${options.slug}`, { waitUntil: 'load' })
     await page.waitForSelector('[data-step-count]', { timeout: STEP_TIMEOUT_MS })
     const count = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
+    if (!Number.isInteger(count) || count < 1) throw new Error(`${options.slug} reported no steps (data-step-count is ${count})`)
     await captureSteps({
       count,
       settleMs: options.settleMs,

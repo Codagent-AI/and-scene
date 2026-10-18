@@ -90,7 +90,15 @@ async function renderPresentation(browser, origin, slug, expected) {
     for (let index = 0; index < count; index += 1) {
       current = index
       if (index > 0) await page.keyboard.press('ArrowRight')
-      await waitForStepIndex(page, index, STEP_TIMEOUT_MS, slug)
+      try {
+        await waitForStepIndex(page, index, STEP_TIMEOUT_MS, slug)
+      } catch (error) {
+        // A stalled step is often caused by an earlier fault; report both.
+        if (error instanceof VerifyFailure && failures.length) {
+          error.message += `\n${failures.map((f) => `step index ${f.step}: ${f.message}`).join('\n')}`
+        }
+        throw error
+      }
       if (expected) {
         const title = await page.textContent('[data-presentation-title]')
         const caption = await page.textContent('[data-presentation-caption]')

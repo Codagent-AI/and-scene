@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   // Templates are linted inside the project they materialize, not from here.
-  globalIgnores(['dist', '.inspection', 'skills/presentation/templates/**']),
+  globalIgnores(['dist', '.inspection', 'validator_logs', '.agent-runner', 'skills/presentation/templates/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

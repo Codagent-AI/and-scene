@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { TOC_MIN_WIDTH } from './constants'
 import type { PresentationMode } from './constants'
@@ -30,7 +30,7 @@ export function Presentation<TPayload>({
   brand,
   attribution,
 }: PresentationProps<TPayload>) {
-  useMemo(() => validateSteps(steps), [steps])
+  validateSteps(steps)
   const nav = usePresentationNav(steps.length, initialMode)
   const viewportWidth = useViewportWidth()
   const step = steps[nav.index]

@@ -2,12 +2,11 @@ import { act, render } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { Presentation } from '../presentation-kit'
+import { Presentation, validateSteps } from '../presentation-kit'
 import { ENTITIES } from '../presentations/how-to-make-a-presentation/entities'
 import { OUTLINE } from '../presentations/how-to-make-a-presentation/outline'
 import { STEPS } from '../presentations/how-to-make-a-presentation/steps'
 import { PRESENTATIONS } from '../presentations'
-import { validateSteps } from '../presentation-kit'
 
 // Normative rows of presentation-verification, "Committed reference sample", typed out separately from the sample.
 const NORMATIVE = [

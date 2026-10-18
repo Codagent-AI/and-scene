@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { StrictMode, useEffect } from 'react'
 import { describe, expect, it } from 'vitest'
-import { Header, Presentation } from '../presentation-kit'
+import { Presentation } from '../presentation-kit'
 import type { SceneProps, Step } from '../presentation-kit'
 import { makeSteps, setViewportWidth } from './helpers'
 
@@ -222,7 +222,6 @@ describe('chrome ownership', () => {
     unmount()
     render(<Presentation steps={makeSteps(2)} title="T" brand={<a href="https://host.test">Host</a>} />)
     expect(within(document.querySelector<HTMLElement>('[data-presentation-brand]')!).getByText('Host').getAttribute('href')).toBe('https://host.test')
-    render(<Header index={0} count={1} title="x" mode="browse" />)
   })
 
   it('sets the document title from the presentation title', () => {

@@ -1,0 +1,14 @@
+import { Presentation } from '../../presentation-kit'
+import { STEPS } from './steps'
+import './talk.css'
+
+export default function Talk() {
+  return (
+    <Presentation
+      className="hmp"
+      title="How to Use This Skill to Make a Presentation"
+      steps={STEPS}
+      initialMode="browse"
+    />
+  )
+}

@@ -1,0 +1,21 @@
+/**
+ * __TITLE__ — the `layoutId` namespace. Every entity has a stable id and the step (1-based) that
+ * introduces it. Entities persist across steps: add new ones, move or relabel existing ones in
+ * place, and drop one only when a beat truly removes it.
+ */
+export interface Entity {
+  id: string
+  /** First step (1-based) in which the entity is on screen. */
+  from: number
+  kind: 'box' | 'label'
+  text: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export const ENTITIES: readonly Entity[] = [
+  { id: 'start', from: 1, kind: 'box', text: 'Start here', x: 40, y: 40, width: 160, height: 60 },
+  { id: 'next', from: 2, kind: 'box', text: 'Then this', x: 280, y: 40, width: 160, height: 60 },
+]

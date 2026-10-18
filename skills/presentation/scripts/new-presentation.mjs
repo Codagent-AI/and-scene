@@ -8,9 +8,19 @@ const REGISTRY_START = /export const presentations\s*:\s*PresentationEntry\[\]\s
 
 export const registryFile = (appDir) => path.join(appDir, 'src', 'presentations', 'index.ts')
 
+function readRegistry(appDir) {
+  const file = registryFile(appDir)
+  if (!fs.existsSync(file)) {
+    throw new Error(
+      `registry not found at ${file}. If this app keeps an equivalent registry elsewhere (the plan lists its \`indexFiles\`), read it directly and edit it by hand; \`create --no-register\` copies just the template folder.`,
+    )
+  }
+  return fs.readFileSync(file, 'utf8')
+}
+
 /** The registered presentations, in registry order. */
 export function listPresentations(appDir) {
-  const source = fs.readFileSync(registryFile(appDir), 'utf8')
+  const source = readRegistry(appDir)
   return [...source.matchAll(/slug:\s*(['"`])(.+?)\1[\s\S]*?title:\s*("(?:[^"\\]|\\.)*"|'[^']*'|`[^`]*`)/g)].map((m) => ({
     slug: m[2],
     title: m[3][0] === '"' ? JSON.parse(m[3]) : m[3].slice(1, -1),
@@ -37,20 +47,26 @@ export function renderTemplate(text, { slug, title }) {
 }
 
 /** Copies the presentation template into `<appDir>/src/presentations/<slug>` and registers it. */
-export function createPresentation(appDir, { slug, title }) {
+export function createPresentation(appDir, { slug, title, register = true }) {
   if (!SLUG.test(slug)) throw new Error(`invalid slug "${slug}": use lowercase words joined by hyphens`)
   const dest = path.join(appDir, 'src', 'presentations', slug)
   if (fs.existsSync(dest)) throw new Error(`presentation folder already exists: ${dest}`)
-  if (listPresentations(appDir).some((p) => p.slug === slug)) throw new Error(`slug already registered: ${slug}`)
+
+  // Prepare the registration first, so an unreadable registry fails before anything is written.
+  let registry = null
+  if (register) {
+    const source = readRegistry(appDir)
+    if (listPresentations(appDir).some((p) => p.slug === slug)) throw new Error(`slug already registered: ${slug}`)
+    registry = registerPresentation(source, { slug, title })
+  }
 
   fs.mkdirSync(dest, { recursive: true })
   for (const name of fs.readdirSync(PRESENTATION_TEMPLATE_DIR)) {
     const text = fs.readFileSync(path.join(PRESENTATION_TEMPLATE_DIR, name), 'utf8')
     fs.writeFileSync(path.join(dest, name), renderTemplate(text, { slug, title }))
   }
-  const index = registryFile(appDir)
-  fs.writeFileSync(index, registerPresentation(fs.readFileSync(index, 'utf8'), { slug, title }))
-  return { dir: dest, route: `/${slug}` }
+  if (registry !== null) fs.writeFileSync(registryFile(appDir), registry)
+  return { dir: dest, route: `/${slug}`, registered: register }
 }
 
 function main(argv) {
@@ -59,9 +75,14 @@ function main(argv) {
   const cwd = path.resolve(cwdIndex >= 0 ? rest.splice(cwdIndex, 2)[1] : process.cwd())
   const { targetDir } = resolveTarget(cwd)
   if (command === 'list') console.log(JSON.stringify(listPresentations(targetDir), null, 2))
-  else if (command === 'create' && rest.length === 2) console.log(JSON.stringify(createPresentation(targetDir, { slug: rest[0], title: rest[1] }), null, 2))
+  else if (command === 'create') {
+    const register = !rest.includes('--no-register')
+    const [slug, title] = rest.filter((a) => a !== '--no-register')
+    if (!slug || !title) throw new Error('usage: create <slug> "<Title>" [--no-register]')
+    console.log(JSON.stringify(createPresentation(targetDir, { slug, title, register }), null, 2))
+  }
   else {
-    console.error('usage: new-presentation.mjs <list | create <slug> "<Title>"> [--cwd <dir>]')
+    console.error('usage: new-presentation.mjs <list | create <slug> "<Title>" [--no-register]> [--cwd <dir>]')
     process.exitCode = 2
   }
 }

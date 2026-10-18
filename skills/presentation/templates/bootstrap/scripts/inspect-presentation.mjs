@@ -11,23 +11,27 @@ export const VIEWPORTS = { desktop: { width: 1440, height: 900 }, narrow: { widt
 export const DEFAULT_SETTLE_MS = 1200
 export const MIN_ATTRIBUTION_PX = 12
 export const OUT_DIR = '.presentation-inspection'
-const ANIMATION_TIMEOUT_MS = 8000
+export const DEFAULT_ANIMATION_TIMEOUT_MS = 8000
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const STEP_TIMEOUT_MS = 3000
 const STYLE_KEYS = ['color', 'backgroundColor', 'borderColor', 'borderWidth', 'fontWeight', 'opacity', 'width', 'height']
 
 export function parseArgs(argv, env = {}) {
-  const args = { slug: undefined, viewport: 'desktop', settleMs: Number(env.INSPECT_SETTLE_MS) || DEFAULT_SETTLE_MS, build: true }
+  const args = { slug: undefined, viewport: 'desktop', settleMs: Number(env.INSPECT_SETTLE_MS) || DEFAULT_SETTLE_MS, animationTimeoutMs: DEFAULT_ANIMATION_TIMEOUT_MS, build: true }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--narrow') args.viewport = 'narrow'
     else if (a === '--no-build') args.build = false
     else if (a === '--settle') args.settleMs = Number(argv[++i])
     else if (a.startsWith('--settle=')) args.settleMs = Number(a.slice(9))
+    else if (a === '--animation-timeout') args.animationTimeoutMs = Number(argv[++i])
     else if (!a.startsWith('--') && args.slug === undefined) args.slug = a
     else throw new Error(`unknown argument: ${a}`)
   }
   if (!args.slug) throw new Error('usage: inspect-presentation <slug> [--narrow] [--settle <ms>] [--no-build]')
+  if (!SLUG.test(args.slug)) throw new Error(`invalid slug "${args.slug}": use lowercase words joined by hyphens`)
   if (!(args.settleMs >= 0)) throw new Error('--settle needs a non-negative number of milliseconds')
+  if (!(args.animationTimeoutMs >= 0)) throw new Error('--animation-timeout needs a non-negative number of milliseconds')
   return args
 }
 
@@ -36,7 +40,12 @@ export function stepFileName(step) {
 }
 
 export function outputDir(root, slug, viewport) {
-  const base = path.join(root, OUT_DIR, slug)
+  const artifacts = path.join(root, OUT_DIR)
+  const base = path.join(artifacts, slug)
+  const inside = path.relative(artifacts, base)
+  if (!SLUG.test(slug) || inside.startsWith('..') || path.isAbsolute(inside) || inside === '') {
+    throw new Error(`refusing output directory outside ${OUT_DIR}: ${slug}`)
+  }
   return viewport === 'narrow' ? path.join(base, 'narrow') : base
 }
 
@@ -154,13 +163,23 @@ function collect() {
   return { items: els, chrome, attribution }
 }
 
-async function waitForSettle(page, settleMs) {
+/** A capture is only faithful if every finite animation has finished. */
+export function assertSettled(step, running, timeoutMs) {
+  if (running > 0) {
+    throw new Error(`step ${step}: ${running} animation(s) still running after ${timeoutMs}ms; refusing to capture an unsettled screenshot`)
+  }
+}
+
+// Endless animations (spinners) never finish, so only finite ones are waited for.
+const finiteRunning = () =>
+  document.getAnimations().filter((a) => a.playState === 'running' && a.effect?.getComputedTiming().iterations !== Infinity).length
+
+async function waitForSettle(page, step, settleMs, timeoutMs) {
   const started = Date.now()
   await page.waitForTimeout(settleMs)
-  await page
-    .waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'), null, { timeout: ANIMATION_TIMEOUT_MS })
-    .catch(() => {})
-  const running = await page.evaluate(() => document.getAnimations().filter((a) => a.playState === 'running').length)
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity), null, { timeout: timeoutMs }).catch(() => {})
+  const running = await page.evaluate(finiteRunning)
+  assertSettled(step, running, timeoutMs)
   return { waitedMs: Date.now() - started, running }
 }
 
@@ -172,14 +191,14 @@ export async function inspect(root, args, log = console.log) {
   const { chromium } = await import('playwright')
   const preview = await startPreview(root)
   const dir = outputDir(root, args.slug, args.viewport)
-  fs.rmSync(dir, { recursive: true, force: true })
-  fs.mkdirSync(dir, { recursive: true })
   let browser
   try {
     browser = await chromium.launch()
     const page = await browser.newPage({ viewport: VIEWPORTS[args.viewport] })
     await page.goto(`${preview.url}/${args.slug}`)
     await page.waitForSelector('[data-step-count]', { timeout: 15000 })
+    fs.rmSync(dir, { recursive: true, force: true })
+    fs.mkdirSync(dir, { recursive: true })
     const count = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
     const report = { slug: args.slug, viewport: args.viewport, settleMs: args.settleMs, steps: [], warnings: [] }
     for (let index = 0; index < count; index++) {
@@ -188,7 +207,7 @@ export async function inspect(root, args, log = console.log) {
         await page.keyboard.press('ArrowRight')
         await page.waitForFunction((i) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(i), index, { timeout: STEP_TIMEOUT_MS })
       }
-      const settle = await waitForSettle(page, args.settleMs)
+      const settle = await waitForSettle(page, step, args.settleMs, args.animationTimeoutMs)
       const file = path.join(dir, stepFileName(step))
       const png = await page.screenshot({ path: file })
       const title = await page.evaluate(() => document.querySelector('[data-presentation-title]')?.textContent?.trim() ?? '')

@@ -35,6 +35,38 @@ function* sourceFiles(dir) {
   }
 }
 
+const sourceText = (dir) => [...sourceFiles(path.join(dir, 'src'))].map((f) => ({ file: f, text: fs.readFileSync(f, 'utf8') }))
+
+/** A registry maps slugs to lazily loaded presentations; it may live under any name. */
+const isRegistry = (text) => /\bslug\s*:/.test(text) && /\bload\s*:/.test(text) && /\bimport\(/.test(text)
+
+/** Files in the app that look like a presentation registry. */
+export function findIndexFiles(dir) {
+  return sourceText(dir).filter((f) => isRegistry(f.text)).map((f) => path.relative(dir, f.file).split(path.sep).join('/'))
+}
+
+/**
+ * The scene-kit contract, each capability checked on its own: a Step/Scene contract; a
+ * stage that mounts the active step through AnimatePresence; keyboard navigation in both
+ * directions; fit-scaling driven by the viewport; and chrome with captions and a table
+ * of contents. A stray token (an import, a key name in a list) satisfies none of them.
+ */
+export function hasSceneKit(files) {
+  const all = files.map((f) => f.text).join('\n')
+  const any = (re) => files.some((f) => re.test(f.text))
+  return (
+    /\b(interface|type)\s+Step\b[^{=]*[{=][^}]*\bScene\b/.test(all) &&
+    any(/<AnimatePresence\b/) &&
+    any(/addEventListener\(\s*['"]keydown['"]/) &&
+    /ArrowRight/.test(all) &&
+    /ArrowLeft|PageUp/.test(all) &&
+    any(/(ResizeObserver|addEventListener\(\s*['"]resize['"])/) &&
+    /scale\(/.test(all) &&
+    any(/<(Toc|[A-Za-z]*[Tt]oc[A-Za-z]*)\b|data-presentation-toc/) &&
+    /caption/i.test(all)
+  )
+}
+
 /** Contract-level detection: capabilities, not file names or formatting. */
 export function detectAnchors(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
@@ -43,21 +75,8 @@ export function detectAnchors(dir) {
   const build = Boolean(
     pkg?.scripts?.build && deps.react && deps.vite && deps.typescript && hasViteConfig && exists(dir, 'index.html'),
   )
-
-  let all = ''
-  let index = false
-  for (const file of sourceFiles(path.join(dir, 'src'))) {
-    const text = fs.readFileSync(file, 'utf8')
-    all += `\n${text}`
-    if (/\bslug\s*:/.test(text) && /\bload\s*:/.test(text) && /\bimport\(/.test(text)) index = true
-  }
-  const kit =
-    /\b(interface|type)\s+Step\b/.test(all) &&
-    /AnimatePresence/.test(all) &&
-    /ArrowRight/.test(all) &&
-    /scale\(/.test(all) &&
-    /toc/i.test(all)
-  return { build, kit, index }
+  const files = sourceText(dir)
+  return { build, kit: hasSceneKit(files), index: files.some((f) => isRegistry(f.text)) }
 }
 
 export function detectMonorepo(dir) {
@@ -92,7 +111,7 @@ export function resolveTarget(cwd) {
   const anchors = targetDir === cwd ? here : detectAnchors(targetDir)
   const missing = ANCHORS.filter((a) => !anchors[a])
   const nonEmpty = isNonEmpty(cwd)
-  return { kind, targetDir, anchors, missing, nonEmpty, needsConfirmation: missing.length > 0 && nonEmpty }
+  return { kind, targetDir, anchors, indexFiles: findIndexFiles(targetDir), missing, nonEmpty, needsConfirmation: missing.length > 0 && nonEmpty }
 }
 
 /** Which anchor a bootstrap template file belongs to. */

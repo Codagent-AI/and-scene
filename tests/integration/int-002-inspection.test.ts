@@ -33,6 +33,7 @@ const FIXTURES: Record<string, Fixture> = {
   'fx-no-toc-style': { css: [CSS.base, CSS.progress, CSS.attribution] },
   'fx-small-attr': { css: [...GOOD, '.fx [data-presentation-attribution]{font-size:9px}'] },
   'fx-no-attr': { css: GOOD, attribution: false },
+  'fx-endless-finite': { css: [...GOOD, '@keyframes fx-slow{from{opacity:.2}to{opacity:1}}.fx [data-presentation-entity="slow"]{animation:fx-slow 6s linear}'], animate: true },
   'fx-delayed': { css: [...GOOD, '@keyframes fx-fade{from{opacity:.2}to{opacity:1}}.fx [data-presentation-entity="slow"]{animation:fx-fade 1.8s linear}'], animate: true },
 }
 
@@ -98,7 +99,7 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     fs.writeFileSync(indexFile, index)
     const build = run('npm', ['run', 'build'], appDir)
     expect(build.status, build.output).toBe(0)
-    for (const name of Object.keys(FIXTURES)) {
+    for (const name of Object.keys(FIXTURES).filter((n) => n !== 'fx-endless-finite')) {
       results.set(name, run('npm', ['run', 'inspect', '--', name, '--no-build', '--settle', '300'], appDir))
     }
   }, 460_000)
@@ -185,6 +186,24 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     expect(r.status, r.output).toBe(0)
     expect(pngSize(inspectDir('fx-clean', 'narrow/step-01.png'))).toEqual([390, 844])
     expect(report('fx-clean', 'narrow').viewport).toBe('narrow')
+  })
+
+  it('refuses to capture a screenshot while a finite animation is still running', () => {
+    const r = run('npm', ['run', 'inspect', '--', 'fx-endless-finite', '--no-build', '--settle', '100', '--animation-timeout', '500'], appDir)
+    expect(r.status).not.toBe(0)
+    expect(r.output).toMatch(/step 2: 1 animation\(s\) still running after 500ms/)
+    expect(fs.existsSync(inspectDir('fx-endless-finite', 'step-02.png'))).toBe(false)
+  })
+
+  it('rejects a slug that would point the output at the project, leaving the project intact', () => {
+    const marker = path.join(appDir, 'package.json')
+    for (const slug of ['..', '../..', 'a/../..']) {
+      const r = run('node', ['scripts/inspect-presentation.mjs', slug, '--no-build'], appDir)
+      expect(r.status, slug).not.toBe(0)
+      expect(r.output, slug).toMatch(/invalid slug|inspect failed/)
+    }
+    expect(fs.existsSync(marker)).toBe(true)
+    expect(fs.existsSync(path.join(appDir, 'src'))).toBe(true)
   })
 
   it('exits non-zero when capture cannot happen, and cleans up the preview', () => {

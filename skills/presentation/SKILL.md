@@ -18,7 +18,9 @@ current working directory.
 ## 1. Decide: create or modify
 
 - New presentation → follow steps 2–6.
-- Change to an existing one → follow "Modifying a presentation" at the end, then step 6.
+- Change to an existing one → run step 3 first (resolve the target and scaffold anything
+  missing, exactly as for a new presentation), then follow "Modifying a presentation" at the
+  end, then step 6. The scaffold preflight applies before creating **or modifying**.
 
 ## 2. Gather
 
@@ -58,7 +60,7 @@ Target resolution: an empty or standalone project scaffolds at the project root.
 directory) gets a self-contained app in `presentations/` instead of changes at the
 monorepo root. If you are already inside a presentation app, use it.
 
-- **All three anchors present:** skip scaffolding and go straight to step 4. Do not ask
+- **All three anchors present:** skip scaffolding and go straight to step 4 (or to the modify steps). Do not ask
   for scaffold confirmation.
 - **Some anchors missing:** scaffold only the missing ones and leave existing files alone
   (the helper never overwrites a file; it lists `skipped` files, so merge those by hand,
@@ -86,8 +88,12 @@ node "$SKILL_DIR/scripts/new-presentation.mjs" create <slug> "<Title>" --cwd <pr
 ```
 
 This copies the presentation template to `src/presentations/<slug>/` and appends one entry
-to `src/presentations/index.ts`; existing presentations are never touched. Then edit the new
-folder:
+to `src/presentations/index.ts`; existing presentations are never touched. If the app keeps
+an equivalent registry under another name or shape, the helper refuses before writing
+anything and says so (the plan's `indexFiles` lists the registry files it found). Then run
+the same command with `--no-register` to copy only the folder, and add the entry by hand to
+that registry, following its own pattern (slug, title, lazy `import()` of the folder's
+`Talk`). Never leave the folder unregistered. Then edit the new folder:
 
 - `entities.ts` — the presentation's stable entity ids (its `layoutId` namespace) and
   geometry on the 880 × 380 design canvas.
@@ -142,7 +148,8 @@ required check fails.
 
 1. Identify the target. If the user did not name one, or the name is ambiguous, list the
    registered presentations (`node "$SKILL_DIR/scripts/new-presentation.mjs" list --cwd
-   <project>`) and ask which one **before changing anything**.
+   <project>`; if it cannot read an equivalent registry, read the registry file named in
+   the plan's `indexFiles` yourself) and ask which one **before changing anything**.
 2. Once the target is known, ask only about the requested changes (steps, entities or
    style) and edit that presentation in place. Do not re-run the full gathering flow or
    touch other presentations.

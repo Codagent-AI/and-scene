@@ -61,6 +61,15 @@ const FAULTS: Fault[] = [
     previewStarted: true,
   },
   {
+    name: 'a scene that throws while rendering a later step',
+    apply: (d) =>
+      edit(d, `${SAMPLE}/Scene.tsx`, (t) =>
+        t.replace('  const edited = payload.stage >= 7\n', "  const edited = payload.stage >= 7\n  if (payload.stage === 4) throw new Error('render crash')\n"),
+      ),
+    expected: /^FAIL \[render\] step 5 \(index 4\): uncaught: render crash/m,
+    previewStarted: true,
+  },
+  {
     name: 'a transition that does not advance the step index',
     apply: (d) =>
       edit(d, 'src/presentation-kit/usePresentationNav.ts', (t) =>

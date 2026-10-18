@@ -26,11 +26,12 @@ function seedBuild(dir: string, extra: Record<string, unknown> = {}) {
 
 function seedKit(dir: string, rename = false) {
   const kit = rename ? 'src/engine' : 'src/presentation-kit'
-  // Renamed and reformatted: contract-level detection must not need the template's file names.
-  write(dir, `${kit}/contract.ts`, 'export type Step = { id: string }\n')
-  write(dir, `${kit}/host.tsx`, "import { AnimatePresence } from 'motion/react'\nexport const stage = (s: number) => `scale(${s})`\nexport const x = AnimatePresence\n")
-  write(dir, `${kit}/keys.ts`, "export const k = ['ArrowRight']\n")
-  write(dir, `${kit}/chrome.tsx`, 'export const Toc = () => null\n')
+  // Renamed and reformatted, but each capability of the contract is really there.
+  write(dir, `${kit}/contract.ts`, 'export interface Step {\n  id: string\n  Scene: () => null\n}\n')
+  write(dir, `${kit}/host.tsx`, "import { AnimatePresence } from 'motion/react'\nexport const Host = () => <AnimatePresence>{null}</AnimatePresence>\n")
+  write(dir, `${kit}/keys.ts`, "window.addEventListener('keydown', (e) => ['ArrowRight', 'ArrowLeft'].includes(e.key))\n")
+  write(dir, `${kit}/fit.ts`, "window.addEventListener('resize', () => {})\nexport const fit = (s: number) => `scale(${s})`\n")
+  write(dir, `${kit}/chrome.tsx`, 'const Toc = () => <nav>toc</nav>\nexport const Chrome = () => <><Toc /><p>caption</p></>\n')
 }
 
 function seedIndex(dir: string, file = 'src/routes/registry.ts') {
@@ -54,6 +55,29 @@ describe('detectAnchors', () => {
     const d = tmpDir()
     seedBuild(d, { dependencies: { react: '^19.0.0', lodash: '1', tailwindcss: '4' } })
     expect(detectAnchors(d).build).toBe(true)
+  })
+
+  it('does not mistake scattered tokens for a scene kit', () => {
+    const d = tmpDir()
+    write(d, 'src/contract.ts', 'export type Step = { id: string }\n')
+    write(d, 'src/host.tsx', "import { AnimatePresence } from 'motion/react'\nexport const x = AnimatePresence\n")
+    write(d, 'src/keys.ts', "export const k = ['ArrowRight']\n")
+    write(d, 'src/chrome.tsx', 'export const Toc = () => null\nexport const s = (n: number) => `scale(${n})`\n')
+    expect(detectAnchors(d).kit).toBe(false)
+  })
+
+  it.each([
+    ['the Step/Scene contract', 'contract.ts'],
+    ['the AnimatePresence stage', 'host.tsx'],
+    ['keyboard navigation', 'keys.ts'],
+    ['fit scaling', 'fit.ts'],
+    ['the chrome', 'chrome.tsx'],
+  ])('requires %s', (_what, file) => {
+    const d = tmpDir()
+    seedKit(d)
+    expect(detectAnchors(d).kit).toBe(true)
+    fs.rmSync(path.join(d, 'src/presentation-kit', file))
+    expect(detectAnchors(d).kit).toBe(false)
   })
 
   it('needs a working build setup, not just a package.json', () => {
@@ -328,6 +352,28 @@ describe('presentations registry writer', () => {
     expect(out.startsWith(src.slice(0, src.indexOf('\n]')))).toBe(true)
     expect(out).toContain("slug: 'b'")
     expect(() => registerPresentation('export const x = 1', { slug: 'b', title: 'B' })).toThrow(/not found/)
+  })
+
+  it('refuses before writing when the registry is not where the helper expects it, and offers a folder-only path', () => {
+    const d = tmpDir()
+    seedBuild(d)
+    seedKit(d)
+    seedIndex(d)
+    const before = listFiles(d)
+    expect(() => createPresentation(d, { slug: 'fresh', title: 'Fresh' })).toThrow(/registry not found.*no-register/)
+    expect(() => listPresentations(d)).toThrow(/indexFiles/)
+    expect(listFiles(d)).toEqual(before)
+    expect(resolveTarget(d).indexFiles).toEqual(['src/routes/registry.ts'])
+    const r = createPresentation(d, { slug: 'fresh', title: 'Fresh', register: false })
+    expect(r.registered).toBe(false)
+    expect(listFiles(path.join(d, 'src/presentations/fresh'))).toEqual(listFiles(PRESENTATION_TEMPLATE_DIR))
+  })
+
+  it('does not write the folder when the registry shape is unexpected', () => {
+    const d = app()
+    write(d, 'src/presentations/index.ts', 'export const presentations = []\n')
+    expect(() => createPresentation(d, { slug: 'fresh', title: 'Fresh' })).toThrow(/not found/)
+    expect(fs.existsSync(path.join(d, 'src/presentations/fresh'))).toBe(false)
   })
 
   it('lists candidates for an ambiguous modify request', () => {

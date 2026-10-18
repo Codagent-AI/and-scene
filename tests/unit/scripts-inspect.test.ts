@@ -1,7 +1,9 @@
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  DEFAULT_ANIMATION_TIMEOUT_MS,
   DEFAULT_SETTLE_MS,
+  assertSettled,
   analyzeStep,
   attributionIssue,
   detectOverlaps,
@@ -17,7 +19,7 @@ const item = (label: string, r: ReturnType<typeof rect>, extra = {}) => ({ label
 
 describe('arguments and output paths', () => {
   it('defaults to desktop, 1200ms settle, building first', () => {
-    expect(parseArgs(['demo'])).toEqual({ slug: 'demo', viewport: 'desktop', settleMs: DEFAULT_SETTLE_MS, build: true })
+    expect(parseArgs(['demo'])).toEqual({ slug: 'demo', viewport: 'desktop', settleMs: DEFAULT_SETTLE_MS, animationTimeoutMs: DEFAULT_ANIMATION_TIMEOUT_MS, build: true })
     expect(DEFAULT_SETTLE_MS).toBe(1200)
   })
 
@@ -34,11 +36,32 @@ describe('arguments and output paths', () => {
     expect(() => parseArgs(['x', '--bogus'])).toThrow(/unknown argument/)
   })
 
+  it('rejects slugs that could escape the artifact directory', () => {
+    for (const slug of ['..', '../x', 'a/b', '.', '/tmp', 'Bad Slug', 'a\\b'])
+      expect(() => parseArgs([slug || '']), slug).toThrow()
+    expect(() => outputDir('/p', '..', 'desktop')).toThrow(/outside/)
+    expect(() => outputDir('/p', '../..', 'narrow')).toThrow(/outside/)
+    expect(() => outputDir('/p', '', 'desktop')).toThrow(/outside/)
+    expect(() => outputDir('/p', 'a/../..', 'desktop')).toThrow(/outside/)
+  })
+
+  it('reads the animation timeout flag', () => {
+    expect(parseArgs(['demo', '--animation-timeout', '250']).animationTimeoutMs).toBe(250)
+    expect(() => parseArgs(['demo', '--animation-timeout', 'x'])).toThrow()
+  })
+
   it('writes zero-padded 1-based names under a predictable project-local directory', () => {
     expect(stepFileName(1)).toBe('step-01.png')
     expect(stepFileName(12)).toBe('step-12.png')
     expect(outputDir('/p', 'demo', 'desktop')).toBe(path.join('/p', '.presentation-inspection', 'demo'))
     expect(outputDir('/p', 'demo', 'narrow')).toBe(path.join('/p', '.presentation-inspection', 'demo', 'narrow'))
+  })
+})
+
+describe('assertSettled', () => {
+  it('accepts a settled step and refuses to capture while finite animations still run', () => {
+    expect(() => assertSettled(2, 0, 8000)).not.toThrow()
+    expect(() => assertSettled(2, 3, 500)).toThrow(/step 2: 3 animation\(s\) still running after 500ms/)
   })
 })
 
@@ -132,7 +155,7 @@ describe('advisory contract', () => {
     expect(src.match(/process\.exitCode/g)).toHaveLength(1)
   })
   it('waits for the settle interval before capturing each step', () => {
-    const settle = src.indexOf('await waitForSettle(page, args.settleMs)')
+    const settle = src.indexOf('await waitForSettle(page, step, args.settleMs, args.animationTimeoutMs)')
     const shot = src.indexOf('await page.screenshot')
     expect(settle).toBeGreaterThan(-1)
     expect(shot).toBeGreaterThan(settle)

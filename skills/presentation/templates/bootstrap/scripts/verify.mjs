@@ -143,8 +143,13 @@ async function renderSteps(page, url, { slug, outline }, log) {
           { timeout: STEP_TIMEOUT_MS },
         )
       } catch {
-        const seen = await page.getAttribute('[data-step-index]', 'data-step-index')
-        throw new Failure('transition', `ArrowRight did not advance to index ${index} (still ${seen})`, { step, index })
+        // A scene that throws can unmount the whole deck, taking the index hook with it.
+        if (errors.length) throw new Failure('render', errors[0], { step, index })
+        const seen = await page
+          .evaluate(() => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') ?? null)
+          .catch(() => null)
+        const where = seen === null ? 'the step hook is gone' : `still ${seen}`
+        throw new Failure('transition', `ArrowRight did not advance to index ${index} (${where})`, { step, index })
       }
     }
     await page.waitForTimeout(SETTLE_MS)

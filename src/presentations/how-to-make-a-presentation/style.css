@@ -135,7 +135,7 @@
 
 /* scene */
 .htmp [data-presentation-canvas] {
-  font-size: 13px;
+  font-size: 16px;
 }
 .htmp .htmp-actor,
 .htmp .htmp-card,
@@ -150,7 +150,7 @@
   background: var(--panel);
 }
 .htmp .htmp-actor {
-  font-size: 1.2rem;
+  font-size: 26px;
   font-weight: 650;
   border-color: var(--accent);
 }
@@ -158,7 +158,7 @@
   flex-direction: column;
   justify-content: space-around;
   padding: 6px;
-  font-size: 11px;
+  font-size: 14px;
 }
 .htmp .htmp-card-title {
   font-weight: 700;
@@ -176,10 +176,11 @@
 .htmp .htmp-ghost {
   border-style: dashed;
   color: var(--muted);
-  font-size: 1.5rem;
+  font-size: 28px;
 }
 .htmp .htmp-socket {
   border-color: var(--accent);
+  font-size: 20px;
   font-weight: 650;
 }
 .htmp .htmp-verify {
@@ -188,19 +189,20 @@
   justify-content: flex-start;
   gap: 4px;
   padding: 10px;
+  font-size: 20px;
   font-weight: 650;
 }
 .htmp .htmp-tray {
   display: flex;
   align-items: center;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .htmp .htmp-verify-checks {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 400;
 }
 .htmp .htmp-bubble,
@@ -213,7 +215,7 @@
   border-radius: 999px;
   background: #2b261d;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 15px;
 }
 .htmp .htmp-control {
   border: 1px solid var(--accent);
@@ -263,6 +265,6 @@
   border-radius: 999px;
   color: #0d0c0b;
   background: var(--accent);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 700;
 }

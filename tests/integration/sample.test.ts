@@ -116,6 +116,24 @@ describe('mode-specific chrome in a real browser', () => {
     await narrow.close()
   })
 
+  it('keeps every piece of diagram text legible after scaling to a narrow viewport', async () => {
+    const narrow = await open({ width: 390, height: 844 }, 'browse')
+    for (let i = 0; i < 8; i++) await narrow.keyboard.press('ArrowRight')
+    await narrow.waitForTimeout(1200)
+    const smallest = await narrow.evaluate(() => {
+      const canvas = document.querySelector<HTMLElement>('[data-presentation-canvas]')!
+      const scale = canvas.getBoundingClientRect().width / canvas.offsetWidth
+      const sizes: number[] = []
+      for (const element of canvas.querySelectorAll<HTMLElement>('*')) {
+        const ownText = [...element.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim())
+        if (ownText) sizes.push(parseFloat(getComputedStyle(element).fontSize) * scale)
+      }
+      return Math.min(...sizes)
+    })
+    expect(smallest).toBeGreaterThanOrEqual(5)
+    await narrow.close()
+  })
+
   it('moves with the on-screen controls, progress dots and ToC entries', async () => {
     const page = await open({ width: 1280, height: 800 }, 'browse')
     await page.click('[data-presentation-next]')

@@ -89,7 +89,8 @@ export const SAMPLE_ENTITIES: { from: number; key: string; node: ReactNode }[] =
     key: E.verify,
     node: <Box id={E.verify} x={730} y={CARD_Y} w={120} h={CARD_H} className="htmp-verify">
         <span>verify</span>
-        <span className="htmp-verify-checks">build · render</span>
+        <span className="htmp-verify-checks">build</span>
+        <span className="htmp-verify-checks">render</span>
       </Box>,
   },
   {

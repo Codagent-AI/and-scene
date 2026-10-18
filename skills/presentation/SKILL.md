@@ -88,7 +88,7 @@ folder `src/presentations/<slug>/` and appends **one** line to the registry in
 `src/presentations/index.ts` (append only; never edit other presentations' files or entries).
 The presentation is then served at `/<slug>`.
 
-Fill in the generated files:
+The generated `talk.css` is only a plain starter; replace it with the look the user asked for. Fill in the generated files:
 
 - `meta.ts` — each step's stable `id`, `era` label, one-line `title`, and browse `caption`.
 - `entities.ts` — the presentation's `layoutId` namespace (stable entity ids).

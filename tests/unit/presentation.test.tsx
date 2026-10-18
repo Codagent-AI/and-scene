@@ -2,7 +2,7 @@
 import { StrictMode, useEffect } from 'react'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { Presentation, type SceneProps } from '../../src/presentation-kit'
+import { DESIGN_H, DESIGN_W, Presentation, computeFitScale, eraEntries, type SceneProps } from '../../src/presentation-kit'
 import { BeatScene, makeSteps, setViewport, type BeatPayload } from './fixtures'
 
 afterEach(cleanup)
@@ -208,5 +208,59 @@ describe('typed payloads and StrictMode', () => {
     key('ArrowRight')
     key('ArrowRight')
     expect(mounts).toBe(afterMount)
+  })
+})
+
+describe('table of contents with a repeated era', () => {
+  it('lists each era once, jumps to its first step, and marks exactly one entry current', () => {
+    const steps = makeSteps(['a', 'b', 'a'])
+    expect(eraEntries(steps)).toEqual([
+      { era: 'a', first: 0 },
+      { era: 'b', first: 1 },
+    ])
+    const { container } = render(<Presentation steps={steps} title="T" />)
+    fireEvent.click(container.querySelectorAll('[data-presentation-progress-item]')[2])
+    const active = () => [...container.querySelectorAll('[data-presentation-toc-item][data-presentation-active]')].map((e) => e.textContent)
+    expect(active()).toEqual(['a'])
+    fireEvent.click(within(container.querySelector('[data-presentation-toc]') as HTMLElement).getByText('a'))
+    expect(root(container).getAttribute('data-presentation-step-index')).toBe('0')
+    expect(active()).toEqual(['a'])
+  })
+})
+
+describe('canvas scaling through the component', () => {
+  it('renders the default 880 x 380 canvas and refits uniformly when the viewport resizes', () => {
+    const { container } = render(<Presentation steps={makeSteps(ERAS)} title="T" />)
+    const canvas = () => container.querySelector('[data-presentation-canvas]') as HTMLElement
+    const frame = () => container.querySelector('[data-presentation-canvas-frame]') as HTMLElement
+    expect(canvas().style.width).toBe(`${DESIGN_W}px`)
+    expect(canvas().style.height).toBe(`${DESIGN_H}px`)
+    for (const [w, h] of [[1440, 900], [1100, 700], [700, 900]]) {
+      act(() => setViewport(w, h))
+      const scale = computeFitScale(w, h, 'browse')
+      expect(Number(frame().getAttribute('data-presentation-scale'))).toBeCloseTo(scale, 3)
+      expect(canvas().style.transform).toBe(`scale(${scale})`)
+      expect(parseFloat(frame().style.width) / parseFloat(frame().style.height)).toBeCloseTo(DESIGN_W / DESIGN_H, 3)
+    }
+    key('ArrowRight')
+    expect(canvas().style.width).toBe(`${DESIGN_W}px`)
+  })
+
+  it('honours a custom design canvas', () => {
+    const { container } = render(<Presentation steps={makeSteps(ERAS)} title="T" designWidth={400} designHeight={200} />)
+    expect((container.querySelector('[data-presentation-canvas]') as HTMLElement).style.width).toBe('400px')
+  })
+})
+
+describe('step hooks follow a changed steps array', () => {
+  it('re-reads count and clamps the index when steps shrink or grow', () => {
+    const { container, rerender } = render(<Presentation steps={makeSteps(ERAS)} title="T" />)
+    fireEvent.click(container.querySelectorAll('[data-presentation-progress-item]')[5])
+    rerender(<Presentation steps={makeSteps(['a', 'b', 'c'])} title="T" />)
+    for (const name of ['data-step-count', 'data-presentation-step-count']) expect(root(container).getAttribute(name)).toBe('3')
+    for (const name of ['data-step-index', 'data-presentation-step-index']) expect(root(container).getAttribute(name)).toBe('2')
+    rerender(<Presentation steps={makeSteps(['a', 'b', 'c', 'd', 'e'])} title="T" />)
+    expect(root(container).getAttribute('data-step-count')).toBe('5')
+    expect(root(container).getAttribute('data-presentation-step-count')).toBe('5')
   })
 })

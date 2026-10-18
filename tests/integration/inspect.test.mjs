@@ -7,6 +7,7 @@ import { createPresentation } from '../../skills/presentation/scripts/scaffold.m
 import { linkModules, scaffoldCli, sh, tempDir } from '../helpers/project.mjs'
 
 const SETTLE = 150
+const SLUGS = ['good', 'collide', 'indistinct', 'small', 'noattr', 'busy', 'padded']
 let dir
 const run = {}
 
@@ -39,16 +40,19 @@ beforeAll(() => {
   dir = tempDir('int002-')
   expect(sh(process.execPath, [scaffoldCli, 'scaffold', dir], tempDir('int002-cwd-')).status).toBe(0)
   linkModules(dir)
-  for (const slug of ['good', 'collide', 'indistinct', 'small', 'noattr']) createPresentation(dir, { slug, title: slug })
+  for (const slug of SLUGS) createPresentation(dir, { slug, title: slug })
   const pres = (s, f) => path.join(dir, 'src/presentations', s, f)
   writeFileSync(pres('collide', 'steps/MainScene.tsx'), COLLIDE)
   writeFileSync(pres('indistinct', 'talk.css'), '/* deliberately unstyled */\n')
   appendFileSync(pres('small', 'talk.css'), '\n.deck-small [data-presentation-attribution] { font-size: 10px; }\n')
+  appendFileSync(pres('busy', 'talk.css'), '\n@keyframes spin { to { transform: rotate(1turn); } }\n.deck-busy [data-presentation-node] { animation: spin 1s linear infinite; }\n')
+  // The attribution's box (not its text) covers the step title: a collision only a whole-box check sees.
+  appendFileSync(pres('padded', 'talk.css'), '\n.deck-padded [data-presentation-attribution] { position: fixed; left: 0; top: 40px; width: 700px; height: 60px; display: block; text-align: right; }\n')
   const talk = pres('noattr', 'Talk.tsx')
   writeFileSync(talk, readFileSync(talk, 'utf8').replace('initialMode="browse"', 'initialMode="browse" attribution={false}'))
   const build = sh('npm', ['run', 'build'], dir)
   expect(build.status, build.output).toBe(0)
-  for (const slug of ['good', 'collide', 'indistinct', 'small', 'noattr']) run[slug] = inspect(slug)
+  for (const slug of SLUGS) run[slug] = inspect(slug)
 })
 
 describe('INT-002 screenshot helper', () => {
@@ -103,5 +107,18 @@ describe('INT-002 screenshot helper', () => {
     expect(run.noattr.status).toBe(0)
     expect(run.noattr.manifest).toHaveLength(3)
     expect(run.noattr.warns.join('\n')).toMatch(/step 1: attribution link is missing; style \[data-presentation-attribution\]/)
+  })
+
+  it('warns, without failing, when animations are still running at capture', () => {
+    expect(run.busy.status).toBe(0)
+    expect(run.busy.manifest).toHaveLength(3)
+    expect(run.busy.manifest.every((m) => m.pendingAnimations > 0)).toBe(true)
+    expect(run.busy.warns.join('\n')).toMatch(/step 1: \d+ animation\(s\) still running at capture/)
+  })
+
+  it('detects a collision with the whole box of a control, not just its label text', () => {
+    const text = run.padded.warns.join('\n')
+    expect(text).toMatch(/step 1: overlap between .*Where we begin.* and <a data-presentation-attribution>/)
+    expect(run.padded.status).toBe(0)
   })
 })

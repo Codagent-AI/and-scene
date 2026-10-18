@@ -201,21 +201,27 @@
   border-color: #1f9d55;
   color: #fff;
 }
-.hmp [data-presentation-node='frame'] {
-  border: 2px dashed var(--muted);
+.hmp [data-presentation-id='hmp-tray'] {
+  /* an unframed band: a soft fill with no border, so the tray reads as a surface */
+  display: block;
+  background: rgba(11, 110, 102, 0.07);
+  border: 0;
   border-radius: 16px;
+  box-shadow: none;
 }
-.hmp [data-presentation-id='hmp-frame'] {
-  border: 3px solid var(--warm);
-}
-.hmp [data-presentation-frame-label] {
+.hmp [data-part='tray-label'] {
   position: absolute;
   top: 6px;
   left: 14px;
   font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--muted);
+}
+.hmp [data-presentation-node='frame'] {
+  border: 3px solid var(--warm);
+  border-radius: 16px;
 }
 .hmp [data-presentation-id='hmp-frame'] > [data-presentation-node='label'] {
   color: var(--warm);

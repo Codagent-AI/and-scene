@@ -50,8 +50,9 @@ const ANCHOR_FILES = {
     'eslint.config.js',
     'scripts',
   ],
-  kit: ['src/presentation-kit'],
+  kit: ['src/presentation-kit', 'scripts'],
   index: [
+    'scripts',
     'src/main.tsx',
     'src/AppRouter.tsx',
     'src/Landing.tsx',
@@ -77,6 +78,39 @@ export function isEmptyDir(dir) {
   return !existsSync(dir) || readdirSync(dir).every((name) => name === '.git')
 }
 
+function codeFiles(dir) {
+  return sourceFiles(path.join(dir, 'src')).filter((f) => /\.(ts|tsx|js|jsx)$/.test(f))
+}
+
+/**
+ * Where the working kit and registry live. Detection is by capability, not file names:
+ * - kit: a module exporting a `Presentation` component that renders a stage (not a placeholder),
+ *   a `Step` contract carrying a `Scene`, and, in the same directory tree, AnimatePresence-based
+ *   hosting, keyboard navigation and a fit scale.
+ * - index: a module whose entries pair a `slug` with a dynamic `import()` loader.
+ */
+export function locateAnchors(dir) {
+  const files = codeFiles(dir)
+  const text = new Map(files.map((f) => [f, readFileSync(f, 'utf8')]))
+  const presentationFile = files.find(
+    (f) => /export (default )?(function|const) Presentation\b/.test(text.get(f)) && /<Stage|<AnimatePresence/.test(text.get(f)),
+  )
+  let kitDir = null
+  if (presentationFile) {
+    const candidate = path.dirname(presentationFile)
+    const inKit = files.filter((f) => f.startsWith(candidate + path.sep) || f === presentationFile)
+    const all = inKit.map((f) => text.get(f)).join('\n')
+    const capable =
+      /(interface|type)\s+Step\b[^;]*?\bScene\b/s.test(all) &&
+      /<AnimatePresence/.test(all) &&
+      /addEventListener\(\s*['"]keydown['"]/.test(all) &&
+      /scale\(\$\{|scale\(/.test(all)
+    if (capable) kitDir = candidate
+  }
+  const registry = files.find((f) => /slug\s*:/.test(text.get(f)) && /load\s*:\s*\(\)\s*=>\s*import\(/.test(text.get(f))) ?? null
+  return { kitDir, registry }
+}
+
 /** The three contract anchors, detected by capability rather than by exact file names. */
 export function detectAnchors(dir) {
   const pkgFile = path.join(dir, 'package.json')
@@ -86,14 +120,8 @@ export function detectAnchors(dir) {
     const deps = { ...pkg.dependencies, ...pkg.devDependencies }
     build = Boolean(pkg.scripts?.build && deps.vite && deps.react && deps.typescript)
   }
-  const code = sourceFiles(path.join(dir, 'src')).filter((f) => /\.(ts|tsx|js|jsx)$/.test(f))
-  const text = (f) => readFileSync(f, 'utf8')
-  const kit =
-    code.some((f) => /export (default )?(function|const) Presentation\b/.test(text(f))) &&
-    code.some((f) => /(interface|type)\s+Step\b/.test(text(f))) &&
-    code.some((f) => /AnimatePresence/.test(text(f)))
-  const index = code.some((f) => /slug\s*:/.test(text(f)) && /load\s*:/.test(text(f)))
-  return { build, kit, index }
+  const { kitDir, registry } = locateAnchors(dir)
+  return { build, kit: kitDir !== null, index: registry !== null }
 }
 
 /** A monorepo has package.json workspaces, pnpm-workspace.yaml, or a packages/ or apps/ directory. */
@@ -176,28 +204,64 @@ export function applyScaffold(target, plan = planScaffold(target)) {
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
-/** Create src/presentations/<slug> from the presentation templates and append one registry line. */
-export function createPresentation(target, { slug, title }) {
+/** Escape text for a JS/TS string literal in either quote style (also safe inside a CSS comment). */
+export function escapeTitle(title) {
+  return title
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"')
+    .replace(/\r?\n/g, ' ')
+    .replace(/\*\//g, '* /')
+}
+
+const posix = (p) => p.split(path.sep).join('/')
+const relativeImport = (from, to) => {
+  const rel = posix(path.relative(from, to))
+  return rel.startsWith('.') ? rel : `./${rel}`
+}
+
+/**
+ * Create <registry dir>/<slug> from the presentation templates and append one registry line.
+ * The registry and kit are located by capability, so renamed layouts get correct import paths.
+ */
+export function createPresentation(target, { slug, title }, { neutralStyle = false } = {}) {
   if (!SLUG.test(slug)) throw new Error(`invalid slug "${slug}": use lowercase words joined by hyphens`)
-  const folder = path.join(target, 'src/presentations', slug)
+  const located = locateAnchors(target)
+  const registry = located.registry ?? path.join(target, 'src/presentations/index.ts')
+  const kitDir = located.kitDir ?? path.join(target, 'src/presentation-kit')
+  const folder = path.join(path.dirname(registry), slug)
   if (existsSync(folder)) throw new Error(`presentation "${slug}" already exists`)
-  const registry = path.join(target, 'src/presentations/index.ts')
   mkdirSync(path.dirname(registry), { recursive: true })
   if (!existsSync(registry)) writeFileSync(registry, REGISTRY_SKELETON)
   const source = readFileSync(registry, 'utf8')
   if (!source.includes(REGISTRY_MARKER)) {
-    throw new Error(`registry has no "${REGISTRY_MARKER}" marker; add the entry for "${slug}" by hand`)
+    throw new Error(`registry ${path.relative(target, registry)} has no "${REGISTRY_MARKER}" marker; add the entry for "${slug}" by hand`)
   }
-  const fill = (text) => text.replaceAll('__SLUG__', slug).replaceAll('__TITLE__', title)
+  const kitImport = relativeImport(folder, kitDir)
+  const steps = relativeImport(path.join(folder, 'steps'), kitDir)
+  const fill = (text, file) =>
+    text
+      .replaceAll('__KIT__', file.includes(`steps${path.sep}`) ? steps : kitImport)
+      .replaceAll('__SLUG__', slug)
+      .replaceAll('__TITLE__', escapeTitle(title))
   for (const file of sourceFiles(PRESENTATION_TEMPLATE_DIR)) {
     const rel = path.relative(PRESENTATION_TEMPLATE_DIR, file).replace(/\.tmpl$/, '')
     const dest = path.join(folder, rel)
     mkdirSync(path.dirname(dest), { recursive: true })
-    writeFileSync(dest, fill(readFileSync(file, 'utf8')))
+    const content = neutralStyle && rel === 'talk.css' ? '/* Presentation styles go here; the scaffold ships none. */\n' : fill(readFileSync(file, 'utf8'), rel)
+    writeFileSync(dest, content)
   }
   const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk'),\n  },\n  ${REGISTRY_MARKER}`
   writeFileSync(registry, source.replace(REGISTRY_MARKER, entry))
   return folder
+}
+
+/**
+ * `npm ci` only when the lock file came from the template and package.json was not merged;
+ * a merged or pre-existing package.json needs `npm install` to refresh its lock data.
+ */
+export function installCommand(result) {
+  return result.created.includes('package-lock.json') && !result.merged.length ? 'ci' : 'install'
 }
 
 function main(argv) {
@@ -226,8 +290,7 @@ function main(argv) {
     const result = applyScaffold(target, plan)
     console.log(`scaffold: wrote ${result.created.length} file(s) to ${target}; merged ${result.merged.join(', ') || 'no package entries'}`)
     if (rest.includes('--install')) {
-      const lock = existsSync(path.join(target, 'package-lock.json'))
-      const install = spawnSync('npm', [lock ? 'ci' : 'install'], { cwd: target, stdio: 'inherit' })
+      const install = spawnSync('npm', [installCommand(result)], { cwd: target, stdio: 'inherit' })
       return install.status ?? 1
     }
     return 0

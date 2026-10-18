@@ -1,5 +1,5 @@
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { EASE, LAYOUT_T } from '../constants'
+import { EASE, ENTER_T, LAYOUT_T } from '../constants'
 
 export interface Point {
   x: number
@@ -30,6 +30,7 @@ export function Arrow({ id, from, to, bidirectional, style, ...rest }: ArrowProp
       data-presentation-arrow-direction={bidirectional ? 'both' : 'forward'}
       initial={target}
       animate={target}
+      exit={{ opacity: 0, transition: { duration: ENTER_T * 0.6 } }}
       transition={{ duration: LAYOUT_T, ease: EASE }}
       style={{ position: 'absolute', height: 0, transformOrigin: '0 50%', ...style }}
       {...rest}

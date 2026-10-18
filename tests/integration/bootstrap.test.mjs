@@ -1,5 +1,6 @@
 // INT-001: the distributable bootstrap works outside the repository that authored it.
 import { existsSync, readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import path from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { listFiles, scanKitForStyling } from '../helpers/kit-scan.mjs'
@@ -68,5 +69,19 @@ describe('INT-001 materialized bootstrap', () => {
     expect(pkg).not.toMatch(/tailwind/i)
     expect(existsSync(path.join(dir, 'tailwind.config.js'))).toBe(false)
     expect(readFileSync(path.join(dir, 'vite.config.ts'), 'utf8')).not.toMatch(/tailwind/i)
+  })
+
+  it('ships no presentation styling anywhere in the scaffold, including the example and host CSS', () => {
+    const stylesheets = readdirSync(path.join(dir, 'src'), { recursive: true })
+      .map(String)
+      .filter((f) => f.endsWith('.css') && !f.startsWith('presentation-kit'))
+    expect(stylesheets.sort()).toEqual(['index.css', path.join('presentations', 'example', 'talk.css')])
+    for (const css of stylesheets) {
+      const text = readFileSync(path.join(dir, 'src', css), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+      expect(text, css).not.toMatch(/(^|[;{\s])(color|background\w*|font\w*|border\w*|box-shadow|text-shadow|padding\w*|--[\w-]+)\s*:/)
+      expect(text, css).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i)
+    }
+    const landing = readFileSync(path.join(dir, 'src/Landing.tsx'), 'utf8')
+    expect(landing).not.toMatch(/style=/)
   })
 })

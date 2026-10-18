@@ -2,10 +2,14 @@ import { spawnSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import {
   BOOTSTRAP_DIR,
   applyScaffold,
+  escapeTitle,
+  installCommand,
+  locateAnchors,
   createPresentation,
   detectAnchors,
   isEmptyDir,
@@ -40,12 +44,20 @@ describe('anchor detection', () => {
     expect(detectAnchors(BOOTSTRAP_DIR)).toEqual({ build: true, kit: true, index: true })
   })
 
-  it('is contract-level: renamed files, extra dependencies and formatting do not matter', () => {
+  it('is contract-level: a renamed, relocated kit and registry still count, with extra dependencies', () => {
     const dir = tmp()
     buildOnly(dir, { dependencies: { react: '1', lodash: '1' } })
+    cpSync(path.join(BOOTSTRAP_DIR, 'src/presentation-kit'), path.join(dir, 'src/engine/deck'), { recursive: true })
+    write(dir, 'src/talks.ts', 'export const all = [{ slug: "x", title: "X", load: () => import("./x/Talk") }]')
+    expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('rejects placeholders that only look like the contract', () => {
+    const dir = tmp()
+    buildOnly(dir)
     write(dir, 'src/engine/Deck.tsx', 'import { AnimatePresence } from "motion/react"\nexport const Presentation = () => null\nexport type Step = { id: string }\n')
     write(dir, 'src/talks.ts', 'export const all = [{ slug: "x", load: () => null }]')
-    expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+    expect(detectAnchors(dir)).toEqual({ build: true, kit: false, index: false })
   })
 
   it('does not treat a bare directory or incomplete capability as an anchor', () => {
@@ -125,10 +137,12 @@ describe('scaffolding', () => {
     expect(plan.create).not.toContain('package.json')
     expect(plan.create).not.toContain('vite.config.ts')
     expect(plan.keep).toContain('src/main.tsx')
+    expect(plan.create).toEqual(expect.arrayContaining(['scripts/verify.mjs', 'scripts/inspect-presentation.mjs', 'scripts/lib.mjs']))
     const result = applyScaffold(dir, plan)
     expect(readFileSync(path.join(dir, 'src/main.tsx'), 'utf8')).toBe('host main')
     expect(readFileSync(path.join(dir, 'README.md'), 'utf8')).toBe('host readme')
     expect(existsSync(path.join(dir, 'src/presentation-kit/Stage.tsx'))).toBe(true)
+    expect(existsSync(path.join(dir, 'scripts/verify.mjs'))).toBe(true)
     expect(existsSync(path.join(dir, 'vite.config.ts'))).toBe(false)
     expect(existsSync(path.join(dir, 'package-lock.json'))).toBe(false)
     const pkg = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8'))
@@ -145,11 +159,11 @@ describe('scaffolding', () => {
     const dir = tmp()
     buildOnly(dir)
     copyOf(dir, 'src/presentation-kit')
-    write(dir, 'src/presentation-kit/Stage.tsx', 'customised stage')
+    write(dir, 'src/presentation-kit/nodes/Box.tsx', 'customised box')
     const plan = planScaffold(dir)
     expect(plan.missing).toEqual(['index'])
     applyScaffold(dir, plan)
-    expect(readFileSync(path.join(dir, 'src/presentation-kit/Stage.tsx'), 'utf8')).toBe('customised stage')
+    expect(readFileSync(path.join(dir, 'src/presentation-kit/nodes/Box.tsx'), 'utf8')).toBe('customised box')
   })
 
   it('scaffolds a full copy of the bootstrap in an empty directory', () => {
@@ -225,5 +239,58 @@ describe('creating a presentation', () => {
     expect(() => createPresentation(dir, { slug: 'ok', title: 'x' })).toThrow(/marker/)
     expect(existsSync(path.join(dir, 'src/presentations/ok'))).toBe(false)
     expect(before).toContain('presentations:end')
+  })
+})
+
+describe('install command', () => {
+  it('uses npm ci only for an untouched template lock, and npm install after a merge or with a pre-existing lock', () => {
+    expect(installCommand({ created: ['package.json', 'package-lock.json'], merged: [] })).toBe('ci')
+    expect(installCommand({ created: ['src/x.ts'], merged: ['dependencies.motion'] })).toBe('install')
+    expect(installCommand({ created: ['src/x.ts'], merged: [] })).toBe('install')
+  })
+})
+
+describe('generated code is valid for awkward titles', () => {
+  const TITLE = `O'Brien's "Big" \\ talk */ end`
+  const diagnostics = (dir) =>
+    listFiles(dir)
+      .filter((f) => /\.(ts|tsx)$/.test(f))
+      .flatMap((f) => {
+        const out = ts.transpileModule(readFileSync(path.join(dir, f), 'utf8'), {
+          fileName: f,
+          reportDiagnostics: true,
+          compilerOptions: { jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023 },
+        })
+        return (out.diagnostics ?? []).map((d) => `${f}: ${ts.flattenDiagnosticMessageText(d.messageText, '\n')}`)
+      })
+
+  it('escapes the title for every string context it lands in', () => {
+    expect(escapeTitle(`a'b"c\\d */`)).toBe(`a\\'b\\"c\\\\d * /`)
+    const dir = tmp()
+    applyScaffold(dir)
+    const folder = createPresentation(dir, { slug: 'awkward', title: TITLE })
+    expect(diagnostics(folder)).toEqual([])
+    expect(diagnostics(path.join(dir, 'src/presentations'))).toEqual([])
+    expect(readFileSync(path.join(folder, 'talk.css'), 'utf8')).not.toMatch(/\*\/ end/)
+  })
+})
+
+describe('creating a presentation in a renamed app', () => {
+  it('registers in the located registry and imports the located kit', () => {
+    const dir = tmp()
+    buildOnly(dir)
+    cpSync(path.join(BOOTSTRAP_DIR, 'src/presentation-kit'), path.join(dir, 'src/engine/deck'), { recursive: true })
+    write(dir, 'src/talks/registry.ts', `export const all = [\n  { slug: 'old', title: 'Old', load: () => import('./old/Talk') },\n  // presentations:end\n]\n`)
+    const located = locateAnchors(dir)
+    expect(path.relative(dir, located.kitDir)).toBe(path.join('src/engine/deck'))
+    const folder = createPresentation(dir, { slug: 'fresh', title: 'Fresh' })
+    expect(folder).toBe(path.join(dir, 'src/talks/fresh'))
+    expect(existsSync(path.join(dir, 'src/presentations/index.ts'))).toBe(false)
+    const registry = readFileSync(path.join(dir, 'src/talks/registry.ts'), 'utf8')
+    expect(registry).toContain("slug: 'old'")
+    expect(registry).toContain("import('./fresh/Talk')")
+    expect(readFileSync(path.join(folder, 'Talk.tsx'), 'utf8')).toContain("from '../../engine/deck'")
+    expect(readFileSync(path.join(folder, 'steps/index.ts'), 'utf8')).toContain("from '../../../engine/deck'")
+    expect(readFileSync(path.join(folder, 'meta.ts'), 'utf8')).toContain("from '../../engine/deck'")
   })
 })

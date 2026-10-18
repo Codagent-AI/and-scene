@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { STEP_META } from '../../src/presentations/how-to-make-a-presentation/meta'
 import { SampleScene } from '../../src/presentations/how-to-make-a-presentation/steps/SampleScene'
@@ -123,6 +123,7 @@ describe('sample scene intent', () => {
     expect(parseFloat(kit.top)).toBeLessThan(trayBottom)
     expect(parseFloat(kit.top) + parseFloat(kit.height)).toBeGreaterThan(trayBottom)
     expect(beats[5]['hmp-tray']).toEqual(beats[2]['hmp-tray'])
+    expect(treeKind('hmp-tray')).toBe('box')
     const verify = beats[6]['hmp-verify']
     expect(verify.top).toBe(beats[6]['hmp-card-1'].top)
     expect(parseFloat(verify.left)).toBeGreaterThan(parseFloat(beats[6]['hmp-card-4'].left))
@@ -141,5 +142,38 @@ describe('sample scene intent', () => {
       expect(left + parseFloat(e.width)).toBeLessThanOrEqual(fr)
       expect(top + parseFloat(e.height)).toBeLessThanOrEqual(fb)
     }
+  })
+})
+
+function treeKind(id: string): string | null {
+  const { container } = render(<SampleScene payload={{ beat: 6 }} step={STEP_META[5]} index={5} count={9} mode="browse" />)
+  const kind = container.querySelector(`[data-presentation-id="${id}"]`)?.getAttribute('data-presentation-node') ?? null
+  cleanup()
+  return kind
+}
+
+describe('unframed tray and exiting focus ring', () => {
+  it('draws no border or frame treatment on the tray', () => {
+    const css = readFileSync(path.resolve(import.meta.dirname, '../../src/presentations/how-to-make-a-presentation/talk.css'), 'utf8')
+    const rule = css.match(/\[data-presentation-id='hmp-tray'\]\s*\{([^}]*)\}/)?.[1] ?? ''
+    expect(rule).toMatch(/border:\s*0/)
+    expect(rule).not.toMatch(/dashed|solid/)
+    for (const beat of [3, 6, 9]) {
+      const { container } = render(<SampleScene payload={{ beat }} step={STEP_META[beat - 1]} index={beat - 1} count={9} mode="browse" />)
+      const frames = [...container.querySelectorAll('[data-presentation-node="frame"]')].map((f) => f.getAttribute('data-presentation-id'))
+      expect(frames).not.toContain('hmp-tray')
+      cleanup()
+    }
+  })
+
+  it('fades the focus ring out when it leaves on the final step instead of vanishing', async () => {
+    const at = (beat: number) => (
+      <SampleScene payload={{ beat }} step={STEP_META[beat - 1]} index={beat - 1} count={9} mode="browse" />
+    )
+    const { container, rerender } = render(at(8))
+    expect(container.querySelector('[data-presentation-id="hmp-focus"]')).not.toBeNull()
+    rerender(at(9))
+    expect(container.querySelector('[data-presentation-id="hmp-focus"]')).not.toBeNull() // still exiting
+    await waitFor(() => expect(container.querySelector('[data-presentation-id="hmp-focus"]')).toBeNull(), { timeout: 3000 })
   })
 })

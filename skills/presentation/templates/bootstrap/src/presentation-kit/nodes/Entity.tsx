@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { LAYOUT_TRANSITION } from '../constants'
+import { ENTER_T, LAYOUT_TRANSITION } from '../constants'
 import { geometryStyle, type Geometry } from './geometry'
 
 export type EntityProps = Omit<HTMLMotionProps<'div'>, 'ref' | 'children'> &
@@ -21,6 +21,7 @@ export function Entity({ kind, layoutId, x, y, width, height, style, ...rest }: 
       layout
       layoutId={layoutId}
       transition={LAYOUT_TRANSITION}
+      exit={{ opacity: 0, transition: { duration: ENTER_T * 0.6 } }}
       style={geometryStyle({ x, y, width, height }, style)}
       {...rest}
     />

@@ -43,11 +43,32 @@ export function findOverlaps(items) {
   return found
 }
 
-const SIGNATURE_KEYS = ['color', 'backgroundColor', 'borderColor', 'borderWidth', 'fontWeight', 'opacity', 'width', 'height', 'textDecorationLine', 'boxShadow', 'outlineStyle', 'transform']
+export const SIGNATURE_KEYS = [
+  'color', 'backgroundColor', 'borderTopColor', 'borderTopWidth', 'borderTopStyle', 'fontWeight', 'opacity',
+  'width', 'height', 'textDecorationLine', 'boxShadow', 'outlineStyle', 'outlineColor', 'outlineWidth', 'transform',
+]
+
+/** Drop properties that cannot be seen: the colour of a border that is not drawn, or of an absent outline. */
+export function normalizeSignature(raw) {
+  const sig = { ...raw }
+  if (sig.borderTopStyle === 'none' || sig.borderTopStyle === 'hidden' || parseFloat(sig.borderTopWidth) === 0) {
+    sig.borderTopColor = ''
+    sig.borderTopWidth = ''
+    sig.borderTopStyle = ''
+  }
+  if (sig.outlineStyle === 'none' || parseFloat(sig.outlineWidth) === 0) {
+    sig.outlineColor = ''
+    sig.outlineWidth = ''
+  }
+  if (sig.boxShadow === 'none') sig.boxShadow = ''
+  return sig
+}
 
 /** True when the active control's computed look differs from an inactive sibling's. */
 export function isDistinct(active, inactive) {
-  return SIGNATURE_KEYS.some((key) => active[key] !== inactive[key])
+  const a = normalizeSignature(active)
+  const b = normalizeSignature(inactive)
+  return SIGNATURE_KEYS.some((key) => a[key] !== b[key])
 }
 
 /** Reasons the attribution looks unpolished; `info` is null when it is missing. */
@@ -111,7 +132,8 @@ function collectDiagnostics(signatureKeys) {
     })
   }
   for (const el of root?.querySelectorAll('*') ?? []) {
-    if (el.matches('[data-presentation-progress-item]')) {
+    // Controls collide by their whole box (padding, border, icon-only), not just their label text.
+    if (el.matches('button, a[href], [role="button"], [data-presentation-progress-item]')) {
       const r = el.getBoundingClientRect()
       add(el, { x: r.x, y: r.y, width: r.width, height: r.height })
     } else {
@@ -244,6 +266,9 @@ async function main() {
         const diag = await page.evaluate(collectDiagnostics, SIGNATURE_KEYS)
         manifest.push({ step: i + 1, file, settleMs: args.settle, capturedAfterMs: Date.now() - waitedFrom, pendingAnimations: diag.pendingAnimations })
         warnings.push(...analyze(i + 1, diag))
+        if (diag.pendingAnimations > 0) {
+          warnings.push(`step ${i + 1}: ${diag.pendingAnimations} animation(s) still running at capture, so the screenshot may be unsettled; raise --settle`)
+        }
       }
     } finally {
       await browser.close()

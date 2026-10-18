@@ -126,3 +126,38 @@ describe('entity transitions in a grouped scene', () => {
     await waitFor(() => expect(wrapper.style.opacity).toBe('1'), { timeout: 4000 })
   })
 })
+
+describe('newcomers across a group boundary', () => {
+  function Arriving({ payload }: SceneProps<{ step: number }>) {
+    return (
+      <SceneLayer>
+        <Box key="base" layoutId="base" x={10} y={10} />
+        {payload.step === 1 && (
+          <Appear key="late">
+            <Box layoutId="late" x={50} y={50} data-testid="late" />
+          </Appear>
+        )}
+      </SceneLayer>
+    )
+  }
+  function Plain({ payload }: SceneProps<{ step: number }>) {
+    return <Arriving payload={payload} step={undefined as never} index={0} count={0} mode="browse" />
+  }
+  const steps = [0, 1].map((step) => ({ id: `u${step}`, era: 'x', title: 't', caption: 'c', Scene: step === 0 ? Arriving : Plain, payload: { step } }))
+
+  it('holds a newcomer in an incoming ungrouped scene until the morph window has passed', async () => {
+    render(<Presentation steps={steps} title="T" />)
+    key('ArrowRight')
+    const wrapper = screen.getByTestId('late').closest('[data-presentation-appear]') as HTMLElement
+    expect(wrapper.style.opacity).toBe('0')
+    await new Promise((r) => setTimeout(r, 450)) // past the 0.35s scene cross-fade, before the 0.7s delay
+    expect(Number(wrapper.style.opacity)).toBeLessThan(0.3)
+    await waitFor(() => expect(wrapper.style.opacity).toBe('1'), { timeout: 4000 })
+  })
+
+  it('shows entities present at first mount immediately', () => {
+    const { container } = render(<Presentation steps={[{ ...steps[1], payload: { step: 1 } }]} title="T" />)
+    const wrapper = container.querySelector('[data-presentation-appear]') as HTMLElement
+    expect(wrapper.style.opacity).not.toBe('0')
+  })
+})

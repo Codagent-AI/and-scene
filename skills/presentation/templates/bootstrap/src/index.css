@@ -6,9 +6,3 @@ body,
   min-height: 100%;
 }
 
-.landing {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 4rem 1.5rem;
-  font-family: system-ui, sans-serif;
-}

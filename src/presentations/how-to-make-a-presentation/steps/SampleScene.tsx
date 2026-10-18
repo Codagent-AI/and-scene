@@ -73,7 +73,9 @@ export function SampleScene({ payload: { beat } }: SceneProps<SamplePayload>) {
 
       {beat >= 3 && (
         <Appear key="tray">
-          <Frame layoutId={E.tray} x={40} y={162} width={800} height={146} label="step cards" />
+          <Box layoutId={E.tray} x={40} y={162} width={800} height={146}>
+            <span data-part="tray-label">step cards</span>
+          </Box>
         </Appear>
       )}
 

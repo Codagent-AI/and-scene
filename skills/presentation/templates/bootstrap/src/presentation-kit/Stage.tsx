@@ -1,4 +1,6 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { useState } from 'react'
+import { EntryContext } from './entryContext'
 import { DESIGN_H, DESIGN_W, ENTER_T, type Mode } from './constants'
 import { sceneKey } from './sceneKey'
 import type { Step } from './types'
@@ -27,50 +29,67 @@ export function Stage<TPayload>({
   designWidth = DESIGN_W,
   designHeight = DESIGN_H,
 }: StageProps<TPayload>) {
-  const step = steps[index]
-  if (!step) return null
-  const { Scene } = step
+  if (!steps[index]) return null
   return (
     <div
       data-presentation-stage=""
       style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
-      <div
+      <Canvas
         key={`${mode}:${scale.toFixed(3)}`}
-        data-presentation-canvas-frame=""
-        data-presentation-scale={scale.toFixed(3)}
-        style={{ position: 'relative', width: designWidth * scale, height: designHeight * scale }}
+        steps={steps}
+        index={index}
+        mode={mode}
+        scale={scale}
+        designWidth={designWidth}
+        designHeight={designHeight}
+      />
+    </div>
+  )
+}
+
+function Canvas<TPayload>({ steps, index, mode, scale, designWidth, designHeight }: Required<StageProps<TPayload>>) {
+  // The canvas is re-keyed on mode/scale change; scenes first shown by that re-mount do not animate.
+  const [mountIndex] = useState(index)
+  const step = steps[index]
+  const { Scene } = step
+  return (
+    <div
+      data-presentation-canvas-frame=""
+      data-presentation-scale={scale.toFixed(3)}
+      style={{ position: 'relative', width: designWidth * scale, height: designHeight * scale }}
+    >
+      <div
+        data-presentation-canvas=""
+        data-presentation-canvas-width={designWidth}
+        data-presentation-canvas-height={designHeight}
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: designWidth,
+          height: designHeight,
+          transform: `scale(${scale})`,
+          transformOrigin: '0 0',
+        }}
       >
-        <div
-          data-presentation-canvas=""
-          data-presentation-canvas-width={designWidth}
-          data-presentation-canvas-height={designHeight}
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            width: designWidth,
-            height: designHeight,
-            transform: `scale(${scale})`,
-            transformOrigin: '0 0',
-          }}
-        >
-          <LayoutGroup>
-            <AnimatePresence initial={false}>
-              <motion.div
-                key={sceneKey(step)}
-                data-presentation-scene=""
-                style={fill}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: ENTER_T }}
-              >
+        <LayoutGroup>
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={sceneKey(step)}
+              data-presentation-scene=""
+              style={fill}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: ENTER_T }}
+            >
+              <EntryContext value={index !== mountIndex}>
                 <Scene payload={step.payload} step={step} index={index} count={steps.length} mode={mode} />
-              </motion.div>
-            </AnimatePresence>
-          </LayoutGroup>
-        </div>
+              </EntryContext>
+            </motion.div>
+          </AnimatePresence>
+        </LayoutGroup>
       </div>
     </div>
   )

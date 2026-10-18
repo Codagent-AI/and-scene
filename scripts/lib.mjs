@@ -60,43 +60,45 @@ async function waitForReady(url, child, timeoutMs = 30000) {
 }
 
 /**
- * Start `vite preview` on 127.0.0.1 and wait until the readiness probe (same host) answers.
- * The returned `stop()` ends the process and resolves once it has exited.
+ * Spawn `vite preview` on 127.0.0.1. `ready()` resolves once the readiness probe (same host)
+ * answers; `stop()` ends the process and resolves once it has exited. The process exists as soon
+ * as this returns, so callers can register cleanup before waiting for readiness.
  */
-export async function startPreview(root, port) {
+export function spawnPreview(root, port) {
   const bin = path.join(root, 'node_modules/vite/bin/vite.js')
   const child = spawn(process.execPath, [bin, 'preview', '--host', HOST, '--port', String(port), '--strictPort'], {
     cwd: root,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   const exited = new Promise((resolve) => child.once('exit', resolve))
-  const stop = async () => {
-    if (child.exitCode === null) {
-      child.kill('SIGTERM')
-      const timer = setTimeout(() => child.kill('SIGKILL'), 3000)
-      await exited
-      clearTimeout(timer)
-    }
-  }
   const baseUrl = `http://${HOST}:${port}`
-  try {
-    await waitForReady(`${baseUrl}/`, child)
-  } catch (err) {
-    await stop()
-    throw err
+  return {
+    baseUrl,
+    ready: () => waitForReady(`${baseUrl}/`, child),
+    stop: async () => {
+      if (child.exitCode === null) {
+        child.kill('SIGTERM')
+        const timer = setTimeout(() => child.kill('SIGKILL'), 3000)
+        await exited
+        clearTimeout(timer)
+      }
+    },
   }
-  return { baseUrl, stop }
 }
 
-/** Run `fn(preview)` against a fresh preview, always stopping it, including on signals. */
+/**
+ * Run `fn(preview)` against a fresh preview. The preview is stopped on every exit path: normal
+ * completion, a failure during startup or in `fn`, and SIGINT/SIGTERM at any point after spawn.
+ */
 export async function withPreview(root, port, fn) {
-  const preview = await startPreview(root, port)
+  const preview = spawnPreview(root, port)
   const onSignal = (signal) => {
     preview.stop().finally(() => process.exit(signal === 'SIGINT' ? 130 : 143))
   }
   process.once('SIGINT', onSignal)
   process.once('SIGTERM', onSignal)
   try {
+    await preview.ready()
     return await fn(preview)
   } finally {
     process.off('SIGINT', onSignal)

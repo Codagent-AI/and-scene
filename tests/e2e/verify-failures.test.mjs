@@ -1,4 +1,5 @@
 // E2E-002: verification failures are actionable, in disposable copies of the repository.
+import { spawn } from 'node:child_process'
 import { readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -81,5 +82,37 @@ describe('E2E-002 verification failures', () => {
     expect(r.status).not.toBe(0)
     expect(r.output).toContain('VERIFY FAILED: render')
     expect(r.output).toMatch(/at step index 3: transition did not advance/)
+  })
+
+  it('stops the preview and names the render phase when the browser cannot start', async () => {
+    const dir = copyRepo()
+    const port = await freePort()
+    const r = sh('npm', ['run', 'verify'], dir, { VERIFY_PORT: String(port), PLAYWRIGHT_BROWSERS_PATH: '/nonexistent-browsers' })
+    expect(r.status).not.toBe(0)
+    expect(r.output).toContain('VERIFY FAILED: render')
+    expect(r.output).toMatch(/preview\/browser error/)
+    expect(await portIsClosed(port)).toBe(true)
+  })
+
+  it('stops a preview that is still starting when the process is terminated', async () => {
+    const dir = copyRepo()
+    const port = await freePort()
+    writeFileSync(
+      path.join(dir, 'scripts/hold.mjs'),
+      "import { withPreview, projectRoot } from './lib.mjs'\nawait withPreview(projectRoot(), Number(process.env.VERIFY_PORT), () => new Promise(() => {}))\n",
+    )
+    mkdirSync(path.join(dir, 'dist'), { recursive: true })
+    writeFileSync(path.join(dir, 'dist/index.html'), '<html></html>')
+    const child = spawn(process.execPath, ['scripts/hold.mjs'], { cwd: dir, env: { ...process.env, VERIFY_PORT: String(port) } })
+    const exited = new Promise((resolve) => child.once('exit', resolve))
+    const previewPids = () => sh('pgrep', ['-f', `vite.js preview --host 127.0.0.1 --port ${port}`], dir).output.trim()
+    const deadline = Date.now() + 10000
+    while (!previewPids() && Date.now() < deadline) await new Promise((r) => setTimeout(r, 5))
+    expect(previewPids()).not.toBe('')
+    child.kill('SIGTERM') // delivered while the preview is spawned, possibly before it answers its probe
+    await exited
+    await new Promise((r) => setTimeout(r, 500))
+    expect(previewPids()).toBe('')
+    expect(await portIsClosed(port)).toBe(true)
   })
 })

@@ -6,6 +6,7 @@ import {
   findOverlaps,
   intersects,
   isDistinct,
+  normalizeSignature,
   parseArgs,
 } from '../../scripts/inspect-presentation.mjs'
 import { ENTER_DELAY, ENTER_T, LAYOUT_T } from '../../src/presentation-kit/constants.ts'
@@ -55,6 +56,14 @@ describe('chrome and attribution diagnostics', () => {
     expect(isDistinct({ ...sig, backgroundColor: 'rgb(1,2,3)' }, sig)).toBe(true)
     expect(isDistinct({ ...sig, width: '32px' }, sig)).toBe(true)
     expect(isDistinct({ ...sig, fontWeight: '700' }, sig)).toBe(true)
+  })
+
+  it('ignores differences that cannot be seen (undrawn borders, absent outlines)', () => {
+    const hidden = { ...sig, borderTopStyle: 'solid', borderTopWidth: '0px', outlineStyle: 'none', outlineWidth: '0px' }
+    expect(isDistinct({ ...hidden, borderTopColor: 'red', outlineColor: 'red' }, { ...hidden, borderTopColor: 'blue', outlineColor: 'blue' })).toBe(false)
+    const drawn = { ...sig, borderTopStyle: 'solid', borderTopWidth: '2px' }
+    expect(isDistinct({ ...drawn, borderTopColor: 'red' }, { ...drawn, borderTopColor: 'blue' })).toBe(true)
+    expect(normalizeSignature({ ...hidden, borderTopColor: 'red' }).borderTopColor).toBe('')
   })
 
   it('flags missing, undersized and browser-default attribution but not a polished one', () => {

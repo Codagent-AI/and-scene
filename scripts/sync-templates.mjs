@@ -23,5 +23,5 @@ for (const file of ['src/main.tsx', 'src/AppRouter.tsx', 'src/Landing.tsx', 'src
 rmSync(path.join(bootstrap, 'src/presentations/example'), { recursive: true, force: true })
 mkdirSync(path.join(bootstrap, 'src/presentations'), { recursive: true })
 writeFileSync(path.join(bootstrap, 'src/presentations/index.ts'), REGISTRY_SKELETON)
-createPresentation(bootstrap, { slug: 'example', title: 'Example Presentation' })
+createPresentation(bootstrap, { slug: 'example', title: 'Example Presentation' }, { neutralStyle: true })
 console.log(`synced bootstrap (${readdirSync(path.join(bootstrap, 'src/presentations')).join(', ')})`)

@@ -63,8 +63,9 @@ export function detectOverlaps(items) {
 }
 
 /** Active chrome is indistinct when it looks exactly like an inactive sibling. */
-export function isDistinct(active, inactives) {
-  return !inactives.some((other) => STYLE_KEYS.every((k) => active[k] === other[k]))
+export function isDistinct(active, inactives, ignore = []) {
+  const keys = STYLE_KEYS.filter((k) => !ignore.includes(k))
+  return !inactives.some((other) => keys.every((k) => active[k] === other[k]))
 }
 
 export function attributionIssue(attr) {
@@ -81,7 +82,7 @@ export function analyzeStep(step, data) {
     warnings.push(`WARN [overlap] step ${step}: ${a} overlaps ${b}`)
   }
   for (const group of data.chrome) {
-    if (group.inactives.length && !isDistinct(group.active, group.inactives)) {
+    if (group.inactives.length && !isDistinct(group.active, group.inactives, group.ignore)) {
       warnings.push(`WARN [active-chrome] step ${step}: active ${group.name} looks the same as inactive ones; style [data-presentation-active="true"]`)
     }
   }
@@ -138,10 +139,11 @@ function collect() {
     }
   }
   const chrome = []
-  for (const [name, sel] of [['progress item', '[data-presentation-progress-item]'], ['table-of-contents entry', '[data-presentation-toc-entry]']]) {
+  // Text entries are sized by their label, so width alone says nothing about being active.
+  for (const [name, sel, ignore] of [['progress item', '[data-presentation-progress-item]', []], ['table-of-contents entry', '[data-presentation-toc-entry]', ['width']]]) {
     const all = [...document.querySelectorAll(sel)]
     const active = all.find((e) => e.getAttribute('data-presentation-active') === 'true' || e.hasAttribute('aria-current'))
-    if (active) chrome.push({ name, active: styleOf(active), inactives: all.filter((e) => e !== active).map(styleOf) })
+    if (active) chrome.push({ name, ignore, active: styleOf(active), inactives: all.filter((e) => e !== active).map(styleOf) })
   }
   const attrEl = document.querySelector('[data-presentation-attribution]')
   let attribution = null

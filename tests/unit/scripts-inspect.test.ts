@@ -71,6 +71,10 @@ describe('isDistinct', () => {
   it('is false when the active control looks like an inactive one', () => {
     expect(isDistinct({ ...base }, [{ ...base }, { ...base }])).toBe(false)
   })
+  it('can ignore content-sized properties such as the width of a text entry', () => {
+    expect(isDistinct({ ...base, width: 60 }, [{ ...base }])).toBe(true)
+    expect(isDistinct({ ...base, width: 60 }, [{ ...base }], ['width'])).toBe(false)
+  })
   it.each([
     ['color', 'x'], ['backgroundColor', 'x'], ['borderColor', 'x'], ['borderWidth', '2px'],
     ['fontWeight', '700'], ['opacity', '0.5'], ['width', 26], ['height', 3],

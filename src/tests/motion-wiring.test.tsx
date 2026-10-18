@@ -164,6 +164,15 @@ describe('departing entities', () => {
   })
 })
 
+describe('departing scenes', () => {
+  it('declare an exit on the scene wrapper inside the stage AnimatePresence, so a scene swap fades out', () => {
+    render(<Stage steps={makeSteps(2)} index={0} mode="browse" />)
+    const scene = document.querySelector<HTMLElement>('[data-presentation-scene]')!
+    expect(parse(scene.getAttribute('data-m-exit'))).toMatchObject({ opacity: 0 })
+    expect(scene.parentElement!.hasAttribute('data-m-presence')).toBe(true)
+  })
+})
+
 describe('coordinates and composition', () => {
   it('preserves literal overlapping coordinates and stacking before and after an update', () => {
     const view = (tick: number) => (

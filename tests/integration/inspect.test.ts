@@ -231,6 +231,19 @@ describe('screenshot capture', () => {
     expect(listProcesses(`${app.dir}/node_modules/vite/bin/vite.js preview`)).toEqual([])
   })
 
+  it('fails operationally when the preview cannot start (nothing built), without false success', async () => {
+    const bare = await materialize({ linkModules: true })
+    try {
+      const result = await run('node', ['scripts/inspect-presentation.mjs', 'starter', '--no-build', '--settle', '50'], bare.dir)
+      expect(result.code).not.toBe(0)
+      expect(result.output).toContain('FAIL')
+      expect(result.output).not.toContain('done:')
+      expect(listProcesses(`${bare.dir}/node_modules/vite/bin/vite.js preview`)).toEqual([])
+    } finally {
+      bare.cleanup()
+    }
+  })
+
   it('captures the committed sample step by step with no advisory warnings', async () => {
     const result = await run('npm', ['run', 'inspect', '--', 'how-to-make-a-presentation', '--no-build', '--settle', '200'], repoRoot)
     expect(result.code, result.output).toBe(0)

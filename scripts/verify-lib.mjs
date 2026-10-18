@@ -1,28 +1,49 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+// Pure-ish helpers for verify.mjs, kept separate so they can be unit tested with a fake page.
 
-export const REFERENCE_SLUG = 'how-to-make-a-presentation'
-export const REFERENCE_TITLE = 'How to Use This Skill to Make a Presentation'
-
-/** @param {string} registryPath */
-export function readRegistrySource(registryPath) {
-  return readFileSync(registryPath, 'utf-8')
+export class VerifyFailure extends Error {
+  constructor(phase, message, step) {
+    super(message)
+    this.phase = phase
+    this.step = step
+  }
 }
 
-/** @param {string} source */
-export function checkPresentationsArray(source) {
-  // Tolerate an optional trailing semicolon and end-of-file (no final newline),
-  // so `]`, `];`, and an unterminated last line all parse.
-  const match = source.match(/export const presentations[\s\S]*?=\s*\[([\s\S]*?)\]\s*;?\s*(?:\n|$)/)
-  if (!match) return false
-  const slugPattern = new RegExp(`slug:\\s*['"]${REFERENCE_SLUG}['"]`)
-  return slugPattern.test(match[1])
+export const isFatalConsoleType = (type) => type === 'error'
+
+export function isFatalResponse(url, status, origin) {
+  return url.startsWith(origin) && status >= 400 && !url.endsWith('/favicon.ico')
 }
 
-/** @param {string} rootDir */
-export async function isSampleRegistered(rootDir) {
-  const registryUrl = pathToFileURL(join(rootDir, 'src/presentations/index.ts')).href
-  const { presentations } = await import(registryUrl)
-  return presentations.some((entry) => entry.slug === REFERENCE_SLUG)
+export const isFatalRequestFailure = (url, origin) => url.startsWith(origin)
+
+/**
+ * Subscribes to browser faults. Call before navigating so load-time errors are seen.
+ * `record(stepIndex, message)` receives each fault attributed to the step in flight.
+ */
+export function attachErrorCollectors(page, { origin, getStep, record }) {
+  page.on('console', (message) => {
+    if (isFatalConsoleType(message.type())) record(getStep(), `console.error: ${message.text()}`)
+  })
+  page.on('pageerror', (error) => record(getStep(), `uncaught error: ${error.message}`))
+  page.on('requestfailed', (request) => {
+    if (isFatalRequestFailure(request.url(), origin)) record(getStep(), `request failed: ${request.url()}`)
+  })
+  page.on('response', (response) => {
+    if (isFatalResponse(response.url(), response.status(), origin)) {
+      record(getStep(), `HTTP ${response.status()}: ${response.url()}`)
+    }
+  })
+}
+
+/** Waits for the public step hook to show `index`; a stalled transition fails instead of hanging. */
+export async function waitForStepIndex(page, index, timeoutMs, slug = 'presentation') {
+  try {
+    await page.waitForFunction(
+      (want) => document.querySelector('[data-step-count]')?.getAttribute('data-step-index') === String(want),
+      index,
+      { timeout: timeoutMs },
+    )
+  } catch {
+    throw new VerifyFailure('render', `${slug}: transition did not advance to step index ${index}`, index)
+  }
 }

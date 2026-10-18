@@ -1,0 +1,320 @@
+/* Look of "How to Use This Skill to Make a Presentation". The kit ships no styles; all of it lives here. */
+[data-presentation-root] {
+  --ink: #f4efe2;
+  --muted: #a9a290;
+  --paper: #14120f;
+  --panel: #1f1c17;
+  --line: #4a4437;
+  --accent: #e0b34a;
+  --pass: #55c38a;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 18% 8%, rgba(224, 179, 74, 0.14), transparent 30rem),
+    var(--paper);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.45;
+}
+
+/* Chrome */
+[data-presentation-title],
+[data-presentation-caption],
+[data-presentation-progress],
+[data-presentation-toc] ol {
+  margin: 0;
+  padding: 0;
+}
+
+[data-presentation-progress],
+[data-presentation-toc] ol,
+[data-presentation-progress] li {
+  list-style: none;
+}
+
+[data-presentation-header] {
+  gap: 1rem;
+  padding: 0.9rem 1.5rem 0.4rem;
+}
+
+[data-presentation-marker] {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+[data-presentation-title] {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+[data-presentation-footer] {
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  padding: 0.5rem 1.5rem 2rem;
+}
+
+[data-presentation-footer] > [data-presentation-title] {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.6rem;
+}
+
+[data-presentation-caption] {
+  flex: 1 1 22rem;
+  max-width: 46rem;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+[data-presentation-progress] {
+  gap: 0.45rem;
+}
+
+[data-presentation-progress-dot] {
+  display: block;
+  width: 0.7rem;
+  height: 0.7rem;
+  padding: 0;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+[data-presentation-progress-dot][data-presentation-active] {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(224, 179, 74, 0.3);
+}
+
+[data-presentation-controls] {
+  display: flex;
+  gap: 0.5rem;
+}
+
+[data-presentation-controls] button {
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  color: var(--ink);
+  background: var(--panel);
+  font: inherit;
+  cursor: pointer;
+}
+
+[data-presentation-controls] button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+[data-presentation-toc] {
+  align-self: center;
+  width: 11rem;
+  padding: 0 0.5rem 0 1.5rem;
+}
+
+[data-presentation-toc-entry] {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.7rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+[data-presentation-toc-entry][data-presentation-active] {
+  border-left-color: var(--accent);
+  color: var(--ink);
+  background: var(--panel);
+  font-weight: 700;
+}
+
+[data-presentation-attribution] {
+  right: 1.5rem;
+  bottom: 0.6rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--muted);
+}
+
+[data-presentation-attribution]:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  [data-presentation-header],
+  [data-presentation-footer] {
+    padding-inline: 1rem;
+  }
+}
+
+/* Scene entities */
+.node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.3rem;
+  padding: 0.5rem 0.4rem;
+  border: 1.5px solid var(--line);
+  border-radius: 0.6rem;
+  color: var(--ink);
+  background: var(--panel);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.actor {
+  justify-content: center;
+  border-color: var(--accent);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.prompt,
+.depth {
+  justify-content: center;
+  padding: 0.2rem 0.4rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.depth {
+  border-style: dotted;
+  color: var(--ink);
+  font-style: normal;
+}
+
+.card [data-presentation-part] {
+  width: 100%;
+  padding: 0.1rem 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.card [data-presentation-part]:first-child {
+  border-top: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.card[data-presentation-emphasis] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(224, 179, 74, 0.35);
+}
+
+.ghost {
+  justify-content: center;
+  border-style: dashed;
+  color: var(--muted);
+  background: transparent;
+}
+
+.socket {
+  justify-content: center;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.verify {
+  border-color: var(--pass);
+}
+
+.verify[data-presentation-state='pass'] {
+  box-shadow: 0 0 0 3px rgba(85, 195, 138, 0.3);
+}
+
+.route {
+  justify-content: center;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--panel);
+  font-size: 0.75rem;
+}
+
+.pass {
+  border-color: var(--pass);
+  color: var(--paper);
+  background: var(--pass);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.conversation,
+.link,
+.plug {
+  color: var(--muted);
+}
+
+.conversation svg path,
+.link svg path,
+.plug svg path,
+.modify svg path {
+  stroke-width: 2;
+}
+
+.modify {
+  color: var(--accent);
+}
+
+.modify svg path {
+  stroke-dasharray: 6 4;
+}
+
+.tray-label,
+.link-label,
+.flag {
+  color: var(--muted);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.link-label {
+  text-align: center;
+}
+
+.tray-edge {
+  border-top: 2px solid var(--line);
+}
+
+.flag {
+  color: var(--accent);
+  font-weight: 700;
+  text-align: center;
+}
+
+.frame {
+  border: 2px solid var(--accent);
+  border-radius: 1rem;
+  box-shadow: 0 0 40px rgba(224, 179, 74, 0.12);
+}
+
+.frame-label {
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}

@@ -1,25 +1,33 @@
 import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import type { RefObject } from 'react'
+import { computeFitScale } from './fit'
+import type { PresentationMode } from './constants'
+import { MIN_SCALE } from './constants'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+/** Tracks the element's box and returns the uniform canvas scale for the mode. */
+export function useFitScale(
+  ref: RefObject<HTMLElement | null>,
+  mode: PresentationMode,
+): number {
+  const [scale, setScale] = useState(MIN_SCALE)
 
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
-  const [scale, setScale] = useState(1)
   useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
+    const element = ref.current
+    if (!element) return
+    const measure = () => {
+      const { width, height } = element.getBoundingClientRect()
+      setScale(computeFitScale(width, height, mode))
     }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
+    measure()
+    window.addEventListener('resize', measure)
+    const observer =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    observer?.observe(element)
+    return () => {
+      window.removeEventListener('resize', measure)
+      observer?.disconnect()
+    }
+  }, [ref, mode])
+
   return scale
 }

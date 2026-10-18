@@ -1,0 +1,74 @@
+/*
+ * This presentation owns its look. Replace everything here with the visual style the user asked for;
+ * the scene kit ships no styles. Style the chrome through its data-presentation-* hooks, and make the
+ * active progress dot, the active table-of-contents entry, and the attribution link clearly visible.
+ */
+[data-presentation-root] {
+  color: #1d1d1b;
+  background: #fbfaf7;
+  font-family: system-ui, sans-serif;
+}
+
+[data-presentation-title],
+[data-presentation-caption],
+[data-presentation-progress],
+[data-presentation-toc] ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-presentation-header],
+[data-presentation-footer] {
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+}
+
+[data-presentation-footer] {
+  flex-wrap: wrap;
+  padding-bottom: 2rem;
+}
+
+[data-presentation-progress-dot] {
+  width: 0.7rem;
+  height: 0.7rem;
+  padding: 0;
+  border: 1px solid #77736a;
+  border-radius: 50%;
+  background: transparent;
+}
+
+[data-presentation-progress-dot][data-presentation-active] {
+  border-color: #b3541e;
+  background: #b3541e;
+}
+
+[data-presentation-toc-entry] {
+  padding: 0.3rem 0.6rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+
+[data-presentation-toc-entry][data-presentation-active] {
+  font-weight: 700;
+  background: #efe9dc;
+}
+
+[data-presentation-attribution] {
+  right: 1.5rem;
+  bottom: 0.6rem;
+  color: #5a564d;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8125rem;
+}
+
+.subject,
+.detail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #1d1d1b;
+  border-radius: 0.6rem;
+}

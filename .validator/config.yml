@@ -1,12 +1,12 @@
 # Ordered list of CLI agents to try for reviews
 cli:
   default_preference:
-    - codex
+    - claude
   adapters:
-    codex:
-      model: gpt-6-sol
+    claude:
       allow_tool_use: false
       thinking_budget: low
+      model: claude-sonnet-5-5
 
 # entry_points configured by /validator-setup
 entry_points:
@@ -22,21 +22,15 @@ entry_points:
           command: npm audit --audit-level=moderate
           run_locally: false
     reviews:
-      - code-quality:
-          builtin: code-quality
-          num_reviews: 1
-  # Skill files live under skills/ (skills/<name>/SKILL.md plus its templates),
-  # so skill-quality only runs when they change.
-  - path: skills
-    reviews:
-      - skill-quality
+      - all-reviewers:
+          builtin: all-reviewers
 
 # -------------------------------------------------------------------
 # All settings below are optional. Uncomment and change as needed.
 # -------------------------------------------------------------------
 
 # Git ref for detecting local changes via git diff (default: origin/main)
-# base_branch: origin/main
+base_branch: origin/eval/create-and-scene-spec-only
 
 # Directory for per-job logs (default: validator_logs)
 # log_dir: validator_logs

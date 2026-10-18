@@ -1,93 +1,85 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Mode } from './types'
+import { SWIPE_MIN_PX } from './constants'
+import type { PresentationMode } from './constants'
 
-/**
- * Step index + presenter/browse mode, driven by the keyboard and surfaced for
- * the on-screen controls.
- *
- *   →/Space/PageDown  next        ←/PageUp  prev        P  toggle mode
- *
- * On touch screens the same next/prev is driven by a horizontal swipe: swipe
- * left to advance, right to go back.
- */
-// A swipe must travel this far horizontally, and be clearly more horizontal
-// than vertical, before it counts — so taps and vertical scrolls never trip it.
-const SWIPE_MIN_PX = 50
-const SWIPE_RATIO = 1.5
+const INTERACTIVE =
+  'button, a, input, select, textarea, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [role="tab"]'
 
-export function usePresentationNav(stepCount: number, initialMode: Mode = 'browse') {
-  const [step, setStep] = useState(0)
-  const [mode, setMode] = useState<Mode>(initialMode)
+const NEXT_KEYS = new Set(['ArrowRight', ' ', 'PageDown'])
+const PREV_KEYS = new Set(['ArrowLeft', 'PageUp'])
 
-  const last = stepCount - 1
-  const next = useCallback(() => setStep((s) => Math.min(last, s + 1)), [last])
-  const prev = useCallback(() => setStep((s) => Math.max(0, s - 1)), [])
+function isInteractive(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(INTERACTIVE) !== null
+}
+
+export interface PresentationNav {
+  index: number
+  mode: PresentationMode
+  next: () => void
+  prev: () => void
+  goTo: (index: number) => void
+  toggleMode: () => void
+}
+
+/** Step index + mode state with keyboard and swipe input. Navigation clamps at both ends. */
+export function usePresentationNav(
+  count: number,
+  initialMode: PresentationMode,
+): PresentationNav {
+  const [index, setIndex] = useState(0)
+  const [mode, setMode] = useState(initialMode)
+  const last = Math.max(0, count - 1)
+
+  const goTo = useCallback(
+    (target: number) => setIndex(Math.min(last, Math.max(0, target))),
+    [last],
+  )
+  // Both steps start from the clamped index: the step list can shrink under the stored one.
+  const next = useCallback(() => setIndex((i) => Math.min(last, Math.min(i, last) + 1)), [last])
+  const prev = useCallback(() => setIndex((i) => Math.max(0, Math.min(i, last) - 1)), [last])
   const toggleMode = useCallback(
-    () => setMode((m) => (m === 'browse' ? 'present' : 'browse')),
+    () => setMode((m) => (m === 'present' ? 'browse' : 'present')),
     [],
   )
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // Don't hijack keys aimed at a focused control: Space/arrows on the
-      // prev/next buttons or a progress dot should drive that control, not also
-      // advance the deck.
-      const target = e.target
-      if (
-        target instanceof HTMLElement &&
-        (target.closest('button, a, input, textarea, select') ||
-          target.isContentEditable)
-      ) {
-        return
-      }
-      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
-        e.preventDefault()
-        next()
-      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-        e.preventDefault()
-        prev()
-      } else if (e.key === 'p' || e.key === 'P') {
-        toggleMode()
-      }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return
+      if (isInteractive(event.target)) return
+      if (NEXT_KEYS.has(event.key)) next()
+      else if (PREV_KEYS.has(event.key)) prev()
+      else if (event.key === 'p' || event.key === 'P') toggleMode()
+      else return
+      event.preventDefault()
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [next, prev, toggleMode])
 
-  useEffect(() => {
-    // Horizontal swipe = next/prev. We track the start point and decide on
-    // release, so the gesture never interferes with scrolling or tapping a
-    // control mid-drag.
-    let startX = 0
-    let startY = 0
-    let tracking = false
-
-    const onStart = (e: TouchEvent) => {
-      // Single-finger only; a pinch/two-finger gesture isn't a page swipe.
-      tracking = e.touches.length === 1
-      if (tracking) {
-        startX = e.touches[0].clientX
-        startY = e.touches[0].clientY
-      }
+    let start: { x: number; y: number } | null = null
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0]
+      start = touch && !isInteractive(event.target) ? { x: touch.clientX, y: touch.clientY } : null
     }
-    const onEnd = (e: TouchEvent) => {
-      if (!tracking) return
-      tracking = false
-      const t = e.changedTouches[0]
-      const dx = t.clientX - startX
-      const dy = t.clientY - startY
-      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * SWIPE_RATIO) return
+    const onTouchEnd = (event: TouchEvent) => {
+      const touch = event.changedTouches[0]
+      const origin = start
+      start = null
+      if (!origin || !touch) return
+      const dx = touch.clientX - origin.x
+      const dy = touch.clientY - origin.y
+      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) <= Math.abs(dy)) return
       if (dx < 0) next()
       else prev()
     }
 
-    window.addEventListener('touchstart', onStart, { passive: true })
-    window.addEventListener('touchend', onEnd, { passive: true })
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('touchstart', onTouchStart)
+    window.addEventListener('touchend', onTouchEnd)
     return () => {
-      window.removeEventListener('touchstart', onStart)
-      window.removeEventListener('touchend', onEnd)
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchend', onTouchEnd)
     }
-  }, [next, prev])
+  }, [next, prev, toggleMode])
 
-  return { step, setStep, next, prev, last, mode, toggleMode }
+  // The step list can shrink under a mounted presentation; never report an index past its end.
+  return { index: Math.min(index, last), mode, next, prev, goTo, toggleMode }
 }

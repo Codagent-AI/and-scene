@@ -140,7 +140,7 @@ export function SampleScene({ payload: { beat } }: SceneProps<SamplePayload>) {
           </Box>
           <Arrow id={E.modifyDown} from={{ x: 20, y: 56 }} to={{ x: 20, y: 352 }} />
           <Arrow id={E.modifyIn} from={{ x: 20, y: 352 }} to={{ x: 60, y: 352 }} />
-          <SymbolChip layoutId={E.edited} x={RECT.card(2).x + 40} y={180} width={64} height={22} Icon={Pencil}>
+          <SymbolChip layoutId={E.edited} x={RECT.card(2).x - 2} y={168} width={96} height={28} Icon={Pencil}>
             <span>edited</span>
           </SymbolChip>
         </Appear>

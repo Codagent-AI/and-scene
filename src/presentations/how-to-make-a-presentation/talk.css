@@ -125,7 +125,8 @@
 
 /* scene */
 .hmp [data-presentation-node] {
-  font-size: 14px;
+  /* diagram text is sized in design units: the 880-wide canvas is scaled down on narrow viewports */
+  font-size: 18px;
   line-height: 1.2;
 }
 .hmp [data-presentation-node='box'],
@@ -143,15 +144,15 @@
 .hmp [data-presentation-node='symbol-chip'] {
   border-radius: 999px;
   box-shadow: none;
-  font-size: 11px;
+  font-size: 16px;
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
   white-space: nowrap;
 }
 .hmp [data-presentation-icon] {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   flex: none;
 }
 .hmp [data-presentation-id='hmp-card-1'],
@@ -162,7 +163,7 @@
 .hmp [data-presentation-id='hmp-ghost'] {
   flex-direction: column;
   gap: 6px;
-  font-size: 12px;
+  font-size: 17px;
 }
 .hmp [data-part='title'] {
   font-weight: 700;
@@ -170,13 +171,20 @@
 .hmp [data-part='caption'] {
   font-weight: 400;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 15px;
+}
+.hmp [data-presentation-id='hmp-verify'] [data-part='caption'] {
+  font-size: 13px;
+  white-space: nowrap;
+}
+.hmp [data-presentation-id='hmp-morph'] {
+  font-size: 12px;
 }
 .hmp [data-part='visual'] {
   padding: 3px 8px;
   border-radius: 6px;
   background: var(--accent-soft);
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 500;
 }
 .hmp [data-presentation-id='hmp-prompt'] {
@@ -188,7 +196,7 @@
   box-shadow: none;
   background: transparent;
   color: var(--muted);
-  font-size: 22px;
+  font-size: 30px;
 }
 .hmp [data-presentation-id='hmp-scene-kit'] {
   background: var(--accent);
@@ -213,7 +221,7 @@
   position: absolute;
   top: 6px;
   left: 14px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -226,7 +234,7 @@
 .hmp [data-presentation-id='hmp-frame'] > [data-presentation-node='label'] {
   color: var(--warm);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 18px;
   display: inline-flex;
   align-items: center;
   gap: 6px;

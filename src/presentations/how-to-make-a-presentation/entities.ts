@@ -94,13 +94,16 @@ export const ENTITIES: readonly EntitySpec[] = [
     className: 'node socket',
     lines: ['scene kit — boxes, arrows, motion'],
   },
+  // The tray's bottom edge: a single rule under the assembled row of cards (not a frame).
+  // The socket plugs into it through the gap between two cards, never into one card.
+  { kind: 'label', id: 'tray-edge', since: 6, at: { x: 30, y: 244, w: 680, h: 2 }, className: 'tray-edge', text: '' },
   {
     kind: 'arrow',
     id: 'kit-plug',
     since: 6,
     className: 'plug',
-    from: [380, 262],
-    to: [380, 243],
+    from: [cardX(2) - 25, 262],
+    to: [cardX(2) - 25, 248],
   },
   {
     kind: 'box',

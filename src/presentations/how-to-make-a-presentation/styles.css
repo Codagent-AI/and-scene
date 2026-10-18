@@ -296,6 +296,10 @@
   text-align: center;
 }
 
+.tray-edge {
+  border-top: 2px solid var(--line);
+}
+
 .flag {
   color: var(--accent);
   font-weight: 700;

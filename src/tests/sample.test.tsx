@@ -152,16 +152,33 @@ describe('reference sample scene', () => {
     expect(Math.abs(depth.y - (you.y + you.h))).toBeLessThan(40)
   })
 
-  it('6: the scene-kit socket plugs into the bottom edge of an unframed tray', () => {
+  it('6: the scene-kit socket plugs into the bottom edge of an unframed tray, not into one card', () => {
     expect(at(6).has('scene-kit')).toBe(true)
+    expect(at(5).has('tray-edge')).toBe(false)
+    expect(at(6).has('tray-edge')).toBe(true)
     expect(frames[5].text.get('scene-kit')).toMatch(/scene kit/)
-    const trayBottom = rectOf('card-1').y + rectOf('card-1').h
+    const edge = rectOf('tray-edge')
+    const cards = ['card-1', 'card-2', 'card-3', 'card-4', 'ghost'].map(rectOf)
+    // The edge runs the full width of the assembled row, directly under its bottom.
+    expect(edge.x).toBeLessThanOrEqual(cards[0].x)
+    expect(edge.x + edge.w).toBeGreaterThanOrEqual(cards[4].x + cards[4].w)
+    const rowBottom = Math.max(...cards.map((c) => c.y + c.h))
+    expect(edge.y).toBeGreaterThanOrEqual(rowBottom)
+    expect(edge.y).toBeLessThanOrEqual(rowBottom + 8)
     const plug = spec('kit-plug')
     if (plug.kind !== 'arrow') throw new Error('plug must be an arrow')
-    expect(plug.to[1]).toBeGreaterThanOrEqual(trayBottom - 2)
-    expect(plug.to[1]).toBeLessThanOrEqual(trayBottom + 6)
+    // It lands on the edge, in a gap between cards, so it does not read as attached to one card.
+    expect(plug.to[1]).toBeGreaterThanOrEqual(edge.y)
+    expect(plug.to[1]).toBeLessThanOrEqual(edge.y + edge.h + 4)
+    for (const card of cards) {
+      const inside = plug.to[0] >= card.x && plug.to[0] <= card.x + card.w
+      expect(inside, `plug end x=${plug.to[0]} must not sit under a card`).toBe(false)
+    }
+    expect(plug.to[0]).toBeGreaterThan(edge.x)
+    expect(plug.to[0]).toBeLessThan(edge.x + edge.w)
     expect(plug.from[1]).toBe(rectOf('scene-kit').y)
     expect(plug.from[0]).toBeGreaterThanOrEqual(rectOf('scene-kit').x)
+    expect(plug.from[0]).toBeLessThanOrEqual(rectOf('scene-kit').x + rectOf('scene-kit').w)
     expect(at(6).has('reveal-frame')).toBe(false)
     expect(ENTITIES.filter((e) => e.kind === 'frame' && e.since <= 8)).toHaveLength(0)
   })

@@ -1,0 +1,259 @@
+/* Presentation-owned look for "How to Use This Skill to Make a Presentation". */
+.htmp {
+  --ink: #f4efe2;
+  --muted: #a9a293;
+  --line: #5b5546;
+  --accent: #e0b84c;
+  --card: #1b1916;
+  color: var(--ink);
+  background: radial-gradient(circle at 20% 10%, rgba(224, 184, 76, 0.14), transparent 30rem), #0f0e0c;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.htmp button {
+  color: inherit;
+  cursor: pointer;
+}
+
+.htmp [data-presentation-header] {
+  padding: 0 28px;
+}
+
+.htmp [data-presentation-title] {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.htmp [data-presentation-header-end] {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.htmp [data-presentation-marker] {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.htmp [data-presentation-mode-toggle],
+.htmp [data-presentation-prev],
+.htmp [data-presentation-next] {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+}
+
+.htmp [data-presentation-prev]:disabled,
+.htmp [data-presentation-next]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Footer: title, caption, controls. Bottom padding clears the attribution link. */
+.htmp [data-presentation-footer] {
+  padding: 0 32px 34px;
+  gap: 8px;
+}
+
+.htmp [data-presentation-step-title] {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 650;
+}
+
+.htmp [data-presentation-step-caption] {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.htmp [data-presentation-controls] {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 6px;
+}
+
+.htmp [data-presentation-progress] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.htmp [data-presentation-progress-dot] {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.htmp [data-presentation-progress-dot][data-presentation-active='true'] {
+  width: 26px;
+  border-radius: 6px;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+/* Table of contents */
+.htmp [data-presentation-toc] {
+  padding: 0 24px;
+  gap: 4px;
+}
+
+.htmp [data-presentation-toc-entry] {
+  padding: 8px 12px;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  text-transform: capitalize;
+}
+
+.htmp [data-presentation-toc-entry][data-presentation-active='true'] {
+  border-left-color: var(--accent);
+  background: rgba(224, 184, 76, 0.14);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Attribution: legible, intentional, bottom-right. */
+.htmp [data-presentation-attribution] {
+  padding: 8px 14px;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.htmp [data-presentation-attribution]:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* Scene entities */
+.htmp [data-presentation-node='box'],
+.htmp [data-presentation-node='frame'] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 15px;
+}
+
+.htmp [data-presentation-node='box'] svg {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+
+.htmp [data-presentation-node='label'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.htmp [data-presentation-id='htmp:prompt'] {
+  border-radius: 14px 14px 14px 2px;
+  background: rgba(224, 184, 76, 0.16);
+  color: var(--ink);
+}
+
+.htmp [data-presentation-variant='step-card'] {
+  align-items: stretch;
+  padding: 10px 12px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.htmp [data-presentation-variant='step-card'] [data-part='title'] {
+  font-weight: 700;
+}
+
+.htmp [data-presentation-variant='step-card'] [data-part='caption'] {
+  color: var(--muted);
+}
+
+.htmp [data-presentation-variant='step-card'] [data-part='visual'] {
+  margin-top: 4px;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.htmp [data-presentation-variant='ghost-card'] {
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+}
+
+.htmp [data-presentation-variant='socket'] {
+  flex-direction: row;
+  border-color: var(--accent);
+  border-top-style: dashed;
+  border-radius: 0 0 14px 14px;
+}
+
+.htmp [data-presentation-variant='verify'] {
+  border-color: #6fbf73;
+}
+
+.htmp [data-presentation-node='symbol-chip'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 12px;
+}
+
+.htmp [data-presentation-node='symbol-chip'] svg {
+  width: 14px;
+  height: 14px;
+}
+
+.htmp [data-presentation-variant='pass'] {
+  border-color: #6fbf73;
+  color: #6fbf73;
+}
+
+.htmp [data-presentation-node='emphasis'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.htmp [data-presentation-node='arrow'] {
+  color: var(--muted);
+  stroke-width: 1.6;
+  pointer-events: none;
+}
+
+.htmp [data-presentation-id='htmp:modify'] {
+  color: var(--accent);
+}
+
+.htmp [data-presentation-node='frame'][data-presentation-allow-overlap] {
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+  background: transparent;
+  pointer-events: none;
+}

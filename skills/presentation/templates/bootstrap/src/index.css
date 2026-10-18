@@ -1,0 +1,7 @@
+/* Host stylesheet. Geometry only: presentations own every visual choice. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

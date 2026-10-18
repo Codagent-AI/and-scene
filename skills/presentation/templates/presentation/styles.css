@@ -1,0 +1,7 @@
+/*
+ * Presentation-owned styles for "__TITLE__". The scene kit ships no visual styling,
+ * so give this presentation its look here: colors, type, spacing, entity treatments,
+ * and clear styles for the active progress dot / table-of-contents entry
+ * ([data-presentation-active="true"]) and the attribution link
+ * ([data-presentation-attribution]). Scope selectors under .__SLUG__.
+ */

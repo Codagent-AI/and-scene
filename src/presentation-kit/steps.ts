@@ -8,6 +8,7 @@ export interface EraGroup {
 
 /** Throws when a step list cannot be navigated unambiguously. */
 export function validateSteps(steps: readonly Pick<Step, 'id'>[]): void {
+  if (steps.length === 0) throw new Error('A presentation needs at least one step')
   const seen = new Set<string>()
   for (const { id } of steps) {
     if (!id) throw new Error('Every step needs a non-empty id')

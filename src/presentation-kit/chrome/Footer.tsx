@@ -16,11 +16,11 @@ export function Footer({ step, index, count, mode, onPrev, onNext, onJump }: Foo
   return (
     <footer data-presentation-footer="" style={{ display: 'flex', alignItems: 'center' }}>
       {browse ? (
-        <p data-presentation-caption="" style={{ margin: 0 }}>{step.caption}</p>
+        <p data-presentation-caption="">{step.caption}</p>
       ) : (
-        <h1 data-presentation-title="" style={{ margin: 0 }}>{step.title}</h1>
+        <h1 data-presentation-title="">{step.title}</h1>
       )}
-      <ol data-presentation-progress="" style={{ display: 'flex', listStyle: 'none', margin: 0, padding: 0 }}>
+      <ol data-presentation-progress="" style={{ display: 'flex' }}>
         {Array.from({ length: count }, (_, i) => (
           <li key={i}>
             <button

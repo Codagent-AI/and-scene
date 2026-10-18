@@ -79,5 +79,6 @@ export function usePresentationNav(
     }
   }, [next, prev, toggleMode])
 
-  return { index, mode, next, prev, goTo, toggleMode }
+  // The step list can shrink under a mounted presentation; never report an index past its end.
+  return { index: Math.min(index, last), mode, next, prev, goTo, toggleMode }
 }

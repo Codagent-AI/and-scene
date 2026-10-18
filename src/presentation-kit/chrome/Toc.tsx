@@ -11,7 +11,7 @@ export interface TocProps {
 export function Toc({ steps, index, onJump }: TocProps) {
   return (
     <nav data-presentation-toc="" aria-label="Table of contents">
-      <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      <ol>
         {eraGroups(steps).map((group) => {
           const active = index >= group.firstIndex && index <= group.lastIndex
           return (

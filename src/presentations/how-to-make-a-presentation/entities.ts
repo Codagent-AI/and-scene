@@ -126,7 +126,7 @@ export const ENTITIES: readonly EntitySpec[] = [
     since: 8,
     className: 'modify',
     from: [852, 45],
-    via: [895, 290],
+    via: [880, 290],
     to: [859, 282],
   },
   { kind: 'label', id: 'edited', since: 8, at: { x: cardX(1), y: 122, w: 96, h: 14 }, className: 'flag', text: 'edited' },

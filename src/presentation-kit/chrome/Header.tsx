@@ -17,7 +17,7 @@ export function Header({ index, count, title, mode, brand }: HeaderProps) {
     <header data-presentation-header="" style={{ display: 'flex', alignItems: 'center' }}>
       {brand ? <div data-presentation-brand="">{brand}</div> : null}
       <span data-presentation-marker="">{stepMarker(index, count)}</span>
-      {mode === 'browse' ? <h1 data-presentation-title="" style={{ margin: 0 }}>{title}</h1> : null}
+      {mode === 'browse' ? <h1 data-presentation-title="">{title}</h1> : null}
     </header>
   )
 }

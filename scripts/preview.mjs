@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import net from 'node:net'
 import path from 'node:path'
 
-/** Preview and browser URLs always use IPv4 loopback, never `localhost`. */
+/** Preview and browser URLs always use the IPv4 loopback address, so results do not depend on name resolution. */
 export const HOST = '127.0.0.1'
 
 export function freePort() {
@@ -62,7 +62,7 @@ export async function startPreview(root) {
     await waitForReady(`${origin}/`, { isAlive: () => !exited })
   } catch (error) {
     await stop()
-    throw new Error(`${error.message}\n${output}`.trim())
+    throw new Error(`${error.message}\n${output}`.trim(), { cause: error })
   }
   return { origin, stop }
 }

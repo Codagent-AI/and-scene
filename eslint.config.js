@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Templates are linted inside the project they materialize, not from here.
+  globalIgnores(['dist', '.inspection', 'skills/presentation/templates/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -18,5 +19,17 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+  },
+  {
+    files: ['**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      // Scripts run in Node and hand functions to the browser (page.evaluate).
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
+  {
+    files: ['src/tests/**'],
+    rules: { 'react-refresh/only-export-components': 'off' },
   },
 ])

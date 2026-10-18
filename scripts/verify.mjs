@@ -6,19 +6,12 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
 import { HOST, startPreview } from './preview.mjs'
+import { attachErrorCollectors, VerifyFailure, waitForStepIndex } from './verify-lib.mjs'
 import { checkSample, EXPECTED_OUTLINE } from './verify-outline.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const STEP_TIMEOUT_MS = Number(process.env.VERIFY_STEP_TIMEOUT_MS ?? 5000)
 const SETTLE_MS = Number(process.env.VERIFY_SETTLE_MS ?? 250)
-
-class VerifyFailure extends Error {
-  constructor(phase, message, step) {
-    super(message)
-    this.phase = phase
-    this.step = step
-  }
-}
 
 function run(command, args) {
   return new Promise((resolve) => {
@@ -79,18 +72,7 @@ async function renderPresentation(browser, origin, slug, expected) {
   const failures = []
   let current = 0
   const fail = (message) => failures.push({ step: current, message })
-  page.on('console', (message) => {
-    if (message.type() === 'error') fail(`console.error: ${message.text()}`)
-  })
-  page.on('pageerror', (error) => fail(`uncaught error: ${error.message}`))
-  page.on('requestfailed', (request) => {
-    if (request.url().startsWith(origin)) fail(`request failed: ${request.url()}`)
-  })
-  page.on('response', (response) => {
-    if (response.url().startsWith(origin) && response.status() >= 400 && !response.url().endsWith('/favicon.ico')) {
-      fail(`HTTP ${response.status()}: ${response.url()}`)
-    }
-  })
+  attachErrorCollectors(page, { origin, getStep: () => current, record: (step, message) => failures.push({ step, message }) })
 
   try {
     await page.goto(`${origin}/${slug}`, { waitUntil: 'load' })
@@ -106,15 +88,7 @@ async function renderPresentation(browser, origin, slug, expected) {
     for (let index = 0; index < count; index += 1) {
       current = index
       if (index > 0) await page.keyboard.press('ArrowRight')
-      try {
-        await page.waitForFunction(
-          (want) => document.querySelector('[data-step-count]')?.getAttribute('data-step-index') === String(want),
-          index,
-          { timeout: STEP_TIMEOUT_MS },
-        )
-      } catch {
-        throw new VerifyFailure('render', `${slug}: transition did not advance to step index ${index}`, index)
-      }
+      await waitForStepIndex(page, index, STEP_TIMEOUT_MS, slug)
       if (expected) {
         const title = await page.textContent('[data-presentation-title]')
         const caption = await page.textContent('[data-presentation-caption]')

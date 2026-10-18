@@ -16,6 +16,20 @@
 }
 
 /* Chrome */
+[data-presentation-title],
+[data-presentation-caption],
+[data-presentation-progress],
+[data-presentation-toc] ol {
+  margin: 0;
+  padding: 0;
+}
+
+[data-presentation-progress],
+[data-presentation-toc] ol,
+[data-presentation-progress] li {
+  list-style: none;
+}
+
 [data-presentation-header] {
   gap: 1rem;
   padding: 0.9rem 1.5rem 0.4rem;

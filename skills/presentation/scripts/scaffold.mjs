@@ -15,6 +15,14 @@ function exists(...parts) {
   return fs.existsSync(path.join(...parts))
 }
 
+/** Like readJson, but an existing file that does not parse is an error, never "absent". */
+function readJsonStrict(file) {
+  if (!fs.existsSync(file)) return null
+  const parsed = readJson(file)
+  if (parsed === null) throw new Error(`${file} exists but is not valid JSON; fix or move it before scaffolding`)
+  return parsed
+}
+
 function readJson(file) {
   try {
     return JSON.parse(fs.readFileSync(file, 'utf8'))
@@ -150,6 +158,9 @@ export function scaffold(cwd, { confirmed = false, install = false } = {}) {
     throw new Error(`target ${plan.targetDir} needs user confirmation before scaffolding ${plan.missing.join(', ')}`)
   }
 
+  const pkgFile = path.join(plan.targetDir, 'package.json')
+  const existing = readJsonStrict(pkgFile)
+
   fs.mkdirSync(plan.targetDir, { recursive: true })
   let freshPackage = false
   for (const rel of templateFiles(BOOTSTRAP_DIR)) {
@@ -166,8 +177,6 @@ export function scaffold(cwd, { confirmed = false, install = false } = {}) {
   }
 
   const templatePkg = readJson(path.join(BOOTSTRAP_DIR, 'package.json'))
-  const pkgFile = path.join(plan.targetDir, 'package.json')
-  const existing = readJson(pkgFile)
   if (!existing) {
     freshPackage = true
     fs.writeFileSync(pkgFile, `${JSON.stringify({ ...templatePkg, name: path.basename(plan.targetDir) || templatePkg.name }, null, 2)}\n`)

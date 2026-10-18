@@ -177,7 +177,10 @@ const finiteRunning = () =>
 async function waitForSettle(page, step, settleMs, timeoutMs) {
   const started = Date.now()
   await page.waitForTimeout(settleMs)
-  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity), null, { timeout: timeoutMs }).catch(() => {})
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity), null, { timeout: timeoutMs }).catch((error) => {
+    // Running out of time is judged below; anything else (closed page, crash) is a real failure.
+    if (error?.name !== 'TimeoutError') throw error
+  })
   const running = await page.evaluate(finiteRunning)
   assertSettled(step, running, timeoutMs)
   return { waitedMs: Date.now() - started, running }

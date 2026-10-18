@@ -256,6 +256,14 @@ describe('scaffold', () => {
     expect(listFiles(d)).toEqual(before)
   })
 
+  it('refuses to replace a package.json it cannot parse', () => {
+    const d = tmpDir()
+    write(d, 'package.json', '{ "name": "mine", ')
+    expect(() => scaffold(d, { confirmed: true })).toThrow(/not valid JSON/)
+    expect(read(d, 'package.json')).toBe('{ "name": "mine", ')
+    expect(fs.readdirSync(d)).toEqual(['package.json'])
+  })
+
   it('never overwrites existing files', () => {
     const d = tmpDir()
     seedBuild(d)
@@ -374,6 +382,21 @@ describe('presentations registry writer', () => {
     write(d, 'src/presentations/index.ts', 'export const presentations = []\n')
     expect(() => createPresentation(d, { slug: 'fresh', title: 'Fresh' })).toThrow(/not found/)
     expect(fs.existsSync(path.join(d, 'src/presentations/fresh'))).toBe(false)
+  })
+
+  it('reads each registry entry on its own, whatever the field order or missing fields', () => {
+    const d = app()
+    write(d, 'src/presentations/index.ts', `export const presentations: PresentationEntry[] = [
+  { title: 'Title first', slug: 'one', load: () => import('./one/Talk') },
+  { slug: 'no-title', load: () => import('./no-title/Talk') },
+  { slug: 'three', title: "Th{ree} \\"q\\"", load: () => import('./three/Talk') },
+]
+`)
+    expect(listPresentations(d)).toEqual([
+      { slug: 'one', title: 'Title first' },
+      { slug: 'no-title', title: '' },
+      { slug: 'three', title: 'Th{ree} "q"' },
+    ])
   })
 
   it('lists candidates for an ambiguous modify request', () => {

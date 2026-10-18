@@ -18,13 +18,40 @@ function readRegistry(appDir) {
   return fs.readFileSync(file, 'utf8')
 }
 
-/** The registered presentations, in registry order. */
+/** Top-level `{...}` object literals inside the registry array, each as its own string. */
+function registryEntries(source) {
+  const start = source.match(REGISTRY_START)
+  if (!start) return []
+  const entries = []
+  let depth = 0
+  let from = -1
+  let quote = null
+  for (let i = start.index + start[0].length; i < source.length; i++) {
+    const c = source[i]
+    if (quote) {
+      if (c === '\\') i++
+      else if (c === quote) quote = null
+    } else if (c === '"' || c === "'" || c === '`') quote = c
+    else if (c === '{') {
+      if (depth++ === 0) from = i
+    } else if (c === '}') {
+      if (--depth === 0) entries.push(source.slice(from, i + 1))
+    } else if (c === ']' && depth === 0) break
+  }
+  return entries
+}
+
+const field = (entry, name) => {
+  const m = entry.match(new RegExp(`\\b${name}\\s*:\\s*("(?:[^"\\\\]|\\\\.)*"|'[^']*'|`+"`[^`]*`"+')'))
+  if (!m) return undefined
+  return m[1][0] === '"' ? JSON.parse(m[1]) : m[1].slice(1, -1)
+}
+
+/** The registered presentations, in registry order; each entry is read on its own. */
 export function listPresentations(appDir) {
-  const source = readRegistry(appDir)
-  return [...source.matchAll(/slug:\s*(['"`])(.+?)\1[\s\S]*?title:\s*("(?:[^"\\]|\\.)*"|'[^']*'|`[^`]*`)/g)].map((m) => ({
-    slug: m[2],
-    title: m[3][0] === '"' ? JSON.parse(m[3]) : m[3].slice(1, -1),
-  }))
+  return registryEntries(readRegistry(appDir))
+    .map((entry) => ({ slug: field(entry, 'slug'), title: field(entry, 'title') ?? '' }))
+    .filter((p) => p.slug !== undefined)
 }
 
 /** Appends one entry to the explicit registry without touching the existing ones. */

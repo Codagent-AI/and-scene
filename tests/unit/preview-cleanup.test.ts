@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { tmpDir } from './helpers'
-import { findFreePort, HOST, installCleanup, isPidAlive, killGroup } from '../../scripts/lib/preview.mjs'
+import { findFreePort, HOST, installCleanup, isPidAlive, killGroup, killGroupSync } from '../../scripts/lib/preview.mjs'
 
 class FakeProc extends EventEmitter {
   exit = vi.fn()
@@ -33,12 +33,30 @@ describe('preview cleanup', () => {
     expect(stop).toHaveBeenCalledTimes(1)
   })
 
-  it('still triggers stop on process exit if nothing ran it before', () => {
+  it('on a bare process exit runs only the synchronous kill, once', () => {
     const proc = new FakeProc()
     const stop = vi.fn()
-    installCleanup(stop, proc as unknown as NodeJS.Process)
+    const syncStop = vi.fn()
+    installCleanup(stop, proc as unknown as NodeJS.Process, syncStop)
     proc.emit('exit')
-    expect(stop).toHaveBeenCalledTimes(1)
+    proc.emit('exit')
+    expect(syncStop).toHaveBeenCalledTimes(1)
+    expect(stop).not.toHaveBeenCalled()
+  })
+
+  it('removes its signal and exit listeners once stopped', async () => {
+    const proc = new FakeProc()
+    const run = installCleanup(async () => {}, proc as unknown as NodeJS.Process)
+    expect(proc.listenerCount('SIGINT') + proc.listenerCount('SIGTERM') + proc.listenerCount('exit')).toBe(3)
+    await run()
+    expect(proc.listenerCount('SIGINT') + proc.listenerCount('SIGTERM') + proc.listenerCount('exit')).toBe(0)
+  })
+
+  it('killGroupSync kills a whole group without waiting', async () => {
+    const child = spawn('sh', ['-c', "trap '' TERM; while true; do sleep 1; done"], { detached: true, stdio: 'ignore' })
+    await new Promise((r) => setTimeout(r, 200))
+    killGroupSync(child.pid!)
+    await vi.waitFor(() => expect(isPidAlive(child.pid!)).toBe(false))
   })
 
   it('kills a detached process group, including grandchildren', async () => {

@@ -40,22 +40,39 @@ export async function killGroup(pid, { graceMs = 1500 } = {}) {
   if (isPidAlive(pid)) signal('SIGKILL')
 }
 
+/** Synchronous last resort for process exit, where no async cleanup can finish. */
+export function killGroupSync(pid) {
+  try {
+    process.kill(-pid, 'SIGKILL')
+  } catch {
+    /* already gone */
+  }
+}
+
 /**
  * Runs `stop` at most once, on normal completion and on signals/exit, so the preview
- * subprocess never outlives the command. Returns the idempotent stop function.
+ * subprocess never outlives the command. On a bare process exit only `syncStop` can
+ * run. Returns the idempotent stop function; it also removes the listeners it added.
  */
-export function installCleanup(stop, proc = process) {
+export function installCleanup(stop, proc = process, syncStop = stop) {
   let stopped = null
-  const run = () => (stopped ??= Promise.resolve(stop()))
-  const onSignal = (sig) => () => {
-    run().finally(() => proc.exit(sig === 'SIGINT' ? 130 : 143))
+  const onInt = () => run().finally(() => proc.exit(130))
+  const onTerm = () => run().finally(() => proc.exit(143))
+  const onExit = () => {
+    if (!stopped) {
+      stopped = Promise.resolve()
+      syncStop()
+    }
   }
-  proc.once('SIGINT', onSignal('SIGINT'))
-  proc.once('SIGTERM', onSignal('SIGTERM'))
-  proc.once('exit', () => {
-    // Synchronous last resort; the async path above normally already ran.
-    if (!stopped) void run()
-  })
+  const run = () => {
+    proc.removeListener('SIGINT', onInt)
+    proc.removeListener('SIGTERM', onTerm)
+    proc.removeListener('exit', onExit)
+    return (stopped ??= Promise.resolve(stop()))
+  }
+  proc.once('SIGINT', onInt)
+  proc.once('SIGTERM', onTerm)
+  proc.once('exit', onExit)
   return run
 }
 
@@ -84,7 +101,7 @@ export async function startPreview(root, { port, timeoutMs = 20000 } = {}) {
     { cwd: root, detached: true, stdio: 'ignore' },
   )
   const url = `http://${HOST}:${chosen}`
-  const stop = installCleanup(() => killGroup(child.pid))
+  const stop = installCleanup(() => killGroup(child.pid), process, () => killGroupSync(child.pid))
   try {
     await waitReady(`${url}/`, child, timeoutMs)
   } catch (error) {

@@ -65,7 +65,7 @@ export function attributionIssues(info) {
 }
 
 /** Runs inside the page: gathers geometry and computed styles for the diagnostics. */
-function collectDiagnostics() {
+function collectDiagnostics(signatureKeys) {
   const root = document.querySelector('[data-presentation-root]')
   const visible = (el) => el.checkVisibility({ opacityProperty: true, visibilityProperty: true, contentVisibilityAuto: true })
   const describe = (el) => {
@@ -124,10 +124,7 @@ function collectDiagnostics() {
     const s = getComputedStyle(el)
     const sized = !(el.textContent ?? '').trim()
     return Object.fromEntries(
-      ['color', 'backgroundColor', 'borderColor', 'borderWidth', 'fontWeight', 'opacity', 'width', 'height', 'textDecorationLine', 'boxShadow', 'outlineStyle', 'transform'].map((k) => [
-        k,
-        !sized && (k === 'width' || k === 'height') ? '' : s[k],
-      ]),
+      signatureKeys.map((k) => [k, !sized && (k === 'width' || k === 'height') ? '' : s[k]]),
     )
   }
   const chrome = (selector) => {
@@ -244,7 +241,7 @@ async function main() {
         }
         const file = `step-${String(i + 1).padStart(2, '0')}.png`
         await page.screenshot({ path: path.join(outDir, file) })
-        const diag = await page.evaluate(collectDiagnostics)
+        const diag = await page.evaluate(collectDiagnostics, SIGNATURE_KEYS)
         manifest.push({ step: i + 1, file, settleMs: args.settle, capturedAfterMs: Date.now() - waitedFrom, pendingAnimations: diag.pendingAnimations })
         warnings.push(...analyze(i + 1, diag))
       }

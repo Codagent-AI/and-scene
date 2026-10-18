@@ -1,0 +1,8 @@
+/* The page background fades to pure red over 800ms when the second step becomes active. */
+.settle {
+  background: rgb(0, 0, 0);
+  transition: background-color 800ms linear;
+}
+.settle[data-step-index='1'] {
+  background: rgb(255, 0, 0);
+}

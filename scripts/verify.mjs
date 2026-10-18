@@ -1,11 +1,10 @@
 // `npm run verify`: build the whole app, then render every registered
 // presentation in Chromium against a production preview on 127.0.0.1.
 // Pass --reference-sample to also require the committed reference sample.
-import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { ensureChromium, launchOptions, loopbackUrl, startPreview, stopPreview } from './lib/preview.mjs'
+import { ensureChromium, launchOptions, loopbackUrl, runCommand, startPreview, stopPreview } from './lib/preview.mjs'
 
 export const SAMPLE_SLUG = 'how-to-make-a-presentation'
 export const SAMPLE_TITLE = 'How to Use This Skill to Make a Presentation'
@@ -22,6 +21,9 @@ export const NORMATIVE_OUTLINE = [
   ['the loop', 'Changed your mind? Loop it.', 'Point at a step and ask. The skill edits the scene in place — nothing is redrawn from scratch.'],
   ['the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ].map(([era, title, caption]) => ({ era, title, caption }))
+
+/** Time (ms) given to errors from the step just entered to surface before the step is judged clean. */
+const ERROR_SETTLE_MS = 250
 
 export class VerifyFailure extends Error {
   constructor(phase, message, step) {
@@ -61,30 +63,20 @@ export function validateOutline(observed, expected = NORMATIVE_OUTLINE) {
   })
 }
 
-/** Records console errors and uncaught page errors against the step being viewed. */
-export function createErrorCollector(page, getStep) {
+/** Queues console errors and uncaught page errors until `assertClean(step)` drains them. */
+export function createErrorCollector(page) {
   const errors = []
   page.on('console', (msg) => {
-    if (msg.type() === 'error') errors.push({ step: getStep(), kind: 'console.error', text: msg.text() })
+    if (msg.type() === 'error') errors.push({ kind: 'console.error', text: msg.text() })
   })
-  page.on('pageerror', (err) => errors.push({ step: getStep(), kind: 'pageerror', text: String(err?.message ?? err) }))
+  page.on('pageerror', (err) => errors.push({ kind: 'pageerror', text: String(err?.message ?? err) }))
   return {
-    /** Throws VerifyFailure('render') for the first recorded error, if any. */
-    assertClean() {
+    /** Throws VerifyFailure('render') naming `step`, the step being viewed when the error surfaced. */
+    assertClean(step) {
       const first = errors[0]
-      if (first) throw new VerifyFailure('render', `${first.kind} while on step ${first.step}: ${first.text}`, first.step)
+      if (first) throw new VerifyFailure('render', `${first.kind} on step index ${step}: ${first.text}`, step)
     },
   }
-}
-
-function run(command, args, cwd) {
-  return new Promise((resolve) => {
-    const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
-    let output = ''
-    child.stdout.on('data', (d) => (output += d))
-    child.stderr.on('data', (d) => (output += d))
-    child.on('close', (code) => resolve({ code, output }))
-  })
 }
 
 async function readStep(page) {
@@ -117,16 +109,15 @@ async function waitForIndex(page, expected, timeoutMs) {
 }
 
 /** Step through one presentation; returns its observed narration per step. */
-async function renderPresentation(browser, baseUrl, slug, { stepTimeoutMs, isSample }) {
+async function renderPresentation(browser, baseUrl, slug, { stepTimeoutMs, isSample, log }) {
   const page = await browser.newPage()
-  let currentStep = 0
-  const collector = createErrorCollector(page, () => currentStep)
+  const collector = createErrorCollector(page)
   try {
     await page.goto(loopbackUrl(new URL(baseUrl).port, `/${slug}`), { waitUntil: 'load' })
     try {
       await page.waitForSelector('[data-step-index]', { timeout: stepTimeoutMs })
     } catch {
-      collector.assertClean()
+      collector.assertClean(0)
       throw new VerifyFailure('render', `"${slug}" did not render a presentation (no [data-step-index] hook)`, 0)
     }
     const first = await readStep(page)
@@ -137,21 +128,22 @@ async function renderPresentation(browser, baseUrl, slug, { stepTimeoutMs, isSam
     }
     const observed = []
     for (let i = 0; i < first.count; i++) {
-      currentStep = i
+      await page.waitForTimeout(ERROR_SETTLE_MS)
+      collector.assertClean(i)
       const now = await readStep(page)
       if (now.index !== i) throw new VerifyFailure('transition', `expected step index ${i} but found ${now.index}`, i)
       observed.push({ id: now.id, era: now.era, title: now.title, caption: now.caption })
+      log(`[verify]   ${slug} step ${i + 1}/${first.count} index=${now.index} ${JSON.stringify(now.title)}`)
       if (i < first.count - 1) {
         await page.keyboard.press('ArrowRight')
         if (!(await waitForIndex(page, i + 1, stepTimeoutMs))) {
-          collector.assertClean()
+          collector.assertClean(i)
           throw new VerifyFailure('transition', `ArrowRight on step ${i} did not advance data-step-index to ${i + 1} within ${stepTimeoutMs}ms`, i)
         }
       }
-      collector.assertClean()
     }
-    await page.waitForTimeout(250)
-    collector.assertClean()
+    await page.waitForTimeout(ERROR_SETTLE_MS)
+    collector.assertClean(first.count - 1)
     return observed
   } finally {
     await page.close()
@@ -160,7 +152,7 @@ async function renderPresentation(browser, baseUrl, slug, { stepTimeoutMs, isSam
 
 export async function verify({ root, referenceSample, stepTimeoutMs = Number(process.env.VERIFY_STEP_TIMEOUT ?? 5000), log = console.log }) {
   log('[verify] phase build: npm run build')
-  const build = await run('npm', ['run', 'build'], root)
+  const build = await runCommand('npm', ['run', 'build'], root)
   if (build.code !== 0) {
     log(build.output)
     throw new VerifyFailure('build', 'npm run build failed (exit ' + build.code + ')')
@@ -187,7 +179,7 @@ export async function verify({ root, referenceSample, stepTimeoutMs = Number(pro
     for (const slug of slugs) {
       const isSample = referenceSample && slug === SAMPLE_SLUG
       log(`[verify] phase render: ${loopbackUrl(preview.port, '/' + slug)}`)
-      const observed = await renderPresentation(browser, preview.baseUrl, slug, { stepTimeoutMs, isSample })
+      const observed = await renderPresentation(browser, preview.baseUrl, slug, { stepTimeoutMs, isSample, log })
       if (isSample) {
         const registry = parseRegistry(registrySource).find((e) => e.slug === SAMPLE_SLUG)
         validateOutline(observed)

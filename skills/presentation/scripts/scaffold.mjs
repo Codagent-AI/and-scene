@@ -6,7 +6,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, wri
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-export const TEMPLATE_ROOT = fileURLToPath(new URL('../templates/bootstrap/', import.meta.url))
+export const TEMPLATE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../templates/bootstrap')
 
 /** Template paths (files or directories) each anchor owns. */
 export const ANCHOR_PATHS = {
@@ -21,7 +21,7 @@ export const ANCHOR_PATHS = {
     'scripts',
   ],
   kit: ['src/presentation-kit'],
-  index: ['src/main.tsx', 'src/router.tsx', 'src/Landing.tsx', 'src/presentations'],
+  index: ['src/main.tsx', 'src/router.tsx', 'src/routing.ts', 'src/Landing.tsx', 'src/presentations'],
 }
 
 function walk(dir) {

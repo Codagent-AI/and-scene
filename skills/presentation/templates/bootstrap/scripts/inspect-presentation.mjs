@@ -2,11 +2,10 @@
 // Captures one settled screenshot per step from a production preview on
 // 127.0.0.1 and prints advisory visual warnings. Warnings never change the exit
 // code; a build, navigation, or capture failure exits non-zero.
-import { spawn } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { ensureChromium, launchOptions, loopbackUrl, startPreview, stopPreview } from './lib/preview.mjs'
+import { ensureChromium, launchOptions, loopbackUrl, runCommand, startPreview, stopPreview } from './lib/preview.mjs'
 
 export const DEFAULTS = { viewport: { width: 1440, height: 900 }, settleMs: 1000, outDir: '.inspection', stepTimeoutMs: 5000 }
 export const MIN_ATTRIBUTION_PX = 12
@@ -157,14 +156,9 @@ export function parseArgs(argv) {
   return opts
 }
 
-function runBuild(root) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('npm', ['run', 'build'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-    let output = ''
-    child.stdout.on('data', (d) => (output += d))
-    child.stderr.on('data', (d) => (output += d))
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error('npm run build failed:\n' + output))))
-  })
+async function runBuild(root) {
+  const { code, output } = await runCommand('npm', ['run', 'build'], root)
+  if (code !== 0) throw new Error('npm run build failed:\n' + output)
 }
 
 export async function inspect(opts, root = process.cwd(), log = console.log) {

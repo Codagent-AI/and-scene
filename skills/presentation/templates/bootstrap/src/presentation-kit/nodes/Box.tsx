@@ -1,9 +1,9 @@
-import type { HTMLAttributes, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
-import { atStyle, entityMotion, type At, type NodeHooks } from './shared'
+import { atStyle, entityMotion, type At, type NativeProps, type NodeHooks } from './shared'
 
-export interface BoxProps extends NodeHooks, Omit<HTMLAttributes<HTMLDivElement>, 'id' | 'style' | 'className' | 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart'> {
+export interface BoxProps extends NodeHooks, NativeProps<HTMLDivElement> {
   at?: At
   /** Optional glyph rendered as a component, e.g. a lucide-react icon. */
   Icon?: LucideIcon

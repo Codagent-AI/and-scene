@@ -67,41 +67,51 @@ function fakePage() {
 const consoleMsg = (type: string, text: string) => ({ type: () => type, text: () => text })
 
 describe('verify: browser error collection', () => {
-  it.each([0, 4, 8])('a console.error on step %i fails the render phase naming that step', (step) => {
+  it.each([0, 4, 8])('a console.error surfacing on step %i fails the render phase naming that step', (step) => {
     const page = fakePage()
-    let current = step
-    const collector = verify.createErrorCollector(page, () => current)
+    const collector = verify.createErrorCollector(page)
     page.emit('console', consoleMsg('error', 'boom'))
-    current = 8
     let error: { phase: string; step: number; message: string } | undefined
     try {
-      collector.assertClean()
+      collector.assertClean(step)
     } catch (e) {
       error = e as typeof error
     }
+    expect(error).toBeInstanceOf(verify.VerifyFailure)
     expect(error).toMatchObject({ phase: 'render', step })
     expect(error!.message).toContain('console.error')
     expect(error!.message).toContain('boom')
   })
 
-  it.each([0, 3, 8])('an uncaught page error on step %i fails the render phase naming that step', (step) => {
+  it.each([0, 3, 8])('an uncaught page error surfacing on step %i fails the render phase naming that step', (step) => {
     const page = fakePage()
-    const collector = verify.createErrorCollector(page, () => step)
+    const collector = verify.createErrorCollector(page)
     page.emit('pageerror', new Error('uncaught'))
-    expect(() => collector.assertClean()).toThrow(/pageerror while on step/)
+    let error: { phase: string; step: number; message: string } | undefined
     try {
-      collector.assertClean()
+      collector.assertClean(step)
     } catch (e) {
-      expect((e as { step: number }).step).toBe(step)
+      error = e as typeof error
     }
+    expect(error).toMatchObject({ phase: 'render', step })
+    expect(error!.message).toMatch(/pageerror on step index .*uncaught/)
+  })
+
+  it('stays clean until an error arrives, then fails every later check', () => {
+    const page = fakePage()
+    const collector = verify.createErrorCollector(page)
+    expect(() => collector.assertClean(0)).not.toThrow()
+    page.emit('pageerror', new Error('late'))
+    expect(() => collector.assertClean(1)).toThrow(/step index 1/)
+    expect(() => collector.assertClean(2)).toThrow(/step index 2/)
   })
 
   it('ignores non-error console output and passes when nothing was recorded', () => {
     const page = fakePage()
-    const collector = verify.createErrorCollector(page, () => 0)
+    const collector = verify.createErrorCollector(page)
     page.emit('console', consoleMsg('log', 'hello'))
     page.emit('console', consoleMsg('warning', 'careful'))
-    expect(() => collector.assertClean()).not.toThrow()
+    expect(() => collector.assertClean(0)).not.toThrow()
   })
 })
 

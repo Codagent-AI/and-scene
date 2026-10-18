@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, HTMLAttributes } from 'react'
 import { EXIT_T, MOTION_LAYOUT } from '../constants'
 
 /** Literal canvas coordinates in design-canvas pixels. */
@@ -26,3 +26,9 @@ export const entityMotion = {
   transition: { layout: MOTION_LAYOUT },
   exit: { opacity: 0, transition: { duration: EXIT_T } },
 } as const
+
+/** Native element props for a primitive, minus those the kit owns or motion redefines. */
+export type NativeProps<T extends HTMLElement> = Omit<
+  HTMLAttributes<T>,
+  'id' | 'style' | 'className' | 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart'
+>

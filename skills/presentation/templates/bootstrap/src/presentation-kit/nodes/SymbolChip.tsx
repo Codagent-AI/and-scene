@@ -1,9 +1,9 @@
-import type { HTMLAttributes, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
-import { atStyle, entityMotion, type At, type NodeHooks } from './shared'
+import { atStyle, entityMotion, type At, type NativeProps, type NodeHooks } from './shared'
 
-export interface SymbolChipProps extends NodeHooks, Omit<HTMLAttributes<HTMLSpanElement>, 'id' | 'style' | 'className' | 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart'> {
+export interface SymbolChipProps extends NodeHooks, NativeProps<HTMLSpanElement> {
   at?: At
   /** Short text symbol such as "?" or a check mark. */
   symbol?: ReactNode

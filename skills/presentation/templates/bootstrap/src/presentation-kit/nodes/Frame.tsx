@@ -1,8 +1,8 @@
-import type { HTMLAttributes, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { atStyle, entityMotion, type At, type NodeHooks } from './shared'
+import { atStyle, entityMotion, type At, type NativeProps, type NodeHooks } from './shared'
 
-export interface FrameProps extends NodeHooks, Omit<HTMLAttributes<HTMLDivElement>, 'id' | 'style' | 'className' | 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart'> {
+export interface FrameProps extends NodeHooks, NativeProps<HTMLDivElement> {
   at?: At
   /** Free-form variant name exposed as `data-presentation-variant` for author CSS. */
   variant?: string

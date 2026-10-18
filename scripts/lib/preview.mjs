@@ -88,3 +88,14 @@ export async function stopPreview(preview) {
   await done
   clearTimeout(timer)
 }
+
+/** Run a command to completion, capturing combined output. Resolves `{ code, output }`. */
+export function runCommand(command, args, cwd) {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
+    let output = ''
+    child.stdout.on('data', (d) => (output += d))
+    child.stderr.on('data', (d) => (output += d))
+    child.on('close', (code) => resolve({ code, output }))
+  })
+}

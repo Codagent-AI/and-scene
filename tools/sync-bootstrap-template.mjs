@@ -5,7 +5,7 @@ import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFi
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const repo = fileURLToPath(new URL('..', import.meta.url))
+const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const skill = path.join(repo, 'skills/presentation/templates')
 const bootstrap = path.join(skill, 'bootstrap')
 
@@ -17,6 +17,7 @@ export const MIRRORED_FILES = [
   'index.html',
   'src/main.tsx',
   'src/router.tsx',
+  'src/routing.ts',
   'src/Landing.tsx',
   'scripts/verify.mjs',
   'scripts/inspect-presentation.mjs',

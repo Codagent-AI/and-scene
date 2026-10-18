@@ -1,0 +1,29 @@
+.polished [data-presentation-progress-dot] {
+  width: 10px;
+  height: 10px;
+  border: 1px solid #666;
+  border-radius: 50%;
+  background: transparent;
+}
+.polished [data-presentation-progress-dot][data-presentation-active='true'] {
+  width: 26px;
+  border-color: #e0b84c;
+  background: #e0b84c;
+}
+.polished [data-presentation-toc-entry] {
+  font-weight: 400;
+  background: transparent;
+}
+.polished [data-presentation-toc-entry][data-presentation-active='true'] {
+  font-weight: 700;
+  background: #ddd;
+}
+.polished [data-presentation-footer] {
+  padding: 0 24px 40px;
+}
+.polished [data-presentation-attribution] {
+  padding: 8px 14px;
+  color: #555;
+  font-size: 13px;
+  text-decoration: none;
+}

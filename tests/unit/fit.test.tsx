@@ -1,5 +1,5 @@
 import { act, render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   DESIGN_H,
   DESIGN_W,
@@ -56,7 +56,10 @@ describe('useFitScale', () => {
       window.dispatchEvent(new Event('resize'))
     })
     expect(Number(screen.getByTestId('scale').textContent)).toBeCloseTo(expected(700, 700, 'browse'))
+    const remove = vi.spyOn(window, 'removeEventListener')
     unmount()
+    expect(remove.mock.calls.map((c) => c[0])).toContain('resize')
+    remove.mockRestore()
     setViewport(1440, 900)
   })
 })

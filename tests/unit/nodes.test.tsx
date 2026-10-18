@@ -43,6 +43,16 @@ describe('primitives', () => {
     expect(node.dataset.variant).toBe('ghost')
   })
 
+  it('applies a changed position, size and label to the same mounted element', () => {
+    const { rerender } = render(<Box id="m" x={5} y={6} width={7} height={8} label="before" className="a" />)
+    const el = q('[data-presentation-entity="m"]')
+    rerender(<Box id="m" x={50} y={60} width={70} height={80} label="after" className="b" />)
+    expect(q('[data-presentation-entity="m"]')).toBe(el)
+    expect([el.style.left, el.style.top, el.style.width, el.style.height]).toEqual(['50px', '60px', '70px', '80px'])
+    expect(el.textContent).toBe('after')
+    expect(el.className).toBe('b')
+  })
+
   it('positions nothing when no coordinates are given', () => {
     render(<Box id="e" />)
     expect(q('[data-presentation-node="box"]').style.position).toBe('')

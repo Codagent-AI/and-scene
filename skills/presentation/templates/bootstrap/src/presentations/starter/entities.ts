@@ -6,7 +6,7 @@
 export interface Entity {
   id: string
   /** First step (1-based) in which the entity is on screen. */
-  from: number
+  appearsAt: number
   kind: 'box' | 'label'
   text: string
   x: number
@@ -16,6 +16,6 @@ export interface Entity {
 }
 
 export const ENTITIES: readonly Entity[] = [
-  { id: 'start', from: 1, kind: 'box', text: 'Start here', x: 40, y: 40, width: 160, height: 60 },
-  { id: 'next', from: 2, kind: 'box', text: 'Then this', x: 280, y: 40, width: 160, height: 60 },
+  { id: 'start', appearsAt: 1, kind: 'box', text: 'Start here', x: 40, y: 40, width: 160, height: 60 },
+  { id: 'next', appearsAt: 2, kind: 'box', text: 'Then this', x: 280, y: 40, width: 160, height: 60 },
 ]

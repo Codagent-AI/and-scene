@@ -181,8 +181,6 @@ describe('navigation chrome', () => {
     expect(idx()).toBe('5')
     fireEvent.click(prev)
     expect(q('[data-presentation-caption]')!.textContent).toBe('Caption e')
-    const first = render(<div />)
-    first.unmount()
   })
 })
 

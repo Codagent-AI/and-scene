@@ -27,7 +27,7 @@ function Node({ e }: { e: Entity }) {
     case 'label':
       return <Label id={e.id} x={e.x} y={e.y} width={e.width} height={e.height}>{e.text}</Label>
     case 'arrow':
-      return <Arrow id={e.id} from={e.from2} to={e.to} bend={e.bend} bidirectional={e.bidirectional} />
+      return <Arrow id={e.id} from={e.from} to={e.to} bend={e.bend} bidirectional={e.bidirectional} />
     case 'chip':
       return <SymbolChip id={e.id} x={e.x} y={e.y} width={e.width} height={e.height} Icon={e.Icon} symbol={e.text} />
     case 'emphasis':
@@ -48,7 +48,7 @@ function Node({ e }: { e: Entity }) {
 export function SampleScene({ payload }: SceneProps<ScenePayload>) {
   return (
     <SceneLayer>
-      {ENTITIES.filter((e) => e.from <= payload.step).map((e) => (
+      {ENTITIES.filter((e) => e.appearsAt <= payload.step).map((e) => (
         <Appear key={e.id}>
           <Node e={e} />
         </Appear>

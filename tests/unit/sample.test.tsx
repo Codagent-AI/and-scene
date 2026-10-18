@@ -62,7 +62,7 @@ describe('reference sample narration', () => {
 describe('reference sample scene', () => {
   it('introduces exactly the named entities at each step', () => {
     expect(ENTITIES.map((e) => e.id).sort()).toEqual(NEW_AT_STEP.flat().sort())
-    NEW_AT_STEP.forEach((ids, i) => ids.forEach((id) => expect(ENTITIES.find((e) => e.id === id)!.from, id).toBe(i + 1)))
+    NEW_AT_STEP.forEach((ids, i) => ids.forEach((id) => expect(ENTITIES.find((e) => e.id === id)!.appearsAt, id).toBe(i + 1)))
   })
 
   it('accumulates one scene: nothing is removed, remounted or moved while stepping forward', () => {

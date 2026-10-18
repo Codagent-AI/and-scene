@@ -13,7 +13,7 @@ export interface ScenePayload {
 export function Scene({ payload }: SceneProps<ScenePayload>) {
   return (
     <SceneLayer>
-      {ENTITIES.filter((e) => e.from <= payload.step).map((e) => (
+      {ENTITIES.filter((e) => e.appearsAt <= payload.step).map((e) => (
         <Appear key={e.id}>
           {e.kind === 'box' ? (
             <Box id={e.id} x={e.x} y={e.y} width={e.width} height={e.height} label={e.text} />

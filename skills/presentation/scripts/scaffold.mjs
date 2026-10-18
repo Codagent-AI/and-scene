@@ -240,35 +240,97 @@ export function renderTemplate(text, tokens) {
   return Object.entries(tokens).reduce((out, [token, value]) => out.split(token).join(value), text)
 }
 
-/** Creates a presentation folder from the template and appends it to the registry. */
+function appSources(appDir) {
+  return walk(join(appDir, 'src'), (name) => IGNORED_DIRS.has(name))
+    .filter((file) => SOURCE_FILE.test(file) && !/\.(test|spec)\./.test(file))
+    .map((file) => ({ file, text: readFileSync(file, 'utf8') }))
+}
+
+/** The registry is whichever source file maps slugs to lazy loaders, whatever it is called. */
+export function findRegistryFile(appDir) {
+  const candidates = appSources(appDir).filter(({ text }) => /slug\s*:/.test(text) && /(\bimport\(|\bload\s*:)/.test(text))
+  candidates.sort((a, b) => b.text.split(/slug\s*:/).length - a.text.split(/slug\s*:/).length)
+  return candidates[0]?.file
+}
+
+/** The kit directory is wherever the step contract's `defineStep` lives, whatever it is called. */
+export function findKitDir(appDir) {
+  const owner = appSources(appDir).find(({ text }) => /export function defineStep\b/.test(text))
+  return owner ? dirname(owner.file) : undefined
+}
+
+export function kitSpecifier(fromDir, kitDir) {
+  const rel = relative(fromDir, kitDir).split('\\').join('/')
+  return rel.startsWith('.') ? rel : `./${rel}`
+}
+
+/** Renders one presentation template file; `__KIT__` becomes the path to the app's kit. */
+export function renderPresentationFile(text, { slug, title, destination, kitDir }) {
+  return renderTemplate(text, {
+    __KIT__: kitSpecifier(dirname(destination), kitDir),
+    __SLUG__: slug,
+    __TITLE__: JSON.stringify(title),
+  })
+}
+
+const quote = (value) => `'${value.replace(/['\\]/g, '\\$&')}'`
+
+/** Adds an entry after the last object that carries a `slug`, whatever the array is called. */
+export function addRegistryEntry(text, { slug, title, loader }) {
+  const at = text.search(/slug\s*:\s*['"`](?![\s\S]*slug\s*:\s*['"`])/)
+  if (at === -1) {
+    // an empty registry: put the first entry inside the array literal
+    const open = [...text.matchAll(/=\s*\[/g)].at(-1)
+    if (!open) throw new Error('could not find the registry array to extend')
+    const entry = `{\n    slug: ${quote(slug)},\n    title: ${JSON.stringify(title)},\n    load: () => import(${quote(loader)}),\n  },`
+    const insertAt = open.index + open[0].length
+    return `${text.slice(0, insertAt)}\n  ${entry}${text.slice(insertAt).replace(/^\s*(?=\])/, '\n')}`
+  }
+  let start = at
+  for (let depth = 0; start >= 0; start--) {
+    if (text[start] === '}') depth++
+    else if (text[start] === '{' && depth-- === 0) break
+  }
+  let end = at
+  for (let depth = 0; end < text.length; end++) {
+    if (text[end] === '{') depth++
+    else if (text[end] === '}' && depth-- === 0) break
+  }
+  if (start < 0 || end >= text.length) throw new Error('could not parse the registry entry to extend')
+  const lineStart = text.lastIndexOf('\n', start) + 1
+  const indent = /^\s*/.exec(text.slice(lineStart, start))[0]
+  const entry = `{\n${indent}  slug: ${quote(slug)},\n${indent}  title: ${JSON.stringify(title)},\n${indent}  load: () => import(${quote(loader)}),\n${indent}}`
+  const after = text.slice(end + 1)
+  const comma = /^\s*,/.exec(after)
+  const rest = comma ? after.slice(comma[0].length) : after
+  return `${text.slice(0, end + 1)},\n${indent}${entry},${rest}`
+}
+
+/** Creates a presentation folder from the template and registers it in the app's registry. */
 export function createPresentation(appDir, slug, title) {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error(`invalid slug: ${slug}`)
   if (!title?.trim()) throw new Error('a title is required')
-  const presentations = join(resolve(appDir), 'src', 'presentations')
-  const registryPath = join(presentations, 'index.ts')
-  const folder = join(presentations, slug)
-  if (!existsSync(registryPath)) throw new Error(`no presentation registry at ${registryPath}`)
+  const app = resolve(appDir)
+  const registryPath = findRegistryFile(app)
+  const kitDir = findKitDir(app)
+  if (!registryPath) throw new Error(`no presentation registry found under ${app}/src`)
+  if (!kitDir) throw new Error(`no scene kit found under ${app}/src`)
   const registry = readFileSync(registryPath, 'utf8')
-  if (existsSync(folder) || registry.includes(`slug: '${slug}'`)) {
+  const folder = join(dirname(registryPath), slug)
+  if (existsSync(folder) || new RegExp(`slug\\s*:\\s*['"]${slug}['"]`).test(registry)) {
     throw new Error(`presentation "${slug}" already exists; nothing was changed`)
   }
-  const closing = registry.lastIndexOf('\n]')
-  if (!/PRESENTATIONS[^=]*=\s*\[/.test(registry) || closing === -1) {
-    throw new Error('could not find the PRESENTATIONS array to extend')
-  }
+  const updated = addRegistryEntry(registry, { slug, title, loader: `./${slug}/Talk` })
 
-  const tokens = { __SLUG__: slug, __TITLE__: title.replace(/["\\]/g, '\\$&') }
   const written = []
   for (const file of walk(presentationTemplateDir)) {
-    const rel = relative(presentationTemplateDir, file)
-    const destination = join(folder, rel)
+    const destination = join(folder, relative(presentationTemplateDir, file))
     mkdirSync(dirname(destination), { recursive: true })
-    writeFileSync(destination, renderTemplate(readFileSync(file, 'utf8'), tokens))
-    written.push(relative(resolve(appDir), destination))
+    writeFileSync(destination, renderPresentationFile(readFileSync(file, 'utf8'), { slug, title, destination, kitDir }))
+    written.push(relative(app, destination))
   }
-  const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title).replace(/'/g, "\\'")},\n    load: () => import('./${slug}/Talk'),\n  },`
-  writeFileSync(registryPath, `${registry.slice(0, closing + 1)}${entry}\n${registry.slice(closing + 1)}`)
-  return { slug, folder: relative(resolve(appDir), folder), written, registry: relative(resolve(appDir), registryPath) }
+  writeFileSync(registryPath, updated)
+  return { slug, folder: relative(app, folder), written, registry: relative(app, registryPath) }
 }
 
 function parseArgs(argv) {

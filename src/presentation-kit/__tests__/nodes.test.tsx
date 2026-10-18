@@ -116,6 +116,13 @@ describe('Arrow', () => {
     expect(path.animate).toEqual({ d: 'M 0 0 Q 50 0 100 0' })
   })
 
+  it('forwards an author style and keeps its geometry', () => {
+    const { container } = render(<Arrow id="s" from={[0, 0]} to={[10, 0]} style={{ opacity: 0.4 }} />)
+    const svg = container.querySelector('svg') as SVGElement
+    expect(svg.style.opacity).toBe('0.4')
+    expect(svg.style.position).toBe('absolute')
+  })
+
   it('curves by a perpendicular offset', () => {
     render(<Arrow id="c" from={[0, 0]} to={[100, 0]} curve={20} />)
     const path = recorded.props.find((p) => p.tag === 'path')!

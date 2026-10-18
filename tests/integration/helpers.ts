@@ -148,3 +148,51 @@ export async function materialize(options: { dir?: string; linkModules?: boolean
   if (options.linkModules) symlinkSync(join(repoRoot, 'node_modules'), join(dir, 'node_modules'))
   return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) }
 }
+
+/** Every descendant process of `pid`, from `ps`. */
+export function descendants(pid: number): { pid: number; args: string }[] {
+  const rows = spawnSync('ps', ['-eo', 'pid,ppid,args'], { encoding: 'utf8' })
+    .stdout.split('\n')
+    .slice(1)
+    .map((line) => /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line))
+    .filter((m): m is RegExpExecArray => m !== null)
+    .map((m) => ({ pid: Number(m[1]), ppid: Number(m[2]), args: m[3] }))
+  const found: { pid: number; args: string }[] = []
+  const queue = [pid]
+  while (queue.length) {
+    const parent = queue.shift()!
+    for (const row of rows) {
+      if (row.ppid === parent) {
+        found.push({ pid: row.pid, args: row.args })
+        queue.push(row.pid)
+      }
+    }
+  }
+  return found
+}
+
+/** Waits for `marker` in the child's output, then SIGKILLs its browser processes. */
+export async function crashBrowserAfter(
+  command: string,
+  args: string[],
+  cwd: string,
+  marker: string,
+): Promise<RunResult & { crashed: number }> {
+  const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
+  let output = ''
+  child.stdout.on('data', (c) => (output += c))
+  child.stderr.on('data', (c) => (output += c))
+  const closed = new Promise<number | null>((done) => child.on('close', done))
+  const deadline = Date.now() + 240_000
+  while (!output.includes(marker) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50))
+  const browsers = descendants(child.pid!).filter((p) => /headless_shell|chrom/i.test(p.args))
+  for (const browser of browsers) {
+    try {
+      process.kill(browser.pid, 'SIGKILL')
+    } catch {
+      // already gone
+    }
+  }
+  const code = await closed
+  return { code, output, crashed: browsers.length }
+}

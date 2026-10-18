@@ -163,6 +163,40 @@ describe('ungrouped transitions', () => {
   })
 })
 
+describe('arrow continuity', () => {
+  it('morphs an arrow from its previous geometry when the scene changes', async () => {
+    const page = await open('ungrouped')
+    const frames = await page.evaluate(
+      () =>
+        new Promise<{ t: number; ends: number[] }[]>((done) => {
+          const out: { t: number; ends: number[] }[] = []
+          const t0 = performance.now()
+          const measure = () => {
+            const ends = [...document.querySelectorAll('[data-presentation-entity="arr"] > path')].map((path) => {
+              const numbers = (path.getAttribute('d') ?? '').match(/-?\d+(\.\d+)?/g) ?? []
+              return Number(numbers[numbers.length - 2])
+            })
+            out.push({ t: performance.now() - t0, ends })
+            if (performance.now() - t0 < 1200) requestAnimationFrame(() => setTimeout(measure, 0))
+            else done(out)
+          }
+          window.addEventListener('keydown', () => requestAnimationFrame(() => setTimeout(measure, 0)), { once: true })
+          setTimeout(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })), 0)
+        }),
+    )
+    const live = frames.filter((f) => f.ends.length)
+    // the incoming arrow starts from the outgoing arrow's end point (200), not its own (400) ...
+    const early = live.find((f) => f.ends.length === 2)!
+    expect(Math.min(...early.ends)).toBeLessThan(260)
+    // ... passes through intermediate geometry ...
+    expect(live.some((f) => f.ends.some((x) => x > 230 && x < 380))).toBe(true)
+    // ... and settles on its own end point as the only arrow left
+    expect(live.at(-1)!.ends).toHaveLength(1)
+    expect(live.at(-1)!.ends[0]).toBeCloseTo(400, 0)
+    await page.close()
+  })
+})
+
 describe('fixed canvas scaling', () => {
   for (const mode of ['browse', 'present'] as const) {
     it(`scales uniformly without internal reflow in ${mode} mode`, async () => {

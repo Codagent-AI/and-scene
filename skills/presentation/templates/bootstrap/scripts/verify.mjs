@@ -17,7 +17,9 @@ import {
 } from './lib/runtime.mjs'
 
 const STEP_TIMEOUT_MS = 5000
-const SETTLE_MS = Number(process.env.VERIFY_SETTLE_MS ?? 700)
+// Must outlast the kit's longest scene motion (entry delay + fade = 850 ms) so a late error is
+// still attributed to the step that caused it.
+const SETTLE_MS = Number(process.env.VERIFY_SETTLE_MS ?? 1000)
 
 class VerifyError extends Error {
   constructor(phase, message) {
@@ -195,13 +197,18 @@ async function renderSample(reference) {
 async function main() {
   installSignalCleanup()
   let failure = null
+  let phase = 'verify'
   try {
     const reference = loadReference()
+    phase = 'build'
     await build()
+    phase = 'sample-registration'
     await checkSampleRegistration(reference)
+    phase = 'render'
     await renderSample(reference)
   } catch (error) {
-    failure = error instanceof VerifyError ? error : new VerifyError('verify', error?.stack ?? String(error))
+    // unexpected errors (for example the browser dying) are attributed to the phase that was running
+    failure = error instanceof VerifyError ? error : new VerifyError(phase, error?.stack ?? String(error))
   } finally {
     await stopAll()
   }

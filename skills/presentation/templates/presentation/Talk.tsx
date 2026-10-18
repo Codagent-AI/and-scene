@@ -1,7 +1,7 @@
-import { Presentation } from '../../presentation-kit'
+import { Presentation } from '__KIT__'
 import { STEPS } from './steps'
 import './style.css'
 
 export default function Talk() {
-  return <Presentation className="__SLUG__" steps={STEPS} title="__TITLE__" initialMode="browse" />
+  return <Presentation className="__SLUG__" steps={STEPS} title={__TITLE__} initialMode="browse" />
 }

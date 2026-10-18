@@ -1,4 +1,6 @@
+import { useContext, useEffect, useState, type CSSProperties } from 'react'
 import { motion } from 'motion/react'
+import { ArrowMemoryContext } from '../arrowMemory'
 import { DESIGN_H, DESIGN_W, EASE, EXIT_T, LAYOUT_T } from '../constants'
 
 export type Point = readonly [number, number]
@@ -12,6 +14,7 @@ export interface ArrowProps {
   /** Perpendicular offset of the curve's midpoint; 0 draws a straight line. */
   curve?: number
   className?: string
+  style?: CSSProperties
   /** Canvas the arrow is drawn on; defaults to the design canvas. */
   width?: number
   height?: number
@@ -35,10 +38,20 @@ export function Arrow({
   bidirectional = false,
   curve = 0,
   className,
+  style,
   width = DESIGN_W,
   height = DESIGN_H,
   ...rest
 }: ArrowProps) {
+  const d = pathFor(from, to, curve)
+  const memory = useContext(ArrowMemoryContext)
+  const [previous] = useState(() => memory.get(id))
+  useEffect(() => {
+    memory.set(id, d)
+    return () => {
+      if (memory.get(id) === d) memory.delete(id)
+    }
+  }, [memory, id, d])
   const head = `${id}-head`
   const tail = `${id}-tail`
   return (
@@ -48,7 +61,7 @@ export function Arrow({
       className={className}
       width={width}
       height={height}
-      style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }}
+      style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none', ...style }}
       exit={{ opacity: 0, transition: { duration: EXIT_T } }}
       aria-hidden="true"
       {...rest}
@@ -62,8 +75,8 @@ export function Arrow({
         </marker>
       </defs>
       <motion.path
-        initial={false}
-        animate={{ d: pathFor(from, to, curve) }}
+        initial={previous === undefined ? false : { d: previous }}
+        animate={{ d }}
         transition={{ duration: LAYOUT_T, ease: EASE }}
         fill="none"
         stroke="currentColor"

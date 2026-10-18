@@ -89,6 +89,11 @@ describe('verification scripts', () => {
     expect(read('scripts/verify.mjs')).not.toMatch(/diagnostics|inspect/)
   })
 
+  it('wait longer than the kit\'s longest scene motion before judging a step', () => {
+    const match = /VERIFY_SETTLE_MS \?\? (\d+)/.exec(read('scripts/verify.mjs'))
+    expect(Number(match![1])).toBeGreaterThan((ENTER_DELAY + ENTER_T) * 1000)
+  })
+
   it('bound every step transition to five seconds', () => {
     expect(read('scripts/verify.mjs')).toContain('STEP_TIMEOUT_MS = 5000')
     expect(read('scripts/verify.mjs')).toMatch(/waitForFunction\([\s\S]*?timeout: STEP_TIMEOUT_MS/)

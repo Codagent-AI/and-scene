@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { motion } from 'motion/react'
 import {
   Appear,
+  Arrow,
   Box,
   defineStep,
   Presence,
@@ -58,6 +59,7 @@ function SceneOne() {
     <SceneLayer>
       <Box id="S" x={40} y={40} w={100} h={50}>S</Box>
       <Box id="D" x={300} y={40} w={100} h={50}>D</Box>
+      <Arrow id="arr" from={[40, 200]} to={[200, 200]} />
     </SceneLayer>
   )
 }
@@ -66,6 +68,7 @@ function SceneTwo() {
   return (
     <SceneLayer>
       <Box id="S" x={500} y={250} w={160} h={80}>S</Box>
+      <Arrow id="arr" from={[40, 300]} to={[400, 300]} />
       <Appear>
         <Box id="N" x={60} y={250} w={100} h={50}>N</Box>
       </Appear>

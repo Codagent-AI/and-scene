@@ -11,8 +11,9 @@ import {
   createPresentation,
   detect,
   detectAnchors,
+  addRegistryEntry,
   presentationTemplateDir,
-  renderTemplate,
+  renderPresentationFile,
   skillDir,
   templateFiles,
 } from '../../skills/presentation/scripts/scaffold.mjs'
@@ -265,7 +266,7 @@ describe('presentation creation', () => {
     const registry = read(join(dir, 'src/presentations/index.ts'))
     expect(registry).toContain("slug: 'my-talk'")
     expect(registry).toContain("import('./my-talk/Talk')")
-    expect(read(join(dir, 'src/presentations/my-talk/Talk.tsx'))).toContain('title="My \\"Great\\" Talk"')
+    expect(read(join(dir, 'src/presentations/my-talk/Talk.tsx'))).toContain('title={"My \\"Great\\" Talk"}')
     expect(read(join(dir, 'src/presentations/my-talk/Talk.tsx'))).not.toContain('__SLUG__')
   })
 
@@ -281,6 +282,59 @@ describe('presentation creation', () => {
     expect(() => createPresentation(dir, 'second', 'Again')).toThrow(/already exists/)
     expect(() => createPresentation(dir, 'Bad Slug', 'x')).toThrow(/invalid slug/)
     expect(tree(dir)).toEqual(snapshot)
+  })
+})
+
+describe('presentation creation in a customised scaffold', () => {
+  it('follows renamed kit and registry files and keeps their formatting', () => {
+    const dir = fullApp()
+    cpSync(join(dir, 'src/presentation-kit'), join(dir, 'src/engine'), { recursive: true })
+    rmSync(join(dir, 'src/presentation-kit'), { recursive: true })
+    cpSync(join(dir, 'src/presentations'), join(dir, 'src/talks'), { recursive: true })
+    rmSync(join(dir, 'src/presentations'), { recursive: true })
+    rmSync(join(dir, 'src/talks/index.ts'))
+    writeFileSync(
+      join(dir, 'src/talks/catalog.ts'),
+      'export const TALKS = [{ slug: "starter", title: "Starter", load: () => import("./starter/Talk") }]\n',
+    )
+    for (const file of ['src/Router.tsx', 'src/Landing.tsx', 'src/route.ts']) {
+      writeFileSync(join(dir, file), read(join(dir, file)).replace("'./presentations'", "'./talks/catalog'"))
+    }
+    writeFileSync(join(dir, 'src/talks/starter/Talk.tsx'), read(join(dir, 'src/talks/starter/Talk.tsx')))
+    expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+    const created = createPresentation(dir, 'renamed', 'Renamed')
+    expect(created.registry).toBe('src/talks/catalog.ts')
+    expect(created.folder).toBe('src/talks/renamed')
+    expect(read(join(dir, 'src/talks/renamed/Talk.tsx'))).toContain("from '../../engine'")
+    expect(read(join(dir, 'src/talks/renamed/steps/scene.tsx'))).toContain("from '../../../engine'")
+    const registry = read(join(dir, 'src/talks/catalog.ts'))
+    expect(registry).toContain("slug: 'renamed'")
+    expect(registry).toContain("import('./renamed/Talk')")
+    expect(registry).toContain('"starter"')
+  })
+
+  it.each([
+    ['trailing comma, multi-line', 'export const A = [\n  {\n    slug: "a",\n    load: () => import("./a/Talk"),\n  },\n]\n'],
+    ['no trailing comma, multi-line', 'export const A = [\n  {\n    slug: "a",\n    load: () => import("./a/Talk"),\n  }\n]\n'],
+    ['single line', 'export default [{ slug: "a", load: () => import("./a/Talk") }]'],
+    ['an empty registry with an entry interface', "export interface E {\n  slug: string\n  load: () => Promise<unknown>\n}\nexport const A: readonly E[] = []\n"],
+    ['an empty registry', 'export const A = []\n'],
+    ['nested braces in the loader', 'export const A = [{ slug: "a", load: async () => { return import("./a/Talk") } }]'],
+  ])('extends a registry written as %s', (_label, source) => {
+    const result = addRegistryEntry(source, { slug: 'b', title: 'B', loader: './b/Talk' })
+    expect(result).toContain("import('./b/Talk')")
+    expect(result).toContain("slug: 'b'")
+    // the result must still parse as a module: evaluate the array literal
+    const array = new Function(`${result.replace(/export interface[\s\S]*?\n\}\n/, '').replace(/export (default|const A(: [^=]+)? =)\s*/, 'return ').replace(/import\(/g, 'String(')}`)()
+    expect(array).toHaveLength(/slug\s*:\s*["']/.test(source) ? 2 : 1)
+  })
+
+  it('produces compilable TSX for titles with quotes, braces and angle brackets', () => {
+    const dir = fullApp()
+    createPresentation(dir, 'odd', `My "Great" <Talk> {x} & 'y'`)
+    const talk = read(join(dir, 'src/presentations/odd/Talk.tsx'))
+    const literal = /title=\{(.*)\}\s*initialMode/.exec(talk)![1]
+    expect(JSON.parse(literal)).toBe(`My "Great" <Talk> {x} & 'y'`)
   })
 })
 
@@ -369,7 +423,12 @@ describe('bootstrap template contract', () => {
   it('registers a starter presentation that is exactly the rendered presentation template', () => {
     const starter = join(bootstrapDir, 'src/presentations/starter')
     for (const rel of readdirSync(presentationTemplateDir, { recursive: true, withFileTypes: true }).filter((e) => e.isFile()).map((e) => relative(presentationTemplateDir, join(e.parentPath, e.name)))) {
-      const rendered = renderTemplate(read(join(presentationTemplateDir, rel)), { __SLUG__: 'starter', __TITLE__: 'Starter' })
+      const rendered = renderPresentationFile(read(join(presentationTemplateDir, rel)), {
+        slug: 'starter',
+        title: 'Starter',
+        destination: join(starter, rel),
+        kitDir: join(bootstrapDir, 'src/presentation-kit'),
+      })
       expect(read(join(starter, rel)), rel).toBe(rendered)
     }
     const config = JSON.parse(read(template('scripts/verify.config.json'))).reference

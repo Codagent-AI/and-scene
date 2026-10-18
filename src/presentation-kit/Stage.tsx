@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { DESIGN_H, DESIGN_W, EXIT_T } from './constants'
+import { ArrowMemoryContext } from './arrowMemory'
 import { LayoutSnapContext } from './layoutSnap'
 import { hostKey } from './steps'
 import type { Canvas, Mode, SceneStep } from './types'
@@ -29,6 +30,7 @@ export function Stage({ step, mode, canvas }: StageProps) {
     const frame = requestAnimationFrame(() => setSettledFit(fit))
     return () => cancelAnimationFrame(frame)
   }, [snapping, fit])
+  const [arrows] = useState(() => new Map<string, string>())
   const width = canvas?.width ?? DESIGN_W
   const height = canvas?.height ?? DESIGN_H
   return (
@@ -50,18 +52,20 @@ export function Stage({ step, mode, canvas }: StageProps) {
         }}
       >
         <LayoutSnapContext value={snapping}>
-          <LayoutGroup>
-            <AnimatePresence initial={false}>
-              <motion.div
-                key={hostKey(step)}
-                data-presentation-step-host=""
-                exit={{ opacity: 0, transition: { duration: EXIT_T } }}
-                style={{ position: 'absolute', inset: 0 }}
-              >
-                {step.render()}
-              </motion.div>
-            </AnimatePresence>
-          </LayoutGroup>
+          <ArrowMemoryContext value={arrows}>
+            <LayoutGroup>
+              <AnimatePresence initial={false}>
+                <motion.div
+                  key={hostKey(step)}
+                  data-presentation-step-host=""
+                  exit={{ opacity: 0, transition: { duration: EXIT_T } }}
+                  style={{ position: 'absolute', inset: 0 }}
+                >
+                  {step.render()}
+                </motion.div>
+              </AnimatePresence>
+            </LayoutGroup>
+          </ArrowMemoryContext>
         </LayoutSnapContext>
       </motion.div>
     </div>

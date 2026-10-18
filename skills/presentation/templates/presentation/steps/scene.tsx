@@ -6,7 +6,7 @@ import {
   Presence,
   SceneLayer,
   type SceneProps,
-} from '../../../presentation-kit'
+} from '__KIT__'
 import { E } from '../entities'
 
 export interface ScenePayload {

@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { listProcesses, materialize, repoRoot, run, scaffoldScript, type Workspace } from './helpers'
+import { crashBrowserAfter, listProcesses, materialize, repoRoot, run, scaffoldScript, type Workspace } from './helpers'
 
 // INT-002: the project-local inspection helper, driven against a controlled app whose
 // registered fixture presentations each contain one known visual defect (or none).
@@ -129,6 +129,12 @@ const FIXTURES: Fixture[] = [
   { slug: 'fx-allowed', variant: "{ collision: 'marked' }", css: BASE + PROGRESS + TOC + POLISHED },
   { slug: 'fx-mixed', variant: "{ collision: 'mixed' }", css: BASE + PROGRESS + TOC + POLISHED },
   { slug: 'fx-indistinct', variant: '{}', css: BASE + POLISHED },
+  {
+    slug: 'fx-indistinct-mixed',
+    variant: '{}',
+    // the first dot is styled like a visited step; the active dot only matches the unstyled ones
+    css: BASE + TOC + POLISHED + ".fx [data-presentation-progress-item] { width: 12px; height: 12px; border: 1px solid #888; padding: 0; }\n.fx [data-presentation-progress-item]:first-child { background: #bbb; }\n",
+  },
   { slug: 'fx-indistinct-toc', variant: '{}', css: BASE + PROGRESS + POLISHED },
   { slug: 'fx-indistinct-progress', variant: '{}', css: BASE + TOC + POLISHED },
   { slug: 'fx-att-font', variant: '{}', css: BASE + PROGRESS + TOC + attribution('font-size: 10px; padding: 6px 8px; color: #444; text-decoration: none;') },
@@ -244,10 +250,29 @@ describe('screenshot capture', () => {
     }
   })
 
+  it('fails operationally, without false success, when the browser dies mid-run, and cleans up', async () => {
+    const result = await crashBrowserAfter('node', ['scripts/inspect-presentation.mjs', 'fx-clean', '--no-build', '--settle', '300'], app.dir, '[inspect] step 0 ->')
+    expect(result.crashed).toBeGreaterThan(0)
+    expect(result.code).not.toBe(0)
+    expect(result.output).toContain('FAIL')
+    expect(result.output).not.toContain('done:')
+    expect(listProcesses(`${app.dir}/node_modules/vite/bin/vite.js preview`)).toEqual([])
+  })
+
+  it('fails operationally when the browser cannot be launched, and cleans up', async () => {
+    const result = await run('node', ['scripts/inspect-presentation.mjs', 'fx-clean', '--no-build'], app.dir, { PLAYWRIGHT_BROWSERS_PATH: join(app.dir, 'no-browsers') })
+    expect(result.code).not.toBe(0)
+    expect(result.output).toContain('FAIL')
+    expect(listProcesses(`${app.dir}/node_modules/vite/bin/vite.js preview`)).toEqual([])
+  })
+
   it('captures the committed sample step by step with no advisory warnings', async () => {
-    const result = await run('npm', ['run', 'inspect', '--', 'how-to-make-a-presentation', '--no-build', '--settle', '200'], repoRoot)
+    const result = await run('npm', ['run', 'inspect', '--', 'how-to-make-a-presentation', '--no-build'], repoRoot)
     expect(result.code, result.output).toBe(0)
     const report: Report = JSON.parse(readFileSync(join(repoRoot, '.inspection/how-to-make-a-presentation/report.json'), 'utf8'))
+    // default settle interval: diagnostics and screenshots happen after the scene has stopped moving
+    expect(report.settleMs).toBe(900)
+    expect(report.captures.map((c) => c.runningAnimations)).toEqual(Array(9).fill(0))
     expect(report.captures).toHaveLength(9)
     expect(report.captures.map((c) => c.file)[8]).toBe('step-09.png')
     const hashes = new Set(report.captures.map((c) => createHash('sha1').update(readFileSync(join(repoRoot, '.inspection/how-to-make-a-presentation', c.file))).digest('hex')))
@@ -346,6 +371,12 @@ describe('active chrome diagnostics', () => {
     const progressOnly = (await inspect('fx-indistinct-progress')).report!.warnings.filter((w) => w.kind === 'active-chrome')
     expect(progressOnly.length).toBe(3)
     expect(progressOnly.every((w) => w.message.includes('progress'))).toBe(true)
+  })
+
+  it('warns when the active item matches any inactive peer, even if others differ', async () => {
+    const progress = kinds((await inspect('fx-indistinct-mixed')).report!.warnings, 'active-chrome').filter((w) => w.message.includes('progress'))
+    // step 0: the active dot is the styled one and differs from both peers; steps 1-2 match an unstyled peer
+    expect(progress.map((w) => w.step)).toEqual([1, 2])
   })
 
   it('stays quiet when active items are visibly distinct', async () => {

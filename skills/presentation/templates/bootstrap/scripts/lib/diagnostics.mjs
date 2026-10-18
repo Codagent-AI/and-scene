@@ -120,7 +120,8 @@ export function collectDiagnostics(options) {
     const inactive = items.filter((item) => !active.includes(item))
     if (active.length && inactive.length) {
       const activeSignature = signature(active[0])
-      if (inactive.every((item) => signature(item) === activeSignature)) {
+      // matching any inactive peer is enough: the viewer cannot tell those two apart
+      if (inactive.some((item) => signature(item) === activeSignature)) {
         indistinct.push({ kind, hook: selector.slice(1, -1) })
       }
     }

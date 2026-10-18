@@ -62,7 +62,7 @@ describe('standalone scaffold from an unrelated working directory', () => {
   })
 
   it('adds a presentation from the presentation template that builds and renders next to the starter', async () => {
-    const created = await run('node', [scaffoldScript, 'presentation', '--dir', app.dir, '--slug', 'second-talk', '--title', 'Second Talk'], tmpdir())
+    const created = await run('node', [scaffoldScript, 'presentation', '--dir', app.dir, '--slug', 'second-talk', '--title', 'Second "Talk" <&> {x}'], tmpdir())
     expect(created.code, created.output).toBe(0)
     const build = await run('npm', ['run', 'build'], app.dir)
     expect(build.code, build.output).toBe(0)

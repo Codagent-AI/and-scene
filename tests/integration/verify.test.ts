@@ -3,7 +3,7 @@ import net from 'node:net'
 import { readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { copyRepository, listProcesses, repoRoot, run, scaffoldScript, type Workspace } from './helpers'
+import { copyRepository, crashBrowserAfter, listProcesses, repoRoot, run, scaffoldScript, type Workspace } from './helpers'
 
 // E2E-001 (on an isolated copy) and E2E-002: `scripts/verify.mjs` against throwaway copies of
 // the repository, each carrying one fault. The source checkout is never modified.
@@ -29,7 +29,7 @@ function edit(copy: Workspace, file: string, change: (text: string) => string) {
   writeFileSync(path, after)
 }
 
-const verify = (copy: Workspace) => run('node', ['scripts/verify.mjs'], copy.dir, { VERIFY_SETTLE_MS: '700' })
+const verify = (copy: Workspace) => run('node', ['scripts/verify.mjs'], copy.dir)
 
 function expectFailure(result: { code: number | null; output: string }, phase: string, detail?: RegExp) {
   expect(result.code, result.output).not.toBe(0)
@@ -153,8 +153,8 @@ describe('E2E-002: browser faults', () => {
   it.each([
     ['console.error on the first step', 1, "useEffect(() => { if (payload.stage === 1) console.error('first boom') }, [payload.stage])", 0],
     ['console.error on a later step', 5, "useEffect(() => { if (payload.stage === 5) console.error('later boom') }, [payload.stage])", 4],
-    ['an uncaught exception on the first step', 1, "useEffect(() => { if (payload.stage === 1) setTimeout(() => { throw new Error('first late boom') }, 450) }, [payload.stage])", 0],
-    ['an uncaught exception after the transition settles', 3, "useEffect(() => { if (payload.stage === 3) setTimeout(() => { throw new Error('late boom') }, 450) }, [payload.stage])", 2],
+    ['an uncaught exception on the first step', 1, "useEffect(() => { if (payload.stage === 1) setTimeout(() => { throw new Error('first late boom') }, 900) }, [payload.stage])", 0],
+    ['an uncaught exception after the entry motion has finished', 3, "useEffect(() => { if (payload.stage === 3) setTimeout(() => { throw new Error('late boom') }, 900) }, [payload.stage])", 2],
   ])('fails render and names the step for %s', async (_label, _stage, code, index) => {
     const copy = fresh()
     edit(copy, scene, (t) => `import { useEffect } from 'react'\n${inject(code)(t)}`)
@@ -186,7 +186,24 @@ describe('E2E-002: browser faults', () => {
   it('does not report a presentation that never renders as success', async () => {
     const copy = fresh()
     edit(copy, 'src/route.ts', (t) => t.replace('candidate.slug === slug)', "candidate.slug === slug + '-x')"))
-    expectFailure(await verify(copy), 'render', /step index 0: presentation did not render/)
+    const result = await verify(copy)
+    expectFailure(result, 'render', /step index 0: presentation did not render/)
+    await noPreviewLeft(copy, result.output)
+  })
+
+  it('fails render, without false success, when the browser dies mid-run, and cleans up', async () => {
+    const copy = fresh()
+    const result = await crashBrowserAfter('node', ['scripts/verify.mjs'], copy.dir, 'step index 1: ok')
+    expect(result.crashed).toBeGreaterThan(0)
+    expectFailure(result, 'render')
+    await noPreviewLeft(copy, result.output)
+  })
+
+  it('fails render and cleans up when the browser cannot be launched', async () => {
+    const copy = fresh()
+    const result = await run('node', ['scripts/verify.mjs'], copy.dir, { PLAYWRIGHT_BROWSERS_PATH: join(copy.dir, 'no-browsers') })
+    expectFailure(result, 'render')
+    await noPreviewLeft(copy, result.output)
   })
 })
 

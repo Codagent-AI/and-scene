@@ -1,4 +1,4 @@
-import { defineStep } from '../../../presentation-kit'
+import { defineStep } from '__KIT__'
 import { OUTLINE } from '../outline'
 import { Scene } from './scene'
 

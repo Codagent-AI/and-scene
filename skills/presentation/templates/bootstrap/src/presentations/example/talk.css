@@ -1,0 +1,188 @@
+/* Presentation-owned look for Example presentation. Replace freely: the scene kit ships no styles. */
+.p-example {
+  --ink: #f4efe3;
+  --muted: #b8b0a0;
+  --line: #5c5546;
+  --accent: #e6c76b;
+  --ok: #7fd68b;
+  background: #14120f;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.p-example [data-presentation-header] {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 28px;
+}
+
+.p-example [data-presentation-brand]:empty {
+  display: none;
+}
+
+.p-example [data-presentation-marker] {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.p-example [data-presentation-marker-number] {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.p-example [data-presentation-header] h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.p-example [data-presentation-mode-toggle],
+.p-example [data-presentation-controls] button {
+  margin-left: auto;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.p-example [data-presentation-footer] {
+  padding: 0 28px 48px;
+}
+
+.p-example [data-presentation-footer] h2 {
+  margin: 0;
+  font-size: 34px;
+  text-align: center;
+}
+
+.p-example [data-presentation-caption] {
+  margin: 0 0 14px;
+  max-width: 62ch;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.p-example [data-presentation-progress] {
+  display: flex;
+  gap: 10px;
+}
+
+.p-example [data-presentation-progress-item] {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+}
+
+.p-example [data-presentation-progress-item][data-presentation-active='true'] {
+  width: 26px;
+  border-radius: 7px;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.p-example [data-presentation-controls] {
+  position: absolute;
+  right: 28px;
+  bottom: 44px;
+  display: flex;
+  gap: 8px;
+}
+
+.p-example [data-presentation-controls] button {
+  margin-left: 0;
+}
+
+.p-example [data-presentation-toc] {
+  padding: 84px 24px 0 28px;
+  width: 240px;
+}
+
+.p-example [data-presentation-toc] ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.p-example [data-presentation-toc-entry] {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  border-left: 3px solid transparent;
+  padding: 6px 10px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.p-example [data-presentation-toc-entry][data-presentation-active='true'] {
+  color: var(--ink);
+  font-weight: 700;
+  border-left-color: var(--accent);
+  background: rgba(230, 199, 107, 0.14);
+}
+
+.p-example [data-presentation-attribution] {
+  right: 28px;
+  bottom: 12px;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+}
+
+/* Scene entities */
+.p-example [data-presentation-node] {
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.p-example [data-presentation-node='box'] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: #1f1c17;
+  text-align: center;
+}
+
+.p-example [data-presentation-node='symbol-chip'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #2a261e;
+}
+
+.p-example [data-presentation-glyph] {
+  width: 16px;
+  height: 16px;
+}
+
+.p-example [data-presentation-arrow-line] {
+  stroke: var(--muted);
+  stroke-width: 1.8;
+}
+
+.p-example [data-presentation-arrow-head] {
+  fill: var(--muted);
+}

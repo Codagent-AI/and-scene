@@ -1,0 +1,9 @@
+/* Host/app CSS. The scene kit and this scaffold ship no visual defaults:
+   colors, fonts and spacing belong to each presentation. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

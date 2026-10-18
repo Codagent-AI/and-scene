@@ -130,7 +130,7 @@ describe('mode-specific chrome in a real browser', () => {
       }
       return Math.min(...sizes)
     })
-    expect(smallest).toBeGreaterThanOrEqual(5)
+    expect(smallest).toBeGreaterThanOrEqual(6)
     await narrow.close()
   })
 

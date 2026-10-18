@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 describe('reference sample legibility', () => {
   it('keeps in-canvas diagram text large enough to stay legible when the canvas scales down', () => {
     // The 880 x 380 canvas is scaled to about 0.39 on a 390 px wide viewport, so canvas text
-    // below 14 px would render at roughly 5 px there.
+    // below 16 px would render at roughly 6 px there.
     const css = readFileSync(
       join(__dirname, '..', '..', 'src/presentations/how-to-make-a-presentation/style.css'),
       'utf8',
@@ -15,7 +15,7 @@ describe('reference sample legibility', () => {
     expect(sizes.length).toBeGreaterThan(0)
     for (const [, value, unit] of sizes) {
       expect(unit).toBe('px')
-      expect(Number(value)).toBeGreaterThanOrEqual(14)
+      expect(Number(value)).toBeGreaterThanOrEqual(16)
     }
   })
 })

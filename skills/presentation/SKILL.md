@@ -58,7 +58,9 @@ re-scaffolding.
 Decide what to do from what is present:
 
 - **All three present** (including when you are already inside a presentation app): skip scaffolding.
-- **None present** in an empty directory: full scaffold.
+- **None present** (an empty directory, or a non-empty project that has none of the anchors): full
+  scaffold of all three anchors and their dependencies before creating the presentation. In a
+  non-empty project, confirm the target first (below).
 - **Some present**: scaffold only the missing anchors and their dependencies. Do not rewrite,
   reformat or "refresh" anchors that already exist.
 
@@ -94,8 +96,8 @@ Make it a self-contained folder reachable at its own route:
    suffix and replacing `__SLUG__`, `__TITLE__` and `__CLASS__` (a CSS class for scoping).
 2. Fill `entities.ts` (the presentation's `layoutId` namespace: one stable id per entity),
    `steps/narration.ts` (id, era, title, caption per step) and `steps/Scene.tsx` (compose the kit's
-   `Box`, `Label`, `Arrow`, `Frame`, `Emphasis`, `SymbolChip`, wrapping newcomers in `Appear` inside a
-   `SceneLayer`). Use raw `motion` elements with a stable `layoutId` when a primitive is the wrong
+   `Box`, `Label`, `Arrow`, `Frame`, `Emphasis`, `SymbolChip`, inside a `SceneLayer`; give each
+   primitive `enter` only in the step that introduces it). Use raw `motion` elements with a stable `layoutId` when a primitive is the wrong
    shape or the diagram is coordinate-heavy.
 3. Register it with **one** new entry in `src/presentations/index.ts` (see
    `registry-entry.txt.tmpl`). Do not reorder or edit existing entries; existing presentations must
@@ -107,10 +109,13 @@ Scene rules that make morphs clean:
 
 - Steps that are successive states of one diagram share a `groupKey` and the same `Scene`: the scene
   instance persists and only `payload` changes. A step with a different group or `Scene` cross-fades.
-- Keep one `Appear` per entity across steps; never add or remove the wrapper when an entity continues.
-  Continuing entities must not fade in again.
+- Pass `enter` to a primitive only in the step that introduces its entity. Continuing entities get no
+  `enter` (and no wrapper), so they morph through their `layoutId` and never fade in again. Do not wrap
+  an entity in `Appear` in some steps and not others: adding or removing a wrapper remounts it.
 - Compose in the fixed 880 × 380 design canvas. Intentional overlaps are fine, but keep them readable
-  and mark the subtree with `data-presentation-allow-overlap` only when the overlap is deliberate.
+  and mark every element involved (or the subtree containing all of them) with
+  `data-presentation-allow-overlap` only when the overlap is deliberate; a collision between a marked
+  element and an unmarked one is still reported.
 - Style the active progress/ToC state (`[data-presentation-active]`) so it is visibly distinct, and
   style the attribution link (`[data-presentation-attribution]`) so it is legible and intentional.
 

@@ -1,19 +1,30 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { APPEAR_ANIMATE, APPEAR_EXIT, APPEAR_INITIAL } from './motion'
 
 /**
- * Fades a newcomer in after persisting entities have finished their layout morph.
- * The animation runs on mount only, so an entity that keeps its place in the tree is never
- * re-faded. Keep one `Appear` per entity across steps; do not add or remove the wrapper.
+ * Fades arbitrary newcomer content (for example a raw `motion` element) in after persisting
+ * entities have finished their layout morph. Primitives take `enter` instead, which needs no
+ * wrapper: use `Appear` only around content that has no `enter` prop, and only in the step that
+ * introduces it, since adding or removing a wrapper remounts what it wraps.
  */
-export function Appear({ children }: { children: ReactNode }) {
+export function Appear({
+  children,
+  className,
+  style,
+}: {
+  children: ReactNode
+  className?: string
+  /** Author-owned style; wins over the kit's positioning. */
+  style?: CSSProperties
+}) {
   return (
     <motion.div
       initial={APPEAR_INITIAL}
       animate={APPEAR_ANIMATE}
       exit={APPEAR_EXIT}
-      style={{ position: 'absolute', inset: 0 }}
+      className={className}
+      style={{ position: 'absolute', inset: 0, ...style }}
       data-presentation-appear=""
     >
       {children}

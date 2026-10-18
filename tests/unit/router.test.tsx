@@ -20,7 +20,7 @@ describe('Router', () => {
     { slug: 'beta', title: 'Beta Talk', load: () => beta.promise },
   ]
 
-  it.each(['/', '', '//', '/nope', '/alpha/extra', '/ALPHA'])('shows Landing for %j', (path) => {
+  it.each(['/', '', '//', '/nope', '/alpha/extra', '/ALPHA', '/%', '/%E0%A4%A', '/alpha%'])('shows Landing for %j', (path) => {
     render(<Router pathname={path} registry={registry} />)
     expect(document.querySelector('[data-landing-list]')).not.toBeNull()
     expect(document.querySelector('[data-route-loading]')).toBeNull()

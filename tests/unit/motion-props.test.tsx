@@ -19,7 +19,7 @@ vi.mock('motion/react', () => {
       )
     }
   return {
-    motion: { div: make('div'), svg: make('svg') },
+    motion: { div: make('div'), svg: make('svg'), path: make('path'), polygon: make('polygon') },
     AnimatePresence: ({ children }: { children: ReactNode }) => {
       presenceChildren.push(children)
       return <>{children}</>
@@ -42,6 +42,36 @@ describe('motion wiring', () => {
     seen.length = 0
     render(<Arrow id="arr" from={[0, 0]} to={[10, 10]} />)
     expect(seen.find((p) => p.layoutId === 'arr')!.layout).toBe(true)
+  })
+
+  it('gives only the introducing step a newcomer fade; continuing entities carry none of it', () => {
+    seen.length = 0
+    render(<Box id="new" enter label="x" />)
+    const fresh = seen.find((p) => p.layoutId === 'new')!
+    expect(fresh.initial).toEqual({ opacity: 0 })
+    const animate = fresh.animate as { opacity: number; transition: { delay: number } }
+    expect(animate.transition.delay).toBeGreaterThanOrEqual(LAYOUT_T)
+    seen.length = 0
+    render(<Box id="old" label="x" />)
+    const old = seen.find((p) => p.layoutId === 'old')!
+    expect(old.initial).toBeUndefined()
+    expect(old.animate).toEqual({ opacity: 1 })
+    seen.length = 0
+    render(<Arrow id="arr-old" from={[0, 0]} to={[1, 1]} />)
+    expect(seen.find((p) => p.layoutId === 'arr-old')!.initial).toBeUndefined()
+    render(<Arrow id="arr-new" from={[0, 0]} to={[1, 1]} enter />)
+    expect(seen.find((p) => p.layoutId === 'arr-new')!.initial).toEqual({ opacity: 0 })
+  })
+
+  it('animates arrow endpoints and bend instead of snapping them', () => {
+    seen.length = 0
+    render(<Arrow id="geo" from={[0, 0]} to={[100, 0]} bend={10} bidirectional />)
+    const path = seen.find((p) => p.tag === 'path')!
+    expect(path.animate).toEqual({ d: path.d })
+    expect(path.transition).toMatchObject({ duration: LAYOUT_T })
+    const heads = seen.filter((p) => p.tag === 'polygon')
+    expect(heads).toHaveLength(2)
+    for (const h of heads) expect(h.animate).toEqual({ points: h.points })
   })
 
   it('makes newcomers enter only after the layout morph has finished', () => {

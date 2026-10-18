@@ -3,7 +3,13 @@ import type { PresentationEntry } from './presentations'
 
 /** Registry entry for a pathname; `/` and unknown paths match nothing. */
 export function findEntry(pathname: string, registry: readonly PresentationEntry[]) {
-  const slug = decodeURIComponent(pathname).replace(/^\/+|\/+$/g, '')
+  let path = pathname
+  try {
+    path = decodeURIComponent(pathname)
+  } catch {
+    // Malformed percent-encoding cannot name a registered slug: treat it as an unknown path.
+  }
+  const slug = path.replace(/^\/+|\/+$/g, '')
   return slug ? registry.find((entry) => entry.slug === slug) : undefined
 }
 

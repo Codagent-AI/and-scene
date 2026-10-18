@@ -136,9 +136,20 @@ describe('renderRoute', () => {
     const early = scripted({ count: 3 })
     early.errors.push('console.error: at startup')
     await expect(verify.renderRoute(early.page, 'u', 's', undefined, early.errors)).rejects.toMatchObject({ step: 0 })
+    // An error that surfaces while the final step is being read must still fail that step.
     const late = scripted({ count: 3 })
-    const failing = { ...late.page, evaluate: async () => (late.errors.push('uncaught error: late'), { index: 2 }) }
-    await expect(verify.renderRoute(failing, 'u', 's', undefined, late.errors)).rejects.toThrow('uncaught error: late')
+    let reads = 0
+    const failing = {
+      ...late.page,
+      evaluate: async () => {
+        if (reads++ === 2) late.errors.push('uncaught error: during final read')
+        return { index: reads - 1 }
+      },
+    }
+    await expect(verify.renderRoute(failing, 'u', 's', undefined, late.errors)).rejects.toMatchObject({
+      step: 2,
+      message: expect.stringContaining('during final read'),
+    })
   })
   it('fails when the observed narration differs from the required steps', async () => {
     const { page, errors } = scripted({ count: 2 })
@@ -151,6 +162,9 @@ describe('renderRoute', () => {
   it('fails when the step count differs from the required steps', async () => {
     const { page, errors } = scripted({ count: 2 })
     await expect(verify.renderRoute(page, 'u', 's', [{ era: 'e', title: 't', caption: 'c' }], errors)).rejects.toThrow('expected 1 steps, found 2')
+  })
+  it('dwells longer than a full transition before reading each step', () => {
+    expect(verify.SETTLE_MS).toBeGreaterThan((0.6 + 0.65 + 0.4) * 1000)
   })
   it('requires the browser to stay on 127.0.0.1', async () => {
     const { page, errors } = scripted({ count: 2, host: 'localhost' })

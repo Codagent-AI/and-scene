@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { EXIT_TRANSITION, LAYOUT_TRANSITION, geometry } from './motion'
+import { EXIT_TRANSITION, LAYOUT_TRANSITION, enterProps, geometry } from './motion'
 
 /** Props every scene primitive accepts: stable identity, optional geometry, and style hooks. */
 export interface NodeProps {
@@ -17,6 +17,8 @@ export interface NodeProps {
   children?: ReactNode
   /** Extra `data-*` hooks for presentation CSS, e.g. `{ 'data-variant': 'ghost' }`. */
   hooks?: Record<`data-${string}`, string | undefined>
+  /** True only in the step that introduces the entity: it fades in once the morph has settled. */
+  enter?: boolean
 }
 
 /** Shared shell: a Motion element whose `layoutId` makes persisting entities morph in place. */
@@ -34,6 +36,7 @@ export function NodeShell({
     <motion.div
       layout
       layoutId={id}
+      {...enterProps(props.enter)}
       transition={{ layout: LAYOUT_TRANSITION }}
       exit={{ opacity: 0, transition: EXIT_TRANSITION }}
       className={className}

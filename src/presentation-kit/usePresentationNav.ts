@@ -23,8 +23,9 @@ export function usePresentationNav(count: number, initialMode: Mode = 'browse'):
   const index = Math.min(rawIndex, last)
 
   const goTo = useCallback((i: number) => setIndex(Math.min(last, Math.max(0, i))), [last])
-  const next = useCallback(() => setIndex((i) => Math.min(last, i + 1)), [last])
-  const prev = useCallback(() => setIndex((i) => Math.max(0, i - 1)), [])
+  // Step from the displayed index, which is clamped when the step list has shrunk.
+  const next = useCallback(() => setIndex((i) => Math.min(last, Math.min(i, last) + 1)), [last])
+  const prev = useCallback(() => setIndex((i) => Math.max(0, Math.min(i, last) - 1)), [last])
   const toggleMode = useCallback(() => setMode((m) => (m === 'browse' ? 'present' : 'browse')), [])
 
   useEffect(() => {

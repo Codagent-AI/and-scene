@@ -12,6 +12,19 @@ export const APPEAR_ANIMATE = {
 }
 export const APPEAR_EXIT = { opacity: 0, transition: { duration: EXIT_T, ease: EASE } }
 
+/** Present state for entities that were already on screen: no newcomer initial value or delay. */
+export const PRESENT_ANIMATE = { opacity: 1 }
+
+/**
+ * Motion props for an entity: a newcomer starts hidden and fades in after the layout morph;
+ * a continuing entity carries none of that, so it only morphs through its `layoutId`.
+ */
+export function enterProps(enter: boolean | undefined) {
+  return enter
+    ? { initial: APPEAR_INITIAL, animate: APPEAR_ANIMATE }
+    : { animate: PRESENT_ANIMATE }
+}
+
 /** Absolute canvas geometry for a node; empty when no coordinates were given. */
 export function geometry({ x, y, width, height }: NodeProps): CSSProperties {
   const g: CSSProperties = {}

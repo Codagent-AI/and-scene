@@ -1,4 +1,4 @@
-import { Appear, Box, Label, SceneLayer, type SceneProps } from '../../../presentation-kit'
+import { Box, Label, SceneLayer, type SceneProps } from '../../../presentation-kit'
 import { ENTITIES } from '../entities'
 
 export interface ScenePayload {
@@ -8,21 +8,19 @@ export interface ScenePayload {
 
 /**
  * The single evolving scene. Every step renders this same instance with a new payload, so entities
- * already on screen stay mounted (and morph in place); only newcomers fade in through `Appear`.
+ * already on screen stay mounted (and morph in place); only the step's newcomers (`enter`) fade in.
  */
 export function Scene({ payload }: SceneProps<ScenePayload>) {
   return (
     <SceneLayer>
       {ENTITIES.filter((e) => e.appearsAt <= payload.step).map((e) => (
-        <Appear key={e.id}>
-          {e.kind === 'box' ? (
-            <Box id={e.id} x={e.x} y={e.y} width={e.width} height={e.height} label={e.text} />
-          ) : (
-            <Label id={e.id} x={e.x} y={e.y} width={e.width} height={e.height}>
-              {e.text}
-            </Label>
-          )}
-        </Appear>
+        e.kind === 'box' ? (
+          <Box key={e.id} id={e.id} enter={e.appearsAt === payload.step} x={e.x} y={e.y} width={e.width} height={e.height} label={e.text} />
+        ) : (
+          <Label key={e.id} id={e.id} enter={e.appearsAt === payload.step} x={e.x} y={e.y} width={e.width} height={e.height}>
+            {e.text}
+          </Label>
+        )
       ))}
     </SceneLayer>
   )

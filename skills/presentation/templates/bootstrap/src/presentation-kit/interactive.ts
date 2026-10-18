@@ -5,8 +5,7 @@ const INTERACTIVE_SELECTOR = [
   'select',
   'textarea',
   'summary',
-  '[contenteditable=""]',
-  '[contenteditable="true"]',
+  '[contenteditable]:not([contenteditable="false"])',
   '[role="button"]',
   '[role="link"]',
   '[role="checkbox"]',
@@ -19,6 +18,12 @@ const INTERACTIVE_SELECTOR = [
   '[role="spinbutton"]',
   '[role="textbox"]',
   '[role="combobox"]',
+  '[role="searchbox"]',
+  '[role="listbox"]',
+  '[role="menuitemcheckbox"]',
+  '[role="menuitemradio"]',
+  '[role="treeitem"]',
+  '[role="gridcell"]',
 ].join(',')
 
 /** True when the element (or an ancestor) is a control that owns its own keys. */

@@ -80,6 +80,14 @@ describe('primitives', () => {
     expect(layer.querySelector('[data-presentation-appear]')).not.toBeNull()
   })
 
+  it('appear passes class and author style through, with author style winning', () => {
+    render(<Appear className="enter" style={{ inset: 'auto', left: 7 }}><i /></Appear>)
+    const el = q('[data-presentation-appear]')
+    expect(el.className).toBe('enter')
+    expect(el.style.left).toBe('7px')
+    expect(el.style.position).toBe('absolute')
+  })
+
   it('passes overlapping geometry through unchanged', () => {
     render(
       <SceneLayer>

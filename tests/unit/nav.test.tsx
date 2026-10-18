@@ -17,6 +17,9 @@ function Probe({ count = 5, initialMode }: { count?: number; initialMode?: 'brow
       <details><summary>sum</summary></details>
       <div contentEditable suppressContentEditableWarning data-testid="ce">edit</div>
       <div role="button" tabIndex={0} data-testid="role-button"><span data-testid="nested">x</span></div>
+      <div role="searchbox" tabIndex={0} data-testid="searchbox" />
+      <div role="listbox" tabIndex={0} data-testid="listbox" />
+      <div contentEditable="plaintext-only" suppressContentEditableWarning data-testid="plain-ce">edit</div>
       <button onClick={() => nav.goTo(99)}>far</button>
     </div>
   )
@@ -130,6 +133,9 @@ describe.each([
       screen.getByTestId('ce'),
       screen.getByTestId('nested'),
       screen.getByTestId('role-button'),
+      screen.getByTestId('searchbox'),
+      screen.getByTestId('listbox'),
+      screen.getByTestId('plain-ce'),
     ]
     for (const el of targets) {
       for (const key of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'p']) {

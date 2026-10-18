@@ -24,5 +24,7 @@ export function sceneKey(step: AnyStep): string {
     id = nextSceneId++
     sceneIds.set(step.Scene, id)
   }
-  return `${step.groupKey ?? step.id}#${id}`
+  // Namespaced so a group key can never collide with an ungrouped step's id.
+  const identity = step.groupKey === undefined ? `step:${step.id}` : `group:${step.groupKey}`
+  return `${identity}#${id}`
 }

@@ -28,8 +28,11 @@ const intersects = (a, b) =>
   Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) >= MIN_OVERLAP_PX &&
   Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) >= MIN_OVERLAP_PX
 
+/** A chrome box naturally surrounds its own content; two text runs that overlap never do. */
+const containsAsBox = (outer, inner) => outer.kind === 'chrome' && inner.ancestors.includes(outer.id)
+
 /**
- * @param {{ id: number, desc: string, rect: {x:number,y:number,w:number,h:number}, allow: boolean, ancestors: number[] }[]} items
+ * @param {{ id: number, kind: 'text' | 'chrome', desc: string, rect: {x:number,y:number,w:number,h:number}, allow: boolean, ancestors: number[] }[]} items
  * Visible text and chrome boxes. `ancestors` lists the ids of items that contain this one in the DOM.
  */
 export function findOverlaps(items) {
@@ -39,8 +42,9 @@ export function findOverlaps(items) {
     for (let b = a + 1; b < visible.length; b++) {
       const p = visible[a]
       const q = visible[b]
-      if (p.allow || q.allow) continue
-      if (p.ancestors.includes(q.id) || q.ancestors.includes(p.id)) continue
+      // Exempt only when both sides are marked: a marked element can still collide with unmarked chrome.
+      if (p.allow && q.allow) continue
+      if (containsAsBox(p, q) || containsAsBox(q, p)) continue
       if (intersects(p.rect, q.rect)) found.push(`${p.desc} overlaps ${q.desc}`)
     }
   }
@@ -49,7 +53,13 @@ export function findOverlaps(items) {
 
 /** True when the active control looks exactly like its inactive siblings. */
 export function isIndistinct(active, inactive) {
-  return STYLE_KEYS.every((k) => active[k] === inactive[k])
+  return STYLE_KEYS.every((k) => paints(active, k) === paints(inactive, k))
+}
+
+// A style value only counts if it paints something: border colour needs a border width.
+function paints(style, key) {
+  if (key === 'borderTopColor' && !(parseFloat(style.borderTopWidth) > 0)) return ''
+  return style[key]
 }
 
 /** @returns {string | null} a warning message, or null when the attribution is fine */
@@ -127,11 +137,12 @@ export function collectSnapshot(cfg) {
   const items = []
   const elements = []
   for (const el of document.body.querySelectorAll('*')) {
-    if (el.closest('svg') || !shown(el)) continue
+    if (!shown(el)) continue
     const box = el.getBoundingClientRect()
-    const rect = el.matches(CHROME) ? { x: box.left, y: box.top, w: box.width, h: box.height } : ownTextRect(el)
+    const chrome = el.matches(CHROME)
+    const rect = chrome ? { x: box.left, y: box.top, w: box.width, h: box.height } : ownTextRect(el)
     if (!rect) continue
-    items.push({ id: items.length, desc: describe(el), rect, allow: el.closest(`[${cfg.allowAttr}]`) !== null, ancestors: [] })
+    items.push({ id: items.length, kind: chrome ? 'chrome' : 'text', desc: describe(el), rect, allow: el.closest(`[${cfg.allowAttr}]`) !== null, ancestors: [] })
     elements.push(el)
   }
   items.forEach((item, i) => {

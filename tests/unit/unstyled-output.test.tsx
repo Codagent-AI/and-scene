@@ -25,7 +25,7 @@ describe('rendered kit output without presentation CSS', () => {
       <>
         <Presentation steps={makeDeck()} title="Deck" />
         <SceneLayer>
-          <Appear key="a"><Box id="a" x={1} y={2} width={3} height={4} Icon={Check} label="x" /></Appear>
+          <Appear key="a"><Box id="a" enter x={1} y={2} width={3} height={4} Icon={Check} label="x" /></Appear>
           <Label key="b" id="b" x={1} y={2}>b</Label>
           <Frame key="c" id="c" x={1} y={2} width={3} height={4} />
           <Emphasis key="d" id="d" x={1} y={2} width={3} height={4} />

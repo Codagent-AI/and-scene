@@ -1,8 +1,11 @@
 import { motion } from 'motion/react'
-import { EXIT_TRANSITION, LAYOUT_TRANSITION } from './motion'
+import { EXIT_TRANSITION, LAYOUT_TRANSITION, enterProps } from './motion'
+
+// Endpoints and bend are SVG attributes, so they are interpolated explicitly rather than snapping.
+const GEOMETRY_TRANSITION = LAYOUT_TRANSITION
 import type { NodeProps } from './node'
 
-export interface ArrowProps extends Pick<NodeProps, 'id' | 'className' | 'style' | 'hooks'> {
+export interface ArrowProps extends Pick<NodeProps, 'id' | 'className' | 'style' | 'hooks' | 'enter'> {
   /** Endpoints in canvas coordinates. */
   from: readonly [number, number]
   to: readonly [number, number]
@@ -35,6 +38,7 @@ export function Arrow({
   className,
   style,
   hooks,
+  enter,
 }: ArrowProps) {
   const mx = (from[0] + to[0]) / 2
   const my = (from[1] + to[1]) / 2
@@ -44,10 +48,13 @@ export function Arrow({
   const d = `M${from[0]},${from[1]} Q${cx},${cy} ${to[0]},${to[1]}`
   const startToward: readonly [number, number] = bend ? [cx, cy] : to
   const endFrom: readonly [number, number] = bend ? [cx, cy] : from
+  const endHead = head(to, endFrom, headSize)
+  const startHead = head(from, startToward, headSize)
   return (
     <motion.svg
       layout
       layoutId={id}
+      {...enterProps(enter)}
       transition={{ layout: LAYOUT_TRANSITION }}
       exit={{ opacity: 0, transition: EXIT_TRANSITION }}
       className={className}
@@ -56,10 +63,20 @@ export function Arrow({
       data-presentation-entity={id}
       {...hooks}
     >
-      <path d={d} fill="none" data-presentation-arrow-line="" />
-      <polygon points={head(to, endFrom, headSize)} data-presentation-arrow-head="end" />
+      <motion.path d={d} animate={{ d }} transition={GEOMETRY_TRANSITION} fill="none" data-presentation-arrow-line="" />
+      <motion.polygon
+        points={endHead}
+        animate={{ points: endHead }}
+        transition={GEOMETRY_TRANSITION}
+        data-presentation-arrow-head="end"
+      />
       {bidirectional && (
-        <polygon points={head(from, startToward, headSize)} data-presentation-arrow-head="start" />
+        <motion.polygon
+          points={startHead}
+          animate={{ points: startHead }}
+          transition={GEOMETRY_TRANSITION}
+          data-presentation-arrow-head="start"
+        />
       )}
     </motion.svg>
   )

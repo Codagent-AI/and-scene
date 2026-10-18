@@ -106,6 +106,17 @@ describe('INT-002: screenshot helper', () => {
     expect(exits['fx-collision']).toBe(0)
   })
 
+  it('reports overlapping SVG text, and text overlapping text inside its own ancestor', () => {
+    const svg = warnings('fx-svg-text', 'overlap')
+    expect(svg.length).toBeGreaterThan(0)
+    expect(svg[0].message).toContain('Svg text')
+    expect(svg[0].message).toContain('Plain text')
+    const nested = warnings('fx-nested-text', 'overlap')
+    expect(nested.length).toBeGreaterThan(0)
+    expect(nested[0].message).toContain('Child text')
+    expect(nested[0].message).toContain('Parent text')
+  })
+
   it('does not warn about an overlap inside an explicit allow-overlap marker', () => {
     expect(warnings('fx-allowed')).toEqual([])
   })

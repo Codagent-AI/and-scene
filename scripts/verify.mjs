@@ -8,7 +8,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { HOST, PhaseError, runBuild, startPreview } from './lib/preview.mjs'
 
 export const STEP_TIMEOUT_MS = 5000
-export const SETTLE_MS = 400
+/** Longer than a full transition: layout morph (0.6s) + newcomer delay (0.65s) + fade (0.4s) + margin. */
+export const SETTLE_MS = 1900
 const CONFIG_FILE = 'verify.config.json'
 
 /** @param {unknown} config @returns {{ presentations: { slug: string, title?: string, steps?: { era: string, title: string, caption: string }[] }[] }} */
@@ -116,8 +117,10 @@ export async function renderRoute(page, url, slug, expectedSteps, errors) {
       }
     }
     await settle(page)
+    const observed = await readStep(page)
+    // Check after the last read as well: errors can surface while the step is being read.
     if (errors.length) throw fail(errors[0], i)
-    const mismatch = compareStep(expectedSteps?.[i], await readStep(page), i)
+    const mismatch = compareStep(expectedSteps?.[i], observed, i)
     if (mismatch) throw fail(mismatch, i)
   }
   return count

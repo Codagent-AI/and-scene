@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, beforeEach } from 'vitest'
-import { Appear, Box, Presentation, SceneLayer, type SceneProps, type Step } from '../../src/presentation-kit'
+import { Box, Presentation, SceneLayer, type SceneProps, type Step } from '../../src/presentation-kit'
 import { CountingScene, makeDeck, mounts, resetMounts } from '../support/deck'
 
 const key = (k: string) => act(() => void window.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })))
@@ -41,6 +41,17 @@ describe('grouped scenes', () => {
     expect(scenes()[0]).toBe(e)
   })
 
+  it('does not let a group key collide with an ungrouped step id', async () => {
+    const steps: Step<{ label: string }>[] = [
+      { id: 'one', era: 'e', title: 't', caption: 'c', Scene: CountingScene, groupKey: 'g', payload: { label: 'grouped' } },
+      { id: 'g', era: 'e', title: 't', caption: 'c', Scene: CountingScene, payload: { label: 'ungrouped' } },
+    ]
+    render(<Presentation steps={steps} title="T" />)
+    key('ArrowRight')
+    await waitFor(() => expect(mounts.unmounts).toBe(1))
+    expect(mounts.scene).toBe(2)
+  })
+
   it('treats a different Scene under the same groupKey as a new instance', async () => {
     function Alt({ payload }: SceneProps<{ label: string }>) {
       return <p data-testid="scene-payload">{payload.label}</p>
@@ -69,21 +80,19 @@ describe('grouped scenes', () => {
 })
 
 describe('entities inside a persistent scene', () => {
-  function Scene({ payload }: SceneProps<{ ids: string[] }>) {
+  function Scene({ payload }: SceneProps<{ ids: string[]; fresh: string[] }>) {
     return (
       <SceneLayer>
         {payload.ids.map((id) => (
-          <Appear key={id}>
-            <Box id={id} x={10} y={10} width={20} height={20} label={id} />
-          </Appear>
+          <Box key={id} id={id} enter={payload.fresh.includes(id)} x={10} y={10} width={20} height={20} label={id} />
         ))}
       </SceneLayer>
     )
   }
-  const steps: Step<{ ids: string[] }>[] = [
-    { id: '1', era: 'e', title: 't1', caption: 'c', Scene, groupKey: 'g', payload: { ids: ['a', 'b'] } },
-    { id: '2', era: 'e', title: 't2', caption: 'c', Scene, groupKey: 'g', payload: { ids: ['a', 'b', 'c'] } },
-    { id: '3', era: 'e', title: 't3', caption: 'c', Scene, groupKey: 'g', payload: { ids: ['a', 'c'] } },
+  const steps: Step<{ ids: string[]; fresh: string[] }>[] = [
+    { id: '1', era: 'e', title: 't1', caption: 'c', Scene, groupKey: 'g', payload: { ids: ['a', 'b'], fresh: ['a', 'b'] } },
+    { id: '2', era: 'e', title: 't2', caption: 'c', Scene, groupKey: 'g', payload: { ids: ['a', 'b', 'c'], fresh: ['c'] } },
+    { id: '3', era: 'e', title: 't3', caption: 'c', Scene, groupKey: 'g', payload: { ids: ['a', 'c'], fresh: [] } },
   ]
   const entity = (id: string) => document.querySelector(`[data-presentation-entity="${id}"]`)
 

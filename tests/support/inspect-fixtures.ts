@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-export type Overlap = 'none' | 'unmarked' | 'allowed' | 'mixed'
+export type Overlap = 'none' | 'unmarked' | 'allowed' | 'mixed' | 'svg' | 'nested'
 export interface Variant {
   slug: string
   overlap: Overlap
@@ -14,6 +14,8 @@ export const VARIANTS: Variant[] = [
   { slug: 'fx-collision', overlap: 'unmarked', polish: ['fx-active', 'fx-attr'] },
   { slug: 'fx-allowed', overlap: 'allowed', polish: ['fx-active', 'fx-attr'] },
   { slug: 'fx-mixed', overlap: 'mixed', polish: ['fx-active', 'fx-attr'] },
+  { slug: 'fx-svg-text', overlap: 'svg', polish: ['fx-active', 'fx-attr'] },
+  { slug: 'fx-nested-text', overlap: 'nested', polish: ['fx-active', 'fx-attr'] },
   { slug: 'fx-indistinct', overlap: 'none', polish: ['fx-attr'] },
   { slug: 'fx-attr-default', overlap: 'none', polish: ['fx-active'] },
   { slug: 'fx-attr-tiny', overlap: 'none', polish: ['fx-active', 'fx-attr-tiny'] },
@@ -33,14 +35,19 @@ const FIXTURE_CSS = `
 
 function talk(v: Variant) {
   const pair = (a: string, b: string, y: number, props: string) => `
-          <Appear key="${a}"><Label id="${a}" x={40} y={${y}} width={300} height={30} ${props}>${a} text</Label></Appear>
-          <Appear key="${b}"><Label id="${b}" x={60} y={${y + 8}} width={300} height={30} ${props}>${b} text</Label></Appear>`
+          <Label key="${a}" id="${a}" enter={payload.step === 2} x={40} y={${y}} width={300} height={30} ${props}>${a} text</Label>
+          <Label key="${b}" id="${b}" enter={payload.step === 2} x={60} y={${y + 8}} width={300} height={30} ${props}>${b} text</Label>`
   const overlap =
     v.overlap === 'unmarked' ? pair('Alpha', 'Beta', 100, '')
     : v.overlap === 'allowed' ? pair('Alpha', 'Beta', 100, `hooks={${ALLOW}}`)
     : v.overlap === 'mixed' ? pair('Alpha', 'Beta', 100, `hooks={${ALLOW}}`) + pair('Gamma', 'Delta', 200, '')
+    : v.overlap === 'svg' ? `
+          <Label key="Plain" id="Plain" enter={payload.step === 2} x={40} y={100} width={300} height={30}>Plain text</Label>
+          <svg key="Svg" style={{ position: 'absolute', left: 0, top: 0, width: 400, height: 200 }}><text x={50} y={118}>Svg text</text></svg>`
+    : v.overlap === 'nested' ? `
+          <Label key="Parent" id="Parent" enter={payload.step === 2} x={40} y={100} width={300} height={30}>Parent text<span style={{ position: 'absolute', left: 4, top: 2 }}>Child text</span></Label>`
     : ''
-  return `import { Appear, Label, Presentation, SceneLayer, type SceneProps, type Step } from '../../presentation-kit'
+  return `import { Label, Presentation, SceneLayer, type SceneProps, type Step } from '../../presentation-kit'
 import './fixture.css'
 
 interface Payload { step: number }
@@ -48,7 +55,7 @@ interface Payload { step: number }
 function FxScene({ payload }: SceneProps<Payload>) {
   return (
     <SceneLayer>
-      <Appear key="intro"><Label id="intro" x={40} y={20} width={300} height={30}>Intro line</Label></Appear>
+      <Label key="intro" id="intro" enter={payload.step === 1} x={40} y={20} width={300} height={30}>Intro line</Label>
       {payload.step >= 2 && (<>${overlap}
       </>)}
       <div key={'late-' + payload.step} className="late-marker" />

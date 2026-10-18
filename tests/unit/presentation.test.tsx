@@ -66,6 +66,18 @@ describe('step model', () => {
     expect(root().dataset.stepCount).toBe('3')
     expect(document.querySelectorAll('[data-step-count]')).toHaveLength(1)
   })
+
+  it('keeps navigating from the displayed step after the step list shrinks', () => {
+    const { rerender } = show()
+    fireEvent.click(screen.getByLabelText('Step 06: Title f'))
+    rerender(<Presentation steps={makeDeck().slice(0, 3)} title="Deck" />)
+    expect(idx()).toBe('2')
+    key('ArrowLeft')
+    expect(idx()).toBe('1')
+    key('ArrowRight')
+    key('ArrowRight')
+    expect(idx()).toBe('2')
+  })
 })
 
 describe('modes', () => {

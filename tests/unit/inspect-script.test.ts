@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { ENTER_DELAY, ENTER_T, LAYOUT_T } from '../../src/presentation-kit'
 import * as inspect from '../../scripts/inspect-presentation.mjs'
 
-type Item = { id: number; desc: string; rect: { x: number; y: number; w: number; h: number }; allow: boolean; ancestors: number[] }
+type Item = { id: number; kind: 'text' | 'chrome'; desc: string; rect: { x: number; y: number; w: number; h: number }; allow: boolean; ancestors: number[] }
 const item = (id: number, x: number, y: number, w: number, h: number, extra: Partial<Item> = {}): Item => ({
-  id, desc: `item${id}`, rect: { x, y, w, h }, allow: false, ancestors: [], ...extra,
+  id, kind: 'text', desc: `item${id}`, rect: { x, y, w, h }, allow: false, ancestors: [], ...extra,
 })
 
 describe('findOverlaps', () => {
@@ -15,15 +15,20 @@ describe('findOverlaps', () => {
   it('ignores disjoint, touching and barely grazing boxes', () => {
     expect(inspect.findOverlaps([item(0, 0, 0, 100, 20), item(1, 0, 40, 100, 20), item(2, 100, 0, 50, 20), item(3, -49, 0, 50, 20)])).toEqual([])
   })
-  it('ignores a container and the item it contains', () => {
-    const parent = item(0, 0, 0, 200, 50)
+  it('ignores a chrome box and the content inside it', () => {
+    const parent = item(0, 0, 0, 200, 50, { kind: 'chrome' })
     const child = item(1, 10, 10, 50, 20, { ancestors: [0] })
     expect(inspect.findOverlaps([parent, child])).toEqual([])
+  })
+  it('reports separately painted text that overlaps text in an ancestor element', () => {
+    const parent = item(0, 0, 0, 200, 20)
+    const child = item(1, 10, 4, 80, 14, { ancestors: [0] })
+    expect(inspect.findOverlaps([parent, child])).toEqual(['item0 overlaps item1'])
   })
   it('ignores hidden and zero-size boxes', () => {
     expect(inspect.findOverlaps([item(0, 0, 0, 100, 20), item(1, 10, 5, 0, 0), item(2, 10, 5, 50, 0)])).toEqual([])
   })
-  it('exempts only pairs touching an allow-overlap subtree', () => {
+  it('exempts only pairs where both sides are inside an allow-overlap subtree', () => {
     const items = [
       item(0, 0, 0, 100, 20, { allow: true }),
       item(1, 50, 5, 100, 20, { allow: true }),
@@ -32,9 +37,11 @@ describe('findOverlaps', () => {
     ]
     expect(inspect.findOverlaps(items)).toEqual(['item2 overlaps item3'])
   })
-  it('reports a chrome collision with scene text even when the scene is otherwise marked', () => {
-    const items = [item(0, 0, 0, 100, 20, { allow: true }), item(1, 0, 100, 100, 20), item(2, 10, 105, 80, 20)]
-    expect(inspect.findOverlaps(items)).toEqual(['item1 overlaps item2'])
+  it('reports a marked element colliding with unmarked chrome', () => {
+    const marked = item(0, 0, 0, 100, 20, { allow: true })
+    const chrome = item(1, 10, 5, 80, 20, { kind: 'chrome' })
+    expect(inspect.findOverlaps([marked, chrome])).toEqual(['item0 overlaps item1'])
+    expect(inspect.findOverlaps([chrome, marked])).toHaveLength(1)
   })
 })
 
@@ -43,8 +50,15 @@ describe('isIndistinct', () => {
   it('is true only when every compared style matches', () => {
     expect(inspect.isIndistinct(base, { ...base })).toBe(true)
   })
-  it.each(Object.keys(base))('is false when %s differs', (key) => {
+  it.each(Object.keys(base).filter((k) => k !== 'borderTopColor'))('is false when %s differs', (key) => {
     expect(inspect.isIndistinct({ ...base, [key]: 'other' }, base)).toBe(false)
+  })
+  it('ignores a border colour that paints nothing because the border is zero-width', () => {
+    const flat = { ...base, borderTopWidth: '0px' }
+    expect(inspect.isIndistinct({ ...flat, borderTopColor: 'red' }, flat)).toBe(true)
+  })
+  it('counts a border colour that paints a visible border', () => {
+    expect(inspect.isIndistinct({ ...base, borderTopColor: 'red' }, base)).toBe(false)
   })
 })
 

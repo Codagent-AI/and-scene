@@ -88,8 +88,9 @@ describe('overlap detection', () => {
     expect(pairs.map(([a, b]) => [a.key, b.key])).toEqual([[2, 3]])
   })
 
-  it('ignores an element nested in the other', () => {
-    expect(findOverlaps([item(1, 0, 0, 50, 50), item(2, 5, 5, 10, 10, { containedBy: [1] })])).toHaveLength(0)
+  it('reports a child element text colliding with its parent text, but not runs of one element', () => {
+    expect(findOverlaps([item(1, 0, 0, 50, 50, { owner: 1 }), item(2, 5, 5, 10, 10, { owner: 2 })])).toHaveLength(1)
+    expect(findOverlaps([item(1, 0, 0, 50, 20, { owner: 7 }), item(2, 10, 10, 50, 20, { owner: 7 })])).toHaveLength(0)
   })
 })
 

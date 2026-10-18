@@ -62,7 +62,8 @@ export function rectsOverlap(a, b) {
 
 /**
  * Pairs of visible items whose boxes intersect. Items inside an allow-overlap subtree
- * (`allowOverlap`) and items nested in one another (`containedBy`) are exempt.
+ * (`allowOverlap`) are exempt, as are text runs of the same element (`owner`), whose boxes
+ * can intersect when one run wraps. A parent's text and a child's text are distinct owners.
  */
 export function findOverlaps(items) {
   const visible = items.filter((item) => item.visible !== false && area(item.rect) > 0)
@@ -72,7 +73,7 @@ export function findOverlaps(items) {
       const a = visible[i]
       const b = visible[j]
       if (a.allowOverlap || b.allowOverlap) continue
-      if (a.containedBy?.includes(b.key) || b.containedBy?.includes(a.key)) continue
+      if (a.owner !== undefined && a.owner === b.owner) continue
       if (rectsOverlap(a.rect, b.rect)) pairs.push([a, b])
     }
   }

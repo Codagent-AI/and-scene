@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import type { CSSProperties } from 'react'
 import { motion } from 'motion/react'
 import { EASE, LAYOUT_T } from '../constants'
 import { useEnterMotion } from './useEnterMotion'
@@ -10,6 +11,7 @@ type Point = readonly [number, number]
 export interface ArrowProps extends DataAttributes {
   id: string
   className?: string
+  style?: CSSProperties
   from: Point
   to: Point
   /** Control point that bends the arrow into a quadratic curve. */
@@ -26,6 +28,7 @@ const PAD = 10
 export function Arrow({
   id,
   className,
+  style,
   from,
   to,
   via,
@@ -55,6 +58,7 @@ export function Arrow({
       {...enter}
       className={className}
       style={{
+        ...style,
         position: 'absolute',
         left,
         top,

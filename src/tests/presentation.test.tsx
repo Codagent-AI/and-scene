@@ -28,10 +28,12 @@ describe('step numbering', () => {
     press('ArrowRight')
     expect(screen.getByText('3 / 4')).toBeTruthy()
 
+    // Shrinking under a mounted deck clamps to the last step; the first backward action must then move.
     rerender(<Presentation steps={[inserted[3], inserted[0]]} title="T" />)
-    press('ArrowLeft')
-    expect(screen.getByText(/ \/ 2$/)).toBeTruthy()
+    expect(screen.getByText('2 / 2')).toBeTruthy()
     expect(root().getAttribute('data-step-count')).toBe('2')
+    press('ArrowLeft')
+    expect(screen.getByText('1 / 2')).toBeTruthy()
   })
 
   it('renders the active step narration, not stale data', () => {

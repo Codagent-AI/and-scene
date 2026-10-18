@@ -43,11 +43,12 @@ function measure() {
     return `${element.tagName.toLowerCase()}${hookText}`
   }
   const items = []
-  const elements = []
+  const owners = new Map()
   const add = (element, rect, text) => {
-    const index = elements.push(element) - 1
+    if (!owners.has(element)) owners.set(element, owners.size)
     items.push({
-      key: index,
+      key: items.length,
+      owner: owners.get(element),
       label: label(element),
       text: text?.trim().slice(0, 40),
       visible: visible(element),
@@ -55,25 +56,18 @@ function measure() {
       rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
     })
   }
+  // Every text run is its own item, so a parent's text and a positioned child's text are compared.
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-  const seen = new Set()
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     const owner = node.parentElement
     if (!owner || !node.textContent.trim() || owner.tagName === 'SCRIPT' || owner.tagName === 'STYLE') continue
     const range = document.createRange()
     range.selectNodeContents(node)
-    if (seen.has(owner)) continue
-    seen.add(owner)
     add(owner, range.getBoundingClientRect(), node.textContent)
   }
   for (const dot of root.querySelectorAll('[data-presentation-progress-dot]')) {
     add(dot, dot.getBoundingClientRect(), '')
   }
-  items.forEach((item, i) => {
-    item.containedBy = items
-      .filter((other, j) => j !== i && elements[j].contains(elements[i]))
-      .map((other) => other.key)
-  })
 
   const style = (element) => {
     const s = getComputedStyle(element)

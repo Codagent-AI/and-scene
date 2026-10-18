@@ -34,8 +34,9 @@ export function usePresentationNav(
     (target: number) => setIndex(Math.min(last, Math.max(0, target))),
     [last],
   )
-  const next = useCallback(() => setIndex((i) => Math.min(last, i + 1)), [last])
-  const prev = useCallback(() => setIndex((i) => Math.max(0, i - 1)), [])
+  // Both steps start from the clamped index: the step list can shrink under the stored one.
+  const next = useCallback(() => setIndex((i) => Math.min(last, Math.min(i, last) + 1)), [last])
+  const prev = useCallback(() => setIndex((i) => Math.max(0, Math.min(i, last) - 1)), [last])
   const toggleMode = useCallback(
     () => setMode((m) => (m === 'present' ? 'browse' : 'present')),
     [],

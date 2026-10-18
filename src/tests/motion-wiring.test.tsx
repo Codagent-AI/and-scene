@@ -199,11 +199,11 @@ describe('primitive hooks', () => {
     render(
       <SceneLayer>
         <Box key="b" id="b" className="c-b" style={{ outline: '1px solid red' }} data-x="1" Icon={Camera}>box</Box>
-        <Label key="l" id="l" className="c-l" data-x="2">label</Label>
-        <SymbolChip key="s" id="s" className="c-s" data-x="3" symbol="?" />
-        <Frame key="f" id="f" className="c-f" data-x="4" />
-        <Arrow key="a" id="a" className="c-a" data-x="5" from={[0, 0]} to={[50, 50]} bidirectional />
-        <Emphasis className="c-e" data-x="6">em</Emphasis>
+        <Label key="l" id="l" className="c-l" style={{ outline: '2px solid red' }} data-x="2">label</Label>
+        <SymbolChip key="s" id="s" className="c-s" style={{ outline: '3px solid red' }} data-x="3" symbol="?" />
+        <Frame key="f" id="f" className="c-f" style={{ outline: '4px solid red' }} data-x="4" />
+        <Arrow key="a" id="a" className="c-a" style={{ outline: '5px solid red', left: 999 }} data-x="5" from={[0, 0]} to={[50, 50]} bidirectional />
+        <Emphasis className="c-e" style={{ outline: '6px solid red' }} data-x="6">em</Emphasis>
       </SceneLayer>,
     )
     const nodes: Record<string, string> = { b: 'box', l: 'label', s: 'symbol-chip', f: 'frame', a: 'arrow' }
@@ -213,10 +213,13 @@ describe('primitive hooks', () => {
       expect(element.className).toBe(`c-${id}`)
       expect(element.getAttribute('data-x')).toBe(String(i + 1))
     })
-    expect(entity('b').style.outline).toBe('1px solid red')
+    Object.keys(nodes).forEach((id, i) => expect(entity(id).style.outline, id).toBe(`${i + 1}px solid red`))
+    // Arrow keeps its computed geometry even if a caller style tries to move it.
+    expect(entity('a').style.left).toBe('-10px')
     expect(entity('f').style.pointerEvents).toBe('none')
     const em = document.querySelector('[data-presentation-node="emphasis"]')!
     expect(em.className).toBe('c-e')
+    expect((em as HTMLElement).style.outline).toBe('6px solid red')
     expect(em.getAttribute('data-presentation-emphasis')).toBe('true')
     expect(screen.getByText('?').hasAttribute('data-presentation-symbol')).toBe(true)
   })

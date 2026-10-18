@@ -64,7 +64,8 @@ async function samplePhase(sample) {
   }
   const problems = checkSample({ registry, outline, slug: sample })
   if (problems.length) throw new VerifyFailure('sample', problems.join('\n'))
-  return [sample]
+  // The canonical sample is checked against its outline; every other registered presentation still renders.
+  return registry.map((entry) => entry.slug)
 }
 
 async function renderPresentation(browser, origin, slug, expected) {
@@ -79,7 +80,8 @@ async function renderPresentation(browser, origin, slug, expected) {
     try {
       await page.waitForSelector('[data-step-count]', { timeout: STEP_TIMEOUT_MS })
     } catch {
-      throw new VerifyFailure('render', `${slug}: the presentation did not render a step`, 0)
+      const detail = failures.map((f) => `\n${f.message}`).join('')
+      throw new VerifyFailure('render', `${slug}: the presentation did not render a step${detail}`, 0)
     }
     const count = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
     if (expected && count !== expected.length) {
@@ -92,6 +94,8 @@ async function renderPresentation(browser, origin, slug, expected) {
       if (expected) {
         const title = await page.textContent('[data-presentation-title]')
         const caption = await page.textContent('[data-presentation-caption]')
+        const era = await page.textContent('[data-presentation-toc-entry][data-presentation-active]')
+        if (era !== expected[index].era) fail(`era is ${JSON.stringify(era)}, expected ${JSON.stringify(expected[index].era)}`)
         if (title !== expected[index].title) fail(`title is ${JSON.stringify(title)}, expected ${JSON.stringify(expected[index].title)}`)
         if (caption !== expected[index].caption) fail(`caption is ${JSON.stringify(caption)}, expected ${JSON.stringify(expected[index].caption)}`)
       }
@@ -115,7 +119,7 @@ async function renderPhase(slugs, sample) {
     browser = await chromium.launch()
     const counts = []
     for (const slug of slugs) {
-      counts.push(`${slug}: ${await renderPresentation(browser, preview.origin, slug, sample ? EXPECTED_OUTLINE : null)} steps`)
+      counts.push(`${slug}: ${await renderPresentation(browser, preview.origin, slug, slug === sample ? EXPECTED_OUTLINE : null)} steps`)
     }
     console.log(`render: ${counts.join(', ')} (${preview.origin})`)
   } catch (error) {

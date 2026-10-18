@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { Step, SceneProps } from '../../src/presentation-kit'
 
 export interface BeatPayload {

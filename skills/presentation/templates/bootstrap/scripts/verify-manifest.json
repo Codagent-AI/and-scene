@@ -1,0 +1,22 @@
+{
+  "slug": "starter",
+  "registry": "src/presentations/index.ts",
+  "narration": "src/presentations/starter/narration.ts",
+  "steps": [
+    {
+      "era": "beginning",
+      "title": "First beat",
+      "caption": "Describe what the viewer sees first."
+    },
+    {
+      "era": "beginning",
+      "title": "Second beat",
+      "caption": "Describe what is added; earlier entities stay where they are."
+    },
+    {
+      "era": "ending",
+      "title": "Third beat",
+      "caption": "Describe how the pieces relate."
+    }
+  ]
+}

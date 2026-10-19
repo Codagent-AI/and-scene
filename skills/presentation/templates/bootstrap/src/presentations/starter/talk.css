@@ -1,0 +1,3 @@
+/* Presentation-owned styling. Target the kit's stable hooks, for example:
+   [data-presentation-node='box'], [data-presentation-progress-item][data-presentation-active='true'],
+   [data-presentation-attribution]. The reusable kit ships no visual defaults. */

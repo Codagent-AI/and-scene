@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import type { CSSProperties, ReactNode } from 'react'
 import { EASE, EXIT_T, LAYOUT_T } from '../constants'
-import { dataHooks, geometryStyle, type DataHooks, type Geometry, enterMotion } from './geometry'
+import { dataHooks, geometryStyle, type DataHooks, type Geometry, useEnterMotion } from './geometry'
 
 export interface LabelProps extends Geometry, DataHooks {
   id: string
@@ -16,7 +16,7 @@ export function Label({ id, enter, className, style, children, ...geometry }: La
   return (
     <motion.span
       {...dataHooks(geometry)}
-      {...enterMotion(enter)}
+      {...useEnterMotion(enter)}
       layout
       layoutId={id}
       transition={{ duration: LAYOUT_T, ease: EASE }}

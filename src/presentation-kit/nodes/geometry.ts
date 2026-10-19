@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { ENTER_DELAY, ENTER_T } from '../constants'
 
 export interface Geometry {
@@ -32,12 +32,20 @@ export function geometryStyle({ x, y, w, h }: Geometry, style?: CSSProperties): 
 /**
  * Newcomer entrance for a node that persists in place: fades in after persisting entities
  * settle. Toggling `enter` never remounts the node, so continuing entities keep their identity.
+ *
+ * A node that has been a newcomer keeps an explicit opacity target once `enter` turns off.
+ * Dropping `animate` mid-entrance (a quick jump away and back) would cancel the delayed fade and
+ * leave the node at its initial opacity 0; an unchanged target lets the fade run to completion.
+ * Nodes that never entered carry no animation props at all.
  */
-export function enterMotion(enter: boolean | undefined) {
-  return enter
-    ? {
-        initial: { opacity: 0 },
-        animate: { opacity: 1, transition: { duration: ENTER_T, delay: ENTER_DELAY } },
-      }
-    : null
+export function useEnterMotion(enter: boolean | undefined) {
+  const [entered, setEntered] = useState(Boolean(enter))
+  if (enter && !entered) setEntered(true)
+  if (enter) {
+    return {
+      initial: { opacity: 0 },
+      animate: { opacity: 1, transition: { duration: ENTER_T, delay: ENTER_DELAY } },
+    }
+  }
+  return entered ? { animate: { opacity: 1 } } : null
 }

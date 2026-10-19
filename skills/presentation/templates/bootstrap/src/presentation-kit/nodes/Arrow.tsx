@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import type { CSSProperties } from 'react'
 import { EASE, EXIT_T, LAYOUT_T } from '../constants'
-import { dataHooks, enterMotion, type DataHooks } from './geometry'
+import { dataHooks, useEnterMotion, type DataHooks } from './geometry'
 
 export interface ArrowProps extends DataHooks {
   id: string
@@ -33,7 +33,7 @@ export function Arrow({ id, enter, from, to, twoWay, dashed, className, style, .
   return (
     <motion.svg
       {...dataHooks(hooks)}
-      {...enterMotion(enter)}
+      {...useEnterMotion(enter)}
       layout
       layoutId={id}
       transition={{ duration: LAYOUT_T, ease: EASE }}

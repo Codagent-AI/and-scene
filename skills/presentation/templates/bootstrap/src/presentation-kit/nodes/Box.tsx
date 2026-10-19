@@ -2,7 +2,7 @@ import { motion } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
 import type { CSSProperties, ReactNode } from 'react'
 import { EASE, EXIT_T, LAYOUT_T } from '../constants'
-import { dataHooks, geometryStyle, type DataHooks, type Geometry, enterMotion } from './geometry'
+import { dataHooks, geometryStyle, type DataHooks, type Geometry, useEnterMotion } from './geometry'
 
 export interface BoxProps extends Geometry, DataHooks {
   /** Stable entity identity; morphs across steps. */
@@ -21,7 +21,7 @@ export function Box({ id, enter, Icon, label, emphasis, className, style, childr
   return (
     <motion.div
       {...dataHooks(geometry)}
-      {...enterMotion(enter)}
+      {...useEnterMotion(enter)}
       layout
       layoutId={id}
       transition={{ duration: LAYOUT_T, ease: EASE }}

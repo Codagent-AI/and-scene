@@ -339,6 +339,16 @@ describe('presentation-owned chrome styling', () => {
     expect(d['text-overflow']).toBe('ellipsis')
   })
 
+  it('scene entity overrides are not outranked by the generic node rules', () => {
+    // `[scene] [node='box']` has specificity (0,2,0); a bare `[data-presentation-id=...]` rule
+    // (0,1,0) silently loses to it, so per-entity layout and colour overrides would not apply.
+    const bare = [...talkCss.matchAll(/([^{}]+)\{/g)]
+      .flatMap((m) => m[1].split(','))
+      .map((selector) => selector.trim())
+      .filter((selector) => selector.startsWith('[data-presentation-id'))
+    expect(bare).toEqual([])
+  })
+
   it('renders no Appear wrappers in the sample scene', () => {
     walk()
     expect(document.querySelector('[data-presentation-appear]')).toBeNull()

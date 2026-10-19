@@ -173,6 +173,8 @@ describe('Newcomer entrance: the enter prop', () => {
     rerender(make(false))
     expect(container.querySelector(`[data-presentation-id="${id}"]`)).toBe(node)
     expect(latestById(id)?.props.initial).toBeUndefined()
+    // The node keeps an explicit opacity target so an in-flight entrance fade is not cancelled.
+    expect(latestById(id)?.props.animate).toEqual({ opacity: 1 })
     rerender(make(true))
     expect(container.querySelector(`[data-presentation-id="${id}"]`)).toBe(node)
     expect(latestById(id)?.props.initial).toEqual({ opacity: 0 })
@@ -227,6 +229,19 @@ describe('Continuing entities are not faded as newcomers', () => {
     expect(el('n')).toBe(nNode)
     expect(latestById('n')?.props.initial).toBeUndefined()
     expect(latestById('n')?.props.layoutId).toBe('n')
+  })
+
+  it('a newcomer interrupted by a quick jump away and back keeps an opacity target so it cannot stay invisible', () => {
+    render(<Presentation steps={steps} title="Deck" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Step 2: S1' }))
+    const props = () => latestById('n')?.props
+    // Arriving by a jump makes n a newcomer with a delayed fade...
+    expect(props()?.initial).toEqual({ opacity: 0 })
+    expect(props()?.animate).toMatchObject({ opacity: 1, transition: { delay: ENTER_DELAY } })
+    // ...and moving on before the fade runs must not drop the target that fade is heading for.
+    fireEvent.click(screen.getByRole('button', { name: 'Step 3: S2' }))
+    expect(props()?.initial).toBeUndefined()
+    expect(props()?.animate).toEqual({ opacity: 1 })
   })
 
   it('treats a direct jump to a later step the same as sequential navigation', () => {

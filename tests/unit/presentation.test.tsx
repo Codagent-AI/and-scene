@@ -266,3 +266,14 @@ describe('StrictMode', () => {
     remove.mockRestore()
   })
 })
+
+describe('step list changes', () => {
+  it('stays on a valid step when steps are removed and renders nothing for an empty list', () => {
+    const { container, rerender } = render(<Presentation steps={FIVE} title="T" initialMode="browse" />)
+    key('ArrowRight'); key('ArrowRight'); key('ArrowRight'); key('ArrowRight')
+    rerender(<Presentation steps={FIVE.slice(0, 2)} title="T" initialMode="browse" />)
+    expect(root(container).getAttribute('data-step-index')).toBe('1')
+    rerender(<Presentation steps={[]} title="T" initialMode="browse" />)
+    expect(container.querySelector('[data-presentation-root]')).toBeNull()
+  })
+})

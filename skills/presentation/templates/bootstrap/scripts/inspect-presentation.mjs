@@ -190,12 +190,19 @@ export async function inspectPresentation({ cwd = process.cwd(), slug, viewport,
       }
       if (i < count - 1) {
         await page.keyboard.press('ArrowRight')
-        await page.waitForFunction((n) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(n), i + 1, { timeout: 5000 })
+        await page
+          .waitForFunction((n) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(n), i + 1, { timeout: 5000 })
+          .catch(() => {
+            throw new Error(`step ${i + 1} did not advance to step ${i + 2}`)
+          })
       }
     }
   } finally {
-    await browser?.close()
-    await preview.stop()
+    try {
+      await browser?.close()
+    } finally {
+      await preview.stop()
+    }
   }
   await writeFile(resolve(cwd, outDir, slug, 'captures.json'), JSON.stringify({ settleMs, viewport, captures, warnings }, null, 2))
   log(`inspect: ${files.length} screenshots, ${warnings.length} advisory warning(s)`)

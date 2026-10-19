@@ -117,7 +117,7 @@ export async function renderSample({ baseUrl, manifest, log = console.log, settl
     }
     fail()
   } finally {
-    await browser.close()
+    await browser.close().catch(() => {})
   }
 }
 

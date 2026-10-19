@@ -30,6 +30,7 @@ export function Presentation<TPayload>({
   const nav = usePresentationNav(steps.length, initialMode)
   const viewport = useViewport()
   const step = steps[nav.index]
+  if (!step) return null
   return (
     <div
       data-presentation-root=""

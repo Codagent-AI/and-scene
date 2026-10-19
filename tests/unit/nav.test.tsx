@@ -181,3 +181,14 @@ describe('boundaries', () => {
     expect(result.current.index).toBe(0)
   })
 })
+
+describe('shrinking step count', () => {
+  it('never exposes an index past the last step, and handles zero steps', () => {
+    const { result, rerender } = renderHook(({ n }) => usePresentationNav(n, 'present'), { initialProps: { n: 5 } })
+    act(() => result.current.goTo(4))
+    rerender({ n: 3 })
+    expect(result.current.index).toBe(2)
+    rerender({ n: 0 })
+    expect(result.current.index).toBe(0)
+  })
+})

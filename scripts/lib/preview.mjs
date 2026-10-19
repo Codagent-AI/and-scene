@@ -52,9 +52,12 @@ export async function startPreview(cwd, { port, timeoutMs } = {}) {
   const stop = () =>
     new Promise((resolve) => {
       if (child.exitCode !== null || child.signalCode !== null) return resolve()
-      child.once('exit', () => resolve())
+      const killer = setTimeout(() => child.kill('SIGKILL'), 3000)
+      child.once('exit', () => {
+        clearTimeout(killer)
+        resolve()
+      })
       child.kill('SIGTERM')
-      setTimeout(() => child.kill('SIGKILL'), 3000).unref()
     })
   try {
     await Promise.race([waitReady(urlFor(chosen), timeoutMs), exited])

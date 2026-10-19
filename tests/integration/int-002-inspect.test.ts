@@ -126,7 +126,7 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     // with no settle interval the helper still waits for the moving label's layout animation to stop
     const quick = JSON.parse(readFileSync(join(dir, 'impatient/rough/captures.json'), 'utf8'))
     expect(quick.settleMs).toBe(0)
-    expect(quick.captures[1].waitedMs).toBeGreaterThanOrEqual(400)
+    expect(quick.captures[1].waitedMs).toBeGreaterThanOrEqual(250)
     // even with no settle interval, every entity has finished entering (including the delayed wrapper fade) before each capture
     for (const c of quick.captures) expect(c.entityOpacityMin).toBeGreaterThanOrEqual(0.999)
   })

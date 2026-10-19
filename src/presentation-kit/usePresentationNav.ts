@@ -51,7 +51,9 @@ export interface PresentationNav {
 }
 
 export function usePresentationNav(count: number, initialMode: Mode): PresentationNav {
-  const [index, setIndex] = useState(0)
+  const [rawIndex, setIndex] = useState(0)
+  // Steps can be removed while mounted; never expose an index past the end.
+  const index = clampIndex(rawIndex, count)
   const [mode, setMode] = useState<Mode>(initialMode)
   const goTo = useCallback((i: number) => setIndex(clampIndex(i, count)), [count])
   const next = useCallback(() => setIndex((i) => clampIndex(i + 1, count)), [count])

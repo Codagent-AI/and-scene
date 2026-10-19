@@ -7,7 +7,11 @@ const verify = (cwd: string) => run('npm', ['run', 'verify'], cwd)
 const origin = (r: RunResult) => /preview (http:\/\/127\.0\.0\.1:\d+)/.exec(r.stdout)?.[1]
 
 async function edit(file: string, change: (s: string) => string) {
-  await writeFile(file, change(await readFile(file, 'utf8')))
+  const before = await readFile(file, 'utf8')
+  const after = change(before)
+  // A fault that silently fails to apply would make a passing run look like a detection failure.
+  if (after === before) throw new Error(`fault did not change ${file}`)
+  await writeFile(file, after)
 }
 
 describe('E2E-001: reference presentation passes production verification', () => {
@@ -118,7 +122,7 @@ describe('E2E-002: verification failures are actionable', () => {
       name: 'stalled-transition',
       fault: (dir) =>
         edit(path.join(dir, 'src/presentation-kit/usePresentationNav.ts'), (s) =>
-          s.replace('setIndex((i) => Math.min(last, i + 1))', 'setIndex((i) => Math.min(last, 3, i + 1))'),
+          s.replace('Math.min(last, Math.min(i, last) + 1)', 'Math.min(last, 3, Math.min(i, last) + 1)'),
         ),
       expected: /FAIL verify \[render\] \(step 5\).*transition failed/,
       previewStarted: true,

@@ -2,7 +2,7 @@
 // Build + browser-render verification: `npm run verify`.
 import { chromium } from 'playwright'
 import { expectations } from './verify.expectations.mjs'
-import { HOST, PhaseError, projectRoot, readRegistry, runBuild, startPreview } from './lib/preview.mjs'
+import { HOST, PhaseError, projectRoot, readRegistry, runBuild, startPreview, waitForStepIndex } from './lib/preview.mjs'
 import { checkSample } from './lib/sample-check.mjs'
 
 const root = projectRoot(import.meta.url)
@@ -48,11 +48,7 @@ async function renderPresentation(browser, base, slug, expected) {
   for (let index = 0; index < count; index++) {
     current = index
     try {
-      await page.waitForFunction(
-        (i) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(i),
-        index,
-        { timeout: STEP_TIMEOUT_MS },
-      )
+      await waitForStepIndex(page, index, STEP_TIMEOUT_MS)
     } catch {
       assertClean()
       throw new PhaseError('render', `${slug}: transition did not advance to ${stepLabel(index)}`)

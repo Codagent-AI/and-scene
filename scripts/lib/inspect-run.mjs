@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { analyzeSnapshot, collectSnapshot, formatWarning } from './diagnostics.mjs'
 import { parseArgs, screenshotPath } from './inspect-args.mjs'
-import { HOST } from './preview.mjs'
+import { HOST, waitForStepIndex } from './preview.mjs'
 
 /**
  * Capture every step of a registered presentation and print advisory
@@ -38,11 +38,7 @@ export async function runInspect(argv, deps) {
 
     let warnings = 0
     for (let index = 0; index < count; index++) {
-      await page.waitForFunction(
-        (i) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(i),
-        index,
-        { timeout: 5000 },
-      )
+      await waitForStepIndex(page, index)
       await page.waitForTimeout(options.settleMs)
       const file = screenshotPath(options.outDir, options.slug, index)
       await page.screenshot({ path: file })

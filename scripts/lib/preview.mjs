@@ -103,3 +103,12 @@ export async function startPreview(root, log = () => {}) {
   }
   return { base, stop, pid: child.pid }
 }
+
+/** Resolves once the public `data-step-index` hook reads `index`; rejects after the timeout. */
+export function waitForStepIndex(page, index, timeout = 5000) {
+  return page.waitForFunction(
+    (i) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(i),
+    index,
+    { timeout },
+  )
+}

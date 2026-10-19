@@ -1,19 +1,22 @@
 import { motion } from 'motion/react'
 import type { CSSProperties, ReactNode } from 'react'
 import { EASE, EXIT_T, LAYOUT_T } from '../constants'
-import { dataHooks, geometryStyle, type DataHooks, type Geometry } from './geometry'
+import { dataHooks, geometryStyle, type DataHooks, type Geometry, enterMotion } from './geometry'
 
 export interface LabelProps extends Geometry, DataHooks {
   id: string
+  /** Fade in as a newcomer (after persisting entities settle); toggling never remounts. */
+  enter?: boolean
   className?: string
   style?: CSSProperties
   children?: ReactNode
 }
 
-export function Label({ id, className, style, children, ...geometry }: LabelProps) {
+export function Label({ id, enter, className, style, children, ...geometry }: LabelProps) {
   return (
     <motion.span
       {...dataHooks(geometry)}
+      {...enterMotion(enter)}
       layout
       layoutId={id}
       transition={{ duration: LAYOUT_T, ease: EASE }}

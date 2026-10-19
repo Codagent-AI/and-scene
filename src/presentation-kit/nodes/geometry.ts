@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { ENTER_DELAY, ENTER_T } from '../constants'
 
 export interface Geometry {
   x?: number
@@ -26,4 +27,17 @@ export function geometryStyle({ x, y, w, h }: Geometry, style?: CSSProperties): 
     height: h,
     ...style,
   }
+}
+
+/**
+ * Newcomer entrance for a node that persists in place: fades in after persisting entities
+ * settle. Toggling `enter` never remounts the node, so continuing entities keep their identity.
+ */
+export function enterMotion(enter: boolean | undefined) {
+  return enter
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1, transition: { duration: ENTER_T, delay: ENTER_DELAY } },
+      }
+    : null
 }

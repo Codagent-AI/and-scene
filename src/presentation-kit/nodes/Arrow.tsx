@@ -1,10 +1,12 @@
 import { motion } from 'motion/react'
 import type { CSSProperties } from 'react'
 import { EASE, EXIT_T, LAYOUT_T } from '../constants'
-import { dataHooks, type DataHooks } from './geometry'
+import { dataHooks, enterMotion, type DataHooks } from './geometry'
 
 export interface ArrowProps extends DataHooks {
   id: string
+  /** Fade in as a newcomer (after persisting entities settle); toggling never remounts. */
+  enter?: boolean
   from: readonly [number, number]
   to: readonly [number, number]
   /** Draw an arrowhead at both ends. */
@@ -15,7 +17,7 @@ export interface ArrowProps extends DataHooks {
 }
 
 /** Line between two canvas points; color comes from `currentColor`, set by the presentation. */
-export function Arrow({ id, from, to, twoWay, dashed, className, style, ...hooks }: ArrowProps) {
+export function Arrow({ id, enter, from, to, twoWay, dashed, className, style, ...hooks }: ArrowProps) {
   const [x1, y1] = from
   const [x2, y2] = to
   const angle = Math.atan2(y2 - y1, x2 - x1)
@@ -31,6 +33,7 @@ export function Arrow({ id, from, to, twoWay, dashed, className, style, ...hooks
   return (
     <motion.svg
       {...dataHooks(hooks)}
+      {...enterMotion(enter)}
       layout
       layoutId={id}
       transition={{ duration: LAYOUT_T, ease: EASE }}

@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import {
   Check,
   CircleDashed,
@@ -15,7 +15,7 @@ import {
   User,
   MessageSquare,
 } from 'lucide-react'
-import { Appear, Arrow, Box, Frame, Label, SceneLayer, SymbolChip, type SceneProps } from '../../../presentation-kit'
+import { Arrow, Box, Frame, Label, SceneLayer, SymbolChip, type SceneProps } from '../../../presentation-kit'
 import { ENTITY_ORDER, INTRODUCED_AT, RECTS, SEGMENTS, type EntityId, type RectId, type SegmentId } from '../entities'
 
 /** Per-step diagram state: which entities are on screen and which are emphasized. */
@@ -36,12 +36,11 @@ function CardParts() {
   )
 }
 
-function renderEntity(id: EntityId, emphasized: boolean): ReactNode {
+function renderEntity(id: EntityId, emphasized: boolean, enter: boolean): ReactNode {
   if (id in SEGMENTS) {
     const seg = SEGMENTS[id as SegmentId]
     return (
-      <Arrow
-        id={id}
+      <Arrow key={id} enter={enter} id={id}
         from={seg.from}
         to={seg.to}
         twoWay={id === 'convo-arrow'}
@@ -53,46 +52,46 @@ function renderEntity(id: EntityId, emphasized: boolean): ReactNode {
   const cardNo = id.slice(5)
   switch (id) {
     case 'you':
-      return <Box id={id} {...r} Icon={User} label="you" />
+      return <Box key={id} enter={enter} id={id} {...r} Icon={User} label="you" />
     case 'prompt':
-      return <Box id={id} {...r} Icon={MessageSquare} label="prompt" />
+      return <Box key={id} enter={enter} id={id} {...r} Icon={MessageSquare} label="prompt" />
     case 'skill':
-      return <Box id={id} {...r} Icon={Sparkles} label="skill" />
+      return <Box key={id} enter={enter} id={id} {...r} Icon={Sparkles} label="skill" />
     case 'question-chip':
-      return <SymbolChip id={id} {...r} Icon={HelpCircle} />
+      return <SymbolChip key={id} enter={enter} id={id} {...r} Icon={HelpCircle} />
     case 'question-label':
-      return <Label id={id} {...r}>one question at a time</Label>
+      return <Label key={id} enter={enter} id={id} {...r}>one question at a time</Label>
     case 'depth':
-      return <Box id={id} {...r} Icon={SlidersHorizontal} label="partial ↔ full" />
+      return <Box key={id} enter={enter} id={id} {...r} Icon={SlidersHorizontal} label="partial ↔ full" />
     case 'tray':
-      return <Box id={id} {...r} label="step cards" />
+      return <Box key={id} enter={enter} id={id} {...r} label="step cards" />
     case 'morph-chip':
-      return <SymbolChip id={id} {...r} Icon={Shuffle} />
+      return <SymbolChip key={id} enter={enter} id={id} {...r} Icon={Shuffle} />
     case 'morph-label':
-      return <Label id={id} {...r}>morphs</Label>
+      return <Label key={id} enter={enter} id={id} {...r}>morphs</Label>
     case 'ghost':
-      return <Box id={id} {...r} Icon={CircleDashed} label="unspecified" />
+      return <Box key={id} enter={enter} id={id} {...r} Icon={CircleDashed} label="unspecified" />
     case 'socket':
-      return <Box id={id} {...r} Icon={Plug} label="scene-kit" />
+      return <Box key={id} enter={enter} id={id} {...r} Icon={Plug} label="scene-kit" />
     case 'kit-label':
-      return <Label id={id} {...r}>presentation-kit (shared scene kit)</Label>
+      return <Label key={id} enter={enter} id={id} {...r}>presentation-kit (shared scene kit)</Label>
     case 'verify':
-      return <Box id={id} {...r} Icon={ShieldCheck} label="verify" />
+      return <Box key={id} enter={enter} id={id} {...r} Icon={ShieldCheck} label="verify" />
     case 'verify-build':
-      return <SymbolChip id={id} {...r} symbol={<><Hammer aria-hidden="true" />build</>} />
+      return <SymbolChip key={id} enter={enter} id={id} {...r} symbol={<><Hammer aria-hidden="true" />build</>} />
     case 'verify-render':
-      return <SymbolChip id={id} {...r} symbol={<><MonitorPlay aria-hidden="true" />render</>} />
+      return <SymbolChip key={id} enter={enter} id={id} {...r} symbol={<><MonitorPlay aria-hidden="true" />render</>} />
     case 'verify-pass':
-      return <SymbolChip id={id} {...r} Icon={Check} />
+      return <SymbolChip key={id} enter={enter} id={id} {...r} Icon={Check} />
     case 'modify-label':
-      return <Label id={id} {...r}>modify</Label>
+      return <Label key={id} enter={enter} id={id} {...r}>modify</Label>
     case 'flag':
-      return <SymbolChip id={id} {...r} Icon={Flag} />
+      return <SymbolChip key={id} enter={enter} id={id} {...r} Icon={Flag} />
     case 'frame':
-      return <Frame id={id} {...r} label="this talk, built by the skill" />
+      return <Frame key={id} enter={enter} id={id} {...r} label="this talk, built by the skill" />
     default:
       return (
-        <Box id={id} {...r} label={`step ${cardNo}`} emphasis={emphasized}>
+        <Box key={id} enter={enter} id={id} {...r} label={`step ${cardNo}`} emphasis={emphasized}>
           <CardParts />
         </Box>
       )
@@ -100,23 +99,17 @@ function renderEntity(id: EntityId, emphasized: boolean): ReactNode {
 }
 
 /**
- * One persistent scene for the whole talk. Entities introduced after the opening beat are
- * wrapped in Appear permanently (a static, per-entity decision), so a newcomer fades in once
- * on mount and is never remounted when it later becomes a continuing entity.
+ * One persistent scene for the whole talk. Continuing entities are plain keyed nodes that
+ * morph in place; only entities introduced at the active step get the newcomer `enter` fade.
  */
-export function TalkScene({ payload }: SceneProps<TalkPayload>) {
+export function TalkScene({ payload, index }: SceneProps<TalkPayload>) {
   const present = new Set<EntityId>(payload.present)
   const emphasized = new Set<EntityId>(payload.emphasized)
   return (
     <SceneLayer>
-      {ENTITY_ORDER.filter((id) => present.has(id)).map((id) => {
-        const node = renderEntity(id, emphasized.has(id))
-        return INTRODUCED_AT[id] > 0 ? (
-          <Appear key={id}>{node}</Appear>
-        ) : (
-          <Fragment key={id}>{node}</Fragment>
-        )
-      })}
+      {ENTITY_ORDER.filter((id) => present.has(id)).map((id) =>
+        renderEntity(id, emphasized.has(id), INTRODUCED_AT[id] === index && index > 0),
+      )}
     </SceneLayer>
   )
 }

@@ -1,20 +1,23 @@
 import { motion } from 'motion/react'
 import type { CSSProperties, ReactNode } from 'react'
 import { EASE, EXIT_T, LAYOUT_T } from '../constants'
-import { dataHooks, geometryStyle, type DataHooks, type Geometry } from './geometry'
+import { dataHooks, geometryStyle, type DataHooks, type Geometry, enterMotion } from './geometry'
 
 export interface EmphasisProps extends Geometry, DataHooks {
   id: string
+  /** Fade in as a newcomer (after persisting entities settle); toggling never remounts. */
+  enter?: boolean
   className?: string
   style?: CSSProperties
   children?: ReactNode
 }
 
 /** Marks an area as emphasized via `data-presentation-emphasis`; the look is presentation-owned. */
-export function Emphasis({ id, className, style, children, ...geometry }: EmphasisProps) {
+export function Emphasis({ id, enter, className, style, children, ...geometry }: EmphasisProps) {
   return (
     <motion.div
       {...dataHooks(geometry)}
+      {...enterMotion(enter)}
       layout
       layoutId={id}
       transition={{ duration: LAYOUT_T, ease: EASE }}

@@ -1,10 +1,12 @@
 import { motion } from 'motion/react'
 import type { CSSProperties, ReactNode } from 'react'
 import { EASE, EXIT_T, LAYOUT_T } from '../constants'
-import { dataHooks, geometryStyle, type DataHooks, type Geometry } from './geometry'
+import { dataHooks, geometryStyle, type DataHooks, type Geometry, enterMotion } from './geometry'
 
 export interface FrameProps extends Geometry, DataHooks {
   id: string
+  /** Fade in as a newcomer (after persisting entities settle); toggling never remounts. */
+  enter?: boolean
   label?: ReactNode
   className?: string
   style?: CSSProperties
@@ -12,10 +14,11 @@ export interface FrameProps extends Geometry, DataHooks {
 }
 
 /** A rectangle drawn around other entities; carries no fill or border of its own. */
-export function Frame({ id, label, className, style, children, ...geometry }: FrameProps) {
+export function Frame({ id, enter, label, className, style, children, ...geometry }: FrameProps) {
   return (
     <motion.div
       {...dataHooks(geometry)}
+      {...enterMotion(enter)}
       layout
       layoutId={id}
       transition={{ duration: LAYOUT_T, ease: EASE }}

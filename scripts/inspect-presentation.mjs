@@ -10,7 +10,7 @@ import { ensureChromium, launchOptions, loopbackUrl, runCommand, startPreview, s
 export const DEFAULTS = { viewport: { width: 1440, height: 900 }, settleMs: 1000, outDir: '.inspection', stepTimeoutMs: 5000 }
 export const MIN_ATTRIBUTION_PX = 12
 const ACTIVE_STYLE_KEYS = ['color', 'backgroundColor', 'borderColor', 'outline', 'fontWeight', 'opacity', 'width', 'height', 'boxShadow']
-const ATTRIBUTION_DEFAULT_KEYS = ['color', 'fontSize', 'fontFamily', 'textDecorationLine', 'padding', 'fontWeight']
+const ATTRIBUTION_STYLE_KEYS = ['color', 'fontSize']
 
 export function parseViewport(text) {
   const m = /^(\d+)x(\d+)$/.exec(text ?? '')
@@ -36,13 +36,18 @@ export function intersectionArea(a, b) {
   return w > 0 && h > 0 ? w * h : 0
 }
 
-/** Items are `{ label, rect, visible, allowed }`; allowed items sit inside an allow-overlap subtree. */
+/**
+ * Items are `{ id, label, rect, visible, allowed, containedBy }`: `allowed` items sit inside an
+ * allow-overlap subtree and `containedBy` lists the ids of items whose element contains this one
+ * (a control and its own text are not a collision).
+ */
 export function findOverlaps(items, minArea = 4) {
   const live = items.filter((i) => i.visible && i.rect.width > 0 && i.rect.height > 0)
+  const nested = (a, b) => a.containedBy?.includes(b.id) || b.containedBy?.includes(a.id)
   const found = []
   for (let i = 0; i < live.length; i++) {
     for (let j = i + 1; j < live.length; j++) {
-      if (live[i].allowed || live[j].allowed) continue
+      if (live[i].allowed || live[j].allowed || nested(live[i], live[j])) continue
       if (intersectionArea(live[i].rect, live[j].rect) >= minArea) found.push([live[i].label, live[j].label])
     }
   }
@@ -59,12 +64,13 @@ export function attributionIssues(style, browserDefault) {
   if (!style) return ['is missing']
   const issues = []
   if (parseFloat(style.fontSize) < MIN_ATTRIBUTION_PX) issues.push(`is undersized (${style.fontSize}, minimum ${MIN_ATTRIBUTION_PX}px)`)
-  if (ATTRIBUTION_DEFAULT_KEYS.every((k) => style[k] === browserDefault[k])) issues.push('uses browser-default link styling')
+  // The default link color alone marks it unstyled, whatever else was adjusted.
+  if (style.color === browserDefault.color) issues.push('uses the browser-default link color')
   return issues
 }
 
 /** Runs in the page: gathers visible text/chrome boxes, active-chrome styles, and attribution style. */
-function collectPage({ activeKeys, defaultKeys }) {
+function collectPage({ activeKeys, attributionKeys }) {
   const describe = (el) => {
     const owner = el.closest('[data-presentation-id]') ?? el
     const hook = [...owner.attributes].find((a) => a.name.startsWith('data-presentation-') && a.name !== 'data-presentation-active')
@@ -74,12 +80,14 @@ function collectPage({ activeKeys, defaultKeys }) {
   }
   const visible = (el) => el.checkVisibility({ opacityProperty: true, visibilityProperty: true })
   const items = []
+  const elements = []
   const root = document.querySelector('[data-presentation-root]') ?? document.body
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
   for (let el = walker.currentNode; el; el = walker.nextNode()) {
     if (!(el instanceof HTMLElement || el instanceof SVGElement)) continue
     const own = [...el.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim())
-    const isChromeBox = el.matches('[data-presentation-progress-dot]')
+    // Interactive chrome is measured by its whole box, so icon-only controls count too.
+    const isChromeBox = el.matches('button, a[href], [data-presentation-progress-dot], [data-presentation-toc-entry]')
     if (own.length === 0 && !isChromeBox) continue
     let rect
     if (isChromeBox) rect = el.getBoundingClientRect()
@@ -89,13 +97,18 @@ function collectPage({ activeKeys, defaultKeys }) {
       range.setEndAfter(own[own.length - 1])
       rect = range.getBoundingClientRect()
     }
+    elements.push(el)
     items.push({
+      id: items.length,
       label: describe(el),
       rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
       visible: visible(el),
       allowed: el.closest('[data-presentation-allow-overlap]') !== null,
     })
   }
+  items.forEach((item, i) => {
+    item.containedBy = elements.flatMap((other, j) => (j !== i && other.contains(elements[i]) ? [j] : []))
+  })
   const styleOf = (el, keys) => {
     const cs = getComputedStyle(el)
     return Object.fromEntries(keys.map((k) => [k, cs[k]]))
@@ -113,12 +126,12 @@ function collectPage({ activeKeys, defaultKeys }) {
   probe.href = '#'
   probe.textContent = 'probe'
   document.body.append(probe)
-  const browserDefault = styleOf(probe, defaultKeys)
+  const browserDefault = styleOf(probe, attributionKeys)
   probe.remove()
   return {
     items,
     chrome: [chrome('[data-presentation-progress-dot]', 'progress indicator'), chrome('[data-presentation-toc-entry]', 'table-of-contents entry')].filter(Boolean),
-    attribution: attr && visible(attr) ? styleOf(attr, defaultKeys) : null,
+    attribution: attr && visible(attr) ? styleOf(attr, attributionKeys) : null,
     browserDefault,
   }
 }
@@ -185,7 +198,7 @@ export async function inspect(opts, root = process.cwd(), log = console.log) {
       const file = path.join(outDir, screenshotName(step))
       await page.screenshot({ path: file })
       shots++
-      const data = await page.evaluate(collectPage, { activeKeys: ACTIVE_STYLE_KEYS, defaultKeys: ATTRIBUTION_DEFAULT_KEYS })
+      const data = await page.evaluate(collectPage, { activeKeys: ACTIVE_STYLE_KEYS, attributionKeys: ATTRIBUTION_STYLE_KEYS })
       for (const w of diagnose(step, data)) {
         warnings.push(w)
         log('WARN ' + w)

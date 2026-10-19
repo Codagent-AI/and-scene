@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { fireEvent, render } from '@testing-library/react'
+import { fireEvent, render, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { Presentation } from '../../src/presentation-kit'
 import { ARROWS, ENTITIES, SAMPLE_STEP_COUNT } from '../../src/presentations/how-to-make-a-presentation/entities'
@@ -159,6 +159,27 @@ describe('sample scene content per step', () => {
       const now = wrappers()
       expect([...now].filter(([id, w]) => known.get(id) !== w)).toEqual([])
     }
+  })
+})
+
+describe('retained Appear wrappers', () => {
+  it('never replay the newcomer fade for entities that stay on screen', async () => {
+    const { container } = view()
+    const wrapperOf = (id: string) => container.querySelector(`[data-presentation-id="htmp:${id}"]`)!.closest<HTMLElement>('[data-presentation-appear]')!
+    next(container)
+    next(container)
+    const tray = wrapperOf('tray')
+    const card = wrapperOf('card-1')
+    await waitFor(() => expect([tray.style.opacity, card.style.opacity]).toEqual(['1', '1']), { timeout: 4000 })
+    for (let i = 0; i < 6; i++) {
+      next(container)
+      // right after navigating, the continuing entities' wrappers are the same nodes and fully opaque
+      expect(wrapperOf('tray')).toBe(tray)
+      expect(wrapperOf('card-1')).toBe(card)
+      expect([tray.style.opacity, card.style.opacity]).toEqual(['1', '1'])
+    }
+    fireEvent.click(container.querySelector('[data-presentation-prev]')!)
+    expect([tray.style.opacity, card.style.opacity]).toEqual(['1', '1'])
   })
 })
 

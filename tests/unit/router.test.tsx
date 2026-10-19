@@ -20,6 +20,10 @@ describe('pathname resolution', () => {
     ['/alpha', 'alpha'],
     ['/alpha/', 'alpha'],
     ['/a/b', null],
+    ['/%', null],
+    ['/%E0%A4%A', null],
+    ['/%zz/', null],
+    ['/caf%C3%A9', 'café'],
   ])('%j -> %j', (path, slug) => expect(slugFromPathname(path)).toBe(slug))
 
   it('finds registered entries only', () => {
@@ -30,8 +34,8 @@ describe('pathname resolution', () => {
 })
 
 describe('Router', () => {
-  it('shows Landing for / and for unknown paths', () => {
-    for (const path of ['/', '/nope']) {
+  it('shows Landing for / and for unknown paths, including malformed escapes', () => {
+    for (const path of ['/', '/nope', '/%', '/%E0%A4%A']) {
       const { unmount } = render(<Router pathname={path} registry={registry} />)
       expect(screen.getAllByRole('link')).toHaveLength(3)
       unmount()

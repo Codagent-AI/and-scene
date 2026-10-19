@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { REPO, makeTempDir, remove, run, type RunResult } from '../support/sandbox'
@@ -90,5 +90,53 @@ describe('INT-001: materialized bootstrap is complete and style-neutral', () => 
     expect(css.sort()).toEqual(['index.css', path.join('presentations', 'starter', 'styles.css')])
     const built = readdirSync(path.join(app, 'dist/assets')).filter((f) => f.endsWith('.css')).map((f) => readFileSync(path.join(app, 'dist/assets', f), 'utf8')).join('\n')
     expect(built).not.toMatch(/color\s*:|background|font-family|box-shadow|border\s*:/)
+  })
+})
+
+// A project that already has the build anchor but neither the kit nor the index must end up
+// working after a partial scaffold: scripts present, router connected, route verifiable.
+describe('INT-001: partial scaffold of a build-only project is usable', () => {
+  let work = ''
+  let app = ''
+  let scaffoldOut: RunResult
+  let verifyOut: RunResult
+  let buildOut: RunResult
+
+  beforeAll(async () => {
+    work = makeTempDir('int-001-partial-')
+    app = path.join(work, 'app')
+    // Build anchor only: the bootstrap's manifest and configs, no src/.
+    await run('mkdir', ['-p', app], { cwd: work })
+    for (const f of ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'vite.config.ts', 'eslint.config.js', 'index.html']) {
+      await run('cp', [path.join(TEMPLATE, f), app], { cwd: work })
+    }
+    const pkgPath = path.join(app, 'package.json')
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+    delete pkg.scripts.verify
+    delete pkg.scripts.inspect
+    writeFileSync(pkgPath, JSON.stringify(pkg, null, 2))
+    scaffoldOut = await run('node', [path.join(SKILL, 'scripts/scaffold.mjs'), app, '--anchors', 'kit,index'], { cwd: work })
+    await run('npm', ['ci', '--no-audit', '--no-fund'], { cwd: app })
+    buildOut = await run('npm', ['run', 'build'], { cwd: app })
+    verifyOut = await run('npm', ['run', 'verify'], { cwd: app })
+  })
+  afterAll(() => remove(work))
+
+  it('adds only the missing anchors and the scripts the npm commands point at', () => {
+    expect(scaffoldOut.code, scaffoldOut.output).toBe(0)
+    const result = JSON.parse(scaffoldOut.output)
+    expect(result.copied).toEqual(expect.arrayContaining(['scripts/verify.mjs', 'scripts/inspect-presentation.mjs', 'scripts/lib/preview.mjs', 'src/main.tsx', 'src/presentation-kit/Presentation.tsx', 'src/presentations/index.ts']))
+    expect(result.copied).not.toContain('tsconfig.json')
+    expect(result.wiring).toEqual([])
+    const pkg = JSON.parse(readFileSync(path.join(app, 'package.json'), 'utf8'))
+    expect(pkg.scripts.verify).toBe('node scripts/verify.mjs')
+    expect(existsSync(path.join(app, 'scripts/verify.mjs'))).toBe(true)
+  })
+
+  it('builds, and its verification entry point renders the registered route', () => {
+    expect(buildOut.code, buildOut.output).toBe(0)
+    expect(verifyOut.code, verifyOut.output).toBe(0)
+    expect(verifyOut.output).toMatch(/^VERIFY PASS$/m)
+    expect(verifyOut.output).toMatch(/starter step 1\/3 index=0 "Start with the subject"/)
   })
 })

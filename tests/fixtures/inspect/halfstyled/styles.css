@@ -1,0 +1,6 @@
+/* Padding, weight, and decoration are restyled, but the link keeps the browser's default blue. */
+.halfstyled [data-presentation-attribution] {
+  padding: 8px 14px;
+  font-weight: 700;
+  text-decoration: none;
+}

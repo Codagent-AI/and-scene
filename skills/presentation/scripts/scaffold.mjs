@@ -8,6 +8,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 export const TEMPLATE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../templates/bootstrap')
 
+/**
+ * Verification and inspection scripts the package.json scripts point at. They are ensured
+ * whenever anything is scaffolded, so a project never ends up with `npm run verify` and no script.
+ */
+export const TOOLING_PATHS = ['scripts']
+
 /** Template paths (files or directories) each anchor owns. */
 export const ANCHOR_PATHS = {
   build: [
@@ -17,11 +23,9 @@ export const ANCHOR_PATHS = {
     'vite.config.ts',
     'eslint.config.js',
     'index.html',
-    'src/index.css',
-    'scripts',
   ],
   kit: ['src/presentation-kit'],
-  index: ['src/main.tsx', 'src/router.tsx', 'src/routing.ts', 'src/Landing.tsx', 'src/presentations'],
+  index: ['src/index.css', 'src/main.tsx', 'src/router.tsx', 'src/routing.ts', 'src/Landing.tsx', 'src/presentations'],
 }
 
 function walk(dir) {
@@ -78,19 +82,27 @@ export function scaffold(target, anchors, templateRoot = TEMPLATE_ROOT) {
     writeFileSync(gitignore, [...have.filter((l, i, a) => l || i < a.length - 1), ...extra].join('\n') + '\n')
     copied.push('.gitignore (appended)')
   }
-  for (const anchor of anchors) {
-    for (const rel of ANCHOR_PATHS[anchor].flatMap(filesUnder)) {
-      const dest = path.join(target, rel)
-      if (existsSync(dest)) {
-        skipped.push(rel)
-        continue
-      }
-      mkdirSync(path.dirname(dest), { recursive: true })
-      cpSync(path.join(templateRoot, rel), dest)
-      copied.push(rel)
+  const wantedPaths = [...TOOLING_PATHS, ...anchors.flatMap((a) => ANCHOR_PATHS[a])]
+  for (const rel of wantedPaths.flatMap(filesUnder)) {
+    const dest = path.join(target, rel)
+    if (existsSync(dest)) {
+      skipped.push(rel)
+      continue
     }
+    mkdirSync(path.dirname(dest), { recursive: true })
+    cpSync(path.join(templateRoot, rel), dest)
+    copied.push(rel)
   }
-  return { copied, skipped }
+  // An existing entry file is never overwritten, so it must be pointed at the router by hand.
+  const wiring = []
+  if (anchors.includes('index') && skipped.includes('src/main.tsx')) {
+    wiring.push({
+      file: 'src/main.tsx',
+      reference: path.join(templateRoot, 'src/main.tsx'),
+      action: "render <Router pathname={window.location.pathname} registry={presentations} /> from './router' and './presentations' inside StrictMode",
+    })
+  }
+  return { copied, skipped, wiring }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

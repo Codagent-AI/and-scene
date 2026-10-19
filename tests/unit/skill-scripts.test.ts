@@ -45,13 +45,35 @@ describe('anchor detection', () => {
 
   })
 
-  it('tolerates renamed files inside src/presentation-kit and extra dependencies', () => {
+  const KIT_FILES = {
+    'src/engine/deck/Host.tsx': "import type { Step } from './contract'\nexport function Presentation(props: { steps: Step<unknown>[] }) { return null }\n",
+    'src/engine/deck/Mount.tsx': "import { AnimatePresence, LayoutGroup } from 'motion/react'\nexport const Mount = () => [AnimatePresence, LayoutGroup]\n",
+    'src/engine/deck/contract.ts': 'export interface Scene {}\nexport interface Step<T> { caption: string; Scene: Scene; payload: T }\nexport type SceneProps<T> = { payload: T }\n',
+  }
+  const REGISTRY_FILE = { 'src/talks/all.ts': "export const registry = [\n  { title: 'T', slug: 't', load: () => import('./t') },\n]\n" }
+
+  it('recognizes a complete app whose files and folders are all named differently', () => {
     const d = tmp()
     put(d, 'package.json', JSON.stringify({ scripts: { build: 'node build.js' }, devDependencies: { vite: '1', react: '1', typescript: '1', extra: '9' } }))
-    put(d, 'src/presentation-kit/Presentation.jsx', '')
-    put(d, 'src/presentation-kit/Stage.js', '')
-    put(d, 'src/presentations/index.js', '')
+    for (const [rel, text] of Object.entries({ ...KIT_FILES, ...REGISTRY_FILE })) put(d, rel, text)
     expect(detectAnchors(d)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('judges by what the code does: empty look-alike files do not count', () => {
+    const d = tmp()
+    put(d, 'src/presentation-kit/Presentation.tsx', '')
+    put(d, 'src/presentation-kit/Stage.tsx', '')
+    put(d, 'src/presentations/index.ts', 'export default []\n')
+    expect(detectAnchors(d)).toEqual({ build: false, kit: false, index: false })
+  })
+
+  it('needs the host, the morph stage, and the step contract together', () => {
+    const files = Object.entries(KIT_FILES)
+    for (const [skipped] of files) {
+      const d = tmp()
+      for (const [rel, text] of files) if (rel !== skipped) put(d, rel, text)
+      expect(detectAnchors(d).kit, `without ${skipped}`).toBe(false)
+    }
   })
 
   it('reports exactly the genuinely missing anchors', () => {
@@ -65,12 +87,6 @@ describe('anchor detection', () => {
     const noVite = tmp()
     put(noVite, 'package.json', JSON.stringify({ scripts: { build: 'x' }, dependencies: { react: '1' } }))
     expect(detectAnchors(noVite).build).toBe(false)
-  })
-
-  it('requires a Stage next to the Presentation to count the kit', () => {
-    const d = tmp()
-    put(d, 'src/presentation-kit/Presentation.tsx', '')
-    expect(detectAnchors(d).kit).toBe(false)
   })
 })
 
@@ -182,7 +198,36 @@ describe('scaffolding', () => {
     put(d, 'package.json', APP_PKG)
     scaffold(d, ['kit'])
     const files = Object.keys(tree(d))
-    expect(files.filter((f) => !f.startsWith('src/presentation-kit/') && f !== '.gitignore')).toEqual(['package.json'])
+    expect(files.filter((f) => !f.startsWith('src/presentation-kit/') && !f.startsWith('scripts/') && f !== '.gitignore')).toEqual(['package.json'])
+  })
+
+  it('always ensures the verify and inspect scripts that the package scripts point at', () => {
+    const d = tmp()
+    put(d, 'package.json', APP_PKG)
+    scaffold(d, ['kit', 'index'])
+    const pkg = JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8'))
+    const files = Object.keys(tree(d))
+    for (const name of ['verify', 'inspect']) {
+      expect(pkg.scripts[name], name).toBeDefined()
+      const target = String(pkg.scripts[name]).match(/scripts\/[\w./-]+\.mjs/)![0]
+      expect(files, `${name} -> ${target}`).toContain(target)
+    }
+    expect(files).toContain('scripts/lib/preview.mjs')
+    expect(files).toContain('src/index.css')
+  })
+
+  it('reports wiring for an existing entry file instead of silently leaving the router disconnected', () => {
+    const d = tmp()
+    put(d, 'package.json', APP_PKG)
+    put(d, 'src/main.tsx', 'SENTINEL entry')
+    const { wiring, skipped } = scaffold(d, ['kit', 'index'])
+    expect(tree(d)['src/main.tsx']).toBe('SENTINEL entry')
+    expect(skipped).toContain('src/main.tsx')
+    expect(wiring).toHaveLength(1)
+    expect(wiring[0]).toMatchObject({ file: 'src/main.tsx' })
+    expect(readFileSync(wiring[0].reference, 'utf8')).toContain('<Router')
+    expect(wiring[0].action).toMatch(/Router/)
+    expect(scaffold(tmp(), ['kit', 'index']).wiring).toEqual([])
   })
 
   it('merges only missing dependencies and scripts into an existing package.json', () => {

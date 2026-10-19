@@ -15,5 +15,7 @@ function sceneId(Scene: ComponentType<never>): number {
 
 /** Steps with equal keys keep one scene instance; any other change swaps scenes. */
 export function sceneKey<TPayload>(step: Step<TPayload>): string {
-  return `${step.groupKey ?? `step:${step.id}`}#${sceneId(step.Scene as ComponentType<never>)}`
+  // The leading tag keeps a group key from ever colliding with an ungrouped step's id.
+  const owner = step.groupKey === undefined ? `step:${step.id}` : `group:${step.groupKey}`
+  return `${owner}#${sceneId(step.Scene as ComponentType<never>)}`
 }

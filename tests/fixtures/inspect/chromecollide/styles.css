@@ -1,0 +1,7 @@
+.chromecollide [data-presentation-next] {
+  position: fixed;
+  left: 700px;
+  top: 360px;
+  width: 160px;
+  height: 40px;
+}

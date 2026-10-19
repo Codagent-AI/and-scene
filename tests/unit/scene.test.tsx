@@ -109,7 +109,19 @@ describe('scene instance persistence', () => {
     const a = step('1', 1, ['a'], { groupKey: undefined })
     const b = step('2', 2, ['a'], { groupKey: undefined })
     expect(sceneKey(a)).not.toBe(sceneKey(b))
-    expect(sceneKey(step('1', 1, [])) ).toBe(sceneKey(step('2', 2, [])))
+    expect(sceneKey(step('1', 1, []))).toBe(sceneKey(step('2', 2, [])))
+  })
+
+  it('a group key can never collide with an ungrouped step id, so the scene is replaced', () => {
+    const ungrouped = step('x', 1, ['a'], { groupKey: undefined })
+    const lookalike = step('y', 2, ['a'], { groupKey: 'step:x' })
+    expect(sceneKey(ungrouped)).not.toBe(sceneKey(lookalike))
+    const { container } = mount([ungrouped, lookalike])
+    const marker = node(container, 'scene-A')!
+    next(container)
+    const markers = [...container.querySelectorAll('[data-testid="scene-A"]')]
+    expect(markers).toHaveLength(2)
+    expect(markers).toContain(marker)
   })
 })
 
@@ -132,10 +144,17 @@ describe('entity transitions in a grouped scene', () => {
 
   it('a departing entity stays through its exit animation and then unmounts', async () => {
     const { container } = mount([step('1', 1, ['a', 'b']), step('2', 2, ['a'])])
-    expect(node(container, 'e-b')).not.toBeNull()
+    const departing = node(container, 'e-b')!
+    expect(departing.style.opacity).not.toBe('0')
     next(container)
     expect(node(container, 'e-a')).not.toBeNull()
-    await waitFor(() => expect(node(container, 'e-b')).toBeNull(), { timeout: 3000 })
+    // Removal is not immediate: the departing node stays mounted while it fades out ...
+    expect(departing.isConnected).toBe(true)
+    await waitFor(() => expect(Number(departing.style.opacity)).toBeLessThan(1), { timeout: 3000 })
+    expect(departing.isConnected).toBe(true)
+    // ... and unmounts only once the exit has completed.
+    await waitFor(() => expect(departing.isConnected).toBe(false), { timeout: 3000 })
+    expect(Number(departing.style.opacity)).toBe(0)
   })
 
   it('an outgoing scene exits after a cross-scene navigation', async () => {

@@ -53,6 +53,22 @@ describe('verify: reference sample checks', () => {
     expect(() => verify.checkSampleRegistered('')).toThrow(verify.VerifyFailure)
   })
 
+  const entries = (source: string) => verify.parseRegistry(source).map((e: { slug: string; title: string }) => [e.slug, e.title])
+
+  it('reads registry entries whatever the quote style, property order, or layout', () => {
+    expect(entries(`export const presentations = [{ title: "Double", slug: "dq", load: () => import("./a") }]`)).toEqual([['dq', 'Double']])
+    expect(entries('export const presentations = [{\n  load: () => import(`./a`),\n  title: `Tick`,\n  slug: `tk`,\n}]')).toEqual([['tk', 'Tick']])
+    expect(entries(REGISTRY + "\nconst more = [{ slug : 'extra' , title : 'Extra', load: () => import('./z') }]").map(([s]: string[]) => s)).toEqual(['how-to-make-a-presentation', 'other', 'extra'])
+    expect(() => verify.checkSampleRegistered(`export const p = [{ load: () => import("./x"), title: "How to Use This Skill to Make a Presentation", slug: "how-to-make-a-presentation" }]`)).not.toThrow()
+  })
+
+  it('ignores the entry interface but fails loudly instead of silently skipping an unreadable entry', () => {
+    expect(entries("export interface PresentationEntry { slug: string; title: string }\nexport const p = [{ slug: 'a', title: 'A', load: () => import('./a') }]")).toEqual([['a', 'A']])
+    expect(() => verify.parseRegistry("const slugs = ['a']\nexport const p = [{ slug: slugs[0], title: 'A', load: () => import('./a') }]")).toThrow(verify.VerifyFailure)
+    expect(() => verify.parseRegistry("export const p = [{ slug: 'a', title: makeTitle(), load: () => import('./a') }]")).toThrow(/cannot read a registry entry/)
+    expect(() => verify.parseRegistry("export const p = [{ slug: 'a', title: 'A', load: () => import('./a') }, { slug: dyn }]")).toThrow(verify.VerifyFailure)
+  })
+
   it('is wired to the real registry source', () => {
     const real = readFileSync('src/presentations/index.ts', 'utf8')
     expect(() => verify.checkSampleRegistered(real)).not.toThrow()
@@ -190,6 +206,20 @@ describe('inspect: overlap geometry', () => {
     expect(inspect.findOverlaps(items)).toEqual([['X', 'Y']])
   })
 
+  it('does not treat a control and its own text, or any nested pair, as a collision', () => {
+    const button = item('<button> "Next"', rect(0, 0, 80, 30), { id: 0, containedBy: [] })
+    const text = item('<button> "Next" text', rect(10, 5, 40, 18), { id: 1, containedBy: [0] })
+    expect(inspect.findOverlaps([button, text])).toEqual([])
+    const other = item('Scene label', rect(60, 10, 60, 18), { id: 2, containedBy: [] })
+    expect(inspect.findOverlaps([button, text, other])).toEqual([['<button> "Next"', 'Scene label']])
+  })
+
+  it('reports a scene item colliding with the full box of an icon-only control', () => {
+    const icon = item('<button>', rect(100, 100, 40, 40), { id: 0, containedBy: [] })
+    const label = item('Scene label', rect(120, 110, 80, 16), { id: 1, containedBy: [] })
+    expect(inspect.findOverlaps([icon, label])).toHaveLength(1)
+  })
+
   it('considers scene text and chrome in the same pass', () => {
     const scene = item('<span id=e> "text"', rect(0, 0, 100, 20))
     const chrome = item('<footer data-presentation-footer> "caption"', rect(50, 10, 100, 20))
@@ -234,6 +264,12 @@ describe('inspect: attribution diagnostics', () => {
     expect(inspect.attributionIssues(browserDefault, browserDefault)).toEqual([expect.stringMatching(/browser-default/)])
     const tiny = { ...browserDefault, fontSize: '10px' }
     expect(inspect.attributionIssues(tiny, tiny)).toHaveLength(2)
+  })
+
+  it('still warns when only non-color properties were restyled and the default link color remains', () => {
+    for (const changed of [{ padding: '8px 14px' }, { fontWeight: '700' }, { fontFamily: 'monospace' }, { textDecorationLine: 'none' }, { fontSize: '14px' }]) {
+      expect(inspect.attributionIssues({ ...browserDefault, ...changed }, browserDefault), JSON.stringify(changed)).toEqual([expect.stringMatching(/browser-default link color/)])
+    }
   })
 
   it('passes a legible locally styled attribution', () => {

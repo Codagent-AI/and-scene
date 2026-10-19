@@ -33,11 +33,26 @@ export class VerifyFailure extends Error {
   }
 }
 
-/** Entries of the explicit registry source: `{ slug, title }` pairs in order. */
+/** A `slug:` property whose value is not the type annotation `string` (the entry interface). */
+const SLUG_VALUE = /\bslug\s*:(?!\s*string\b)/
+
+/**
+ * Entries of the explicit registry source as `{ slug, title }` pairs in order. Quote style,
+ * property order, and formatting are free; an entry that cannot be read is an error rather
+ * than being silently skipped.
+ */
 export function parseRegistry(source) {
+  const field = (chunk, name) => new RegExp(`\\b${name}\\s*:\\s*(['"\`])((?:\\\\.|(?!\\1)[^\\\\])*)\\1`).exec(chunk)
   const entries = []
-  const pattern = /slug:\s*'([^']+)'\s*,\s*title:\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/g
-  for (const m of source.matchAll(pattern)) entries.push({ slug: m[1], title: (m[2] ?? m[3]).replace(/\\(.)/g, '$1') })
+  for (const [chunk] of source.matchAll(/\{[^{}]*\}/g)) {
+    if (!SLUG_VALUE.test(chunk)) continue
+    const slug = field(chunk, 'slug')
+    const title = field(chunk, 'title')
+    if (!slug || !title) throw new VerifyFailure('sample', `cannot read a registry entry (needs literal slug and title): ${chunk.replace(/\s+/g, ' ').slice(0, 80)}`)
+    entries.push({ slug: slug[2], title: title[2].replace(/\\(.)/g, '$1') })
+  }
+  const declared = source.match(new RegExp(SLUG_VALUE, 'g'))?.length ?? 0
+  if (declared !== entries.length) throw new VerifyFailure('sample', `registry declares ${declared} slugs but ${entries.length} entries could be read`)
   return entries
 }
 
@@ -137,7 +152,9 @@ async function renderPresentation(browser, baseUrl, slug, { stepTimeoutMs, isSam
       if (i < first.count - 1) {
         await page.keyboard.press('ArrowRight')
         if (!(await waitForIndex(page, i + 1, stepTimeoutMs))) {
-          collector.assertClean(i)
+          // An error raised while entering the destination step (e.g. a render crash that
+          // removes the hook) belongs to that step, not to the one we pressed next on.
+          collector.assertClean(i + 1)
           throw new VerifyFailure('transition', `ArrowRight on step ${i} did not advance data-step-index to ${i + 1} within ${stepTimeoutMs}ms`, i)
         }
       }

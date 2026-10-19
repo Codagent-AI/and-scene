@@ -53,6 +53,7 @@ export async function startPreview(root, { port, timeoutMs = 30000, log = consol
   child.once('exit', () => (exited = true))
   const baseUrl = loopbackUrl(chosen)
   const deadline = Date.now() + timeoutMs
+  log(`[preview] pid ${child.pid} (process group)`)
   log('[preview] waiting for ' + baseUrl)
   while (Date.now() < deadline) {
     if (exited) throw new Error('preview exited early:\n' + output)

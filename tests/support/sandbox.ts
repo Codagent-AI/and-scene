@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync } from 'node:fs'
 import net from 'node:net'
 import { tmpdir } from 'node:os'
@@ -60,6 +60,20 @@ export function isListening(port: number): Promise<boolean> {
       resolve(true)
     })
     socket.once('error', () => resolve(false))
+  })
+}
+
+/** Process-group ids of every preview this output says it started. */
+export function previewPids(output: string): number[] {
+  return [...output.matchAll(/\[preview\] pid (\d+) \(process group\)/g)].map((m) => Number(m[1]))
+}
+
+/** True while any non-zombie process of the group (the preview and its npx/vite children) exists. */
+export function groupAlive(pid: number): boolean {
+  const table = execFileSync('ps', ['-eo', 'pgid=,stat='], { encoding: 'utf8' })
+  return table.split('\n').some((line) => {
+    const [pgid, stat = ''] = line.trim().split(/\s+/)
+    return Number(pgid) === pid && !stat.startsWith('Z')
   })
 }
 

@@ -3,12 +3,12 @@ import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { chromium } from 'playwright'
-import { REPO, copyRepo, isListening, remove, run, type RunResult } from '../support/sandbox'
+import { REPO, copyRepo, groupAlive, isListening, previewPids, remove, run, type RunResult } from '../support/sandbox'
 
 // INT-002: the project-local inspection helper, driven through its real entry point against
 // controlled registered presentations in a disposable copy of the app.
 const FIXTURES = path.join(REPO, 'tests/fixtures/inspect')
-const SLUGS = ['collide', 'polished', 'noattr', 'settle', 'stuck']
+const SLUGS = ['collide', 'polished', 'noattr', 'settle', 'stuck', 'chromecollide', 'halfstyled']
 
 let dir = ''
 let buildLog = ''
@@ -100,7 +100,7 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
         const forStep = warnings(result).filter((w) => w.startsWith(`WARN step ${n}:`))
         expect(forStep.some((w) => /active progress indicator looks identical/.test(w)), `progress ${n}`).toBe(true)
         expect(forStep.some((w) => /active table-of-contents entry looks identical/.test(w)), `toc ${n}`).toBe(true)
-        expect(forStep.some((w) => /attribution uses browser-default link styling.*\[data-presentation-attribution\]/.test(w)), `attribution ${n}`).toBe(true)
+        expect(forStep.some((w) => /attribution uses the browser-default link color.*\[data-presentation-attribution\]/.test(w)), `attribution ${n}`).toBe(true)
       }
     })
   })
@@ -111,6 +111,23 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     const missing = warnings(r).filter((w) => /attribution is missing.*\[data-presentation-attribution\]/.test(w))
     expect(missing.map((w) => w.slice(0, 12))).toEqual(['WARN step 1:', 'WARN step 2:'])
     expect(shots('noattr')).toEqual(['step-01.png', 'step-02.png'])
+  })
+
+  it('reports a scene text colliding with the full box of a chrome control', async () => {
+    const r = await inspect('chromecollide')
+    expect(r.code, r.output).toBe(0)
+    const hits = warnings(r).filter((w) => /overlap between/.test(w) && /Under the button/.test(w))
+    expect(hits.map((w) => w.slice(0, 12))).toEqual(['WARN step 1:', 'WARN step 2:'])
+    expect(hits.every((w) => /<button data-presentation-next> "Next"/.test(w))).toBe(true)
+    // the control is not reported against its own text
+    expect(warnings(r).filter((w) => /"Next"[^]*"Next"/.test(w))).toEqual([])
+  })
+
+  it('warns about the default link color even when other attribution styling was changed', async () => {
+    const r = await inspect('halfstyled')
+    expect(r.code, r.output).toBe(0)
+    const attribution = warnings(r).filter((w) => /attribution uses the browser-default link color.*\[data-presentation-attribution\]/.test(w))
+    expect(attribution.map((w) => w.slice(0, 12))).toEqual(['WARN step 1:', 'WARN step 2:'])
   })
 
   describe('settling', () => {
@@ -183,10 +200,14 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
       }
     })
 
-    it('leaves no preview listening after any run', () => {
-      // Every run above ended; a leftover preview would still hold its port.
-      const ports = [...buildLog.matchAll(/127\.0\.0\.1:(\d+)/g)].map((m) => Number(m[1]))
-      return Promise.all(ports.map(async (p) => expect(await isListening(p)).toBe(false)))
+    it('leaves no preview process or listener after a passing or failing run', async () => {
+      const failing = await inspect('stuck')
+      for (const output of [buildLog, failing.output]) {
+        const pids = previewPids(output)
+        expect(pids).toHaveLength(1)
+        for (const pid of pids) expect(groupAlive(pid), `process group ${pid} still has live processes`).toBe(false)
+        for (const m of output.matchAll(/waiting for http:\/\/127\.0\.0\.1:(\d+)\//g)) expect(await isListening(Number(m[1]))).toBe(false)
+      }
     })
   })
 })

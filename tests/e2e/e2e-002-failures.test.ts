@@ -1,7 +1,7 @@
 import { appendFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
-import { copyRepo, isListening, previewPorts, remove, run, type RunResult } from '../support/sandbox'
+import { copyRepo, groupAlive, isListening, previewPids, previewPorts, remove, run, type RunResult } from '../support/sandbox'
 
 // E2E-002: one representative fault per verification phase, each in its own disposable copy.
 const copies: string[] = []
@@ -28,6 +28,7 @@ async function expectFailure(result: RunResult, phase: string, step?: number) {
   expect(result.code, result.output).not.toBe(0)
   expect(result.output).toMatch(new RegExp(`^VERIFY FAIL phase=${phase}${step === undefined ? '' : ` step=${step}`}\\b`, 'm'))
   expect(result.output).not.toMatch(/VERIFY PASS/)
+  for (const pid of previewPids(result.output)) expect(groupAlive(pid), `preview process group ${pid} still has live processes`).toBe(false)
   for (const port of previewPorts(result.output)) expect(await isListening(port), `preview port ${port} still listening`).toBe(false)
 }
 
@@ -85,6 +86,16 @@ describe('E2E-002: verification failures are actionable', () => {
     )
     await expectFailure(result, 'render', 6)
     expect(result.output).toMatch(/pageerror on step index 6: injected page error/)
+  })
+
+  it('a step whose render throws before publishing its index fails the render phase naming the destination step', async () => {
+    const result = await verifyFaulty((dir) =>
+      edit(dir, `${SAMPLE}/Scene.tsx`, (t) => t.replace('  const step = payload.step\n', "  const step = payload.step\n  if (step === 6) throw new Error('injected render crash')\n")),
+    )
+    await expectFailure(result, 'render', 5)
+    expect(result.output).toMatch(/on step index 5: .*injected render crash/)
+    expect(result.output).not.toMatch(/phase=render step=4\b/)
+    expect(previewPids(result.output)).toHaveLength(1)
   })
 
   it('a transition that does not advance the public step index fails the transition phase', async () => {

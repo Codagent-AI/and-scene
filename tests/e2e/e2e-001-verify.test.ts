@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { copyRepo, isListening, previewPorts, remove, run, type RunResult } from '../support/sandbox'
+import { copyRepo, groupAlive, isListening, previewPids, previewPorts, remove, run, type RunResult } from '../support/sandbox'
 
 // E2E-001: `npm run verify` against an isolated checkout holding the reference sample.
 describe('E2E-001: reference presentation passes production verification', () => {
@@ -56,7 +56,10 @@ describe('E2E-001: reference presentation passes production verification', () =>
     expect(new Set(baseUrls)).toEqual(new Set(ports))
   })
 
-  it('leaves no preview process listening afterwards', async () => {
+  it('leaves no preview process or listener behind afterwards', async () => {
+    const pids = previewPids(result.output)
+    expect(pids).toHaveLength(1)
+    for (const pid of pids) expect(groupAlive(pid), `process group ${pid} still has live processes`).toBe(false)
     for (const port of previewPorts(result.output)) expect(await isListening(port), `port ${port}`).toBe(false)
   })
 })

@@ -62,8 +62,10 @@ all step details, go straight to step 2 without further questions.
    target directory and what will be added, then wait for their confirmation before writing anything**.
 
 5. Scaffold only what is missing: `node <skill-dir>/scripts/scaffold.mjs <target> --anchors <comma-separated missing>`.
-   It never overwrites an existing file; `package.json` only gains missing dependencies and scripts. A partial scaffold
-   leaves the anchors already present untouched.
+   It never overwrites an existing file; `package.json` only gains missing dependencies and scripts, and the
+   `scripts/` helpers behind `npm run verify` / `npm run inspect` are always ensured. A partial scaffold leaves the
+   anchors already present untouched. If the output lists `wiring`, the project already had its own entry file: edit it
+   as described (render the template's `Router` over the registry, see the listed `reference`) so the new routes are reachable.
 
 6. Install dependencies; never assume they exist: `npm install` in the target (`npm ci` when the scaffold wrote a fresh
    `package-lock.json`). The scaffold needs React, ReactDOM, Motion, Lucide, Vite, the React Vite plugin, TypeScript and

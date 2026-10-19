@@ -1,0 +1,24 @@
+/*
+ * Presentation-owned look for __TITLE__. The scene kit ships no visual defaults;
+ * replace the placeholder values below with the presentation's own palette and type.
+ * Set colors, type, borders and treatments here. Never change entity geometry in CSS.
+ */
+
+[data-presentation-root] {
+  color: #1a1a1a;
+  font-family: system-ui, sans-serif;
+}
+
+/* Active table-of-contents entry and active progress control: must be visibly distinct. */
+[data-presentation-active],
+[aria-current] {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* Bottom-right attribution: legible, at least 11px, never the browser-default link color. */
+[data-presentation-attribution] {
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+  color: #555;
+}

@@ -11,7 +11,10 @@ import {
   analyzeStep,
   artifactDir,
   attributionIssues,
+  buildTextRecords,
   captureSteps,
+  collectionKind,
+  isVisibleElement,
   findIndistinctActive,
   findOverlaps,
   main,
@@ -29,6 +32,21 @@ const GOOD_ATTR = {
 }
 const rec = (id, rects, extra = {}) => ({ id, label: `span#${id}`, text: `t${id}`, rects, allowed: false, ancestors: [], ...extra })
 const box = (x, y, w = 50, h = 20) => ({ x, y, w, h })
+const rawEl = (over = {}) => ({
+  label: 'span',
+  text: '',
+  parent: -1,
+  display: 'inline',
+  visibility: 'visible',
+  hiddenChain: false,
+  hasPaint: false,
+  isControl: false,
+  isGraphic: false,
+  textRects: [],
+  box: box(0, 0),
+  allowed: false,
+  ...over,
+})
 const chrome = (label, active, style = {}, width = 64, height = 28) => ({
   label,
   text: label,
@@ -42,7 +60,7 @@ const cleanSnapshot = (stepIndex = 0) => ({
   stepIndex,
   stepCount: 3,
   viewport: VIEW,
-  textRecords: [],
+  elements: [],
   chrome: { progress: [], toc: [] },
   attribution: GOOD_ATTR,
 })
@@ -179,6 +197,14 @@ describe('attribution diagnostics', () => {
       'not at least partly in the bottom-right quadrant',
     ])
   })
+
+  const QUADRANT = 'not at least partly in the bottom-right quadrant'
+  it('requires the box to overlap the bottom-right quadrant, not merely cross its midpoint', () => {
+    expect(attributionIssues({ ...GOOD_ATTR, rect: { x: 1440, y: 860, w: 130, h: 30 } }, VIEW)).toEqual([QUADRANT])
+    expect(attributionIssues({ ...GOOD_ATTR, rect: { x: 1300, y: 900, w: 130, h: 30 } }, VIEW)).toEqual([QUADRANT])
+    expect(attributionIssues({ ...GOOD_ATTR, rect: { x: 1300, y: 880, w: 200, h: 40 } }, VIEW)).toEqual([])
+    expect(attributionIssues({ ...GOOD_ATTR, rect: { x: 1400, y: 860, w: 130, h: 30 } }, VIEW)).toEqual([])
+  })
 })
 
 describe('analyzeStep', () => {
@@ -186,7 +212,7 @@ describe('analyzeStep', () => {
     const lines = analyzeStep(
       {
         ...cleanSnapshot(1),
-        textRecords: [rec(0, [box(0, 0)], { label: 'span', text: 'Alpha' }), rec(1, [box(0, 0)], { label: 'span', text: 'Beta' })],
+        elements: [rawEl({ label: 'span', text: 'Alpha', textRects: [box(0, 0)] }), rawEl({ label: 'span', text: 'Beta', textRects: [box(0, 0)] })],
         chrome: { progress: [chrome('1', true), chrome('2', false)], toc: [] },
         attribution: { ...GOOD_ATTR, color: 'rgb(0, 0, 238)' },
       },
@@ -199,6 +225,61 @@ describe('analyzeStep', () => {
 
   it('is silent for a clean step', () => {
     expect(analyzeStep(cleanSnapshot(0), 1)).toEqual([])
+  })
+})
+
+describe('element visibility and collection', () => {
+  it('excludes display:none, visibility:hidden and opacity:0 ancestors', () => {
+    expect(isVisibleElement(rawEl())).toBe(true)
+    expect(isVisibleElement(rawEl({ display: 'none' }))).toBe(false)
+    expect(isVisibleElement(rawEl({ visibility: 'hidden' }))).toBe(false)
+    expect(isVisibleElement(rawEl({ hiddenChain: true }))).toBe(false)
+  })
+
+  it('compares icon-only controls, bordered chrome and graphics by element box, and plain text by glyphs', () => {
+    expect(collectionKind(rawEl({ isControl: true, box: box(0, 0, 24, 24) }))).toBe('element')
+    expect(collectionKind(rawEl({ isGraphic: true, box: box(0, 0, 12, 12) }))).toBe('element')
+    expect(collectionKind(rawEl({ hasPaint: true, box: box(0, 0, 80, 40) }))).toBe('element')
+    expect(collectionKind(rawEl({ textRects: [box(0, 0, 30, 10)], box: box(0, 0, 400, 40) }))).toBe('text')
+    expect(collectionKind(rawEl({ isControl: true, box: box(0, 0, 0, 0) }))).toBeNull()
+    expect(collectionKind(rawEl({ box: box(0, 0, 400, 40) }))).toBeNull()
+  })
+
+  it('reports an icon-only control colliding with chrome, by element box', () => {
+    const records = buildTextRecords([
+      rawEl({ label: 'a[data-presentation-attribution]', text: 'made by and-scene', isControl: true, textRects: [box(1300, 880, 120, 16)], box: box(1300, 880, 130, 30) }),
+      rawEl({ label: 'button', text: '', isControl: true, box: box(1310, 890, 24, 24) }),
+    ])
+    const pairs = findOverlaps(records)
+    expect(pairs).toHaveLength(1)
+    expect(pairs[0].map((r) => r.label)).toEqual(['a[data-presentation-attribution]', 'button'])
+  })
+
+  it('ignores opacity:0 text, and still reports the visible collision beside it', () => {
+    const records = buildTextRecords([
+      rawEl({ text: 'Alpha', textRects: [box(0, 0, 40, 10)], box: box(0, 0, 40, 10) }),
+      rawEl({ text: 'Beta', textRects: [box(0, 0, 40, 10)], box: box(0, 0, 40, 10), hiddenChain: true }),
+      rawEl({ text: 'Gamma', textRects: [box(200, 0, 40, 10)], box: box(200, 0, 40, 10) }),
+      rawEl({ text: 'Delta', textRects: [box(200, 0, 40, 10)], box: box(200, 0, 40, 10) }),
+    ])
+    const pairs = findOverlaps(records)
+    expect(pairs.map(([a, b]) => [a.text, b.text])).toEqual([['Gamma', 'Delta']])
+  })
+
+  it('does not collide a full-width text box with what sits beside its glyphs', () => {
+    const records = buildTextRecords([
+      rawEl({ label: 'p[data-presentation-caption]', text: 'caption', textRects: [box(0, 800, 120, 16)], box: box(0, 800, 1440, 40) }),
+      rawEl({ label: 'a[data-presentation-attribution]', isControl: true, box: box(1300, 860, 130, 30), textRects: [box(1300, 860, 120, 16)] }),
+    ])
+    expect(findOverlaps(records)).toEqual([])
+  })
+
+  it('nests records by element ancestry so contained text is not a collision', () => {
+    const records = buildTextRecords([
+      rawEl({ label: 'div', hasPaint: true, box: box(0, 0, 200, 200) }),
+      rawEl({ label: 'span', parent: 0, text: 'inside', textRects: [box(10, 10, 40, 10)], box: box(10, 10, 40, 10) }),
+    ])
+    expect(findOverlaps(records)).toEqual([])
   })
 })
 

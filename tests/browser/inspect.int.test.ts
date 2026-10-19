@@ -19,6 +19,10 @@ export interface DeckConfig {
   allowedOverlap: boolean
   styled: boolean
   attribution: 'default' | 'polished' | 'absent'
+  /** Icon-only control fixed at the bottom-right corner, over the attribution. */
+  iconCollision?: boolean
+  /** Step 1 holds an opacity:0 ancestor over overlapping text; step 2 holds a visible collision. */
+  hiddenOverlap?: boolean
 }
 
 interface Payload {
@@ -39,6 +43,14 @@ function Beat({ payload }: SceneProps<Payload>) {
   return (
     <>
       <span style={at(40, 40)}>Beat {n}</span>
+      {config.hiddenOverlap && n === 1 ? (
+        <>
+          <span style={at(200, 120)}>Alpha</span>
+          <div style={{ opacity: 0 }}>
+            <span style={at(200, 120)}>Beta</span>
+          </div>
+        </>
+      ) : null}
       {config.collisions && n === 1 ? (
         <>
           <span style={at(200, 120)}>Alpha</span>
@@ -51,7 +63,7 @@ function Beat({ payload }: SceneProps<Payload>) {
           <span style={at(0, 0)}>Delta</span>
         </div>
       ) : null}
-      {config.collisions && n === 2 ? (
+      {(config.collisions || config.hiddenOverlap) && n === 2 ? (
         <>
           <span style={at(500, 260)}>Epsilon</span>
           <span style={at(500, 260)}>Zeta</span>
@@ -82,7 +94,22 @@ export function makeDeck(config: DeckConfig) {
         title={config.title}
         initialMode="browse"
         attribution={attribution}
-        brand={<style>{css}</style>}
+        brand={
+          <>
+            {config.iconCollision ? (
+              <button
+                type="button"
+                aria-label="Help"
+                style={{ position: 'fixed', right: 0, bottom: 0, width: 24, height: 24, padding: 0 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 10 10">
+                  <rect width="10" height="10" />
+                </svg>
+              </button>
+            ) : null}
+            <style>{css}</style>
+          </>
+        }
       />
     )
   }
@@ -128,6 +155,8 @@ export function makeProbe() {
 const FIXTURES: Record<string, string> = {
   'inspect-defects': "import { makeDeck } from './shared'\nexport default makeDeck({ title: 'Inspect defects', collisions: true, allowedOverlap: true, styled: false, attribution: 'default' })\n",
   'inspect-clean': "import { makeDeck } from './shared'\nexport default makeDeck({ title: 'Inspect clean', collisions: false, allowedOverlap: true, styled: true, attribution: 'polished' })\n",
+ 'inspect-icon-collision': "import { makeDeck } from './shared'\nexport default makeDeck({ title: 'Inspect icon collision', collisions: false, allowedOverlap: false, styled: true, attribution: 'polished', iconCollision: true })\n",
+  'inspect-hidden-overlap': "import { makeDeck } from './shared'\nexport default makeDeck({ title: 'Inspect hidden overlap', collisions: false, allowedOverlap: false, styled: true, attribution: 'polished', hiddenOverlap: true })\n",
   'inspect-no-attribution': "import { makeDeck } from './shared'\nexport default makeDeck({ title: 'Inspect no attribution', collisions: false, allowedOverlap: false, styled: true, attribution: 'absent' })\n",
   'inspect-settle': "import { makeProbe } from './shared'\nexport default makeProbe()\n",
 }
@@ -291,6 +320,29 @@ describe('inspection helper (INT-002)', () => {
       expect(lines.some((l) => l.startsWith(`WARN step ${step} [active-chrome]`))).toBe(true)
       expect(lines.some((l) => l.startsWith(`WARN step ${step} [attribution]`) && l.includes('data-presentation-attribution'))).toBe(true)
     }
+  })
+
+  it('reports an icon-only control colliding with the attribution chrome, on every step', async () => {
+    const result = await inspect(['inspect-icon-collision', '--no-build'])
+    expect(result.code, result.output).toBe(0)
+    const lines = warningLines(result.output)
+    for (const step of [1, 2, 3]) {
+      const line = lines.find((l) => l.startsWith(`WARN step ${step} [overlap]`))
+      expect(line, result.output).toBeDefined()
+      expect(line).toMatch(/button/)
+      expect(line).toMatch(/data-presentation-attribution/)
+    }
+  })
+
+  it('does not report text under an opacity:0 ancestor, but still reports a visible collision on the same deck', async () => {
+    const result = await inspect(['inspect-hidden-overlap', '--no-build'])
+    expect(result.code, result.output).toBe(0)
+    const overlaps = warningLines(result.output).filter((l) => l.includes('[overlap]'))
+    expect(overlaps).toHaveLength(1)
+    expect(overlaps[0]).toMatch(/^WARN step 2 \[overlap\]/)
+    expect(overlaps[0]).toMatch(/Epsilon/)
+    expect(overlaps[0]).toMatch(/Zeta/)
+    expect(overlaps[0]).not.toMatch(/Beta/)
   })
 
   it('captures are settled: every step, including the first, shows the finished transition', async () => {

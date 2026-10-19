@@ -1,7 +1,7 @@
 /**
- * Layout for the starter scene. Every entity keeps one rectangle (or one pair of endpoints)
- * for the whole presentation, so a later step morphs into place instead of redrawing.
- * Canvas is the kit's default 880 x 380.
+ * Layout for this scene. Each entity has a stable id (its layoutId). An entity may keep one
+ * rectangle for the whole presentation or change position, size, label or emphasis between steps;
+ * the kit morphs it in place either way. Canvas is the kit's default 880 x 380.
  */
 
 export interface Rect {

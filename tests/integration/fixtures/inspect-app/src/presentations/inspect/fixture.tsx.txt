@@ -13,6 +13,10 @@ const BASE_CSS = [
   '[data-presentation-deck-title] { position: absolute; left: 300px; top: 16px; margin: 0; font-size: 20px; }',
   '[data-presentation-progress] { display: flex; gap: 14px; padding: 4px 0; }',
   '[data-presentation-progress-item] { width: 12px; height: 12px; padding: 0; }',
+  // Step identity marker for the capture-order assertion: each step paints its canvas a distinct hue.
+  '[data-presentation-root][data-step-index="0"] [data-presentation-canvas] { background: rgb(250, 0, 0); }',
+  '[data-presentation-root][data-step-index="1"] [data-presentation-canvas] { background: rgb(0, 0, 250); }',
+  '[data-presentation-root][data-step-index="2"] [data-presentation-canvas] { background: rgb(250, 0, 250); }',
 ].join('\n')
 
 const POLISHED_ATTRIBUTION_CSS = [

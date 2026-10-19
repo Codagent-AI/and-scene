@@ -1,17 +1,18 @@
 import { Arrow, Box, SceneLayer, type SceneProps } from '../../../presentation-kit'
-import { LABELS, RECTS, SEGMENTS, introducedAt, type EntityId } from '../entities'
+import { LABELS, RECTS, SEGMENTS, type EntityId } from '../entities'
 
 /** Diagram state for one step: which entities are on screen. */
 export interface DeckPayload {
   present: readonly EntityId[]
 }
 
-/** One persistent scene shared by every deck step; newcomers fade in, the rest morph. */
-export function DeckScene({ payload, index }: SceneProps<DeckPayload>) {
+/** One persistent scene shared by every deck step; entities absent from the previously displayed step fade in, the rest morph. */
+export function DeckScene({ payload, previous }: SceneProps<DeckPayload>) {
+  const shown = new Set<EntityId>(previous?.present)
   return (
     <SceneLayer>
       {payload.present.map((id) => {
-        const enter = introducedAt(id) === index
+        const enter = previous !== undefined && !shown.has(id)
         if (id in SEGMENTS) {
           const seg = SEGMENTS[id as keyof typeof SEGMENTS]
           return <Arrow key={id} id={id} enter={enter} from={seg.from} to={seg.to} />

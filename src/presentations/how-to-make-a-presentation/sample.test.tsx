@@ -91,19 +91,19 @@ const rect = (el: HTMLElement) => ({
 function walk() {
   render(<Talk />)
   const snaps: Map<string, HTMLElement>[] = []
-  const snap = () =>
-    new Map(
-      Array.from(document.querySelectorAll<HTMLElement>('[data-presentation-id]')).map((n) => [
-        n.getAttribute('data-presentation-id')!,
-        n,
-      ]),
-    )
+  // Declared geometry captured by value at each step, so later movement cannot hide earlier movement.
+  const rects: Map<string, ReturnType<typeof rect>>[] = []
+  const snap = () => {
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-presentation-id]'))
+    rects.push(new Map(nodes.map((n) => [n.getAttribute('data-presentation-id')!, rect(n)])))
+    return new Map(nodes.map((n) => [n.getAttribute('data-presentation-id')!, n]))
+  }
   snaps.push(snap())
   for (let i = 1; i < TABLE.length; i++) {
     next()
     snaps.push(snap())
   }
-  return snaps
+  return Object.assign(snaps, { rects })
 }
 
 describe('reference sample metadata', () => {
@@ -164,19 +164,59 @@ describe('scene content and persistence', () => {
 
   it('accumulates: every adjacent state is a superset with identical geometry and DOM nodes', () => {
     const snaps = walk()
+    const { rects } = snaps
     for (let i = 1; i < snaps.length; i++) {
       for (const [id, el] of snaps[i - 1]) {
         const now = snaps[i].get(id)
         expect(now, `${id} still present at step ${i + 1}`).toBeDefined()
         expect(now, `${id} is the same DOM node (not remounted)`).toBe(el)
-        expect(rect(now!)).toEqual(rect(el))
+        // geometry recorded at each step, compared by value: an entity never moves once drawn
+        expect(rects[i].get(id), `${id} keeps its geometry at step ${i + 1}`).toEqual(rects[i - 1].get(id))
       }
     }
-    // geometry never differs between the step an entity appears and the final step
-    const last = snaps[8]
-    snaps.forEach((snap) => {
-      for (const [id, el] of snap) expect(rect(last.get(id)!)).toEqual(rect(el))
-    })
+  })
+
+  it('detects movement: a by-value geometry comparison fails when an entity moves between steps', () => {
+    const before = { l: '10px', t: '20px', w: '30px', h: '40px' }
+    const after = { ...before, l: '11px' }
+    expect(() => expect(after).toEqual(before)).toThrow()
+  })
+
+  it('fades in exactly the entities absent from the previously displayed step, also after jumps', () => {
+    const entering = () =>
+      new Set(
+        Array.from(document.querySelectorAll<HTMLElement>('[data-presentation-id]'))
+          .filter((n) => n.style.opacity === '0')
+          .map((n) => n.getAttribute('data-presentation-id')!),
+      )
+    render(<Talk />)
+    expect(entering().size).toBe(0) // first display: nothing is a newcomer
+    const atStart = present()
+    act(() => void fireEvent.click(document.querySelectorAll('[data-presentation-progress-item]')[6]))
+    expect(root().dataset.stepIndex).toBe('6')
+    const expected = new Set([...present()].filter((id) => !atStart.has(id))) // everything step 0 did not show
+    for (const id of NEW_AT.slice(1, 7).flat()) expect(expected.has(id)).toBe(true)
+    expect(entering()).toEqual(expected)
+    // backward jump: only exits; jsdom runs no animation, so earlier newcomers keep their initial
+    // opacity, but no node gains a fresh one.
+    const jumped = entering()
+    act(() => void fireEvent.click(document.querySelectorAll('[data-presentation-progress-item]')[2]))
+    expect(root().dataset.stepIndex).toBe('2')
+    for (const id of entering()) expect(jumped.has(id), `${id} was not a newcomer`).toBe(true)
+  })
+
+  it('fades in exactly the next step entities on a single forward step', () => {
+    render(<Talk />)
+    const before = present()
+    next()
+    const added = new Set([...present()].filter((id) => !before.has(id)))
+    const entering = new Set(
+      Array.from(document.querySelectorAll<HTMLElement>('[data-presentation-id]'))
+        .filter((n) => n.style.opacity === '0')
+        .map((n) => n.getAttribute('data-presentation-id')!),
+    )
+    expect(entering).toEqual(added)
+    for (const id of NEW_AT[1]) expect(entering.has(id)).toBe(true)
   })
 
   it('draws the specific compositions the table asks for', () => {

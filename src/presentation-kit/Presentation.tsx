@@ -10,6 +10,7 @@ import type { Canvas, Mode, Step } from './types'
 import { useFitScale } from './useFitScale'
 import { useIsWide } from './useMediaQuery'
 import { usePresentationNav } from './usePresentationNav'
+import { usePreviousDistinct } from './usePreviousDistinct'
 
 export const ATTRIBUTION_URL = 'https://github.com/Codagent-AI/and-scene'
 
@@ -56,6 +57,7 @@ export function Presentation<TPayload>({
   const scale = useFitScale(nav.mode, canvas ?? { width: DESIGN_W, height: DESIGN_H })
   const wide = useIsWide()
   const step = steps[nav.index]
+  const previousIndex = usePreviousDistinct(nav.index)
   const showAttribution =
     attribution === false ? null : attribution === undefined ? <DefaultAttribution /> : attribution
   const marker = `${stepNumber(nav.index)} / ${steps.length}`
@@ -77,7 +79,7 @@ export function Presentation<TPayload>({
       {nav.mode === 'browse' && wide ? (
         <Toc entries={eraEntries(steps)} activeEra={step.era} onGoTo={nav.goTo} />
       ) : null}
-      <Stage step={step} index={nav.index} scale={scale} mode={nav.mode} canvas={canvas} />
+      <Stage step={step} previous={previousIndex === undefined ? undefined : steps[previousIndex]?.payload} index={nav.index} scale={scale} mode={nav.mode} canvas={canvas} />
       <Footer
         mode={nav.mode}
         steps={steps}

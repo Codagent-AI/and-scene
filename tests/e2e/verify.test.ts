@@ -116,6 +116,11 @@ async function expectPreviewCleaned(output: string) {
   for (let i = 0; i < 20 && (await portAccepts(port!)); i++) await new Promise((r) => setTimeout(r, 100))
   expect(await portAccepts(port!)).toBe(false)
   expect(pidAlive(pid!)).toBe(false)
+  // No descendant of the preview (vite's node process, esbuild service) may survive either.
+  const survivors = spawnSync('ps', ['-eo', 'pid,args'], { encoding: 'utf8' })
+    .stdout.split('\n')
+    .filter((line) => line.includes(`--port ${port}`) && !line.includes('ps -eo'))
+  expect(survivors, 'preview process tree should be gone').toEqual([])
 }
 
 function expectFailure(result: RunResult, phase: string, step: number | null) {
@@ -156,6 +161,7 @@ describe('E2E-001: reference presentation passes production verification', () =>
     observed.forEach((m, i) => expect(m[2]).toBe(JSON.stringify(config.steps[i].title)))
     expect(result.output).toContain('verify: transition ok')
     expect(result.output).not.toMatch(/verify: FAIL/)
+    await expectPreviewCleaned(result.output)
   }, 500_000)
 })
 
@@ -232,6 +238,21 @@ describe('E2E-002: verification failures are actionable', () => {
     const result = runVerify(root, ['--skip-build'])
     expectFailure(result, 'render', 3)
     expect(result.output).toContain('uncaught page error: fault: step 3 uncaught')
+    await expectPreviewCleaned(result.output)
+  }, 300_000)
+
+  it('a synchronous render crash at the destination step fails the render phase at that step', async () => {
+    const root = makeCopy('rendercrash')
+    mutate(
+      root,
+      'src/presentation-kit/Presentation.tsx',
+      'const step = steps[nav.index]',
+      "const step = steps[nav.index]\n  if (nav.index === 5) throw new Error('fault: step 5 render crash')",
+    )
+    expect(runIn(root, process.execPath, [path.join(root, 'node_modules', 'vite', 'bin', 'vite.js'), 'build']).status).toBe(0)
+    const result = runVerify(root, ['--skip-build'])
+    expectFailure(result, 'render', 5)
+    expect(result.output).toContain('fault: step 5 render crash')
     await expectPreviewCleaned(result.output)
   }, 300_000)
 

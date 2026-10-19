@@ -17,6 +17,11 @@ export interface StepMeta {
 export interface SceneProps<TPayload = undefined> {
   /** Diagram state shown while this step is active. */
   payload: TPayload
+  /**
+   * Payload of the step displayed immediately before this one (undefined on first display).
+   * Newcomers are the entities in `payload` that are absent from `previous`.
+   */
+  previous?: TPayload
   step: StepMeta
   /** Zero-based position of the active step. */
   index: number

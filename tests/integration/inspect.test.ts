@@ -15,6 +15,9 @@ const FIXTURE_DIR = join(REPO, 'tests/integration/fixtures/inspect-app')
 const COPY_SKIP =
   /^(\.git|node_modules|dist|\.inspection|tests|validator_logs|\.agent-runner|skills)(\/|$)|\.test\.tsx?$|__fixtures__/
 
+// Variants whose own CSS replaces the per-step hue (the settle probe paints its own canvas).
+const SKIP_ORDER = new Set<string>(['inspect-settle-probe'])
+
 let APP = ''
 /** Separate artifact root so the narrow run cannot overwrite the default-viewport captures. */
 let NARROW_OUT = ''
@@ -204,6 +207,27 @@ function greenFraction(png: Decoded): number {
   return green / total
 }
 
+/** Canvas hue painted by the fixture for each step (see fixture BASE_CSS); index = step position. */
+const STEP_HUES: [number, number, number][] = [
+  [250, 0, 0],
+  [0, 0, 250],
+  [250, 0, 250],
+]
+
+/** Index of the step hue that covers the most pixels, or -1 if none is present. */
+function dominantStepHue(png: Decoded): number {
+  const counts = STEP_HUES.map(() => 0)
+  const total = png.width * png.height
+  for (let i = 0; i < total; i++) {
+    const o = i * png.channels
+    STEP_HUES.forEach(([r, g, b], k) => {
+      if (png.pixels[o] === r && png.pixels[o + 1] === g && png.pixels[o + 2] === b) counts[k]++
+    })
+  }
+  const best = Math.max(...counts)
+  return best === 0 ? -1 : counts.indexOf(best)
+}
+
 /** Reads the captured step files for a slug and checks count, decodability, size and distinctness. */
 async function readCaptures(slug: string, count: number, width: number, height: number, outRoot = join(APP, '.inspection')) {
   const dir = join(outRoot, slug)
@@ -222,6 +246,10 @@ async function readCaptures(slug: string, count: number, width: number, height: 
   }
   const hashes = buffers.map((b) => createHash('sha256').update(b).digest('hex'))
   expect(new Set(hashes).size).toBe(count)
+  // Step identity and order: capture k must show step k's content, not merely a distinct image.
+  if (count === STEP_HUES.length && !SKIP_ORDER.has(slug)) {
+    expect(pngs.map(dominantStepHue)).toEqual(STEP_HUES.map((_, i) => i))
+  }
   return { buffers, pngs }
 }
 

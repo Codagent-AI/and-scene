@@ -50,7 +50,7 @@ change (see section 6), not the full interview.
 ## 2. Resolve the target and detect the scaffold (before create *and* modify)
 
 Never skip this step because a presentation folder already exists; modification goes through it
-too. The app needs three **contract anchors**. Detect them by what they provide, not by
+too (after the target presentation is identified, see section 6). The app needs three **contract anchors**. Detect them by what they provide, not by
 byte-identical files — file naming, formatting and extra dependencies do not count as missing:
 
 1. **Build setup** — a Vite + React + TypeScript app whose `npm run build` works.
@@ -109,9 +109,12 @@ sure the project has the `verify` and `inspect` npm scripts and `.inspection/` i
    own `entities.ts` (stable `layoutId` namespace), `steps/*`, and `Talk.tsx`, importing the shared
    kit rather than copying it.
 2. Model the content as one evolving scene: one persistent `Scene` shared through a common
-   `groupKey`, per-step payloads, entities defined once and reused with the same id and
-   coordinates so they morph in place. Wrap only genuinely new entities with `enter`; do not fade
-   continuing ones. Keep every important element inside the 880 × 380 design canvas.
+   `groupKey`, per-step payloads, and entities defined once and reused with the same id so they
+   morph in place. An entity may change position, size, label or emphasis between steps — that is
+   what the morph animates — or stay put, whichever the story needs. Pass `enter` only to
+   entities that were absent from the previously displayed step (the scene receives that step's
+   `previous` payload, which stays correct for direct jumps and backward moves); never fade
+   continuing entities. Keep every important element inside the 880 × 380 design canvas.
 3. **Register** the presentation with one new line in `src/presentations/index.ts`
    (`{ slug, title, load: () => import('./<slug>/Talk') }`). Registration is additive: keep every
    existing folder and registry entry intact and reachable.
@@ -159,11 +162,12 @@ composition check; follows the evolving-scene model.
 
 ## 6. Modify an existing presentation
 
-Run sections 2 and 3 first (detect anchors, resolve the target, scaffold anything missing), then:
-
-1. **Identify the target.** If the user did not name one clearly, list the existing presentations
-   (registry slugs and titles) and ask which to modify before changing anything.
-2. Ask **only** about the requested changes — steps, entities or style — not the full create
+1. **Identify the target first, before any write or install.** If the user did not name one
+   clearly, list the existing presentations (registry slugs and titles — a read-only step) and ask
+   which to modify before changing anything.
+2. Then run sections 2 and 3 (detect anchors, resolve the target location, scaffold anything
+   missing, with their confirmation rule).
+3. Ask **only** about the requested changes — steps, entities or style — not the full create
    interview. Apply scoped edits to that presentation's own folder (plus its registry line if a
    slug or title changes); leave every other presentation untouched.
-3. Run section 5 in full for the modified route.
+4. Run section 5 in full for the modified route.

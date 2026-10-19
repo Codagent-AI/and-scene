@@ -16,7 +16,7 @@ import {
   MessageSquare,
 } from 'lucide-react'
 import { Arrow, Box, Frame, Label, SceneLayer, SymbolChip, type SceneProps } from '../../../presentation-kit'
-import { ENTITY_ORDER, INTRODUCED_AT, RECTS, SEGMENTS, type EntityId, type RectId, type SegmentId } from '../entities'
+import { ENTITY_ORDER, RECTS, SEGMENTS, type EntityId, type RectId, type SegmentId } from '../entities'
 
 /** Per-step diagram state: which entities are on screen and which are emphasized. */
 export interface TalkPayload {
@@ -100,15 +100,17 @@ function renderEntity(id: EntityId, emphasized: boolean, enter: boolean): ReactN
 
 /**
  * One persistent scene for the whole talk. Continuing entities are plain keyed nodes that
- * morph in place; only entities introduced at the active step get the newcomer `enter` fade.
+ * morph in place; only entities absent from the previously displayed step get the newcomer
+ * `enter` fade, so direct jumps and backward moves classify newcomers correctly.
  */
-export function TalkScene({ payload, index }: SceneProps<TalkPayload>) {
+export function TalkScene({ payload, previous }: SceneProps<TalkPayload>) {
   const present = new Set<EntityId>(payload.present)
+  const shown = new Set<EntityId>(previous?.present)
   const emphasized = new Set<EntityId>(payload.emphasized)
   return (
     <SceneLayer>
       {ENTITY_ORDER.filter((id) => present.has(id)).map((id) =>
-        renderEntity(id, emphasized.has(id), INTRODUCED_AT[id] === index && index > 0),
+        renderEntity(id, emphasized.has(id), previous !== undefined && !shown.has(id)),
       )}
     </SceneLayer>
   )

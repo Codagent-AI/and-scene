@@ -308,6 +308,8 @@ async function renderSample({ url, steps, log, slug }) {
           { timeout: TRANSITION_TIMEOUT_MS },
         )
       } catch {
+        // A render crash at the destination step surfaces as a page/console error, not a stall.
+        checkProblems(i + 1)
         const after = await readStep(page)
         throw new VerifyFailure(
           'transition',

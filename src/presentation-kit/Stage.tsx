@@ -7,6 +7,8 @@ import type { Canvas, Mode, SceneProps, Step } from './types'
 
 interface StageProps<TPayload> extends DataHooks {
   step: Step<TPayload>
+  /** Payload of the step displayed before this one. */
+  previous?: TPayload
   index: number
   scale: number
   mode: Mode
@@ -15,11 +17,11 @@ interface StageProps<TPayload> extends DataHooks {
   style?: CSSProperties
 }
 
-export function Stage<TPayload>({ step, index, scale, mode, canvas, className, style, ...hooks }: StageProps<TPayload>) {
+export function Stage<TPayload>({ step, previous, index, scale, mode, canvas, className, style, ...hooks }: StageProps<TPayload>) {
   const width = canvas?.width ?? DESIGN_W
   const height = canvas?.height ?? DESIGN_H
   const { Scene, payload, ...meta } = step
-  const props: SceneProps<TPayload> = { payload, step: meta, index }
+  const props: SceneProps<TPayload> = { payload, previous, step: meta, index }
   return (
     <div
       {...dataHooks(hooks)}

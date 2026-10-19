@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, render, screen, within, type RenderResult } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within, type RenderResult } from '@testing-library/react'
 
 // Real module loads and delayed imports are slow under parallel test load.
 vi.setConfig({ testTimeout: 20000 })
@@ -131,7 +131,7 @@ describe('real presentation registry', () => {
       const { unmount } = await renderRoot({ pathname: `/${entry.slug}` })
       const firstTitle = OUTLINE[0].title
       expect(await screen.findByRole('heading', { level: 1, name: firstTitle }, { timeout: 15000 })).toBeTruthy()
-      expect(document.title).toBe(PRESENTATION_TITLE)
+      await waitFor(() => expect(document.title).toBe(PRESENTATION_TITLE))
       unmount()
     }
   })

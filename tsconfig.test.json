@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "types": ["vite/client", "node"],
+    "allowJs": false,
+    "noUnusedLocals": true
+  },
+  "include": ["src", "tests", "scripts/*.d.mts"]
+}

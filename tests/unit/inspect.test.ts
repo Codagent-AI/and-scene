@@ -23,7 +23,6 @@ import {
   rectsOverlap,
   styleDifferences,
   // The helper is plain .mjs with no declaration file, so its exports are untyped here.
-  // @ts-expect-error untyped module import
 } from '../../scripts/inspect-presentation.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')

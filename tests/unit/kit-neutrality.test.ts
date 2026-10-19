@@ -144,14 +144,14 @@ describe('unstyled rendering (L-11)', () => {
   })
 
   it('a full Presentation sets no visual inline style and no class names', () => {
-    const { container } = render(h(Presentation, { steps, title: 'Neutral deck', initialMode: 'browse' }))
+    const { container } = render(h(Presentation<undefined>, { steps, title: 'Neutral deck', initialMode: 'browse' }))
     expect(container.querySelector('[data-presentation-root]')).not.toBeNull()
     expect(container.querySelector('[data-presentation-toc]')).not.toBeNull()
     expect(visualViolations(container)).toEqual([])
   })
 
   it('the chrome in present mode is also style-neutral', () => {
-    const { container } = render(h(Presentation, { steps, title: 'Neutral deck', initialMode: 'present' }))
+    const { container } = render(h(Presentation<undefined>, { steps, title: 'Neutral deck', initialMode: 'present' }))
     expect(container.querySelector('[data-presentation-mode="present"]')).not.toBeNull()
     expect(visualViolations(container)).toEqual([])
   })

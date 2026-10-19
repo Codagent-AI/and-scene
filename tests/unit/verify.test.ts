@@ -12,7 +12,6 @@ import {
   previewCommand,
   previewUrl,
   validateConfig,
-// @ts-expect-error -- scripts/verify.mjs is plain JavaScript without declarations
 } from '../../scripts/verify.mjs'
 
 const step = { era: 'the ask', title: 'You have a topic', caption: 'It starts with you.' }

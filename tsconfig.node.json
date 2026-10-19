@@ -20,6 +20,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "vitest.integration.config.ts", "tests"],
-  "exclude": ["tests/unit/type-fixtures"]
+  "include": ["vite.config.ts", "vitest.integration.config.ts"]
 }

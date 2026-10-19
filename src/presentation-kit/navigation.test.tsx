@@ -227,6 +227,50 @@ describe('L-17: focused interactive controls keep their keys', () => {
   )
 })
 
+const COMPOSITE_ROLES = [
+  'grid', 'gridcell', 'row', 'rowheader', 'columnheader', 'tree', 'treegrid', 'menu', 'menubar',
+  'toolbar', 'radiogroup', 'application', 'dialog', 'tablist',
+] as const
+
+function RoleHarness({ role }: { role: string }) {
+  const nav = usePresentationNav(5, 'present')
+  return (
+    <div>
+      <span data-testid="index">{nav.index}</span>
+      <span data-testid="mode">{nav.mode}</span>
+      <div role={role} tabIndex={0} data-testid="role-root">
+        <span data-testid="role-inner">inside</span>
+      </div>
+    </div>
+  )
+}
+
+describe('L-17: composite ARIA roles keep their keys (descendant targets)', () => {
+  it.each(COMPOSITE_ROLES)('L-17: role %s descendant keeps nav and P keys, unprevented, without navigating', (role) => {
+    render(<RoleHarness role={role} />)
+    const inner = screen.getByTestId('role-inner')
+    act(() => {
+      ;(screen.getByTestId('role-root') as HTMLElement).focus()
+    })
+    for (const key of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp']) {
+      expect(fireEvent.keyDown(inner, { key })).toBe(true)
+    }
+    expect(fireEvent.keyDown(inner, { key: 'p' })).toBe(true)
+    expect(fireEvent.keyDown(inner, { key: 'P' })).toBe(true)
+    expect(screen.getByTestId('index').textContent).toBe('0')
+    expect(screen.getByTestId('mode').textContent).toBe('present')
+  })
+
+  it.each(COMPOSITE_ROLES)('L-17: role %s itself keeps nav and P keys unprevented without navigating', (role) => {
+    render(<RoleHarness role={role} />)
+    const root = screen.getByTestId('role-root')
+    expect(fireEvent.keyDown(root, { key: 'ArrowRight' })).toBe(true)
+    expect(fireEvent.keyDown(root, { key: 'p' })).toBe(true)
+    expect(screen.getByTestId('index').textContent).toBe('0')
+    expect(screen.getByTestId('mode').textContent).toBe('present')
+  })
+})
+
 describe('L-18: navigation clamps at the boundaries', () => {
   it('L-18: repeated next and prev stay within [0, last] for a multi-step deck', () => {
     const { result } = renderHook(() => usePresentationNav(3, 'present'))

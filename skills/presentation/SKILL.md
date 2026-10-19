@@ -37,7 +37,8 @@ Rules:
 - **ASCII mockups are optional.** For a key or visually complex step you may draw an ASCII mockup and ask
   the user to confirm the layout before building. Do not draw one for every step.
 
-For a **modify** request, do not replay this section; go to "Modify an existing presentation".
+For a **modify** request, do not replay this section's questions; go to "Modify an existing presentation",
+which still runs section 2 first.
 
 ## 2. Resolve the target and scaffold what is missing
 
@@ -49,7 +50,8 @@ never trigger re-scaffolding. An empty directory that merely has the right name 
    (Vite config, `tsconfig.json`, and `react`, `vite`, `typescript` dependencies).
 2. **Scene kit**: the reusable engine at `src/presentation-kit/`: the `Step`/`SceneProps` step contract,
    the `Stage` host that mounts the active step and runs entity morphs, present/browse navigation
-   (`usePresentationNav`), chrome (captions, table of contents), and the fit-scale canvas (`useFitScale`).
+   (`usePresentationNav`), chrome (the `Footer` that shows captions, and the `Toc` table of contents), and
+   the fit-scale canvas (`useFitScale`). A kit lacking caption or table-of-contents chrome counts as missing.
 3. **Presentation index**: the registry at `src/presentations/index.ts` that maps each presentation
    (`slug`, `title`, `load`) to its own route, so several presentations coexist.
 
@@ -59,16 +61,19 @@ you may instead apply the rules by hand. `--apply --confirmed` runs the copy/mer
 
 ### Choose the target location
 
-Apply in this order (the first match wins):
+Walk up from the working directory (an empty directory is not special until nothing encloses it). Apply in
+this order (the first match wins):
 
-1. **Empty directory**: scaffold at the directory root. No confirmation needed.
-2. **Already inside a presentation app** (the working directory or an ancestor, or a `presentations/` child
+1. **Already inside a presentation app** (the working directory or an ancestor, or a `presentations/` child
    of one, already has the scene kit or presentation index): reuse that app. Scaffold only the anchors
    that are missing.
-3. **Monorepo**: any of `workspaces` in the root `package.json`, a `pnpm-workspace.yaml`, or a `packages/`
+2. **Monorepo**: the working directory or any ancestor has any of `workspaces` in the root `package.json`, a `pnpm-workspace.yaml`, or a `packages/`
    or `apps/` directory. Scaffold a **self-contained app in `presentations/`** at the monorepo root
    (its own `package.json`, build, kit and index; the index is then `presentations/src/presentations/index.ts`).
    Do not modify the monorepo root's package or workspace configuration.
+3. **Empty directory** that no presentation app or monorepo encloses: scaffold at the directory root.
+   No confirmation needed. An empty directory inside a monorepo or presentation app resolves to rules 1
+   or 2 instead, and confirmation applies.
 4. **Standalone project** (non-empty, no monorepo signals): scaffold at the project root.
 
 In every case the presentation index lives at `src/presentations/index.ts` **inside the app**
@@ -79,7 +84,8 @@ In every case the presentation index lives at `src/presentations/index.ts` **ins
 - If the directory is **non-empty** and any scaffold files will be written (zero, one or two anchors
   missing, whether partial or none present), **state the resolved target path and what will be added,
   then wait for the user to confirm** before writing anything. If they decline, ask where to scaffold.
-- Only an empty directory is scaffolded without confirmation.
+- Only a genuinely standalone empty directory (no enclosing monorepo or presentation app) is scaffolded
+  without confirmation; an empty directory inside a monorepo or app still needs it.
 - If all three anchors are present, skip scaffolding entirely and go to step 3; nothing is rewritten.
 
 ### Scaffold
@@ -91,7 +97,9 @@ scene kit, a router, the registry with one unstyled `starter` presentation, `scr
 - **Full scaffold** (nothing present): copy the whole bootstrap tree to the target. Keep the starter
   presentation or replace it with the new one.
 - **Partial scaffold**: copy only the files for the missing anchors and leave present ones untouched
-  (never overwrite). Build setup = package/config files and `scripts/`; scene kit = `src/presentation-kit/`;
+  (never overwrite). Whatever is missing, also add the shared support files that are absent: `scripts/`
+  (verify, inspect, lib) and, in `package.json`, every missing dependency and npm script from the bootstrap
+  template (existing versions and scripts stay). Build setup = package/config files and `scripts/`; scene kit = `src/presentation-kit/`;
   index = `src/presentations/`, `src/main.tsx`, `src/Root.tsx`, `src/route.ts`, `src/Landing.tsx`,
   `src/index.css`. In an existing `package.json` merge in only the missing scripts and dependencies; do not
   change versions or scripts that already exist. If an existing `main.tsx` does not route through the
@@ -130,6 +138,9 @@ Details of the kit API are in `reference/kit-api.md`; read it before writing sce
 
 ## 4. Modify an existing presentation
 
+0. **Ensure the infrastructure first.** Run section 2 (detect the three anchors, resolve the target,
+   restore any missing anchor with the confirmation rules there) before editing anything. If all three are
+   present, nothing is rewritten and you continue.
 1. **Identify the target first.** If the user did not name one, or the name is ambiguous, list the
    registered presentations (slug and title) from the index and ask which one before changing anything.
 2. Once identified, ask **only about the requested changes** (steps, entities or style). Do not re-walk

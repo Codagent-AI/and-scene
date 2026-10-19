@@ -109,10 +109,23 @@ describe('detectAnchors', () => {
     write(dir, 'src/presentation-kit/contract.ts', 'export interface Step { id: string }\nexport type SceneProps = { stepIndex: number }\n')
     write(dir, 'src/presentation-kit/host/Stage.tsx', 'export function Stage() { return null }\n')
     write(dir, 'src/presentation-kit/Deck.tsx', 'export const Presentation = () => null\n')
+    write(dir, 'src/presentation-kit/ui/ToC.tsx', 'export const Toc = () => null\n')
+    write(dir, 'src/presentation-kit/ui/Captions.tsx', 'export function Footer() { return null }\n')
     write(dir, 'src/presentation-kit/hooks.ts', 'export function usePresentationNav() {}\nexport function useFitScale() {}\n')
     write(dir, 'src/presentations/index.tsx', "export const presentations = [{ slug: 'a', title: 'A', load: () => import('./a/Talk') }]\n")
     expect(detectAnchors(dir)).toMatchObject({ build: true, kit: true, index: true, missing: [] })
     expect(detectAnchors(dir).indexPath).toBe('src/presentations/index.tsx')
+  })
+})
+
+describe('detectAnchors kit chrome', () => {
+  it.each([
+    ['Toc', 'src/presentation-kit/chrome/Toc.tsx'],
+    ['Footer', 'src/presentation-kit/chrome/Footer.tsx'],
+  ])('counts a kit without %s chrome as missing', (_name, file) => {
+    const dir = materialize(fresh('kit-no-chrome'))
+    rmSync(join(dir, file))
+    expect(detectAnchors(dir)).toMatchObject({ build: true, kit: false, index: true, missing: ['kit'] })
   })
 })
 
@@ -122,6 +135,33 @@ describe('resolveTarget', () => {
     const target = resolveTarget(dir, { stopAt: sandbox })
     expect(target).toMatchObject({ kind: 'empty', appDir: dir, action: 'full-scaffold', requiresConfirmation: false })
     expect(target.indexPath).toBe(join(dir, 'src/presentations/index.ts'))
+  })
+
+  it('resolves an empty directory inside a monorepo to the monorepo presentations/ target, with confirmation', () => {
+    const root = fresh('mono-empty-child')
+    write(root, 'package.json', '{"workspaces":["packages/*"]}')
+    const child = join(root, 'packages/new-dir')
+    mkdirSync(child, { recursive: true })
+    const target = resolveTarget(child, { stopAt: sandbox })
+    expect(target).toMatchObject({
+      kind: 'monorepo',
+      appDir: join(root, 'presentations'),
+      action: 'full-scaffold',
+      requiresConfirmation: true,
+    })
+  })
+
+  it('reuses the enclosing presentation app for an empty directory inside it, with confirmation when something is missing', () => {
+    const root = materialize(fresh('app-empty-child'))
+    rmSync(join(root, 'src/presentation-kit'), { recursive: true })
+    const child = join(root, 'src/empty-dir')
+    mkdirSync(child)
+    expect(resolveTarget(child, { stopAt: sandbox })).toMatchObject({
+      kind: 'existing-app',
+      appDir: root,
+      missing: ['kit'],
+      requiresConfirmation: true,
+    })
   })
 
   it('requires confirmation for a non-empty project with zero anchors, scaffolding at its root', () => {
@@ -196,6 +236,92 @@ describe('resolveTarget', () => {
     write(root, 'packages/lib/package.json', '{"name":"lib"}')
     const target = resolveTarget(join(root, 'packages/lib'), { stopAt: sandbox })
     expect(target).toMatchObject({ kind: 'monorepo', appDir: join(root, 'presentations'), requiresConfirmation: true })
+  })
+})
+
+describe('applyScaffold on a partial scaffold with an incomplete package.json', () => {
+  const REQUIRED_DEPS = ['react', 'react-dom', 'motion', 'lucide-react']
+  const REQUIRED_DEV = [
+    'vite', '@vitejs/plugin-react', 'typescript', '@types/react', '@types/react-dom', '@types/node',
+    'eslint', '@eslint/js', 'typescript-eslint', 'eslint-plugin-react-hooks', 'eslint-plugin-react-refresh', 'globals', 'playwright',
+  ]
+
+  /** A hand-built React/Vite/TS app: build anchor present, kit and index absent, minimal package.json, no scripts/. */
+  function partialApp(): { dir: string; pkgText: string } {
+    const dir = fresh('partial-incomplete')
+    const pkgText = `${JSON.stringify(
+      {
+        name: 'hand-built',
+        private: true,
+        scripts: { build: 'tsc -b && vite build', dev: 'vite' },
+        dependencies: { react: '^18.3.0' },
+        devDependencies: { vite: '^5.0.0', typescript: '^5.4.0' },
+      },
+      null,
+      2,
+    )}\n`
+    write(dir, 'package.json', pkgText)
+    write(dir, 'vite.config.ts', 'export default {}\n')
+    write(dir, 'tsconfig.json', '{}\n')
+    write(dir, 'src/app.ts', 'export const app = 1\n')
+    return { dir, pkgText }
+  }
+
+  it('is detected as partial: build present, kit and index missing', () => {
+    expect(detectAnchors(partialApp().dir)).toMatchObject({ build: true, kit: false, index: false, missing: ['kit', 'index'] })
+  })
+
+  it('adds every missing dependency, the npm scripts and the verify/inspect scripts without touching existing content', () => {
+    const { dir, pkgText } = partialApp()
+    const viteBefore = readFileSync(join(dir, 'vite.config.ts'), 'utf8')
+    const before = snapshot(dir)
+    const result = applyScaffold(dir, { missing: detectAnchors(dir).missing })
+
+    const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+    const template = JSON.parse(readFileSync(join(BOOTSTRAP_DIR, 'package.json'), 'utf8'))
+    // existing entries are preserved verbatim
+    expect(pkg.name).toBe('hand-built')
+    expect(pkg.scripts.build).toBe('tsc -b && vite build')
+    expect(pkg.scripts.dev).toBe('vite')
+    expect(pkg.dependencies.react).toBe('^18.3.0')
+    expect(pkg.devDependencies.vite).toBe('^5.0.0')
+    expect(pkg.devDependencies.typescript).toBe('^5.4.0')
+    // everything else required is added
+    for (const dep of REQUIRED_DEPS.filter((d) => d !== 'react')) expect(pkg.dependencies[dep], dep).toBe(template.dependencies[dep])
+    for (const dep of REQUIRED_DEV.filter((d) => !['vite', 'typescript'].includes(d))) expect(pkg.devDependencies[dep], dep).toBe(template.devDependencies[dep])
+    expect(pkg.devDependencies.playwright).toBe('1.61.0')
+    for (const script of ['verify', 'inspect', 'lint']) expect(pkg.scripts[script], script).toBe(template.scripts[script])
+    expect(JSON.parse(pkgText).scripts.verify).toBeUndefined()
+    // support scripts copied, existing files byte-identical, lock data not invented for an existing project
+    for (const f of ['scripts/verify.mjs', 'scripts/inspect-presentation.mjs']) expect(existsSync(join(dir, f)), f).toBe(true)
+    expect(existsSync(join(dir, 'scripts/lib'))).toBe(true)
+    expect(existsSync(join(dir, 'package-lock.json'))).toBe(false)
+    expect(readFileSync(join(dir, 'vite.config.ts'), 'utf8')).toBe(viteBefore)
+    const after = snapshot(dir)
+    for (const [file, text] of before) if (file !== 'package.json') expect(after.get(file), file).toBe(text)
+    expect(result.merged).toContain('package.json')
+    expect(result.needsInstall).toBe(true)
+    expect(detectAnchors(dir).missing).toEqual([])
+  })
+
+  it('also fills in scripts and dependencies when only the kit anchor is missing', () => {
+    const dir = materialize(fresh('partial-kit-only'))
+    rmSync(join(dir, 'src/presentation-kit'), { recursive: true })
+    rmSync(join(dir, 'scripts'), { recursive: true })
+    const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+    delete pkg.scripts.verify
+    delete pkg.scripts.inspect
+    delete pkg.dependencies.motion
+    delete pkg.devDependencies.playwright
+    writeFileSync(join(dir, 'package.json'), JSON.stringify(pkg))
+    applyScaffold(dir, { missing: ['kit'] })
+    const next = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+    expect(next.scripts.verify).toBeDefined()
+    expect(next.scripts.inspect).toBeDefined()
+    expect(next.dependencies.motion).toBeDefined()
+    expect(next.devDependencies.playwright).toBe('1.61.0')
+    expect(existsSync(join(dir, 'scripts/verify.mjs'))).toBe(true)
+    expect(detectAnchors(dir).missing).toEqual([])
   })
 })
 

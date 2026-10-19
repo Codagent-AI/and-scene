@@ -82,7 +82,7 @@ function hasBuildSetup(dir) {
 
 /**
  * Scene kit: the kit directory must actually provide the step contract, the stage/host, the
- * navigation, the fit-scale canvas and the presentation entry. File names and formatting are free.
+ * navigation, the chrome (table of contents and footer/captions), the fit-scale canvas and the presentation entry. File names and formatting are free.
  */
 function hasSceneKit(dir) {
   const kit = join(dir, KIT_DIR)
@@ -98,6 +98,8 @@ function hasSceneKit(dir) {
     declares('SceneProps') &&
     declares('Presentation') &&
     declares('Stage') &&
+    declares('Toc') &&
+    declares('Footer') &&
     declares('usePresentationNav') &&
     declares('useFitScale')
   )
@@ -186,24 +188,19 @@ function describe({ kind, appDir, startDir, projectNonEmpty, reason, signals = [
 /**
  * Resolves where the presentation app lives (or belongs) for a skill run started in `dir`.
  *
- *   empty dir                                   -> kind "empty": scaffold at dir, no confirmation
  *   inside/next to a presentation app           -> kind "existing-app": reuse it, scaffold only what is missing
  *   monorepo signals                            -> kind "monorepo": self-contained app in <root>/presentations
+ *   empty dir, no enclosing app or monorepo     -> kind "empty": scaffold at dir, no confirmation
  *   otherwise                                   -> kind "standalone": scaffold at the project root
+ *
+ * An empty directory only gets the no-confirmation exception when nothing encloses it; inside a
+ * monorepo or presentation app the enclosing target wins (and confirmation applies as usual).
  *
  * `options.stopAt` bounds the upward search (tests); the search also stops at a `.git` directory.
  */
 export function resolveTarget(dir, options = {}) {
   const startDir = resolve(dir)
-  if (isEmptyDir(startDir)) {
-    return describe({
-      kind: 'empty',
-      appDir: startDir,
-      startDir,
-      projectNonEmpty: false,
-      reason: 'The directory is empty, so the app is scaffolded at its root without confirmation.',
-    })
-  }
+  const startEmpty = isEmptyDir(startDir)
   const chain = ancestors(startDir, options.stopAt)
 
   // An existing presentation app (any kit or index anchor) wins: at a directory, or at its presentations/ child.
@@ -235,6 +232,16 @@ export function resolveTarget(dir, options = {}) {
         reason: `Monorepo signals (${signals.join(', ')}) at ${d}; scaffold a self-contained app in presentations/ and leave the monorepo root untouched.`,
       })
     }
+  }
+
+  if (startEmpty) {
+    return describe({
+      kind: 'empty',
+      appDir: startDir,
+      startDir,
+      projectNonEmpty: false,
+      reason: 'The directory is empty and nothing encloses it, so the app is scaffolded at its root without confirmation.',
+    })
   }
 
   const projectRoot = chain.find((d) => existsSync(join(d, 'package.json'))) ?? startDir
@@ -285,6 +292,12 @@ export function scaffoldPlan(missing, templateDir = BOOTSTRAP_DIR) {
   return [...new Set(files)].map((f) => relative(templateDir, f).split(sep).join('/')).sort()
 }
 
+function supportFiles(templateDir) {
+  return scaffoldPlan(['build'], templateDir).filter(
+    (f) => f === 'package.json' || f === '.gitignore' || f.startsWith('scripts/'),
+  )
+}
+
 function mergeGitignore(existing, template) {
   const have = new Set(existing.split(/\r?\n/).map((l) => l.trim()))
   const add = template.split(/\r?\n/).filter((l) => l.trim() !== '' && !l.startsWith('#') && !have.has(l.trim()))
@@ -306,7 +319,10 @@ export function applyScaffold(appDir, { templateDir = BOOTSTRAP_DIR, missing, na
   const hadPackageJson = existsSync(join(target, 'package.json'))
   mkdirSync(target, { recursive: true })
 
-  for (const rel of scaffoldPlan(toApply, templateDir)) {
+  // Any missing anchor also needs the shared support files: package.json (deps + npm scripts merged,
+  // never overwritten), scripts/ (verify, inspect, lib) and .gitignore entries.
+  const plan = toApply.length > 0 ? [...new Set([...scaffoldPlan(toApply, templateDir), ...supportFiles(templateDir)])].sort() : []
+  for (const rel of plan) {
     const from = join(templateDir, rel)
     const to = join(target, rel)
     if (rel === 'package-lock.json' && hadPackageJson) continue // an existing project owns its lock data

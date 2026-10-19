@@ -208,3 +208,39 @@ describe('INT-001 partial scaffolds preserve what exists', () => {
     for (const rel of ANCHOR_DIRS[anchor]) expect(existsSync(join(dir, rel)), rel).toBe(true)
   })
 })
+
+describe('INT-001 partial scaffold with an incomplete package.json', () => {
+  it('gains the full dependency set and scripts, then installs and builds', async () => {
+    const { applyScaffold, detectAnchors } = await import('../../skills/presentation/scripts/detect-scaffold.mjs')
+    const dir = join(sandbox, 'partial-incomplete-pkg')
+    mkdirSync(dir)
+    for (const rel of ['index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'eslint.config.js']) {
+      cpSync(join(templateDir, rel), join(dir, rel))
+    }
+    const template = JSON.parse(readFileSync(join(templateDir, 'package.json'), 'utf8'))
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({
+        name: 'hand-built',
+        private: true,
+        type: 'module',
+        scripts: { build: template.scripts.build },
+        dependencies: { react: template.dependencies.react },
+        devDependencies: { vite: template.devDependencies.vite, typescript: template.devDependencies.typescript },
+      }),
+    )
+    expect(detectAnchors(dir).missing).toEqual(['kit', 'index'])
+
+    applyScaffold(dir, { missing: detectAnchors(dir).missing })
+
+    const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+    expect(pkg.name).toBe('hand-built')
+    expect(pkg.devDependencies.playwright).toBe('1.61.0')
+    expect(pkg.scripts.verify).toBe(template.scripts.verify)
+    expect(detectAnchors(dir).missing).toEqual([])
+    const install = run(dir, 'npm', ['install', '--no-audit', '--no-fund'], 'partial-install', 500_000)
+    expect(install.status, logs['partial-install']).toBe(0)
+    const build = run(dir, 'npm', ['run', 'build'], 'partial-build')
+    expect(build.status, logs['partial-build']).toBe(0)
+  }, 600_000)
+})

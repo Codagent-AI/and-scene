@@ -116,7 +116,7 @@ export async function startPreview(root, log = () => {}) {
   for (;;) {
     if (exited) throw new PhaseError('preview', `preview exited early:\n${output.trim()}`)
     try {
-      const response = await fetch(`${base}/`)
+      const response = await fetch(`${base}/`, { signal: AbortSignal.timeout(2000) })
       if (response.ok) break
     } catch {
       // not listening yet

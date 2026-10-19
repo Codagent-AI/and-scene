@@ -161,6 +161,12 @@ export function planScaffold(target) {
   return { target, anchors, missing, copy, conflicts, addDependencies, addDevDependencies, addScripts, createPackage: existing === null && missing.length > 0, copyLock }
 }
 
+/** A valid npm package name derived from the target directory name. */
+export function packageName(target, fallback) {
+  const name = path.basename(target).toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^[-._]+|-+$/g, '')
+  return name || fallback
+}
+
 export class ConfirmationRequired extends Error {
   constructor(target) {
     super(`scaffolding into non-empty project requires confirmation of target ${target}`)
@@ -191,7 +197,7 @@ export function applyScaffold(startDir, { confirmed = false } = {}) {
   const template = readJson(path.join(bootstrapDir, 'package.json'))
   const pkgFile = path.join(resolved.target, 'package.json')
   if (plan.createPackage) {
-    writeFileSync(pkgFile, `${JSON.stringify({ ...template, name: path.basename(resolved.target) || template.name }, null, 2)}\n`)
+    writeFileSync(pkgFile, `${JSON.stringify({ ...template, name: packageName(resolved.target, template.name) }, null, 2)}\n`)
     const lock = path.join(bootstrapDir, 'package-lock.json')
     if (existsSync(lock) && !existsSync(path.join(resolved.target, 'package-lock.json'))) {
       writeFileSync(path.join(resolved.target, 'package-lock.json'), readFileSync(lock))

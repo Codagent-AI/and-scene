@@ -112,7 +112,7 @@ describe('verification scripts address only 127.0.0.1', () => {
     const preview = readFileSync('scripts/lib/preview.mjs', 'utf8')
     expect(preview).toMatch(/'--host', HOST/)
     expect(preview).toMatch(/const base = `http:\/\/\$\{HOST\}:\$\{port\}`/)
-    expect(preview).toMatch(/fetch\(`\$\{base\}\/`\)/)
+    expect(preview).toMatch(/fetch\(`\$\{base\}\/`, \{ signal/)
     expect(readFileSync('scripts/verify.mjs', 'utf8')).toMatch(/http:\/\/\$\{HOST\}:/)
   })
 })

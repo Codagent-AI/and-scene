@@ -52,6 +52,7 @@ describe('runInspect control flow', () => {
     let index = 0
     const page = {
       goto: vi.fn(async () => {}),
+      on: vi.fn(),
       waitForSelector: vi.fn(async () => {}),
       locator: () => ({ getAttribute: async () => '3' }),
       waitForFunction: vi.fn(async () => {}),
@@ -111,6 +112,20 @@ describe('runInspect control flow', () => {
     expect(h.errors[0]).toMatch(/^inspect failed:/)
     expect(h.preview.stop).toHaveBeenCalledTimes(started ? 1 : 0)
     expect(h.browser.close).toHaveBeenCalledTimes(started ? 1 : 0)
+  })
+
+  it('names the step that never became active and includes page errors', async () => {
+    const out = path.join(root, 'artifacts', 'unit-inspect-step')
+    const handlers: Record<string, (arg: unknown) => void> = {}
+    const h = harness({}, {
+      on: (event: string, fn: (arg: unknown) => void) => void (handlers[event] = fn),
+      goto: async () => handlers.pageerror?.({ message: 'kaboom' }),
+      waitForFunction: async () => { throw new Error('timeout') },
+    })
+    const code = await runInspect(['demo', '--out', path.relative(root, out), '--no-build'], h.deps)
+    rmSync(out, { recursive: true, force: true })
+    expect(code).toBe(1)
+    expect(h.errors[0]).toMatch(/step 1 did not become active; page reported: kaboom/)
   })
 
   it('rejects bad arguments before doing any work', async () => {

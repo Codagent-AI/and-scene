@@ -31,6 +31,9 @@ export async function runInspect(argv, deps) {
     const page = await browser.newPage({ viewport: options.viewport })
     const url = `http://${HOST}:${new URL(preview.base).port}/${options.slug}`
     log(`opening ${url} at ${options.viewport.width}x${options.viewport.height}`)
+    const pageErrors = []
+    page.on('pageerror', (pageError) => pageErrors.push(pageError.message))
+    page.on('console', (message) => message.type() === 'error' && pageErrors.push(message.text()))
     await page.goto(url, { waitUntil: 'load' })
     await page.waitForSelector('[data-step-count]', { timeout: 10_000 })
     const count = Number(await page.locator('[data-presentation-root]').getAttribute('data-step-count'))
@@ -38,7 +41,12 @@ export async function runInspect(argv, deps) {
 
     let warnings = 0
     for (let index = 0; index < count; index++) {
-      await waitForStepIndex(page, index)
+      try {
+        await waitForStepIndex(page, index)
+      } catch (cause) {
+        const detail = pageErrors.length > 0 ? `; page reported: ${pageErrors.join(' | ')}` : ''
+        throw new Error(`step ${index + 1} did not become active${detail}`, { cause })
+      }
       await page.waitForTimeout(options.settleMs)
       const file = screenshotPath(options.outDir, options.slug, index)
       await page.screenshot({ path: file })

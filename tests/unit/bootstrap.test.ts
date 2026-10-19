@@ -7,7 +7,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
-  applyScaffold, bootstrapDir, ConfirmationRequired, detectAnchors, planScaffold, resolveTarget, skillDir,
+  applyScaffold, bootstrapDir, ConfirmationRequired, detectAnchors, packageName, planScaffold, resolveTarget, skillDir,
 } from '../../skills/presentation/scripts/bootstrap.mjs'
 
 const repo = path.resolve('.')
@@ -320,5 +320,24 @@ describe('confirmation before writing', () => {
     const result = spawnSync(process.execPath, [path.join(skillDir, 'scripts/bootstrap.mjs'), 'apply', '--dir', dir, '--no-install'], { encoding: 'utf8' })
     expect(result.status).toBe(2)
     expect(existsSync(path.join(dir, 'src'))).toBe(false)
+  })
+})
+
+describe('generated package name', () => {
+  it.each([
+    ['/x/My Talks', 'my-talks'],
+    ['/x/Deck_V2', 'deck_v2'],
+    ['/x/.hidden', 'hidden'],
+    ['/x/日本語', 'presentations'],
+  ])('derives a valid npm name from %s', (dir, expected) => {
+    expect(packageName(dir, 'presentations')).toBe(expected)
+  })
+
+  it('writes the sanitised name into a new package.json', () => {
+    const parent = tmp()
+    const dir = path.join(parent, 'My Talks')
+    mkdirSync(dir)
+    applyScaffold(dir)
+    expect(JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8')).name).toBe('my-talks')
   })
 })

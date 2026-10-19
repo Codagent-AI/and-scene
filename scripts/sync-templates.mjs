@@ -107,13 +107,15 @@ export function sync() {
   }
   for (const [rel, content] of Object.entries(STATIC)) put(path.join(templateRoot, rel), content)
   for (const [dest, content] of starterFiles()) put(dest, content)
-  const eslint = readFileSync(path.join(root, 'eslint.config.js'), 'utf8')
-  put(
-    path.join(templateRoot, 'eslint.config.js'),
-    eslint
-      .replace("globalIgnores(['dist', 'artifacts', 'skills/presentation/templates'])", "globalIgnores(['dist', 'artifacts'])")
-      .replace(/ {2}\{\n {4}files: \['tests\/\*\*\/\*\.\{ts,tsx\}'\],\n {4}rules: \{[^}]*\},\n {2}\},\n/, ''),
-  )
+  const replaceOnce = (source, pattern, replacement) => {
+    const result = source.replace(pattern, replacement)
+    if (result === source) throw new Error(`eslint.config.js no longer matches ${pattern}; update scripts/sync-templates.mjs`)
+    return result
+  }
+  let eslint = readFileSync(path.join(root, 'eslint.config.js'), 'utf8')
+  eslint = replaceOnce(eslint, "globalIgnores(['dist', 'artifacts', 'skills/presentation/templates'])", "globalIgnores(['dist', 'artifacts'])")
+  eslint = replaceOnce(eslint, / {2}\{\n {4}files: \['tests\/\*\*\/\*\.\{ts,tsx\}'\],\n {4}rules: \{[^}]*\},\n {2}\},\n/, '')
+  put(path.join(templateRoot, 'eslint.config.js'), eslint)
   put(path.join(templateRoot, 'package.json'), `${JSON.stringify(templatePackage(), null, 2)}\n`)
 }
 

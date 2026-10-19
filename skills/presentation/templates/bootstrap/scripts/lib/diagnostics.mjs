@@ -32,7 +32,7 @@ export function collectSnapshot(doc, win) {
   const pathOf = (el) => {
     const parts = []
     for (let node = el; node && node !== doc.body; node = node.parentElement) {
-      parts.unshift(Array.prototype.indexOf.call(node.parentElement.children, node))
+      parts.unshift(Array.prototype.indexOf.call(node.parentElement?.children ?? [], node))
     }
     return parts.join('/')
   }

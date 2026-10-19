@@ -155,7 +155,8 @@
   flex: none;
 }
 .hmp [data-presentation-entity='verify'] {
-  font-size: 17px;
+  font-size: 18px;
+  gap: 4px;
 }
 .hmp [data-presentation-entity='route'] {
   font-size: 18px;
@@ -164,7 +165,7 @@
   flex-direction: column;
   gap: 6px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 17px;
   line-height: 1.3;
   color: var(--hmp-muted);
 }
@@ -177,7 +178,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--hmp-muted);
-  font-size: 14px;
+  font-size: 17px;
   line-height: 1.2;
   text-align: center;
 }
@@ -188,7 +189,7 @@
 }
 .hmp .hmp-chip {
   border-radius: 999px;
-  font-size: 15px;
+  font-size: 18px;
   line-height: 1;
   color: var(--hmp-muted);
   white-space: nowrap;
@@ -205,7 +206,7 @@
 }
 .hmp .hmp-check-label {
   color: var(--hmp-muted);
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1;
   text-align: center;
 }

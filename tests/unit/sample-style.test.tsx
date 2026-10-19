@@ -44,18 +44,18 @@ describe('scene text stays legible once the canvas is scaled to a phone', () => 
   const sceneCss = css.slice(css.indexOf('/* scene entities'), css.indexOf('@media'))
   const sizes = [...sceneCss.matchAll(/font-size:\s*([\d.]+)(px|rem)/g)]
 
-  it('authors every scene font size in canvas pixels, at least 14px', () => {
+  it('authors every scene font size in canvas pixels, at least 17px', () => {
     expect(sizes.length).toBeGreaterThan(0)
     for (const [, value, unit] of sizes) {
       expect(unit).toBe('px')
-      expect(Number(value)).toBeGreaterThanOrEqual(14)
+      expect(Number(value)).toBeGreaterThanOrEqual(17)
     }
   })
 
-  it('renders no scene text under 5px at 390x844 in either mode', () => {
+  it('renders no scene text under 6.5px at 390x844 in either mode', () => {
     const smallest = Math.min(...sizes.map((m) => Number(m[1])))
     for (const mode of ['browse', 'present'] as const) {
-      expect(smallest * stageScale(mode, { width: 390, height: 844 })).toBeGreaterThanOrEqual(5)
+      expect(smallest * stageScale(mode, { width: 390, height: 844 })).toBeGreaterThanOrEqual(6.5)
     }
   })
 })

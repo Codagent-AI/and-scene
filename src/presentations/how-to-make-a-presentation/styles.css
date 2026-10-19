@@ -566,3 +566,27 @@
 [data-presentation-header] {
   gap: 16px;
 }
+
+/* Narrow viewports: keep Previous/Next fully on screen by wrapping the nine progress dots onto their own row. */
+@media (max-width: 600px) {
+  [data-presentation-footer] {
+    padding: 10px 16px 36px;
+  }
+  [data-presentation-controls] {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 12px;
+    max-width: 100%;
+  }
+  [data-presentation-progress] {
+    order: 3;
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+  [data-presentation-progress-item] {
+    width: 28px;
+    height: 28px;
+  }
+}

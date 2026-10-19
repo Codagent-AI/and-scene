@@ -90,3 +90,30 @@ describe('dashed and green treatments are supplied by local CSS', () => {
     expect(forSelector(/sample-verify\[data-presentation-state='pass'\]/)[0]?.decls.get('border-color')).toBe('var(--pass)')
   })
 })
+
+describe('footer controls stay on screen at narrow widths (acceptance F-002)', () => {
+  const narrow = css.match(/@media\s*\(max-width:\s*(\d+)px\)\s*\{([\s\S]*?)\n\}/g)?.find((b) => b.includes('data-presentation-controls'))
+
+  it('declares a narrow-viewport block that covers 390px', () => {
+    expect(narrow).toBeDefined()
+    expect(Number(narrow?.match(/max-width:\s*(\d+)px/)?.[1])).toBeGreaterThanOrEqual(390)
+  })
+
+  it('wraps the controls and puts the progress dots on their own full-width row', () => {
+    const block = parse((narrow ?? '').replace(/^@media[^{]*\{/, ''))
+    const controls = block.find((r) => r.selector === '[data-presentation-controls]')
+    expect(controls?.decls.get('flex-wrap')).toBe('wrap')
+    expect(controls?.decls.get('max-width')).toBe('100%')
+    const progress = block.find((r) => r.selector === '[data-presentation-progress]')
+    expect(progress?.decls.get('flex')).toMatch(/100%$/)
+    expect(progress?.decls.get('flex-wrap')).toBe('wrap')
+  })
+
+  it('keeps nine progress dots narrower than the padded 390px viewport', () => {
+    const block = parse((narrow ?? '').replace(/^@media[^{]*\{/, ''))
+    const item = Number.parseFloat(block.find((r) => r.selector === '[data-presentation-progress-item]')?.decls.get('width') ?? '')
+    const gap = Number.parseFloat(block.find((r) => r.selector === '[data-presentation-progress]')?.decls.get('gap') ?? '')
+    const pad = Number.parseFloat((block.find((r) => r.selector === '[data-presentation-footer]')?.decls.get('padding') ?? '').split(/\s+/)[1])
+    expect(9 * item + 8 * gap).toBeLessThanOrEqual(390 - 2 * pad)
+  })
+})

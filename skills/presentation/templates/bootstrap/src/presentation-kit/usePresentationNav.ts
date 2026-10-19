@@ -10,8 +10,9 @@ const INTERACTIVE_ROLES = new Set([
   'switch', 'slider', 'spinbutton', 'textbox', 'combobox', 'listbox', 'searchbox', 'scrollbar', 'treeitem',
 ])
 
-function isInteractive(el: Element | null): boolean {
-  for (let n: Element | null = el; n; n = n.parentElement) {
+function isInteractive(target: EventTarget | null): boolean {
+  const start = target instanceof Element ? target : null
+  for (let n: Element | null = start; n; n = n.parentElement) {
     if (INTERACTIVE_TAGS.has(n.tagName)) return true
     const editable = n.getAttribute('contenteditable')
     if (editable !== null && editable !== 'false') return true
@@ -28,7 +29,7 @@ export function keyAction(e: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'altKey' | 
   if (e.ctrlKey || e.altKey || e.metaKey) return null
   const action: KeyAction = NEXT_KEYS.has(e.key) ? 'next' : PREV_KEYS.has(e.key) ? 'prev' : e.key === 'p' || e.key === 'P' ? 'toggle-mode' : null
   if (!action) return null
-  if (isInteractive(e.target as Element | null) || isInteractive(document.activeElement)) return null
+  if (isInteractive(e.target) || isInteractive(document.activeElement)) return null
   return action
 }
 

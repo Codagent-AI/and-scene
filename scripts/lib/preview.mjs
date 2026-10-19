@@ -3,7 +3,7 @@ import { createServer } from 'node:net'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-/** Deterministic IPv4 loopback; never "localhost". */
+/** Deterministic IPv4 loopback, independent of how the host name resolves. */
 export const HOST = '127.0.0.1'
 
 export const urlFor = (port, path = '/') => `http://${HOST}:${port}${path}`

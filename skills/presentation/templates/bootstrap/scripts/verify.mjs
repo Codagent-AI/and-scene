@@ -137,7 +137,7 @@ export async function runVerify({ cwd = process.cwd(), manifestPath = join(cwd, 
     } catch (e) {
       throw new VerifyError('render', e.message)
     }
-    log(`verify: preview ready at ${urlFor(preview.port)}`)
+    log(`verify: preview ready at ${urlFor(preview.port)} (pid ${preview.pid})`)
     await renderSample({ baseUrl: `http://${HOST}:${preview.port}`, manifest, log })
     log('verify: PASS')
     return { ok: true }

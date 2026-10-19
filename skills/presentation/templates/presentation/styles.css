@@ -1,0 +1,18 @@
+/*
+ * Styles owned by __TITLE__. The scene kit ships no styles, so everything visual lives here.
+ * Scope every rule under [data-presentation-title-text="__TITLE__"] or a class on your own wrapper
+ * so this file cannot affect other presentations.
+ *
+ * Hooks the kit exposes (style these):
+ *   [data-presentation-root]            [data-presentation-mode="browse|present"]
+ *   [data-presentation-header]          [data-presentation-footer]
+ *   [data-presentation-caption]         [data-presentation-title]
+ *   [data-presentation-progress-item]   [data-presentation-progress-item][data-presentation-active]
+ *   [data-presentation-toc-item]        [data-presentation-toc-item][data-presentation-active]
+ *   [data-presentation-prev]            [data-presentation-next]
+ *   [data-presentation-attribution]     (make it legible: size >= 12px, distinct color, not default link styling)
+ *   [data-presentation-entity]          [data-presentation-kind="box|label|frame|emphasis|symbol-chip"]
+ *   [data-presentation-emphasis="true"] [data-presentation-label]  [data-presentation-icon]
+ *
+ * Active step in progress, ToC and navigation must look different from inactive items.
+ */

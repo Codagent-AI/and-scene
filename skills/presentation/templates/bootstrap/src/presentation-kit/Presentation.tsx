@@ -1,139 +1,74 @@
 import type { ReactNode } from 'react'
+import type { Mode } from './constants'
+import { Stage } from './Stage'
+import { Attribution } from './chrome/Attribution'
 import { Footer } from './chrome/Footer'
+import type { ChromeHooks } from './chrome/forward'
 import { Header } from './chrome/Header'
 import { Toc } from './chrome/Toc'
-import { Stage } from './Stage'
-import { stepMarker } from './stepMarker'
+import { tocEntries } from './chrome/tocEntries'
+import type { Step } from './types'
+import { isWide, useViewport } from './useFitScale'
 import { usePresentationNav } from './usePresentationNav'
-import type { Mode, Step } from './types'
 
-export interface PresentationProps<P extends Record<string, unknown> = Record<string, unknown>> {
-  steps: Step<P>[]
+export interface PresentationProps<TPayload> {
+  steps: ReadonlyArray<Step<TPayload>>
+  title: string
   initialMode?: Mode
-  title?: string
-  /** Optional header brand. Omitted by default; pass a logo or title node to add one. */
+  /** Host-provided branding for the top-left header slot. */
   brand?: ReactNode
-  /** Home link target for the header brand and the last-step footer button. */
-  homeHref?: string
-  /** Accessible label for the home link. */
-  homeLabel?: string
-  /** Full-bleed layer rendered behind the content. */
-  background?: ReactNode
-  /**
-   * Full-bleed layer rendered *above* the content (e.g. a CRT/scanline overlay).
-   * Unlike `background`, it paints over the chrome. Pointer events pass through,
-   * so it never intercepts clicks. Use `background` for true backdrops.
-   */
-  overlay?: ReactNode
-  /**
-   * Override the per-step marker (top-right). Defaults to a zero-padded count.
-   * A callback (not a per-step field) so hosts can number relationally — e.g.
-   * skip chrome cards and count only body steps.
-   */
-  marker?: (index: number, steps: Step<P>[]) => string
-  /** Small bottom-right attribution link. Defaults to and-scene; pass `null` for an intentional opt-out. */
-  attribution?: ReactNode
-  /** Attribution target; defaults to the and-scene GitHub repository. */
-  attributionHref?: string
+  /** Set to false to remove the default bottom-right attribution. */
+  attribution?: boolean
+  /** Class, style and data-* hooks forwarded to each chrome part's root element. */
+  chrome?: {
+    header?: ChromeHooks
+    footer?: ChromeHooks
+    toc?: ChromeHooks
+    attribution?: ChromeHooks
+  }
 }
 
-export function Presentation<P extends Record<string, unknown> = Record<string, unknown>>({
+export function Presentation<TPayload>({
   steps,
+  title,
   initialMode = 'browse',
-  title = 'Presentation',
   brand,
-  homeHref = '/',
-  homeLabel,
-  background,
-  overlay,
-  marker,
-  attribution = 'made by and-scene',
-  attributionHref = 'https://github.com/Codagent-AI/and-scene',
-}: PresentationProps<P>) {
-  const { step, setStep, next, prev, last, mode } = usePresentationNav(steps.length, initialMode)
-  // An empty deck has no current step; render a clear placeholder instead of
-  // crashing on `steps[step].title`. (Hooks above run unconditionally first.)
-  if (steps.length === 0) {
-    return (
-      <div
-        data-presentation={title}
-        data-presentation-empty
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        No steps to present.
-      </div>
-    )
-  }
-  const current = steps[step]
-  const markerText = (marker ?? ((i) => stepMarker(i)))(step, steps)
-
+  attribution = true,
+  chrome = {},
+}: PresentationProps<TPayload>) {
+  const nav = usePresentationNav(steps.length, initialMode)
+  const viewport = useViewport()
+  const step = steps[nav.index]
+  if (!step) return null
+  const showToc = nav.mode === 'browse' && isWide(viewport)
   return (
     <div
-      data-presentation={title}
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        userSelect: 'none',
-        overflow: 'hidden',
-      }}
+      data-presentation-root=""
+      data-presentation-title-text={title}
+      data-presentation-mode={nav.mode}
+      data-presentation-step-count={steps.length}
+      data-presentation-step-index={nav.index}
+      data-step-count={steps.length}
+      data-step-index={nav.index}
+      style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}
     >
-      {background && (
-        <div
-          data-presentation-background
-          style={{ position: 'absolute', inset: 0, zIndex: 0 }}
-        >
-          {background}
-        </div>
-      )}
-      <div data-presentation-content style={{ position: 'relative', zIndex: 10, minHeight: '100vh' }}>
-        <Stage step={current} mode={mode} />
-        <Header
-          marker={markerText}
-          title={current.title}
-          brand={brand}
-          homeHref={homeHref}
-          homeLabel={homeLabel}
-        />
-        {mode === 'browse' && <Toc steps={steps} step={step} onSelect={setStep} />}
-        <Footer
-          steps={steps}
-          step={step}
-          last={last}
-          mode={mode}
-          homeHref={homeHref}
-          onPrev={prev}
-          onNext={next}
-          onSelect={setStep}
-        />
-      </div>
-      {overlay && (
-        <div
-          data-presentation-overlay
-          style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 50 }}
-        >
-          {overlay}
-        </div>
-      )}
-      {attribution && (
-        <a
-          href={attributionHref}
-          data-presentation-attribution
-          style={{
-            position: 'absolute',
-            right: 16,
-            bottom: 8,
-            zIndex: 60,
-            fontSize: 12,
-          }}
-        >
-          {attribution}
-        </a>
-      )}
+      <Header {...chrome.header} brand={brand} era={step.era} />
+      {showToc ? <Toc {...chrome.toc} entries={tocEntries(steps)} activeIndex={nav.index} onJump={nav.goTo} /> : null}
+      <Stage step={step} stepIndex={nav.index} mode={nav.mode} />
+      <Footer
+        {...chrome.footer}
+        mode={nav.mode}
+        index={nav.index}
+        count={steps.length}
+        title={step.title}
+        caption={step.caption}
+        stepTitles={steps.map((s) => s.title)}
+        onJump={nav.goTo}
+        onPrev={nav.prev}
+        onNext={nav.next}
+        onToggleMode={nav.toggleMode}
+      />
+      {attribution ? <Attribution {...chrome.attribution} /> : null}
     </div>
   )
 }

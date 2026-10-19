@@ -1,15 +1,16 @@
-import { useMemo } from 'react'
-import { Landing } from './Landing'
-import { resolveRoute } from './router'
-import { PresentationRouter } from './presentations/PresentationRouter'
-import { presentationSlugs } from './presentations'
+import { Suspense, lazy } from 'react'
+import Landing from './Landing.tsx'
+import { presentations } from './presentations'
+import { resolveRoute } from './route.ts'
 
-export function Root() {
-  const route = useMemo(() => resolveRoute(window.location.pathname, presentationSlugs), [])
+const route = resolveRoute(window.location.pathname, presentations)
+const Talk = route.kind === 'presentation' ? lazy(route.entry.load) : null
 
-  if (route.kind === 'landing') {
-    return <Landing />
-  }
-
-  return <PresentationRouter slug={route.slug} />
+export default function Root() {
+  if (!Talk) return <Landing presentations={presentations} />
+  return (
+    <Suspense fallback={null}>
+      <Talk />
+    </Suspense>
+  )
 }

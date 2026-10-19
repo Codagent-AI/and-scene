@@ -1,45 +1,34 @@
 import type { ComponentType } from 'react'
 
-export type Mode = 'browse' | 'present'
+export interface SceneProps<TPayload = undefined> {
+  /** Diagram state for the active step. */
+  payload: TPayload
+  /** Zero-based index of the active step. */
+  stepIndex: number
+}
 
-/** Narration + identity for one beat of the evolving diagram. */
-export interface StepMeta<P extends Record<string, unknown> = Record<string, unknown>> {
-  /** Stable key for AnimatePresence + React reconciliation. */
+/** The narrative fields every step carries, independent of its scene. */
+export interface StepMeta {
+  /** Stable identity; never derived from position. */
   id: string
-  /** Header label, e.g. "the model". */
+  /** Section/era label; contiguous steps with the same era form a table-of-contents entry. */
   era: string
-  /** Presenter-mode one-liner. */
+  /** One-line presenter title. */
   title: string
-  /** Browsing-mode paragraph. */
+  /** Paragraph shown in browse mode. */
   caption: string
-  /**
-   * AnimatePresence key override. Consecutive steps that share a groupKey are
-   * NOT remounted when you navigate between them — the Scene instance persists
-   * and only its `step` prop changes, so elements already on screen never fade
-   * out and back in; they update in place (and a newly added element animates
-   * in on its own). Steps sharing a groupKey must also share the same `Scene`
-   * component. Defaults to `id`.
-   */
+}
+
+/** A scene component; steps sharing `groupKey` and `Scene` keep one mounted instance. */
+export type Scene<TPayload = undefined> = ComponentType<SceneProps<TPayload>>
+
+interface StepBase<TPayload> extends StepMeta {
+  Scene: Scene<TPayload>
   groupKey?: string
-  /** Per-step data handed to the Scene (e.g. how many chips to show). */
-  payload?: P
 }
 
-/**
- * Props every Scene receives. Most scenes ignore them; a grouped scene reads
- * `step.payload` to decide which sub-state of its diagram to render.
- */
-export interface SceneProps<P extends Record<string, unknown> = Record<string, unknown>> {
-  step: Step<P>
-}
+type PayloadField<TPayload> = [TPayload] extends [undefined]
+  ? { payload?: undefined }
+  : { payload: TPayload }
 
-/**
- * A step = its narration + the diagram layer rendered while it is active.
- *
- * `Scene` composes the shared nodes (see ./nodes). Elements that should morph
- * between steps share a layoutId — that's the only contract between one step
- * and the next.
- */
-export interface Step<P extends Record<string, unknown> = Record<string, unknown>> extends StepMeta<P> {
-  Scene: ComponentType<SceneProps<P>>
-}
+export type Step<TPayload = undefined> = StepBase<TPayload> & PayloadField<TPayload>

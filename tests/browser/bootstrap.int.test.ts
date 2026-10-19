@@ -81,7 +81,12 @@ beforeAll(async () => {
   for (const rel of walk(PRES).filter((r) => r !== 'README.md')) {
     const target = join(dest, rel)
     mkdirSync(join(target, '..'), { recursive: true })
-    const text = readFileSync(join(PRES, rel), 'utf8').replaceAll('__SLUG__', SLUG).replaceAll('__TITLE__', TITLE)
+    // Kit specifiers are computed from the scene-kit location recorded for this layout (src/presentation-kit).
+    const text = readFileSync(join(PRES, rel), 'utf8')
+      .replaceAll('__SLUG__', SLUG)
+      .replaceAll('__TITLE__', TITLE)
+      .replaceAll('__KIT_FROM_STEPS__', '../../../presentation-kit')
+      .replaceAll('__KIT__', '../../presentation-kit')
     writeFileSync(target, text)
   }
   const registryPath = join(app, 'src/presentations/index.ts')
@@ -174,7 +179,7 @@ describe('INT-001 materialized bootstrap', () => {
 
   it('leaves no unreplaced placeholders in the generated presentation', () => {
     const files = walk(join(app, 'src/presentations', SLUG))
-    const leftover = files.filter((rel) => /__SLUG__|__TITLE__/.test(readFileSync(join(app, 'src/presentations', SLUG, rel), 'utf8')))
+    const leftover = files.filter((rel) => /__(SLUG|TITLE|KIT|KIT_FROM_STEPS)__/.test(readFileSync(join(app, 'src/presentations', SLUG, rel), 'utf8')))
     expect(leftover).toEqual([])
     expect(existsSync(join(app, 'src/presentations', SLUG, 'README.md'))).toBe(false)
   })

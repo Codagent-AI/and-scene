@@ -1,4 +1,4 @@
-import { Box, Emphasis, SceneLayer, Appear, Arrow, type SceneProps } from '../../presentation-kit'
+import { Box, Emphasis, SceneLayer, Appear, Arrow, type SceneProps } from '__KIT__'
 import { ID, LINK, RECTS } from './entities'
 
 /** Diagram state for one step. Each step sets the flags it needs; the scene reads only these. */

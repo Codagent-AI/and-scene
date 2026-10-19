@@ -1,4 +1,4 @@
-import type { Step } from '../../../presentation-kit'
+import type { Step } from '__KIT_FROM_STEPS__'
 import { Scene, type ScenePayload } from '../Scene'
 
 /**

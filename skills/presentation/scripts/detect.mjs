@@ -29,7 +29,12 @@ export function monorepoSignals(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
   if (pkg?.workspaces) signals.push('package.json workspaces')
   if (existsSync(path.join(dir, 'pnpm-workspace.yaml'))) signals.push('pnpm-workspace.yaml')
-  for (const d of ['packages', 'apps']) if (isDir(path.join(dir, d))) signals.push(`${d}/ directory`)
+  // A packages/ or apps/ folder only counts when it holds workspace packages of its own.
+  for (const d of ['packages', 'apps']) {
+    const folder = path.join(dir, d)
+    const holdsPackages = isDir(folder) && readdirSync(folder).some((n) => existsSync(path.join(folder, n, 'package.json')))
+    if (holdsPackages) signals.push(`${d}/ directory`)
+  }
   return signals
 }
 

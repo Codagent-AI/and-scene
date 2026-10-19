@@ -94,8 +94,8 @@ describe('target resolution', () => {
   it.each([
     ['package.json workspaces', (d: string) => put(d, 'package.json', JSON.stringify({ workspaces: ['packages/*'] }))],
     ['pnpm-workspace.yaml', (d: string) => put(d, 'pnpm-workspace.yaml', 'packages:\n  - x\n')],
-    ['packages/ directory', (d: string) => mkdirSync(path.join(d, 'packages'))],
-    ['apps/ directory', (d: string) => mkdirSync(path.join(d, 'apps'))],
+    ['packages/ directory', (d: string) => put(d, 'packages/a/package.json', '{}')],
+    ['apps/ directory', (d: string) => put(d, 'apps/web/package.json', '{}')],
   ])('a %s alone makes the target a self-contained presentations/ app', (_n, arrange) => {
     const d = tmp()
     arrange(d)
@@ -104,6 +104,16 @@ describe('target resolution', () => {
     expect(r.target).toBe(path.join(r.projectDir, 'presentations'))
     expect(r.missing).toEqual(['build', 'kit', 'index'])
     expect(r.needsConfirmation).toBe(true)
+  })
+
+  it('does not treat an apps/ or packages/ folder without packages as a monorepo', () => {
+    const d = tmp()
+    put(d, 'package.json', APP_PKG)
+    put(d, 'apps/readme.md', 'not a package')
+    mkdirSync(path.join(d, 'packages'))
+    const r = detect(d)
+    expect(r.monorepo).toBe(false)
+    expect(r.target).toBe(r.projectDir)
   })
 
   it('does not count a monorepo root build setup as the app build anchor', () => {
@@ -239,6 +249,12 @@ describe('scaffolding', () => {
     expect(merged.devDependencies).toEqual({ vite: '^7', playwright: '^1' })
     expect(added.sort()).toEqual(['dependencies.motion', 'devDependencies.playwright', 'scripts.verify'])
     expect(existing.dependencies).toEqual({ react: '^18' })
+  })
+
+  it('names the file when an existing package.json cannot be parsed', () => {
+    const d = tmp()
+    put(d, 'package.json', '{ not json')
+    expect(() => scaffold(d, ['kit'])).toThrow(/cannot read .*package\.json/)
   })
 
   it('appends missing gitignore lines without duplicating existing ones', () => {

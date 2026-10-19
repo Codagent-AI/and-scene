@@ -68,7 +68,13 @@ export function scaffold(target, anchors, templateRoot = TEMPLATE_ROOT) {
     cpSync(path.join(templateRoot, 'package-lock.json'), path.join(target, 'package-lock.json'))
     copied.push('package.json', 'package-lock.json')
   } else {
-    const { merged, added } = mergePackageJson(tplPkg, JSON.parse(readFileSync(pkgPath, 'utf8')))
+    let existing
+    try {
+      existing = JSON.parse(readFileSync(pkgPath, 'utf8'))
+    } catch (error) {
+      throw new Error(`cannot read ${pkgPath}: ${error.message}`)
+    }
+    const { merged, added } = mergePackageJson(tplPkg, existing)
     if (added.length) {
       writeFileSync(pkgPath, JSON.stringify(merged, null, 2) + '\n')
       copied.push(`package.json (added ${added.join(', ')})`)

@@ -56,7 +56,10 @@ export async function startPreview(root, { port, timeoutMs = 30000, log = consol
   log(`[preview] pid ${child.pid} (process group)`)
   log('[preview] waiting for ' + baseUrl)
   while (Date.now() < deadline) {
-    if (exited) throw new Error('preview exited early:\n' + output)
+    if (exited) {
+      killGroup(child, 'SIGKILL') // the npx wrapper may exit while vite, in the same group, lives on
+      throw new Error('preview exited early:\n' + output)
+    }
     try {
       const res = await fetch(baseUrl)
       if (res.ok) return { child, port: chosen, baseUrl }
@@ -72,22 +75,21 @@ export async function startPreview(root, { port, timeoutMs = 30000, log = consol
 /** Terminate the preview's whole process group and wait for it to exit. */
 export async function stopPreview(preview) {
   const { child } = preview
-  if (child.exitCode !== null || child.signalCode !== null) return
-  const done = new Promise((resolve) => child.once('exit', resolve))
-  try {
-    process.kill(-child.pid, 'SIGTERM')
-  } catch {
-    child.kill('SIGTERM')
-  }
-  const timer = setTimeout(() => {
-    try {
-      process.kill(-child.pid, 'SIGKILL')
-    } catch {
-      /* already gone */
-    }
-  }, 3000)
+  const leaderGone = child.exitCode !== null || child.signalCode !== null
+  // The leader (npx) can exit before its children do, so always signal the whole group.
+  const done = leaderGone ? Promise.resolve() : new Promise((resolve) => child.once('exit', resolve))
+  killGroup(child, 'SIGTERM')
+  const timer = setTimeout(() => killGroup(child, 'SIGKILL'), 3000)
   await done
   clearTimeout(timer)
+}
+
+function killGroup(child, signal) {
+  try {
+    process.kill(-child.pid, signal)
+  } catch {
+    /* group already gone */
+  }
 }
 
 /** Run a command to completion, capturing combined output. Resolves `{ code, output }`. */

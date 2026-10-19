@@ -81,19 +81,22 @@
   color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 10px;
   font-size: 28px; font-weight: 600;
 }
-[data-presentation-node='box'][data-role='prompt'] { font-size: 20px; font-weight: 400; color: var(--muted); border-radius: 17px; }
-[data-presentation-node='box'][data-role='ghost'] { border-style: dashed; color: var(--muted); font-size: 15px; font-weight: 400; background: transparent; }
-[data-presentation-node='box'][data-role='socket'] { font-size: 20px; border-color: var(--gold); color: var(--gold); border-radius: 0 0 10px 10px; border-top: 0; }
+[data-presentation-node='box'][data-role='prompt'] { font-size: 22px; font-weight: 400; color: var(--muted); border-radius: 17px; }
+[data-presentation-node='box'][data-role='ghost'] { border-style: dashed; color: var(--muted); font-size: 16px; font-weight: 400; background: transparent; }
+[data-presentation-node='box'][data-role='socket'] { font-size: 22px; border-color: var(--gold); color: var(--gold); border-radius: 0 0 10px 10px; border-top: 0; }
 [data-presentation-node='box'][data-role='card'] svg { width: 26px; height: 26px; color: var(--gold); }
-[data-presentation-node='box'] [data-part='title'] { font-size: 18px; font-weight: 700; }
+[data-presentation-node='box'] [data-part='title'] { font-size: 20px; font-weight: 700; }
 [data-presentation-node='box'] [data-part='caption'],
-[data-presentation-node='box'] [data-part='check'] { font-size: 15px; font-weight: 400; color: var(--muted); }
-[data-presentation-node='box'] [data-presentation-pass] { width: 24px; height: 24px; color: var(--pass); }
+[data-presentation-node='box'] [data-part='check'] { font-size: 18px; font-weight: 400; color: var(--muted); }
+[data-presentation-node='box'][data-role='verify'] { gap: 0; }
+[data-presentation-node='box'][data-role='verify'] [data-part='title'],
+[data-presentation-node='box'][data-role='verify'] [data-part='check'] { font-size: 16px; line-height: 1.3; }
+[data-presentation-node='box'] [data-presentation-pass] { width: 24px; height: 24px; flex: none; color: var(--pass); }
 [data-presentation-node='box'][data-presentation-emphasis='true'] { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(199, 167, 85, 0.35); }
-[data-presentation-node='label'] { font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+[data-presentation-node='label'] { font-size: 18px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 [data-presentation-node='chip'] {
   display: flex; align-items: center; justify-content: center;
-  font-size: 15px; color: var(--ink); background: var(--panel); border: 1px solid var(--gold); border-radius: 999px;
+  font-size: 17px; color: var(--ink); background: var(--panel); border: 1px solid var(--gold); border-radius: 999px;
 }
 /* Chips sized for short words keep a smaller size so they fit their slot. */
 [data-presentation-node='chip'][data-role='morph'],
@@ -105,5 +108,5 @@
 [data-presentation-node='frame'] { border: 2px solid var(--gold); border-radius: 18px; }
 [data-presentation-frame-label] {
   position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
-  font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold);
+  font-size: 20px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold);
 }

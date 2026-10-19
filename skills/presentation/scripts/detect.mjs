@@ -98,11 +98,25 @@ export function stripNonCode(text) {
 /** `vite.config.ts`, `vite.config.mjs`, `vite.web.config.ts`, `vite.config.app.ts`, and similar. */
 const VITE_CONFIG = /^vite(\.[\w-]+)*\.config(\.[\w-]+)*\.(m|c)?(t|j)s$/
 
+const RUNNER_WORDS = new Set(['npx', 'bunx', 'pnpm', 'yarn', 'bun', 'npm', 'exec', 'dlx', 'cross-env', 'env', 'run'])
+
+/** True when any command in a shell line runs vite, after env assignments, flags, and runner words. */
+function callsVite(line) {
+  return line.split(/&&|\|\||[;|]/).some((command) => {
+    const tokens = command.trim().split(/\s+/).filter(Boolean)
+    for (const token of tokens) {
+      if (/^[\w.-]+=/.test(token) || token.startsWith('-') || RUNNER_WORDS.has(token)) continue
+      return token.split(/[\\/]/).pop() === 'vite'
+    }
+    return false
+  })
+}
+
 /** True when the script calls the vite command itself, following one level of `npm run <script>`. */
 function scriptRunsVite(scripts, name, followed = false) {
   const text = scripts?.[name]
   if (typeof text !== 'string') return false
-  if (/(^|[;&|]|\bnpx|\bexec)\s*vite(\s|$)/.test(text)) return true
+  if (callsVite(text)) return true
   if (followed) return false
   const next = [...text.matchAll(/\b(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?([\w:.-]+)/g)].map((m) => m[1])
   return next.some((n) => n !== name && scriptRunsVite(scripts, n, true))

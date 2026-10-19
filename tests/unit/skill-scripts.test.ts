@@ -133,6 +133,26 @@ describe('anchor detection', () => {
     const viaIndirection = tmp()
     put(viaIndirection, 'package.json', JSON.stringify({ scripts: { build: 'npm run compile', compile: 'tsc -b && vite' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
     expect(detectAnchors(viaIndirection).build).toBe(true)
+    for (const build of [
+      'NODE_ENV=production vite --mode x',
+      'cross-env FOO=1 vite',
+      'pnpm vite',
+      'bunx vite',
+      'pnpm dlx vite',
+      'npx --yes vite',
+      './node_modules/.bin/vite',
+      'tsc -b && FOO=1 vite',
+      'rm -rf dist; vite',
+    ]) {
+      const d = tmp()
+      put(d, 'package.json', JSON.stringify({ scripts: { build }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+      expect(detectAnchors(d).build, build).toBe(true)
+    }
+    for (const build of ['echo vite', 'npm run lint', 'node vite-helper.js', 'tsc -b']) {
+      const d = tmp()
+      put(d, 'package.json', JSON.stringify({ scripts: { build }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+      expect(detectAnchors(d).build, build).toBe(false)
+    }
     const echoed = tmp()
     put(echoed, 'package.json', JSON.stringify({ scripts: { build: 'echo vite' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
     expect(detectAnchors(echoed).build).toBe(false)

@@ -61,9 +61,34 @@ function closingQuote(text, start) {
   return -1
 }
 
+/** Whether a `/` after this text starts a regular expression literal rather than a division. */
+function regexAllowed(before) {
+  const t = before.trimEnd()
+  return t === '' || /[(,=:[!&|?{};]$/.test(t) || t.endsWith('=>') || /\b(return|typeof|case|in|of|void|delete|throw|yield|await)$/.test(t)
+}
+
+/** Index of the last character of the regex literal (flags included) opened at `start`, or -1. */
+function closingRegex(text, start) {
+  let inClass = false
+  for (let i = start + 1; i < text.length; i++) {
+    const c = text[i]
+    if (c === '\\') i++
+    else if (c === '\n') return -1
+    else if (c === '[') inClass = true
+    else if (c === ']') inClass = false
+    else if (c === '/' && !inClass) {
+      let end = i
+      while (/[a-z]/i.test(text[end + 1] ?? '')) end++
+      return end
+    }
+  }
+  return -1
+}
+
 /**
- * Source with comments removed and string/template contents emptied, so commented-out examples
- * and quoted snippets are never mistaken for the code that makes an anchor.
+ * Source with comments removed and string, template, and regex-literal contents emptied, so
+ * commented-out examples and quoted or pattern-matched snippets are never mistaken for the code
+ * that makes an anchor.
  */
 export function stripNonCode(text) {
   let out = ''
@@ -77,6 +102,9 @@ export function stripNonCode(text) {
       const end = text.indexOf('*/', i + 2)
       i = end === -1 ? text.length : end + 2
       out += ' '
+    } else if (c === '/' && regexAllowed(out) && closingRegex(text, i) !== -1) {
+      out += '/ /'
+      i = closingRegex(text, i) + 1
     } else if (c === "'" || c === '"' || c === '`') {
       const end = closingQuote(text, i)
       if (end === -1) {
@@ -112,6 +140,12 @@ function callsVite(line) {
   })
 }
 
+/** True when every command in the script is a no-op or an immediate exit, so it can build nothing. */
+function isNoopScript(text) {
+  const commands = text.split(/&&|\|\||[;|]/).map((c) => c.trim()).filter(Boolean)
+  return commands.every((c) => /^(echo|exit|true|false|:)(\s|$)/.test(c))
+}
+
 /** True when the script calls the vite command itself, following one level of `npm run <script>`. */
 function scriptRunsVite(scripts, name, followed = false) {
   const text = scripts?.[name]
@@ -138,7 +172,9 @@ function exportsName(text, name) {
 /**
  * Contract-level anchor detection: keyed on what the code does, not on file names, folders, or bytes.
  * - build: package.json with a build script that runs the vite command (directly or through one
- *   level of `npm run <script>`) or sits beside a vite config file, plus vite, react, and typescript dependencies.
+ *   level of `npm run <script>`) or sits beside a vite config file and is not a no-op (`exit 1`, `echo`),
+ *   plus vite, react, and typescript dependencies. Detection is static and read-only; that the build
+ *   really passes is proven by the verify step, which runs `npm run build`.
  * - kit: source exporting a `Presentation` host, plus the stage that mounts the active step with
  *   morph presence (`AnimatePresence`/`LayoutGroup`) and the step contract (`Step`/`SceneProps`).
  * - index: source holding the registry, an array of entries with a `slug` and a lazy `import()` loader.
@@ -146,7 +182,10 @@ function exportsName(text, name) {
 export function detectAnchors(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies }
-  const runsVite = scriptRunsVite(pkg?.scripts, 'build') || readdirSyncSafe(dir).some((n) => VITE_CONFIG.test(n))
+  const buildScript = pkg?.scripts?.build
+  const hasConfig = readdirSyncSafe(dir).some((n) => VITE_CONFIG.test(n))
+  // A vite config beside a wrapper script counts, but not beside a script that builds nothing.
+  const runsVite = scriptRunsVite(pkg?.scripts, 'build') || (hasConfig && typeof buildScript === 'string' && !isNoopScript(buildScript))
   const build = Boolean(pkg?.scripts?.build) && runsVite && ['vite', 'react', 'typescript'].every((d) => d in deps)
   const texts = sourceFiles(dir).map((f) => stripNonCode(readFileSync(f, 'utf8')))
   const kit =

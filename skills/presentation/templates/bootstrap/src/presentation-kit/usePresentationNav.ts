@@ -42,6 +42,8 @@ export function usePresentationNav(count: number, initialMode: Mode): Presentati
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState<Mode>(initialMode)
   const last = Math.max(0, count - 1)
+  // Keep the stored index inside the range when the step count shrinks (adjust state during render).
+  if (index > last) setIndex(last)
 
   const goTo = useCallback((i: number) => setIndex(clampIndex(i, count)), [count])
   const next = useCallback(() => setIndex((i) => Math.min(last, i + 1)), [last])
@@ -52,7 +54,7 @@ export function usePresentationNav(count: number, initialMode: Mode): Presentati
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || targetsInteractiveControl(e.target)) return
+      if (e.repeat || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || targetsInteractiveControl(e.target)) return
       if (NEXT_KEYS.has(e.key)) {
         e.preventDefault()
         next()

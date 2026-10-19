@@ -390,7 +390,8 @@ async function renderTarget(browser, base, slug, sample) {
     return await stepThrough(page, url, errors, { sample, slug })
   } catch (err) {
     // Name the presentation when several are verified; the sample keeps its plain messages.
-    if (err instanceof VerifyFailure && !sample) err.message += ` (presentation ${slug})`
+    if (!(err instanceof VerifyFailure)) throw new VerifyFailure('render', `${errorText(err)} (presentation ${slug})`)
+    if (!sample) err.message += ` (presentation ${slug})`
     throw err
   } finally {
     await page.close().catch(() => {})

@@ -102,6 +102,25 @@ describe('Root and Landing with a registry fixture', () => {
 
 const registrySource = import.meta.glob('./presentations/index.ts', { query: '?raw', import: 'default', eager: true })['./presentations/index.ts']
 
+describe('a presentation that fails to load', () => {
+  it('falls back to Landing and retries the import on the next render', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    let calls = 0
+    const flaky: PresentationEntry = {
+      slug: 'flaky',
+      title: 'Flaky',
+      load: () => (++calls === 1 ? Promise.reject(new Error('chunk 404')) : Promise.resolve({ default: () => <h1>Flaky deck</h1> })),
+    }
+    const first = await renderRoot({ pathname: '/flaky', registry: [flaky] })
+    expect(await first.findByRole('link', { name: 'Flaky' }, { timeout: 5000 })).toBeTruthy()
+    first.unmount()
+    const second = await renderRoot({ pathname: '/flaky', registry: [flaky] })
+    expect(await second.findByRole('heading', { name: 'Flaky deck' })).toBeTruthy()
+    expect(calls).toBe(2)
+    spy.mockRestore()
+  })
+})
+
 describe('real presentation registry', () => {
   it('has unique slugs, and each entry has a slug, title and load function', () => {
     const slugs = presentations.map((e) => e.slug)

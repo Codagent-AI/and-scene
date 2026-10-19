@@ -448,10 +448,11 @@ async function startPreviewServer(root) {
       if (exited) return res()
       child.once('exit', () => res())
       child.kill('SIGTERM')
+      setTimeout(() => child.kill('SIGKILL'), 3000).unref()
     })
   for (let i = 0; i < PREVIEW_ATTEMPTS && !exited; i++) {
     try {
-      await fetch(`http://${HOST}:${port}/`)
+      await fetch(`http://${HOST}:${port}/`, { signal: AbortSignal.timeout(1000) })
       return { port, close }
     } catch {
       await delay(100)

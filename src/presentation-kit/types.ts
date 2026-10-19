@@ -7,7 +7,8 @@ export interface SceneProps<TPayload = undefined> {
   stepIndex: number
 }
 
-interface StepBase<TPayload> {
+/** The narrative fields every step carries, independent of its scene. */
+export interface StepMeta {
   /** Stable identity; never derived from position. */
   id: string
   /** Section/era label; contiguous steps with the same era form a table-of-contents entry. */
@@ -16,8 +17,13 @@ interface StepBase<TPayload> {
   title: string
   /** Paragraph shown in browse mode. */
   caption: string
-  /** The scene component. Steps sharing `groupKey` and `Scene` keep one mounted instance. */
-  Scene: ComponentType<SceneProps<TPayload>>
+}
+
+/** A scene component; steps sharing `groupKey` and `Scene` keep one mounted instance. */
+export type Scene<TPayload = undefined> = ComponentType<SceneProps<TPayload>>
+
+interface StepBase<TPayload> extends StepMeta {
+  Scene: Scene<TPayload>
   groupKey?: string
 }
 

@@ -48,6 +48,19 @@ export function monorepoSignals(dir) {
 
 const SOURCE = /\.(t|j)sx?$/
 
+/** Index of the quote that closes the string opened at `start`, or -1 when it never closes. */
+function closingQuote(text, start) {
+  const quote = text[start]
+  for (let i = start + 1; i < text.length; i++) {
+    const c = text[i]
+    if (c === '\\') i++
+    else if (c === quote) return i
+    // Only template literals may span lines.
+    else if (c === '\n' && quote !== '`') return -1
+  }
+  return -1
+}
+
 /**
  * Source with comments removed and string/template contents emptied, so commented-out examples
  * and quoted snippets are never mistaken for the code that makes an anchor.
@@ -65,17 +78,34 @@ export function stripNonCode(text) {
       i = end === -1 ? text.length : end + 2
       out += ' '
     } else if (c === "'" || c === '"' || c === '`') {
-      out += c
-      i++
-      while (i < text.length && text[i] !== c) i += text[i] === '\\' ? 2 : 1
-      out += c
-      i++
+      const end = closingQuote(text, i)
+      if (end === -1) {
+        // Not a string (an apostrophe in JSX text, a quote inside a regex literal): keep it as plain code.
+        out += c
+        i++
+      } else {
+        out += c + c
+        i = end + 1
+      }
     } else {
       out += c
       i++
     }
   }
   return out
+}
+
+/** `vite.config.ts`, `vite.config.mjs`, `vite.web.config.ts`, `vite.config.app.ts`, and similar. */
+const VITE_CONFIG = /^vite(\.[\w-]+)*\.config(\.[\w-]+)*\.(m|c)?(t|j)s$/
+
+/** True when the script calls the vite command itself, following one level of `npm run <script>`. */
+function scriptRunsVite(scripts, name, followed = false) {
+  const text = scripts?.[name]
+  if (typeof text !== 'string') return false
+  if (/(^|[;&|]|\bnpx|\bexec)\s*vite(\s|$)/.test(text)) return true
+  if (followed) return false
+  const next = [...text.matchAll(/\b(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?([\w:.-]+)/g)].map((m) => m[1])
+  return next.some((n) => n !== name && scriptRunsVite(scripts, n, true))
 }
 
 function sourceFiles(dir) {
@@ -93,8 +123,8 @@ function exportsName(text, name) {
 
 /**
  * Contract-level anchor detection: keyed on what the code does, not on file names, folders, or bytes.
- * - build: package.json with a build script that runs vite (directly or through a vite config file),
- *   plus vite, react, and typescript dependencies.
+ * - build: package.json with a build script that runs the vite command (directly or through one
+ *   level of `npm run <script>`) or sits beside a vite config file, plus vite, react, and typescript dependencies.
  * - kit: source exporting a `Presentation` host, plus the stage that mounts the active step with
  *   morph presence (`AnimatePresence`/`LayoutGroup`) and the step contract (`Step`/`SceneProps`).
  * - index: source holding the registry, an array of entries with a `slug` and a lazy `import()` loader.
@@ -102,7 +132,7 @@ function exportsName(text, name) {
 export function detectAnchors(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies }
-  const runsVite = /\bvite\b/.test(pkg?.scripts?.build ?? '') || readdirSyncSafe(dir).some((n) => /^vite\.config\.(m|c)?(t|j)s$/.test(n))
+  const runsVite = scriptRunsVite(pkg?.scripts, 'build') || readdirSyncSafe(dir).some((n) => VITE_CONFIG.test(n))
   const build = Boolean(pkg?.scripts?.build) && runsVite && ['vite', 'react', 'typescript'].every((d) => d in deps)
   const texts = sourceFiles(dir).map((f) => stripNonCode(readFileSync(f, 'utf8')))
   const kit =

@@ -100,6 +100,23 @@ describe('anchor detection', () => {
     expect(detectAnchors(d)).toMatchObject({ kit: true, index: true })
   })
 
+  it('keeps real code after apostrophes in JSX text and quotes inside regex literals', () => {
+    const d = tmp()
+    for (const [rel, text] of Object.entries({
+      'src/a/Host.tsx':
+        "export const Note = () => <p>Don't skip</p>\nconst strip = (s: string) => s.replace(/'/g, '')\nconst q = /\"/\nexport function Presentation(p: { s: Step<unknown>[] }) { return null }\n",
+      'src/a/Mount.tsx': "const x = <i>it's</i>\nimport { AnimatePresence, LayoutGroup } from 'motion/react'\nexport const M = [AnimatePresence, LayoutGroup]\n",
+      'src/a/contract.ts': 'export interface Scene {}\nexport interface Step<T> { caption: string; Scene: Scene; payload: T }\n',
+      'src/a/all.ts': "export const t = <b>don't</b>\nexport const all = [{ slug: 't', title: 'T', load: () => import('./t') }]\n",
+    })) put(d, rel, text)
+    expect(detectAnchors(d)).toMatchObject({ kit: true, index: true })
+  })
+
+  it('does not let an unterminated quote swallow the lines after it', () => {
+    const out = stripNonCode("a ' b\nexport function Presentation() {}\n")
+    expect(out).toMatch(/export function Presentation/)
+  })
+
   it('removes comments and empties string contents but keeps code', () => {
     const out = stripNonCode("a // c1\n/* c2 */ b 'x // y' \"p\\\"q\" `t` end")
     expect(out).not.toMatch(/c1|c2|x \/\/ y|p|q/)
@@ -113,6 +130,16 @@ describe('anchor detection', () => {
     const viaScript = tmp()
     put(viaScript, 'package.json', JSON.stringify({ scripts: { build: 'tsc -b && vite' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
     expect(detectAnchors(viaScript).build).toBe(true)
+    const viaIndirection = tmp()
+    put(viaIndirection, 'package.json', JSON.stringify({ scripts: { build: 'npm run compile', compile: 'tsc -b && vite' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    expect(detectAnchors(viaIndirection).build).toBe(true)
+    const echoed = tmp()
+    put(echoed, 'package.json', JSON.stringify({ scripts: { build: 'echo vite' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    expect(detectAnchors(echoed).build).toBe(false)
+    const namedConfig = tmp()
+    put(namedConfig, 'package.json', JSON.stringify({ scripts: { build: 'node build.js' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    put(namedConfig, 'vite.web.config.ts', 'export default {}\n')
+    expect(detectAnchors(namedConfig).build).toBe(true)
     const viaConfig = tmp()
     put(viaConfig, 'package.json', JSON.stringify({ scripts: { build: 'node build.js' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
     put(viaConfig, 'vite.config.ts', 'export default {}\n')

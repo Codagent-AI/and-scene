@@ -1,0 +1,75 @@
+import type { ComponentType, ReactNode } from 'react'
+import { Presentation } from '../../presentation-kit'
+import type { SceneProps, Step } from '../../presentation-kit'
+
+export type Scene = ComponentType<SceneProps<undefined>>
+
+// Layout only: pins header chrome so only the variant's deliberate defects vary.
+const BASE_CSS = [
+  'body { font-family: sans-serif; }',
+  '[data-presentation-header] { position: relative; height: 72px; }',
+  '[data-presentation-marker] { position: absolute; left: 24px; top: 16px; }',
+  '[data-presentation-mode-toggle] { position: absolute; right: 24px; top: 16px; }',
+  '[data-presentation-deck-title] { position: absolute; left: 300px; top: 16px; margin: 0; font-size: 20px; }',
+  '[data-presentation-progress] { display: flex; gap: 14px; padding: 4px 0; }',
+  '[data-presentation-progress-item] { width: 12px; height: 12px; padding: 0; }',
+].join('\n')
+
+const POLISHED_ATTRIBUTION_CSS = [
+  '[data-presentation-attribution] { font-size: 13px; color: rgb(68, 68, 68); text-decoration: none; font-family: system-ui, sans-serif; }',
+].join('\n')
+
+const DISTINCT_ACTIVE_CSS = [
+  '[data-presentation-progress-item] { border-radius: 50%; border: 1px solid rgb(136, 136, 136); background: rgb(255, 255, 255); }',
+  '[data-presentation-progress-item][data-presentation-active="true"] { background: rgb(17, 17, 17); border-color: rgb(17, 17, 17); transform: scale(1.5); }',
+  '[data-presentation-toc-item][data-presentation-active="true"] { color: rgb(17, 17, 17); font-weight: 700; text-decoration: underline; }',
+].join('\n')
+
+const ERAS = ['Setup', 'Setup', 'Run']
+
+export function makeSteps(scenes: Scene[]): Step<undefined>[] {
+  return scenes.map((Scene, i) => ({
+    id: `step-${i + 1}`,
+    era: ERAS[i] ?? 'Run',
+    title: `Fixture step ${i + 1}`,
+    caption: `Caption for fixture step ${i + 1}.`,
+    Scene,
+    payload: undefined,
+  }))
+}
+
+export interface VariantOptions {
+  title: string
+  scenes: Scene[]
+  brand?: ReactNode
+  attribution?: ReactNode | false
+  /** Adds distinct active progress and ToC styling (default true). */
+  distinctActive?: boolean
+  /** Adds legible attribution styling (default true). */
+  attributionPolish?: boolean
+  extraCss?: string
+}
+
+export function variant(options: VariantOptions): ComponentType {
+  const steps = makeSteps(options.scenes)
+  const css = [
+    BASE_CSS,
+    options.attributionPolish === false ? '' : POLISHED_ATTRIBUTION_CSS,
+    options.distinctActive === false ? '' : DISTINCT_ACTIVE_CSS,
+    options.extraCss ?? '',
+  ].join('\n')
+  function FixtureVariant() {
+    return (
+      <>
+        <style>{css}</style>
+        <Presentation
+          steps={steps}
+          title={options.title}
+          brand={options.brand}
+          attribution={options.attribution}
+        />
+      </>
+    )
+  }
+  return FixtureVariant
+}

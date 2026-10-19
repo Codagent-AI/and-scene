@@ -1,0 +1,29 @@
+import type { ComponentType } from 'react'
+import type { PresentationEntry } from './registry'
+
+// Controlled registry for INT-002. Each slug is one inspection variant.
+type VariantName =
+  | 'collision'
+  | 'allowedOverlap'
+  | 'indistinct'
+  | 'polished'
+  | 'attrSmall'
+  | 'attrDefaultLink'
+  | 'attrDefaultSerif'
+  | 'attrMissing'
+  | 'settleProbe'
+
+const load = (name: VariantName) => (): Promise<{ default: ComponentType }> =>
+  import('./inspect/variants').then((m) => ({ default: m[name] }))
+
+export const presentations: readonly PresentationEntry[] = [
+  { slug: 'inspect-collision', title: 'Collision', load: load('collision') },
+  { slug: 'inspect-allowed-overlap', title: 'Allowed overlap', load: load('allowedOverlap') },
+  { slug: 'inspect-indistinct', title: 'Indistinct chrome', load: load('indistinct') },
+  { slug: 'inspect-polished', title: 'Polished', load: load('polished') },
+  { slug: 'inspect-attr-small', title: 'Small attribution', load: load('attrSmall') },
+  { slug: 'inspect-attr-default-link', title: 'Default link attribution', load: load('attrDefaultLink') },
+  { slug: 'inspect-attr-default-serif', title: 'Default serif attribution', load: load('attrDefaultSerif') },
+  { slug: 'inspect-attr-missing', title: 'Missing attribution', load: load('attrMissing') },
+  { slug: 'inspect-settle-probe', title: 'Settle probe', load: load('settleProbe') },
+]

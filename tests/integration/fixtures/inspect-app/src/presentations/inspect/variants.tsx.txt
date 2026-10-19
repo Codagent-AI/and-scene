@@ -1,0 +1,113 @@
+import type { ReactNode } from 'react'
+import { Label } from '../../presentation-kit'
+import { variant } from './fixture'
+import type { Scene } from './fixture'
+
+const scene = (build: () => ReactNode): Scene =>
+  function FixtureScene() {
+    return <>{build()}</>
+  }
+
+const word = (id: string, x: number, y: number, text: string) => (
+  <Label id={id} x={x} y={y} w={300} h={50} style={{ fontSize: 28 }}>
+    {text}
+  </Label>
+)
+
+const plain = (id: string, text: string) => scene(() => word(id, 60, 120, text))
+
+const collidingScene = scene(() => (
+  <>
+    {word('collide-a', 100, 150, 'Alpha overlap')}
+    {word('collide-b', 120, 165, 'Beta overlap')}
+  </>
+))
+
+const brandCollision = (
+  <span data-presentation-id="brand-collide">Brand text</span>
+)
+
+// (a) unmarked text/text collision in step 2 and a text/chrome collision on every step.
+export const collision = variant({
+  title: 'Collision fixture',
+  brand: brandCollision,
+  extraCss: [
+    '[data-presentation-brand] { position: absolute; left: 24px; top: 16px; font-size: 20px; }',
+    '[data-presentation-header] { position: relative; }',
+  ].join('\n'),
+  scenes: [plain('plain-one', 'Scene one'), collidingScene, plain('plain-three', 'Scene three')],
+})
+
+// (b) the same collision inside a data-presentation-allow-overlap subtree (nested), plus an unmarked collision in step 2.
+export const allowedOverlap = variant({
+  title: 'Allowed overlap fixture',
+  scenes: [
+    plain('plain-one', 'Scene one'),
+    scene(() => (
+      <>
+        <div data-presentation-allow-overlap="" style={{ position: 'absolute', inset: 0 }}>
+          {word('marked-a', 100, 150, 'Alpha marked')}
+          <div>{word('marked-b', 120, 165, 'Beta marked')}</div>
+        </div>
+        {word('unmarked-a', 100, 280, 'Gamma unmarked')}
+        {word('unmarked-b', 120, 295, 'Delta unmarked')}
+      </>
+    )),
+    plain('plain-three', 'Scene three'),
+  ],
+})
+
+// (c) active progress and ToC chrome carry no active styling.
+export const indistinct = variant({
+  title: 'Indistinct chrome fixture',
+  distinctActive: false,
+  scenes: [plain('plain-one', 'Scene one'), plain('plain-two', 'Scene two'), plain('plain-three', 'Scene three')],
+})
+
+// (d) distinct active styling and legible attribution; no warnings expected.
+export const polished = variant({
+  title: 'Polished fixture',
+  scenes: [plain('plain-one', 'Scene one'), plain('plain-two', 'Scene two'), plain('plain-three', 'Scene three')],
+})
+
+const threeScenes = (): Scene[] => [plain('plain-one', 'Scene one'), plain('plain-two', 'Scene two'), plain('plain-three', 'Scene three')]
+
+// (e) attribution defects, one per variant.
+export const attrSmall = variant({
+  title: 'Small attribution fixture',
+  scenes: threeScenes(),
+  extraCss: '[data-presentation-attribution] { font-size: 10px; }',
+})
+
+export const attrDefaultLink = variant({
+  title: 'Default link attribution fixture',
+  attributionPolish: false,
+  scenes: threeScenes(),
+})
+
+export const attrDefaultSerif = variant({
+  title: 'Default serif attribution fixture',
+  scenes: threeScenes(),
+  extraCss: '[data-presentation-attribution] { font-family: "Times New Roman", serif; }',
+})
+
+export const attrMissing = variant({
+  title: 'Missing attribution fixture',
+  attribution: false,
+  scenes: threeScenes(),
+})
+
+// Timing probe: each step's probe animates red to green over 3000 ms from the moment its step mounts.
+const probeScene: Scene = scene(() => (
+  <div
+    data-presentation-id="probe"
+    style={{ position: 'absolute', left: 0, top: 0, width: 880, height: 380, animation: 'inspect-probe 3000ms linear forwards' }}
+  />
+))
+
+export const settleProbe = variant({
+  title: 'Settle probe fixture',
+  extraCss:
+    '@keyframes inspect-probe { from { background-color: rgb(255, 0, 0); } to { background-color: rgb(0, 255, 0); } }',
+  scenes: [probeScene, probeScene, probeScene],
+})

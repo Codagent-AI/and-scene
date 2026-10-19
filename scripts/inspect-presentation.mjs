@@ -398,6 +398,9 @@ function startPreview(port) {
   return { child, tail: () => output.trim() }
 }
 
+const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
+const stripAnsi = (text) => text.replace(ANSI, '')
+
 async function waitForPreview(port, preview) {
   const deadline = Date.now() + PREVIEW_READY_MS
   while (Date.now() < deadline) {
@@ -405,6 +408,8 @@ async function waitForPreview(port, preview) {
       throw new InspectError('preview', `vite preview exited early: ${preview.tail()}`)
     }
     try {
+      // Only accept a response once vite itself reported listening on our port (not a foreign server).
+      if (!stripAnsi(preview.tail()).includes(`127.0.0.1:${port}`)) throw new Error('preview not listening yet')
       const response = await fetch(`http://127.0.0.1:${port}/`)
       await response.arrayBuffer()
       // A foreign server could answer on the port while our preview already died (port race).

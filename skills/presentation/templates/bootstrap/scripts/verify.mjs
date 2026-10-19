@@ -207,6 +207,9 @@ export async function stopPreview(handle) {
   await exited
 }
 
+const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
+const stripAnsi = (text) => text.replace(ANSI, '')
+
 async function waitForPreview(port, handle) {
   const deadline = Date.now() + READY_TIMEOUT_MS
   let exitedEarly = null
@@ -221,7 +224,8 @@ async function waitForPreview(port, handle) {
         `vite preview exited before becoming ready (code ${exitedEarly.code}, signal ${exitedEarly.signal})\n${handle.output()}`,
       )
     }
-    if (await probe(port)) {
+    // Only accept a 200 once vite itself reported listening on our port (not a foreign server).
+    if (stripAnsi(handle.output()).includes(`${HOST}:${port}`) && (await probe(port))) {
       // A foreign server could answer on the port while our preview already died (port race).
       const { child } = handle
       if (child.exitCode !== null || child.signalCode !== null) {

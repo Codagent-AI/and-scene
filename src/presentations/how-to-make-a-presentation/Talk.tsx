@@ -1,14 +1,8 @@
-import { Presentation, type Step } from '../../presentation-kit'
-import { OUTLINE, PRESENTATION_TITLE } from './outline'
-
-// Placeholder scene; replaced by the real accumulating scene.
-const steps: Step<number>[] = OUTLINE.map((row, i) => ({
-  ...row,
-  groupKey: 'scene',
-  Scene: () => null,
-  payload: i,
-}))
+import { Presentation } from '../../presentation-kit'
+import { PRESENTATION_TITLE } from './outline'
+import { STEPS } from './steps'
+import './styles.css'
 
 export default function Talk() {
-  return <Presentation steps={steps} title={PRESENTATION_TITLE} initialMode="browse" />
+  return <Presentation steps={STEPS} title={PRESENTATION_TITLE} initialMode="browse" />
 }

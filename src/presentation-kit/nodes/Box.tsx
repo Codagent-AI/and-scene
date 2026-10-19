@@ -48,6 +48,7 @@ export function Box({
 }: BoxProps) {
   return (
     <motion.div
+      {...rest}
       layout
       layoutId={id}
       transition={{ layout: { duration: LAYOUT_T, ease: EASE } }}
@@ -57,7 +58,6 @@ export function Box({
       data-presentation-emphasis={emphasis ? 'true' : undefined}
       className={className}
       style={{ position: 'absolute', left: x, top: y, width: w, height: h, ...style }}
-      {...rest}
     >
       {Icon ? <Icon data-presentation-icon="" aria-hidden="true" /> : null}
       {label !== undefined ? <span data-presentation-label="">{label}</span> : null}

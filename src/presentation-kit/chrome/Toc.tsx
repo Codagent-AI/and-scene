@@ -11,7 +11,7 @@ export function Toc({ entries, activeIndex, onJump }: TocProps) {
     <nav
       data-presentation-toc=""
       aria-label="Table of contents"
-      style={{ position: 'absolute', left: 0, top: 56, bottom: 220, width: 240, boxSizing: 'border-box', overflow: 'auto', padding: '0 16px' }}
+      style={{ position: 'absolute', left: 16, top: 56, bottom: 220, width: 240 - 16, overflow: 'auto' }}
     >
       <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {entries.map((entry, i) => {

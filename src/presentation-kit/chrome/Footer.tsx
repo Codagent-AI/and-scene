@@ -20,11 +20,9 @@ export function Footer({ mode, index, count, title, caption, stepTitles, onJump,
       data-presentation-footer=""
       style={{
         position: 'absolute',
-        left: 0,
-        right: 0,
+        left: 16,
+        right: 16,
         bottom: 32,
-        boxSizing: 'border-box',
-        padding: '0 16px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

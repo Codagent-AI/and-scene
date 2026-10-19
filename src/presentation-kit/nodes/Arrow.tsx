@@ -32,6 +32,7 @@ export function Arrow({ id, from, to, both, dashed, className, style, ...rest }:
   const transition = { duration: LAYOUT_T, ease: EASE }
   return (
     <motion.svg
+      {...rest}
       width={DESIGN_W}
       height={DESIGN_H}
       viewBox={`0 0 ${DESIGN_W} ${DESIGN_H}`}
@@ -40,7 +41,6 @@ export function Arrow({ id, from, to, both, dashed, className, style, ...rest }:
       data-presentation-kind="arrow"
       className={className}
       style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', overflow: 'visible', ...style }}
-      {...rest}
     >
       <motion.line
         initial={{ x1: from[0], y1: from[1], x2: to[0], y2: to[1] }}

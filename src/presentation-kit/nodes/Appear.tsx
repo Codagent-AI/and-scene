@@ -7,10 +7,10 @@ export function Appear(props: HTMLAttributes<HTMLDivElement>) {
   const { style, ...rest } = props
   return (
     <motion.div
+      {...(rest as Record<string, unknown>)}
       data-presentation-appear=""
       {...appearMotion}
       style={style}
-      {...(rest as Record<string, unknown>)}
     />
   )
 }

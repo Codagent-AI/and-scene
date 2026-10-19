@@ -13,14 +13,12 @@ export function Header({ brand, era }: HeaderProps) {
       style={{
         position: 'absolute',
         top: 0,
-        left: 0,
-        right: 0,
+        left: 16,
+        right: 16,
         height: 56,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        boxSizing: 'border-box',
-        padding: '0 16px',
       }}
     >
       <div data-presentation-brand="">{brand}</div>

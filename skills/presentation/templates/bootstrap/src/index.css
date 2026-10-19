@@ -1,0 +1,7 @@
+/* Host/app CSS only. The reusable kit ships no styles. */
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}

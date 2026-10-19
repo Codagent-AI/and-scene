@@ -15,6 +15,7 @@ import {
   NARROW_VIEWPORT,
   SETTLE_MS,
   parseArgs,
+  collectOverlapItems,
   settle,
   stepFileName,
   stepWarnings,
@@ -85,81 +86,6 @@ async function loadPlaywright(root) {
 
 /** Runs inside the page. Must stay self-contained (serialized by Playwright). */
 function collectSnapshot() {
-  const root = document.querySelector('[data-presentation-root]')
-  const CHROME = [
-    'title', 'caption', 'marker', 'era', 'brand', 'prev', 'next', 'mode-toggle',
-    'progress-item', 'toc-item', 'attribution',
-  ].map((n) => `[data-presentation-${n}]`)
-  const GENERIC = ['root', 'stage', 'canvas', 'scene', 'footer', 'header', 'toc', 'progress']
-  const dataAttr = (el) =>
-    el.getAttributeNames().find((n) => n.startsWith('data-presentation-') && !GENERIC.includes(n.slice(18)) && n !== 'data-presentation-active')
-  const describeSelf = (el, attr) => {
-    const v = el.getAttribute(attr)
-    return `${el.tagName.toLowerCase()}[${attr}${v ? `="${v}"` : ''}]`
-  }
-  const describe = (el) => {
-    const own = dataAttr(el)
-    const direct = ownTextNodes(el).map((n) => n.textContent.trim()).join(' ').replace(/\s+/g, ' ').slice(0, 24)
-    const quoted = direct ? ` "${direct}"` : ''
-    const tag = el.tagName.toLowerCase()
-    const self = own ? describeSelf(el, own) : tag
-    const entity = el.closest('[data-presentation-entity]')
-    if (entity && entity !== el) return `${describeSelf(entity, 'data-presentation-entity')} > ${self}${quoted}`
-    if (own) return `${self}${quoted}`
-    let anchor = el.parentElement
-    while (anchor && anchor !== root && !dataAttr(anchor)) anchor = anchor.parentElement
-    if (anchor && anchor !== root) return `${describeSelf(anchor, dataAttr(anchor))} > ${self}${quoted}`
-    return `${self}${quoted}`
-  }
-  const pathOf = (el) => {
-    const parts = []
-    for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
-      parts.unshift(n.parentElement ? Array.prototype.indexOf.call(n.parentElement.children, n) : 0)
-    }
-    return parts.join('.')
-  }
-  const visibleStyle = (el) => {
-    let opacity = 1
-    for (let n = el; n; n = n.parentElement) {
-      const cs = getComputedStyle(n)
-      if (cs.display === 'none') return false
-      opacity *= Number(cs.opacity)
-    }
-    const cs = getComputedStyle(el)
-    return cs.visibility !== 'hidden' && opacity > 0.01
-  }
-  const ownTextNodes = (el) =>
-    Array.from(el.childNodes).filter((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim() !== '')
-  const textRect = (el) => {
-    const range = document.createRange()
-    const nodes = ownTextNodes(el)
-    range.setStartBefore(nodes[0])
-    range.setEndAfter(nodes[nodes.length - 1])
-    return range.getBoundingClientRect()
-  }
-  const toRect = (r) => ({ x: r.x, y: r.y, width: r.width, height: r.height })
-
-  const overlapItems = []
-  if (root) {
-    const seen = new Set()
-    const consider = (el) => {
-      if (seen.has(el) || ['STYLE', 'SCRIPT'].includes(el.tagName)) return
-      seen.add(el)
-      const hasText = ownTextNodes(el).length > 0
-      const isChrome = CHROME.some((s) => el.matches(s))
-      if (!hasText && !isChrome) return
-      const rect = hasText ? textRect(el) : el.getBoundingClientRect()
-      overlapItems.push({
-        selector: describe(el),
-        path: pathOf(el),
-        rect: toRect(rect),
-        visible: visibleStyle(el),
-        allowOverlap: el.closest('[data-presentation-allow-overlap]') !== null,
-      })
-    }
-    root.querySelectorAll('*').forEach(consider)
-  }
-
   const styleOf = (el) => {
     const cs = getComputedStyle(el)
     const sides = ['Top', 'Right', 'Bottom', 'Left'].map((s) => `${cs[`border${s}Style`]} ${cs[`border${s}Width`]} ${cs[`border${s}Color`]}`)
@@ -205,7 +131,7 @@ function collectSnapshot() {
       defaults,
     }
   }
-  return { overlapItems, active, attribution }
+  return { active, attribution }
 }
 
 async function run() {
@@ -270,7 +196,10 @@ async function run() {
       const file = path.join(outDir, stepFileName(i))
       await page.screenshot({ path: file })
       log(`step=${i + 1} screenshot ${file}`)
-      const lines = stepWarnings(i + 1, await page.evaluate(collectSnapshot))
+      const lines = stepWarnings(i + 1, {
+        ...(await page.evaluate(collectSnapshot)),
+        overlapItems: await page.evaluate(collectOverlapItems),
+      })
       lines.forEach((l) => console.log(l))
       warnings += lines.length
     }

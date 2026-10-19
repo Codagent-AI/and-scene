@@ -3,7 +3,7 @@
 import { Box, Presentation, SceneLayer, type SceneProps, type Step } from '../../presentation-kit'
 
 interface Payload {
-  variant: 'baseline' | 'collision' | 'allowed' | 'plain'
+  variant: 'baseline' | 'collision' | 'allowed' | 'plain' | 'nested' | 'inherited'
   moverX: number
   polish?: boolean
 }
@@ -25,6 +25,22 @@ function Scene({ payload }: SceneProps<Payload>) {
           <>
             <Box id="alpha" x={300} y={40} w={200} h={50} label="Alpha collision" {...allow} />
             <Box id="bravo" x={320} y={48} w={200} h={50} label="Bravo collision" {...allow} />
+          </>
+        ) : null}
+        {payload.variant === 'nested' ? (
+          <Box id="parent" x={300} y={40} w={260} h={60}>
+            Parent own text
+            <div style={{ position: 'absolute', left: 12, top: 2 }}>Child own text</div>
+          </Box>
+        ) : null}
+        {payload.variant === 'inherited' ? (
+          <>
+            <div data-presentation-allow-overlap="" style={{ position: 'absolute', left: 300, top: 40, width: 260, height: 60 }}>
+              <div style={{ position: 'absolute', left: 0, top: 0 }}>Wrapped one</div>
+              <div style={{ position: 'absolute', left: 10, top: 4 }}>Wrapped two</div>
+            </div>
+            <Box id="outside-a" x={300} y={140} w={200} h={50} label="Outside alpha" />
+            <Box id="outside-b" x={320} y={148} w={200} h={50} label="Outside bravo" />
           </>
         ) : null}
       </SceneLayer>
@@ -49,6 +65,8 @@ const STEPS: Step<Payload>[] = [
   step('allowed', 'second', 'Allowed overlap', { variant: 'allowed', moverX: 40 }),
   step('moved', 'second', 'Mover animates', { variant: 'plain', moverX: 640 }),
   step('settled', 'second', 'Settled and polished', { variant: 'plain', moverX: 640, polish: true }),
+  step('nested', 'second', 'Nested own-text collision', { variant: 'nested', moverX: 640 }),
+  step('inherited', 'second', 'Inherited allow-overlap', { variant: 'inherited', moverX: 640 }),
 ]
 
 export default function Talk() {

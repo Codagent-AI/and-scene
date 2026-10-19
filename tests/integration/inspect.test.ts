@@ -126,7 +126,7 @@ export const presentations: PresentationEntry[] = [
 
   it('exits zero and writes exactly one nonempty 1440x900 screenshot per step at the predictable path', async () => {
     expect(main.code, main.out + main.err).toBe(0)
-    expect((await readdir(mainDir())).sort()).toEqual(['step-01.png', 'step-02.png', 'step-03.png', 'step-04.png', 'step-05.png'])
+    expect((await readdir(mainDir())).sort()).toEqual(['step-01.png', 'step-02.png', 'step-03.png', 'step-04.png', 'step-05.png', 'step-06.png', 'step-07.png'])
     for (const f of await readdir(mainDir())) {
       expect((await stat(path.join(mainDir(), f))).size).toBeGreaterThan(1000)
       const d = await decode(path.join(mainDir(), f))
@@ -153,6 +153,21 @@ export const presentations: PresentationEntry[] = [
     expect(w[0]).toContain('Alpha collision')
     expect(w[0]).toContain('Bravo collision')
     for (const step of [1, 3, 4, 5]) expect(warnings(main, 'overlap', step)).toEqual([])
+  })
+
+  it('reports a parent/descendant collision when both own text ranges intersect', () => {
+    const w = warnings(main, 'overlap', 6)
+    expect(w).toHaveLength(1)
+    expect(w[0]).toContain('Parent own text')
+    expect(w[0]).toContain('Child own text')
+  })
+
+  it('inherits allow-overlap from an ancestor wrapper but still reports unrelated unmarked overlaps', () => {
+    const w = warnings(main, 'overlap', 7)
+    expect(w).toHaveLength(1)
+    expect(w[0]).toContain('Outside alpha')
+    expect(w[0]).toContain('Outside bravo')
+    expect(w[0]).not.toContain('Wrapped')
   })
 
   it('does not report the explicitly allowed overlap', () => {

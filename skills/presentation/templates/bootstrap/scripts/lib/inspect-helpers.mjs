@@ -64,9 +64,9 @@ function isAncestorPath(a, b) {
 }
 
 /**
- * items: { selector, path, rect:{x,y,width,height}, visible?, allowOverlap? }.
+ * items: { selector, path, rect:{x,y,width,height}, visible?, hasOwnText?, allowOverlap? }.
  * Returns colliding pairs of visible items with positive-area intersection, skipping
- * ancestor/descendant pairs and anything inside an allow-overlap subtree.
+ * ancestor/descendant pairs unless both carry own text (hasOwnText), and anything inside an allow-overlap subtree.
  */
 export function findOverlaps(items) {
   const candidates = items.filter((it) => isVisible(it) && !it.allowOverlap)
@@ -75,7 +75,9 @@ export function findOverlaps(items) {
     for (let j = i + 1; j < candidates.length; j++) {
       const a = candidates[i]
       const b = candidates[j]
-      if (isAncestorPath(a.path, b.path)) continue
+      // Container/chrome-box wrappers legitimately enclose their descendants; two own-text
+      // ranges are real content and may not collide even when nested.
+      if (isAncestorPath(a.path, b.path) && !(a.hasOwnText && b.hasOwnText)) continue
       const area = rectIntersectionArea(a.rect, b.rect)
       if (area > 0) pairs.push({ a: a.selector, b: b.selector, area })
     }
@@ -130,4 +132,88 @@ export function stepWarnings(step, snapshot) {
     out.push(formatWarning(step, 'attribution', `${problems.join('; ')}; style ${ATTRIBUTION_SELECTOR}`))
   }
   return out
+}
+
+/**
+ * Runs inside the page (and under jsdom in unit tests). Must stay self-contained: it is
+ * serialized by Playwright, so it may only touch globals. Collects the text/chrome boxes
+ * used for overlap detection; `allowOverlap` is inherited from any marked ancestor.
+ */
+export function collectOverlapItems() {
+  const root = document.querySelector('[data-presentation-root]')
+  const CHROME = [
+    'title', 'caption', 'marker', 'era', 'brand', 'prev', 'next', 'mode-toggle',
+    'progress-item', 'toc-item', 'attribution',
+  ].map((n) => `[data-presentation-${n}]`)
+  const GENERIC = ['root', 'stage', 'canvas', 'scene', 'footer', 'header', 'toc', 'progress']
+  const dataAttr = (el) =>
+    el.getAttributeNames().find((n) => n.startsWith('data-presentation-') && !GENERIC.includes(n.slice(18)) && n !== 'data-presentation-active')
+  const describeSelf = (el, attr) => {
+    const v = el.getAttribute(attr)
+    return `${el.tagName.toLowerCase()}[${attr}${v ? `="${v}"` : ''}]`
+  }
+  const describe = (el) => {
+    const own = dataAttr(el)
+    const direct = ownTextNodes(el).map((n) => n.textContent.trim()).join(' ').replace(/\s+/g, ' ').slice(0, 24)
+    const quoted = direct ? ` "${direct}"` : ''
+    const tag = el.tagName.toLowerCase()
+    const self = own ? describeSelf(el, own) : tag
+    const entity = el.closest('[data-presentation-entity]')
+    if (entity && entity !== el) return `${describeSelf(entity, 'data-presentation-entity')} > ${self}${quoted}`
+    if (own) return `${self}${quoted}`
+    let anchor = el.parentElement
+    while (anchor && anchor !== root && !dataAttr(anchor)) anchor = anchor.parentElement
+    if (anchor && anchor !== root) return `${describeSelf(anchor, dataAttr(anchor))} > ${self}${quoted}`
+    return `${self}${quoted}`
+  }
+  const pathOf = (el) => {
+    const parts = []
+    for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+      parts.unshift(n.parentElement ? Array.prototype.indexOf.call(n.parentElement.children, n) : 0)
+    }
+    return parts.join('.')
+  }
+  const visibleStyle = (el) => {
+    let opacity = 1
+    for (let n = el; n; n = n.parentElement) {
+      const cs = getComputedStyle(n)
+      if (cs.display === 'none') return false
+      opacity *= Number(cs.opacity)
+    }
+    const cs = getComputedStyle(el)
+    return cs.visibility !== 'hidden' && opacity > 0.01
+  }
+  const ownTextNodes = (el) =>
+    Array.from(el.childNodes).filter((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim() !== '')
+  const textRect = (el) => {
+    const range = document.createRange()
+    const nodes = ownTextNodes(el)
+    range.setStartBefore(nodes[0])
+    range.setEndAfter(nodes[nodes.length - 1])
+    return range.getBoundingClientRect()
+  }
+  const toRect = (r) => ({ x: r.x, y: r.y, width: r.width, height: r.height })
+
+  const overlapItems = []
+  if (root) {
+    const seen = new Set()
+    const consider = (el) => {
+      if (seen.has(el) || ['STYLE', 'SCRIPT'].includes(el.tagName)) return
+      seen.add(el)
+      const hasText = ownTextNodes(el).length > 0
+      const isChrome = CHROME.some((s) => el.matches(s))
+      if (!hasText && !isChrome) return
+      const rect = hasText ? textRect(el) : el.getBoundingClientRect()
+      overlapItems.push({
+        selector: describe(el),
+        path: pathOf(el),
+        rect: toRect(rect),
+        visible: visibleStyle(el),
+        hasOwnText: hasText,
+        allowOverlap: el.closest('[data-presentation-allow-overlap]') !== null,
+      })
+    }
+    root.querySelectorAll('*').forEach(consider)
+  }
+  return overlapItems
 }

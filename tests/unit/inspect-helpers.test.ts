@@ -63,9 +63,18 @@ describe('findOverlaps', () => {
     expect(h.findOverlaps([item('a', '0', 0, 0, 100, 50), item('b', '1', 0, 0, 100, 50, { visible: false })])).toEqual([])
     expect(h.findOverlaps([item('a', '0', 0, 0, 100, 50), item('b', '1', 10, 10, 0, 0)])).toEqual([])
   })
-  it('ignores ancestor/descendant pairs but not siblings with similar path prefixes', () => {
+  it('ignores container/chrome wrapper pairs but not siblings with similar path prefixes', () => {
     expect(h.findOverlaps([item('p', '0.1', 0, 0, 100, 50), item('c', '0.1.3', 10, 10, 20, 20)])).toEqual([])
+    // only one side has own text: still a wrapper pair
+    expect(h.findOverlaps([item('p', '0.1', 0, 0, 100, 50, { hasOwnText: true }), item('c', '0.1.3', 10, 10, 20, 20)])).toEqual([])
     expect(h.findOverlaps([item('p', '0.1', 0, 0, 100, 50), item('s', '0.10', 10, 10, 20, 20)])).toHaveLength(1)
+  })
+  it('reports ancestor/descendant pairs whose own-text ranges intersect', () => {
+    const own = { hasOwnText: true }
+    const r = h.findOverlaps([item('p', '0.1', 0, 0, 100, 50, own), item('c', '0.1.3', 10, 10, 20, 20, own)])
+    expect(r).toHaveLength(1)
+    expect(h.findOverlaps([item('p', '0.1', 0, 0, 100, 50, own), item('c', '0.1.3', 200, 10, 20, 20, own)])).toEqual([])
+    expect(h.findOverlaps([item('p', '0.1', 0, 0, 100, 50, own), item('c', '0.1.3', 10, 10, 20, 20, { ...own, allowOverlap: true })])).toEqual([])
   })
   it('exempts allow-overlap items without suppressing unrelated collisions', () => {
     const items = [
@@ -133,5 +142,71 @@ describe('stepWarnings', () => {
   })
   it('is silent for a clean step', () => {
     expect(h.stepWarnings(1, { overlapItems: [], active: [], attribution: polished })).toEqual([])
+  })
+})
+
+describe('collectOverlapItems (jsdom)', () => {
+  const rects = new Map<Element, { x: number; y: number; width: number; height: number }>()
+  const rectOf = (el: Element) => rects.get(el) ?? { x: 0, y: 0, width: 50, height: 20 }
+  const withDom = (html: string, place: Record<string, [number, number]>, run: () => void) => {
+    document.body.innerHTML = html
+    rects.clear()
+    for (const [id, [x, y]] of Object.entries(place)) rects.set(document.getElementById(id)!, { x, y, width: 50, height: 20 })
+    const elProto = Element.prototype.getBoundingClientRect
+    const rangeProto = Range.prototype.getBoundingClientRect
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      return rectOf(this) as DOMRect
+    }
+    Range.prototype.getBoundingClientRect = function (this: Range) {
+      return rectOf(this.startContainer.nodeType === 3 ? this.startContainer.parentElement! : (this.startContainer as Element)) as DOMRect
+    }
+    try {
+      run()
+    } finally {
+      Element.prototype.getBoundingClientRect = elProto
+      Range.prototype.getBoundingClientRect = rangeProto
+      document.body.innerHTML = ''
+    }
+  }
+  const byText = (items: { selector: string }[], text: string) => items.find((i) => i.selector.includes(text))!
+
+  it('inherits allow-overlap from an ancestor wrapper and keeps unmarked items reportable', () => {
+    withDom(
+      `<div data-presentation-root>
+         <div data-presentation-allow-overlap><p id="w1">Wrapped one</p><p id="w2">Wrapped two</p></div>
+         <p id="o1">Outside one</p><p id="o2">Outside two</p>
+       </div>`,
+      { w1: [0, 0], w2: [10, 5], o1: [0, 100], o2: [10, 105] },
+      () => {
+        const items = h.collectOverlapItems()
+        expect(items.map((i: { selector: string }) => i.selector)).toHaveLength(4)
+        expect(byText(items, 'Wrapped one').allowOverlap).toBe(true)
+        expect(byText(items, 'Wrapped two').allowOverlap).toBe(true)
+        expect(byText(items, 'Outside one').allowOverlap).toBe(false)
+        const pairs = h.findOverlaps(items)
+        expect(pairs).toHaveLength(1)
+        expect(pairs[0].a + pairs[0].b).toContain('Outside')
+        expect(pairs[0].a + pairs[0].b).not.toContain('Wrapped')
+      },
+    )
+  })
+
+  it('flags own-text items so a nested own-text collision is reported but a bare wrapper is not', () => {
+    withDom(
+      `<div data-presentation-root>
+         <div id="p">Parent text<span id="c">Child text</span></div>
+         <div id="wrap" data-presentation-title><span id="k">Kid text</span></div>
+       </div>`,
+      { p: [0, 0], c: [5, 5], wrap: [0, 200], k: [5, 205] },
+      () => {
+        const items = h.collectOverlapItems()
+        expect(byText(items, 'Parent text').hasOwnText).toBe(true)
+        const wrap = items.find((i: { hasOwnText: boolean; selector: string }) => !i.hasOwnText)
+        expect(wrap).toBeDefined()
+        const pairs = h.findOverlaps(items)
+        expect(pairs).toHaveLength(1)
+        expect(pairs[0].a + pairs[0].b).toContain('Parent text')
+      },
+    )
   })
 })

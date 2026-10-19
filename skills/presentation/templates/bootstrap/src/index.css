@@ -1,0 +1,17 @@
+/* Host app styles only; the presentation kit ships no CSS. */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+.landing {
+  max-width: 40rem;
+  margin: 4rem auto;
+  padding: 0 1rem;
+}

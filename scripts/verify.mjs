@@ -69,7 +69,11 @@ async function renderPresentation(browser, base, slug, expected) {
       if (problem) throw new PhaseError('sample', `${slug}: ${problem} at ${stepLabel(index)}`)
     }
     log(`${slug}: ${stepLabel(index)} ok`)
-    if (index < count - 1) await page.keyboard.press('ArrowRight')
+    if (index < count - 1) {
+      // errors raised while moving on belong to the step being entered
+      current = index + 1
+      await page.keyboard.press('ArrowRight')
+    }
   }
   assertClean()
   await page.close()

@@ -9,6 +9,7 @@ import {
   buildEntrance, EntityRegistry, EntityRegistryContext, useEntrance,
 } from '../../src/presentation-kit/entrance'
 import type { ReactNode } from 'react'
+import { DEFAULTS } from '../../scripts/lib/inspect-args.mjs'
 import { currentIndex, press, setViewport } from './helpers'
 
 interface Payload {
@@ -129,6 +130,7 @@ describe('ungrouped steps cross-fade with shared layout identity', () => {
 describe('entrance sequencing', () => {
   it('delays newcomers until after the layout transition of persisting entities', () => {
     expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
+    expect(ENTER_DELAY + ENTER_T).toBeLessThan(DEFAULTS.settleMs / 1000) // a default-settled screenshot sees the finished transition
     const entering = buildEntrance(false, true)
     expect(entering.initial).toEqual({ opacity: 0 })
     expect(entering.animate.transition.delay).toBe(ENTER_DELAY)

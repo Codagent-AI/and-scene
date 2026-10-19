@@ -74,6 +74,15 @@ describe('browse mode', () => {
     expect(q('[data-presentation-caption]')!.textContent).toBe('Caption s3')
   })
 
+  it('re-renders the stage for the new mode rather than morphing between layouts', () => {
+    setViewport(1440, 900)
+    renderDeck()
+    const before = q('[data-presentation-stage]')
+    act(() => void press('p'))
+    expect(q('[data-presentation-stage]')).not.toBe(before) // remounted: a re-render, not a morph
+    expect(currentIndex()).toBe(0)
+  })
+
   it('also toggles from the on-screen control', () => {
     setViewport(1440, 900)
     renderDeck()

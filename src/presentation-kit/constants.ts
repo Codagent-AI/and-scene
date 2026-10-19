@@ -1,11 +1,11 @@
 export const EASE = [0.22, 1, 0.36, 1] as const
 
 /** Duration (s) of layout morphs for continuing entities. */
-export const LAYOUT_T = 0.6
+export const LAYOUT_T = 0.5
 /** Duration (s) of newcomer entrances and departing exits. */
-export const ENTER_T = 0.4
+export const ENTER_T = 0.35
 /** Newcomers wait this long (s) so persisting entities settle first. */
-export const ENTER_DELAY = 0.6
+export const ENTER_DELAY = 0.5
 
 export const DESIGN_W = 880
 export const DESIGN_H = 380

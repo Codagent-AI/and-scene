@@ -44,7 +44,7 @@ export function collectSnapshot(doc, win) {
     const range = doc.createRange()
     range.selectNodeContents(el)
     const r = range.getBoundingClientRect()
-    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
+    return r
   }
 
   const elements = []

@@ -1,0 +1,82 @@
+// Fixture source (kept as .txt so the repo build ignores it): inspect.int.test.ts copies it into a disposable checkout.
+import { useEffect, useState } from 'react'
+import { Box, Presentation, SceneLayer, type SceneProps, type Step } from '../../presentation-kit'
+
+type Variant = 'clean' | 'collision' | 'allowed' | 'chrome' | 'attribution'
+interface Payload {
+  n: number
+  variant: Variant
+}
+
+const GOOD = `
+.fx [data-presentation-progress-dot] { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #888; background: transparent; padding: 0; }
+.fx [data-presentation-progress-dot][data-presentation-active] { width: 28px; background: #e0b84c; border-color: #e0b84c; }
+.fx [data-presentation-toc-entry] { background: transparent; border: 0; color: #999; }
+.fx [data-presentation-toc-entry][data-presentation-active] { color: #fff; font-weight: 700; background: #333; }
+.fx [data-presentation-attribution] { font-size: 13px; color: #bbb; text-decoration: none; padding: 0 12px; }
+.fx { background: #111; color: #eee; }
+`
+const NO_ACTIVE_STYLE = GOOD.split('\n').filter((l) => !/\[data-presentation-active\]/.test(l)).join('\n')
+const TINY_ATTRIBUTION = GOOD.replace('font-size: 13px', 'font-size: 9px')
+
+function Scene({ payload }: SceneProps<Payload>) {
+  const [settled, setSettled] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(true), 600)
+    return () => {
+      clearTimeout(timer)
+      setSettled(false)
+    }
+  }, [payload.n])
+  const overlap = payload.n === 2 && (payload.variant === 'collision' || payload.variant === 'allowed')
+  const pair = (
+    <>
+      <Box id="alpha" x={300} y={150} w={160} h={30}>Alpha overlap text</Box>
+      <Box id="beta" x={310} y={158} w={160} h={30}>Beta overlap text</Box>
+    </>
+  )
+  return (
+    <SceneLayer>
+      <Box
+        id="swatch"
+        x={0}
+        y={0}
+        w={80}
+        h={80}
+        data-testid="swatch"
+        style={{ background: settled ? 'rgb(0, 255, 0)' : 'rgb(255, 0, 0)' }}
+      />
+      {overlap && payload.variant === 'collision' ? pair : null}
+      {overlap && payload.variant === 'allowed' ? (
+        <div key="allowed" data-presentation-allow-overlap="" style={{ position: 'absolute', left: 0, top: 0 }}>{pair}</div>
+      ) : null}
+    </SceneLayer>
+  )
+}
+
+function makeSteps(variant: Variant): Step<Payload>[] {
+  return [1, 2, 3].map((n) => ({
+    id: `s${n}`,
+    era: n === 3 ? 'late' : 'early',
+    title: `Step ${n} title`,
+    caption: `Step ${n} caption`,
+    groupKey: 'g',
+    Scene,
+    payload: { n, variant },
+  }))
+}
+
+function Fixture({ variant, css }: { variant: Variant; css: string }) {
+  return (
+    <>
+      <style>{css}</style>
+      <Presentation className="fx" steps={makeSteps(variant)} title={`Fixture ${variant}`} />
+    </>
+  )
+}
+
+export const Clean = () => <Fixture variant="clean" css={GOOD} />
+export const Collision = () => <Fixture variant="collision" css={GOOD} />
+export const Allowed = () => <Fixture variant="allowed" css={GOOD} />
+export const Chrome = () => <Fixture variant="chrome" css={NO_ACTIVE_STYLE} />
+export const Attribution = () => <Fixture variant="attribution" css={TINY_ATTRIBUTION} />

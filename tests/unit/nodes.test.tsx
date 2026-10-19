@@ -7,6 +7,9 @@ import {
   Appear, Arrow, Box, Emphasis, Frame, Label, Presentation, SceneLayer, SymbolChip,
   type SceneProps, type Step,
 } from '../../src/presentation-kit'
+import { EASE, LAYOUT_T } from '../../src/presentation-kit'
+import { useEntityProps } from '../../src/presentation-kit/nodes/entity'
+import { renderHook } from '@testing-library/react'
 import { press, setViewport } from './helpers'
 
 const NODES = [
@@ -145,5 +148,14 @@ describe('coordinate-heavy diagrams', () => {
     const [first, ...rest] = contexts
     expect(first).toBeTruthy()
     expect(rest.every((c) => c === first)).toBe(true)
+  })
+})
+
+describe('layout morph wiring', () => {
+  it('gives every entity its id as layoutId and a layout transition matching LAYOUT_T', () => {
+    const { result } = renderHook(() => useEntityProps({ id: 'thing', kind: 'box', x: 1, y: 2 }))
+    expect(result.current.layoutId).toBe('thing')
+    expect(result.current.transition).toEqual({ layout: { duration: LAYOUT_T, ease: EASE } })
+    expect(result.current['data-presentation-entity']).toBe('thing')
   })
 })

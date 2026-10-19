@@ -391,6 +391,14 @@ export function slugify(text) {
     .replace(/^-+|-+$/g, '')
 }
 
+/** npm package name for a new app directory, or undefined to keep the template's name. */
+export function packageNameFor(appDir) {
+  if (basename(appDir) === 'presentations') return undefined
+  const slug = slugify(basename(appDir))
+  // Must start with a letter; an empty, digit-led or otherwise invalid slug keeps the template name.
+  return /^[a-z][a-z0-9-]*$/.test(slug) ? slug : undefined
+}
+
 function main(argv) {
   const args = argv.filter((a) => !a.startsWith('--'))
   const dir = resolve(args[0] ?? process.cwd())
@@ -400,7 +408,7 @@ function main(argv) {
       console.error('Target needs user confirmation first; re-run with --confirmed once the user agrees.')
       process.exit(2)
     }
-    const name = basename(result.appDir) === 'presentations' ? undefined : slugify(basename(result.appDir)) || undefined
+    const name = packageNameFor(result.appDir)
     console.log(JSON.stringify({ ...result, applied: applyScaffold(result.appDir, { missing: result.missing, name }) }, null, 2))
     return
   }

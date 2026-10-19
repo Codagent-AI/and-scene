@@ -31,10 +31,14 @@ function stripComments(text) {
 export function parseRegistry(text) {
   const entries = []
   const source = stripComments(text)
-  const re = /slug\s*:\s*(['"`])((?:(?!\1).)*)\1(?:[^{}]*?title\s*:\s*(['"`])((?:(?!\3).)*)\3)?/g
-  let m
-  while ((m = re.exec(source)) !== null) {
-    entries.push({ slug: m[2], title: m[4] })
+  const field = (body, name) => {
+    const m = new RegExp(`\\b${name}\\s*:\\s*(['"\`])((?:(?!\\1).)*)\\1`).exec(body)
+    return m ? m[2] : undefined
+  }
+  // Each entry is a flat object literal; slug and title may appear in any order.
+  for (const [body] of source.matchAll(/\{[^{}]*\}/g)) {
+    const slug = field(body, 'slug')
+    if (slug !== undefined) entries.push({ slug, title: field(body, 'title') })
   }
   return entries
 }
@@ -71,7 +75,13 @@ export function checkSampleRegistered(registry, reference) {
       `reference sample "${reference.slug}" is not registered in src/presentations/index.ts`,
     )
   }
-  if (entry.title !== undefined && entry.title !== reference.presentationTitle) {
+  if (entry.title === undefined) {
+    throw new VerifyError(
+      'sample-registration',
+      `registry entry for "${reference.slug}" has no literal title; expected ${JSON.stringify(reference.presentationTitle)}`,
+    )
+  }
+  if (entry.title !== reference.presentationTitle) {
     throw new VerifyError(
       'sample-registration',
       `registry title for "${reference.slug}" is ${JSON.stringify(entry.title)}, expected ${JSON.stringify(reference.presentationTitle)}`,

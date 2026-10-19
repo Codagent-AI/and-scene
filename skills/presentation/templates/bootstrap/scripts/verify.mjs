@@ -193,35 +193,32 @@ async function walkPresentation(context, base, slug, reference) {
     if (reference) {
       // Titles are present in both modes; captions only in browse mode.
       const wasMode = state.mode
-      if (wasMode !== 'browse') {
+      // Press "p" once and assert the mode really changed to the expected one.
+      const switchMode = async (target) => {
         await page.keyboard.press('p')
         await sleep(SETTLE_MS)
-        state = await readRoot()
+        const after = await readRoot()
         failIfErrors(i)
+        if (!after || after.mode !== target) {
+          throw new VerifyError('render', `${slug}: key "p" did not switch to ${target} mode (mode is ${after?.mode})`, i)
+        }
+        return after
       }
+      if (wasMode !== 'browse') state = await switchMode('browse')
       const mismatches = compareStep(reference.steps[i], state)
       if (state.caption === null) mismatches.push('caption is not rendered in browse mode')
       if (mismatches.length > 0) throw new VerifyError('render', `${slug}: ${mismatches.join('; ')}`, i)
       // Present mode shows the same title.
-      await page.keyboard.press('p')
-      await sleep(SETTLE_MS)
-      const present = await readRoot()
-      failIfErrors(i)
-      if (!present || present.index !== i) {
+      const present = await switchMode('present')
+      if (present.index !== i) {
         throw new VerifyError('render', `${slug}: toggling present mode changed the step (index ${present?.index})`, i)
       }
-      if (present.mode === 'browse') throw new VerifyError('render', `${slug}: key "p" did not switch to present mode`, i)
       if (present.title !== reference.steps[i].title) {
         throw new VerifyError('render', `${slug}: present-mode title is ${JSON.stringify(present.title)}, expected ${JSON.stringify(reference.steps[i].title)}`, i)
       }
-      await page.keyboard.press('p')
-      await sleep(SETTLE_MS)
-      failIfErrors(i)
-      if (wasMode !== 'browse') {
-        // Leave the page in the mode it started in.
-        await page.keyboard.press('p')
-        await sleep(SETTLE_MS)
-      }
+      // Leave the page in the mode it started in.
+      await switchMode('browse')
+      if (wasMode !== 'browse') await switchMode(wasMode)
       state = await readRoot()
     }
     observed.push(i)

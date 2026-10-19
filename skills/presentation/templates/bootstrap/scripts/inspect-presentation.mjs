@@ -38,12 +38,13 @@ function freePort() {
   })
 }
 
-async function startPreview(root, port) {
+async function startPreview(root, port, onSpawn) {
   const vite = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')
   const child = spawn(process.execPath, [vite, 'preview', '--host', HOST, '--port', String(port), '--strictPort'], {
     cwd: root,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
+  onSpawn?.(child)
   let output = ''
   child.stdout.on('data', (d) => (output += d))
   child.stderr.on('data', (d) => (output += d))
@@ -158,7 +159,7 @@ async function run() {
     process.once(sig, () => cleanup().finally(() => process.exit(130)))
   }
   try {
-    preview = await startPreview(root, port)
+    preview = await startPreview(root, port, (child) => (preview = child))
     const { chromium } = await loadPlaywright(root)
     browser = await chromium.launch()
     const page = await browser.newPage({ viewport })

@@ -62,6 +62,24 @@ describe('L-42 routing', () => {
     await waitFor(() => expect(screen.getByTestId('slow-loaded')).toBeTruthy())
   })
 
+  it('shows a visible error when a loader rejects, and a later render can retry', async () => {
+    const Good: ComponentType = () => <p data-testid="talk-retry">ok</p>
+    let attempts = 0
+    const entry: PresentationEntry = {
+      slug: 'flaky',
+      title: 'Flaky',
+      load: vi.fn(() => (++attempts === 1 ? Promise.reject(new Error('chunk failed')) : Promise.resolve({ default: Good }))),
+    }
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const first = render(<Root pathname="/flaky" registry={[entry]} />)
+    await waitFor(() => expect(first.container.querySelector('[data-presentation-error]')).not.toBeNull())
+    expect(first.container.textContent).toContain('failed to load')
+    first.unmount()
+    render(<Root pathname="/flaky" registry={[entry]} />)
+    expect(await screen.findByTestId('talk-retry')).toBeTruthy()
+    spy.mockRestore()
+  })
+
   it('does not remount the presentation on re-render', async () => {
     const entries = [fixture('a', 'Alpha')]
     const { rerender } = render(<Root pathname="/a" registry={entries} />)

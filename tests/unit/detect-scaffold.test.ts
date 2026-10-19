@@ -8,6 +8,7 @@ import {
   PRESENTATION_TEMPLATE_DIR,
   applyScaffold,
   detectAnchors,
+  packageNameFor,
   resolveTarget,
   scaffoldPlan,
 } from '../../skills/presentation/scripts/detect-scaffold.mjs'
@@ -51,6 +52,14 @@ function snapshot(dir: string): Map<string, string> {
   walk(dir)
   return out
 }
+
+describe('packageNameFor', () => {
+  it('slugifies valid names and keeps the template name for invalid ones', () => {
+    expect(packageNameFor('/x/My Talks')).toBe('my-talks')
+    expect(packageNameFor('/x/presentations')).toBeUndefined()
+    for (const bad of ['___', '2024-talks', '日本語']) expect(packageNameFor(`/x/${bad}`), bad).toBeUndefined()
+  })
+})
 
 describe('detectAnchors', () => {
   it('finds all three anchors in the bootstrap template', () => {

@@ -1,4 +1,5 @@
 import { Suspense, lazy, type ComponentType } from 'react'
+import ErrorBoundary from './ErrorBoundary.tsx'
 import Landing from './Landing.tsx'
 import { presentations, type PresentationEntry } from './presentations'
 import { resolveRoute } from './route.ts'
@@ -9,7 +10,12 @@ const lazyTalks = new WeakMap<PresentationEntry['load'], ComponentType>()
 function talkFor(entry: PresentationEntry): ComponentType {
   let Talk = lazyTalks.get(entry.load)
   if (!Talk) {
-    Talk = lazy(entry.load)
+    const load = entry.load
+    // A rejected loader is evicted so a later render can retry instead of rethrowing forever.
+    Talk = lazy(() => load().catch((error) => {
+      lazyTalks.delete(load)
+      throw error
+    }))
     lazyTalks.set(entry.load, Talk)
   }
   return Talk
@@ -29,9 +35,11 @@ export default function Root({
   // Cached per loader at module level, so the component identity is stable across renders.
   const Talk = talkFor(route.entry)
   return (
-    <Suspense fallback={null}>
-      {/* eslint-disable-next-line react-hooks/static-components */}
-      <Talk />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={null}>
+        {/* eslint-disable-next-line react-hooks/static-components */}
+        <Talk />
+      </Suspense>
+    </ErrorBoundary>
   )
 }

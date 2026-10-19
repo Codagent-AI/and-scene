@@ -109,7 +109,11 @@ export function usePresentationNav(count: number, initialMode: Mode = 'browse'):
     let start: { x: number; y: number } | null = null
     function onTouchStart(event: TouchEvent) {
       const touch = event.touches[0]
-      start = touch ? { x: touch.clientX, y: touch.clientY } : null
+      // A multi-touch gesture (pinch) is never a swipe.
+      start = touch && event.touches.length === 1 ? { x: touch.clientX, y: touch.clientY } : null
+    }
+    function onTouchCancel() {
+      start = null
     }
     function onTouchEnd(event: TouchEvent) {
       const touch = event.changedTouches[0]
@@ -122,10 +126,12 @@ export function usePresentationNav(count: number, initialMode: Mode = 'browse'):
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('touchstart', onTouchStart, { passive: true })
     window.addEventListener('touchend', onTouchEnd, { passive: true })
+    window.addEventListener('touchcancel', onTouchCancel, { passive: true })
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('touchstart', onTouchStart)
       window.removeEventListener('touchend', onTouchEnd)
+      window.removeEventListener('touchcancel', onTouchCancel)
     }
   }, [next, prev, toggleMode])
 

@@ -93,6 +93,35 @@ describe('I-21 touch swipe', () => {
     expect(result.current.index).toBe(3)
   })
 
+  it('ignores a multi-touch gesture (pinch) instead of measuring against another finger', () => {
+    const { result } = renderNav('browse')
+    const startEvent = new Event('touchstart', { bubbles: true })
+    Object.defineProperty(startEvent, 'touches', {
+      value: [{ clientX: 300, clientY: 300 }, { clientX: 600, clientY: 300 }],
+    })
+    const endEvent = new Event('touchend', { bubbles: true })
+    Object.defineProperty(endEvent, 'changedTouches', { value: [{ clientX: 100, clientY: 300 }] })
+    act(() => {
+      window.dispatchEvent(startEvent)
+      window.dispatchEvent(endEvent)
+    })
+    expect(result.current.index).toBe(2)
+  })
+
+  it('a cancelled gesture cannot pair with a later touchend', () => {
+    const { result } = renderNav('browse')
+    const startEvent = new Event('touchstart', { bubbles: true })
+    Object.defineProperty(startEvent, 'touches', { value: [{ clientX: 300, clientY: 300 }] })
+    const endEvent = new Event('touchend', { bubbles: true })
+    Object.defineProperty(endEvent, 'changedTouches', { value: [{ clientX: 100, clientY: 300 }] })
+    act(() => {
+      window.dispatchEvent(startEvent)
+      window.dispatchEvent(new Event('touchcancel', { bubbles: true }))
+      window.dispatchEvent(endEvent)
+    })
+    expect(result.current.index).toBe(2)
+  })
+
   it('does nothing when touchend arrives without a preceding touchstart', () => {
     const { result } = renderHook(() => usePresentationNav(COUNT))
     const endEvent = new Event('touchend', { bubbles: true })

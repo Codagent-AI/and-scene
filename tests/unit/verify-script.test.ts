@@ -66,6 +66,23 @@ describe('mode selection', () => {
   })
 })
 
+describe('registry parsing and title checks', () => {
+  it('parses entries whatever the order of slug and title', () => {
+    const text = `export const presentations = [
+      { title: 'First', slug: 'first', load: () => import('./first/Talk') },
+      { slug: 'second', load: () => import('./second/Talk'), title: "Second" },
+    ]`
+    expect(parseRegistry(text)).toEqual([
+      { slug: 'first', title: 'First' },
+      { slug: 'second', title: 'Second' },
+    ])
+  })
+  it('fails when the reference slug has no literal title instead of skipping the title check', () => {
+    const ref = reference()
+    expect(() => checkSampleRegistered([{ slug: ref.slug, title: undefined }], ref)).toThrowError(/no literal title/)
+  })
+})
+
 describe('shipped reference file', () => {
   it('has the nine normative rows in order and validates', () => {
     const ref = parseReference(readFileSync(path.join(scripts, 'verify.reference.json'), 'utf8'))

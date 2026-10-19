@@ -38,3 +38,4 @@ export function applyScaffold(
   options?: { templateDir?: string; missing?: Anchor[]; name?: string },
 ): ApplyResult
 export function slugify(text: string): string
+export function packageNameFor(appDir: string): string | undefined

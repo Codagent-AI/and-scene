@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { STAGE_LAYOUT } from '../constants'
 import type { PresentationMode, Step } from '../types'
 
@@ -9,9 +10,10 @@ export interface FooterProps {
   onNext: () => void
   onGoTo: (index: number) => void
   className?: string
+  style?: CSSProperties
 }
 
-export function Footer({ mode, steps, index, onPrev, onNext, onGoTo, className, ...rest }: FooterProps) {
+export function Footer({ mode, steps, index, onPrev, onNext, onGoTo, className, style, ...rest }: FooterProps) {
   const step = steps[index]
   const last = steps.length - 1
   return (
@@ -28,6 +30,7 @@ export function Footer({ mode, steps, index, onPrev, onNext, onGoTo, className, 
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
+        ...style,
       }}
     >
       <p data-presentation-step-title="">{step.title}</p>

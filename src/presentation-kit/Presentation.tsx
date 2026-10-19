@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { Attribution } from './chrome/Attribution'
 import { Footer } from './chrome/Footer'
 import { Header } from './chrome/Header'
@@ -19,6 +19,7 @@ export interface PresentationProps<TPayload> {
   attribution?: AttributionOptions | false
   /** Scoping class for presentation-owned CSS, placed on the chrome root. */
   className?: string
+  style?: CSSProperties
 }
 
 export function Presentation<TPayload>({
@@ -28,6 +29,7 @@ export function Presentation<TPayload>({
   brand,
   attribution,
   className,
+  style,
 }: PresentationProps<TPayload>) {
   const nav = usePresentationNav(steps.length, initialMode)
   const { width } = useViewportSize()
@@ -43,7 +45,7 @@ export function Presentation<TPayload>({
       data-step-index={nav.index}
       data-presentation-step-id={step.id}
       data-presentation-step-era={step.era}
-      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden', ...style }}
     >
       <Header
         mode={nav.mode}

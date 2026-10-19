@@ -92,6 +92,19 @@ describe('scene instance persistence', () => {
     expect(mounts.B).toBeGreaterThanOrEqual(1)
   })
 
+  it('across scenes the outgoing and incoming entity share an id and keep their own geometry', () => {
+    const { container } = mount([step('1', 1, ['a']), step('2', 5, ['a'], { groupKey: 'other' })])
+    const outgoing = node(container, 'e-a')!
+    const oldLeft = outgoing.style.left
+    next(container)
+    const both = [...container.querySelectorAll<HTMLElement>('[data-testid="e-a"]')]
+    expect(both).toHaveLength(2)
+    expect(new Set(both.map((e) => e.dataset.presentationId))).toEqual(new Set(['t:a']))
+    const incoming = both.find((e) => e !== outgoing)!
+    expect(outgoing.style.left).toBe(oldLeft)
+    expect(incoming.style.left).not.toBe(oldLeft)
+  })
+
   it('ungrouped steps never share an instance, even with the same Scene', () => {
     const a = step('1', 1, ['a'], { groupKey: undefined })
     const b = step('2', 2, ['a'], { groupKey: undefined })

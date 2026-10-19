@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { STAGE_LAYOUT } from '../constants'
 import type { PresentationMode } from '../types'
 
@@ -12,9 +12,10 @@ export interface HeaderProps {
   brand?: ReactNode
   onToggleMode: () => void
   className?: string
+  style?: CSSProperties
 }
 
-export function Header({ mode, title, index, count, brand, onToggleMode, className, ...rest }: HeaderProps) {
+export function Header({ mode, title, index, count, brand, onToggleMode, className, style, ...rest }: HeaderProps) {
   return (
     <header
       {...rest}
@@ -29,6 +30,7 @@ export function Header({ mode, title, index, count, brand, onToggleMode, classNa
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        ...style,
       }}
     >
       <div data-presentation-brand-slot="">{brand}</div>

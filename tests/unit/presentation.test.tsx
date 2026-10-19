@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { Presentation, tocEntries, type Step } from '../../src/presentation-kit'
+import { Attribution, Footer, Header, Presentation, Toc, tocEntries, type Step } from '../../src/presentation-kit'
 import { ListScene, OtherScene, makeSteps, setViewport, type Payload } from '../support/fixtures'
 
 const root = (c: HTMLElement) => c.querySelector('[data-presentation-root]') as HTMLElement
@@ -248,5 +248,30 @@ describe('typed payloads', () => {
     expect(container.querySelector('[data-testid="list-scene"]')).not.toBeNull()
     fireEvent.click(q(container, '[data-presentation-next]'))
     expect(container.querySelector('[data-testid="other-scene"]')?.textContent).toBe('y,z')
+  })
+})
+
+describe('chrome root passthrough', () => {
+  const steps = makeSteps(3, ['a', 'a', 'b'])
+  const extra = { className: 'mine', style: { color: 'red' }, 'data-extra': 'yes' }
+
+  it.each([
+    ['Header', 'header', <Header key="h" mode="browse" title="T" index={0} count={3} onToggleMode={() => {}} {...extra} />],
+    ['Footer', 'footer', <Footer key="f" mode="browse" steps={steps} index={0} onPrev={() => {}} onNext={() => {}} onGoTo={() => {}} {...extra} />],
+    ['Toc', 'toc', <Toc key="t" steps={steps} index={0} onGoTo={() => {}} {...extra} />],
+    ['Attribution', 'attribution', <Attribution key="a" {...extra} />],
+  ])('%s keeps its hook and passes className, style, and data-* to its root', (_name, hook, element) => {
+    const { container } = render(element)
+    const el = container.querySelector<HTMLElement>(`[data-presentation-${hook}]`)!
+    expect(el.classList.contains('mine')).toBe(true)
+    expect(el.style.color).toBe('red')
+    expect(el.dataset.extra).toBe('yes')
+    expect(['absolute', 'fixed']).toContain(el.style.position)
+  })
+
+  it('the Presentation root accepts className and style too', () => {
+    const { container } = render(<Presentation steps={steps} title="T" className="mine" style={{ color: 'red' }} />)
+    const r = root(container)
+    expect([r.classList.contains('mine'), r.style.color, r.style.position]).toEqual([true, 'red', 'fixed'])
   })
 })

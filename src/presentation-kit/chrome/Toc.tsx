@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { STAGE_LAYOUT, TOC_W } from '../constants'
 import type { Step } from '../types'
 import { tocEntries } from './tocEntries'
@@ -7,9 +8,10 @@ export interface TocProps {
   index: number
   onGoTo: (index: number) => void
   className?: string
+  style?: CSSProperties
 }
 
-export function Toc({ steps, index, onGoTo, className, ...rest }: TocProps) {
+export function Toc({ steps, index, onGoTo, className, style, ...rest }: TocProps) {
   const entries = tocEntries(steps)
   const activeEra = steps[index].era
   return (
@@ -27,6 +29,7 @@ export function Toc({ steps, index, onGoTo, className, ...rest }: TocProps) {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
+        ...style,
       }}
     >
       {entries.map((e) => {

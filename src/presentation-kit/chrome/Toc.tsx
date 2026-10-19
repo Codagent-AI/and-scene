@@ -10,7 +10,7 @@ export interface TocProps {
 export function Toc({ steps, index, onJump }: TocProps) {
   return (
     <nav data-presentation-toc="" aria-label="Table of contents">
-      <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      <ol>
         {eraEntries(steps, index).map((e) => (
           <li key={e.first}>
             <button

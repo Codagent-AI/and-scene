@@ -549,3 +549,20 @@
   padding: 0 8px;
   border-radius: 999px;
 }
+
+/* List resets and spacing for kit chrome (the kit ships no styles). */
+[data-presentation-toc] ol,
+[data-presentation-progress] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+[data-presentation-progress] {
+  gap: 8px;
+}
+[data-presentation-controls] {
+  gap: 12px;
+}
+[data-presentation-header] {
+  gap: 16px;
+}

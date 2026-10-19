@@ -25,7 +25,7 @@ export function Footer({ steps, index, mode, onJump, onPrev, onNext }: FooterPro
   return (
     <footer data-presentation-footer="">
       <p data-presentation-caption="">{step.caption}</p>
-      <div data-presentation-controls="" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div data-presentation-controls="" style={{ display: 'flex', alignItems: 'center' }}>
         <button
           type="button"
           data-presentation-prev=""
@@ -37,7 +37,7 @@ export function Footer({ steps, index, mode, onJump, onPrev, onNext }: FooterPro
         >
           Previous
         </button>
-        <ol data-presentation-progress="" style={{ display: 'flex', gap: 8, listStyle: 'none', margin: 0, padding: 0 }}>
+        <ol data-presentation-progress="" style={{ display: 'flex' }}>
           {steps.map((s, i) => (
             <li key={s.id}>
               <button

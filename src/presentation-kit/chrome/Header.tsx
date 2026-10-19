@@ -14,7 +14,7 @@ export interface HeaderProps {
 
 export function Header({ step, index, count, mode, brand, modeToggle }: HeaderProps) {
   return (
-    <header data-presentation-header="" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+    <header data-presentation-header="" style={{ display: 'flex', alignItems: 'center' }}>
       <div data-presentation-brand="">{brand}</div>
       <span data-presentation-marker="">{stepNumber(index, count)}</span>
       {mode === 'browse' ? <h1 data-presentation-title="">{step.title}</h1> : null}

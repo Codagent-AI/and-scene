@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react'
+import type { ChromeHooks } from './forward'
 
-export interface HeaderProps {
+export interface HeaderProps extends ChromeHooks {
   /** Host-provided branding for the top-left slot. Empty by default. */
   brand?: ReactNode
   era: string
 }
 
-export function Header({ brand, era }: HeaderProps) {
+export function Header({ brand, era, style, ...rest }: HeaderProps) {
   return (
     <header
+      {...rest}
       data-presentation-header=""
       style={{
         position: 'absolute',
@@ -19,6 +21,7 @@ export function Header({ brand, era }: HeaderProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        ...style,
       }}
     >
       <div data-presentation-brand="">{brand}</div>

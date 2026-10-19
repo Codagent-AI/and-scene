@@ -155,6 +155,18 @@ describe('I-10 stable hooks and author forwarding', () => {
     }
   })
 
+  it('chrome parts forward author className/style/data-* without losing hooks or active state', () => {
+    const hooks = { className: 'c', style: { zIndex: 7 }, 'data-custom': 'd' }
+    const { container } = present({
+      chrome: { header: hooks, footer: hooks, toc: hooks, attribution: hooks },
+    })
+    for (const part of ['header', 'footer', 'toc', 'attribution']) {
+      const el = container.querySelector<HTMLElement>(`[data-presentation-${part}]`)!
+      expect([el.className, el.style.zIndex, el.getAttribute('data-custom')], part).toEqual(['c', '7', 'd'])
+    }
+    expect(container.querySelector('[data-presentation-toc-item][data-presentation-active="true"]')).not.toBeNull()
+  })
+
   it('active-state hooks follow the current step on the progress dots and ToC', () => {
     const { container } = present()
     const active = (sel: string) =>

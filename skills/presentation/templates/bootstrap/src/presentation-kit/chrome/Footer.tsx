@@ -1,6 +1,7 @@
 import type { Mode } from '../constants'
+import type { ChromeHooks } from './forward'
 
-export interface FooterProps {
+export interface FooterProps extends ChromeHooks {
   mode: Mode
   index: number
   count: number
@@ -13,10 +14,11 @@ export interface FooterProps {
   onToggleMode: () => void
 }
 
-export function Footer({ mode, index, count, title, caption, stepTitles, onJump, onPrev, onNext, onToggleMode }: FooterProps) {
+export function Footer({ mode, index, count, title, caption, stepTitles, onJump, onPrev, onNext, onToggleMode, style, ...rest }: FooterProps) {
   const browse = mode === 'browse'
   return (
     <footer
+      {...rest}
       data-presentation-footer=""
       style={{
         position: 'absolute',
@@ -26,6 +28,7 @@ export function Footer({ mode, index, count, title, caption, stepTitles, onJump,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        ...style,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'baseline', maxWidth: '100%', minWidth: 0 }}>

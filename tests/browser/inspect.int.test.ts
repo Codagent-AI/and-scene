@@ -105,6 +105,8 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
   it('reports indistinct active chrome on every step', () => {
     const lines = warnings('chrome').filter((l) => l.includes('[active-chrome]'))
     for (const step of ['01', '02', '03']) expect(lines.some((l) => l.startsWith(`WARN step ${step}`) && /progress indicator/.test(l))).toBe(true)
+    // the unstyled table of contents has labels of different natural widths and must still be flagged
+    for (const step of ['01', '02', '03']) expect(lines.some((l) => l.startsWith(`WARN step ${step}`) && /table-of-contents/.test(l))).toBe(true)
     expect(warnings('clean').filter((l) => l.includes('[active-chrome]'))).toEqual([])
   })
 

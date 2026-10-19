@@ -40,6 +40,15 @@ function isEmptyDir(dir) {
   return !existsSync(dir) || readdirSync(dir).every((name) => name === '.git')
 }
 
+/** A script's command text with `npm run <other>` style delegations expanded. */
+function expandScript(scripts, name, depth = 0) {
+  const command = scripts?.[name]
+  if (typeof command !== 'string') return ''
+  if (depth >= 4) return command
+  const delegated = [...command.matchAll(/\b(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?([\w:.-]+)/g)].map((m) => m[1])
+  return [command, ...delegated.map((other) => (other === name ? '' : expandScript(scripts, other, depth + 1)))].join(' ')
+}
+
 /** Contract-level anchor detection: what the app provides, not how its files are named. */
 export function detectAnchors(dir) {
   const anchors = { build: false, kit: false, index: false }
@@ -50,7 +59,7 @@ export function detectAnchors(dir) {
     const deps = { ...pkg.dependencies, ...pkg.devDependencies }
     const hasConfig = readdirSync(dir).some((name) => /^vite\.config\./.test(name))
     anchors.build =
-      /\bvite\b/.test(pkg.scripts?.build ?? '') &&
+      /\bvite\b/.test(expandScript(pkg.scripts, 'build')) &&
       BUILD_DEPS.every((name) => name in deps) &&
       hasConfig &&
       existsSync(path.join(dir, 'tsconfig.json'))

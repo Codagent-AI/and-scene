@@ -18,7 +18,8 @@ export type EntityDef = Base &
     | { kind: 'tray'; x: number; y: number; w: number; h: number }
     | { kind: 'chip'; x: number; y: number; w: number; h: number; text: string }
     | { kind: 'arrow'; from: Point; to: Point; bidirectional?: boolean }
-    | { kind: 'check'; x: number; y: number; w: number; h: number }
+    | { kind: 'label'; x: number; y: number; w: number; h: number; text: string }
+    | { kind: 'check'; x: number; y: number; w: number; h: number; resolves: readonly string[] }
     | { kind: 'flag'; x: number; y: number; w: number; h: number }
     | { kind: 'frame'; x: number; y: number; w: number; h: number }
   )
@@ -51,7 +52,10 @@ export const ENTITIES: readonly EntityDef[] = [
   { id: 'scene-kit', first: 6, kind: 'node', x: 300, y: 306, w: 240, h: 40, text: 'shared scene kit' },
   { id: 'verify', first: 7, kind: 'node', x: cardX(5), y: CARD_Y, w: CARD_W, h: CARD_H, text: 'verify', icon: 'skill' },
   { id: 'verify-chain', first: 7, kind: 'arrow', from: [cardX(4) + CARD_W, CARD_Y + CARD_H / 2], to: [cardX(5), CARD_Y + CARD_H / 2] },
-  { id: 'verify-pass', first: 7, kind: 'check', x: cardX(5) + CARD_W - 16, y: CARD_Y - 8, w: 24, h: 24 },
+  { id: 'verify-build', first: 7, kind: 'label', x: cardX(5) + 10, y: CARD_Y + 38, w: 76, h: 16, text: 'build' },
+  { id: 'verify-render', first: 7, kind: 'label', x: cardX(5) + 10, y: CARD_Y + 62, w: 76, h: 16, text: 'render' },
+  // the pass check resolves the build and render checks above it
+  { id: 'verify-pass', first: 7, kind: 'check', x: cardX(5) + CARD_W - 16, y: CARD_Y - 8, w: 24, h: 24, resolves: ['verify-build', 'verify-render'] },
   { id: 'route', first: 8, kind: 'node', x: 380, y: 112, w: 130, h: 30, text: '/your-slug', icon: 'route' },
   { id: 'modify-arc', first: 8, kind: 'arrow', from: [445, 52], to: [445, 112] },
   { id: 'edit-link', first: 8, kind: 'arrow', from: [445, 142], to: [236, CARD_Y] },

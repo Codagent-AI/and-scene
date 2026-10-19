@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  analyzeSnapshot, BROWSER_DEFAULT_LINK_COLOR, formatWarning, MIN_ATTRIBUTION_PX,
+  analyzeSnapshot, BROWSER_DEFAULT_LINK_COLOR, collectSnapshot, formatWarning, MIN_ATTRIBUTION_PX,
 } from '../../scripts/lib/diagnostics.mjs'
 
 type Rect = { left: number; top: number; right: number; bottom: number }
@@ -116,5 +116,53 @@ describe('attribution diagnostics', () => {
 
   it('stays quiet for a polished attribution', () => {
     expect(analyzeSnapshot(snapshot(), 1)).toEqual([])
+  })
+})
+
+describe('collectSnapshot visibility (DOM derived)', () => {
+  const box = { left: 0, top: 0, right: 100, bottom: 20, width: 100, height: 20 }
+
+  function collect(html: string) {
+    document.body.innerHTML = html
+    const originalRange = document.createRange.bind(document)
+    // jsdom has no layout: give every element and text range a real-looking box
+    Element.prototype.getBoundingClientRect = () => box as DOMRect
+    document.createRange = () => Object.assign(originalRange(), { getBoundingClientRect: () => box as DOMRect })
+    return collectSnapshot(document, window)
+  }
+
+  it('treats an attribution inside a zero-opacity ancestor as hidden and warns', () => {
+    const snap = collect('<div style="opacity:0"><a data-presentation-attribution href="/x">made by and-scene</a></div>')
+    expect(snap.attribution?.visible).toBe(false)
+    expect(analyzeSnapshot(snap, 1).map((w: { kind: string }) => w.kind)).toContain('attribution')
+  })
+
+  it('treats a display:none ancestor as hidden', () => {
+    const snap = collect('<div style="display:none"><a data-presentation-attribution href="/x">x</a></div>')
+    expect(snap.attribution?.visible).toBe(false)
+  })
+
+  it('keeps a plainly visible attribution visible', () => {
+    expect(collect('<a data-presentation-attribution href="/x">x</a>').attribution?.visible).toBe(true)
+  })
+
+  it('collects no text from invisible subtrees, so hidden text cannot collide', () => {
+    const snap = collect('<p>shown</p><div style="opacity:0"><p>ghost</p></div>')
+    expect(snap.elements.map((e: { label: string }) => e.label).join()).toMatch(/shown/)
+    expect(snap.elements.map((e: { label: string }) => e.label).join()).not.toMatch(/ghost/)
+  })
+
+  it('ignores intrinsic width of labelled controls when comparing active chrome, but not of icon-like ones', () => {
+    const styleOf = (width: number) => `width:${width}px;display:inline-block`
+    const labelled = collect(
+      `<button data-presentation-toc-entry aria-current="step" style="${styleOf(40)}">A</button><button data-presentation-toc-entry style="${styleOf(90)}">Longer</button>`,
+    )
+    expect(labelled.toc?.active).not.toHaveProperty('width')
+    expect(analyzeSnapshot(labelled, 1).map((w: { kind: string }) => w.kind)).toContain('active-chrome')
+    const dots = collect(
+      `<button data-presentation-progress-dot aria-current="step" style="${styleOf(28)}"></button><button data-presentation-progress-dot style="${styleOf(10)}"></button>`,
+    )
+    expect(dots.progress?.active).toHaveProperty('width')
+    expect(analyzeSnapshot(dots, 1).map((w: { kind: string }) => w.kind)).not.toContain('active-chrome')
   })
 })

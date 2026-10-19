@@ -58,7 +58,7 @@ describe('reference sample scene content', () => {
     expect(introduced(4)).toEqual(['card-2', 'card-3', 'card-4', 'link-2', 'link-3'])
     expect(introduced(5)).toEqual(['ghost', 'depth'])
     expect(introduced(6)).toEqual(['scene-kit'])
-    expect(introduced(7)).toEqual(['verify', 'verify-chain', 'verify-pass'])
+    expect(introduced(7)).toEqual(['verify', 'verify-chain', 'verify-build', 'verify-render', 'verify-pass'])
     expect(introduced(8)).toEqual(['route', 'modify-arc', 'edit-link', 'edited-flag'])
     expect(introduced(9)).toEqual(['reveal-frame', 'reveal-label'])
   })
@@ -126,6 +126,24 @@ describe('reference sample scene content', () => {
     expect(c.x).toBeLessThanOrEqual(verify.x + verify.w)
   })
 
+  it('shows build and render checks inside the verify node, resolving to the green pass check', () => {
+    const verify = box(byId('verify'))!
+    const check = byId('verify-pass')
+    if (check.kind !== 'check') throw new Error('check expected')
+    expect(check.resolves).toEqual(['verify-build', 'verify-render'])
+    for (const id of check.resolves) {
+      const label = byId(id)
+      expect(label.kind).toBe('label')
+      expect(label.first).toBe(check.first)
+      const b = box(label)!
+      expect(b.x).toBeGreaterThanOrEqual(verify.x)
+      expect(b.x + b.w).toBeLessThanOrEqual(verify.x + verify.w)
+      expect(b.y).toBeGreaterThanOrEqual(verify.y)
+      expect(b.y + b.h).toBeLessThanOrEqual(verify.y + verify.h)
+    }
+    expect(['build', 'render']).toEqual(check.resolves.map((id) => (byId(id) as { text: string }).text))
+  })
+
   it('draws the modify arc from the conversation into the route and flags the edited card', () => {
     const arc = byId('modify-arc')
     const conversation = byId('conversation')
@@ -174,7 +192,12 @@ describe('reference sample scene content', () => {
   })
 
   it('has no accidental overlaps between text-bearing entities', () => {
-    const textual = ENTITIES.filter((e) => ['node', 'chip', 'ghost', 'card'].includes(e.kind))
+    const textual = ENTITIES.filter((e) => ['node', 'chip', 'ghost', 'card', 'label'].includes(e.kind))
+    const contains = (a: EntityDef, b: EntityDef) => {
+      const p = box(a)!
+      const q = box(b)!
+      return p.x <= q.x && p.y <= q.y && p.x + p.w >= q.x + q.w && p.y + p.h >= q.y + q.h
+    }
     const hit = (a: EntityDef, b: EntityDef) => {
       const p = box(a)!
       const q = box(b)!
@@ -182,7 +205,8 @@ describe('reference sample scene content', () => {
     }
     for (let i = 0; i < textual.length; i++) {
       for (let j = i + 1; j < textual.length; j++) {
-        expect([textual[i].id, textual[j].id, hit(textual[i], textual[j])]).toEqual([textual[i].id, textual[j].id, false])
+        const nested = contains(textual[i], textual[j]) || contains(textual[j], textual[i]) // a label inside its own node
+        expect([textual[i].id, textual[j].id, nested || hit(textual[i], textual[j])]).toEqual([textual[i].id, textual[j].id, nested])
       }
     }
   })

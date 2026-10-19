@@ -81,6 +81,10 @@ describe('INT-001: materialized bootstrap is complete and style-neutral', () => 
       expect(readFileSync(path.join(app, file), 'utf8'), file).not.toMatch(/tailwind/i)
     }
     expect(files.filter((f) => f.endsWith('.css') && f.startsWith('src/presentation-kit'))).toEqual([])
-    expect(readFileSync(path.join(app, 'src/index.css'), 'utf8')).not.toMatch(/(^|[;{\s])(color|background)\s*:/)
+    // every stylesheet the scaffold ships is declaration-free except page-container sizing
+    for (const file of files.filter((f) => f.endsWith('.css'))) {
+      const declarations = [...readFileSync(path.join(app, file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([a-z-]+)\s*:\s*[^;}]+;/g)].map((m) => m[1])
+      expect(new Set(declarations), file).toEqual(file === 'src/index.css' ? new Set(['height']) : new Set())
+    }
   })
 })

@@ -188,6 +188,15 @@
   background: var(--hmp-ok);
   color: #0e1a11;
 }
+.hmp [data-presentation-entity='verify'] {
+  align-items: flex-start;
+  padding-top: 8px;
+}
+.hmp .hmp-check-label {
+  color: var(--hmp-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
 .hmp .hmp-check svg {
   width: 16px;
   height: 16px;

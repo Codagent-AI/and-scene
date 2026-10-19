@@ -1,17 +1,6 @@
-/* Host app styles only; the presentation kit ships no CSS. */
+/* Host app layout only; the presentation kit and the scaffold ship no visual styling. */
 html,
 body,
 #root {
   height: 100%;
-}
-
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-}
-
-.landing {
-  max-width: 40rem;
-  margin: 4rem auto;
-  padding: 0 1rem;
 }

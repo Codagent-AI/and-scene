@@ -1,6 +1,7 @@
 import { StrictMode, useEffect } from 'react'
 import { describe, expect, it } from 'vitest'
 import { act, render, renderHook, waitFor } from '@testing-library/react'
+import { motion } from 'motion/react'
 import {
   Appear, Box, ENTER_DELAY, ENTER_T, LAYOUT_T, Presentation, SceneLayer,
   type SceneProps, type Step,
@@ -152,6 +153,7 @@ describe('entrance sequencing', () => {
   it('decides once per mount from what is already on stage, never replaying on updates', () => {
     const registry = new EntityRegistry()
     registry.add('x')
+    registry.markStarted()
     const { result, rerender } = renderHook(({ id }) => useEntrance(id), {
       initialProps: { id: 'x' },
       wrapper: withRegistry(registry),
@@ -164,6 +166,48 @@ describe('entrance sequencing', () => {
     const fresh = renderHook(() => useEntrance('new'), { wrapper: withRegistry(registry) })
     expect(fresh.result.current.initial).toEqual({ opacity: 0 })
     expect(fresh.result.current.animate.transition.delay).toBe(ENTER_DELAY)
+  })
+
+  it('delays newcomers beside raw motion entities the registry cannot see', () => {
+    type P = { withPrimitive: boolean }
+    const seen: Array<false | { opacity: number }> = []
+    const delays: number[] = []
+    function Probe() {
+      const entrance = useEntrance('late')
+      seen.push(entrance.initial)
+      delays.push(entrance.animate.transition.delay)
+      return null
+    }
+    function RawScene({ payload }: SceneProps<P>) {
+      return (
+        <SceneLayer>
+          <motion.div key="raw" layoutId="raw" style={{ position: 'absolute', left: 10, top: 10 }} />
+          {payload.withPrimitive ? <Probe key="probe" /> : null}
+        </SceneLayer>
+      )
+    }
+    const raw: Step<P>[] = [false, true].map((withPrimitive, i) => ({
+      id: `r${i}`, era: 'e', title: 't', caption: 'c', groupKey: 'g', Scene: RawScene, payload: { withPrimitive },
+    }))
+    setViewport(1280, 800)
+    render(<Presentation steps={raw} title="deck" />)
+    act(() => void press('ArrowRight'))
+    expect(seen.at(-1)).toEqual({ opacity: 0 })
+    expect(delays.at(-1)).toBe(ENTER_DELAY)
+  })
+
+  it('does not delay the very first scene', () => {
+    const delays: number[] = []
+    function Probe() {
+      delays.push(useEntrance('first').animate.transition.delay)
+      return null
+    }
+    function FirstScene() {
+      return <Probe />
+    }
+    setViewport(1280, 800)
+    render(<Presentation steps={[{ id: 'a', era: 'e', title: 't', caption: 'c', Scene: FirstScene, payload: undefined }]} title="deck" />)
+    expect(delays[0]).toBe(0)
   })
 
   it('tracks mounted ids symmetrically through unmount', () => {

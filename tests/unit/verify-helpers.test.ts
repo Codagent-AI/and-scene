@@ -63,6 +63,31 @@ describe('preview helpers', () => {
     expect(readRegistry(dir).map((e: { slug: string }) => e.slug)).toEqual(['one', 'two-x'])
   })
 
+  it('reads entries whatever their property order, quoting or nesting', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'reg-'))
+    dirs.push(dir)
+    mkdirSync(path.join(dir, 'src/presentations'), { recursive: true })
+    writeFileSync(
+      path.join(dir, 'src/presentations/index.ts'),
+      `import type { ComponentType } from 'react'
+export const presentations: readonly PresentationEntry[] = [
+  { title: 'Reordered', slug: 'reordered', load: () => import('./a/Talk') },
+  {
+    load: () => import('./b/Talk').then((m) => ({ default: m.Named })),
+    title: "It's quoted",
+    slug: "second",
+  },
+  { slug: 'third', load: () => import('./c/Talk'), title: 'Third' },
+]
+export const other = [{ slug: 'ignored', title: 'Ignored' }]`,
+    )
+    expect(readRegistry(dir)).toEqual([
+      { slug: 'reordered', title: 'Reordered' },
+      { slug: 'second', title: "It's quoted" },
+      { slug: 'third', title: 'Third' },
+    ])
+  })
+
   it('reads the real registry', () => {
     expect(readRegistry('.')).toEqual([{ slug: sample.slug, title: sample.title }])
   })

@@ -103,11 +103,16 @@ describe('no styling framework is required', () => {
     },
   )
 
-  it('the bootstrap template defines no presentation colours, fonts or themes outside the starter presentation', () => {
+  it('the bootstrap template and presentation templates define no visual styling at all', () => {
     const css = rel(templateRoot, walk(templateRoot).filter((f) => /\.css$/.test(f)))
     expect(css).toEqual(['src/index.css', 'src/presentations/starter/style.css'])
-    const host = stripComments(text(path.join(templateRoot, 'src/index.css')))
-    expect(host).not.toMatch(/(^|[;{\s])(color|background\w*)\s*:|--[a-z]|font-family\s*:\s*Inter/)
+    const declarations = (file: string) =>
+      [...stripComments(text(file)).matchAll(/([a-z-]+)\s*:\s*[^;}]+;/g)].map((m) => m[1])
+    expect(declarations(path.join(templateRoot, 'src/presentations/starter/style.css'))).toEqual([])
+    expect(declarations('skills/presentation/templates/presentation/style.css')).toEqual([])
+    // host css may only size the page containers
+    expect(new Set(declarations(path.join(templateRoot, 'src/index.css')))).toEqual(new Set(['height']))
+    expect(text(path.join(templateRoot, 'src/index.css'))).not.toMatch(/font|color|background|margin|padding|--/)
     expect(text(path.join(templateRoot, 'tsconfig.app.json'))).not.toMatch(/tailwind/)
   })
 })

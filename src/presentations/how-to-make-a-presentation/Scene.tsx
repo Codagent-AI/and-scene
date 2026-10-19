@@ -1,5 +1,5 @@
 import { Check, Route, Sparkles, User, type LucideIcon } from 'lucide-react'
-import { Arrow, Box, Emphasis, Frame, SceneLayer, SymbolChip, type SceneProps } from '../../presentation-kit'
+import { Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip, type SceneProps } from '../../presentation-kit'
 import { entitiesThrough, type EntityDef } from './entities'
 
 export interface StoryPayload {
@@ -34,9 +34,18 @@ function Entity({ def }: { def: EntityDef }) {
       return <SymbolChip id={def.id} {...geometry} className="hmp-chip">{def.text}</SymbolChip>
     case 'arrow':
       return <Arrow id={def.id} from={def.from} to={def.to} bidirectional={def.bidirectional} className="hmp-arrow" />
+    case 'label':
+      return <Label id={def.id} {...geometry} className="hmp-check-label">{def.text}</Label>
     case 'check':
       return (
-        <SymbolChip id={def.id} {...geometry} Icon={Check} className="hmp-check" data-presentation-allow-overlap="" />
+        <SymbolChip
+          id={def.id}
+          {...geometry}
+          Icon={Check}
+          className="hmp-check"
+          data-resolves={def.resolves.join(' ')}
+          data-presentation-allow-overlap=""
+        />
       )
     case 'flag':
       return <Emphasis id={def.id} {...geometry} className="hmp-flag" />

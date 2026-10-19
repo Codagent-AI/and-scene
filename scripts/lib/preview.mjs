@@ -30,12 +30,38 @@ export function freePort() {
   })
 }
 
-/** Registered presentations, read from the explicit registry source. */
+/** Top-level object literals of the first array in `source`, found by brace matching. */
+function arrayObjects(source) {
+  const declaration = /presentations[^=]*=\s*\[/.exec(source)
+  if (!declaration) return []
+  const start = declaration.index + declaration[0].length - 1
+  const objects = []
+  let depth = 0
+  let from = -1
+  let quote = null
+  for (let i = start + 1; i < source.length; i++) {
+    const ch = source[i]
+    if (quote) {
+      if (ch === '\\') i++
+      else if (ch === quote) quote = null
+    } else if (ch === "'" || ch === '"' || ch === '`') quote = ch
+    else if (ch === '{') {
+      if (depth++ === 0) from = i
+    } else if (ch === '}') {
+      if (--depth === 0) objects.push(source.slice(from, i + 1))
+    } else if (ch === ']' && depth === 0) break
+  }
+  return objects
+}
+
+/** Registered presentations, read from the explicit registry source (property order does not matter). */
 export function readRegistry(root) {
   const source = readFileSync(path.join(root, 'src/presentations/index.ts'), 'utf8')
   const entries = []
-  for (const match of source.matchAll(/slug:\s*(['"])(.+?)\1,\s*title:\s*(['"])(.+?)\3/gs)) {
-    entries.push({ slug: match[2], title: match[4] })
+  for (const object of arrayObjects(source)) {
+    const slug = /\bslug:\s*(['"])(.+?)\1/.exec(object)
+    const title = /\btitle:\s*(['"])(.+?)\1/.exec(object)
+    if (slug && title) entries.push({ slug: slug[2], title: title[2] })
   }
   return entries
 }

@@ -118,10 +118,40 @@ describe('anchor detection', () => {
     pkg.scripts.build = 'echo nothing'
     writeFileSync(path.join(noBuild, 'package.json'), JSON.stringify(pkg))
     expect(detectAnchors(noBuild).build).toBe(false)
+    pkg.scripts.build = 'npm run bundle'
+    pkg.scripts.bundle = 'tsc -b && vite build'
+    writeFileSync(path.join(noBuild, 'package.json'), JSON.stringify(pkg))
+    expect(detectAnchors(noBuild).build).toBe(true) // a delegated build is still a working build
+    pkg.scripts.bundle = 'echo nothing'
+    writeFileSync(path.join(noBuild, 'package.json'), JSON.stringify(pkg))
+    expect(detectAnchors(noBuild).build).toBe(false)
     delete pkg.dependencies.react
     pkg.scripts.build = 'vite build'
     writeFileSync(path.join(noBuild, 'package.json'), JSON.stringify(pkg))
     expect(detectAnchors(noBuild).build).toBe(false)
+  })
+})
+
+describe('delegated builds', () => {
+  it.each([
+    ['npm run', { build: 'npm run bundle', bundle: 'tsc -b && vite build' }],
+    ['pnpm', { build: 'pnpm bundle', bundle: 'vite build' }],
+    ['two hops', { build: 'npm run a', a: 'yarn b', b: 'vite build' }],
+  ])('reuses a build that delegates via %s', (_name, scripts) => {
+    const dir = tmp()
+    write(path.join(dir, 'package.json'), viteBuildPackage({ scripts }))
+    write(path.join(dir, 'vite.config.ts'), 'export default {}\n')
+    write(path.join(dir, 'tsconfig.json'), '{}\n')
+    expect(detectAnchors(dir).build).toBe(true)
+    expect(planScaffold(dir).missing).not.toContain('build')
+  })
+
+  it('does not loop on self-referential scripts', () => {
+    const dir = tmp()
+    write(path.join(dir, 'package.json'), viteBuildPackage({ scripts: { build: 'npm run build' } }))
+    write(path.join(dir, 'vite.config.ts'), 'export default {}\n')
+    write(path.join(dir, 'tsconfig.json'), '{}\n')
+    expect(detectAnchors(dir).build).toBe(false)
   })
 })
 

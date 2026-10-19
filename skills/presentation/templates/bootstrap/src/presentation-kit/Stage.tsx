@@ -1,5 +1,5 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DESIGN_H, DESIGN_W, ENTER_T, EASE } from './constants'
 import { EntityRegistry, EntityRegistryContext } from './entrance'
 import { sceneKey } from './steps'
@@ -26,6 +26,9 @@ export function Stage<TPayload>({
   designHeight = DESIGN_H,
 }: StageProps<TPayload>) {
   const [registry] = useState(() => new EntityRegistry())
+  useEffect(() => {
+    registry.markStarted()
+  }, [registry])
   const { Scene, payload, id, era, title, caption } = step
   const meta = { id, era, title, caption }
   return (

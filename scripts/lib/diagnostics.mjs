@@ -20,11 +20,14 @@ export function collectSnapshot(doc, win) {
   ]
 
   const visible = (el, rect) => {
-    const style = win.getComputedStyle(el)
-    return (
-      rect.width > 0 && rect.height > 0 && style.display !== 'none' &&
-      style.visibility !== 'hidden' && Number(style.opacity) > 0
-    )
+    if (!(rect.width > 0 && rect.height > 0)) return false
+    if (win.getComputedStyle(el).visibility === 'hidden') return false
+    // display:none, zero opacity and the like hide everything below them
+    for (let node = el; node && node !== doc.documentElement; node = node.parentElement) {
+      const style = win.getComputedStyle(node)
+      if (style.display === 'none' || Number(style.opacity) === 0) return false
+    }
+    return true
   }
   const pathOf = (el) => {
     const parts = []
@@ -72,7 +75,11 @@ export function collectSnapshot(doc, win) {
 
   const signature = (el) => {
     const style = win.getComputedStyle(el)
-    return Object.fromEntries(STYLE_KEYS.map((key) => [key, style[key]]))
+    // a labelled control's width and height follow its text, so only icon-like controls compare sizes
+    const labelled = (el.textContent || '').trim() !== ''
+    return Object.fromEntries(
+      STYLE_KEYS.filter((key) => !(labelled && (key === 'width' || key === 'height'))).map((key) => [key, style[key]]),
+    )
   }
   const activeChrome = (selector) => {
     const items = Array.from(doc.querySelectorAll(selector))

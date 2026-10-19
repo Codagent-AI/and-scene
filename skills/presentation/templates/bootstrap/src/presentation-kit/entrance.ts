@@ -4,11 +4,20 @@ import { ENTER_DELAY, ENTER_T, EASE } from './constants'
 /** Tracks which entity ids are currently mounted within a Stage. */
 export class EntityRegistry {
   private counts = new Map<string, number>()
+  /**
+   * True once the stage has committed its first scene. From then on any
+   * newcomer waits for motion already under way, including raw motion
+   * elements the registry cannot see.
+   */
+  private begun = false
+  get started() {
+    return this.begun
+  }
+  markStarted() {
+    this.begun = true
+  }
   has(id: string) {
     return (this.counts.get(id) ?? 0) > 0
-  }
-  get size() {
-    return this.counts.size
   }
   add(id: string) {
     this.counts.set(id, (this.counts.get(id) ?? 0) + 1)
@@ -29,13 +38,13 @@ export interface EntranceProps {
 }
 
 /** Motion props for an entity: newcomers fade in after persisting entities settle. */
-export function buildEntrance(continuing: boolean, othersPresent: boolean): EntranceProps {
+export function buildEntrance(continuing: boolean, stageStarted: boolean): EntranceProps {
   return {
     initial: continuing ? false : { opacity: 0 },
     animate: {
       opacity: 1,
       transition: {
-        delay: !continuing && othersPresent ? ENTER_DELAY : 0,
+        delay: !continuing && stageStarted ? ENTER_DELAY : 0,
         duration: ENTER_T,
         ease: EASE,
       },
@@ -52,7 +61,7 @@ export function buildEntrance(continuing: boolean, othersPresent: boolean): Entr
 export function useEntrance(id: string): EntranceProps {
   const registry = useContext(EntityRegistryContext)
   const [entrance] = useState(() =>
-    buildEntrance(registry?.has(id) ?? false, (registry?.size ?? 0) > 0),
+    buildEntrance(registry?.has(id) ?? false, registry?.started ?? false),
   )
   useEffect(() => {
     registry?.add(id)

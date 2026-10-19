@@ -1,4 +1,4 @@
-import { cleanup } from '@testing-library/react'
+import { cleanup, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ALL_ARROWS, ALL_RECTS, ARROWS, CARD_IDS, ID, RECTS, idsAtStep, type EntitySpec } from './entities'
 import { ALL_SPECS, entity, geometry, mount, next, prev, renderedIds, settleAt, type Geometry } from './test-support'
@@ -141,6 +141,62 @@ describe('one accumulating scene (L-46)', () => {
       expect(c.querySelector('[data-presentation-scene]')).toBe(sceneEl)
     }
   }, 60000)
+
+  it('never replays the Appear wrapper of continuing entities (same wrapper node, opacity never reset to 0)', async () => {
+    const c = mount()
+    const wrappers = new Map<string, Element>()
+    const visible = new Set<string>()
+    const opacity = (el: Element) => (el as HTMLElement).style.opacity
+
+    const wrapperOf = (id: string) => {
+      const el = entity(c, id) as HTMLElement
+      const w = el.closest('[data-presentation-appear]')
+      expect(w, `${id} has an Appear wrapper`).not.toBeNull()
+      return { el, w: w as HTMLElement }
+    }
+    // Checks every entity that was visible before this navigation and is still part of the target step.
+    const checkContinuing = (target: number, label: string) => {
+      for (const id of idsAtStep(target)) {
+        if (!visible.has(id)) continue
+        const { el, w } = wrapperOf(id)
+        expect(w, `${id} wrapper node (${label})`).toBe(wrappers.get(id))
+        expect(opacity(w), `${id} wrapper opacity (${label})`).not.toBe('0')
+        expect(opacity(el), `${id} entity opacity (${label})`).not.toBe('0')
+        expect(c.querySelector(`[data-presentation-appear] [data-presentation-appear]`)).toBeNull()
+      }
+    }
+    const markVisible = async (step: number) => {
+      for (const id of INTRODUCED[step].map(full)) {
+        const { el, w } = wrapperOf(id)
+        wrappers.set(id, w)
+        await waitFor(() => expect(opacity(w), `${id} first enter`).toBe('1'), { timeout: 15000 })
+        expect(opacity(el)).not.toBe('0')
+        visible.add(id)
+      }
+    }
+
+    await markVisible(1)
+    for (let step = 2; step <= 9; step++) {
+      next(c)
+      checkContinuing(step - 1, `forward to ${step}, immediately`)
+      await markVisible(step)
+      checkContinuing(step, `forward at ${step}, settled`)
+    }
+    for (let step = 8; step >= 1; step--) {
+      prev(c)
+      checkContinuing(step, `back to ${step}, immediately`)
+      await settleAt(c, step)
+      checkContinuing(step, `back at ${step}, settled`)
+    }
+    // forward again: entities that exited remount (fresh wrappers), but continuing ones still never replay
+    visible.clear()
+    INTRODUCED[1].forEach((short) => visible.add(full(short)))
+    for (let step = 2; step <= 9; step++) {
+      next(c)
+      checkContinuing(step - 1, `second forward to ${step}`)
+      await markVisible(step)
+    }
+  }, 120000)
 
   it('renders the data rects as the entity geometry', () => {
     const c = mount()

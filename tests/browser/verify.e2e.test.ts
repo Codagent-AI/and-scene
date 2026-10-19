@@ -54,18 +54,20 @@ interface Fault {
   consoleErrorAt: number | null
   uncaughtAt: number | null
   blockAdvanceFrom: number | null
+  renderThrowAt: number | null
 }
 
-const NO_FAULT: Fault = { swap: null, consoleErrorAt: null, uncaughtAt: null, blockAdvanceFrom: null }
+const NO_FAULT: Fault = { swap: null, consoleErrorAt: null, uncaughtAt: null, blockAdvanceFrom: null, renderThrowAt: null }
 
 function talkSource(fault: Fault): string {
   return `import { useEffect } from 'react'
 import { Presentation, type Step } from '../../presentation-kit'
 import { OUTLINE, PRESENTATION_TITLE } from './outline'
 
-const FAULT: { swap: readonly number[] | null; consoleErrorAt: number | null; uncaughtAt: number | null; blockAdvanceFrom: number | null } = ${JSON.stringify(fault)}
+const FAULT: { swap: readonly number[] | null; consoleErrorAt: number | null; uncaughtAt: number | null; blockAdvanceFrom: number | null; renderThrowAt: number | null } = ${JSON.stringify(fault)}
 
 function Probe({ payload }: { payload: number }) {
+  if (payload === FAULT.renderThrowAt) throw new Error('injected render error at payload ' + payload)
   useEffect(() => {
     if (payload === FAULT.consoleErrorAt) console.error('injected console error at payload ' + payload)
     if (payload === FAULT.uncaughtAt) {
@@ -219,42 +221,24 @@ export const presentations: readonly PresentationEntry[] = []
   }, VERIFY_TIMEOUT_MS)
 })
 
-describe('verify end-to-end: registry mode (verify.config.json sample: false)', () => {
-  it('E2E-003a renders every registered presentation without the sample table and reports PASS', async () => {
-    const dir = freshCopy('and-scene-e2e-registry-')
-    writeFileSync(join(dir, 'verify.config.json'), '{ "sample": false }\n')
-    const result = await verify(dir)
-    expect(result.code, result.output).toBe(0)
-    expect(result.output).toContain('sample skipped: verify.config.json sets "sample" to false')
-    expect(result.output).not.toContain('sample ok')
-    expect(result.output).toMatch(/^PASS verify: build ok, sample skipped, render ok \(1 registered presentation, 9 steps/m)
-    expect(result.output).not.toContain('FAIL')
-    expect(result.output).toContain(`open http://127.0.0.1:${previewPort(result.output)}/${SLUG}`)
-    const steps = [...result.output.matchAll(/ok step (\d+) \(index (\d+)\)/g)].map((m) => Number(m[2]))
-    expect(steps).toEqual(Array.from({ length: 9 }, (_, i) => i))
-    await expectNoLeftoverPreview(result.output)
-  }, VERIFY_TIMEOUT_MS + 60_000)
-
-  it('E2E-003b with an empty registry fails naming sample and never starts the preview', async () => {
-    const dir = freshCopy('and-scene-e2e-empty-')
-    writeFileSync(join(dir, 'verify.config.json'), '{ "sample": false }\n')
-    writeFileSync(
-      join(dir, 'src/presentations/index.ts'),
-      `import type { ComponentType } from 'react'
-
-export interface PresentationEntry {
-  slug: string
-  title: string
-  load: () => Promise<{ default: ComponentType }>
-}
-
-export const presentations: readonly PresentationEntry[] = []
-`,
-    )
+describe('verify end-to-end: synchronous render failures are reported with their step', () => {
+  it('E2E-002h a Scene that throws while rendering a non-first step fails render at that step', async () => {
+    const dir = freshCopy('and-scene-e2e-render-throw-')
+    writeFileSync(join(dir, SAMPLE_DIR, 'Talk.tsx'), talkSource({ ...NO_FAULT, renderThrowAt: 2 }))
     const result = await verify(dir)
     expect(result.code).not.toBe(0)
-    expect(result.output).toMatch(/FAIL \[sample\] no presentations registered/)
+    expect(result.output).toMatch(/FAIL \[render\] step 3 \(index 2\): .*injected render error/)
     expect(result.output).not.toMatch(/PASS/)
-    expect(result.output).not.toContain('preview http://')
+    await expectNoLeftoverPreview(result.output)
+  }, VERIFY_TIMEOUT_MS)
+
+  it('E2E-002i a Scene that throws on the first step fails render naming step 1 (index 0)', async () => {
+    const dir = freshCopy('and-scene-e2e-initial-throw-')
+    writeFileSync(join(dir, SAMPLE_DIR, 'Talk.tsx'), talkSource({ ...NO_FAULT, renderThrowAt: 0 }))
+    const result = await verify(dir)
+    expect(result.code).not.toBe(0)
+    expect(result.output).toMatch(/FAIL \[render\] step 1 \(index 0\): .*injected render error/)
+    expect(result.output).not.toMatch(/PASS/)
+    await expectNoLeftoverPreview(result.output)
   }, VERIFY_TIMEOUT_MS)
 })

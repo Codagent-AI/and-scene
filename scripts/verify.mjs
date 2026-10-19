@@ -98,7 +98,10 @@ export function checkRegistration(source, slug) {
 
 export const CONFIG_FILE = 'verify.config.json'
 
-/** Parses verify.config.json text. Only `sample` (boolean, default true) is recognised. */
+/**
+ * Parses verify.config.json text. The file exists only to opt out of the reference sample, so
+ * its one accepted shape is `{"sample": false}`: no other key, and no other value for `sample`.
+ */
 export function parseVerifyConfig(text) {
   let value
   try {
@@ -109,11 +112,17 @@ export function parseVerifyConfig(text) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new VerifyFailure('config', `${CONFIG_FILE} must contain a JSON object`)
   }
-  const sample = value.sample ?? true
-  if (typeof sample !== 'boolean') {
-    throw new VerifyFailure('config', `${CONFIG_FILE}: "sample" must be true or false`)
+  const unknown = Object.keys(value).filter((key) => key !== 'sample')
+  if (unknown.length > 0) {
+    throw new VerifyFailure('config', `${CONFIG_FILE} has unknown key(s): ${unknown.join(', ')}; only "sample" is allowed`)
   }
-  return { sample }
+  if (!('sample' in value)) {
+    throw new VerifyFailure('config', `${CONFIG_FILE} must set "sample": false`)
+  }
+  if (value.sample !== false) {
+    throw new VerifyFailure('config', `${CONFIG_FILE}: "sample" must be the boolean false (got ${JSON.stringify(value.sample)})`)
+  }
+  return { sample: false }
 }
 
 /** Reads the optional project-root config. Absent file means the defaults (sample required). */
@@ -160,7 +169,7 @@ function checkSampleRegistered(root) {
 }
 
 /** Targets for the render phase: the reference sample, or every registered slug when sample is off. */
-function renderTargets(root, config) {
+export function renderTargets(root, config) {
   if (config.sample) return [SAMPLE_SLUG]
   const slugs = parseRegisteredSlugs(readRegistry(root))
   if (slugs.length === 0) throw new VerifyFailure('sample', `no presentations registered in ${REGISTRY_PATH}`)
@@ -190,7 +199,7 @@ async function choosePort() {
 /** The preview child runs in its own process group so the whole group can be stopped. */
 let livePreview = null
 
-function startPreview(vite, root, port) {
+export function startPreview(vite, root, port) {
   const child = spawn(vite, ['preview', '--host', HOST, '--port', String(port), '--strictPort'], {
     cwd: root,
     detached: true,
@@ -202,10 +211,19 @@ function startPreview(vite, root, port) {
   }
   child.stdout.on('data', keep)
   child.stderr.on('data', keep)
-  child.on('error', (err) => keep(`\n${errorText(err)}`))
-  const exited = new Promise((done) => child.once('exit', done))
-  livePreview = { child, exited, log }
-  return livePreview
+  // A spawn failure (for example a missing binary) emits 'error' and may never emit 'exit'.
+  // Either event completes the preview so that waiting and cleanup can proceed.
+  const preview = { child, log, spawnError: null, exited: null }
+  preview.exited = new Promise((done) => {
+    child.once('error', (err) => {
+      preview.spawnError = err
+      keep(`\n${errorText(err)}`)
+      done({ code: null, signal: null })
+    })
+    child.once('exit', (code, signal) => done({ code, signal }))
+  })
+  livePreview = preview
+  return preview
 }
 
 function signalGroup(pid, signal) {
@@ -217,7 +235,7 @@ function signalGroup(pid, signal) {
   }
 }
 
-async function stopPreview(preview) {
+export async function stopPreview(preview) {
   if (!preview) return
   const { child, exited } = preview
   if (livePreview === preview) livePreview = null
@@ -233,13 +251,16 @@ async function stopPreview(preview) {
   signalGroup(child.pid, 'SIGKILL')
 }
 
-async function waitReady(preview, base) {
+export async function waitReady(preview, base) {
   let exitedEarly = false
   preview.exited.then(() => {
     exitedEarly = true
   })
   const deadline = Date.now() + READY_TIMEOUT_MS
   for (;;) {
+    if (exitedEarly && preview.spawnError) {
+      throw new VerifyFailure('render', `could not start vite preview: ${errorText(preview.spawnError)}`)
+    }
     if (exitedEarly) {
       throw new VerifyFailure('render', `vite preview exited before it was ready:\n${preview.log.text.trim()}`)
     }
@@ -276,7 +297,18 @@ function collectErrors(page) {
   return errors
 }
 
-async function advance(page, index) {
+/**
+ * Failure for a step: the captured console/page errors when there are any (a render exception
+ * unmounts the root, so the step index can no longer be read), otherwise the fallback message.
+ */
+export function renderFailure(errors, index, fallback) {
+  if (errors.length === 0) return new VerifyFailure('render', fallback, index)
+  const first = errors.find((entry) => entry.startsWith('pageerror:')) ?? errors[0]
+  const more = errors.length > 1 ? ` (and ${errors.length - 1} more)` : ''
+  return new VerifyFailure('render', `${first}${more}`, index)
+}
+
+async function advance(page, index, errors) {
   await page.keyboard.press('ArrowRight')
   const advanced = await page
     .waitForFunction(
@@ -286,12 +318,11 @@ async function advance(page, index) {
     )
     .then(() => true, () => false)
   if (!advanced) {
-    const observed = await page.getAttribute('[data-presentation-root]', 'data-step-index')
-    throw new VerifyFailure(
-      'render',
-      `transition did not advance: ArrowRight left data-step-index at ${observed}`,
-      index,
-    )
+    const observed = await page
+      .evaluate(() => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') ?? null)
+      .catch(() => null)
+    const where = observed === null ? 'no presentation root (the render failed)' : `data-step-index at ${observed}`
+    throw renderFailure(errors, index, `transition did not advance: ArrowRight left ${where}`)
   }
 }
 
@@ -331,7 +362,7 @@ async function stepThrough(page, url, errors, { sample, slug }) {
   const mounted = await page
     .waitForSelector('[data-presentation-root]', { timeout: 15_000 })
     .then(() => true, () => false)
-  if (!mounted) throw new VerifyFailure('render', `no presentation rendered at ${url}`)
+  if (!mounted) throw renderFailure(errors, 0, `no presentation rendered at ${url}`)
 
   const count = Number(await page.getAttribute('[data-presentation-root]', 'data-step-count'))
   if (sample && count !== EXPECTED_SAMPLE.length) {
@@ -340,13 +371,10 @@ async function stepThrough(page, url, errors, { sample, slug }) {
   if (!(count >= 1)) throw new VerifyFailure('render', `data-step-count reports ${count} steps`)
 
   for (let index = 0; index < count; index++) {
-    if (index > 0) await advance(page, index)
+    if (index > 0) await advance(page, index, errors)
     await sleep(SETTLE_MS)
     const seen = errors.splice(0)
-    if (seen.length > 0) {
-      const more = seen.length > 1 ? ` (and ${seen.length - 1} more)` : ''
-      throw new VerifyFailure('render', `${seen[0]}${more}`, index)
-    }
+    if (seen.length > 0) throw renderFailure(seen, index, '')
     if (sample) await checkStepContent(page, index)
     else console.log(`  ok ${describeStep(index)}`)
   }

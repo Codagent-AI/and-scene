@@ -168,7 +168,9 @@ Do not report success until every check below passes. Fix the cause, then re-run
    (git-ignored) and prints advisory warnings. Look at the screenshots of the **first step, the last step,
    and every dense or key step**. For a presentation that is responsive-sensitive, also run
    `npm run inspect -- <slug> --narrow` and inspect at the narrow viewport. If `inspect` is not available,
-   use the project's own settled-screenshot helper, written under the project root.
+   use the project's own settled-screenshot helper, written under the project root so Playwright resolves
+   from the project's local dependencies. Screenshots must be taken only after the step's animations have
+   settled (the helper waits a settle interval of a second or more; a fallback helper must do the same).
    Confirm: important scene content fits the fixed canvas; intentional overlaps are readable; nothing
    collides with the caption, progress dots, table of contents or navigation controls; active chrome is
    visibly distinct; attribution is legible.

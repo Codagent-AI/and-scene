@@ -201,6 +201,15 @@ describe('I-24 controls keep their keys', () => {
         <div data-testid="role-checkbox" role="checkbox" tabIndex={0} />
         <div data-testid="role-menuitem" role="menuitem" tabIndex={0} />
         <div data-testid="role-textbox" role="textbox" tabIndex={0} />
+        <div data-testid="role-spinbutton" role="spinbutton" tabIndex={0} />
+        <div data-testid="role-searchbox" role="searchbox" tabIndex={0} />
+        <div data-testid="role-treeitem" role="treeitem" tabIndex={0} />
+        <div data-testid="role-menuitemcheckbox" role="menuitemcheckbox" tabIndex={0} />
+        <div data-testid="role-menuitemradio" role="menuitemradio" tabIndex={0} />
+        <div data-testid="role-gridcell" role="gridcell" tabIndex={0} />
+        <div data-testid="role-combobox" role="combobox" tabIndex={0} />
+        <div data-testid="role-option" role="option" tabIndex={0} />
+        <div data-testid="role-switch" role="switch" tabIndex={0} />
         <div data-testid="plain-content">plain</div>
       </div>
     )
@@ -226,6 +235,15 @@ describe('I-24 controls keep their keys', () => {
     'role-checkbox',
     'role-menuitem',
     'role-textbox',
+    'role-spinbutton',
+    'role-searchbox',
+    'role-treeitem',
+    'role-menuitemcheckbox',
+    'role-menuitemradio',
+    'role-gridcell',
+    'role-combobox',
+    'role-option',
+    'role-switch',
   ])('navigation keys fired from %s do not move the deck or get prevented', (testId) => {
     const { container } = render(<Harness />)
     const before = read(container)

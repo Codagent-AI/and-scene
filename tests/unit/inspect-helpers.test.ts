@@ -168,7 +168,8 @@ describe('collectOverlapItems (jsdom)', () => {
       document.body.innerHTML = ''
     }
   }
-  const byText = (items: { selector: string }[], text: string) => items.find((i) => i.selector.includes(text))!
+  type Item = { selector: string; allowOverlap: boolean; hasOwnText: boolean }
+  const byText = (items: Item[], text: string) => items.find((i) => i.selector.includes(text))!
 
   it('inherits allow-overlap from an ancestor wrapper and keeps unmarked items reportable', () => {
     withDom(

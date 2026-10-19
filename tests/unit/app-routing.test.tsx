@@ -1,9 +1,22 @@
-import { readFileSync } from 'node:fs'
+import { cpSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { type ComponentType } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import Root from '../../src/Root'
 import { presentations, type PresentationEntry } from '../../src/presentations'
+import { resolveRoute } from '../../src/route'
+
+function snapshot(dir: string, prefix = ''): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name)
+    if (statSync(full).isDirectory()) Object.assign(out, snapshot(full, `${prefix}${name}/`))
+    else out[`${prefix}${name}`] = readFileSync(full, 'utf8')
+  }
+  return out
+}
 
 function fixture(slug: string, title: string) {
   const Talk: ComponentType = () => <p data-testid={`talk-${slug}`}>{title}</p>
@@ -76,14 +89,41 @@ describe('L-41 / I-39 registry', () => {
     expect(Object.keys({ ...pkg.dependencies, ...pkg.devDependencies })).not.toContain('react-router-dom')
   })
 
-  it('adding an entry leaves earlier entries resolvable and their bytes untouched', () => {
-    const before = readFileSync('src/presentations/index.ts', 'utf8')
-    const earlier = presentations.map((p) => p.slug)
-    const extended = [...presentations, fixture('third', 'Third')]
-    for (const slug of earlier) {
-      expect(extended.some((p) => p.slug === slug)).toBe(true)
+  it('adding a presentation changes only the new folder and one registry line, and earlier routes still resolve', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'registry-'))
+    try {
+      cpSync('src/presentations', join(dir, 'presentations'), { recursive: true })
+      const earlierBefore = snapshot(join(dir, 'presentations', 'how-to-make-a-presentation'))
+      const registryPath = join(dir, 'presentations', 'index.ts')
+      const registryBefore = readFileSync(registryPath, 'utf8')
+
+      // The documented "create" operation: new folder from the template + one appended entry.
+      cpSync('skills/presentation/templates/presentation', join(dir, 'presentations', 'third'), { recursive: true })
+      writeFileSync(
+        registryPath,
+        registryBefore.replace(
+          /\n\]\s*$/,
+          "\n  { slug: 'third', title: 'Third', load: () => import('./third/Talk') },\n]\n",
+        ),
+      )
+
+      const registryAfter = readFileSync(registryPath, 'utf8')
+      expect(registryAfter).toContain("slug: 'third'")
+      const removed = registryBefore.split('\n').filter((line) => !registryAfter.split('\n').includes(line))
+      expect(removed).toEqual([])
+      expect(snapshot(join(dir, 'presentations', 'how-to-make-a-presentation'))).toEqual(earlierBefore)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
     }
-    expect(readFileSync('src/presentations/index.ts', 'utf8')).toBe(before)
+
+    // Earlier routes keep resolving and loading once a further entry exists.
+    const extended = [...presentations, fixture('third', 'Third')]
+    for (const earlier of presentations) {
+      const { container, unmount } = render(<Root pathname={`/${earlier.slug}`} registry={extended} />)
+      await waitFor(() => expect(container.querySelector('[data-presentation-root]')).not.toBeNull())
+      unmount()
+    }
+    expect(resolveRoute('/third', extended).kind).toBe('presentation')
   })
 
   it('keeps the designed layout: placeholder App removed, Landing and sample files present', () => {

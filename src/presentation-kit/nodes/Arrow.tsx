@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { motion } from 'motion/react'
-import { DESIGN_H, DESIGN_W, EASE, LAYOUT_T } from '../constants'
+import { EASE, LAYOUT_T } from '../constants'
 import { appearMotion } from './appear'
 
 export interface ArrowProps {
@@ -27,42 +27,36 @@ function head(tip: [number, number], tail: [number, number]): string {
 /**
  * A line between two canvas points. Colour comes from the presentation (`stroke` defaults to
  * `currentColor`, so the arrow inherits whatever the presentation sets).
+ *
+ * The arrow is a positioned box (with a stable `layoutId`) wrapping an svg drawn in the
+ * box's local coordinates, so it morphs in place across steps and across scene replacements
+ * exactly like any other entity.
  */
 export function Arrow({ id, from, to, both, dashed, className, style, ...rest }: ArrowProps) {
-  const transition = { duration: LAYOUT_T, ease: EASE }
+  const left = Math.min(from[0], to[0]) - HEAD
+  const top = Math.min(from[1], to[1]) - HEAD
+  const width = Math.abs(to[0] - from[0]) + 2 * HEAD
+  const height = Math.abs(to[1] - from[1]) + 2 * HEAD
+  const local = (p: [number, number]): [number, number] => [p[0] - left, p[1] - top]
+  const a = local(from)
+  const b = local(to)
   return (
-    <motion.svg
-      {...rest}
-      width={DESIGN_W}
-      height={DESIGN_H}
-      viewBox={`0 0 ${DESIGN_W} ${DESIGN_H}`}
+    <motion.div
+      layout
+      layoutId={id}
+      transition={{ layout: { duration: LAYOUT_T, ease: EASE } }}
       {...appearMotion}
+      {...rest}
       data-presentation-entity={id}
       data-presentation-kind="arrow"
       className={className}
-      style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', overflow: 'visible', ...style }}
+      style={{ position: 'absolute', left, top, width, height, pointerEvents: 'none', ...style }}
     >
-      <motion.line
-        initial={{ x1: from[0], y1: from[1], x2: to[0], y2: to[1] }}
-        animate={{ x1: from[0], y1: from[1], x2: to[0], y2: to[1] }}
-        transition={transition}
-        stroke="currentColor"
-        strokeDasharray={dashed ? '6 5' : undefined}
-      />
-      <motion.polygon
-        initial={{ points: head(to, from) }}
-        animate={{ points: head(to, from) }}
-        transition={transition}
-        fill="currentColor"
-      />
-      {both ? (
-        <motion.polygon
-          initial={{ points: head(from, to) }}
-          animate={{ points: head(from, to) }}
-          transition={transition}
-          fill="currentColor"
-        />
-      ) : null}
-    </motion.svg>
+      <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+        <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke="currentColor" strokeDasharray={dashed ? '6 5' : undefined} />
+        <polygon points={head(b, a)} fill="currentColor" />
+        {both ? <polygon points={head(a, b)} fill="currentColor" /> : null}
+      </svg>
+    </motion.div>
   )
 }

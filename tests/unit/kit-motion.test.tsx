@@ -89,16 +89,42 @@ describe('I-4 persisting entities keep identity and morph in place', () => {
     expect(totalMounts.get('e1')).toBe(1)
   })
 
-  it('Arrow: stable entity hook, endpoints animate in place with the layout duration', () => {
+  it('Arrow: stable layoutId and entity hook, box geometry follows the endpoints, same node updated in place', () => {
     const { container, rerender } = render(<Arrow id="ar" from={[0, 0]} to={[10, 10]} />)
     const node = entity(container, 'ar')!
+    expect(callsFor('ar').at(-1)!.props.layoutId).toBe('ar')
+    const before = [node.style.left, node.style.width]
     rerender(<Arrow id="ar" from={[5, 5]} to={[90, 40]} />)
     expect(entity(container, 'ar')).toBe(node)
     expect(totalMounts.get('ar')).toBe(1)
-    const lines = motionCalls.filter((c) => c.tag === 'line')
-    const last = lines.at(-1)!.props
-    expect(last.animate).toEqual({ x1: 5, y1: 5, x2: 90, y2: 40 })
-    expect((last.transition as { duration: number }).duration).toBe(LAYOUT_T)
+    expect([node.style.left, node.style.width]).not.toEqual(before)
+    const props = callsFor('ar').at(-1)!.props
+    expect(props.layout).toBe(true)
+    expect((props.transition as { layout: { duration: number } }).layout.duration).toBe(LAYOUT_T)
+  })
+
+  it('Arrow: ungrouped scene replacement shares the layoutId across both scenes so it can morph', async () => {
+    const A: ComponentType<SceneProps<undefined>> = () => (
+      <SceneLayer><Arrow key="ar" id="shared-arrow" from={[0, 0]} to={[100, 0]} /></SceneLayer>
+    )
+    const B: ComponentType<SceneProps<undefined>> = () => (
+      <SceneLayer><Arrow key="ar" id="shared-arrow" from={[0, 50]} to={[200, 150]} /></SceneLayer>
+    )
+    const { container } = render(
+      <Presentation
+        title="Deck"
+        steps={[
+          { id: 'a', era: 'E', title: 'a', caption: 'a', Scene: A },
+          { id: 'b', era: 'E', title: 'b', caption: 'b', Scene: B },
+        ]}
+      />,
+    )
+    expect(callsFor('shared-arrow').at(-1)!.props.layoutId).toBe('shared-arrow')
+    key('ArrowRight')
+    const calls = callsFor('shared-arrow')
+    expect(new Set(calls.map((c) => c.props.layoutId))).toEqual(new Set(['shared-arrow']))
+    expect(calls.at(-1)!.props.layout).toBe(true)
+    expect(stepIndex(container)).toBe('1')
   })
 
   it('sample-style flow: a continuing entity in a grouped scene is the same node with updated content', async () => {

@@ -221,7 +221,14 @@ async function waitForPreview(port, handle) {
         `vite preview exited before becoming ready (code ${exitedEarly.code}, signal ${exitedEarly.signal})\n${handle.output()}`,
       )
     }
-    if (await probe(port)) return
+    if (await probe(port)) {
+      // A foreign server could answer on the port while our preview already died (port race).
+      const { child } = handle
+      if (child.exitCode !== null || child.signalCode !== null) {
+        throw new VerifyFailure('render', null, `vite preview exited while ${previewUrl(port)} answered\n${handle.output()}`)
+      }
+      return
+    }
     await sleep(250)
   }
   throw new VerifyFailure('render', null, `vite preview was not ready on ${previewUrl(port)} within ${READY_TIMEOUT_MS} ms`)
@@ -416,7 +423,11 @@ export async function runVerify({ root, configPath, skipBuild, log, errorLog, en
   }
 }
 
+let signalled = false
+
 async function cleanupOnSignal(signal) {
+  if (signalled) return // a repeated signal must not skip the in-flight cleanup
+  signalled = true
   await Promise.all([...activeCleanup].map((fn) => fn().catch(() => {})))
   process.exit(signal === 'SIGINT' ? 130 : 143)
 }
@@ -431,8 +442,8 @@ function isDirectRun() {
 }
 
 export async function main(argv = process.argv.slice(2), env = process.env) {
-  process.once('SIGINT', () => cleanupOnSignal('SIGINT'))
-  process.once('SIGTERM', () => cleanupOnSignal('SIGTERM'))
+  process.on('SIGINT', () => cleanupOnSignal('SIGINT'))
+  process.on('SIGTERM', () => cleanupOnSignal('SIGTERM'))
   let opts
   try {
     opts = parseArgs(argv)

@@ -387,7 +387,7 @@ function startPreview(port) {
   const child = spawn(
     process.execPath,
     [viteBin, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
-    { cwd: PROJECT_ROOT, stdio: ['ignore', 'pipe', 'pipe'] },
+    { cwd: PROJECT_ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'] },
   )
   let output = ''
   const collect = (chunk) => {
@@ -407,8 +407,13 @@ async function waitForPreview(port, preview) {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/`)
       await response.arrayBuffer()
+      // A foreign server could answer on the port while our preview already died (port race).
+      if (preview.child.exitCode !== null || preview.child.signalCode !== null) {
+        throw new InspectError('preview', `vite preview exited while 127.0.0.1:${port} answered: ${preview.tail()}`)
+      }
       return
-    } catch {
+    } catch (error) {
+      if (error instanceof InspectError) throw error
       await sleep(250)
     }
   }
@@ -419,10 +424,17 @@ async function stopPreview(preview) {
   if (!preview) return
   const { child } = preview
   if (child.exitCode !== null || child.signalCode !== null) return
-  child.kill('SIGTERM')
+  const signalGroup = (signal) => {
+    try {
+      process.kill(-child.pid, signal)
+    } catch {
+      // Group already gone.
+    }
+  }
+  signalGroup('SIGTERM')
   const exited = once(child, 'exit').then(() => true)
   const timedOut = sleep(5000).then(() => false)
-  if (!(await Promise.race([exited, timedOut]))) child.kill('SIGKILL')
+  if (!(await Promise.race([exited, timedOut]))) signalGroup('SIGKILL')
 }
 
 // ---- capture ---------------------------------------------------------------------

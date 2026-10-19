@@ -218,3 +218,43 @@ export const presentations: readonly PresentationEntry[] = []
     await expectNoLeftoverPreview(result.output)
   }, VERIFY_TIMEOUT_MS)
 })
+
+describe('verify end-to-end: registry mode (verify.config.json sample: false)', () => {
+  it('E2E-003a renders every registered presentation without the sample table and reports PASS', async () => {
+    const dir = freshCopy('and-scene-e2e-registry-')
+    writeFileSync(join(dir, 'verify.config.json'), '{ "sample": false }\n')
+    const result = await verify(dir)
+    expect(result.code, result.output).toBe(0)
+    expect(result.output).toContain('sample skipped: verify.config.json sets "sample" to false')
+    expect(result.output).not.toContain('sample ok')
+    expect(result.output).toMatch(/^PASS verify: build ok, sample skipped, render ok \(1 registered presentation, 9 steps/m)
+    expect(result.output).not.toContain('FAIL')
+    expect(result.output).toContain(`open http://127.0.0.1:${previewPort(result.output)}/${SLUG}`)
+    const steps = [...result.output.matchAll(/ok step (\d+) \(index (\d+)\)/g)].map((m) => Number(m[2]))
+    expect(steps).toEqual(Array.from({ length: 9 }, (_, i) => i))
+    await expectNoLeftoverPreview(result.output)
+  }, VERIFY_TIMEOUT_MS + 60_000)
+
+  it('E2E-003b with an empty registry fails naming sample and never starts the preview', async () => {
+    const dir = freshCopy('and-scene-e2e-empty-')
+    writeFileSync(join(dir, 'verify.config.json'), '{ "sample": false }\n')
+    writeFileSync(
+      join(dir, 'src/presentations/index.ts'),
+      `import type { ComponentType } from 'react'
+
+export interface PresentationEntry {
+  slug: string
+  title: string
+  load: () => Promise<{ default: ComponentType }>
+}
+
+export const presentations: readonly PresentationEntry[] = []
+`,
+    )
+    const result = await verify(dir)
+    expect(result.code).not.toBe(0)
+    expect(result.output).toMatch(/FAIL \[sample\] no presentations registered/)
+    expect(result.output).not.toMatch(/PASS/)
+    expect(result.output).not.toContain('preview http://')
+  }, VERIFY_TIMEOUT_MS)
+})

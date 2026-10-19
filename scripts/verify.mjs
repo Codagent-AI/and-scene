@@ -7,6 +7,9 @@
  *   sample  the reference sample is registered in src/presentations/index.ts
  *   render  vite preview on 127.0.0.1; Chromium steps through every sample step
  *
+ * An optional verify.config.json at the project root with {"sample": false} skips the
+ * sample check and renders every slug registered in src/presentations/index.ts instead.
+ *
  * Only Node built-ins and the `playwright` package are imported. Usage:
  *   node scripts/verify.mjs [--root <project dir>]     (VERIFY_PORT optional)
  */
@@ -74,11 +77,56 @@ export function parseArgs(argv) {
   return { root: resolve(root) }
 }
 
+/** Registry source with block comments and full-line comments removed. */
+function stripComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+}
+
+/** Slugs declared as `slug: '...'` entries in the registry source, in order, without duplicates. */
+export function parseRegisteredSlugs(source) {
+  const slugs = []
+  for (const match of stripComments(source).matchAll(/slug:\s*['"]([^'"]+)['"]/g)) {
+    if (!slugs.includes(match[1])) slugs.push(match[1])
+  }
+  return slugs
+}
+
 /** True when the registry source declares an entry whose slug is the given string. */
 export function checkRegistration(source, slug) {
-  const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
-  const escaped = slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`slug:\\s*['"]${escaped}['"]`).test(code)
+  return parseRegisteredSlugs(source).includes(slug)
+}
+
+export const CONFIG_FILE = 'verify.config.json'
+
+/** Parses verify.config.json text. Only `sample` (boolean, default true) is recognised. */
+export function parseVerifyConfig(text) {
+  let value
+  try {
+    value = JSON.parse(text)
+  } catch (err) {
+    throw new VerifyFailure('config', `${CONFIG_FILE} is not valid JSON: ${errorText(err)}`)
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new VerifyFailure('config', `${CONFIG_FILE} must contain a JSON object`)
+  }
+  const sample = value.sample ?? true
+  if (typeof sample !== 'boolean') {
+    throw new VerifyFailure('config', `${CONFIG_FILE}: "sample" must be true or false`)
+  }
+  return { sample }
+}
+
+/** Reads the optional project-root config. Absent file means the defaults (sample required). */
+export function readVerifyConfig(root) {
+  const file = join(root, CONFIG_FILE)
+  if (!existsSync(file)) return { sample: true }
+  let text
+  try {
+    text = readFileSync(file, 'utf8')
+  } catch (err) {
+    throw new VerifyFailure('config', `cannot read ${CONFIG_FILE}: ${errorText(err)}`)
+  }
+  return parseVerifyConfig(text)
 }
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms))
@@ -95,17 +143,28 @@ function runBuild(root) {
   })
 }
 
-function checkSampleRegistered(root) {
-  const relPath = 'src/presentations/index.ts'
-  let source
+const REGISTRY_PATH = 'src/presentations/index.ts'
+
+function readRegistry(root) {
   try {
-    source = readFileSync(join(root, relPath), 'utf8')
+    return readFileSync(join(root, REGISTRY_PATH), 'utf8')
   } catch {
-    throw new VerifyFailure('sample', `cannot read ${relPath}`)
+    throw new VerifyFailure('sample', `cannot read ${REGISTRY_PATH}`)
   }
-  if (!checkRegistration(source, SAMPLE_SLUG)) {
-    throw new VerifyFailure('sample', `sample "${SAMPLE_SLUG}" is not registered in ${relPath}`)
+}
+
+function checkSampleRegistered(root) {
+  if (!checkRegistration(readRegistry(root), SAMPLE_SLUG)) {
+    throw new VerifyFailure('sample', `sample "${SAMPLE_SLUG}" is not registered in ${REGISTRY_PATH}`)
   }
+}
+
+/** Targets for the render phase: the reference sample, or every registered slug when sample is off. */
+function renderTargets(root, config) {
+  if (config.sample) return [SAMPLE_SLUG]
+  const slugs = parseRegisteredSlugs(readRegistry(root))
+  if (slugs.length === 0) throw new VerifyFailure('sample', `no presentations registered in ${REGISTRY_PATH}`)
+  return slugs
 }
 
 async function choosePort() {
@@ -258,7 +317,12 @@ async function checkStepContent(page, index) {
   console.log(`  ok ${describeStep(index)}: ${want.title}`)
 }
 
-async function stepThrough(page, url, errors) {
+/**
+ * Steps one presentation from its first to its last step. The sample also checks each
+ * step's browse title and caption against the normative table; other presentations are
+ * only checked for clean rendering and working transitions.
+ */
+async function stepThrough(page, url, errors, { sample, slug }) {
   try {
     await page.goto(url, { waitUntil: 'load', timeout: 30_000 })
   } catch (err) {
@@ -270,9 +334,10 @@ async function stepThrough(page, url, errors) {
   if (!mounted) throw new VerifyFailure('render', `no presentation rendered at ${url}`)
 
   const count = Number(await page.getAttribute('[data-presentation-root]', 'data-step-count'))
-  if (count !== EXPECTED_SAMPLE.length) {
+  if (sample && count !== EXPECTED_SAMPLE.length) {
     throw new VerifyFailure('sample', `expected ${EXPECTED_SAMPLE.length} steps, data-step-count reports ${count}`)
   }
+  if (!(count >= 1)) throw new VerifyFailure('render', `data-step-count reports ${count} steps`)
 
   for (let index = 0; index < count; index++) {
     if (index > 0) await advance(page, index)
@@ -282,16 +347,34 @@ async function stepThrough(page, url, errors) {
       const more = seen.length > 1 ? ` (and ${seen.length - 1} more)` : ''
       throw new VerifyFailure('render', `${seen[0]}${more}`, index)
     }
-    await checkStepContent(page, index)
+    if (sample) await checkStepContent(page, index)
+    else console.log(`  ok ${describeStep(index)}`)
   }
   return count
 }
 
-async function renderPhase(root) {
+async function renderTarget(browser, base, slug, sample) {
+  const url = `${base}/${slug}`
+  const page = await browser.newPage()
+  try {
+    const errors = collectErrors(page)
+    console.log(`open ${url}`)
+    return await stepThrough(page, url, errors, { sample, slug })
+  } catch (err) {
+    // Name the presentation when several are verified; the sample keeps its plain messages.
+    if (err instanceof VerifyFailure && !sample) err.message += ` (presentation ${slug})`
+    throw err
+  } finally {
+    await page.close().catch(() => {})
+  }
+}
+
+async function renderPhase(root, config) {
   const vite = join(root, 'node_modules', '.bin', 'vite')
   if (!existsSync(vite)) {
     throw new VerifyFailure('render', 'node_modules/.bin/vite is missing; install dependencies first')
   }
+  const targets = renderTargets(root, config)
   const port = await choosePort()
   const base = `http://${HOST}:${port}`
   console.log(`preview ${base}`)
@@ -307,12 +390,11 @@ async function renderPhase(root) {
     } catch (err) {
       throw new VerifyFailure('render', `could not launch Chromium (try: npx playwright install chromium): ${errorText(err)}`)
     }
-    const page = await browser.newPage()
-    const errors = collectErrors(page)
-    const url = `${base}/${SAMPLE_SLUG}`
-    console.log(`open ${url}`)
-    const count = await stepThrough(page, url, errors)
-    return { base, count }
+    let steps = 0
+    for (const slug of targets) {
+      steps += await renderTarget(browser, base, slug, config.sample)
+    }
+    return { base, presentations: targets.length, steps }
   } finally {
     await browser?.close().catch(() => {})
     await stopPreview(preview)
@@ -323,20 +405,33 @@ export async function main(argv = process.argv.slice(2)) {
   let phase = 'usage'
   try {
     const { root } = parseArgs(argv)
+    phase = 'config'
+    const config = readVerifyConfig(root)
+
     phase = 'build'
     console.log(`[build] npm run build in ${root}`)
     await runBuild(root)
     console.log('build ok')
 
     phase = 'sample'
-    checkSampleRegistered(root)
-    console.log(`sample ok: ${SAMPLE_SLUG} is registered`)
+    if (config.sample) {
+      checkSampleRegistered(root)
+      console.log(`sample ok: ${SAMPLE_SLUG} is registered`)
+    } else {
+      console.log(`sample skipped: ${CONFIG_FILE} sets "sample" to false`)
+    }
 
     phase = 'render'
-    const { base, count } = await renderPhase(root)
-    console.log(
-      `PASS verify: build ok, sample ok, render ok (${count} of ${count} steps rendered cleanly at ${base}/${SAMPLE_SLUG})`,
-    )
+    const { base, presentations, steps } = await renderPhase(root, config)
+    if (config.sample) {
+      console.log(
+        `PASS verify: build ok, sample ok, render ok (${steps} of ${steps} steps rendered cleanly at ${base}/${SAMPLE_SLUG})`,
+      )
+    } else {
+      console.log(
+        `PASS verify: build ok, sample skipped, render ok (${presentations} registered presentation${presentations === 1 ? '' : 's'}, ${steps} steps rendered cleanly at ${base})`,
+      )
+    }
     return 0
   } catch (err) {
     const failure = err instanceof VerifyFailure ? err : new VerifyFailure(phase, errorText(err))

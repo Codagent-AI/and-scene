@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterAll, describe, expect, it } from 'vitest'
 import { OUTLINE } from '../src/presentations/how-to-make-a-presentation/outline'
 import {
   EXPECTED_SAMPLE,
@@ -7,6 +10,9 @@ import {
   describeStep,
   formatFailure,
   parseArgs,
+  parseRegisteredSlugs,
+  parseVerifyConfig,
+  readVerifyConfig,
 } from './verify.mjs'
 
 describe('verify pure helpers', () => {
@@ -36,3 +42,71 @@ describe('verify pure helpers', () => {
     expect(() => parseArgs(['--bogus'])).toThrow(/unknown argument/)
   })
 })
+
+describe("registry slug parsing", () => {
+  it("returns every registered slug in order, without duplicates", () => {
+    const source = [
+      "export const presentations = [",
+      "  { slug: 'first-talk', title: 'A', load: () => import('./a') },",
+      "  {",
+      "    slug: \"second-talk\",",
+      "    title: 'B',",
+      "  },",
+      "  { slug: 'first-talk', title: 'dup', load: () => import('./a') },",
+      "]",
+    ].join("\n");
+    expect(parseRegisteredSlugs(source)).toEqual(["first-talk", "second-talk"]);
+  });
+
+  it("ignores commented-out registrations", () => {
+    const source = [
+      "// slug: 'gone'",
+      "/* slug: 'also-gone' */",
+      "export const presentations = []",
+    ].join("\n");
+    expect(parseRegisteredSlugs(source)).toEqual([]);
+  });
+
+  it("returns no slugs for an empty registry", () => {
+    expect(parseRegisteredSlugs("export const presentations: readonly PresentationEntry[] = []")).toEqual([]);
+  });
+});
+
+describe("verify.config.json", () => {
+  it("defaults to sample required when the object omits sample", () => {
+    expect(parseVerifyConfig("{}")).toEqual({ sample: true });
+    expect(parseVerifyConfig('{"sample": true}')).toEqual({ sample: true });
+    expect(parseVerifyConfig('{"sample": false}')).toEqual({ sample: false });
+  });
+
+  it("rejects malformed JSON, non-object JSON and non-boolean sample values", () => {
+    expect(() => parseVerifyConfig("{")).toThrow(/not valid JSON/);
+    expect(() => parseVerifyConfig("[]")).toThrow(/must contain a JSON object/);
+    expect(() => parseVerifyConfig('{"sample": "no"}')).toThrow(/"sample" must be true or false/);
+  });
+
+  describe("readVerifyConfig", () => {
+    const dirs = [];
+    afterAll(() => {
+      for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+    });
+    const projectWith = (contents) => {
+      const dir = mkdtempSync(join(tmpdir(), "verify-config-"));
+      dirs.push(dir);
+      if (contents !== undefined) writeFileSync(join(dir, "verify.config.json"), contents);
+      return dir;
+    };
+
+    it("treats an absent file as sample required (the repository default)", () => {
+      expect(readVerifyConfig(projectWith())).toEqual({ sample: true });
+    });
+
+    it("reads sample false from the project root", () => {
+      expect(readVerifyConfig(projectWith('{"sample": false}'))).toEqual({ sample: false });
+    });
+
+    it("fails a present but malformed file as the config phase", () => {
+      expect(() => readVerifyConfig(projectWith("nope"))).toThrow(/not valid JSON/);
+    });
+  });
+});

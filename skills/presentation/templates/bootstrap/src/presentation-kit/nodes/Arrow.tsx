@@ -1,0 +1,62 @@
+import { motion } from 'motion/react'
+import type { CSSProperties } from 'react'
+import { EASE, EXIT_T, LAYOUT_T } from '../constants'
+import { dataHooks, enterMotion, type DataHooks } from './geometry'
+
+export interface ArrowProps extends DataHooks {
+  id: string
+  /** Fade in as a newcomer (after persisting entities settle); toggling never remounts. */
+  enter?: boolean
+  from: readonly [number, number]
+  to: readonly [number, number]
+  /** Draw an arrowhead at both ends. */
+  twoWay?: boolean
+  dashed?: boolean
+  className?: string
+  style?: CSSProperties
+}
+
+/** Line between two canvas points; color comes from `currentColor`, set by the presentation. */
+export function Arrow({ id, enter, from, to, twoWay, dashed, className, style, ...hooks }: ArrowProps) {
+  const [x1, y1] = from
+  const [x2, y2] = to
+  const angle = Math.atan2(y2 - y1, x2 - x1)
+  const head = (x: number, y: number, a: number) => {
+    const s = 8
+    const p = (da: number) => `${x - s * Math.cos(a + da)},${y - s * Math.sin(a + da)}`
+    return `${p(-0.45)} ${x},${y} ${p(0.45)}`
+  }
+  const left = Math.min(x1, x2) - 10
+  const top = Math.min(y1, y2) - 10
+  const width = Math.abs(x2 - x1) + 20
+  const height = Math.abs(y2 - y1) + 20
+  return (
+    <motion.svg
+      {...dataHooks(hooks)}
+      {...enterMotion(enter)}
+      layout
+      layoutId={id}
+      transition={{ duration: LAYOUT_T, ease: EASE }}
+      exit={{ opacity: 0, transition: { duration: EXIT_T } }}
+      data-presentation-node="arrow"
+      data-presentation-id={id}
+      data-presentation-two-way={twoWay ? 'true' : undefined}
+      className={className}
+      width={width}
+      height={height}
+      viewBox={`${left} ${top} ${width} ${height}`}
+      style={{ position: 'absolute', left, top, overflow: 'visible', ...style }}
+    >
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke="currentColor"
+        strokeDasharray={dashed ? '6 4' : undefined}
+      />
+      <polyline points={head(x2, y2, angle)} fill="none" stroke="currentColor" />
+      {twoWay ? <polyline points={head(x1, y1, angle + Math.PI)} fill="none" stroke="currentColor" /> : null}
+    </motion.svg>
+  )
+}

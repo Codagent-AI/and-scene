@@ -55,6 +55,13 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     expect(warnings({ code: 0, output: buildLog })).toEqual([])
   })
 
+  it('the reference sample keeps its controls clear of the attribution at a narrow viewport', async () => {
+    const r = await inspect('how-to-make-a-presentation', '--viewport', '390x844', '--out', '.shots-sample-narrow')
+    expect(r.code, r.output).toBe(0)
+    expect(shots('how-to-make-a-presentation', '.shots-sample-narrow')).toHaveLength(9)
+    expect(warnings(r)).toEqual([])
+  })
+
   it('honors --viewport and --out', async () => {
     const r = await inspect('polished', '--viewport', '390x844', '--out', '.shots-narrow')
     expect(r.code, r.output).toBe(0)

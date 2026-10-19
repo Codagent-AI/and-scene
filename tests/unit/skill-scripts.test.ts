@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 // @ts-expect-error plain ES modules
-import { detect, detectAnchors, monorepoSignals } from '../../skills/presentation/scripts/detect.mjs'
+import { detect, detectAnchors, monorepoSignals, stripNonCode } from '../../skills/presentation/scripts/detect.mjs'
 // @ts-expect-error plain ES modules
 import { ANCHOR_PATHS, TEMPLATE_ROOT, mergePackageJson, scaffold } from '../../skills/presentation/scripts/scaffold.mjs'
 import { tree, walk } from '../support/files'
@@ -23,7 +23,7 @@ const put = (root: string, rel: string, text = '') => {
   writeFileSync(path.join(root, rel), text)
 }
 const APP_PKG = JSON.stringify({
-  scripts: { build: 'node build.js' },
+  scripts: { build: 'tsc -b && vite' },
   dependencies: { react: '^19' },
   devDependencies: { vite: '^8', typescript: '^6' },
 })
@@ -55,6 +55,7 @@ describe('anchor detection', () => {
   it('recognizes a complete app whose files and folders are all named differently', () => {
     const d = tmp()
     put(d, 'package.json', JSON.stringify({ scripts: { build: 'node build.js' }, devDependencies: { vite: '1', react: '1', typescript: '1', extra: '9' } }))
+    put(d, 'vite.config.mjs', 'export default {}\n')
     for (const [rel, text] of Object.entries({ ...KIT_FILES, ...REGISTRY_FILE })) put(d, rel, text)
     expect(detectAnchors(d)).toEqual({ build: true, kit: true, index: true })
   })
@@ -65,6 +66,57 @@ describe('anchor detection', () => {
     put(d, 'src/presentation-kit/Stage.tsx', '')
     put(d, 'src/presentations/index.ts', 'export default []\n')
     expect(detectAnchors(d)).toEqual({ build: false, kit: false, index: false })
+  })
+
+  it('does not count commented-out or quoted examples as a kit or an index', () => {
+    const d = tmp()
+    put(d, 'package.json', JSON.stringify({ scripts: { build: 'echo build' }, dependencies: { react: '1', vite: '1', typescript: '1' } }))
+    put(
+      d,
+      'src/notes.ts',
+      [
+        '// export function Presentation() {}',
+        '/* import { AnimatePresence, LayoutGroup } from "motion/react"',
+        '   export interface Step { caption: string; Scene: unknown }',
+        "   export const registry = [{ slug: 'a', load: () => import('./a') }] */",
+        'export const text = "export function Presentation() {} AnimatePresence LayoutGroup"',
+        "export const url = 'https://example.com' // slug: 'x', load: () => import('./x')",
+      ].join('\n'),
+    )
+    const r = detect(d)
+    expect(r.anchors).toEqual({ build: false, kit: false, index: false })
+    expect(r.missing).toEqual(['build', 'kit', 'index'])
+    expect(r.needsConfirmation).toBe(true)
+  })
+
+  it('still sees real code that follows a comment, a string with //, or an escaped quote', () => {
+    const d = tmp()
+    for (const [rel, text] of Object.entries({
+      'src/a/Host.tsx': "// the host\nexport function Presentation(p: { s: Step<unknown>[] }) { return null }\nconst u = 'http://x' + \"it\\\"s\"\n",
+      'src/a/Mount.tsx': "/* mount */ import { AnimatePresence, LayoutGroup } from 'motion/react'\nexport const M = [AnimatePresence, LayoutGroup]\n",
+      'src/a/contract.ts': 'export interface Scene {}\nexport interface Step<T> { caption: string; Scene: Scene; payload: T }\n',
+      'src/a/all.ts': "export const all = [{ slug: 't', title: 'T', load: () => import('./t') }]\n",
+    })) put(d, rel, text)
+    expect(detectAnchors(d)).toMatchObject({ kit: true, index: true })
+  })
+
+  it('removes comments and empties string contents but keeps code', () => {
+    const out = stripNonCode("a // c1\n/* c2 */ b 'x // y' \"p\\\"q\" `t` end")
+    expect(out).not.toMatch(/c1|c2|x \/\/ y|p|q/)
+    expect(out).toMatch(/a\s*\n\s+b '' "" `` end/)
+  })
+
+  it('needs a build script that actually runs vite, not just dependency names', () => {
+    const fake = tmp()
+    put(fake, 'package.json', JSON.stringify({ scripts: { build: 'echo build' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    expect(detectAnchors(fake).build).toBe(false)
+    const viaScript = tmp()
+    put(viaScript, 'package.json', JSON.stringify({ scripts: { build: 'tsc -b && vite' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    expect(detectAnchors(viaScript).build).toBe(true)
+    const viaConfig = tmp()
+    put(viaConfig, 'package.json', JSON.stringify({ scripts: { build: 'node build.js' }, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1' } }))
+    put(viaConfig, 'vite.config.ts', 'export default {}\n')
+    expect(detectAnchors(viaConfig).build).toBe(true)
   })
 
   it('needs the host, the morph stage, and the step contract together', () => {

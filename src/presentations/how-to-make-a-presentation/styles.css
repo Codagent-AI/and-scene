@@ -137,6 +137,50 @@
   text-decoration: underline;
 }
 
+/* Narrow viewports: a compact footer so the controls sit above the bottom-right attribution. */
+@media (max-width: 640px) {
+  .htmp [data-presentation-header] {
+    padding: 0 16px;
+  }
+
+  .htmp [data-presentation-marker] {
+    white-space: nowrap;
+  }
+
+  .htmp [data-presentation-footer] {
+    padding: 0 16px 44px;
+    gap: 4px;
+    justify-content: flex-end !important;
+  }
+
+  .htmp [data-presentation-step-title] {
+    font-size: 1.2rem;
+  }
+
+  .htmp [data-presentation-step-caption] {
+    font-size: 0.88rem;
+    line-height: 1.4;
+  }
+
+  .htmp [data-presentation-controls] {
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .htmp [data-presentation-progress] {
+    gap: 5px;
+  }
+
+  .htmp [data-presentation-prev],
+  .htmp [data-presentation-next] {
+    padding: 6px 10px;
+  }
+
+  .htmp [data-presentation-attribution] {
+    padding: 6px 16px;
+  }
+}
+
 /* Scene entities */
 .htmp [data-presentation-node='box'],
 .htmp [data-presentation-node='frame'] {

@@ -13,6 +13,14 @@ const readJson = (file) => {
   }
 }
 
+const readdirSyncSafe = (dir) => {
+  try {
+    return readdirSync(dir)
+  } catch {
+    return []
+  }
+}
+
 const isDir = (p) => existsSync(p) && statSync(p).isDirectory()
 
 function listFiles(dir, depth = 3) {
@@ -40,6 +48,36 @@ export function monorepoSignals(dir) {
 
 const SOURCE = /\.(t|j)sx?$/
 
+/**
+ * Source with comments removed and string/template contents emptied, so commented-out examples
+ * and quoted snippets are never mistaken for the code that makes an anchor.
+ */
+export function stripNonCode(text) {
+  let out = ''
+  let i = 0
+  while (i < text.length) {
+    const c = text[i]
+    const next = text[i + 1]
+    if (c === '/' && next === '/') {
+      while (i < text.length && text[i] !== '\n') i++
+    } else if (c === '/' && next === '*') {
+      const end = text.indexOf('*/', i + 2)
+      i = end === -1 ? text.length : end + 2
+      out += ' '
+    } else if (c === "'" || c === '"' || c === '`') {
+      out += c
+      i++
+      while (i < text.length && text[i] !== c) i += text[i] === '\\' ? 2 : 1
+      out += c
+      i++
+    } else {
+      out += c
+      i++
+    }
+  }
+  return out
+}
+
 function sourceFiles(dir) {
   return listFiles(path.join(dir, 'src'), 5).filter((f) => SOURCE.test(f))
 }
@@ -55,7 +93,8 @@ function exportsName(text, name) {
 
 /**
  * Contract-level anchor detection: keyed on what the code does, not on file names, folders, or bytes.
- * - build: package.json with a build script and vite, react, and typescript dependencies.
+ * - build: package.json with a build script that runs vite (directly or through a vite config file),
+ *   plus vite, react, and typescript dependencies.
  * - kit: source exporting a `Presentation` host, plus the stage that mounts the active step with
  *   morph presence (`AnimatePresence`/`LayoutGroup`) and the step contract (`Step`/`SceneProps`).
  * - index: source holding the registry, an array of entries with a `slug` and a lazy `import()` loader.
@@ -63,8 +102,9 @@ function exportsName(text, name) {
 export function detectAnchors(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies }
-  const build = Boolean(pkg?.scripts?.build) && ['vite', 'react', 'typescript'].every((d) => d in deps)
-  const texts = sourceFiles(dir).map((f) => readFileSync(f, 'utf8'))
+  const runsVite = /\bvite\b/.test(pkg?.scripts?.build ?? '') || readdirSyncSafe(dir).some((n) => /^vite\.config\.(m|c)?(t|j)s$/.test(n))
+  const build = Boolean(pkg?.scripts?.build) && runsVite && ['vite', 'react', 'typescript'].every((d) => d in deps)
+  const texts = sourceFiles(dir).map((f) => stripNonCode(readFileSync(f, 'utf8')))
   const kit =
     texts.some((t) => exportsName(t, 'Presentation')) &&
     texts.some((t) => /AnimatePresence/.test(t) && /LayoutGroup/.test(t)) &&

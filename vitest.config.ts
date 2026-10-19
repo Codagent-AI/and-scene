@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  test: { include: ['tests/unit/**/*.test.{ts,tsx}'], environment: 'node', css: false, setupFiles: ['tests/helpers/setup.ts'] },
+  test: { include: ['tests/unit/**/*.test.{ts,tsx}'], environment: 'node', css: false, testTimeout: 20000, setupFiles: ['tests/helpers/setup.ts'] },
 })

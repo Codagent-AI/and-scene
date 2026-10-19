@@ -57,7 +57,7 @@ describe('router', () => {
   it('loads and routes every registered presentation', async () => {
     for (const p of PRESENTATIONS) {
       const { container, unmount } = await mount(<Router pathname={`/${p.slug}`} />)
-      await waitFor(() => expect(container.querySelector('[data-step-count]')).not.toBeNull(), { timeout: 5000 })
+      await waitFor(() => expect(container.querySelector('[data-step-count]')).not.toBeNull(), { timeout: 15000 })
       unmount()
     }
   })

@@ -87,13 +87,14 @@ function collect(styleKeys) {
     return `${el.tagName.toLowerCase()}${id ? `[${id}]` : attr ? `[${attr.name}]` : ''}${label ? ` "${label}"` : ''}`
   }
   const rectOf = (r) => ({ x: r.x, y: r.y, width: r.width, height: r.height })
-  const styleOf = (el) => {
+  const styleOf = (el, withSize) => {
     const cs = getComputedStyle(el)
     const out = {}
     for (const k of styleKeys) out[k] = cs[k]
     const r = el.getBoundingClientRect()
-    out.width = `${Math.round(r.width)}px`
-    out.height = `${Math.round(r.height)}px`
+    // Size distinguishes content-free indicators; entries with different labels differ in width anyway.
+    out.width = withSize ? `${Math.round(r.width)}px` : ''
+    out.height = withSize ? `${Math.round(r.height)}px` : ''
     return out
   }
   const items = []
@@ -111,15 +112,15 @@ function collect(styleKeys) {
   }
   const chrome = '[data-presentation-marker],[data-presentation-title],[data-presentation-caption],[data-presentation-progress-item],[data-presentation-toc-entry],[data-presentation-prev],[data-presentation-next],[data-presentation-mode-toggle],[data-presentation-attribution]'
   for (const el of document.querySelectorAll(chrome)) push(el, el.getBoundingClientRect())
-  const pair = (sel) => {
+  const pair = (sel, withSize) => {
     const all = [...document.querySelectorAll(sel)]
     const active = all.find((e) => e.getAttribute('data-presentation-active') === 'true')
     const inactive = all.find((e) => e !== active)
-    return active && inactive ? { active: styleOf(active), inactive: styleOf(inactive) } : null
+    return active && inactive ? { active: styleOf(active, withSize), inactive: styleOf(inactive, withSize) } : null
   }
   const attr = document.querySelector('[data-presentation-attribution]')
   const attribution = attr ? (() => { const cs = getComputedStyle(attr); return { fontSize: parseFloat(cs.fontSize), color: cs.color, textDecorationLine: cs.textDecorationLine } })() : null
-  return { items, progress: pair('[data-presentation-progress-item]'), toc: pair('[data-presentation-toc-entry]'), attribution }
+  return { items, progress: pair('[data-presentation-progress-item]', true), toc: pair('[data-presentation-toc-entry]', false), attribution }
 }
 
 async function waitStable(page, timeoutMs) {

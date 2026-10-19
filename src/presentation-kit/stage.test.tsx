@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 
 // Exit and enter transitions run in real time; allow for parallel test load.
 vi.setConfig({ testTimeout: 20000 })
@@ -271,6 +271,17 @@ describe('changed grouping takes the presence-transition path (L-4, L-6)', () =>
   })
 
   it('different groups switch by group identity and share one layoutId inside one LayoutGroup', async () => {
+    // jsdom reports zero-size boxes, which stalls shared-layout projection; derive boxes from the inline geometry instead.
+    const realRect = Element.prototype.getBoundingClientRect
+    Element.prototype.getBoundingClientRect = function (this: HTMLElement) {
+      const num = (v: string) => parseFloat(v) || 0
+      const { left, top, width, height } = this.style
+      const [l, t, w, h] = [num(left), num(top), num(width), num(height)]
+      return { x: l, y: t, left: l, top: t, width: w, height: h, right: l + w, bottom: t + h, toJSON: () => ({}) }
+    }
+    onTestFinished(() => {
+      Element.prototype.getBoundingClientRect = realRect
+    })
     const countA = { mounts: 0 }
     const countB = { mounts: 0 }
     const SceneA = makeScene(countA)
@@ -286,9 +297,7 @@ describe('changed grouping takes the presence-transition path (L-4, L-6)', () =>
     expect(container.contains(oldRoot)).toBe(true)
     expect(countB.mounts).toBe(1)
     // Both sides carry the same layoutId (the morph pairs them) under one LayoutGroup. The two scene DOM nodes are not required to match.
-    // Known jsdom limitation: jsdom cannot measure layout projection, so a shared layoutId may hold the exiting
-    // scene mounted longer than a browser would. Removal is still asserted eventually with a generous timeout.
-    // If this never unmounts, it is a kit finding (Stage/Entity shared-layout exit), not a reason to drop the check.
+    // Removal is asserted eventually with a generous timeout: the exit may be held while the shared layout settles.
     const layoutIds = captured.motion
       .filter((c) => c.props['data-presentation-entity'] === 'card')
       .map((c) => c.props.layoutId)

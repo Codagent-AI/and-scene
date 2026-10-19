@@ -158,18 +158,61 @@ export function attributionIssues(attr, viewport) {
   if (attr.color === DEFAULT_LINK_COLOR) issues.push('browser-default link color')
   if (defaultSerif(attr.fontFamily)) issues.push('browser-default serif font-family')
   const r = attr.rect
-  const inBottomRight = r.w > 0 && r.h > 0 && r.x + r.w > viewport.width / 2 && r.y + r.h > viewport.height / 2
+  const overlapX = Math.min(r.x + r.w, viewport.width) - Math.max(r.x, viewport.width / 2)
+  const overlapY = Math.min(r.y + r.h, viewport.height) - Math.max(r.y, viewport.height / 2)
+  const inBottomRight = r.w > 0 && r.h > 0 && overlapX > 0 && overlapY > 0
   if (!inBottomRight) issues.push('not at least partly in the bottom-right quadrant')
   return issues
 }
 
 const describeRecord = (r) => (r.text ? `${r.label} "${r.text}"` : r.label)
 
+/** Visibility of one collected element: not display:none, not visibility:hidden, and no display:none or opacity:0 ancestor. */
+export function isVisibleElement(el) {
+  return !el.hiddenChain && el.display !== 'none' && el.visibility !== 'hidden'
+}
+
+/**
+ * How an element contributes to overlap detection. Elements with a visible box (paint, icon or
+ * control, graphic) are compared by their element box; other text-bearing elements by their text
+ * glyph ranges, so full-width captions do not collide with what sits beside their text.
+ */
+export function collectionKind(el) {
+  if (el.isControl || el.isGraphic || el.hasPaint) return el.box.w > 0 && el.box.h > 0 ? 'element' : null
+  return el.textRects.length > 0 ? 'text' : null
+}
+
+/** Overlap records from raw per-element facts gathered in the page (see collectSnapshot). */
+export function buildTextRecords(elements) {
+  const recordOf = new Map()
+  const records = []
+  elements.forEach((el, i) => {
+    if (!isVisibleElement(el)) return
+    const kind = collectionKind(el)
+    if (!kind) return
+    recordOf.set(i, records.length)
+    records.push({
+      id: records.length,
+      label: el.label,
+      text: el.text,
+      rects: kind === 'element' ? [el.box] : el.textRects,
+      allowed: el.allowed,
+      ancestors: [],
+    })
+  })
+  for (const [rawIndex, id] of recordOf) {
+    for (let p = elements[rawIndex].parent; p >= 0; p = elements[p].parent) {
+      if (recordOf.has(p)) records[id].ancestors.push(recordOf.get(p))
+    }
+  }
+  return records
+}
+
 /** Turns one settled step snapshot (see collectSnapshot) into WARN lines. */
 export function analyzeStep(snapshot, step) {
   const warnings = []
   const warn = (kind, message) => warnings.push(`WARN step ${step} [${kind}] ${message}`)
-  for (const [a, b] of findOverlaps(snapshot.textRecords ?? [])) {
+  for (const [a, b] of findOverlaps(buildTextRecords(snapshot.elements ?? []))) {
     warn('overlap', `${describeRecord(a)} collides with ${describeRecord(b)}; mark an intentional overlap with data-presentation-allow-overlap`)
   }
   const chrome = snapshot.chrome ?? {}
@@ -243,21 +286,41 @@ export function collectSnapshot() {
       transform: cs.transform,
     }
   }
-  const candidates = Array.from(root.querySelectorAll('*'))
-    .filter((el) => {
-      const cs = getComputedStyle(el)
-      return cs.visibility !== 'hidden' && cs.display !== 'none'
-    })
-    .map((el) => ({ el, rects: textRects(el), text: ownText(el) }))
-    .filter((c) => c.rects.length > 0)
-  const textRecords = candidates.map((c, i) => ({
-    id: i,
-    label: describe(c.el),
-    text: snip(c.text),
-    rects: c.rects,
-    allowed: c.el.closest('[data-presentation-allow-overlap]') !== null,
-    ancestors: candidates.flatMap((o, j) => (j !== i && o.el.contains(c.el) ? [j] : [])),
-  }))
+  const elements = Array.from(root.querySelectorAll('*'))
+  const indexOf = new Map(elements.map((el, i) => [el, i]))
+  const hasPaint = (cs) =>
+    (cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent') ||
+    (Number.parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none') ||
+    cs.boxShadow !== 'none'
+  const rawElements = elements.map((el) => {
+    const cs = getComputedStyle(el)
+    let hiddenChain = false
+    for (let n = el; n; n = n.parentElement) {
+      const c = n === el ? cs : getComputedStyle(n)
+      if (c.display === 'none' || Number.parseFloat(c.opacity) === 0) {
+        hiddenChain = true
+        break
+      }
+    }
+    const tag = el.tagName.toLowerCase()
+    const role = el.getAttribute('role') ?? ''
+    return {
+      label: describe(el),
+      text: snip(ownText(el)),
+      parent: indexOf.get(el.parentElement) ?? -1,
+      display: cs.display,
+      visibility: cs.visibility,
+      hiddenChain,
+      hasPaint: hasPaint(cs),
+      isControl:
+        ['button', 'a', 'input', 'select', 'textarea'].includes(tag) ||
+        ['button', 'link', 'checkbox', 'radio', 'switch', 'tab', 'menuitem', 'slider'].includes(role),
+      isGraphic: ['svg', 'img', 'canvas'].includes(tag),
+      textRects: textRects(el),
+      box: rect(el.getBoundingClientRect()),
+      allowed: el.closest('[data-presentation-allow-overlap]') !== null,
+    }
+  })
   const chromeItems = (selector) =>
     Array.from(root.querySelectorAll(selector)).map((el) => {
       const r = el.getBoundingClientRect()
@@ -286,7 +349,7 @@ export function collectSnapshot() {
     stepIndex: Number.parseInt(root.getAttribute('data-step-index') ?? '', 10),
     stepCount: Number.parseInt(root.getAttribute('data-step-count') ?? '', 10),
     viewport: { width: window.innerWidth, height: window.innerHeight },
-    textRecords,
+    elements: rawElements,
     chrome: {
       progress: chromeItems('[data-presentation-progress-item]'),
       toc: chromeItems('[data-presentation-toc-item]'),

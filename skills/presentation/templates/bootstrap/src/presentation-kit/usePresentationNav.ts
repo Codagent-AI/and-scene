@@ -12,7 +12,8 @@ const INTERACTIVE_SELECTOR = [
   '[contenteditable]:not([contenteditable="false"])',
   ...[
     'button', 'link', 'checkbox', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option', 'radio',
-    'slider', 'spinbutton', 'switch', 'tab', 'textbox', 'combobox', 'listbox', 'searchbox', 'treeitem', 'scrollbar',
+    'slider', 'spinbutton', 'switch', 'tab', 'tablist', 'textbox', 'combobox', 'listbox', 'searchbox', 'treeitem', 'scrollbar',
+    'grid', 'gridcell', 'row', 'rowheader', 'columnheader', 'tree', 'treegrid', 'menu', 'menubar', 'toolbar', 'radiogroup', 'application', 'dialog',
   ].map((role) => `[role="${role}"]`),
 ].join(',')
 

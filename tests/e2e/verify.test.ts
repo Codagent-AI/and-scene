@@ -7,6 +7,7 @@ import {
   fixtureSource,
   freePort,
   installFixture,
+  installSecondPresentation,
   isListening,
   leftoverProcesses,
   makeCopy,
@@ -93,6 +94,8 @@ const cases: Case[] = [
   },
   { name: 'renamed title at step 3', phase: 'render', step: 3, fault: { kind: 'rename-title', step: 3 } },
   { name: 'swapped titles (out of order)', phase: 'render', step: 0, fault: { kind: 'swap-titles' } },
+  { name: 'changed caption at step 2', phase: 'render', step: 2, fault: { kind: 'change-caption', step: 2 } },
+  { name: 'swapped captions (out-of-order steps)', phase: 'render', step: 0, fault: { kind: 'swap-captions' } },
   { name: 'console.error at step 4', phase: 'render', step: 4, fault: { kind: 'console-error', step: 4 } },
   { name: 'render exception at step 0', phase: 'render', step: 0, fault: { kind: 'throw', step: 0 } },
   { name: 'render exception at step 6', phase: 'render', step: 6, fault: { kind: 'throw', step: 6 } },
@@ -136,6 +139,52 @@ describe('E2E-002: verification failures are actionable', () => {
     const { code, output } = await runVerify(dir, { env: { VERIFY_PORT: String(port) } })
     expect(output).toContain('[verify] PASS')
     expect(code).toBe(0)
+    expect(await isListening(port)).toBe(false)
+    expect(await leftoverProcesses(dir)).toBe('')
+  })
+})
+
+describe('E2E-002: reference mode also verifies every other registered presentation', () => {
+  const copies: string[] = []
+  afterAll(async () => {
+    await Promise.all(copies.map(removeCopy))
+  })
+
+  it('passes with a healthy second presentation and steps through both', async () => {
+    const dir = await makeCopy()
+    copies.push(dir)
+    await installFixture(dir)
+    await installSecondPresentation(dir)
+    const port = await freePort()
+    const { code, output } = await runVerify(dir, { env: { VERIFY_PORT: String(port) } })
+    expect(output).toContain('mode: reference')
+    expect(output).toContain('[verify] PASS')
+    expect(output).toContain(`${SAMPLE_SLUG}: observed step indices 0,1,2,3,4,5,6,7,8`)
+    expect(output).toContain('second: observed step indices 0,1,2,3,4,5,6,7,8')
+    expect(code).toBe(0)
+    expect(await isListening(port)).toBe(false)
+  })
+
+  it.each([
+    { name: 'console error', phase: 'render', step: 2, fault: { kind: 'console-error', step: 2 } as Fault, env: {} },
+    {
+      name: 'stalled transition',
+      phase: 'transition',
+      step: 2,
+      fault: { kind: 'stall', step: 1 } as Fault,
+      env: { VERIFY_STEP_TIMEOUT_MS: '1500' },
+    },
+  ])('fails on a faulty second presentation ($name)', async (c) => {
+    const dir = await makeCopy()
+    copies.push(dir)
+    await installFixture(dir)
+    await installSecondPresentation(dir, c.fault)
+    const port = await freePort()
+    const { code, output } = await runVerify(dir, { env: { VERIFY_PORT: String(port), ...c.env } })
+    expect(code).not.toBe(0)
+    expect(output).not.toContain('[verify] PASS')
+    expect(output).toContain(`${SAMPLE_SLUG}: observed step indices 0,1,2,3,4,5,6,7,8`)
+    expect(output).toMatch(new RegExp(`\\[verify\\] FAIL phase=${c.phase} step=${c.step} second:`))
     expect(await isListening(port)).toBe(false)
     expect(await leftoverProcesses(dir)).toBe('')
   })

@@ -115,6 +115,35 @@ describe('reference comparison', () => {
   })
 })
 
+describe('caption validation', () => {
+  const rows = [
+    { era: 'e0', title: 'T0', caption: 'Caption zero' },
+    { era: 'e1', title: 'T1', caption: 'Caption one' },
+  ]
+  it('rejects a wrong caption and names the field', () => {
+    const out = compareStep(rows[0], { era: 'e0', title: 'T0', caption: 'Caption zero (edited)' })
+    expect(out).toHaveLength(1)
+    expect(out[0]).toContain('caption')
+  })
+  it('rejects a missing (null) caption', () => {
+    expect(compareStep(rows[0], { era: 'e0', title: 'T0', caption: null }).join(' ')).toContain('caption')
+  })
+  it('rejects swapped captions, i.e. steps rendered out of order', () => {
+    const out0 = compareStep(rows[0], { era: 'e0', title: 'T0', caption: rows[1].caption })
+    const out1 = compareStep(rows[1], { era: 'e1', title: 'T1', caption: rows[0].caption })
+    expect(out0).toHaveLength(1)
+    expect(out0[0]).toContain('caption')
+    expect(out1).toHaveLength(1)
+    expect(out1[0]).toContain('caption')
+  })
+  it('accepts the reference captions in order', () => {
+    const ref = reference()
+    for (const step of ref.steps) expect(compareStep(step, { ...step })).toEqual([])
+    const swapped = compareStep(ref.steps[0], { ...ref.steps[0], caption: ref.steps[1].caption })
+    expect(swapped).toHaveLength(1)
+  })
+})
+
 describe('failure formatting', () => {
   it('names phase and zero-based step', () => {
     expect(formatFailure(new VerifyError('transition', 'stuck', 3))).toBe('[verify] FAIL phase=transition step=3 stuck')

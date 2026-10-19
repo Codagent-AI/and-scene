@@ -4,7 +4,8 @@
 //
 // Mode is chosen by the presence of scripts/verify.reference.json beside this script:
 //   reference mode     - the canonical sample must be registered, have the reference step count,
-//                        and match every reference title/caption/era.
+//                        and match every reference title/caption/era; every other registered
+//                        presentation is also stepped through (count/index/error checks).
 //   scaffold-local mode - every registered presentation is stepped through (count/index/error
 //                        checks only); fails when nothing is registered.
 import { spawn } from 'node:child_process'
@@ -275,7 +276,9 @@ async function main() {
   if (mode === 'reference') {
     reference = parseReference(readFileSync(REFERENCE_PATH, 'utf8'))
     checkSampleRegistered(registry, reference)
-    slugs = [reference.slug]
+    // The sample is validated against the reference; every other registered presentation is stepped
+    // through exactly as in scaffold-local mode (count/index/error checks).
+    slugs = [reference.slug, ...slugsToVisit(registry).filter((s) => s !== reference.slug)]
   } else {
     slugs = slugsToVisit(registry)
   }
@@ -291,7 +294,7 @@ async function main() {
   browser = await chromium.launch()
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   for (const slug of slugs) {
-    await walkPresentation(context, base, slug, reference)
+    await walkPresentation(context, base, slug, reference && slug === reference.slug ? reference : null)
   }
   log('phase render: ok')
   log('phase transition: ok')

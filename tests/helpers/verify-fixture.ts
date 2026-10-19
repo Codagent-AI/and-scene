@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { cp, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
@@ -19,7 +19,7 @@ export interface ReferenceStep {
 export interface Fault {
   /** Step index at which the fault triggers in the browser. */
   step?: number
-  kind?: 'rename-title' | 'swap-titles' | 'console-error' | 'throw' | 'stall'
+  kind?: 'rename-title' | 'swap-titles' | 'change-caption' | 'swap-captions' | 'console-error' | 'throw' | 'stall'
 }
 
 /** Disposable copy of the repo (no .git/dist/node_modules) with node_modules symlinked. */
@@ -52,6 +52,12 @@ export function fixtureSource(steps: ReferenceStep[], presentationTitle: string,
     const a = rows[0]!.title
     rows[0]!.title = rows[1]!.title
     rows[1]!.title = a
+  }
+  if (fault.kind === 'change-caption') rows[fault.step ?? 0]!.caption = `${rows[fault.step ?? 0]!.caption} (edited)`
+  if (fault.kind === 'swap-captions') {
+    const a = rows[0]!.caption
+    rows[0]!.caption = rows[1]!.caption
+    rows[1]!.caption = a
   }
   return `import { useEffect } from 'react'
 import { Box, Presentation, SceneLayer, type SceneProps, type Step } from '../../presentation-kit'
@@ -90,6 +96,21 @@ export async function installFixture(dir: string, fault: Fault = {}): Promise<vo
   const ref = await readReference()
   const file = path.join(dir, 'src', 'presentations', SAMPLE_SLUG, 'Talk.tsx')
   await writeFile(file, fixtureSource(ref.steps, ref.presentationTitle, fault))
+}
+
+/** Register a second presentation (slug `second`) built from the controlled fixture with an optional fault. */
+export async function installSecondPresentation(dir: string, fault: Fault = {}): Promise<void> {
+  const ref = await readReference()
+  const secondDir = path.join(dir, 'src', 'presentations', 'second')
+  await mkdir(secondDir, { recursive: true })
+  await writeFile(path.join(secondDir, 'Talk.tsx'), fixtureSource(ref.steps, 'Second', fault))
+  await writeFile(
+    path.join(dir, 'src', 'presentations', 'index.ts'),
+    registrySource([
+      { slug: SAMPLE_SLUG, title: ref.presentationTitle },
+      { slug: 'second', title: 'Second' },
+    ]),
+  )
 }
 
 export function registrySource(entries: Array<{ slug: string; title: string; dir?: string }>): string {

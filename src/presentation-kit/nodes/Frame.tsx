@@ -1,6 +1,5 @@
-import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
-import { leave, morph, place } from './shared.ts'
+import { EntityNode } from './EntityNode.tsx'
 import type { NodeProps } from './shared.ts'
 
 export interface FrameProps extends NodeProps {
@@ -10,20 +9,11 @@ export interface FrameProps extends NodeProps {
 }
 
 /** An outline region around other entities; it draws nothing by itself. */
-export function Frame({ layoutId, x, y, w, h, label, children, style, ...rest }: FrameProps) {
+export function Frame({ label, children, ...rest }: FrameProps) {
   return (
-    <motion.div
-      {...(rest as object)}
-      layout
-      layoutId={layoutId}
-      transition={morph}
-      exit={leave}
-      style={place({ x, y, w, h }, style)}
-      data-presentation-node="frame"
-      data-presentation-entity={layoutId}
-    >
+    <EntityNode {...rest} kind="frame">
       {label ? <span data-presentation-frame-label="">{label}</span> : null}
       {children}
-    </motion.div>
+    </EntityNode>
   )
 }

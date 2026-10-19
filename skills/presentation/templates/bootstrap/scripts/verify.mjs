@@ -104,8 +104,8 @@ export async function renderSample({ baseUrl, manifest, log = console.log, settl
       fail()
       log(`verify: step ${i} rendered (${want.title})`)
       if (i === count - 1) break
-      await page.keyboard.press('ArrowRight')
       current = i + 1
+      await page.keyboard.press('ArrowRight')
       const advanced = await page
         .waitForFunction((n) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(n), i + 1, { timeout: 5000 })
         .then(() => true, () => false)

@@ -127,10 +127,11 @@
   color: var(--hmp-accent);
 }
 
-/* scene entities */
+/* scene entities: the 880 x 380 canvas is scaled to about 0.4 on a phone, so
+   scene text is authored large (px, canvas units) to stay legible once scaled */
 .hmp [data-presentation-node] {
   box-sizing: border-box;
-  font-size: 0.9rem;
+  font-size: 20px;
 }
 .hmp .hmp-node,
 .hmp .hmp-card,
@@ -149,14 +150,22 @@
   font-weight: 650;
 }
 .hmp .hmp-node svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+.hmp [data-presentation-entity='verify'] {
+  font-size: 17px;
+}
+.hmp [data-presentation-entity='route'] {
+  font-size: 18px;
 }
 .hmp .hmp-card {
   flex-direction: column;
   gap: 6px;
   border-radius: 8px;
-  font-size: 0.75rem;
+  font-size: 14px;
+  line-height: 1.3;
   color: var(--hmp-muted);
 }
 .hmp .hmp-card-part:first-child {
@@ -168,7 +177,8 @@
   border-radius: 8px;
   background: transparent;
   color: var(--hmp-muted);
-  font-size: 0.75rem;
+  font-size: 14px;
+  line-height: 1.2;
   text-align: center;
 }
 .hmp .hmp-tray {
@@ -178,7 +188,8 @@
 }
 .hmp .hmp-chip {
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 15px;
+  line-height: 1;
   color: var(--hmp-muted);
   white-space: nowrap;
 }
@@ -194,7 +205,8 @@
 }
 .hmp .hmp-check-label {
   color: var(--hmp-muted);
-  font-size: 0.75rem;
+  font-size: 14px;
+  line-height: 1;
   text-align: center;
 }
 .hmp .hmp-check svg {

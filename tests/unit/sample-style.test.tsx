@@ -3,6 +3,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { fireEvent, render } from '@testing-library/react'
 import Talk from '../../src/presentations/how-to-make-a-presentation/Talk'
+import { stageScale } from '../../src/presentation-kit/fitScale'
 import { setViewport } from './helpers'
 
 const walk = (dir: string): string[] =>
@@ -35,6 +36,27 @@ describe('style ownership', () => {
 
   it('has a responsive rule for narrow viewports', () => {
     expect(css).toMatch(/@media \(max-width: \d+px\)/)
+  })
+})
+
+describe('scene text stays legible once the canvas is scaled to a phone', () => {
+  // everything between "scene entities" and the media query styles text drawn on the canvas
+  const sceneCss = css.slice(css.indexOf('/* scene entities'), css.indexOf('@media'))
+  const sizes = [...sceneCss.matchAll(/font-size:\s*([\d.]+)(px|rem)/g)]
+
+  it('authors every scene font size in canvas pixels, at least 14px', () => {
+    expect(sizes.length).toBeGreaterThan(0)
+    for (const [, value, unit] of sizes) {
+      expect(unit).toBe('px')
+      expect(Number(value)).toBeGreaterThanOrEqual(14)
+    }
+  })
+
+  it('renders no scene text under 5px at 390x844 in either mode', () => {
+    const smallest = Math.min(...sizes.map((m) => Number(m[1])))
+    for (const mode of ['browse', 'present'] as const) {
+      expect(smallest * stageScale(mode, { width: 390, height: 844 })).toBeGreaterThanOrEqual(5)
+    }
   })
 })
 

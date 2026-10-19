@@ -144,6 +144,10 @@ html:has([data-presentation-root]) body {
 }
 [data-presentation-root][data-presentation-mode='present'] [data-presentation-title] {
   font-size: 32px;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 [data-presentation-root] [data-presentation-caption] {
   margin: 0;

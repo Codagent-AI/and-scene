@@ -291,4 +291,16 @@ describe('presentation-owned chrome styling', () => {
     expect(d['color']).not.toMatch(/0000ee|^blue$/i)
     expect(d['text-decoration']).toBe('none')
   })
+
+  it('present-mode title stays on one line', () => {
+    const d = declarations("[data-presentation-root][data-presentation-mode='present'] [data-presentation-title]")
+    expect(d['white-space']).toBe('nowrap')
+    expect(d['overflow']).toBe('hidden')
+    expect(d['text-overflow']).toBe('ellipsis')
+  })
+
+  it('renders no Appear wrappers in the sample scene', () => {
+    walk()
+    expect(document.querySelector('[data-presentation-appear]')).toBeNull()
+  })
 })

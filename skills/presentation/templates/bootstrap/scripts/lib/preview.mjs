@@ -74,10 +74,15 @@ export async function startPreview(root, { timeoutMs = 30_000 } = {}) {
   child.stdout.on('data', (d) => (output += d))
   child.stderr.on('data', (d) => (output += d))
   let exited = false
-  const exit = new Promise((resolve) => child.on('exit', () => ((exited = true), resolve())))
+  let spawnError
+  const exit = new Promise((resolve) => {
+    child.on('exit', () => ((exited = true), resolve()))
+    // A failed spawn emits 'error' and never 'exit'; treat it as exited so nothing waits forever.
+    child.on('error', (e) => ((spawnError = e), (exited = true), resolve()))
+  })
 
   const stop = async () => {
-    if (exited) return
+    if (exited || child.pid === undefined) return
     try {
       process.kill(-child.pid, 'SIGTERM')
     } catch {
@@ -90,13 +95,16 @@ export async function startPreview(root, { timeoutMs = 30_000 } = {}) {
       } catch {
         /* already gone */
       }
-      await exit
+      await Promise.race([exit, new Promise((r) => setTimeout(r, 3000))])
     }
   }
 
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
-    if (exited) throw new PhaseError('preview', `vite preview exited early\n${output.trim()}`)
+    if (exited) {
+      const why = spawnError ? `could not start vite preview: ${spawnError.message}` : 'vite preview exited early'
+      throw new PhaseError('preview', `${why}\n${output.trim()}`)
+    }
     if (await probe(`${origin}/`)) return { origin, stop }
     await new Promise((r) => setTimeout(r, 150))
   }

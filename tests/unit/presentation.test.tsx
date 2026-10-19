@@ -214,6 +214,11 @@ describe('branding and attribution', () => {
     expect(q('[data-presentation-brand-slot]')!.contains(a)).toBe(false)
   })
 
+  it.each(['javascript:alert(1)', 'data:text/html,x', ' javascript:alert(1)', 'vbscript:x'])('refuses an unsafe attribution href %j', (href) => {
+    show(makeDeck(), { attribution: { href } })
+    expect(q<HTMLAnchorElement>('[data-presentation-attribution]')!.href).toBe(ATTRIBUTION_URL)
+  })
+
   it('attribution can be overridden or omitted', () => {
     const { unmount } = show(makeDeck(), { attribution: { label: 'by me', href: 'https://example.com/x' } })
     const a = q<HTMLAnchorElement>('[data-presentation-attribution]')!

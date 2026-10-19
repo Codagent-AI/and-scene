@@ -209,10 +209,13 @@ export function parseArgs(argv, env = {}) {
     else if (!opts.slug) opts.slug = arg
     else throw new PhaseError('usage', `unexpected argument ${arg}`)
   }
+  if (opts.slug && !SLUG.test(opts.slug)) throw new PhaseError('usage', `invalid slug "${opts.slug}": use lowercase letters, digits and hyphens`)
   if (!opts.slug) throw new PhaseError('usage', 'usage: npm run inspect -- <slug> [--viewport 390x844] [--settle ms] [--out dir] [--no-build]')
   if (!Number.isFinite(opts.settleMs) || opts.settleMs < 0) throw new PhaseError('usage', 'settle must be a non-negative number of milliseconds')
   return opts
 }
+
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 export const stepFile = (n) => `step-${String(n + 1).padStart(2, '0')}.png`
 
@@ -235,7 +238,7 @@ export async function main(root, argv, env = process.env) {
     const { chromium } = await import('playwright')
     browser = await chromium.launch()
     const page = await browser.newPage({ viewport: opts.viewport })
-    const url = `${preview.origin}/${opts.slug}`
+    const url = `${preview.origin}/${encodeURIComponent(opts.slug)}`
     const response = await page.goto(url, { waitUntil: 'load' })
     if (!response?.ok()) throw new PhaseError('inspect', `could not open ${url}`)
     try {

@@ -123,6 +123,9 @@ export async function renderRoute(page, url, slug, expectedSteps, errors) {
     const mismatch = compareStep(expectedSteps?.[i], observed, i)
     if (mismatch) throw fail(mismatch, i)
   }
+  // Errors can still arrive after the last step has been read: wait out the tail before passing.
+  await settle(page)
+  if (errors.length) throw fail(errors[0], count - 1)
   return count
 }
 

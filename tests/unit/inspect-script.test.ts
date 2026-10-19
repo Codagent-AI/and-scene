@@ -108,6 +108,9 @@ describe('options', () => {
     expect(() => inspect.parseArgs(['s', '--bogus'])).toThrow('unknown option')
     expect(() => inspect.parseArgs(['s', '--settle', '-1'])).toThrow('settle')
   })
+  it.each(['../../x', 'a/b', 'A', '-a', 'a--b', 'a b', ''])('rejects the unsafe slug %j', (slug) => {
+    expect(() => inspect.parseArgs([slug])).toThrow()
+  })
   it('names screenshots predictably', () => {
     expect(inspect.stepFile(0)).toBe('step-01.png')
     expect(inspect.stepFile(11)).toBe('step-12.png')

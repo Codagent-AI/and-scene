@@ -1,9 +1,9 @@
 import { motion } from 'motion/react'
 import type { CSSProperties, ReactNode } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
-import { geometryStyle, type Geometry } from './geometry'
+import { EASE, EXIT_T, LAYOUT_T } from '../constants'
+import { dataHooks, geometryStyle, type DataHooks, type Geometry } from './geometry'
 
-export interface LabelProps extends Geometry {
+export interface LabelProps extends Geometry, DataHooks {
   id: string
   className?: string
   style?: CSSProperties
@@ -13,9 +13,11 @@ export interface LabelProps extends Geometry {
 export function Label({ id, className, style, children, ...geometry }: LabelProps) {
   return (
     <motion.span
+      {...dataHooks(geometry)}
       layout
       layoutId={id}
       transition={{ duration: LAYOUT_T, ease: EASE }}
+      exit={{ opacity: 0, transition: { duration: EXIT_T } }}
       data-presentation-node="label"
       data-presentation-id={id}
       className={className}

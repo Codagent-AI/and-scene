@@ -1,41 +1,32 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import type { CSSProperties } from 'react'
 import { DESIGN_H, DESIGN_W, EXIT_T } from './constants'
+import { sceneKey } from './scene-key'
+import { dataHooks, type DataHooks } from './nodes/geometry'
 import type { Canvas, Mode, SceneProps, Step } from './types'
 
-const sceneIds = new WeakMap<object, number>()
-let nextSceneId = 0
-function sceneId(Scene: object): number {
-  let id = sceneIds.get(Scene)
-  if (id === undefined) {
-    id = nextSceneId++
-    sceneIds.set(Scene, id)
-  }
-  return id
-}
-
-/** Steps with the same key share one mounted scene; otherwise the presence host swaps scenes. */
-export function sceneKey(step: { id: string; groupKey?: string; Scene: object }): string {
-  return step.groupKey ? `group:${step.groupKey}:${sceneId(step.Scene)}` : `step:${step.id}`
-}
-
-interface StageProps<TPayload> {
+interface StageProps<TPayload> extends DataHooks {
   step: Step<TPayload>
   index: number
   scale: number
   mode: Mode
   canvas?: Canvas
+  className?: string
+  style?: CSSProperties
 }
 
-export function Stage<TPayload>({ step, index, scale, mode, canvas }: StageProps<TPayload>) {
+export function Stage<TPayload>({ step, index, scale, mode, canvas, className, style, ...hooks }: StageProps<TPayload>) {
   const width = canvas?.width ?? DESIGN_W
   const height = canvas?.height ?? DESIGN_H
   const { Scene, payload, ...meta } = step
   const props: SceneProps<TPayload> = { payload, step: meta, index }
   return (
     <div
+      {...dataHooks(hooks)}
       data-presentation-stage=""
       data-presentation-mode={mode}
-      style={{ position: 'relative', width: width * scale, height: height * scale }}
+      className={className}
+      style={{ position: 'relative', width: width * scale, height: height * scale, ...style }}
     >
       <div
         data-presentation-canvas=""
@@ -50,7 +41,8 @@ export function Stage<TPayload>({ step, index, scale, mode, canvas }: StageProps
           transformOrigin: 'top left',
         }}
       >
-        <LayoutGroup>
+        {/* Keyed by mode: a mode switch remounts the scene instead of morphing entities across the geometry change. */}
+        <LayoutGroup key={mode}>
           <AnimatePresence>
             <motion.div
               key={sceneKey(step)}

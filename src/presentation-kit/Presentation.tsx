@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { DESIGN_H, DESIGN_W } from './constants'
+import { dataHooks, type DataHooks } from './nodes/geometry'
 import { eraEntries, stepNumber } from './eras'
 import { Footer } from './chrome/Footer'
 import { Header } from './chrome/Header'
@@ -12,7 +13,7 @@ import { usePresentationNav } from './usePresentationNav'
 
 export const ATTRIBUTION_URL = 'https://github.com/Codagent-AI/and-scene'
 
-export interface PresentationProps<TPayload> {
+export interface PresentationProps<TPayload> extends DataHooks {
   steps: readonly Step<TPayload>[]
   title: string
   initialMode?: Mode
@@ -22,6 +23,8 @@ export interface PresentationProps<TPayload> {
   attribution?: ReactNode | false
   /** Host-provided top-left brand; none by default. */
   brand?: ReactNode
+  className?: string
+  style?: CSSProperties
 }
 
 function DefaultAttribution() {
@@ -45,6 +48,9 @@ export function Presentation<TPayload>({
   canvas,
   attribution,
   brand,
+  className,
+  style,
+  ...hooks
 }: PresentationProps<TPayload>) {
   const nav = usePresentationNav(steps.length, initialMode)
   const scale = useFitScale(nav.mode, canvas ?? { width: DESIGN_W, height: DESIGN_H })
@@ -56,7 +62,10 @@ export function Presentation<TPayload>({
 
   return (
     <div
+      {...dataHooks(hooks)}
       data-presentation-root=""
+      className={className}
+      style={style}
       data-presentation-title-text={title}
       data-presentation-mode={nav.mode}
       data-step-count={steps.length}

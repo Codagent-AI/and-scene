@@ -1,10 +1,10 @@
 import { motion } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
 import type { CSSProperties, ReactNode } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
-import { geometryStyle, type Geometry } from './geometry'
+import { EASE, EXIT_T, LAYOUT_T } from '../constants'
+import { dataHooks, geometryStyle, type DataHooks, type Geometry } from './geometry'
 
-export interface SymbolChipProps extends Geometry {
+export interface SymbolChipProps extends Geometry, DataHooks {
   id: string
   Icon?: LucideIcon
   /** Text symbol shown when no icon is given. */
@@ -16,9 +16,11 @@ export interface SymbolChipProps extends Geometry {
 export function SymbolChip({ id, Icon, symbol, className, style, ...geometry }: SymbolChipProps) {
   return (
     <motion.div
+      {...dataHooks(geometry)}
       layout
       layoutId={id}
       transition={{ duration: LAYOUT_T, ease: EASE }}
+      exit={{ opacity: 0, transition: { duration: EXIT_T } }}
       data-presentation-node="symbol-chip"
       data-presentation-id={id}
       className={className}

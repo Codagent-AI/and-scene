@@ -1,8 +1,11 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import type { Mode, StepMeta } from '../types'
 import { stepNumber } from '../eras'
+import { dataHooks, type DataHooks } from '../nodes/geometry'
 
-interface FooterProps {
+interface FooterProps extends DataHooks {
+  className?: string
+  style?: CSSProperties
   mode: Mode
   steps: readonly StepMeta[]
   index: number
@@ -12,11 +15,22 @@ interface FooterProps {
   onNext: () => void
 }
 
-export function Footer({ mode, steps, index, attribution, onGoTo, onPrev, onNext }: FooterProps) {
+export function Footer({
+  mode,
+  steps,
+  index,
+  attribution,
+  onGoTo,
+  onPrev,
+  onNext,
+  className,
+  style,
+  ...hooks
+}: FooterProps) {
   const step = steps[index]
   const last = steps.length - 1
   return (
-    <footer data-presentation-footer="">
+    <footer {...dataHooks(hooks)} data-presentation-footer="" className={className} style={style}>
       <h2 data-presentation-title="">{step.title}</h2>
       {mode === 'browse' ? (
         <>

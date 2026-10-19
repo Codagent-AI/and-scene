@@ -1,9 +1,9 @@
 import { motion } from 'motion/react'
 import type { CSSProperties, ReactNode } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
-import { geometryStyle, type Geometry } from './geometry'
+import { EASE, EXIT_T, LAYOUT_T } from '../constants'
+import { dataHooks, geometryStyle, type DataHooks, type Geometry } from './geometry'
 
-export interface FrameProps extends Geometry {
+export interface FrameProps extends Geometry, DataHooks {
   id: string
   label?: ReactNode
   className?: string
@@ -15,9 +15,11 @@ export interface FrameProps extends Geometry {
 export function Frame({ id, label, className, style, children, ...geometry }: FrameProps) {
   return (
     <motion.div
+      {...dataHooks(geometry)}
       layout
       layoutId={id}
       transition={{ duration: LAYOUT_T, ease: EASE }}
+      exit={{ opacity: 0, transition: { duration: EXIT_T } }}
       data-presentation-node="frame"
       data-presentation-id={id}
       className={className}

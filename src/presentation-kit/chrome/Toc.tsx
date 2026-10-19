@@ -1,14 +1,18 @@
+import type { CSSProperties } from 'react'
 import type { EraEntry } from '../eras'
+import { dataHooks, type DataHooks } from '../nodes/geometry'
 
-interface TocProps {
+interface TocProps extends DataHooks {
+  className?: string
+  style?: CSSProperties
   entries: readonly EraEntry[]
   activeEra: string
   onGoTo: (index: number) => void
 }
 
-export function Toc({ entries, activeEra, onGoTo }: TocProps) {
+export function Toc({ entries, activeEra, onGoTo, className, style, ...hooks }: TocProps) {
   return (
-    <nav data-presentation-toc="" aria-label="Table of contents">
+    <nav {...dataHooks(hooks)} data-presentation-toc="" aria-label="Table of contents" className={className} style={style}>
       {entries.map((e) => (
         <button
           key={e.era}

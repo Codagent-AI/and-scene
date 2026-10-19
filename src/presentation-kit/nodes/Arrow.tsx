@@ -1,8 +1,9 @@
 import { motion } from 'motion/react'
 import type { CSSProperties } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
+import { EASE, EXIT_T, LAYOUT_T } from '../constants'
+import { dataHooks, type DataHooks } from './geometry'
 
-export interface ArrowProps {
+export interface ArrowProps extends DataHooks {
   id: string
   from: readonly [number, number]
   to: readonly [number, number]
@@ -14,7 +15,7 @@ export interface ArrowProps {
 }
 
 /** Line between two canvas points; color comes from `currentColor`, set by the presentation. */
-export function Arrow({ id, from, to, twoWay, dashed, className, style }: ArrowProps) {
+export function Arrow({ id, from, to, twoWay, dashed, className, style, ...hooks }: ArrowProps) {
   const [x1, y1] = from
   const [x2, y2] = to
   const angle = Math.atan2(y2 - y1, x2 - x1)
@@ -29,9 +30,11 @@ export function Arrow({ id, from, to, twoWay, dashed, className, style }: ArrowP
   const height = Math.abs(y2 - y1) + 20
   return (
     <motion.svg
+      {...dataHooks(hooks)}
       layout
       layoutId={id}
       transition={{ duration: LAYOUT_T, ease: EASE }}
+      exit={{ opacity: 0, transition: { duration: EXIT_T } }}
       data-presentation-node="arrow"
       data-presentation-id={id}
       data-presentation-two-way={twoWay ? 'true' : undefined}

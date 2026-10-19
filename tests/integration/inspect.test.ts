@@ -12,7 +12,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const FIXTURE_DIR = join(REPO, 'tests/integration/fixtures/inspect-app')
 // Build-irrelevant paths are not copied. tests/ is excluded because the copied tsconfig would type-check it.
-const COPY_SKIP = /^(\.git|node_modules|dist|\.inspection|tests|validator_logs|\.agent-runner)(\/|$)/
+const COPY_SKIP =
+  /^(\.git|node_modules|dist|\.inspection|tests|validator_logs|\.agent-runner|skills)(\/|$)|\.test\.tsx?$|__fixtures__/
 
 let APP = ''
 /** Separate artifact root so the narrow run cannot overwrite the default-viewport captures. */

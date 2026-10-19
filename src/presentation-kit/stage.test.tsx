@@ -286,8 +286,9 @@ describe('changed grouping takes the presence-transition path (L-4, L-6)', () =>
     expect(container.contains(oldRoot)).toBe(true)
     expect(countB.mounts).toBe(1)
     // Both sides carry the same layoutId (the morph pairs them) under one LayoutGroup. The two scene DOM nodes are not required to match.
-    // Completion is not timed here: in jsdom a shared layoutId keeps the exiting scene mounted (no layout projection),
-    // so removal timing is asserted with distinct ids in the group-change tests above.
+    // Known jsdom limitation: jsdom cannot measure layout projection, so a shared layoutId may hold the exiting
+    // scene mounted longer than a browser would. Removal is still asserted eventually with a generous timeout.
+    // If this never unmounts, it is a kit finding (Stage/Entity shared-layout exit), not a reason to drop the check.
     const layoutIds = captured.motion
       .filter((c) => c.props['data-presentation-entity'] === 'card')
       .map((c) => c.props.layoutId)
@@ -298,6 +299,8 @@ describe('changed grouping takes the presence-transition path (L-4, L-6)', () =>
     expect(entity(newRoot, 'card')).not.toBe(oldCard)
     expect(oldRoot.querySelector('[data-presentation-entity="card"]')).toBe(oldCard)
     expect(countA.mounts).toBe(1)
+    await waitFor(() => expect(container.contains(oldRoot)).toBe(false), { timeout: 10000 })
+    expect(container.querySelector('[data-presentation-scene="g2"]')).toBe(newRoot)
   })
 })
 

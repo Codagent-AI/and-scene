@@ -25,14 +25,15 @@ const Alpha: ComponentType = () => <h2>Alpha deck</h2>
 const Beta: ComponentType = () => <h2>Beta deck</h2>
 const Gamma: ComponentType = () => <h2>Gamma deck</h2>
 
-// Registry fixture: one immediate import and one delayed import (exercises Suspense).
+// Registry fixture: one immediate import and one delayed import (exercises Suspense). The delayed import
+// resolves only when the test releases the gate, so the pending state is deterministic under load.
+let releaseBeta: () => void = () => {}
+const betaGate = new Promise<void>((resolve) => {
+  releaseBeta = resolve
+})
 const fixture: PresentationEntry[] = [
   { slug: 'alpha', title: 'Alpha', load: () => Promise.resolve({ default: Alpha }) },
-  {
-    slug: 'beta',
-    title: 'Beta',
-    load: () => new Promise((resolve) => setTimeout(() => resolve({ default: Beta }), 30)),
-  },
+  { slug: 'beta', title: 'Beta', load: () => betaGate.then(() => ({ default: Beta })) },
 ]
 
 const appended: PresentationEntry = { slug: 'gamma', title: 'Gamma', load: () => Promise.resolve({ default: Gamma }) }
@@ -76,6 +77,9 @@ describe('Root and Landing with a registry fixture', () => {
   it('lazy-loads a delayed import under Suspense, with nothing rendered while it is pending', async () => {
     const { container } = await renderRoot({ pathname: '/beta', registry: fixture })
     expect(container.textContent).toBe('')
+    await act(async () => {
+      releaseBeta()
+    })
     expect(await screen.findByRole('heading', { name: 'Beta deck' }, { timeout: 5000 })).toBeTruthy()
   })
 

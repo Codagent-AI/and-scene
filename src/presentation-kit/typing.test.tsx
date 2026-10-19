@@ -64,7 +64,43 @@ const OtherScene: ComponentType<SceneProps<{ label: string }>> = ({ payload }) =
 // @ts-expect-error an incompatible scene payload must not type-check against Step<DiagramPayload>
 const incompatibleScene: Step<DiagramPayload> = { ...meta, Scene: OtherScene, payload: { active: 'a', count: 1 } }
 
+// Boundary fixtures at <Presentation>: the steps prop must agree on one payload type across all steps.
+const NumberScene: ComponentType<SceneProps<number>> = ({ payload }) => <span>{payload}</span>
+const StringScene: ComponentType<SceneProps<string>> = ({ payload }) => <span>{payload}</span>
+
+// (a) A mixed array: a number-payload step and a string-payload step cannot share one Presentation steps prop.
+const mixedSteps = [
+  { ...meta, id: 'mix-n', Scene: NumberScene, payload: 1 },
+  { ...meta, id: 'mix-s', Scene: StringScene, payload: 'two' },
+]
+// @ts-expect-error steps with incompatible payload types in one array must not reach <Presentation>
+export const mixedHost = <Presentation steps={mixedSteps} title="mixed" />
+
+// (b) A string payload paired with a Scene that expects a number, passed straight to <Presentation>.
+const stringPayloadNumberScene = [{ ...meta, id: 'str-num', Scene: NumberScene, payload: 'not a number' }]
+// @ts-expect-error a Step<string> whose Scene expects a number payload must not type-check against Presentation
+export const mismatchedHost = <Presentation steps={stringPayloadNumberScene} title="mismatch" />
+
+// (c) Positive: a heterogeneous union payload, one Scene per discriminant, shared by every step.
+type Diagram = { kind: 'bar'; value: number } | { kind: 'note'; text: string }
+const UnionScene: ComponentType<SceneProps<Diagram>> = ({ payload }) => (
+  <span>{payload.kind === 'bar' ? payload.value : payload.text}</span>
+)
+const unionSteps: Step<Diagram>[] = [
+  { ...meta, id: 'union-bar', Scene: UnionScene, payload: { kind: 'bar', value: 3 } },
+  { ...meta, id: 'union-note', Scene: UnionScene, payload: { kind: 'note', text: 'hello' } },
+]
+export const unionHost = <Presentation steps={unionSteps} title="union" initialMode="browse" />
+
 describe('typed payload boundary (L-3)', () => {
+  it('renders a heterogeneous union payload through Presentation', () => {
+    const { getByRole, getByText, unmount } = render(unionHost)
+    expect(getByRole('heading', { level: 1 }).textContent).toBe('Typed')
+    // The first step's 'bar' variant renders its numeric value through the shared union-typed Scene.
+    expect(getByText('3').textContent).toBe('3')
+    unmount()
+  })
+
   it('renders a typed-payload presentation and stage without casts', () => {
     const { getByRole, getAllByTestId, container, unmount } = render(<TypedHost />)
     expect(getByRole('heading', { level: 1 }).textContent).toBe('Typed')
@@ -80,5 +116,6 @@ describe('typed payload boundary (L-3)', () => {
     expect(typedSteps.map((s) => s.payload.count)).toEqual([1, 2])
     // Negative fixtures are compile-time only; they are referenced so the build keeps them.
     expect([noId, noEra, noTitle, noCaption, noScene, noPayload, wrongPayload, wrongCount, incompatibleScene]).toHaveLength(9)
+    expect([mixedHost, mismatchedHost, unionHost].every((el) => el !== undefined)).toBe(true)
   })
 })

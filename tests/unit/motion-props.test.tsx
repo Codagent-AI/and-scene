@@ -67,11 +67,16 @@ describe('motion wiring', () => {
     seen.length = 0
     render(<Arrow id="geo" from={[0, 0]} to={[100, 0]} bend={10} bidirectional />)
     const path = seen.find((p) => p.tag === 'path')!
-    expect(path.animate).toEqual({ d: path.d })
+    // an explicit initial value keeps the attribute defined before the first animation frame
+    expect(path.initial).toEqual({ d: expect.stringMatching(/^M/) })
+    expect(path.animate).toEqual(path.initial)
     expect(path.transition).toMatchObject({ duration: LAYOUT_T })
     const heads = seen.filter((p) => p.tag === 'polygon')
     expect(heads).toHaveLength(2)
-    for (const h of heads) expect(h.animate).toEqual({ points: h.points })
+    for (const h of heads) {
+      expect(h.initial).toEqual({ points: expect.any(String) })
+      expect(h.animate).toEqual(h.initial)
+    }
   })
 
   it('makes newcomers enter only after the layout morph has finished', () => {

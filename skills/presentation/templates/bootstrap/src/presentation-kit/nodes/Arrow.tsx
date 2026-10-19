@@ -63,16 +63,16 @@ export function Arrow({
       data-presentation-entity={id}
       {...hooks}
     >
-      <motion.path d={d} animate={{ d }} transition={GEOMETRY_TRANSITION} fill="none" data-presentation-arrow-line="" />
+      <motion.path initial={{ d }} animate={{ d }} transition={GEOMETRY_TRANSITION} fill="none" data-presentation-arrow-line="" />
       <motion.polygon
-        points={endHead}
+        initial={{ points: endHead }}
         animate={{ points: endHead }}
         transition={GEOMETRY_TRANSITION}
         data-presentation-arrow-head="end"
       />
       {bidirectional && (
         <motion.polygon
-          points={startHead}
+          initial={{ points: startHead }}
           animate={{ points: startHead }}
           transition={GEOMETRY_TRANSITION}
           data-presentation-arrow-head="start"

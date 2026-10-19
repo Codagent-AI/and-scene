@@ -79,6 +79,23 @@ describe('E2E-002: verification failures are actionable', () => {
     expect(r.out).toContain('verify: step 2 rendered')
   })
 
+  it.each([[1, 0], [4, 3], [9, 8]])('attributes a React render exception at stage %i to step index %i', async (stage, index) => {
+    const r = await verifyWith((d) =>
+      edit(d, `${SAMPLE}/Scene.tsx`, (s) => s.replace('export function Scene({ payload }: SceneProps<Payload>) {', `export function Scene({ payload }: SceneProps<Payload>) {\n  if (payload.stage === ${stage}) throw new Error("injected render failure")`)),
+    )
+    expectFailure(r, new RegExp(`verify: FAIL phase=render step=${index}: .*injected render failure`))
+  })
+
+  it('fails when the rendered caption is absent', async () => {
+    const r = await verifyWith((d) => edit(d, 'src/presentation-kit/chrome/Footer.tsx', (s) => s.replace('<p data-presentation-caption="">{step.caption}</p>', '')))
+    expectFailure(r, /verify: FAIL phase=render step=0: no caption rendered/)
+  })
+
+  it('fails when the rendered era does not match the outline', async () => {
+    const r = await verifyWith((d) => edit(d, 'src/presentation-kit/chrome/Header.tsx', (s) => s.replace('{step.era}', 'wrong era')))
+    expectFailure(r, /verify: FAIL phase=render step=0: era "wrong era" does not match "the ask"/)
+  })
+
   it('names the offending step for an uncaught page error', async () => {
     const r = await verifyWith((d) =>
       edit(d, `${SAMPLE}/Scene.tsx`, (s) =>

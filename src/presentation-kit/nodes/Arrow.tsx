@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import type { CSSProperties, SVGAttributes } from 'react'
 import { DESIGN_H, DESIGN_W } from '../constants.ts'
-import { leave } from './shared.ts'
+import { leave, morph } from './shared.ts'
 
 type Point = readonly [number, number]
 
@@ -35,14 +35,17 @@ export function Arrow({ layoutId, from, to, via, bidirectional, canvas, style, .
     <motion.svg
       {...(rest as object)}
       viewBox={`0 0 ${w} ${h}`}
+      layoutId={layoutId}
       exit={leave}
       style={{ ...abs, ...style }}
       data-presentation-node="arrow"
       data-presentation-entity={layoutId}
     >
-      <path d={d} fill="none" stroke="currentColor" data-presentation-arrow-line="" />
-      <polygon fill="currentColor" points={head(to, via ?? from)} data-presentation-arrow-head="" />
-      {bidirectional ? <polygon fill="currentColor" points={head(from, via ?? to)} data-presentation-arrow-head="" /> : null}
+      <motion.path initial={false} animate={{ d }} transition={morph.layout} fill="none" stroke="currentColor" data-presentation-arrow-line="" />
+      <motion.polygon initial={false} animate={{ points: head(to, via ?? from) }} transition={morph.layout} fill="currentColor" data-presentation-arrow-head="" />
+      {bidirectional ? (
+        <motion.polygon initial={false} animate={{ points: head(from, via ?? to) }} transition={morph.layout} fill="currentColor" data-presentation-arrow-head="" />
+      ) : null}
     </motion.svg>
   )
 }

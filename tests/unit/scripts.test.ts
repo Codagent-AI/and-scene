@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -66,23 +66,22 @@ describe('failure reporting', () => {
     expect(formatFailure(new VerifyError('render', 'last', 8))).toContain('step=8')
   })
 
-  it('returns a failing result (never a pass) when the build phase cannot run, without starting a preview', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'verify-unit-'))
-    writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { build: 'node -e "process.exit(3)"' } }))
+  it('returns a failing result (never a pass) when the build phase fails, without starting a preview', async () => {
     const lines: string[] = []
-    const result = await runVerify({ cwd: dir, log: (l: string) => lines.push(l) })
+    const npm = async () => ({ code: 3, output: 'tsc exploded' })
+    const result = await runVerify({ cwd: tmpdir(), log: (l: string) => lines.push(l), npm })
     expect(result.ok).toBe(false)
-    expect(lines.at(-1)).toMatch(/^verify: FAIL phase=build/)
+    expect(lines.at(-1)).toMatch(/^verify: FAIL phase=build: npm run build failed:\ntsc exploded/)
     expect(lines.join('\n')).not.toMatch(/PASS|preview ready/)
-    rmSync(dir, { recursive: true, force: true })
   })
 
   it('fails the sample phase when the manifest or sample is missing', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'verify-unit-'))
-    writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { build: 'node -e ""' } }))
     const lines: string[] = []
-    expect((await runVerify({ cwd: dir, log: (l: string) => lines.push(l) })).ok).toBe(false)
+    const npm = async () => ({ code: 0, output: '' })
+    expect((await runVerify({ cwd: dir, log: (l: string) => lines.push(l), npm })).ok).toBe(false)
     expect(lines.at(-1)).toMatch(/phase=sample/)
+    expect(lines.join('\n')).not.toMatch(/preview ready/)
     rmSync(dir, { recursive: true, force: true })
   })
 })
@@ -110,14 +109,31 @@ describe('IPv4 loopback', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it('serves the production build on 127.0.0.1 and the stop() kills the process', async () => {
-    if (!existsSync('dist/index.html')) return
-    const p = await startPreview(process.cwd())
+  it('starts the preview on 127.0.0.1 with --host and --strictPort, waits for readiness, and stop() kills it', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'preview-stub-'))
+    mkdirSync(join(dir, 'node_modules/vite/bin'), { recursive: true })
+    // Stand-in for `vite preview`: serves HTTP on the host/port it was given.
+    writeFileSync(
+      join(dir, 'node_modules/vite/bin/vite.js'),
+      `const a = process.argv, host = a[a.indexOf('--host') + 1], port = Number(a[a.indexOf('--port') + 1])
+       if (!a.includes('--strictPort') || a[2] !== 'preview') process.exit(9)
+       require('node:http').createServer((q, r) => r.end('ok')).listen(port, host)`,
+    )
+    const p = await startPreview(dir)
     expect(p.url).toBe(`http://127.0.0.1:${p.port}/`)
-    expect((await fetch(p.url)).ok).toBe(true)
+    expect(await (await fetch(p.url)).text()).toBe('ok')
     await p.stop()
     expect(() => process.kill(p.pid, 0)).toThrow()
     await expect(fetch(p.url)).rejects.toThrow()
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('reports a preview that exits at startup and leaves nothing running', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'preview-stub-'))
+    mkdirSync(join(dir, 'node_modules/vite/bin'), { recursive: true })
+    writeFileSync(join(dir, 'node_modules/vite/bin/vite.js'), 'console.error("port busy"); process.exit(1)')
+    await expect(startPreview(dir)).rejects.toThrow(/exited \(1\): port busy/)
+    rmSync(dir, { recursive: true, force: true })
   })
 })
 

@@ -120,6 +120,14 @@ describe('sample accumulates one scene', () => {
     expect(byId('depth').kind === 'chip' && (byId('depth') as Extract<Entity, { kind: 'chip' }>).overlap).toBe(true)
   })
 
+  it('labels the depth control with both its partial and full ends', () => {
+    const { container } = render(<Talk />)
+    for (let i = 0; i < 4; i++) act(() => void fireEvent.keyDown(window, { key: 'ArrowRight' }))
+    const chip = container.querySelector('[data-presentation-entity="how-to:depth"]')!
+    expect(chip.textContent).toMatch(/partial.*full/)
+    expect(chip.querySelector('svg')).not.toBeNull()
+  })
+
   it('plugs the labelled scene-kit socket into the tray bottom edge without framing the tray', () => {
     const socket = byId('socket'), card = byId('card-0')
     expect(socket.kind === 'node' && socket.text).toBe('scene kit')

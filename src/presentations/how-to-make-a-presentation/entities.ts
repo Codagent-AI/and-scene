@@ -37,7 +37,7 @@ export const ENTITIES: readonly Entity[] = [
   card(1), card(2), card(3),
   ...link(0), ...link(1), ...link(2),
   { id: ns('ghost'), from: 5, kind: 'node', role: 'ghost', x: slotX(4), y: CARD_Y, w: CARD_W, h: CARD_H, text: 'unspecified' },
-  { id: ns('depth'), from: 5, kind: 'chip', role: 'depth', x: 146, y: 64, w: 44, h: 24, overlap: true },
+  { id: ns('depth'), from: 5, kind: 'chip', role: 'depth', x: 90, y: 64, w: 110, h: 24, text: 'partial ↔ full', overlap: true },
   { id: ns('socket'), from: 6, kind: 'node', role: 'socket', x: 380, y: CARD_Y + CARD_H, w: 120, h: 36, text: 'scene kit' },
   { id: ns('verify'), from: 7, kind: 'node', role: 'verify', x: slotX(5), y: CARD_Y, w: CARD_W, h: CARD_H },
   { id: ns('verify-link'), from: 7, kind: 'arrow', role: 'link', a: [slotX(4) + CARD_W + 4, 225], b: [slotX(5) - 4, 225] },

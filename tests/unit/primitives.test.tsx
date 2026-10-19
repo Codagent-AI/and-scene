@@ -68,6 +68,14 @@ describe('Frame', () => {
   })
 })
 
+describe('Emphasis forwarding', () => {
+  it('forwards class and data attributes', () => {
+    const { container } = render(<Emphasis className="mine" data-custom="yes">x</Emphasis>)
+    expect(container.firstElementChild?.getAttribute('class')).toBe('mine')
+    expect(container.firstElementChild?.getAttribute('data-custom')).toBe('yes')
+  })
+})
+
 describe('Emphasis', () => {
   it('marks content active or inactive through a hook only', () => {
     render(<><Emphasis>on</Emphasis><Emphasis active={false}>off</Emphasis></>)
@@ -89,9 +97,38 @@ describe('Arrow', () => {
     expect(one.querySelector('svg')?.getAttribute('data-presentation-entity')).toBe('a')
   })
 
+  it('carries its identity and forwards class, style and data to the svg', () => {
+    const { container } = render(<Arrow layoutId="a" from={[0, 0]} to={[10, 0]} className="mine" style={{ zIndex: 4 }} data-custom="yes" />)
+    const svg = container.querySelector('svg') as SVGElement
+    expect(svg.getAttribute('data-m-layout-id')).toBe('a')
+    expect(svg.getAttribute('class')).toBe('mine')
+    expect(svg.style.zIndex).toBe('4')
+    expect(svg.style.position).toBe('absolute')
+    expect(svg.getAttribute('data-custom')).toBe('yes')
+    expect(attr(svg, 'data-m-exit').opacity).toBe(0)
+  })
+
+  it('animates its path and heads to new endpoints instead of snapping', () => {
+    const view = (to: [number, number]) => <Arrow layoutId="a" from={[0, 0]} to={to} bidirectional />
+    const { container, rerender } = render(view([10, 0]))
+    const read = () => ({
+      d: attr(container.querySelector('path')!, 'data-m-animate').d,
+      heads: [...container.querySelectorAll('polygon')].map((p) => attr(p, 'data-m-animate').points),
+      t: attr(container.querySelector('path')!, 'data-m-transition').duration,
+    })
+    const before = read()
+    rerender(view([200, 50]))
+    const after = read()
+    expect(after.d).not.toBe(before.d)
+    expect(after.heads[0]).not.toBe(before.heads[0])
+    expect(after.heads).toHaveLength(2)
+    expect(after.t).toBe(LAYOUT_T)
+    expect(container.querySelector('path')?.getAttribute('data-m-initial')).toBe('false')
+  })
+
   it('draws an arc through a control point', () => {
     const { container } = render(<Arrow layoutId="a" from={[0, 0]} to={[10, 10]} via={[10, 0]} />)
-    expect(container.querySelector('path')?.getAttribute('d')).toContain('Q10,0')
+    expect(attr(container.querySelector('path')!, 'data-m-animate').d).toContain('Q10,0')
   })
 })
 
@@ -118,6 +155,14 @@ describe('Appear', () => {
   it('fades out on exit', () => {
     const { container } = render(<Appear>child</Appear>)
     expect(attr(container.firstElementChild as Element, 'data-m-exit').opacity).toBe(0)
+  })
+})
+
+describe('SceneLayer forwarding', () => {
+  it('forwards class and data attributes and merges style over the absolute layer', () => {
+    const { container } = render(<SceneLayer className="mine" data-custom="yes" style={{ zIndex: 2 }}>x</SceneLayer>)
+    const el = container.firstElementChild as HTMLElement
+    expect([el.className, el.getAttribute('data-custom'), el.style.zIndex, el.style.position]).toEqual(['mine', 'yes', '2', 'absolute'])
   })
 })
 

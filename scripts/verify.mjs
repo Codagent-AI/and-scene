@@ -87,6 +87,8 @@ export async function renderSample({ baseUrl, manifest, log = console.log, settl
       fail()
       throw new VerifyError('render', `no presentation chrome found at ${url}`, 0)
     })
+    // Captions only render in browse mode, so verify there whatever mode the presentation opens in.
+    if ((await root.getAttribute('data-presentation-mode')) === 'present') await page.keyboard.press('p')
     const count = Number(await root.getAttribute('data-step-count'))
     if (count !== manifest.steps.length) throw new VerifyError('render', `data-step-count is ${count}, expected ${manifest.steps.length}`)
     for (let i = 0; i < count; i++) {
@@ -97,9 +99,10 @@ export async function renderSample({ baseUrl, manifest, log = console.log, settl
       const title = norm(await page.locator('[data-presentation-title]').first().textContent())
       if (title !== norm(want.title)) throw new VerifyError('render', `title "${title}" does not match "${want.title}"`, i)
       const caption = page.locator('[data-presentation-caption]')
-      if ((await caption.count()) && norm(await caption.textContent()) !== norm(want.caption)) {
-        throw new VerifyError('render', `caption does not match "${want.caption}"`, i)
-      }
+      if (!(await caption.count())) throw new VerifyError('render', `no caption rendered (expected "${want.caption}")`, i)
+      if (norm(await caption.textContent()) !== norm(want.caption)) throw new VerifyError('render', `caption "${norm(await caption.textContent())}" does not match "${want.caption}"`, i)
+      const era = norm(await page.locator('[data-presentation-marker-era]').first().textContent().catch(() => ''))
+      if (era !== norm(want.era)) throw new VerifyError('render', `era "${era}" does not match "${want.era}"`, i)
       await page.waitForTimeout(settleMs)
       fail()
       log(`verify: step ${i} rendered (${want.title})`)
@@ -118,11 +121,11 @@ export async function renderSample({ baseUrl, manifest, log = console.log, settl
   }
 }
 
-export async function runVerify({ cwd = process.cwd(), manifestPath = join(cwd, 'scripts', 'verify-manifest.json'), log = console.log } = {}) {
+export async function runVerify({ cwd = process.cwd(), manifestPath = join(cwd, 'scripts', 'verify-manifest.json'), log = console.log, npm = runNpm } = {}) {
   let preview
   try {
     log('verify: phase build')
-    const build = await runNpm(cwd, ['run', 'build'])
+    const build = await npm(cwd, ['run', 'build'])
     if (build.code !== 0) throw new VerifyError('build', `npm run build failed:\n${build.output.trim().split('\n').slice(-25).join('\n')}`)
     log('verify: build passed')
 

@@ -11,6 +11,8 @@ Paths below named `templates/...` are relative to **the directory that contains 
 
 Run the phases in order. Never report success before phase 4 passes.
 
+**Modification requests come first:** if the user asks to modify an existing presentation, do phase 3b step 1 (identify the target; list the registered presentations and ask when it is not clear) **before anything is written**, including any scaffolding in phase 2. Nothing in the project changes until the target is identified.
+
 ## 1. Gather
 
 Ask the user clarifying questions **one at a time**, never several in one message. Cover, in this order, only what the prompt does not already give:
@@ -46,6 +48,7 @@ Before creating or modifying anything, make sure the project has the three **con
 - **All three anchors present** → skip scaffolding; go straight to phase 3. Do not overwrite anything.
 - **None present** (empty directory or no anchors) → full scaffold: copy everything in `SKILL_DIR/templates/bootstrap/`, then install dependencies.
 - **Some present** → scaffold only the missing anchors and their dependencies, and leave present ones untouched. Build setup: `package.json` (merge the missing scripts and dependencies; keep every existing field), `index.html`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `src/main.tsx`, `scripts/`. Scene kit: `src/presentation-kit/`. Presentation index: `src/presentations/index.ts`, `src/Router.tsx`, `src/Landing.tsx`. Never replace an existing file with the template version; if a template file would collide, keep the existing file and adapt.
+- **Verification assets are part of every scaffold, whichever anchor is missing.** If an existing app lacks any of them, add them even when only the scene kit or the presentation index was missing: `scripts/verify.mjs`, `scripts/inspect-presentation.mjs`, `scripts/lib/preview.mjs` and a `scripts/verify-manifest.json` describing the app's reference presentation (copy from `SKILL_DIR/templates/bootstrap/scripts/` and adapt the manifest's slug, registry, narration path and steps), the `verify` and `inspect` entries in `package.json` `scripts`, and the `playwright` dependency. Never overwrite a verification script or manifest that already exists.
 
 ### Confirm before writing into a non-empty project
 

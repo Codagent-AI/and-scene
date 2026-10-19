@@ -237,12 +237,32 @@ describe('fixed canvas', () => {
 })
 
 describe('StrictMode', () => {
-  it('handles one key press and one resize once, and cleans up on unmount', () => {
-    const { container, unmount } = render(<StrictMode><Presentation steps={FIVE} title="T" /></StrictMode>)
+  it('subscribes once per event type net of replay, reacts once, and removes every listener on unmount', () => {
+    const adds: string[] = []
+    const removes: string[] = []
+    const origAdd = window.addEventListener.bind(window)
+    const origRemove = window.removeEventListener.bind(window)
+    const add = vi.spyOn(window, 'addEventListener').mockImplementation(((type: string, ...rest: unknown[]) => {
+      if (['keydown', 'resize', 'touchstart', 'touchend'].includes(type)) adds.push(type)
+      return origAdd(type, ...(rest as [EventListener]))
+    }) as typeof window.addEventListener)
+    const remove = vi.spyOn(window, 'removeEventListener').mockImplementation(((type: string, ...rest: unknown[]) => {
+      if (['keydown', 'resize', 'touchstart', 'touchend'].includes(type)) removes.push(type)
+      return origRemove(type, ...(rest as [EventListener]))
+    }) as typeof window.removeEventListener)
+    const { container, unmount } = render(<StrictMode><Presentation steps={FIVE} title="T" initialMode="present" /></StrictMode>)
     key('ArrowRight')
     expect(root(container).getAttribute('data-step-index')).toBe('1')
+    const before = canvas(container).getAttribute('data-presentation-scale')
+    setViewport(700, 500)
+    expect(canvas(container).getAttribute('data-presentation-scale')).not.toBe(before)
     unmount()
-    key('ArrowRight')
-    expect(container.querySelector('[data-presentation-root]')).toBeNull()
+    const count = (list: string[], t: string) => list.filter((x) => x === t).length
+    for (const t of ['keydown', 'resize', 'touchstart', 'touchend']) {
+      expect(count(adds, t), t).toBeGreaterThan(0)
+      expect(count(removes, t), `${t} balanced`).toBe(count(adds, t))
+    }
+    add.mockRestore()
+    remove.mockRestore()
   })
 })

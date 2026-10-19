@@ -3,7 +3,7 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlink
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { REPO, run } from '../helpers/proc.ts'
+import { alive, REPO, run } from '../helpers/proc.ts'
 
 const TEMPLATE = join(REPO, 'skills/presentation/templates/bootstrap')
 
@@ -43,7 +43,13 @@ const ROUGH = scene(`      <Label layoutId="mover" x={s === 2 ? 600 : 40} y={300
           <Label layoutId="ok-b" x={120} y={110} w={160} h={30}>allowed beta</Label>
         </div>
       ) : null}
-      {s === 3 ? <Label layoutId="clean" x={100} y={100} w={160} h={30}>clean</Label> : null}`)
+      {s === 3 ? <Label layoutId="clean" x={100} y={100} w={160} h={30}>clean</Label> : null}
+      {s === 3 ? (
+        <div style={{ opacity: 0, position: 'absolute', inset: 0 }}>
+          <div style={{ position: 'absolute', left: 400, top: 60 }}>hidden alpha</div>
+          <div style={{ position: 'absolute', left: 410, top: 64 }}>hidden beta</div>
+        </div>
+      ) : null}`)
 
 const POLISHED = scene(`      <Label layoutId="one" x={100} y={100} w={160} h={30}>one {s}</Label>
       <Label layoutId="two" x={400} y={200} w={160} h={30}>two {s}</Label>`)
@@ -121,6 +127,8 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     const quick = JSON.parse(readFileSync(join(dir, 'impatient/rough/captures.json'), 'utf8'))
     expect(quick.settleMs).toBe(0)
     expect(quick.captures[1].waitedMs).toBeGreaterThanOrEqual(400)
+    // even with no settle interval, every entity has finished entering (including the delayed wrapper fade) before each capture
+    for (const c of quick.captures) expect(c.entityOpacityMin).toBeGreaterThanOrEqual(0.999)
   })
 
   it('warns, by step and element, about the unmarked text collision only', () => {
@@ -132,6 +140,10 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     expect(s1[0]).toMatch(/data-presentation-allow-overlap/)
     expect(w.filter((l) => l.includes('collide'))).toHaveLength(1)
     expect(forStep(w, 3).filter((l) => l.includes('clean'))).toEqual([])
+  })
+
+  it('ignores text hidden by a transparent ancestor', () => {
+    expect(warnings(rough.out).filter((l) => l.includes('hidden'))).toEqual([])
   })
 
   it('does not warn about the explicitly allowed readable overlap', () => {
@@ -165,6 +177,15 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     expect(polished.code).toBe(0)
     expect(warnings(polished.out)).toEqual([])
     expect(polished.out).toMatch(/inspect: 3 screenshots, 0 advisory warning/)
+  })
+
+  it('stops its preview and fails clearly when Chromium cannot launch', async () => {
+    const r = await run('node', ['scripts/inspect-presentation.mjs', 'rough', '--skip-build', '--out', 'x'], dir, { PLAYWRIGHT_BROWSERS_PATH: join(dir, 'no-browsers') })
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/inspect: ERROR Playwright Chromium is not installed/)
+    const pid = Number(/\(pid (\d+)\)/.exec(r.out)?.[1])
+    expect(pid).toBeGreaterThan(0)
+    expect(alive(pid)).toBe(false)
   })
 
   it('fails with a clear error (non-zero) on a script fault such as an unknown presentation', async () => {

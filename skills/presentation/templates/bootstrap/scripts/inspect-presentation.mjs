@@ -3,7 +3,7 @@
 // preview and prints advisory visual warnings. Warnings never change the exit code.
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { HOST, launchChromium, runNpm, startPreview } from './lib/preview.mjs'
+import { HOST, launchChromium, runNpm, startPreview, urlFor } from './lib/preview.mjs'
 
 export const DEFAULTS = { viewport: { width: 1440, height: 900 }, settleMs: 1200, outDir: '.presentation-inspect' }
 export const MIN_ATTRIBUTION_PX = 12
@@ -99,8 +99,12 @@ function collect(styleKeys) {
   }
   const items = []
   const visible = (el) => {
-    const cs = getComputedStyle(el)
-    return cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0
+    if (getComputedStyle(el).visibility === 'hidden') return false
+    for (let n = el; n; n = n.parentElement) {
+      const cs = getComputedStyle(n)
+      if (cs.display === 'none' || Number(cs.opacity) === 0) return false
+    }
+    return true
   }
   const push = (el, rect) => items.push({ name: describe(el), rect: rectOf(rect), visible: visible(el), allowOverlap: !!el.closest('[data-presentation-allow-overlap]') })
   for (const el of document.querySelectorAll('[data-presentation-canvas] *')) {
@@ -123,16 +127,30 @@ function collect(styleKeys) {
   return { items, progress: pair('[data-presentation-progress-item]', true), toc: pair('[data-presentation-toc-entry]', false), attribution }
 }
 
+/* Effective opacity includes enclosing wrappers (entrances animate on them). */
+const ENTITY_STATE = () =>
+  [...document.querySelectorAll('[data-presentation-entity]')].map((e) => {
+    let opacity = 1
+    for (let n = e; n; n = n.parentElement) opacity *= Number(getComputedStyle(n).opacity)
+    const r = e.getBoundingClientRect()
+    return { rect: `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)},${Math.round(r.height)}`, opacity }
+  })
+
+/** Wait until geometry stops moving and every entity has finished entering. Returns the lowest effective opacity seen. */
 async function waitStable(page, timeoutMs) {
-  const sig = () => page.evaluate(() => [...document.querySelectorAll('[data-presentation-entity]')].map((e) => { const r = e.getBoundingClientRect(); return `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)},${Math.round(r.height)},${getComputedStyle(e).opacity}` }).join('|'))
-  let prev = await sig()
+  const read = async () => {
+    const st = await page.evaluate(ENTITY_STATE)
+    return { sig: st.map((e) => `${e.rect},${e.opacity.toFixed(3)}`).join('|'), min: st.length ? Math.min(...st.map((e) => e.opacity)) : 1 }
+  }
+  let prev = await read()
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     await page.waitForTimeout(100)
-    const cur = await sig()
-    if (cur === prev) return
+    const cur = await read()
+    if (cur.sig === prev.sig && cur.min >= 0.999) return cur.min
     prev = cur
   }
+  return prev.min
 }
 
 /** Capture every step. Returns { files, warnings, captures }. */
@@ -142,11 +160,13 @@ export async function inspectPresentation({ cwd = process.cwd(), slug, viewport,
     if (r.code !== 0) throw new Error(`npm run build failed:\n${r.output.trim().split('\n').slice(-20).join('\n')}`)
   }
   const preview = await startPreview(cwd)
-  const browser = await launchChromium()
+  log(`inspect: preview ready at ${urlFor(preview.port)} (pid ${preview.pid})`)
+  let browser
   const files = []
   const warnings = []
   const captures = []
   try {
+    browser = await launchChromium()
     const page = await browser.newPage({ viewport })
     await page.goto(`http://${HOST}:${preview.port}/${slug}`, { waitUntil: 'load' })
     const root = page.locator('[data-step-count]')
@@ -155,13 +175,13 @@ export async function inspectPresentation({ cwd = process.cwd(), slug, viewport,
     for (let i = 0; i < count; i++) {
       const advancedAt = Date.now()
       await page.waitForTimeout(settleMs)
-      await waitStable(page, 3000)
+      const entityOpacityMin = await waitStable(page, 3000)
       const file = resolve(cwd, shotPath(outDir, slug, i))
       await mkdir(join(file, '..'), { recursive: true })
       await page.screenshot({ path: file })
       const capturedAt = Date.now()
       files.push(file)
-      captures.push({ step: i + 1, file, advancedAt, capturedAt, waitedMs: capturedAt - advancedAt })
+      captures.push({ step: i + 1, file, advancedAt, capturedAt, waitedMs: capturedAt - advancedAt, entityOpacityMin })
       log(`captured step ${i + 1}/${count}: ${file}`)
       const w = warningsFor(i + 1, await page.evaluate(collect, COMPARED_STYLES))
       for (const line of w) {
@@ -174,7 +194,7 @@ export async function inspectPresentation({ cwd = process.cwd(), slug, viewport,
       }
     }
   } finally {
-    await browser.close()
+    await browser?.close()
     await preview.stop()
   }
   await writeFile(resolve(cwd, outDir, slug, 'captures.json'), JSON.stringify({ settleMs, viewport, captures, warnings }, null, 2))

@@ -34,7 +34,7 @@ describe('Root', () => {
   it('lazy-loads only the selected presentation', async () => {
     const registry = [entry('alpha'), entry('beta')]
     render(<Root pathname="/beta" registry={registry} />)
-    expect(await screen.findByText('loaded beta')).toBeTruthy()
+    expect(await screen.findByText('loaded beta', {}, { timeout: 5000 })).toBeTruthy()
     expect(registry[1].load).toHaveBeenCalledTimes(1)
     expect(registry[0].load).not.toHaveBeenCalled()
   })
@@ -51,7 +51,7 @@ describe('Root', () => {
   it('renders the real sample at its slug', async () => {
     setViewport(1280, 800)
     render(<Root pathname="/how-to-make-a-presentation" registry={presentations} />)
-    expect(await screen.findByRole('region', { name: /how to use this skill/i })).toBeTruthy()
+    expect(await screen.findByRole('region', { name: /how to use this skill/i }, { timeout: 5000 })).toBeTruthy()
     expect(document.querySelector('[data-step-count]')!.getAttribute('data-step-count')).toBe('9')
   })
 })

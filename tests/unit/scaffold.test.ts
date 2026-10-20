@@ -207,6 +207,25 @@ describe('applying a scaffold', () => {
     expect(lines).toContain('inspection')
   })
 
+  it('keeps the host lockfile situation untouched when package.json already exists', () => {
+    const dir = tmp()
+    write(dir, 'package.json', JSON.stringify({ name: 'host' }))
+    const report = applyScaffold(dir, { confirmed: true })
+    expect(report.written).not.toContain('package-lock.json')
+    expect(existsSync(path.join(dir, 'package-lock.json'))).toBe(false)
+    expect(planScaffold(dir, ['build']).copy.map((c) => c.rel)).not.toContain('package-lock.json')
+  })
+
+  it('fails when a dependency install step fails or cannot start', () => {
+    const fail = (result: object) => () => result
+    const dir = tmp()
+    expect(() => applyScaffold(dir, { install: true, runInstall: fail({ status: 1 }) })).toThrow(/install failed.*npm install.*exit 1/s)
+    const dir2 = tmp()
+    expect(() => applyScaffold(dir2, { install: true, runInstall: fail({ status: null, error: new Error('spawn ENOENT') }) })).toThrow(/ENOENT/)
+    const dir3 = tmp()
+    expect(applyScaffold(dir3, { install: true, runInstall: fail({ status: 0 }) }).installed).toHaveLength(2)
+  })
+
   it('merges package.json without altering existing entries', () => {
     const merged = mergePackageJson({ scripts: { a: '1' }, dependencies: { x: '1' } }, { type: 'module', scripts: { a: '2', b: '3' }, dependencies: { x: '2', y: '2' }, devDependencies: { z: '1' } })
     expect(merged).toEqual({ type: 'module', scripts: { a: '1', b: '3' }, dependencies: { x: '1', y: '2' }, devDependencies: { z: '1' } })

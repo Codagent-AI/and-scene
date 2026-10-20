@@ -112,7 +112,8 @@ export function planScaffold(target, missing, templateDir = TEMPLATE_DIR) {
   for (const anchor of missing) {
     for (const entry of ANCHOR_FILES[anchor]) {
       for (const rel of filesOf(templateDir, entry)) {
-        if (rel === 'package.json' && hasPackage) continue
+        // The host keeps its own manifest and lockfile; a template lock would not match the merged manifest.
+        if (hasPackage && (rel === 'package.json' || rel === 'package-lock.json')) continue
         if (rel === '.gitignore' && existsSync(path.join(target, rel))) copy.push({ rel, mode: 'append' })
         else if (existsSync(path.join(target, rel))) skip.push(rel)
         else copy.push({ rel, mode: 'copy' })
@@ -137,7 +138,7 @@ export function mergePackageJson(existing, template) {
   return merged
 }
 
-export function applyScaffold(dir, { confirmed = false, install = false, templateDir = TEMPLATE_DIR } = {}) {
+export function applyScaffold(dir, { confirmed = false, install = false, templateDir = TEMPLATE_DIR, runInstall = spawnSync } = {}) {
   const found = detect(dir)
   if (found.needsConfirmation && !confirmed) {
     throw new Error(`confirmation required: state the target ${found.target} to the user and rerun with --confirmed`)
@@ -164,8 +165,12 @@ export function applyScaffold(dir, { confirmed = false, install = false, templat
   const installed = []
   if (install) {
     for (const [cmd, args] of [['npm', ['install']], ['npx', ['playwright', 'install', 'chromium']]]) {
-      const result = spawnSync(cmd, args, { cwd: found.target, stdio: 'inherit' })
-      installed.push(`${cmd} ${args.join(' ')}: ${result.status === 0 ? 'ok' : 'failed'}`)
+      const result = runInstall(cmd, args, { cwd: found.target, stdio: 'inherit' })
+      const ok = !result.error && result.status === 0
+      installed.push(`${cmd} ${args.join(' ')}: ${ok ? 'ok' : `failed (${result.error?.message ?? `exit ${result.status}`})`}`)
+    }
+    if (installed.some((line) => !line.includes(': ok'))) {
+      throw new Error(`install failed after scaffolding ${found.target}:\n${installed.join('\n')}`)
     }
   }
   return { ...found, written: plan.copy.map((c) => c.rel), skipped: plan.skip, mergedPackageJson: plan.mergePackage, installed }

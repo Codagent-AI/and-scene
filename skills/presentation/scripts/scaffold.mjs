@@ -3,6 +3,8 @@
 //
 //   node scaffold.mjs scaffold <project-dir> [--confirm] [--no-install]
 //   node scaffold.mjs create   <app-dir> <slug> <title>
+//   node scaffold.mjs resolve  <project-dir>   (read-only)
+//   node scaffold.mjs list     <app-dir>
 //
 // Output is JSON on stdout. `scaffold` writes nothing in a non-empty project
 // that lacks the scene kit or presentation index until `--confirm` is given.
@@ -49,6 +51,20 @@ export function isMonorepo(dir) {
 
 const hasDep = (pkg, name) => Boolean(pkg?.dependencies?.[name] ?? pkg?.devDependencies?.[name])
 
+const isRegistry = (text) => /\bslug\s*:/.test(text) && /\bload\s*:/.test(text) && /\bimport\s*\(/.test(text)
+
+/** The registry file, wherever the project keeps it. */
+export function findRegistry(dir) {
+  return sourceFiles(dir).find((f) => isRegistry(readFileSync(f, 'utf8')))
+}
+
+/** The kit's barrel file (index.ts/tsx beside the file that declares `Presentation`). */
+export function findKitIndex(dir) {
+  const decl = sourceFiles(dir).find((f) => /export\s+(default\s+)?(function|const|class)\s+Presentation\b/.test(readFileSync(f, 'utf8')))
+  if (!decl) return undefined
+  return ['index.ts', 'index.tsx'].map((n) => path.join(path.dirname(decl), n)).find((f) => existsSync(f))
+}
+
 /** Contract-level anchor detection: by capability, not by byte-identical files. */
 export function detectAnchors(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
@@ -57,12 +73,12 @@ export function detectAnchors(dir) {
     Boolean(pkg?.scripts?.build) && viteConfig && ['vite', 'react', 'typescript'].every((d) => hasDep(pkg, d))
   const texts = sourceFiles(dir).map((f) => readFileSync(f, 'utf8'))
   const some = (re) => texts.some((t) => re.test(t))
+  const declares = (name) => new RegExp(`export\\s+(default\\s+)?(function|const|class)\\s+${name}\\b`)
   const kit =
-    some(/export\s+(default\s+)?(function|const|class)\s+Presentation\b/) &&
-    some(/export\s+(default\s+)?(function|const|class)\s+Stage\b/) &&
+    ['Presentation', 'Stage', 'usePresentationNav', 'useFitScale', 'Toc', 'Footer'].every((n) => some(declares(n))) &&
     some(/\b(interface|type)\s+Step\b/) &&
     some(/\b(interface|type)\s+SceneProps\b/)
-  const index = texts.some((t) => /\bslug\s*:/.test(t) && /\bload\s*:/.test(t) && /\bimport\s*\(/.test(t))
+  const index = texts.some(isRegistry)
   return { build, kit, index }
 }
 
@@ -163,39 +179,89 @@ export function scaffold(projectDir, { confirmed = false, install = true } = {})
 }
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
-const fill = (text, slug, title) => text.replaceAll('__SLUG__', slug).replaceAll('__TITLE__', title.replaceAll('"', '\\"'))
+
+/** Index of the `]` that closes the array opened at `open`, skipping strings and comments. */
+function closingBracket(src, open) {
+  let depth = 0
+  for (let i = open; i < src.length; i++) {
+    const c = src[i]
+    if (c === '/' && src[i + 1] === '/') i = src.indexOf('\n', i) === -1 ? src.length : src.indexOf('\n', i)
+    else if (c === '/' && src[i + 1] === '*') i = src.indexOf('*/', i + 2) + 1
+    else if (c === '"' || c === "'" || c === '`') {
+      for (i++; i < src.length && src[i] !== c; i++) if (src[i] === '\\') i++
+    } else if (c === '[') depth++
+    else if (c === ']' && --depth === 0) return i
+  }
+  return -1
+}
+
+/** Appends an entry to the registry array literal, whatever follows its closing bracket. */
+export function insertRegistryEntry(source, entry) {
+  const assign = /=\s*\[/.exec(source)
+  const close = assign ? closingBracket(source, assign.index + assign[0].length - 1) : -1
+  if (close === -1) throw new Error('cannot find the registry array literal')
+  const before = source.slice(0, close).trimEnd()
+  const comma = before.endsWith(',') || before.endsWith('[') ? '' : ','
+  return `${before}${comma}\n${entry}\n${source.slice(close)}`
+}
+
+const relImport = (fromDir, file) => {
+  const rel = toPosix(path.relative(fromDir, file))
+  return rel.startsWith('.') ? rel : `./${rel}`
+}
+const fill = (text, { slug, title, kit }) =>
+  text
+    .replaceAll('__SLUG__', slug)
+    .replaceAll('__TITLE_JSON__', JSON.stringify(title))
+    .replaceAll('__TITLE__', title.replaceAll('*/', '* /'))
+    .replaceAll('__KIT__', kit)
 
 /** Adds a presentation folder from the presentation template and one registry entry. */
 export function createPresentation(appDir, { slug, title }) {
   if (!SLUG.test(slug)) throw new Error(`invalid slug "${slug}": use lowercase letters, digits, and dashes`)
-  const registryFile = path.join(appDir, 'src/presentations/index.ts')
-  if (!existsSync(registryFile)) throw new Error('no presentation index at src/presentations/index.ts; scaffold first')
+  const registryFile = findRegistry(appDir)
+  if (!registryFile) throw new Error('no presentation index found; scaffold first')
+  const kitIndex = findKitIndex(appDir)
+  if (!kitIndex) throw new Error('no scene kit index (index.ts beside the Presentation component) found; scaffold first')
   const registry = readFileSync(registryFile, 'utf8')
-  const folder = path.join(appDir, 'src/presentations', slug)
+  const folder = path.join(path.dirname(registryFile), slug)
   if (existsSync(folder) || new RegExp(`slug:\\s*['"]${slug}['"]`).test(registry)) {
     throw new Error(`presentation "${slug}" already exists`)
   }
-  const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk.tsx'),\n  },\n`
-  const close = registry.lastIndexOf(']')
-  if (close === -1) throw new Error('cannot find the end of the registry array')
+  const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk.tsx'),\n  },`
+  const updated = insertRegistryEntry(registry, entry)
   const written = []
   for (const file of walk(PRESENTATION_TEMPLATE_DIR)) {
     const rel = toPosix(path.relative(PRESENTATION_TEMPLATE_DIR, file))
     const dest = path.join(folder, rel)
     mkdirSync(path.dirname(dest), { recursive: true })
-    writeFileSync(dest, fill(readFileSync(file, 'utf8'), slug, title))
-    written.push(`src/presentations/${slug}/${rel}`)
+    const kit = relImport(path.dirname(dest), kitIndex)
+    writeFileSync(dest, fill(readFileSync(file, 'utf8'), { slug, title, kit }))
+    written.push(toPosix(path.relative(appDir, dest)))
   }
-  writeFileSync(registryFile, registry.slice(0, close) + entry + registry.slice(close))
-  return { slug, written, registry: 'src/presentations/index.ts' }
+  writeFileSync(registryFile, updated)
+  return { slug, written, registry: toPosix(path.relative(appDir, registryFile)) }
 }
 
 /** Registered presentations in an app, for the modify flow's "which one?" question. */
 export function listPresentations(appDir) {
-  const file = path.join(appDir, 'src/presentations/index.ts')
-  if (!existsSync(file)) return []
+  const file = findRegistry(appDir)
+  if (!file) return []
   const src = readFileSync(file, 'utf8')
   return [...src.matchAll(/slug:\s*['"]([^'"]+)['"]\s*,\s*title:\s*(['"`])(.*?)\2/gs)].map((m) => ({ slug: m[1], title: m[3] }))
+}
+
+/** Read-only: where the app is (or would be), which anchors exist, and which presentations are registered. */
+export function resolveProject(projectDir) {
+  const { target, reason } = resolveTarget(projectDir)
+  const anchors = detectAnchors(target)
+  return {
+    target,
+    reason,
+    anchors,
+    missing: Object.keys(anchors).filter((a) => !anchors[a]),
+    presentations: listPresentations(target),
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -206,10 +272,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       out = scaffold(path.resolve(dir), { confirmed: rest.includes('--confirm'), install: !rest.includes('--no-install') })
     } else if (cmd === 'create' && dir && rest[0] && rest[1]) {
       out = createPresentation(path.resolve(dir), { slug: rest[0], title: rest[1] })
+    } else if (cmd === 'resolve' && dir) {
+      out = resolveProject(path.resolve(dir))
     } else if (cmd === 'list' && dir) {
       out = listPresentations(path.resolve(dir))
     } else {
-      throw new Error('usage: scaffold.mjs scaffold <dir> [--confirm] [--no-install] | create <app-dir> <slug> <title> | list <app-dir>')
+      throw new Error('usage: scaffold.mjs scaffold <dir> [--confirm] [--no-install] | create <app-dir> <slug> <title> | list <app-dir> | resolve <project-dir>')
     }
     console.log(JSON.stringify(out, null, 2))
   } catch (err) {

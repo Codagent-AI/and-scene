@@ -1,4 +1,4 @@
-import type { StepMeta } from '../../../presentation-kit/types.ts'
+import type { StepMeta } from '__KIT__'
 
 /** Step narration. Numbers are derived from position; ids stay stable when steps move. */
 export const STEP_META: readonly StepMeta[] = [

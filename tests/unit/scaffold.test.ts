@@ -1,12 +1,13 @@
 import { spawnSync } from 'node:child_process'
+import ts from 'typescript'
 import { createHash } from 'node:crypto'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
-  BOOTSTRAP_DIR, SKILL_DIR, createPresentation, detectAnchors, isMonorepo, listPresentations, mergePackageJson,
-  resolveTarget, scaffold,
+  BOOTSTRAP_DIR, SKILL_DIR, createPresentation, detectAnchors, insertRegistryEntry, isMonorepo, listPresentations,
+  mergePackageJson, resolveProject, resolveTarget, scaffold,
 } from '../../skills/presentation/scripts/scaffold.mjs'
 import { listFiles, repoRoot } from './helpers.ts'
 
@@ -275,7 +276,7 @@ describe('creating a presentation', () => {
     const registry = readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8')
     for (const slug of ['how-to-make-a-presentation', 'existing', 'my-talk']) expect(registry).toContain(`slug: '${slug}'`)
     expect(listPresentations(d).map((p) => p.slug)).toEqual(['how-to-make-a-presentation', 'existing', 'my-talk'])
-    expect(readFileSync(path.join(d, 'src/presentations/my-talk/Talk.tsx'), 'utf8')).toContain('title="My \\"Great\\" Talk"')
+    expect(readFileSync(path.join(d, 'src/presentations/my-talk/Talk.tsx'), 'utf8')).toContain('title={"My \\"Great\\" Talk"}')
     expect(readFileSync(path.join(d, 'src/presentations/my-talk/steps/index.ts'), 'utf8')).toContain("groupKey: 'my-talk'")
   })
 
@@ -302,5 +303,142 @@ describe('creating a presentation', () => {
 
   it('lists nothing for an app without an index', () => {
     expect(listPresentations(tmp())).toEqual([])
+  })
+})
+
+const syntaxErrors = (file: string, text: string) =>
+  ts.transpileModule(text, {
+    fileName: file,
+    reportDiagnostics: true,
+    compilerOptions: { jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext },
+  }).diagnostics ?? []
+
+describe('generated source is valid', () => {
+  it.each(['Plain', 'He said "hi"', "It's {braced} \\ back\\slash", 'ends */ comment', 'multi `tick` ${x}'])(
+    'parses every generated file for the title %j',
+    (title) => {
+      const d = materialized()
+      const r = createPresentation(d, { slug: 'quoted', title })
+      for (const rel of r.written.filter((f) => /\.(ts|tsx)$/.test(f))) {
+        expect(syntaxErrors(rel, readFileSync(path.join(d, rel), 'utf8')).map((x) => x.messageText), rel).toEqual([])
+      }
+      expect(syntaxErrors('index.ts', readFileSync(path.join(d, r.registry), 'utf8'))).toEqual([])
+      expect(readFileSync(path.join(d, 'src/presentations/quoted/Talk.tsx'), 'utf8')).toContain(`title={${JSON.stringify(title)}}`)
+      expect(listPresentations(d).map((p) => p.slug)).toContain('quoted')
+    },
+  )
+})
+
+describe('registry insertion', () => {
+  const entry = "  { slug: 'new', title: 'N', load: () => import('./new/Talk.tsx') },"
+  const base = "export const presentations: readonly PresentationEntry[] = [\n  { slug: 'a', title: 'A', load: () => import('./a/Talk.tsx') },\n]"
+  it.each([
+    ['a satisfies clause', `${base} satisfies readonly PresentationEntry[]\n`],
+    ['as const', `${base} as const\n`],
+    ['a trailing comment with brackets', `${base}\n// keep ] sorted [\n`],
+    ['a string containing a bracket', base.replace("title: 'A'", "title: 'A ]'") + '\n'],
+    ['an array type annotation before the assignment', `${base}\n`],
+  ])('adds the entry inside the array with %s', (_n, src) => {
+    const out = insertRegistryEntry(src, entry)
+    expect(syntaxErrors('r.ts', out)).toEqual([])
+    expect(out.indexOf("slug: 'new'")).toBeGreaterThan(out.indexOf("slug: 'a'"))
+    expect(out.slice(out.indexOf(entry) + entry.length)).toMatch(/^\n\]/)
+    expect(out.startsWith(src.slice(0, src.indexOf('\n]')))).toBe(true)
+  })
+  it('handles an empty array and a missing trailing comma', () => {
+    expect(insertRegistryEntry('export const p = []\n', entry)).toBe(`export const p = [\n${entry}\n]\n`)
+    const out = insertRegistryEntry("export const p = [\n  { slug: 'a', load: () => import('./a') }\n]\n", entry)
+    expect(syntaxErrors('r.ts', out)).toEqual([])
+    expect(out).toContain('},\n' + entry)
+  })
+  it('rejects a source without an array literal', () => {
+    expect(() => insertRegistryEntry('export const p = 1', entry)).toThrow(/registry array/)
+  })
+
+  it('keeps an existing satisfies-terminated registry compiling and intact when creating', () => {
+    const d = materialized()
+    const reg = path.join(d, 'src/presentations/index.ts')
+    writeFileSync(reg, readFileSync(reg, 'utf8').replace(/\n\]\n$/, '\n] satisfies readonly PresentationEntry[]\n'))
+    createPresentation(d, { slug: 'fresh', title: 'Fresh' })
+    const text = readFileSync(reg, 'utf8')
+    expect(text.trimEnd().endsWith('] satisfies readonly PresentationEntry[]')).toBe(true)
+    expect(syntaxErrors('index.ts', text)).toEqual([])
+    expect(listPresentations(d).map((p) => p.slug)).toEqual(['how-to-make-a-presentation', 'fresh'])
+  })
+})
+
+describe('creating in a scaffold with cosmetic differences', () => {
+  it('finds the renamed registry and kit and writes importable files', () => {
+    const d = materialized()
+    renameSync(path.join(d, 'src/presentation-kit'), path.join(d, 'src/engine'))
+    mkdirSync(path.join(d, 'src/talks'))
+    renameSync(path.join(d, 'src/presentations/index.ts'), path.join(d, 'src/talks/registry.ts'))
+    expect(detectAnchors(d)).toEqual({ build: true, kit: true, index: true })
+    const r = createPresentation(d, { slug: 'moved', title: 'Moved' })
+    expect(r.registry).toBe('src/talks/registry.ts')
+    expect(r.written).toContain('src/talks/moved/Talk.tsx')
+    expect(readFileSync(path.join(d, 'src/talks/registry.ts'), 'utf8')).toContain("import('./moved/Talk.tsx')")
+    for (const rel of r.written.filter((f) => /\.(ts|tsx)$/.test(f))) {
+      const text = readFileSync(path.join(d, rel), 'utf8')
+      for (const m of text.matchAll(/from '(\.[^']+)'/g)) {
+        expect(existsSync(path.resolve(path.dirname(path.join(d, rel)), m[1])), `${rel} imports ${m[1]}`).toBe(true)
+      }
+    }
+    expect(listPresentations(d).map((p) => p.slug)).toContain('moved')
+  })
+})
+
+describe('kit anchor requires the whole engine', () => {
+  it.each([
+    ['Presentation', 'Presentation.tsx'], ['Stage', 'Stage.tsx'], ['navigation', 'usePresentationNav.ts'],
+    ['fit scaling', 'useFitScale.ts'], ['table of contents', 'chrome/Toc.tsx'], ['caption chrome', 'chrome/Footer.tsx'],
+    ['step contract', 'types.ts'],
+  ])('is not detected without the %s module', (_n, file) => {
+    const d = materialized()
+    rmSync(path.join(d, 'src/presentation-kit', file))
+    expect(detectAnchors(d).kit).toBe(false)
+  })
+})
+
+describe('every partial combination', () => {
+  const removers: Record<string, (d: string) => void> = {
+    build: (d) => rmSync(path.join(d, 'vite.config.ts')),
+    kit: (d) => rmSync(path.join(d, 'src/presentation-kit'), { recursive: true }),
+    index: (d) => rmSync(path.join(d, 'src/presentations/index.ts')),
+  }
+  const combos = [['build'], ['kit'], ['index'], ['build', 'kit'], ['build', 'index'], ['kit', 'index'], ['build', 'kit', 'index']]
+  it.each(combos)('restores exactly the missing anchors %j and leaves the rest byte-identical', (...missing) => {
+    const d = materialized()
+    write(d, 'src/unrelated.ts', 'export const keep = 1\n')
+    for (const m of missing) removers[m](d)
+    const before = snapshot(d)
+    const detected = detectAnchors(d)
+    expect(Object.keys(detected).filter((a) => !detected[a as keyof typeof detected]).sort()).toEqual([...missing].sort())
+    const r = scaffold(d, { install: false, confirmed: true })
+    expect(r.status).toBe('scaffolded')
+    expect(r.missing.sort()).toEqual([...missing].sort())
+    expect(detectAnchors(d)).toEqual({ build: true, kit: true, index: true })
+    const after = snapshot(d)
+    for (const [f, hash] of Object.entries(before)) expect(after[f], f).toBe(hash)
+  })
+})
+
+describe('read-only resolution before a modification', () => {
+  it('reports the target, anchors, and presentations without writing anything', () => {
+    const d = tmp()
+    write(d, 'package.json', JSON.stringify({ workspaces: ['apps/*'] }))
+    cpSync(BOOTSTRAP_DIR, path.join(d, 'presentations'), { recursive: true })
+    const before = snapshot(d)
+    const r = resolveProject(d)
+    expect(r.target).toBe(path.join(d, 'presentations'))
+    expect(r.missing).toEqual([])
+    expect(r.presentations.map((p) => p.slug)).toEqual(['how-to-make-a-presentation'])
+    const empty = resolveProject(tmp())
+    expect(empty.missing).toEqual(['build', 'kit', 'index'])
+    expect(empty.presentations).toEqual([])
+    expect(snapshot(d)).toEqual(before)
+    const cli = spawnSync(process.execPath, [path.join(SKILL_DIR, 'scripts/scaffold.mjs'), 'resolve', d], { cwd: os.tmpdir(), encoding: 'utf8' })
+    expect(JSON.parse(cli.stdout).presentations).toHaveLength(1)
+    expect(snapshot(d)).toEqual(before)
   })
 })

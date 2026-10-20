@@ -5,7 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   EXPECTED_SAMPLE, HOST, SAMPLE_SLUG, VerifyError, buildApp, checkRoute, checkSample, formatOutcome,
-  loadSample, parseRegistrySlugs, previewUrl, runPhases, withPreview,
+  loadSample, parseRegistrySlugs, previewUrl, renderAll, runPhases, withPreview,
 } from '../../scripts/verify.mjs'
 import { repoRoot } from './helpers.ts'
 
@@ -137,6 +137,7 @@ function fakeViteRoot(script: string) {
   return root
 }
 const SERVER = `
+require('node:fs').writeFileSync(__dirname + '/pid', String(process.pid))
 const http = require('node:http')
 const a = process.argv
 const host = a[a.indexOf('--host') + 1]
@@ -149,6 +150,57 @@ const canConnect = (port: number) =>
     s.once('connect', () => (s.destroy(), resolve(true)))
     s.once('error', () => resolve(false))
   })
+
+const pidOf = (root: string) => Number(readFileSync(path.join(root, 'node_modules/vite/bin/pid'), 'utf8'))
+const isAlive = (pid: number) => {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+const NEVER_READY = `require('node:fs').writeFileSync(__dirname + '/pid', String(process.pid)); setInterval(() => {}, 1000)`
+
+describe('preview process ownership', () => {
+  it('terminates the preview process after a successful check', async () => {
+    const root = fakeViteRoot(SERVER)
+    await withPreview(root, async () => {}, () => {})
+    expect(isAlive(pidOf(root))).toBe(false)
+  })
+
+  it('terminates the preview process when the check throws', async () => {
+    const root = fakeViteRoot(SERVER)
+    await expect(withPreview(root, async () => { throw new Error('x') }, () => {})).rejects.toThrow('x')
+    expect(isAlive(pidOf(root))).toBe(false)
+  })
+
+  it('terminates a live preview that never becomes ready', async () => {
+    const root = fakeViteRoot(NEVER_READY)
+    await expect(withPreview(root, async () => {}, () => {}, { readyTimeoutMs: 600 })).rejects.toMatchObject({
+      phase: 'render',
+      message: expect.stringContaining('not ready'),
+    })
+    expect(isAlive(pidOf(root))).toBe(false)
+  })
+
+  it('terminates the preview process when the browser cannot start', async () => {
+    const root = fakeViteRoot(SERVER)
+    const launch = async () => { throw new Error('no chromium here') }
+    await expect(renderAll(root, ['a'], () => {}, { launch })).rejects.toMatchObject({
+      phase: 'render',
+      message: expect.stringContaining('cannot launch Chromium'),
+    })
+    expect(isAlive(pidOf(root))).toBe(false)
+  })
+
+  it('logs the preview pid so callers can check it', async () => {
+    const root = fakeViteRoot(SERVER)
+    const lines: string[] = []
+    await withPreview(root, async () => {}, (l: string) => lines.push(l))
+    expect(lines[0]).toMatch(/^\[verify\] preview http:\/\/127\.0\.0\.1:\d+\/ \(pid \d+\)$/)
+  })
+})
 
 describe('preview lifecycle', () => {
   it('serves on the loopback address and stops the server afterwards', async () => {
@@ -190,6 +242,7 @@ interface FakeOptions {
   noChrome?: boolean
   titles?: string[]
   warnings?: boolean
+  crashAt?: number
 }
 class FakePage {
   handlers: Record<string, Handler[]> = {}
@@ -206,8 +259,14 @@ class FakePage {
   emit(evt: string, arg: unknown) {
     for (const h of this.handlers[evt] ?? []) h(arg)
   }
+  private crashed = false
   private enter(i: number) {
     this.index = i
+    if (this.opts.crashAt === i) {
+      // A render exception unmounts the app: the chrome hooks disappear.
+      this.crashed = true
+      this.emit('pageerror', new Error('render exploded'))
+    }
     const f = this.opts.fault
     if (f && f.step === i) {
       const fire = () => {
@@ -229,7 +288,10 @@ class FakePage {
         waitFor: async () => {
           if (this.opts.noChrome) throw new Error('timeout')
         },
-        getAttribute: async (name: string) => (name === 'data-step-count' ? String(this.count) : String(this.index)),
+        getAttribute: async (name: string) => {
+          if (this.crashed) throw new Error('element is gone')
+          return name === 'data-step-count' ? String(this.count) : String(this.index)
+        },
       }
     }
     return {
@@ -247,7 +309,7 @@ class FakePage {
     },
   }
   waitForFunction = async (_fn: unknown, [n]: [number]) => {
-    if (this.index !== n) throw new Error('timeout')
+    if (this.crashed || this.index !== n) throw new Error('timeout')
   }
 }
 const run = (page: FakePage, extra: Record<string, unknown> = {}) =>
@@ -301,6 +363,14 @@ describe('render check', () => {
       phase: 'render',
       step: 2,
       message: expect.stringContaining('did not advance'),
+    })
+  })
+
+  it('reports a render exception that removes the chrome as that step\'s page error', async () => {
+    await expect(run(new FakePage(5, { crashAt: 3 }))).rejects.toMatchObject({
+      phase: 'render',
+      step: 3,
+      message: 'page error: render exploded',
     })
   })
 

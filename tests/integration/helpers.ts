@@ -58,3 +58,19 @@ export const previewPort = (output: string): number => {
   if (!m) throw new Error(`no preview URL in output:\n${output}`)
   return Number(m[1])
 }
+
+export const previewPid = (output: string): number => {
+  const m = /preview http:\/\/127\.0\.0\.1:\d+\/ \(pid (\d+)\)/.exec(output)
+  if (!m) throw new Error(`no preview pid in output:\n${output}`)
+  return Number(m[1])
+}
+
+/** True while a process with this pid exists. */
+export const isAlive = (pid: number) => {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}

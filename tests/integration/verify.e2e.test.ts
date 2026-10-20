@@ -2,7 +2,7 @@
 import { readFileSync, rmSync, writeFileSync, appendFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { canConnect, copyRepo, previewPort, repoRoot, run } from './helpers.ts'
+import { canConnect, copyRepo, isAlive, previewPid, previewPort, repoRoot, run } from './helpers.ts'
 
 const verify = (cwd: string) => run('npm', ['run', 'verify'], cwd)
 
@@ -28,6 +28,7 @@ describe('E2E-001 reference presentation passes production verification', () => 
     for (const u of urls) expect(u).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/)
     expect(result.output).not.toMatch(/localhost|\[::1\]/)
     expect(await canConnect(previewPort(result.output))).toBe(false) // preview was cleaned up
+    expect(isAlive(previewPid(result.output))).toBe(false) // and its owned process has exited
   })
 })
 
@@ -91,6 +92,17 @@ const faults: Fault[] = [
     beforeBrowser: false,
   },
   {
+    name: 'an exception thrown while a step renders',
+    apply: (r) =>
+      edit(r, `${sampleDir}/SampleScene.tsx`, (s) =>
+        s.replace('export function SampleScene({ payload }: SceneProps<SamplePayload>) {', "export function SampleScene({ payload }: SceneProps<SamplePayload>) {\n  if (payload.step === 6) throw new Error('injected render fault')"),
+      ),
+    phase: 'render',
+    step: 5,
+    message: /injected render fault/,
+    beforeBrowser: false,
+  },
+  {
     name: 'an uncaught exception on a later step',
     apply: (r) =>
       edit(r, `${sampleDir}/SampleScene.tsx`, (s) =>
@@ -136,6 +148,7 @@ describe.each(faults)('E2E-002 verification failure: $name', (fault) => {
       expect(result.output).not.toContain('preview http')
     } else {
       expect(await canConnect(previewPort(result.output))).toBe(false)
+      expect(isAlive(previewPid(result.output))).toBe(false)
     }
   })
 

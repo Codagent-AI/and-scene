@@ -1,4 +1,4 @@
-import { act, fireEvent, render } from '@testing-library/react'
+import { act, fireEvent, render, waitFor } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -213,6 +213,48 @@ describe('sample scene composition', () => {
   it('uses a raw motion element with a stable layoutId for the coordinate-heavy tray', () => {
     const source = readFileSync(path.join(here, 'how-to-make-a-presentation/SampleScene.tsx'), 'utf8')
     expect(source).toMatch(/<motion\.div layoutId=\{ids\.tray\}/)
+  })
+
+  it('keeps retained Appear wrappers and their entities mounted, with opacity not restarted, as steps advance', async () => {
+    const next = () =>
+      act(() => {
+        fireEvent.keyDown(document.body, { key: 'ArrowRight' })
+      })
+    const entity = (id: string) => document.querySelector<HTMLElement>(`[data-presentation-id="${id}"]`)!
+    const wrapper = (id: string) => entity(id).closest<HTMLElement>('[data-presentation-appear]')!
+    render(<Presentation steps={STEPS} title="x" />)
+    next()
+    next() // step 3: card-1 lands
+    const card = entity(ids.card1)
+    const card1Wrapper = wrapper(ids.card1)
+    const you = entity(ids.you)
+    const youWrapper = wrapper(ids.you)
+    await waitFor(() => expect(card1Wrapper.style.opacity).toBe('1'), { timeout: 4000 })
+    for (let step = 4; step <= 9; step++) {
+      next()
+      // Same DOM instances, and the wrapper never drops back to the entry state.
+      expect(entity(ids.card1)).toBe(card)
+      expect(wrapper(ids.card1)).toBe(card1Wrapper)
+      expect(entity(ids.you)).toBe(you)
+      expect(wrapper(ids.you)).toBe(youWrapper)
+      expect(card1Wrapper.style.opacity).toBe('1')
+      expect(youWrapper.style.opacity).toBe('1')
+    }
+    // Only entities introduced on the step enter from the hidden state.
+  })
+
+  it('starts a newcomer hidden while continuing entities stay visible', async () => {
+    render(<Presentation steps={STEPS} title="x" />)
+    const next = () =>
+      act(() => {
+        fireEvent.keyDown(document.body, { key: 'ArrowRight' })
+      })
+    const wrapperOf = (id: string) =>
+      document.querySelector<HTMLElement>(`[data-presentation-id="${id}"]`)!.closest<HTMLElement>('[data-presentation-appear]')!
+    await waitFor(() => expect(wrapperOf(ids.you).style.opacity).toBe('1'), { timeout: 4000 })
+    next()
+    expect(wrapperOf(ids.skill).style.opacity).toBe('0')
+    expect(wrapperOf(ids.you).style.opacity).toBe('1')
   })
 
   it('shares one group so every step keeps the same scene instance', () => {

@@ -42,6 +42,30 @@ describe('step numbering and identity', () => {
   })
 })
 
+describe('reordering', () => {
+  it('renumbers existing stable-id steps by their new position', () => {
+    const [a, b, c] = makeSteps(['x', 'y', 'z'])
+    const marker = () => document.querySelector('[data-presentation-marker]')!.textContent
+    const { rerender } = render(<Presentation steps={[a, b, c]} title="Deck" />)
+    expect(marker()).toBe('01 · x')
+    expect(document.querySelector('[data-presentation-title]')!.textContent).toBe(a.title)
+    // Same steps, same ids, new order: the first slot now holds b and is numbered 01.
+    rerender(<Presentation steps={[b, c, a]} title="Deck" />)
+    expect(marker()).toBe('01 · y')
+    expect(document.querySelector('[data-presentation-title]')!.textContent).toBe(b.title)
+    act(() => {
+      fireEvent.keyDown(document.body, { key: 'ArrowRight' })
+    })
+    expect(marker()).toBe('02 · z')
+    act(() => {
+      fireEvent.keyDown(document.body, { key: 'ArrowRight' })
+    })
+    expect(marker()).toBe('03 · x')
+    expect(document.querySelector('[data-presentation-title]')!.textContent).toBe(a.title)
+    expect(a.id).not.toBe('03')
+  })
+})
+
 describe('chrome hooks', () => {
   it.each(['browse', 'present'] as const)('exposes step count and index in %s mode', (mode) => {
     render(<Presentation steps={makeSteps()} title="Deck" initialMode={mode} />)

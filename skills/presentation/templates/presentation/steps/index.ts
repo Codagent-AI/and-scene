@@ -1,4 +1,4 @@
-import type { Step } from '../../../presentation-kit/types.ts'
+import type { Step } from '__KIT__'
 import { Scene, type ScenePayload } from '../Scene.tsx'
 import { STEP_META } from './meta.ts'
 

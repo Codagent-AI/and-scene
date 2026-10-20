@@ -39,12 +39,10 @@ describe('argument parsing', () => {
 })
 
 const el = (id: number, x: number, y: number, w: number, h: number, extra: object = {}) => ({
-  id,
   label: `<p> "el${id}"`,
-  rect: { x, y, w, h },
+  rects: [{ x, y, w, h }],
   visible: true,
   allowOverlap: false,
-  ancestors: [],
   ...extra,
 })
 
@@ -74,8 +72,17 @@ describe('overlap detection', () => {
     expect(found).toEqual([['<p> "el3"', '<p> "el4"']])
   })
 
-  it('ignores a parent and its own descendant', () => {
-    expect(findOverlaps([el(1, 0, 0, 100, 40), el(2, 5, 5, 20, 10, { ancestors: [1] })])).toEqual([])
+  it('compares a parent\'s own text with a nested child\'s text instead of exempting nesting', () => {
+    // Parent text spans two lines; an absolutely positioned child sits on top of the first.
+    const parent = el(1, 0, 0, 100, 40, { rects: [{ x: 0, y: 0, w: 100, h: 20 }, { x: 0, y: 20, w: 60, h: 20 }] })
+    expect(findOverlaps([parent, el(2, 10, 5, 30, 10)])).toEqual([['<p> "el1"', '<p> "el2"']])
+    // Inline child flowing after the parent's text does not collide with it.
+    expect(findOverlaps([el(1, 0, 0, 50, 20), el(2, 50, 0, 30, 20)])).toEqual([])
+  })
+
+  it('checks every text box of an element', () => {
+    const multi = el(1, 0, 0, 0, 0, { rects: [{ x: 0, y: 0, w: 10, h: 10 }, { x: 200, y: 200, w: 50, h: 50 }] })
+    expect(findOverlaps([multi, el(2, 210, 210, 20, 20)])).toHaveLength(1)
   })
 })
 
@@ -94,9 +101,12 @@ describe('active chrome', () => {
     ['background', { backgroundColor: 'rgb(255, 180, 84)' }],
     ['border', { borderColor: 'rgb(9, 9, 9)' }],
     ['opacity', { opacity: '0.4' }],
-    ['size', { width: '28' }],
+    ['weight', { fontWeight: '700' }],
   ])('accepts a distinct %s', (_n, over) => {
     expect(isActiveIndistinct(style(over), [style(), style()])).toBe(false)
+  })
+  it('does not treat natural label width or height differences as distinction', () => {
+    expect(isActiveIndistinct(style({ width: '140', height: '30' }), [style({ width: '60' }), style({ width: '95' })])).toBe(true)
   })
   it('does not flag when there are no inactive entries to compare', () => {
     expect(isActiveIndistinct(style(), [])).toBe(false)
@@ -128,7 +138,7 @@ describe('attribution', () => {
 describe('diagnose', () => {
   const clean = {
     elements: [],
-    active: { progress: { active: style({ width: '28' }), inactive: [style()] } },
+    active: { progress: { active: style({ backgroundColor: 'rgb(9, 9, 9)' }), inactive: [style()] } },
     attribution: style({ fontSize: 13, color: 'rgb(1, 2, 3)' }),
   }
   it('is silent for a clean step', () => {

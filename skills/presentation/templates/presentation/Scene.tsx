@@ -1,7 +1,4 @@
-import { Appear } from '../../presentation-kit/nodes/Appear.tsx'
-import { Box } from '../../presentation-kit/nodes/Box.tsx'
-import { SceneLayer } from '../../presentation-kit/nodes/SceneLayer.tsx'
-import type { SceneProps } from '../../presentation-kit/types.ts'
+import { Appear, Box, SceneLayer, type SceneProps } from '__KIT__'
 import { ids } from './entities.ts'
 
 export interface ScenePayload {

@@ -49,29 +49,30 @@ const intersects = (a, b) =>
   Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 1 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 1
 
 /**
- * Pairs of visible text/chrome elements whose boxes intersect. Elements are
- * { id, label, rect, visible, allowOverlap, ancestors: id[] }. A pair is
- * exempt when either side sits inside an allow-overlap subtree, or when one
- * contains the other.
+ * Pairs of visible text/chrome elements whose painted boxes intersect.
+ * Elements are { label, rects, visible, allowOverlap }, where rects are the
+ * boxes of the element's own text (or of the control itself when it has no
+ * text), so a parent's text is compared with a nested child's text too. The
+ * only exemption is an explicit allow-overlap ancestor on either side.
  */
 export function findOverlaps(elements) {
   const out = []
-  const live = elements.filter((e) => e.visible && e.rect.w > 0 && e.rect.h > 0)
+  const live = elements.filter((e) => e.visible && e.rects.some((r) => r.w > 0 && r.h > 0))
   for (let i = 0; i < live.length; i++) {
     for (let j = i + 1; j < live.length; j++) {
       const a = live[i]
       const b = live[j]
       if (a.allowOverlap || b.allowOverlap) continue
-      if (a.ancestors.includes(b.id) || b.ancestors.includes(a.id)) continue
-      if (intersects(a.rect, b.rect)) out.push([a.label, b.label])
+      if (a.rects.some((ra) => b.rects.some((rb) => intersects(ra, rb)))) out.push([a.label, b.label])
     }
   }
   return out
 }
 
+// Computed styling only: rendered width and height differ with label length even when unstyled.
 const SIGNATURE_KEYS = [
   'color', 'backgroundColor', 'borderColor', 'borderWidth', 'opacity',
-  'width', 'height', 'fontWeight', 'textDecorationLine', 'boxShadow', 'outlineStyle',
+  'fontWeight', 'textDecorationLine', 'boxShadow', 'outlineStyle',
 ]
 const signature = (s) => SIGNATURE_KEYS.map((k) => s[k]).join('|')
 
@@ -116,11 +117,9 @@ function collectSnapshot() {
   const root = document.querySelector('[data-presentation-root]') ?? document.body
   const style = (el) => {
     const s = getComputedStyle(el)
-    const r = el.getBoundingClientRect()
     return {
       color: s.color, backgroundColor: s.backgroundColor, borderColor: s.borderTopColor,
-      borderWidth: s.borderTopWidth, opacity: s.opacity, width: `${Math.round(r.width)}`,
-      height: `${Math.round(r.height)}`, fontWeight: s.fontWeight, textDecorationLine: s.textDecorationLine,
+      borderWidth: s.borderTopWidth, opacity: s.opacity, fontWeight: s.fontWeight, textDecorationLine: s.textDecorationLine,
       boxShadow: s.boxShadow, outlineStyle: s.outlineStyle, fontSize: parseFloat(s.fontSize),
     }
   }
@@ -134,19 +133,24 @@ function collectSnapshot() {
     (el) => !['SCRIPT', 'STYLE', 'SVG', 'PATH', 'LINE', 'POLYGON'].includes(el.tagName.toUpperCase()) &&
       (hasOwnText(el) || el.matches(CHROME)),
   )
-  const ids = new Map(candidates.map((el, i) => [el, i]))
+  const textRects = (el) => {
+    const rects = []
+    for (const n of el.childNodes) {
+      if (n.nodeType !== 3 || !n.textContent.trim()) continue
+      const range = document.createRange()
+      range.selectNodeContents(n)
+      for (const r of range.getClientRects()) rects.push({ x: r.x, y: r.y, w: r.width, h: r.height })
+    }
+    return rects
+  }
   const elements = candidates.map((el) => {
     const s = getComputedStyle(el)
-    const r = el.getBoundingClientRect()
-    const ancestors = []
-    for (let p = el.parentElement; p; p = p.parentElement) if (ids.has(p)) ancestors.push(ids.get(p))
+    const box = el.getBoundingClientRect()
     return {
-      id: ids.get(el),
       label: label(el),
-      rect: { x: r.x, y: r.y, w: r.width, h: r.height },
+      rects: hasOwnText(el) ? textRects(el) : [{ x: box.x, y: box.y, w: box.width, h: box.height }],
       visible: s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity) > 0,
       allowOverlap: el.closest('[data-presentation-allow-overlap]') !== null,
-      ancestors,
     }
   })
   const group = (selector) => {

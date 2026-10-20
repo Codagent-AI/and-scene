@@ -130,7 +130,7 @@ const freePort = () =>
     })
   })
 
-async function waitReady(url, child, timeoutMs = 30_000) {
+async function waitReady(url, child, timeoutMs) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new VerifyError('render', 'preview server exited before it was ready')
@@ -156,7 +156,7 @@ const stopProcess = (child) =>
   })
 
 /** Serves the production build on the IPv4 loopback and always stops the server. */
-export async function withPreview(root, fn, log = console.log) {
+export async function withPreview(root, fn, log = console.log, { readyTimeoutMs = 30_000 } = {}) {
   const port = await freePort()
   const vite = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')
   const child = spawn(
@@ -165,8 +165,8 @@ export async function withPreview(root, fn, log = console.log) {
     { cwd: root, stdio: 'ignore' },
   )
   try {
-    log(`[verify] preview ${previewUrl(port)}`)
-    await waitReady(previewUrl(port), child)
+    log(`[verify] preview ${previewUrl(port)} (pid ${child.pid})`)
+    await waitReady(previewUrl(port), child, readyTimeoutMs)
     return await fn(port)
   } finally {
     await stopProcess(child)
@@ -237,14 +237,14 @@ export async function checkRoute(page, url, { expected, settleMs = SETTLE_MS, lo
   assertClean()
 }
 
-export async function renderAll(root, slugs, log = console.log) {
-  const { chromium } = await import('playwright')
+export async function renderAll(root, slugs, log = console.log, { launch } = {}) {
+  const launchBrowser = launch ?? (async () => (await import('playwright')).chromium.launch())
   await withPreview(
     root,
     async (port) => {
       let browser
       try {
-        browser = await chromium.launch()
+        browser = await launchBrowser()
       } catch (err) {
         throw new VerifyError('render', `cannot launch Chromium: ${err.message}`)
       }

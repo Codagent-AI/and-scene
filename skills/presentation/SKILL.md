@@ -20,10 +20,12 @@ that directory first and use absolute paths. The helper script is
 Choose create or modify from the request.
 
 - **Create:** 1 Gather, 2 Resolve the target and scaffold, 3 Generate, 4 Self-verify.
-- **Modify an existing presentation:** 2 Resolve the target and scaffold (a no-op when all
-  three anchors exist), then "Modify", then 4 Self-verify. Skip "Gather".
+- **Modify an existing presentation:** "Modify" step 1 (read-only: resolve the app and
+  identify the presentation), then 2 Resolve the target and scaffold (a no-op when all
+  three anchors exist), then the rest of "Modify", then 4 Self-verify. Skip "Gather".
 
-Always finish step 2 before creating or modifying anything.
+Nothing is written, scaffolding included, until a modify request names its target
+presentation. Finish step 2 before creating or editing any presentation file.
 
 ### 1. Gather (create)
 
@@ -124,13 +126,15 @@ or removed: the registry only gains a line. Then:
 
 When asked to change a presentation:
 
-1. If the target is unspecified or ambiguous, run
-   `node <skill-dir>/scripts/scaffold.mjs list <app-dir>`, list the existing
-   presentations, and ask which one. Change nothing until the target is identified.
-2. Once identified, ask only about the requested changes (steps, entities, or style).
-   Do not restart the create questions and do not scaffold over existing
-   infrastructure (step 2 reuses anchors that exist). Edit only that presentation's files;
-   touch the registry or verification files only when needed.
+1. Resolve without writing: `node <skill-dir>/scripts/scaffold.mjs resolve <project-dir>`
+   prints the app `target`, which anchors exist, and the registered `presentations`. If the
+   target presentation is unspecified or ambiguous, list those presentations and ask which
+   one. Change nothing, and run no scaffold write, until the target is identified.
+2. Run step 2 for the resolved target (it reuses every anchor that exists and only adds
+   missing ones; it never scaffolds over existing infrastructure).
+3. Ask only about the requested changes (steps, entities, or style). Do not restart the
+   create questions. Edit only that presentation's files; touch the registry or
+   verification files only when needed.
 
 ### 4. Self-verify before reporting completion
 

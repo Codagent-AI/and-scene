@@ -1,0 +1,10 @@
+/*
+ * Presentation-owned styling for "__TITLE__".
+ * The scene kit ships no styles: choose this presentation's palette, type, and
+ * spacing here, following the visual direction gathered from the user.
+ *
+ * Make the active step visibly distinct and the attribution legible, e.g.:
+ *   [data-presentation-progress-item][data-presentation-active='true'] { ... }
+ *   [data-presentation-toc-item][data-presentation-active='true'] { ... }
+ *   [data-presentation-attribution] { font-size: 12px; ... }
+ */

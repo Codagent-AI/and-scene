@@ -334,6 +334,20 @@ const lazy = () => import('./lazy')
     ).toEqual(['./d', './f', './h', './side', './lazy'])
   })
 
+  it('does not let a statement without a from clause swallow a later type-only import', () => {
+    expect(runtimeImports("export const App = 1\nimport type { T } from './t'\nexport function f() {}\nimport type U from './u'\n")).toEqual([])
+    expect(runtimeImports("import type from './x'\nimport * as ns from './ns'\nimport def, { a,\n  b } from './both'\nexport * from './all'\n")).toEqual(['./x', './ns', './both', './all'])
+  })
+
+  it('ignores a commented-out module script when looking for the app entry', () => {
+    const dir = buildOnlyHost()
+    applyScaffold(dir, { confirmed: true })
+    cpSync(path.join(TEMPLATE_DIR, 'src/main.tsx'), path.join(dir, 'src/main.tsx'))
+    write(dir, 'src/host.tsx', 'export const host = 1\n')
+    write(dir, 'index.html', '<html><body><!-- <script type="module" src="/src/main.tsx"></script> --><script type="module" src="/src/host.tsx"></script></body></html>')
+    expect(anchorsAt(dir).index).toBe(false)
+  })
+
   it('has nothing to follow up on after a full scaffold', () => {
     const dir = tmp()
     const report = applyScaffold(dir)

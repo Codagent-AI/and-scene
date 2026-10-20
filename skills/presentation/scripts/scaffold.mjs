@@ -84,7 +84,7 @@ function pathAliases(dir) {
 /** Module specifiers a browser actually loads: type-only imports and exports are erased by the compiler. */
 export function runtimeImports(source) {
   const specs = []
-  for (const [, , typeOnly, clause, spec] of source.matchAll(/(^|[;\n])\s*(?:import|export)\s+(type\s+)?([^'";]*?)\s*from\s*['"]([^'"]+)['"]/g)) {
+  for (const [, , typeOnly, clause, spec] of source.matchAll(/(^|[;\n])\s*(?:import|export)\s+(type\s+)?((?=[\w$*{])(?!from\s*['"])(?:[\w$]+\s*,?\s*)?(?:\*\s*as\s+[\w$]+|\*|\{[^}]*\})?)\s*from\s*['"]([^'"]+)['"]/g)) {
     const names = /^\{([^}]*)\}$/.exec(clause.trim())?.[1]
     const allInlineTypes = names !== undefined && names.split(',').filter((n) => n.trim()).every((n) => /^type\s/.test(n.trim()))
     if (!typeOnly && !allInlineTypes) specs.push(spec)
@@ -98,7 +98,7 @@ export function runtimeImports(source) {
 function htmlEntries(html) {
   const entries = []
   const inline = []
-  for (const [, attrs, body] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+  for (const [, attrs, body] of html.replace(/<!--[\s\S]*?-->/g, '').matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
     if (!/\btype\s*=\s*["']module["']/i.test(attrs)) continue
     const src = /\bsrc\s*=\s*["']([^"']+)["']/i.exec(attrs)?.[1]
     if (src) entries.push(src.startsWith('/') ? `.${src}` : src)

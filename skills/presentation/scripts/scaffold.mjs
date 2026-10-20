@@ -76,9 +76,15 @@ export function findKitIndex(dir) {
 function viteBuild(dir, pkg) {
   if (['ts', 'js', 'mjs', 'mts', 'cjs'].some((e) => existsSync(path.join(dir, `vite.config.${e}`)))) return true
   if (!/\bvite\b/.test(pkg.scripts.build)) return false
-  return !readdirSync(dir).some(
-    (n) => /^tsconfig.*\.json$/.test(n) && /vite\.config/.test(readFileSync(path.join(dir, n), 'utf8')),
-  )
+  // An entry that cannot be read as a file (a directory, a broken symlink) references nothing.
+  const refsViteConfig = (n) => {
+    try {
+      return /vite\.config/.test(readFileSync(path.join(dir, n), 'utf8'))
+    } catch {
+      return false
+    }
+  }
+  return !readdirSync(dir).some((n) => /^tsconfig.*\.json$/.test(n) && refsViteConfig(n))
 }
 
 /** Contract-level anchor detection: by capability, not by byte-identical files. */

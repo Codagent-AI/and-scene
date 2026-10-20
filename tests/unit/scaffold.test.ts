@@ -131,6 +131,12 @@ describe('zero-config Vite build anchor', () => {
     expect(detectAnchors(d).build).toBe(false)
   })
 
+  it('ignores a tsconfig-named entry that cannot be read as a file', () => {
+    const d = zeroConfig()
+    mkdirSync(path.join(d, 'tsconfig.broken.json'))
+    expect(detectAnchors(d).build).toBe(true)
+  })
+
   it('still reports the build missing when the build script does not run vite', () => {
     const d = tmp()
     write(d, 'package.json', buildPkg({ scripts: { build: 'tsc -b' } }))

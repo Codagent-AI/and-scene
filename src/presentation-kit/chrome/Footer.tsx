@@ -1,5 +1,4 @@
-import type { Step } from '../types.ts'
-import type { PresentationMode } from '../types.ts'
+import type { PresentationMode, Step } from '../types.ts'
 import { Toc } from './Toc.tsx'
 
 interface FooterProps {

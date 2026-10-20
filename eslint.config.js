@@ -20,10 +20,16 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.mjs', '*.config.ts', 'tests/**/*.ts', 'tools/**/*.mjs'],
+    files: ['**/*.mjs', '*.config.ts'],
     extends: [js.configs.recommended],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
     },
+  },
+  {
+    // Vitest type-checks nothing here and the base rules misread type annotations.
+    files: ['tests/**/*.ts'],
+    languageOptions: { globals: globals.node },
+    rules: { 'no-undef': 'off', 'no-unused-vars': 'off' },
   },
 ])

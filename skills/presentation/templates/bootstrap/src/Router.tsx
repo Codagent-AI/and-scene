@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentType } from 'react'
+import { createElement, lazy, Suspense, type ComponentType } from 'react'
 import { Landing } from './Landing.tsx'
 import type { PresentationEntry } from './presentations/index.ts'
 
@@ -18,10 +18,6 @@ export function Router({ registry, pathname }: { registry: readonly Presentation
   const slug = pathname.replace(/^\/+|\/+$/g, '')
   const entry = registry.find((e) => e.slug === slug)
   if (!entry) return <Landing registry={registry} />
-  const Presentation = lazyFor(entry)
-  return (
-    <Suspense fallback={null}>
-      <Presentation />
-    </Suspense>
-  )
+  // The lazy component is memoized per registry entry, so its identity is stable across renders.
+  return <Suspense fallback={null}>{createElement(lazyFor(entry))}</Suspense>
 }

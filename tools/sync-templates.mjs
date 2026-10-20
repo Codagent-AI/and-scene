@@ -1,5 +1,5 @@
 // Refreshes the bootstrap template's derived copies from their canonical sources:
-// src/presentation-kit (minus tests), scripts/, and templates/presentation as the starter presentation.
+// src/presentation-kit (minus tests), scripts/, the host entry files, and templates/presentation as the starter presentation.
 import { cpSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -22,4 +22,7 @@ function copyTree(from, to) {
 copyTree(path.join(root, 'src', 'presentation-kit'), path.join(bootstrap, 'src', 'presentation-kit'))
 copyTree(path.join(root, 'scripts'), path.join(bootstrap, 'scripts'))
 copyTree(path.join(root, 'skills', 'presentation', 'templates', 'presentation'), path.join(bootstrap, 'src', 'presentations', 'getting-started'))
+for (const file of ['main.tsx', 'Router.tsx', 'Landing.tsx', 'index.css']) {
+  cpSync(path.join(root, 'src', file), path.join(bootstrap, 'src', file))
+}
 console.log('templates synced')

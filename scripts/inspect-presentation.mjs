@@ -16,7 +16,10 @@ export const DEFAULTS = {
 
 const BROWSER_DEFAULT_LINK_COLORS = new Set(['rgb(0, 0, 238)', 'rgb(85, 26, 139)'])
 
-/** Computed properties that make an active control look different from its inactive siblings. */
+/**
+ * Computed properties that make an active control look different from its inactive siblings.
+ * Width is left out: entries with different labels differ in width whatever their styling.
+ */
 export const ACTIVE_STYLE_PROPS = [
   'color',
   'backgroundColor',
@@ -28,7 +31,6 @@ export const ACTIVE_STYLE_PROPS = [
   'outlineStyle',
   'outlineColor',
   'outlineWidth',
-  'width',
   'height',
 ]
 
@@ -138,7 +140,7 @@ export async function captureSteps({ count, settleMs, advance, waitForIndex, sle
 }
 
 /** Runs in the page: raw measurements for the pure diagnostics above. */
-function measurePage(overlapSelector) {
+function measurePage({ overlapSelector, styleProps }) {
   const visible = (el) => {
     const rect = el.getBoundingClientRect()
     const style = getComputedStyle(el)
@@ -174,9 +176,7 @@ function measurePage(overlapSelector) {
 
   const styleOf = (el) => {
     const cs = getComputedStyle(el)
-    return Object.fromEntries(
-      ['color', 'backgroundColor', 'borderTopColor', 'opacity', 'fontWeight', 'textDecorationLine', 'boxShadow', 'outlineStyle', 'outlineColor', 'outlineWidth', 'width', 'height'].map((p) => [p, cs[p]]),
-    )
+    return Object.fromEntries(styleProps.map((p) => [p, cs[p]]))
   }
   const group = (name, selector) => {
     const all = [...document.querySelectorAll(selector)].filter(visible)
@@ -224,7 +224,7 @@ async function capturePass({ page, origin, slug, viewport, outDir, options, log 
   await page.waitForSelector('[data-step-count]', { timeout: 10000 })
   if ((await page.getAttribute('[data-presentation-root]', 'data-presentation-mode')) !== options.mode) await page.keyboard.press('p')
   const count = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
-  const selector = '[data-presentation-allow-overlap]'
+  const measure = { overlapSelector: '[data-presentation-allow-overlap]', styleProps: ACTIVE_STYLE_PROPS }
   const result = await captureSteps({
     count,
     settleMs: options.settleMs,
@@ -233,7 +233,7 @@ async function capturePass({ page, origin, slug, viewport, outDir, options, log 
       page.waitForFunction((n) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(n), i, { timeout: 5000 }),
     sleep,
     now: () => Date.now(),
-    analyze: async () => analyzeMeasurements(await page.evaluate(measurePage, selector)),
+    analyze: async () => analyzeMeasurements(await page.evaluate(measurePage, measure)),
     shoot: async (step) => {
       const file = path.join(outDir, stepFileName(step))
       await page.screenshot({ path: file })

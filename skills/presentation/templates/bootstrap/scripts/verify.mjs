@@ -54,8 +54,9 @@ function blankComments(src) {
       stop = end === -1 ? src.length : end + 2
       out += src.slice(i, stop).replace(/[^\n]/g, ' ')
     } else if (c === '"' || c === "'" || c === '`') {
-      while (stop < src.length && src[stop] !== c) stop += src[stop] === '\\' ? 2 : 1
-      stop = Math.min(stop + 1, src.length)
+      // Only template literals span lines; an unterminated quote ends at its line.
+      while (stop < src.length && src[stop] !== c && (c === '`' || src[stop] !== '\n')) stop += src[stop] === '\\' ? 2 : 1
+      stop = Math.min(stop + (src[stop] === c ? 1 : 0), src.length)
       out += src.slice(i, stop)
     } else {
       out += c

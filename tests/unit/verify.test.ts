@@ -63,6 +63,7 @@ describe('sample check', () => {
     expect(parseRegistrySlugs("{ 'slug': 'a', \"title\": 'x' }, { \"slug\": \"b-c\" }")).toEqual(['a', 'b-c'])
     // Examples in comments are documentation, not routes the browser could visit.
     expect(parseRegistrySlugs("// { slug: 'doc' }\n/* { \"slug\": 'doc2' } */\n{ slug: 'real' }")).toEqual(['real'])
+    expect(parseRegistrySlugs("const re = /'/\n// { slug: 'doc' }\n{ slug: 'real' }")).toEqual(['real'])
     const real = await loadSample(repoRoot)
     expect(() => checkSample(real)).not.toThrow()
     const empty = await loadSample(tmp())

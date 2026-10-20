@@ -72,8 +72,9 @@ export function blankComments(src) {
       stop = end === -1 ? src.length : end + 2
       out += src.slice(i, stop).replace(/[^\n]/g, ' ')
     } else if (c === '"' || c === "'" || c === '`') {
-      while (stop < src.length && src[stop] !== c) stop += src[stop] === '\\' ? 2 : 1
-      stop = Math.min(stop + 1, src.length)
+      // Only template literals span lines; an unterminated quote ends at its line.
+      while (stop < src.length && src[stop] !== c && (c === '`' || src[stop] !== '\n')) stop += src[stop] === '\\' ? 2 : 1
+      stop = Math.min(stop + (src[stop] === c ? 1 : 0), src.length)
       out += src.slice(i, stop)
     } else {
       out += c
@@ -120,13 +121,14 @@ function tscInvocations(script, scripts, depth = 0) {
   const found = []
   for (const segment of script.split(/&&|\|\||;|\|/)) {
     const tokens = segment.trim().split(/\s+/)
-    const tsc = tokens.findIndex((t) => t === 'tsc' || t.endsWith('/tsc'))
+    const tsc = tokens.findIndex((t) => /(^|\/)(vue-)?tsc$/.test(t))
     if (tsc !== -1) {
       const args = tokens.slice(tsc + 1)
       const build = args.includes('-b') || args.includes('--build')
       const projects = []
       args.forEach((a, i) => {
         if (a === '-p' || a === '--project') projects.push(args[i + 1])
+        else if (a.startsWith('--project=')) projects.push(a.slice('--project='.length))
         else if (build && !a.startsWith('-')) projects.push(a)
       })
       found.push({ build, projects: projects.filter(Boolean).length ? projects.filter(Boolean) : ['tsconfig.json'] })
@@ -140,6 +142,9 @@ function tscInvocations(script, scripts, depth = 0) {
 
 /** Text of every tsconfig the build script actually compiles: its projects, `extends`, and (with -b) `references`. */
 function buildTsconfigs(dir, pkg) {
+  const invocations = tscInvocations(pkg.scripts.build, pkg.scripts)
+  // The build compiles TypeScript in a way this cannot follow: assume any tsconfig may take part.
+  let unresolved = invocations.length === 0 && /\btsc\b/.test(pkg.scripts.build)
   const texts = []
   const seen = new Set()
   const visit = (target, followReferences) => {
@@ -152,6 +157,8 @@ function buildTsconfigs(dir, pkg) {
     try {
       text = readFileSync(file, 'utf8')
     } catch {
+      // A selected project that cannot be read is not followable: fall back to every tsconfig.
+      if (!existsSync(file)) unresolved = true
       return // an entry that cannot be read as a file references nothing
     }
     texts.push(text)
@@ -164,10 +171,19 @@ function buildTsconfigs(dir, pkg) {
       }
     }
   }
-  for (const { build, projects } of tscInvocations(pkg.scripts.build, pkg.scripts)) {
+  for (const { build, projects } of invocations) {
     for (const project of projects) visit(project, build)
   }
-  return texts
+  if (!unresolved) return texts
+  return readdirSync(dir)
+    .filter((n) => /^tsconfig.*\.json$/.test(n))
+    .map((n) => {
+      try {
+        return readFileSync(path.join(dir, n), 'utf8')
+      } catch {
+        return ''
+      }
+    })
 }
 
 /**

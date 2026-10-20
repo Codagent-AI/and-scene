@@ -141,6 +141,10 @@ describe('zero-config Vite build anchor', () => {
       'tsconfig.app.json': '{ "extends": "./tsconfig.base.json" }',
       'tsconfig.base.json': '{ "include": ["vite.config.ts"] }',
     }],
+    ['a project selected with --project=', 'tsc --project=tsconfig.app.json && vite build', { 'tsconfig.app.json': '{ "include": ["vite.config.ts"] }' }],
+    ['a project selected by vue-tsc', 'vue-tsc -p tsconfig.app.json && vite build', { 'tsconfig.app.json': '{ "include": ["vite.config.ts"] }' }],
+    ['any tsconfig when the selected project is missing', 'tsc -p tsconfig.gone.json && vite build', { 'tsconfig.other.json': '{ "include": ["vite.config.ts"] }' }],
+    ['any tsconfig when tsc is invoked in a form that cannot be followed', 'node -e "run(\'tsc\')" && vite build', { 'tsconfig.other.json': '{ "include": ["vite.config.ts"] }' }],
     ['a project reached through another script', 'npm run typecheck && vite build', { 'tsconfig.json': '{ "include": ["vite.config.ts"] }' }],
   ])('reports the build missing when %s names the absent vite config', (_n, build, files) => {
     const d = tmp()
@@ -449,6 +453,11 @@ describe('registry examples in comments', () => {
     createPresentation(d, { slug: 'comment-only', title: 'Real now' })
     expect(listPresentations(d).map((p) => p.slug)).toEqual(['how-to-make-a-presentation', 'comment-only'])
     expect(syntaxErrors('index.ts', readFileSync(file, 'utf8'))).toEqual([])
+  })
+
+  it('end an unterminated quote at its line instead of hiding later comments', () => {
+    const src = "const re = /'/\n// { slug: 'doc' }\nconst q = 1"
+    expect(blankComments(src)).not.toContain('doc')
   })
 
   it('keep strings that merely contain comment markers', () => {

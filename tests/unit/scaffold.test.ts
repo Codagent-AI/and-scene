@@ -4,7 +4,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, 
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { anchorsAt, applyScaffold, detect, findRegistry, isEmpty, isMonorepo, mergePackageJson, planScaffold, TEMPLATE_DIR } from '../../skills/presentation/scripts/scaffold.mjs'
+import { anchorsAt, applyScaffold, detect, findRegistry, isEmpty, isMonorepo, mergePackageJson, planScaffold, registryIsRouted, runtimeImports, TEMPLATE_DIR } from '../../skills/presentation/scripts/scaffold.mjs'
 
 const tmp = () => mkdtempSync(path.join(os.tmpdir(), 'scaffold-unit-'))
 const write = (dir: string, rel: string, content = '') => {
@@ -292,6 +292,46 @@ describe('routing the registry (index anchor)', () => {
     write(dir, 'src/a.ts', "export const slugify = (slug) => slug\nconst load = { load: 1 }\nimport('./x')\n")
     write(dir, 'src/presentations/registry.ts', "export const R = [{ slug: 'a', title: 'A', load: () => import('./a/Talk') }]\n")
     expect(findRegistry(dir)).toBe(path.join('src', 'presentations', 'registry.ts'))
+  })
+
+  it('does not treat a type-only import of the registry as a route', () => {
+    const dir = buildOnlyHost()
+    applyScaffold(dir, { confirmed: true })
+    write(dir, 'src/main.tsx', "import type { PresentationEntry } from './presentations/index.ts'\nimport { type A } from './Router.tsx'\nexport type { B } from './Landing.tsx'\nconst none: PresentationEntry[] = []\ndocument.body.append(String(none.length))\n")
+    expect(anchorsAt(dir).index).toBe(false)
+    expect(applyScaffold(dir, { confirmed: true }).remaining).toEqual(['index'])
+  })
+
+  it('finds the app entry among several scripts, ignoring a preceding non-module script', () => {
+    const dir = buildOnlyHost()
+    applyScaffold(dir, { confirmed: true })
+    cpSync(path.join(TEMPLATE_DIR, 'src/main.tsx'), path.join(dir, 'src/main.tsx'))
+    const html = readFileSync(path.join(dir, 'index.html'), 'utf8').replace('<head>', '<head>\n    <script src="/vendor.js"></script>')
+    write(dir, 'index.html', html)
+    expect(html.indexOf('vendor.js')).toBeLessThan(html.indexOf('type="module"'))
+    expect(anchorsAt(dir).index).toBe(true)
+  })
+
+  it('follows the imports of an inline module script', () => {
+    const dir = buildOnlyHost()
+    applyScaffold(dir, { confirmed: true })
+    cpSync(path.join(TEMPLATE_DIR, 'src/main.tsx'), path.join(dir, 'src/main.tsx'))
+    write(dir, 'index.html', '<html><body><div id="root"></div><script type="module">import "/src/main.tsx"</script></body></html>')
+    expect(registryIsRouted(dir, path.join('src', 'presentations', 'index.ts'))).toBe(true)
+  })
+
+  it('lists only the imports a browser would load', () => {
+    expect(
+      runtimeImports(`import type { A } from './a'
+import { type B, type C } from './b'
+import { D, type E } from './d'
+import F from './f'
+export type { G } from './g'
+export { H } from './h'
+import './side'
+const lazy = () => import('./lazy')
+`),
+    ).toEqual(['./d', './f', './h', './side', './lazy'])
   })
 
   it('has nothing to follow up on after a full scaffold', () => {

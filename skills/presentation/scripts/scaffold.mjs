@@ -81,12 +81,36 @@ function pathAliases(dir) {
   return aliases
 }
 
-/** Whether the app's browser entry (index.html script) reaches the registry through its imports. */
+/** Module specifiers a browser actually loads: type-only imports and exports are erased by the compiler. */
+export function runtimeImports(source) {
+  const specs = []
+  for (const [, , typeOnly, clause, spec] of source.matchAll(/(^|[;\n])\s*(?:import|export)\s+(type\s+)?([^'";]*?)\s*from\s*['"]([^'"]+)['"]/g)) {
+    const names = /^\{([^}]*)\}$/.exec(clause.trim())?.[1]
+    const allInlineTypes = names !== undefined && names.split(',').filter((n) => n.trim()).every((n) => /^type\s/.test(n.trim()))
+    if (!typeOnly && !allInlineTypes) specs.push(spec)
+  }
+  for (const [, spec] of source.matchAll(/(?:^|[;\n])\s*import\s*['"]([^'"]+)['"]/g)) specs.push(spec)
+  for (const [, spec] of source.matchAll(/\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g)) specs.push(spec)
+  return specs
+}
+
+/** Module entry points of index.html: every `<script type="module" src>` plus the imports of inline module scripts. */
+function htmlEntries(html) {
+  const entries = []
+  const inline = []
+  for (const [, attrs, body] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    if (!/\btype\s*=\s*["']module["']/i.test(attrs)) continue
+    const src = /\bsrc\s*=\s*["']([^"']+)["']/i.exec(attrs)?.[1]
+    if (src) entries.push(src.startsWith('/') ? `.${src}` : src)
+    else inline.push(...runtimeImports(body).map((spec) => (spec.startsWith('/') ? `.${spec}` : spec)))
+  }
+  return [...entries, ...inline]
+}
+
+/** Whether the app's browser entry (a module script in index.html) reaches the registry through its runtime imports. */
 export function registryIsRouted(dir, registryRel) {
   if (!registryRel) return false
   const html = existsSync(path.join(dir, 'index.html')) ? readFileSync(path.join(dir, 'index.html'), 'utf8') : ''
-  const entry = /<script[^>]*\bsrc=["']([^"']+)["']/i.exec(html)?.[1]
-  if (!entry) return false
   const aliases = pathAliases(dir)
   let untraceable = false
   const resolveSpec = (from, spec) => {
@@ -104,16 +128,17 @@ export function registryIsRouted(dir, registryRel) {
     }
     return null
   }
-  const start = resolveFile(path.resolve(dir, entry.startsWith('/') ? `.${entry}` : entry))
   const target = path.join(dir, registryRel)
   const seen = new Set()
-  const queue = start ? [start] : []
+  const queue = htmlEntries(html)
+    .map((entry) => resolveFile(path.resolve(dir, entry)))
+    .filter(Boolean)
   while (queue.length) {
     const file = queue.pop()
     if (seen.has(file)) continue
     seen.add(file)
     if (file === target) return true
-    for (const [, spec] of readFileSync(file, 'utf8').matchAll(/(?:from\s+|import\s*\(?\s*)['"]([^'"]+)['"]/g)) {
+    for (const spec of runtimeImports(readFileSync(file, 'utf8'))) {
       const next = resolveSpec(file, spec)
       if (next) queue.push(next)
     }

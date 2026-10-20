@@ -201,6 +201,23 @@ describe('preview process ownership', () => {
     })
   })
 
+  it('does not hang when the preview was killed by a signal before it was ready', async () => {
+    const root = fakeViteRoot("process.kill(process.pid, 'SIGKILL')")
+    await expect(withPreview(root, async () => {}, () => {})).rejects.toMatchObject({
+      phase: 'render',
+      message: expect.stringContaining('exited before it was ready'),
+    })
+  })
+
+  it('does not hang when the preview is killed by a signal during the check', async () => {
+    const root = fakeViteRoot(SERVER)
+    await withPreview(root, async () => {
+      process.kill(pidOf(root), 'SIGKILL')
+      await new Promise((r) => setTimeout(r, 200))
+    }, () => {})
+    expect(isAlive(pidOf(root))).toBe(false)
+  })
+
   it('logs the preview pid so callers can check it', async () => {
     const root = fakeViteRoot(SERVER)
     const lines: string[] = []

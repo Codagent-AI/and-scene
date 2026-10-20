@@ -130,6 +130,9 @@ const freePort = () =>
     })
   })
 
+/** A child killed by a signal has exitCode null and signalCode set. */
+const hasExited = (child) => child.exitCode !== null || child.signalCode !== null
+
 const stderrOf = (child) => {
   const text = (child.stderrText ?? '').trim()
   return text ? `\n${text.split('\n').slice(-15).join('\n')}` : ''
@@ -138,7 +141,7 @@ const stderrOf = (child) => {
 async function waitReady(url, child, timeoutMs) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
+    if (hasExited(child)) {
       throw new VerifyError('render', `preview server exited before it was ready${stderrOf(child)}`)
     }
     try {
@@ -153,14 +156,14 @@ async function waitReady(url, child, timeoutMs) {
 
 const stopProcess = (child) =>
   new Promise((resolve) => {
-    if (child.exitCode !== null) return resolve()
+    if (hasExited(child)) return resolve()
     const timer = setTimeout(() => child.kill('SIGKILL'), 3000)
     child.once('exit', () => {
       clearTimeout(timer)
       resolve()
     })
     // It may have exited between the first check and the listener; do not wait for an event that already fired.
-    if (child.exitCode !== null) {
+    if (hasExited(child)) {
       clearTimeout(timer)
       return resolve()
     }

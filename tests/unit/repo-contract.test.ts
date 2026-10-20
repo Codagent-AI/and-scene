@@ -40,6 +40,12 @@ describe('tracked files', () => {
     expect(tracked.filter((f) => f.startsWith('.github/'))).toEqual([])
   })
 
+  it('includes the reference sample, the registry, and the skill', () => {
+    for (const rel of ['src/presentations/index.ts', 'src/presentations/how-to-make-a-presentation/Talk.tsx', 'src/presentations/how-to-make-a-presentation/steps.ts', 'src/presentations/how-to-make-a-presentation/entities.ts', 'verify.config.json', 'skills/presentation/SKILL.md', 'scripts/verify.mjs', 'scripts/inspect-presentation.mjs']) {
+      expect(tracked, rel).toContain(rel)
+    }
+  })
+
   it('ignores generated output', () => {
     const ignore = read('.gitignore').split('\n')
     for (const entry of ['node_modules', 'dist', 'inspection']) expect(ignore).toContain(entry)

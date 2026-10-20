@@ -10,8 +10,9 @@ vi.mock('motion/react', async () => {
       const recorded = JSON.stringify({ initial, animate, exit, layout, layoutId, transition })
       return React.createElement(tag, { ref, 'data-motion': recorded, ...rest })
     })
+  const cache: Record<string, ReturnType<typeof make>> = {}
   return {
-    motion: new Proxy({}, { get: (_target, tag: string) => make(tag) }),
+    motion: new Proxy({}, { get: (_target, tag: string) => (cache[tag] ??= make(tag)) }),
     AnimatePresence: ({ children }: { children: unknown }) => children,
     LayoutGroup: ({ children }: { children: unknown }) => children,
   }
@@ -58,6 +59,19 @@ describe('primitives', () => {
     expect((container.firstElementChild as HTMLElement).style.left).toBe('9px')
     const plain = render(<Box id="f" />).container.firstElementChild as HTMLElement
     expect(plain.style.position).toBe('')
+  })
+
+  it('morphs a persisting entity in place: same element, new geometry, label and emphasis', () => {
+    const view = render(<Box id="e" rect={{ x: 1, y: 2, w: 3, h: 4 }} data-emphasis="off">before</Box>)
+    const before = view.container.firstElementChild as HTMLElement
+    view.rerender(<Box id="e" rect={{ x: 10, y: 20, w: 30, h: 40 }} data-emphasis="on">after</Box>)
+    const after = view.container.firstElementChild as HTMLElement
+    expect(after).toBe(before)
+    expect([after.style.left, after.style.top, after.style.width, after.style.height]).toEqual(['10px', '20px', '30px', '40px'])
+    expect(after.textContent).toBe('after')
+    expect(after.getAttribute('data-emphasis')).toBe('on')
+    expect(motionOf(after)).toMatchObject({ layoutId: 'e', layout: true })
+    expect(motionOf(after).initial).toBeUndefined()
   })
 
   it('Box renders a Lucide glyph through the icon-as-component contract, and nothing without one', () => {

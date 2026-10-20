@@ -79,6 +79,20 @@ describe('grouped scenes', () => {
   })
 })
 
+describe('separate scenes', () => {
+  it('keeps the previous scene until its exit completes when the group changes, then removes it', async () => {
+    const steps: Step<{ n: number }>[] = [
+      { ...meta(0), groupKey: 'a', Scene: Counting, payload: { n: 0 } },
+      { ...meta(1), groupKey: 'b', Scene: Other, payload: { n: 1 } },
+    ]
+    render(<Presentation steps={steps} />)
+    key('ArrowRight')
+    expect(q('[data-testid=other]')).not.toBeNull()
+    expect(q('[data-testid=counting]')).not.toBeNull()
+    await waitFor(() => expect(q('[data-testid=counting]')).toBeNull())
+  })
+})
+
 describe('entities', () => {
   function Scene({ payload }: SceneProps<{ ids: string[] }>) {
     return (

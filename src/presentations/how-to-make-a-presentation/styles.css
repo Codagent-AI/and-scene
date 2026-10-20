@@ -18,6 +18,7 @@
 
 [data-presentation-footer] { padding: 0 24px 40px; gap: 6px; }
 [data-presentation-step-title] { margin: 0; font-size: 26px; line-height: 1.2; font-weight: 650; }
+[data-presentation-mode='present'] [data-presentation-step-title] { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 [data-presentation-caption] { margin: 0; max-width: 760px; color: var(--dim); font-size: 15px; line-height: 1.45; }
 
 [data-presentation-toc] ol { margin: 0; padding: 0; gap: 20px; list-style: none; }

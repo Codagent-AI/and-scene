@@ -60,6 +60,14 @@ describe('Box', () => {
     rerender(<Box id="b">x</Box>)
     expect(container.querySelector('svg')).toBeNull()
   })
+
+  it('types the icon as a component, rejecting strings and markup', () => {
+    // @ts-expect-error an icon name is not a component
+    const byName = <Box id="b" icon="star" />
+    // @ts-expect-error markup is not a component
+    const byElement = <Box id="b" icon={<svg />} />
+    expect([byName, byElement]).toHaveLength(2)
+  })
 })
 
 describe('Arrow', () => {

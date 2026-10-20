@@ -1,6 +1,6 @@
 // Shared helpers for verify.mjs and inspect-presentation.mjs.
 import { spawn } from 'node:child_process'
-import { readdirSync, readFileSync, realpathSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -34,7 +34,9 @@ export function registrySource(root = projectRoot) {
   } catch {
     // The registry may carry another name; fall through to the contract-level search.
   }
-  for (const file of sourceFiles(path.join(root, 'src')).sort((a, b) => a.length - b.length || a.localeCompare(b))) {
+  const srcDir = path.join(root, 'src')
+  const candidates = existsSync(srcDir) ? sourceFiles(srcDir) : []
+  for (const file of candidates.sort((a, b) => a.length - b.length || a.localeCompare(b))) {
     const source = readFileSync(file, 'utf8')
     if (isRegistrySource(source)) return source
   }

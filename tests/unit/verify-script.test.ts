@@ -39,6 +39,11 @@ describe('registry checks', () => {
     expect(registryEntry('one', dir)).toEqual({ slug: 'one', loadPath: './one/Talk' })
   })
 
+  it('names the missing registry when the project has no src directory at all', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'verify-unit-'))
+    expect(() => registrySource(dir)).toThrow(/no presentation registry found/)
+  })
+
   it('names the missing registry instead of a bare ENOENT', () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'verify-unit-'))
     mkdirSync(path.join(dir, 'src'), { recursive: true })

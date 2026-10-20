@@ -272,6 +272,28 @@ describe('routing the registry (index anchor)', () => {
     expect(detect(dir).registry).toBe(path.join('src', 'presentations', 'index.ts'))
   })
 
+  it('follows a tsconfig path alias and a .js specifier to the registry', () => {
+    const dir = buildOnlyHost()
+    applyScaffold(dir, { confirmed: true })
+    write(dir, 'tsconfig.app.json', JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { '@app/*': ['src/*'] } } }))
+    write(dir, 'src/main.tsx', "import { Router } from './Router.js'\nimport { PRESENTATIONS } from '@app/presentations/index.ts'\nconsole.log(Router, PRESENTATIONS)\n")
+    expect(anchorsAt(dir).index).toBe(true)
+  })
+
+  it('does not report a wired host as missing its index when an alias cannot be traced', () => {
+    const dir = buildOnlyHost()
+    applyScaffold(dir, { confirmed: true })
+    write(dir, 'src/main.tsx', "import { App } from '@/app/App'\nconsole.log(App)\n")
+    expect(anchorsAt(dir).index).toBe(true)
+  })
+
+  it('picks the registry by its slug and load entries, not by a file that merely mentions a slug', () => {
+    const dir = buildOnlyHost()
+    write(dir, 'src/a.ts', "export const slugify = (slug) => slug\nconst load = { load: 1 }\nimport('./x')\n")
+    write(dir, 'src/presentations/registry.ts', "export const R = [{ slug: 'a', title: 'A', load: () => import('./a/Talk') }]\n")
+    expect(findRegistry(dir)).toBe(path.join('src', 'presentations', 'registry.ts'))
+  })
+
   it('has nothing to follow up on after a full scaffold', () => {
     const dir = tmp()
     const report = applyScaffold(dir)

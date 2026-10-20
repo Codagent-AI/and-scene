@@ -45,7 +45,7 @@ export function isMonorepo(dir) {
 }
 
 const SOURCE_FILE = /\.(ts|tsx|js|jsx)$/
-const isRegistrySource = (s) => /\bslug\b/.test(s) && /\bload\s*:/.test(s) && /import\(/.test(s)
+const isRegistrySource = (s) => /\bslug\s*:/.test(s) && /\bload\s*:/.test(s) && /import\(/.test(s)
 
 /** The source file playing the registry role (relative path), preferring src/presentations/index.ts. */
 export function findRegistry(dir) {
@@ -56,10 +56,29 @@ export function findRegistry(dir) {
   return found ? path.relative(dir, found) : null
 }
 
-function resolveImport(from, spec) {
-  const base = path.resolve(path.dirname(from), spec)
-  const candidates = [base, ...['.ts', '.tsx', '.js', '.jsx'].map((e) => base + e), ...['.ts', '.tsx', '.js', '.jsx'].map((e) => path.join(base, `index${e}`))]
+function resolveFile(base) {
+  // NodeNext-style specifiers name the emitted extension (./x.js) while the source is ./x.ts.
+  const stem = base.replace(/\.(m|c)?jsx?$/, '')
+  const exts = ['.ts', '.tsx', '.js', '.jsx']
+  const candidates = [base, ...exts.map((e) => base + e), ...exts.map((e) => stem + e), ...exts.map((e) => path.join(base, `index${e}`))]
   return candidates.find((c) => SOURCE_FILE.test(c) && existsSync(c) && statSync(c).isFile()) ?? null
+}
+
+/** tsconfig `paths` as [pattern, targets[]] pairs resolved against baseUrl; `@/` and `~/` default to src/. */
+function pathAliases(dir) {
+  const aliases = []
+  for (const name of ['tsconfig.app.json', 'tsconfig.json']) {
+    try {
+      const text = readFileSync(path.join(dir, name), 'utf8').replace(/\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm, '').replace(/,(\s*[}\]])/g, '$1')
+      const { compilerOptions = {} } = JSON.parse(text)
+      const base = path.resolve(dir, compilerOptions.baseUrl ?? '.')
+      for (const [pattern, targets] of Object.entries(compilerOptions.paths ?? {})) aliases.push([pattern, targets.map((t) => path.resolve(base, t))])
+    } catch {
+      // An unreadable tsconfig only means fewer aliases are known.
+    }
+  }
+  for (const prefix of ['@/', '~/']) aliases.push([`${prefix}*`, [path.join(dir, 'src', '*')]])
+  return aliases
 }
 
 /** Whether the app's browser entry (index.html script) reaches the registry through its imports. */
@@ -68,7 +87,24 @@ export function registryIsRouted(dir, registryRel) {
   const html = existsSync(path.join(dir, 'index.html')) ? readFileSync(path.join(dir, 'index.html'), 'utf8') : ''
   const entry = /<script[^>]*\bsrc=["']([^"']+)["']/i.exec(html)?.[1]
   if (!entry) return false
-  const start = resolveImport(path.join(dir, 'index.html'), entry.startsWith('/') ? `.${entry}` : entry)
+  const aliases = pathAliases(dir)
+  let untraceable = false
+  const resolveSpec = (from, spec) => {
+    if (spec.startsWith('.')) return resolveFile(path.resolve(path.dirname(from), spec))
+    for (const [pattern, targets] of aliases) {
+      const star = pattern.indexOf('*')
+      const matches = star === -1 ? spec === pattern : spec.startsWith(pattern.slice(0, star)) && spec.endsWith(pattern.slice(star + 1))
+      if (!matches) continue
+      const rest = star === -1 ? '' : spec.slice(star, spec.length - (pattern.length - star - 1))
+      for (const target of targets) {
+        const found = resolveFile(target.replace('*', rest))
+        if (found) return found
+      }
+      untraceable = true
+    }
+    return null
+  }
+  const start = resolveFile(path.resolve(dir, entry.startsWith('/') ? `.${entry}` : entry))
   const target = path.join(dir, registryRel)
   const seen = new Set()
   const queue = start ? [start] : []
@@ -77,12 +113,13 @@ export function registryIsRouted(dir, registryRel) {
     if (seen.has(file)) continue
     seen.add(file)
     if (file === target) return true
-    for (const [, spec] of readFileSync(file, 'utf8').matchAll(/(?:from\s+|import\s*\(?\s*)['"](\.{1,2}\/[^'"]+)['"]/g)) {
-      const next = resolveImport(file, spec)
+    for (const [, spec] of readFileSync(file, 'utf8').matchAll(/(?:from\s+|import\s*\(?\s*)['"]([^'"]+)['"]/g)) {
+      const next = resolveSpec(file, spec)
       if (next) queue.push(next)
     }
   }
-  return false
+  // An alias that cannot be traced is not evidence that the registry is unrouted; do not report a working host as missing.
+  return untraceable
 }
 
 /** Contract-level anchor detection: what the files provide, not what they are called. */

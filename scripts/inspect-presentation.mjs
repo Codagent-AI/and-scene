@@ -50,10 +50,12 @@ const intersects = (a, b) =>
 
 /**
  * Pairs of visible text/chrome elements whose painted boxes intersect.
- * Elements are { label, rects, visible, allowOverlap }, where rects are the
- * boxes of the element's own text (or of the control itself when it has no
- * text), so a parent's text is compared with a nested child's text too. The
- * only exemption is an explicit allow-overlap ancestor on either side.
+ * Elements are { id, label, rects, visible, allowOverlap, parts }, where rects
+ * are the boxes of the element's own text (or of the control itself when it
+ * has no text), so a parent's text is compared with a nested child's text too.
+ * `parts` lists the ids of the text a textless chrome control paints as its own
+ * label: a control and its label are one visible element, not a collision. The
+ * only other exemption is an explicit allow-overlap ancestor on either side.
  */
 export function findOverlaps(elements) {
   const out = []
@@ -63,6 +65,7 @@ export function findOverlaps(elements) {
       const a = live[i]
       const b = live[j]
       if (a.allowOverlap || b.allowOverlap) continue
+      if (a.parts?.includes(b.id) || b.parts?.includes(a.id)) continue
       if (a.rects.some((ra) => b.rects.some((rb) => intersects(ra, rb)))) out.push([a.label, b.label])
     }
   }
@@ -143,14 +146,24 @@ function collectSnapshot() {
     }
     return rects
   }
+  // Opacity does not inherit in computed style, but a transparent ancestor hides everything inside it.
+  const effectiveOpacity = (el) => {
+    let o = 1
+    for (let p = el; p; p = p.parentElement) o *= Number(getComputedStyle(p).opacity)
+    return o
+  }
+  const ids = new Map(candidates.map((el, i) => [el, i]))
   const elements = candidates.map((el) => {
     const s = getComputedStyle(el)
     const box = el.getBoundingClientRect()
+    const own = hasOwnText(el)
     return {
+      id: ids.get(el),
       label: label(el),
-      rects: hasOwnText(el) ? textRects(el) : [{ x: box.x, y: box.y, w: box.width, h: box.height }],
-      visible: s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity) > 0,
+      rects: own ? textRects(el) : [{ x: box.x, y: box.y, w: box.width, h: box.height }],
+      visible: s.display !== 'none' && s.visibility !== 'hidden' && effectiveOpacity(el) > 0,
       allowOverlap: el.closest('[data-presentation-allow-overlap]') !== null,
+      parts: own ? [] : candidates.filter((c) => c !== el && el.contains(c)).map((c) => ids.get(c)),
     }
   })
   const group = (selector) => {

@@ -59,12 +59,13 @@
   outline-offset: 2px;
 }
 
-/* Progress: the active step is a wide amber pill, the rest are small dim dots. */
+/* Progress: the active step is a wide amber pill, the rest are small dim dots.
+   Qualified by the footer so the dots outrank the footer's generic button padding. */
 [data-presentation-progress] {
   gap: 8px;
   align-items: center;
 }
-[data-presentation-progress-item] {
+[data-presentation-footer] [data-presentation-progress-item] {
   width: 12px;
   height: 12px;
   padding: 0;
@@ -72,7 +73,7 @@
   background: #33425f;
   border: 1px solid #33425f;
 }
-[data-presentation-progress-item][data-presentation-active='true'] {
+[data-presentation-footer] [data-presentation-progress-item][data-presentation-active='true'] {
   width: 28px;
   background: #ffb454;
   border-color: #ffb454;
@@ -243,5 +244,37 @@
   }
   [data-presentation-caption] {
     font-size: 15px;
+  }
+}
+
+/* Phones: previous, progress, next, and the mode toggle must all fit on one row. */
+@media (max-width: 480px) {
+  [data-presentation-footer] {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  [data-presentation-controls] {
+    gap: 8px;
+  }
+  [data-presentation-footer] button {
+    font-size: 13px;
+    padding: 6px 8px;
+  }
+  [data-presentation-progress] {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    gap: 4px;
+  }
+  [data-presentation-footer] [data-presentation-progress-item] {
+    flex: 0 1 8px;
+    width: 8px;
+    min-width: 4px;
+    height: 8px;
+    padding: 0;
+  }
+  [data-presentation-footer] [data-presentation-progress-item][data-presentation-active='true'] {
+    flex-basis: 20px;
+    width: 20px;
   }
 }

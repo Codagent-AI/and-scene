@@ -101,6 +101,43 @@ describe('anchor detection', () => {
   })
 })
 
+describe('zero-config Vite build anchor', () => {
+  const zeroConfig = () => {
+    const d = tmp()
+    write(d, 'package.json', buildPkg({ scripts: { build: 'tsc -p tsconfig.app.json && vite build' } }))
+    write(d, 'tsconfig.app.json', '{ "include": ["src"] }')
+    return d
+  }
+
+  it('counts a working Vite app without a vite config file as the build setup', () => {
+    expect(detectAnchors(zeroConfig()).build).toBe(true)
+  })
+
+  it('does not scaffold a vite config over a zero-config app that already builds', () => {
+    const d = materialized()
+    rmSync(path.join(d, 'vite.config.ts'))
+    write(d, 'tsconfig.node.json', '{ "include": ["scripts"] }')
+    const pkg = JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8'))
+    pkg.scripts.build = 'tsc -p tsconfig.app.json && vite build'
+    writeFileSync(path.join(d, 'package.json'), JSON.stringify(pkg))
+    const r = scaffold(d, { install: false })
+    expect(r.status).toBe('already-scaffolded')
+    expect(existsSync(path.join(d, 'vite.config.ts'))).toBe(false)
+  })
+
+  it('still reports the build missing when a tsconfig points at the absent vite config', () => {
+    const d = zeroConfig()
+    write(d, 'tsconfig.node.json', '{ "include": ["vite.config.ts"] }')
+    expect(detectAnchors(d).build).toBe(false)
+  })
+
+  it('still reports the build missing when the build script does not run vite', () => {
+    const d = tmp()
+    write(d, 'package.json', buildPkg({ scripts: { build: 'tsc -b' } }))
+    expect(detectAnchors(d).build).toBe(false)
+  })
+})
+
 describe('target resolution', () => {
   it.each([
     ['a workspaces field', (d: string) => write(d, 'package.json', JSON.stringify({ workspaces: ['packages/*'] }))],
@@ -327,6 +364,31 @@ describe('generated source is valid', () => {
       expect(listPresentations(d).map((p) => p.slug)).toContain('quoted')
     },
   )
+})
+
+describe('registry with quoted property names', () => {
+  const quoted = (d: string) => {
+    const file = path.join(d, 'src/presentations/index.ts')
+    writeFileSync(file, readFileSync(file, 'utf8').replace(/\b(slug|title|load):/g, "'$1':"))
+    expect(readFileSync(file, 'utf8')).toContain("'slug':")
+  }
+
+  it('is still detected as the presentation index and listed', () => {
+    const d = materialized()
+    quoted(d)
+    expect(detectAnchors(d).index).toBe(true)
+    expect(listPresentations(d).map((p) => p.slug)).toEqual(['how-to-make-a-presentation'])
+    expect(resolveProject(d).missing).toEqual([])
+  })
+
+  it('accepts a new presentation, rejects a duplicate slug, and stays valid TypeScript', () => {
+    const d = materialized()
+    quoted(d)
+    createPresentation(d, { slug: 'new-topic', title: 'New topic' })
+    expect(listPresentations(d).map((p) => p.slug)).toEqual(['how-to-make-a-presentation', 'new-topic'])
+    expect(() => createPresentation(d, { slug: 'how-to-make-a-presentation', title: 'x' })).toThrow(/already exists/)
+    expect(syntaxErrors('index.ts', readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8'))).toEqual([])
+  })
 })
 
 describe('registry insertion', () => {

@@ -80,6 +80,13 @@ describe('overlap detection', () => {
     expect(findOverlaps([el(1, 0, 0, 50, 20), el(2, 50, 0, 30, 20)])).toEqual([])
   })
 
+  it('does not report a textless control against the label it paints, but still reports unrelated text over it', () => {
+    const control = el(1, 0, 0, 100, 40, { parts: [2] })
+    const label = el(2, 10, 10, 40, 20, { id: 2 })
+    expect(findOverlaps([{ ...control, id: 1 }, label])).toEqual([])
+    expect(findOverlaps([{ ...control, id: 1 }, label, el(3, 60, 10, 30, 20, { id: 3 })])).toEqual([['<p> "el1"', '<p> "el3"']])
+  })
+
   it('checks every text box of an element', () => {
     const multi = el(1, 0, 0, 0, 0, { rects: [{ x: 0, y: 0, w: 10, h: 10 }, { x: 200, y: 200, w: 50, h: 50 }] })
     expect(findOverlaps([multi, el(2, 210, 210, 20, 20)])).toHaveLength(1)

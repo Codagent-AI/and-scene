@@ -51,7 +51,10 @@ export function isMonorepo(dir) {
 
 const hasDep = (pkg, name) => Boolean(pkg?.dependencies?.[name] ?? pkg?.devDependencies?.[name])
 
-const isRegistry = (text) => /\bslug\s*:/.test(text) && /\bload\s*:/.test(text) && /\bimport\s*\(/.test(text)
+// Object keys may be quoted or not: quoting is a cosmetic TypeScript choice.
+const propKey = (name) => `(?:\\b${name}\\b|"${name}"|'${name}')\\s*:`
+export const SLUG_KEY = new RegExp(propKey('slug'))
+const isRegistry = (text) => SLUG_KEY.test(text) && new RegExp(propKey('load')).test(text) && /\bimport\s*\(/.test(text)
 
 /** The registry file, wherever the project keeps it. */
 export function findRegistry(dir) {
@@ -65,12 +68,24 @@ export function findKitIndex(dir) {
   return ['index.ts', 'index.tsx'].map((n) => path.join(path.dirname(decl), n)).find((f) => existsSync(f))
 }
 
+/**
+ * Vite builds the app: either a vite config exists, or the build script runs vite
+ * with Vite's zero-config defaults and no tsconfig still points at a vite config
+ * that is gone (which would break `tsc -b`).
+ */
+function viteBuild(dir, pkg) {
+  if (['ts', 'js', 'mjs', 'mts', 'cjs'].some((e) => existsSync(path.join(dir, `vite.config.${e}`)))) return true
+  if (!/\bvite\b/.test(pkg.scripts.build)) return false
+  return !readdirSync(dir).some(
+    (n) => /^tsconfig.*\.json$/.test(n) && /vite\.config/.test(readFileSync(path.join(dir, n), 'utf8')),
+  )
+}
+
 /** Contract-level anchor detection: by capability, not by byte-identical files. */
 export function detectAnchors(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
-  const viteConfig = ['ts', 'js', 'mjs', 'mts', 'cjs'].some((e) => existsSync(path.join(dir, `vite.config.${e}`)))
   const build =
-    Boolean(pkg?.scripts?.build) && viteConfig && ['vite', 'react', 'typescript'].every((d) => hasDep(pkg, d))
+    Boolean(pkg?.scripts?.build) && viteBuild(dir, pkg) && ['vite', 'react', 'typescript'].every((d) => hasDep(pkg, d))
   const texts = sourceFiles(dir).map((f) => readFileSync(f, 'utf8'))
   const some = (re) => texts.some((t) => re.test(t))
   const declares = (name) => new RegExp(`export\\s+(default\\s+)?(function|const|class)\\s+${name}\\b`)
@@ -205,7 +220,7 @@ export function insertRegistryEntry(source, entry) {
     const open = m.index + m[0].length - 1
     const end = closingBracket(source, open)
     if (end === -1) continue
-    if (/\bslug\s*:/.test(source.slice(open, end))) {
+    if (SLUG_KEY.test(source.slice(open, end))) {
       close = end
       break
     }
@@ -238,7 +253,7 @@ export function createPresentation(appDir, { slug, title }) {
   if (!kitIndex) throw new Error('no scene kit index (index.ts beside the Presentation component) found; scaffold first')
   const registry = readFileSync(registryFile, 'utf8')
   const folder = path.join(path.dirname(registryFile), slug)
-  if (existsSync(folder) || new RegExp(`slug:\\s*['"]${slug}['"]`).test(registry)) {
+  if (existsSync(folder) || new RegExp(`${propKey('slug')}\\s*['"]${slug}['"]`).test(registry)) {
     throw new Error(`presentation "${slug}" already exists`)
   }
   const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk.tsx'),\n  },`
@@ -261,7 +276,7 @@ export function listPresentations(appDir) {
   const file = findRegistry(appDir)
   if (!file) return []
   const src = readFileSync(file, 'utf8')
-  return [...src.matchAll(/slug:\s*['"]([^'"]+)['"]\s*,\s*title:\s*(['"`])(.*?)\2/gs)].map((m) => ({ slug: m[1], title: m[3] }))
+  return [...src.matchAll(new RegExp(`${propKey('slug')}\\s*['"]([^'"]+)['"]\\s*,\\s*${propKey('title')}\\s*(['"\`])(.*?)\\2`, 'gs'))].map((m) => ({ slug: m[1], title: m[3] }))
 }
 
 /** Read-only: where the app is (or would be), which anchors exist, and which presentations are registered. */

@@ -38,6 +38,14 @@ export function Scene({ payload }: SceneProps<P>) {
         </div>
       )}
       {payload.step === 2 ? <div key="beta" style={at(80, 55)}>beta collides with alpha</div> : null}
+      {/* False-positive guards: text inside a transparent ancestor is invisible, and a control paints its own label. */}
+      <div key="hidden" style={{ opacity: 0 }}>
+        <div style={at(400, 40)}>hidden-alpha</div>
+        <div style={at(420, 50)}>hidden-beta</div>
+      </div>
+      <button key="own-label" type="button" data-presentation-prev="" style={at(400, 120)}>
+        <span>own label</span>
+      </button>
     </SceneLayer>
       {createPortal(<div key={payload.step} data-probe="" style={{ position: 'fixed', left: 0, top: 0, width: 20, height: 20, zIndex: 99999 }} />, document.body)}
     </>
@@ -171,6 +179,10 @@ describe('INT-002 screenshot helper', () => {
   it('reports a runtime error as a warning on the step where it happened', () => {
     expect(warnings(5).some((l) => /runtime error \(console error: fixture runtime fault\)/.test(l))).toBe(true)
     for (const n of [1, 2, 3, 4, 6]) expect(warnings(n).filter((l) => l.includes('runtime error')), `step ${n}`).toEqual([])
+  })
+
+  it('does not warn about invisible text or a control overlapping its own label', () => {
+    expect(result.output).not.toMatch(/hidden-alpha|hidden-beta|own label/)
   })
 
   it('does not warn about the explicitly allowed readable overlap', () => {

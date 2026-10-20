@@ -38,7 +38,7 @@ export class VerifyError extends Error {
 export const previewUrl = (port, route = '/') => `http://${HOST}:${port}${route}`
 
 export function parseRegistrySlugs(source) {
-  return [...source.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
+  return [...source.matchAll(/(?:\bslug\b|"slug"|'slug')\s*:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
 }
 
 /** Throws a `sample` VerifyError unless the registry and step data match the outline exactly. */

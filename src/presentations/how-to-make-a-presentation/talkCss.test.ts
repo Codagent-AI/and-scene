@@ -28,12 +28,30 @@ describe('sample-owned chrome styling', () => {
     .join('\n')
 
   it('makes the active progress entry visibly different from inactive ones', () => {
-    const base = merged('[data-presentation-progress-item]')
-    const active = merged("[data-presentation-progress-item][data-presentation-active='true']")
+    const base = merged('[data-presentation-footer] [data-presentation-progress-item]')
+    const active = merged("[data-presentation-footer] [data-presentation-progress-item][data-presentation-active='true']")
     expect(differs(active, base)).toEqual(expect.arrayContaining(['background']))
     expect(differs(active, base).length).toBeGreaterThanOrEqual(2)
     expect(kitText).toContain('data-presentation-progress-item')
     expect(kitText).toContain('data-presentation-active')
+  })
+
+  it('keeps the progress dots out of the footer button padding that would inflate them', () => {
+    const dot = merged('[data-presentation-footer] [data-presentation-progress-item]')
+    expect(dot.padding).toBe('0')
+    // `[footer] button` is (0,1,1); a footer-qualified attribute selector is (0,2,0) and wins.
+    expect(find('[data-presentation-progress-item]')).toEqual([])
+  })
+
+  it('compacts the controls row for phone widths so Next and the mode toggle stay on screen', () => {
+    const narrow = /@media \(max-width: 480px\) \{([\s\S]*)\}\s*$/.exec(css)?.[1] ?? ''
+    expect(narrow).toMatch(/\[data-presentation-footer\] \{[^}]*padding-left: 16px/)
+    expect(narrow).toMatch(/\[data-presentation-progress\] \{[^}]*flex: 1 1 0;[^}]*min-width: 0/)
+    expect(narrow).toMatch(/\[data-presentation-progress-item\] \{[^}]*flex: 0 1 8px/)
+    // Rough budget at 390px: footer padding 2*16, three ~64px buttons, 3 gaps of 8, dots shrink to fit.
+    const fixed = 2 * 16 + 3 * 64 + 3 * 8
+    const dots = 8 * 8 + 20 + 8 * 4
+    expect(fixed + dots).toBeLessThanOrEqual(390)
   })
 
   it('makes the active table-of-contents entry visibly different from inactive ones', () => {

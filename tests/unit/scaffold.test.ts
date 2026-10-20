@@ -351,6 +351,13 @@ describe('registry insertion', () => {
     expect(syntaxErrors('r.ts', out)).toEqual([])
     expect(out).toContain('},\n' + entry)
   })
+  it('targets the array that holds the slug entries, not an earlier array or a type annotation', () => {
+    const src = "const order = [1, 2]\nexport const presentations: Array<[string]> = [\n  { slug: 'a', load: () => import('./a') },\n]\n"
+    const out = insertRegistryEntry(src, entry)
+    expect(out.startsWith('const order = [1, 2]\n')).toBe(true)
+    expect(out.indexOf("slug: 'new'")).toBeGreaterThan(out.indexOf("slug: 'a'"))
+    expect(syntaxErrors('r.ts', out)).toEqual([])
+  })
   it('rejects a source without an array literal', () => {
     expect(() => insertRegistryEntry('export const p = 1', entry)).toThrow(/registry array/)
   })
@@ -440,5 +447,18 @@ describe('read-only resolution before a modification', () => {
     const cli = spawnSync(process.execPath, [path.join(SKILL_DIR, 'scripts/scaffold.mjs'), 'resolve', d], { cwd: os.tmpdir(), encoding: 'utf8' })
     expect(JSON.parse(cli.stdout).presentations).toHaveLength(1)
     expect(snapshot(d)).toEqual(before)
+  })
+})
+
+describe('verification scripts for a project that already has the kit', () => {
+  it('copies missing verify and inspect scripts when the index is added', () => {
+    const d = materialized()
+    rmSync(path.join(d, 'scripts'), { recursive: true })
+    rmSync(path.join(d, 'src/presentations/index.ts'))
+    expect(detectAnchors(d).kit).toBe(true)
+    const r = scaffold(d, { install: false, confirmed: true })
+    expect(r.missing).toEqual(['index'])
+    expect(existsSync(path.join(d, 'scripts/verify.mjs'))).toBe(true)
+    expect(existsSync(path.join(d, 'scripts/inspect-presentation.mjs'))).toBe(true)
   })
 })

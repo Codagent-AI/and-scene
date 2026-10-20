@@ -121,7 +121,8 @@ export function scaffoldTarget(target, { write = false } = {}) {
   for (const rel of bootstrapFiles()) {
     if (rel === 'package-lock.json') continue
     // The manifest is merged whenever anything is added, so the new code finds its dependencies.
-    if (rel !== 'package.json' && !missing.includes(anchorOf(rel))) continue
+    // Verification scripts are copied whenever missing, since the merged manifest scripts point at them.
+    if (rel !== 'package.json' && !rel.startsWith('scripts/') && !missing.includes(anchorOf(rel))) continue
     const dest = path.join(target, rel)
     if (rel === 'package.json') {
       if (!existsSync(dest)) {
@@ -197,8 +198,20 @@ function closingBracket(src, open) {
 
 /** Appends an entry to the registry array literal, whatever follows its closing bracket. */
 export function insertRegistryEntry(source, entry) {
-  const assign = /=\s*\[/.exec(source)
-  const close = assign ? closingBracket(source, assign.index + assign[0].length - 1) : -1
+  // The registry is the array literal assigned (`= [`) that holds the slug entries; other arrays are skipped.
+  let close = -1
+  let fallback = -1
+  for (const m of source.matchAll(/=\s*\[/g)) {
+    const open = m.index + m[0].length - 1
+    const end = closingBracket(source, open)
+    if (end === -1) continue
+    if (/\bslug\s*:/.test(source.slice(open, end))) {
+      close = end
+      break
+    }
+    if (fallback === -1) fallback = end
+  }
+  if (close === -1) close = fallback
   if (close === -1) throw new Error('cannot find the registry array literal')
   const before = source.slice(0, close).trimEnd()
   const comma = before.endsWith(',') || before.endsWith('[') ? '' : ','

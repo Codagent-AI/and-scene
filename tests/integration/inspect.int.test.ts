@@ -11,7 +11,8 @@ let result = { status: 0 as number | null, output: '' }
 const lines = () => result.output.split('\n')
 const warnings = (step: number) => lines().filter((l) => l.startsWith(`WARN step ${step}:`))
 
-const SCENE = `import { createPortal } from 'react-dom'
+const SCENE = `import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { SceneLayer } from '../../presentation-kit/nodes/SceneLayer.tsx'
 import type { SceneProps } from '../../presentation-kit/types.ts'
 
@@ -19,21 +20,24 @@ export interface P { step: number }
 const at = (left: number, top: number) => ({ position: 'absolute' as const, left, top, width: 220, height: 40 })
 
 export function Scene({ payload }: SceneProps<P>) {
+  useEffect(() => {
+    if (payload.step === 5) console.error('fixture runtime fault')
+  }, [payload.step])
   return (
     <>
     <SceneLayer>
       {payload.step === 3 ? (
-        <div data-presentation-allow-overlap="">
+        <div key="allowed" data-presentation-allow-overlap="">
           <div style={at(40, 40)}>gamma intentionally layered</div>
           <div style={at(80, 55)}>delta intentionally layered</div>
         </div>
       ) : (
-        <div style={at(40, 40)}>
+        <div key="alpha" style={at(40, 40)}>
           alpha clean text
           {payload.step === 6 ? <span style={{ position: 'absolute', left: 20, top: 0 }}>nested child overprint</span> : null}
         </div>
       )}
-      {payload.step === 2 ? <div style={at(80, 55)}>beta collides with alpha</div> : null}
+      {payload.step === 2 ? <div key="beta" style={at(80, 55)}>beta collides with alpha</div> : null}
     </SceneLayer>
       {createPortal(<div key={payload.step} data-probe="" style={{ position: 'fixed', left: 0, top: 0, width: 20, height: 20, zIndex: 99999 }} />, document.body)}
     </>
@@ -162,6 +166,11 @@ describe('INT-002 screenshot helper', () => {
     expect(w).toHaveLength(1)
     expect(w[0]).toMatch(/alpha clean text/)
     expect(w[0]).toMatch(/nested child overprint/)
+  })
+
+  it('reports a runtime error as a warning on the step where it happened', () => {
+    expect(warnings(5).some((l) => /runtime error \(console error: fixture runtime fault\)/.test(l))).toBe(true)
+    for (const n of [1, 2, 3, 4, 6]) expect(warnings(n).filter((l) => l.includes('runtime error')), `step ${n}`).toEqual([])
   })
 
   it('does not warn about the explicitly allowed readable overlap', () => {

@@ -189,9 +189,22 @@ export async function inspect(root, argv, log = console.log) {
       try {
         const page = await browser.newPage({ viewport: opts.viewport })
         const url = previewUrl(port, `/${opts.slug}`)
+        const runtimeErrors = []
+        page.on('console', (m) => m.type() === 'error' && runtimeErrors.push(`console error: ${m.text()}`))
+        page.on('pageerror', (e) => runtimeErrors.push(`page error: ${e.message}`))
+        const reportRuntimeErrors = (step) => {
+          for (const e of runtimeErrors.splice(0)) {
+            warnings++
+            log(`WARN step ${step}: runtime error (${e}); this capture may be blank`)
+          }
+        }
         await page.goto(url, { waitUntil: 'load' })
         const chrome = page.locator('[data-step-count]')
-        await chrome.waitFor({ timeout: 10_000 })
+        try {
+          await chrome.waitFor({ timeout: 10_000 })
+        } catch {
+          throw new InspectError(`no [data-step-count] chrome at ${url}; the presentation did not render${runtimeErrors.length ? `: ${runtimeErrors[0]}` : ''}`)
+        }
         const count = Number(await chrome.getAttribute('data-step-count'))
         for (let i = 0; i < count; i++) {
           const started = Date.now()
@@ -200,17 +213,22 @@ export async function inspect(root, argv, log = console.log) {
           mkdirSync(path.dirname(file), { recursive: true })
           await page.screenshot({ path: file })
           log(`[inspect] step ${i + 1}/${count} captured ${path.relative(root, file)} (settled ${Date.now() - started}ms)`)
+          reportRuntimeErrors(i + 1)
           for (const w of diagnose(await page.evaluate(collectSnapshot))) {
             warnings++
             log(`WARN step ${i + 1}: ${w}`)
           }
           if (i < count - 1) {
             await page.keyboard.press('ArrowRight')
-            await page.waitForFunction(
-              (n) => document.querySelector('[data-step-count]')?.getAttribute('data-step-index') === String(n),
-              i + 1,
-              { timeout: 3000 },
-            )
+            try {
+              await page.waitForFunction(
+                (n) => document.querySelector('[data-step-count]')?.getAttribute('data-step-index') === String(n),
+                i + 1,
+                { timeout: 3000 },
+              )
+            } catch {
+              throw new InspectError(`step ${i + 2} did not render${runtimeErrors.length ? `: ${runtimeErrors[0]}` : ''}`)
+            }
           }
         }
       } finally {

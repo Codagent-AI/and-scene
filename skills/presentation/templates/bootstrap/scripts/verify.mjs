@@ -130,10 +130,17 @@ const freePort = () =>
     })
   })
 
+const stderrOf = (child) => {
+  const text = (child.stderrText ?? '').trim()
+  return text ? `\n${text.split('\n').slice(-15).join('\n')}` : ''
+}
+
 async function waitReady(url, child, timeoutMs) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
-    if (child.exitCode !== null) throw new VerifyError('render', 'preview server exited before it was ready')
+    if (child.exitCode !== null) {
+      throw new VerifyError('render', `preview server exited before it was ready${stderrOf(child)}`)
+    }
     try {
       if ((await fetch(url)).ok) return
     } catch {
@@ -141,7 +148,7 @@ async function waitReady(url, child, timeoutMs) {
     }
     await new Promise((r) => setTimeout(r, 200))
   }
-  throw new VerifyError('render', `preview server was not ready at ${url}`)
+  throw new VerifyError('render', `preview server was not ready at ${url}${stderrOf(child)}`)
 }
 
 const stopProcess = (child) =>
@@ -152,6 +159,11 @@ const stopProcess = (child) =>
       clearTimeout(timer)
       resolve()
     })
+    // It may have exited between the first check and the listener; do not wait for an event that already fired.
+    if (child.exitCode !== null) {
+      clearTimeout(timer)
+      return resolve()
+    }
     child.kill('SIGTERM')
   })
 
@@ -162,8 +174,10 @@ export async function withPreview(root, fn, log = console.log, { readyTimeoutMs 
   const child = spawn(
     process.execPath,
     [vite, 'preview', '--host', HOST, '--port', String(port), '--strictPort'],
-    { cwd: root, stdio: 'ignore' },
+    { cwd: root, stdio: ['ignore', 'ignore', 'pipe'] },
   )
+  child.stderrText = ''
+  child.stderr.on('data', (d) => (child.stderrText += d))
   try {
     log(`[verify] preview ${previewUrl(port)} (pid ${child.pid})`)
     await waitReady(previewUrl(port), child, readyTimeoutMs)

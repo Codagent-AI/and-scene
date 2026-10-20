@@ -194,6 +194,13 @@ describe('preview process ownership', () => {
     expect(isAlive(pidOf(root))).toBe(false)
   })
 
+  it('includes the preview server\'s stderr when it dies before it is ready', async () => {
+    const root = fakeViteRoot("console.error('EADDRINUSE: port taken'); process.exit(1)")
+    await expect(withPreview(root, async () => {}, () => {})).rejects.toMatchObject({
+      message: expect.stringContaining('EADDRINUSE: port taken'),
+    })
+  })
+
   it('logs the preview pid so callers can check it', async () => {
     const root = fakeViteRoot(SERVER)
     const lines: string[] = []

@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { LAYOUT_T, EASE } from '../constants.ts'
+import { LAYOUT_TRANSITION } from '../constants.ts'
 
 export interface BoxProps extends Omit<HTMLMotionProps<'div'>, 'children'> {
   children?: ReactNode
@@ -16,7 +16,7 @@ export function Box({ layoutId, Icon, children, ...rest }: BoxProps) {
     <motion.div
       layout
       layoutId={layoutId}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
+      transition={LAYOUT_TRANSITION}
       data-presentation-box=""
       data-presentation-id={layoutId}
       {...rest}

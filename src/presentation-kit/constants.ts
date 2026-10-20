@@ -9,6 +9,8 @@ export const LAYOUT_T = 0.5
 export const ENTER_T = 0.25
 /** Newcomers wait for persisting entities to finish moving. */
 export const ENTER_DELAY = LAYOUT_T
+/** Transition shared by every entity primitive that morphs between steps. */
+export const LAYOUT_TRANSITION = { duration: LAYOUT_T, ease: EASE } as const
 
 /** Space the stage leaves for header and footer chrome, per mode. */
 export const STAGE_LAYOUT = {

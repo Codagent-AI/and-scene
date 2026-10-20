@@ -1,5 +1,5 @@
 import { motion, type SVGMotionProps } from 'motion/react'
-import { EASE, LAYOUT_T } from '../constants.ts'
+import { LAYOUT_TRANSITION } from '../constants.ts'
 import { arrowGeometry, type Point } from './arrowGeometry.ts'
 
 export interface ArrowProps extends Omit<SVGMotionProps<SVGSVGElement>, 'from' | 'to'> {
@@ -16,7 +16,7 @@ export function Arrow({ layoutId, from, to, bidirectional, style, ...rest }: Arr
     <motion.svg
       layout
       layoutId={layoutId}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
+      transition={LAYOUT_TRANSITION}
       data-presentation-arrow=""
       data-presentation-id={layoutId}
       aria-hidden="true"

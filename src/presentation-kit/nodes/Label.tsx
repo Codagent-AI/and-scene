@@ -1,5 +1,5 @@
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { EASE, LAYOUT_T } from '../constants.ts'
+import { LAYOUT_TRANSITION } from '../constants.ts'
 
 export interface LabelProps extends HTMLMotionProps<'span'> {
   layoutId: string
@@ -10,7 +10,7 @@ export function Label({ layoutId, ...rest }: LabelProps) {
     <motion.span
       layout
       layoutId={layoutId}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
+      transition={LAYOUT_TRANSITION}
       data-presentation-label=""
       data-presentation-id={layoutId}
       {...rest}

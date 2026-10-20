@@ -1,5 +1,5 @@
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { EASE, LAYOUT_T } from '../constants.ts'
+import { LAYOUT_TRANSITION } from '../constants.ts'
 
 export interface EmphasisProps extends HTMLMotionProps<'div'> {
   layoutId: string
@@ -15,7 +15,7 @@ export function Emphasis({ layoutId, x, y, width, height, style, ...rest }: Emph
     <motion.div
       layout
       layoutId={layoutId}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
+      transition={LAYOUT_TRANSITION}
       data-presentation-emphasis=""
       data-presentation-id={layoutId}
       aria-hidden="true"

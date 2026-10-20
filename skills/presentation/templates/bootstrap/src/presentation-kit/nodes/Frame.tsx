@@ -1,5 +1,5 @@
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { EASE, LAYOUT_T } from '../constants.ts'
+import { LAYOUT_TRANSITION } from '../constants.ts'
 
 export interface FrameProps extends HTMLMotionProps<'div'> {
   layoutId: string
@@ -16,7 +16,7 @@ export function Frame({ layoutId, x, y, width, height, style, ...rest }: FramePr
     <motion.div
       layout
       layoutId={layoutId}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
+      transition={LAYOUT_TRANSITION}
       data-presentation-frame=""
       data-presentation-id={layoutId}
       {...rest}

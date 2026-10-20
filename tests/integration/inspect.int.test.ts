@@ -95,6 +95,11 @@ describe('INT-002 screenshot helper', () => {
     expect(lines().filter((l) => l.includes('captured inspection/'))).toHaveLength(5)
   })
 
+  it('captures at the standard 1440 x 900 desktop viewport', () => {
+    const png = readFileSync(path.join(root, 'inspection', SLUG, 'step-01.png'))
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1440, 900])
+  })
+
   it('waits at least the settle interval before every capture, including the first', () => {
     const waits = lines()
       .map((l) => /captured .* \(settled (\d+)ms\)/.exec(l)?.[1])

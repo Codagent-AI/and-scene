@@ -199,6 +199,17 @@ describe('sample scene composition', () => {
     expect(textOf(ids.frameLabel).length).toBeGreaterThan(0)
   })
 
+  it('keeps every entity inside the 880 x 380 canvas', () => {
+    const inside = (x: number, y: number) => x >= 0 && y >= 0 && x <= 880 && y <= 380
+    for (const e of ENTITIES) {
+      if (e.kind === 'arrow') {
+        expect(inside(e.from.x, e.from.y) && inside(e.to.x, e.to.y), e.id).toBe(true)
+      } else {
+        expect(inside(e.x, e.y) && inside(e.x + e.w, e.y + e.h), e.id).toBe(true)
+      }
+    }
+  })
+
   it('uses a raw motion element with a stable layoutId for the coordinate-heavy tray', () => {
     const source = readFileSync(path.join(here, 'how-to-make-a-presentation/SampleScene.tsx'), 'utf8')
     expect(source).toMatch(/<motion\.div layoutId=\{ids\.tray\}/)

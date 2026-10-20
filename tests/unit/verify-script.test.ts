@@ -5,7 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { HOST, registryEntry, registrySlugs } from '../../scripts/lib/common.mjs'
-import { checkRegistry, checkTransition, collectBrowserErrors, compareStep, loadConfig, VerifyError } from '../../scripts/verify.mjs'
+import { checkRegistry, checkTransition, collectBrowserErrors, compareStep, loadConfig, renderSteps, VerifyError } from '../../scripts/verify.mjs'
 
 const root = path.resolve(import.meta.dirname, '..', '..')
 
@@ -38,7 +38,14 @@ describe('registry checks', () => {
       expect((error as VerifyError).phase).toBe('sample')
       expect((error as Error).message).toContain('"missing"')
     }
+  })
+
+  it('fails the sample phase when the loader points at a module that does not exist', () => {
+    const dir = projectWithRegistry(registry)
+    mkdirSync(path.join(dir, 'src', 'presentations', 'one'))
+    writeFileSync(path.join(dir, 'src', 'presentations', 'one', 'Talk.tsx'), '')
     expect(checkRegistry({ slug: 'one', steps: [] }, dir).loadPath).toBe('./one/Talk')
+    expect(() => checkRegistry({ slug: 'two', steps: [] }, dir)).toThrowError(/loader points at \.\/two\/Talk/)
   })
 
   it('finds the committed sample in the real registry and config', () => {
@@ -102,5 +109,29 @@ describe('IPv4 loopback', () => {
       expect(source, file).not.toMatch(/localhost|::1/)
     }
     expect(readFileSync(path.join(root, 'scripts/lib/common.mjs'), 'utf8')).toMatch(/'--host', HOST/)
+  })
+})
+
+describe('rendering the sample', () => {
+  /** A page whose public hooks report the given step count and never get past it. */
+  const fakePage = (count: number | null) =>
+    Object.assign(new EventEmitter(), {
+      goto: async () => {},
+      waitForSelector: async () => {
+        if (count === null) throw new Error('timeout')
+      },
+      getAttribute: async () => String(count),
+    })
+
+  const config = { slug: 's', steps: [{ era: 'e', title: 't', caption: 'c' }] }
+
+  it('fails the sample phase when the presentation reports a different number of steps', async () => {
+    const rejected = renderSteps(fakePage(8), 'http://127.0.0.1:1', { ...config, steps: Array(9).fill(config.steps[0]) }, [])
+    await expect(rejected).rejects.toMatchObject({ phase: 'sample', message: expect.stringContaining('expected 9 steps, the presentation reports 8') })
+  })
+
+  it('attributes a failure before the first step mounts its hooks to step 1', async () => {
+    const rejected = renderSteps(fakePage(null), 'http://127.0.0.1:1', config, ['uncaught page error: kaput'])
+    await expect(rejected).rejects.toMatchObject({ phase: 'render', message: expect.stringMatching(/^step 1 \(index 0\): .*kaput/) })
   })
 })

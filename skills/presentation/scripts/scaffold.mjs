@@ -13,7 +13,7 @@ export const TEMPLATE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.
 /** Files each anchor owns, relative to the app root and to the bootstrap template. */
 export const ANCHOR_FILES = {
   build: ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'vite.config.ts', 'eslint.config.js', 'index.html', '.gitignore'],
-  kit: ['src/presentation-kit', 'scripts'],
+  kit: ['src/presentation-kit', 'scripts', 'verify.config.json'],
   index: ['src/main.tsx', 'src/Router.tsx', 'src/Landing.tsx', 'src/index.css', 'src/presentations', 'verify.config.json'],
 }
 
@@ -63,6 +63,9 @@ export function anchorsAt(dir) {
     some((s) => /\bSceneProps\b/.test(s)) &&
     some((s) => /AnimatePresence/.test(s) && /LayoutGroup/.test(s)) &&
     some((s) => /ArrowRight/.test(s) && /PageDown/.test(s)) &&
+    some((s) => /caption/i.test(s) && /data-presentation-caption|<p\b|<figcaption/.test(s)) &&
+    some((s) => /toc/i.test(s) && /table of contents/i.test(s)) &&
+    some((s) => /\bbrowse\b/.test(s) && /\bpresent\b/.test(s)) &&
     some((s) => /scale\(/.test(s)) &&
     some((s) => /export (function|const) Presentation\b/.test(s))
   const index = some((s) => /\bslug\b/.test(s) && /\bload\s*:/.test(s) && /import\(/.test(s))
@@ -116,7 +119,12 @@ export function planScaffold(target, missing, templateDir = TEMPLATE_DIR) {
       }
     }
   }
-  return { copy, skip, mergePackage }
+  const seen = new Set()
+  return {
+    copy: copy.filter(({ rel }) => !seen.has(rel) && seen.add(rel)),
+    skip: [...new Set(skip)],
+    mergePackage,
+  }
 }
 
 /** Add missing dependencies and scripts to an existing package.json without altering existing entries. */

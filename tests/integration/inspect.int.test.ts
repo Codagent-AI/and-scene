@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { copyProject, exec, removeDir, tempDir } from './helpers.ts'
+import { copyProject, exec, gone, previewPid, removeDir, tempDir } from './helpers.ts'
 
 const dir = tempDir('inspect-int')
 const outDir = path.join(dir, 'shots')
@@ -28,6 +28,20 @@ const variants: Variant[] = [
   { slug: 'fx-polished', css: POLISHED, steps: [ALONE, OTHER] },
   { slug: 'fx-collision', css: POLISHED.replaceAll('v-polished', 'v-collision'), steps: [ALONE, OVERLAP] },
   { slug: 'fx-allowed', css: POLISHED.replaceAll('v-polished', 'v-allowed'), steps: [ALONE, `<div data-presentation-allow-overlap="">${OVERLAP}</div>`] },
+  {
+    slug: 'fx-pill',
+    // Width alone distinguishes the active dot; the table-of-contents entry is distinguished by weight.
+    css: `.v-pill [data-presentation-progress-dot] { width: 14px; padding: 0; }
+.v-pill [data-presentation-progress-dot][data-presentation-active='true'] { width: 32px; }
+.v-pill [data-presentation-toc-entry][data-presentation-active='true'] { font-weight: 700; }
+.v-pill [data-presentation-attribution] { font-size: 13px; color: #456; }`,
+    steps: [ALONE, OTHER],
+  },
+  {
+    slug: 'fx-hidden',
+    css: POLISHED.replaceAll('v-polished', 'v-hidden'),
+    steps: [ALONE, `<div style={{ opacity: 0 }}>${OVERLAP}</div>`],
+  },
   { slug: 'fx-plain', css: '', steps: [ALONE, OTHER] },
   { slug: 'fx-small-attribution', css: `${POLISHED.replaceAll('v-polished', 'v-small-attribution')}.v-small-attribution [data-presentation-attribution] { font-size: 10px; }`, steps: [ALONE, OTHER] },
 ]
@@ -133,6 +147,32 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     expect(result.code, result.output).toBe(0)
     expect(result.output).toMatch(/WARN step 1: attribution too small \(10px\)/)
     expect(result.output).not.toMatch(/indistinct|browser-default|overlap/)
+  })
+
+  it('does not treat width-only active styling as indistinct', async () => {
+    const result = await inspect('fx-pill')
+    expect(result.code, result.output).toBe(0)
+    expect(result.output).toContain('no advisory warnings')
+  })
+
+  it('ignores overlapping text inside an invisible ancestor', async () => {
+    const result = await inspect('fx-hidden')
+    expect(result.code, result.output).toBe(0)
+    expect(result.output).not.toMatch(/overlap/)
+    expect(result.output).toContain('no advisory warnings')
+  })
+
+  it('exits non-zero with a capture failure when capturing fails after the preview started', async () => {
+    const blocker = path.join(dir, 'not-a-directory')
+    writeFileSync(blocker, 'file')
+    const result = await exec('node', ['scripts/inspect-presentation.mjs', 'fx-polished', '--no-build', '--out', blocker], dir)
+    expect(result.code).toBe(1)
+    expect(result.output).toMatch(/preview: http:\/\/127\.0\.0\.1:\d+ \(pid \d+\)/)
+    expect(result.output).toMatch(/FAIL capture: .*ENOTDIR/)
+    expect(result.output).not.toContain('done with')
+    const pid = previewPid(result.output)
+    expect(pid).not.toBeNull()
+    expect(await gone(pid!)).toBe(true)
   })
 
   it('exits non-zero with a capture failure for an unregistered slug', async () => {

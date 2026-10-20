@@ -18,7 +18,8 @@ const BROWSER_DEFAULT_LINK_COLORS = new Set(['rgb(0, 0, 238)', 'rgb(85, 26, 139)
 
 /**
  * Computed properties that make an active control look different from its inactive siblings.
- * Width is left out: entries with different labels differ in width whatever their styling.
+ * Width only counts for controls without text: with labels, label length alone would make every
+ * entry look distinct.
  */
 export const ACTIVE_STYLE_PROPS = [
   'color',
@@ -31,6 +32,7 @@ export const ACTIVE_STYLE_PROPS = [
   'outlineStyle',
   'outlineColor',
   'outlineWidth',
+  'width',
   'height',
 ]
 
@@ -77,9 +79,9 @@ export function activeChromeWarnings(groups) {
   const warnings = []
   for (const group of groups) {
     if (!group.active || group.inactive.length === 0) continue
-    const distinct = group.inactive.some((style) => ACTIVE_STYLE_PROPS.some((prop) => style[prop] !== group.active[prop]))
-    const identicalToAll = group.inactive.every((style) => ACTIVE_STYLE_PROPS.every((prop) => style[prop] === group.active[prop]))
-    if (identicalToAll || !distinct) {
+    const differs = (style) =>
+      ACTIVE_STYLE_PROPS.some((prop) => (prop === 'width' && group.textDriven ? false : style[prop] !== group.active[prop]))
+    if (!group.inactive.some(differs)) {
       warnings.push(`indistinct active chrome: active ${group.name} looks the same as inactive ones (style [data-presentation-active="true"])`)
     }
   }
@@ -143,8 +145,13 @@ export async function captureSteps({ count, settleMs, advance, waitForIndex, sle
 function measurePage({ overlapSelector, styleProps }) {
   const visible = (el) => {
     const rect = el.getBoundingClientRect()
-    const style = getComputedStyle(el)
-    return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0
+    if (rect.width <= 0 || rect.height <= 0 || getComputedStyle(el).visibility === 'hidden') return false
+    // Opacity and display do not inherit, so every ancestor has to be checked.
+    for (let node = el; node; node = node.parentElement) {
+      const style = getComputedStyle(node)
+      if (style.display === 'none' || Number(style.opacity) === 0) return false
+    }
+    return true
   }
   const root = document.querySelector('[data-presentation-root]')
   const chromeSelector = [
@@ -181,7 +188,8 @@ function measurePage({ overlapSelector, styleProps }) {
   const group = (name, selector) => {
     const all = [...document.querySelectorAll(selector)].filter(visible)
     const active = all.find((el) => el.getAttribute('data-presentation-active') === 'true' || el.hasAttribute('aria-current'))
-    return { name, active: active ? styleOf(active) : null, inactive: all.filter((el) => el !== active).map(styleOf) }
+    const textDriven = all.some((el) => (el.textContent ?? '').trim() !== '')
+    return { name, textDriven, active: active ? styleOf(active) : null, inactive: all.filter((el) => el !== active).map(styleOf) }
   }
   const link = document.querySelector('[data-presentation-attribution]')
   let attribution = null
@@ -259,7 +267,7 @@ export async function inspect(argv, { root = projectRoot, log = console.log } = 
       if (build.code !== 0) throw new Error(`npm run build failed\n${build.output.trim()}`)
     }
     preview = await startPreview(root)
-    log(`preview: ${preview.origin}`)
+    log(`preview: ${preview.origin} (pid ${preview.pid})`)
     browser = await launchChromium((await import('playwright')).chromium)
     const page = await browser.newPage()
     const base = path.resolve(root, options.out ?? 'inspection', options.slug)

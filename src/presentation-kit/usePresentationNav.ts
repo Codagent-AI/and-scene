@@ -9,9 +9,12 @@ const INTERACTIVE = [
   'select',
   'textarea',
   'summary',
-  '[contenteditable=""]',
-  '[contenteditable="true"]',
-  ...['button', 'link', 'checkbox', 'radio', 'switch', 'tab', 'menuitem', 'option', 'slider', 'spinbutton', 'textbox', 'searchbox', 'combobox', 'listbox', 'menu', 'menubar', 'tablist', 'treeitem'].map(
+  '[contenteditable]:not([contenteditable="false"])',
+  ...[
+    'button', 'link', 'checkbox', 'radio', 'switch', 'tab', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option',
+    'slider', 'spinbutton', 'textbox', 'searchbox', 'combobox', 'listbox', 'menu', 'menubar', 'tablist', 'tree',
+    'treegrid', 'grid', 'gridcell', 'treeitem', 'scrollbar',
+  ].map(
     (role) => `[role="${role}"]`,
   ),
 ].join(',')
@@ -38,8 +41,9 @@ export function usePresentationNav(count: number, initialMode: Mode = 'present')
   const last = Math.max(0, count - 1)
 
   const goTo = useCallback((i: number) => setIndex(Math.min(last, Math.max(0, i))), [last])
-  const next = useCallback(() => setIndex((i) => Math.min(last, i + 1)), [last])
-  const prev = useCallback(() => setIndex((i) => Math.max(0, i - 1)), [])
+  // A stored index past the end (the step list shrank) counts as the last step.
+  const next = useCallback(() => setIndex((i) => Math.min(last, Math.min(i, last) + 1)), [last])
+  const prev = useCallback(() => setIndex((i) => Math.max(0, Math.min(i, last) - 1)), [last])
   const toggleMode = useCallback(() => setMode((m) => (m === 'present' ? 'browse' : 'present')), [])
 
   // Keep the position valid when the step list shrinks.

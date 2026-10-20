@@ -81,11 +81,19 @@ const faults: Fault[] = [
       edit(dir, `${sample}/steps/05-depth.tsx`, (s) => s.replace('export const entities = () => [', "export const entities = () => {\n  throw new Error('kaput')\n}\nexport const unused = () => [")),
   },
   {
+    name: 'an exception before the first step mounts',
+    phase: 'render',
+    detail: /step 1 \(index 0\): .*(kaput|did not render)/s,
+    startsPreview: true,
+    apply: (dir) =>
+      edit(dir, `${sample}/steps/01-ask.tsx`, (s) => s.replace('export const entities = () => [', "export const entities = () => {\n  throw new Error('kaput')\n}\nexport const unused = () => [")),
+  },
+  {
     name: 'a transition that does not advance the step index',
     phase: 'render',
     detail: /step 4 \(index 3\): transition from step 2 did not advance: expected index 3, observed index 2/,
     startsPreview: true,
-    apply: (dir) => edit(dir, 'src/presentation-kit/usePresentationNav.ts', (s) => s.replace('Math.min(last, i + 1)', 'i === 2 ? i : Math.min(last, i + 1)')),
+    apply: (dir) => edit(dir, 'src/presentation-kit/usePresentationNav.ts', (s) => s.replace('Math.min(last, Math.min(i, last) + 1)', 'i === 2 ? i : Math.min(last, Math.min(i, last) + 1)')),
   },
 ]
 

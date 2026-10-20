@@ -67,6 +67,18 @@ describe('active chrome diagnostics', () => {
     }
   })
 
+  it('treats a width-only difference as distinct for controls without text', () => {
+    const pill = [{ name: 'progress indicator', active: style({ width: '30px' }), inactive: [style({ width: '14px' }), style({ width: '14px' })] }]
+    expect(activeChromeWarnings(pill)).toEqual([])
+  })
+
+  it('ignores width differences that only reflect different label lengths', () => {
+    const labels = [{ name: 'table-of-contents entry', textDriven: true, active: style({ width: '90px' }), inactive: [style({ width: '40px' }), style({ width: '60px' })] }]
+    expect(activeChromeWarnings(labels)).toHaveLength(1)
+    const styled = [{ name: 'table-of-contents entry', textDriven: true, active: style({ width: '90px', color: 'red' }), inactive: [style({ width: '40px' }), style({ width: '60px' })] }]
+    expect(activeChromeWarnings(styled)).toEqual([])
+  })
+
   it('checks every chrome group, not only the first', () => {
     const groups = [
       { name: 'progress indicator', active: style({ color: 'red' }), inactive: [style()] },

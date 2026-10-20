@@ -1,6 +1,6 @@
 // Production verification: build the whole app, check the reference sample is registered,
 // and step through every sample step in Chromium against `vite preview` on 127.0.0.1.
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { launchChromium, projectRoot, registryEntry, run, sleep, startPreview } from './lib/common.mjs'
@@ -20,6 +20,10 @@ export function loadConfig(root = projectRoot) {
 export function checkRegistry(config, root = projectRoot) {
   const entry = registryEntry(config.slug, root)
   if (!entry) throw new VerifyError('sample', `reference sample "${config.slug}" is not registered in src/presentations/index.ts`)
+  const base = path.join(root, 'src', 'presentations', entry.loadPath)
+  if (!['.tsx', '.ts', '.jsx', '.js'].some((ext) => existsSync(base + ext))) {
+    throw new VerifyError('sample', `"${config.slug}" is registered but its loader points at ${entry.loadPath}, which does not exist`)
+  }
   return entry
 }
 
@@ -83,7 +87,7 @@ export async function renderSteps(page, origin, config, errors) {
   try {
     await page.waitForSelector('[data-step-count]', { timeout: 10000 })
   } catch {
-    throw new VerifyError('render', `${config.slug} did not render a presentation${errors.length ? `: ${errors[0]}` : ''}`)
+    throw failStep(0, `${config.slug} did not render a presentation${errors.length ? `: ${errors[0]}` : ''}`)
   }
   const count = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
   if (count !== config.steps.length) {

@@ -67,6 +67,11 @@ describe('controls keep their keys', () => {
     ['summary', () => document.createElement('summary')],
     ['contenteditable', () => Object.assign(document.createElement('div'), { contentEditable: 'true' })],
     ['aria role', () => Object.assign(document.createElement('div'), { role: 'slider' })],
+    ['plaintext-only editable', () => { const d = document.createElement('div'); d.setAttribute('contenteditable', 'plaintext-only'); return d }],
+    ['empty contenteditable attribute', () => { const d = document.createElement('div'); d.setAttribute('contenteditable', ''); return d }],
+    ['menuitemcheckbox', () => { const d = document.createElement('div'); d.setAttribute('role', 'menuitemcheckbox'); return d }],
+    ['menuitemradio', () => { const d = document.createElement('div'); d.setAttribute('role', 'menuitemradio'); return d }],
+    ['treegrid', () => { const d = document.createElement('div'); d.setAttribute('role', 'treegrid'); return d }],
   ]
   for (const [name, make] of targets) {
     it(`leaves ${name} alone, including nested children`, () => {
@@ -88,6 +93,16 @@ describe('controls keep their keys', () => {
       control.remove()
     })
   }
+
+  it('does not treat contenteditable=false as a control', () => {
+    mount()
+    const div = document.createElement('div')
+    div.setAttribute('contenteditable', 'false')
+    document.body.append(div)
+    key('ArrowRight', {}, div)
+    expect(index()).toBe(1)
+    div.remove()
+  })
 
   it('still navigates from the body', () => {
     mount()
@@ -144,6 +159,12 @@ describe('boundaries', () => {
     const view = mount(4)
     for (let i = 0; i < 3; i++) key('ArrowRight')
     view.rerender(<Presentation steps={makeSteps(['a', 'b'])} initialMode="browse" />)
+    expect(index()).toBe(1)
+    key('ArrowLeft')
+    expect(index()).toBe(0)
+    key('ArrowRight')
+    expect(index()).toBe(1)
+    key('ArrowRight')
     expect(index()).toBe(1)
   })
 })

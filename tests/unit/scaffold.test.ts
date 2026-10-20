@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -98,6 +98,24 @@ describe('anchor detection by contract', () => {
     expect(report.missing).toEqual([])
   })
 
+  for (const [missing, strip] of [
+    ['captions', (s: string) => s.replace(/caption/gi, 'note')],
+    ['a table of contents', (s: string) => s.replace(/toc|table of contents/gi, 'index')],
+    ['present/browse modes', (s: string) => s.replace(/\bbrowse\b/g, 'read')],
+  ] as const) {
+    it(`does not call a kit lacking ${missing} complete`, () => {
+      const dir = tmp()
+      cpSync(TEMPLATE_DIR, dir, { recursive: true })
+      const kit = path.join(dir, 'src/presentation-kit')
+      for (const file of readdirSync(kit, { recursive: true, encoding: 'utf8' })) {
+        const full = path.join(kit, file)
+        if (statSync(full).isFile()) writeFileSync(full, strip(readFileSync(full, 'utf8')))
+      }
+      expect(anchorsAt(dir).kit).toBe(false)
+      expect(detect(dir).missing).toContain('kit')
+    })
+  }
+
   it('does not call an unrelated project an anchor', () => {
     const dir = tmp()
     write(dir, 'package.json', JSON.stringify({ scripts: { build: 'tsc' }, dependencies: { react: '1' } }))
@@ -143,6 +161,20 @@ describe('applying a scaffold', () => {
     expect(pkg.scripts.custom).toBe('x')
     expect(pkg.scripts.verify).toBeTruthy()
     expect(anchorsAt(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('installs verification config together with the verification scripts when only the kit is missing', () => {
+    const dir = tmp()
+    cpSync(TEMPLATE_DIR, dir, { recursive: true })
+    rmSync(path.join(dir, 'src/presentation-kit'), { recursive: true })
+    rmSync(path.join(dir, 'scripts'), { recursive: true })
+    rmSync(path.join(dir, 'verify.config.json'))
+    expect(detect(dir).missing).toEqual(['kit'])
+    const report = applyScaffold(dir, { confirmed: true })
+    expect(report.written).toEqual(expect.arrayContaining(['scripts/verify.mjs', 'verify.config.json']))
+    expect(new Set(report.written).size).toBe(report.written.length)
+    expect(JSON.parse(readFileSync(path.join(dir, 'verify.config.json'), 'utf8')).slug).toBe('getting-started')
+    expect(detect(dir).missing).toEqual([])
   })
 
   it('leaves monorepo root content untouched and writes only under presentations/', () => {

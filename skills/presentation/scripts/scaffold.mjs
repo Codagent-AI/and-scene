@@ -79,9 +79,8 @@ export const isEmptyProject = (dir) => !existsSync(dir) || readdirSync(dir).filt
 /** Which anchor a bootstrap-relative file belongs to. */
 export function anchorOf(rel) {
   if (rel.startsWith('src/presentation-kit/') || rel.startsWith('scripts/')) return 'kit'
-  if (rel.startsWith('src/presentations/') || ['src/main.tsx', 'src/Router.tsx', 'src/Landing.tsx', 'src/routing.ts'].includes(rel)) {
-    return 'index'
-  }
+  // Registry, sample, router and entry files: everything else under src/.
+  if (rel.startsWith('src/')) return 'index'
   return 'build'
 }
 
@@ -104,7 +103,9 @@ export function scaffoldTarget(target, { write = false } = {}) {
   const created = []
   const skipped = []
   for (const rel of bootstrapFiles()) {
-    if (!missing.includes(anchorOf(rel)) || rel === 'package-lock.json') continue
+    if (rel === 'package-lock.json') continue
+    // The manifest is merged whenever anything is added, so the new code finds its dependencies.
+    if (rel !== 'package.json' && !missing.includes(anchorOf(rel))) continue
     const dest = path.join(target, rel)
     if (rel === 'package.json') {
       if (!existsSync(dest)) {

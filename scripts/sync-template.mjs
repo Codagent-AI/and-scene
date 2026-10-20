@@ -13,7 +13,7 @@ export const BOOTSTRAP = path.join(root, 'skills/presentation/templates/bootstra
 export const SYNCED = [
   '.gitignore', 'index.html', 'eslint.config.js', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json',
   'vite.config.ts', 'public/favicon.svg', 'scripts/verify.mjs', 'scripts/inspect-presentation.mjs',
-  'src/main.tsx', 'src/Router.tsx', 'src/Landing.tsx', 'src/routing.ts', 'src/index.css',
+  'src/main.tsx', 'src/Router.tsx', 'src/Landing.tsx', 'src/routing.ts', 'src/lazyEntry.ts', 'src/index.css',
   'src/presentation-kit', 'src/presentations',
 ]
 const DEV_ONLY = ['vitest', 'jsdom', '@testing-library/react', '@testing-library/dom']

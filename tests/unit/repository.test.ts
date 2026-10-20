@@ -20,6 +20,13 @@ describe('template parity', () => {
     }
   })
 
+  it('copies every non-test source file outside the kit and sample into the template', () => {
+    const top = listFiles(path.join(repoRoot, 'src')).filter(
+      (f) => !isTestFile(f) && !f.startsWith('presentation-kit/') && !f.startsWith('presentations/'),
+    )
+    for (const f of top) expect(existsSync(path.join(bootstrap, 'src', f)), f).toBe(true)
+  })
+
   it('keeps the root verify and inspect scripts identical to the template copies', () => {
     for (const f of ['scripts/verify.mjs', 'scripts/inspect-presentation.mjs']) {
       expect(read(bootstrap, f), f).toBe(read(repoRoot, f))

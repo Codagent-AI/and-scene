@@ -180,7 +180,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms))
  * before navigation; any console error, page error, or non-advancing step
  * fails with the 0-based index of the step being shown.
  */
-export async function checkRoute(page, url, { expected, settleMs = SETTLE_MS } = {}) {
+export async function checkRoute(page, url, { expected, settleMs = SETTLE_MS, log = () => {} } = {}) {
   let current = 0
   const faults = []
   page.on('console', (m) => m.type() === 'error' && faults.push({ step: current, text: `console error: ${m.text()}` }))
@@ -219,7 +219,9 @@ export async function checkRoute(page, url, { expected, settleMs = SETTLE_MS } =
     }
     await delay(settleMs)
     assertClean()
+    log(`[verify] step ${i} of ${count - 1} ok`)
     if (i === count - 1) break
+    current = i + 1 // the next step renders as soon as the key is handled
     await page.keyboard.press('ArrowRight')
     try {
       await page.waitForFunction(
@@ -252,7 +254,7 @@ export async function renderAll(root, slugs, log = console.log) {
           log(`[verify] render ${url}`)
           const page = await browser.newPage()
           try {
-            await checkRoute(page, url, { expected: slug === SAMPLE_SLUG ? EXPECTED_SAMPLE : undefined })
+            await checkRoute(page, url, { expected: slug === SAMPLE_SLUG ? EXPECTED_SAMPLE : undefined, log })
           } finally {
             await page.close()
           }

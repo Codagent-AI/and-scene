@@ -1,0 +1,26 @@
+import { AnimatePresence } from 'motion/react'
+import { Appear, Box, SceneLayer, type SceneProps } from '../../presentation-kit/index.ts'
+import { RECTS } from './entities.ts'
+
+/** What differs between steps. Make it cumulative so entities accumulate. */
+export interface SceneState {
+  detail: boolean
+}
+
+const at = (rect: { x: number; y: number; w: number; h: number }) => ({
+  position: 'absolute' as const, left: rect.x, top: rect.y, width: rect.w, height: rect.h,
+})
+
+/** One persistent scene: shared groupKey + Scene means only the payload changes between steps. */
+export function {{Name}}Scene({ payload }: SceneProps<SceneState>) {
+  return (
+    <SceneLayer>
+      <Box id="subject" style={at(RECTS.subject)}>subject</Box>
+      <AnimatePresence>
+        {payload.detail && (
+          <Appear key="detail">{/* newcomers only: continuing entities stay outside Appear */}</Appear>
+        )}
+      </AnimatePresence>
+    </SceneLayer>
+  )
+}

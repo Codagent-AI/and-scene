@@ -1,0 +1,14 @@
+/** {{title}}: every entity id and its fixed place on the 880 × 380 canvas. */
+export interface Rect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export const RECTS = {
+  // one entry per entity; keep ids stable across steps
+  subject: { x: 80, y: 140, w: 160, h: 80 },
+} as const satisfies Record<string, Rect>
+
+export type EntityId = keyof typeof RECTS

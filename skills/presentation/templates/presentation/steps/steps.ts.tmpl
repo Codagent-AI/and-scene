@@ -1,0 +1,12 @@
+import type { Step } from '../../../presentation-kit/index.ts'
+import { {{Name}}Scene, type SceneState } from '../Scene.tsx'
+
+const step = (
+  id: string, era: string, title: string, caption: string, payload: SceneState,
+): Step<SceneState> => ({ id, era, title, caption, groupKey: '{{slug}}', Scene: {{Name}}Scene, payload })
+
+// One entry per step, in order. Step numbers come from position.
+export const STEPS: Step<SceneState>[] = [
+  step('first', 'era one', 'First title', 'A paragraph shown in browse mode.', { detail: false }),
+  step('second', 'era one', 'Second title', 'What changed since the last step.', { detail: true }),
+]

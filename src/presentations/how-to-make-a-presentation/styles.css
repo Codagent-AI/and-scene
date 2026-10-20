@@ -1,0 +1,78 @@
+/* Presentation-owned look for "How to Use This Skill to Make a Presentation". */
+[data-presentation-root] {
+  --gold: #d6b25e;
+  --cream: #f8f3e6;
+  --dim: rgba(248, 243, 230, 0.55);
+  --line: rgba(248, 243, 230, 0.35);
+  --good: #6fcf8d;
+  color: var(--cream);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+[data-presentation-header] { padding: 16px 24px; font-size: 13px; }
+[data-presentation-deck-title] { color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; }
+[data-presentation-marker] { display: flex; gap: 8px; align-items: baseline; font-variant-numeric: tabular-nums; margin-left: auto; }
+[data-presentation-marker-number] { color: var(--gold); font-weight: 700; font-size: 18px; }
+[data-presentation-marker-total], [data-presentation-era] { color: var(--dim); }
+[data-presentation-era] { text-transform: uppercase; letter-spacing: 0.08em; }
+
+[data-presentation-footer] { padding: 0 24px 40px; gap: 6px; }
+[data-presentation-step-title] { margin: 0; font-size: 26px; line-height: 1.2; font-weight: 650; }
+[data-presentation-caption] { margin: 0; max-width: 760px; color: var(--dim); font-size: 15px; line-height: 1.45; }
+
+[data-presentation-toc] ol { margin: 0; padding: 0; gap: 20px; list-style: none; }
+[data-presentation-toc-entry] {
+  background: none; border: 0; border-bottom: 2px solid transparent; padding: 4px 0;
+  color: var(--dim); font: inherit; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer;
+}
+[data-presentation-toc-entry][data-presentation-active='true'] { color: var(--gold); border-bottom-color: var(--gold); font-weight: 700; }
+
+[data-presentation-progress] { margin: 0 16px; padding: 0; gap: 8px; list-style: none; }
+[data-presentation-progress-dot] {
+  width: 10px; height: 10px; padding: 0; border-radius: 999px;
+  border: 1px solid var(--line); background: transparent; cursor: pointer;
+}
+[data-presentation-progress-dot][data-presentation-active='true'] { width: 26px; background: var(--gold); border-color: var(--gold); }
+
+[data-presentation-nav-prev], [data-presentation-nav-next] {
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; background: none;
+  color: var(--cream); font: inherit; font-size: 13px; cursor: pointer;
+}
+[data-presentation-nav-prev]:disabled, [data-presentation-nav-next]:disabled { opacity: 0.35; cursor: default; }
+
+[data-presentation-attribution] {
+  padding: 8px 14px; font-size: 12px; letter-spacing: 0.03em; color: var(--gold);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* Scene entities */
+[data-presentation-node='box'], [data-presentation-node='symbol-chip'] {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  border: 1.5px solid var(--line); border-radius: 10px; background: rgba(248, 243, 230, 0.06);
+  font-size: 14px; text-align: center; box-sizing: border-box;
+}
+[data-presentation-node='symbol-chip'] { border-radius: 999px; font-size: 11px; color: var(--dim); }
+[data-presentation-node='label'] { font-size: 11px; color: var(--dim); text-align: center; }
+[data-presentation-entity='you'], [data-presentation-entity='skill'] { border-color: var(--gold); font-weight: 650; font-size: 16px; }
+[data-presentation-entity^='card-'][data-presentation-node='box'] { justify-content: space-evenly; font-size: 11px; }
+[data-presentation-entity^='card-'][data-presentation-node='box'] > span { font-size: 11px; }
+[data-presentation-entity='ghost'] { border-style: dashed; color: var(--dim); font-size: 12px; }
+[data-presentation-entity='kit'] { border-color: var(--gold); border-radius: 0 0 10px 10px; color: var(--gold); }
+[data-presentation-entity='verify'] { border-color: var(--good); }
+[data-presentation-entity='pass'] { color: var(--good); border-color: var(--good); }
+[data-presentation-entity='flag'] { color: var(--gold); border-color: var(--gold); }
+[data-presentation-entity='modify'] { color: var(--gold); border: 0; background: none; }
+[data-presentation-entity='modify-arc'] { color: var(--gold); }
+[data-presentation-entity='focus'] { border: 2px solid var(--gold); border-radius: 14px; box-shadow: 0 0 18px rgba(214, 178, 94, 0.35); }
+[data-presentation-entity='frame'] { border: 2px solid var(--gold); border-radius: 18px; }
+[data-presentation-entity='frame-label'] { color: var(--gold); font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; }
+[data-presentation-node='arrow'] { color: var(--dim); }
+[data-presentation-node='arrow'] line { stroke-width: 1.5; }
+[data-presentation-icon] { width: 14px; height: 14px; }
+
+@media (max-width: 1023px) {
+  [data-presentation-header] { padding: 12px 16px; }
+  [data-presentation-footer] { padding: 0 16px 40px; }
+  [data-presentation-step-title] { font-size: 20px; }
+  [data-presentation-caption] { font-size: 14px; }
+}

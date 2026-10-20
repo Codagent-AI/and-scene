@@ -1,0 +1,9 @@
+{
+  "slug": "example",
+  "title": "Example presentation",
+  "steps": [
+    { "era": "start", "title": "Start with one box", "caption": "A single entity appears on the canvas." },
+    { "era": "start", "title": "Add a neighbour", "caption": "A second entity enters and an arrow connects the two." },
+    { "era": "finish", "title": "Move the first box", "caption": "The first entity keeps its identity and morphs in place." }
+  ]
+}

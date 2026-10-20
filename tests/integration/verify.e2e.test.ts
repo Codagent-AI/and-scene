@@ -156,3 +156,16 @@ describe.each(faults)('E2E-002 verification failure: $name', (fault) => {
     expect(readFileSync(path.join(repoRoot, 'src/routing.ts'), 'utf8')).not.toContain('broken')
   })
 })
+
+describe('E2E-001 registry comments', () => {
+  it('does not treat a commented example entry as a route to visit', () => {
+    const root = copyRepo()
+    edit(root, 'src/presentations/index.ts', (s) =>
+      `// Example: { "slug": "comment-only", "title": "Not registered", "load": () => import("./not-a-route") }\n${s}`,
+    )
+    const result = verify(root)
+    expect(result.status, result.output).toBe(0)
+    expect(result.output).toContain('VERIFY PASSED')
+    expect(result.output).not.toContain('comment-only')
+  })
+})

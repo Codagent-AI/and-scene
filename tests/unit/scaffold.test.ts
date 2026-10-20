@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
-  BOOTSTRAP_DIR, SKILL_DIR, createPresentation, detectAnchors, insertRegistryEntry, isMonorepo, listPresentations,
+  BOOTSTRAP_DIR, SKILL_DIR, blankComments, createPresentation, detectAnchors, insertRegistryEntry, isMonorepo, listPresentations,
   mergePackageJson, resolveProject, resolveTarget, scaffold,
 } from '../../skills/presentation/scripts/scaffold.mjs'
 import { listFiles, repoRoot } from './helpers.ts'
@@ -125,10 +125,36 @@ describe('zero-config Vite build anchor', () => {
     expect(existsSync(path.join(d, 'vite.config.ts'))).toBe(false)
   })
 
-  it('still reports the build missing when a tsconfig points at the absent vite config', () => {
+  it('keeps the build setup when only a tsconfig the build never selects names the absent vite config', () => {
     const d = zeroConfig()
     write(d, 'tsconfig.node.json', '{ "include": ["vite.config.ts"] }')
+    expect(detectAnchors(d).build).toBe(true)
+  })
+
+  it.each([
+    ['the selected project', 'tsc -p tsconfig.app.json && vite build', { 'tsconfig.app.json': '{ "include": ["src", "vite.config.ts"] }' }],
+    ['a project reached through tsc -b references', 'tsc -b && vite build', {
+      'tsconfig.json': '{ "files": [], "references": [{ "path": "./tsconfig.node.json" }] }',
+      'tsconfig.node.json': '{\n /* node */ "include": ["vite.config.ts"],\n}',
+    }],
+    ['a base config the selected project extends', 'tsc --project tsconfig.app.json && vite build', {
+      'tsconfig.app.json': '{ "extends": "./tsconfig.base.json" }',
+      'tsconfig.base.json': '{ "include": ["vite.config.ts"] }',
+    }],
+    ['a project reached through another script', 'npm run typecheck && vite build', { 'tsconfig.json': '{ "include": ["vite.config.ts"] }' }],
+  ])('reports the build missing when %s names the absent vite config', (_n, build, files) => {
+    const d = tmp()
+    write(d, 'package.json', buildPkg({ scripts: { build, typecheck: 'tsc --noEmit' } }))
+    for (const [name, text] of Object.entries(files)) write(d, name, text)
     expect(detectAnchors(d).build).toBe(false)
+  })
+
+  it('does not follow references when tsc is not in build mode', () => {
+    const d = tmp()
+    write(d, 'package.json', buildPkg({ scripts: { build: 'tsc && vite build' } }))
+    write(d, 'tsconfig.json', '{ "files": [], "references": [{ "path": "./tsconfig.node.json" }] }')
+    write(d, 'tsconfig.node.json', '{ "include": ["vite.config.ts"] }')
+    expect(detectAnchors(d).build).toBe(true)
   })
 
   it('ignores a tsconfig-named entry that cannot be read as a file', () => {
@@ -394,6 +420,40 @@ describe('registry with quoted property names', () => {
     expect(listPresentations(d).map((p) => p.slug)).toEqual(['how-to-make-a-presentation', 'new-topic'])
     expect(() => createPresentation(d, { slug: 'how-to-make-a-presentation', title: 'x' })).toThrow(/already exists/)
     expect(syntaxErrors('index.ts', readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8'))).toEqual([])
+  })
+})
+
+describe('registry examples in comments', () => {
+  const example = '{ "slug": "comment-only", "title": "Not registered", "load": () => import("./not-a-route") }'
+
+  it('are not presentations, whether in a line or a block comment', () => {
+    for (const comment of [`// Documentation example: ${example}\n`, `/* ${example}\n */\n`]) {
+      const d = materialized()
+      const file = path.join(d, 'src/presentations/index.ts')
+      writeFileSync(file, comment + readFileSync(file, 'utf8'))
+      expect(listPresentations(d).map((p) => p.slug)).toEqual(['how-to-make-a-presentation'])
+      expect(resolveProject(d).presentations.map((p) => p.slug)).not.toContain('comment-only')
+    }
+  })
+
+  it('do not make a file the presentation index', () => {
+    const d = tmp()
+    write(d, 'src/notes.ts', `// ${example}\nexport {}\n`)
+    expect(detectAnchors(d).index).toBe(false)
+  })
+
+  it('do not block creating a presentation with that slug or misplace its entry', () => {
+    const d = materialized()
+    const file = path.join(d, 'src/presentations/index.ts')
+    writeFileSync(file, `// const examples = [ ${example} ]\n` + readFileSync(file, 'utf8'))
+    createPresentation(d, { slug: 'comment-only', title: 'Real now' })
+    expect(listPresentations(d).map((p) => p.slug)).toEqual(['how-to-make-a-presentation', 'comment-only'])
+    expect(syntaxErrors('index.ts', readFileSync(file, 'utf8'))).toEqual([])
+  })
+
+  it('keep strings that merely contain comment markers', () => {
+    const src = "const url = 'http://x/*y*/'; // note\nconst z = 1"
+    expect(blankComments(src)).toBe("const url = 'http://x/*y*/';        \nconst z = 1")
   })
 })
 

@@ -51,10 +51,45 @@ export function isMonorepo(dir) {
 
 const hasDep = (pkg, name) => Boolean(pkg?.dependencies?.[name] ?? pkg?.devDependencies?.[name])
 
+/**
+ * The source with every comment replaced by spaces (same length, same newlines), so
+ * an example entry in a comment is never mistaken for a registry object. Strings
+ * and template literals are kept intact.
+ */
+export function blankComments(src) {
+  let out = ''
+  let i = 0
+  while (i < src.length) {
+    const c = src[i]
+    const next = src[i + 1]
+    let stop = i + 1
+    if (c === '/' && next === '/') {
+      const eol = src.indexOf('\n', i)
+      stop = eol === -1 ? src.length : eol
+      out += ' '.repeat(stop - i)
+    } else if (c === '/' && next === '*') {
+      const end = src.indexOf('*/', i + 2)
+      stop = end === -1 ? src.length : end + 2
+      out += src.slice(i, stop).replace(/[^\n]/g, ' ')
+    } else if (c === '"' || c === "'" || c === '`') {
+      while (stop < src.length && src[stop] !== c) stop += src[stop] === '\\' ? 2 : 1
+      stop = Math.min(stop + 1, src.length)
+      out += src.slice(i, stop)
+    } else {
+      out += c
+    }
+    i = stop
+  }
+  return out
+}
+
 // Object keys may be quoted or not: quoting is a cosmetic TypeScript choice.
 const propKey = (name) => `(?:\\b${name}\\b|"${name}"|'${name}')\\s*:`
 export const SLUG_KEY = new RegExp(propKey('slug'))
-const isRegistry = (text) => SLUG_KEY.test(text) && new RegExp(propKey('load')).test(text) && /\bimport\s*\(/.test(text)
+const isRegistry = (source) => {
+  const text = blankComments(source)
+  return SLUG_KEY.test(text) && new RegExp(propKey('load')).test(text) && /\bimport\s*\(/.test(text)
+}
 
 /** The registry file, wherever the project keeps it. */
 export function findRegistry(dir) {
@@ -68,23 +103,83 @@ export function findKitIndex(dir) {
   return ['index.ts', 'index.tsx'].map((n) => path.join(path.dirname(decl), n)).find((f) => existsSync(f))
 }
 
+/** Removes comments and trailing commas so a tsconfig (JSONC) parses as JSON. */
+const parseJsonc = (text) => {
+  try {
+    const json = text
+      .replace(/"(?:[^"\\]|\\.)*"|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => (m.startsWith('"') ? m : ''))
+      .replace(/,(\s*[}\]])/g, '$1')
+    return JSON.parse(json)
+  } catch {
+    return undefined
+  }
+}
+
+/** The `tsc` invocations a build script makes, following `npm run <script>` into other scripts. */
+function tscInvocations(script, scripts, depth = 0) {
+  const found = []
+  for (const segment of script.split(/&&|\|\||;|\|/)) {
+    const tokens = segment.trim().split(/\s+/)
+    const tsc = tokens.findIndex((t) => t === 'tsc' || t.endsWith('/tsc'))
+    if (tsc !== -1) {
+      const args = tokens.slice(tsc + 1)
+      const build = args.includes('-b') || args.includes('--build')
+      const projects = []
+      args.forEach((a, i) => {
+        if (a === '-p' || a === '--project') projects.push(args[i + 1])
+        else if (build && !a.startsWith('-')) projects.push(a)
+      })
+      found.push({ build, projects: projects.filter(Boolean).length ? projects.filter(Boolean) : ['tsconfig.json'] })
+      continue
+    }
+    const run = /^(?:npm|pnpm|yarn)\s+(?:run\s+)?([\w:.-]+)/.exec(segment.trim())
+    if (run && depth < 5 && typeof scripts[run[1]] === 'string') found.push(...tscInvocations(scripts[run[1]], scripts, depth + 1))
+  }
+  return found
+}
+
+/** Text of every tsconfig the build script actually compiles: its projects, `extends`, and (with -b) `references`. */
+function buildTsconfigs(dir, pkg) {
+  const texts = []
+  const seen = new Set()
+  const visit = (target, followReferences) => {
+    let file = path.resolve(dir, target)
+    if (existsSync(file) && statSync(file).isDirectory()) file = path.join(file, 'tsconfig.json')
+    if (!existsSync(file) && existsSync(`${file}.json`)) file = `${file}.json`
+    if (seen.has(file)) return
+    seen.add(file)
+    let text
+    try {
+      text = readFileSync(file, 'utf8')
+    } catch {
+      return // an entry that cannot be read as a file references nothing
+    }
+    texts.push(text)
+    const json = parseJsonc(text)
+    const parents = [json?.extends].flat().filter((e) => typeof e === 'string' && e.startsWith('.'))
+    for (const parent of parents) visit(path.resolve(path.dirname(file), parent), false)
+    if (followReferences) {
+      for (const ref of json?.references ?? []) {
+        if (typeof ref?.path === 'string') visit(path.resolve(path.dirname(file), ref.path), true)
+      }
+    }
+  }
+  for (const { build, projects } of tscInvocations(pkg.scripts.build, pkg.scripts)) {
+    for (const project of projects) visit(project, build)
+  }
+  return texts
+}
+
 /**
  * Vite builds the app: either a vite config exists, or the build script runs vite
- * with Vite's zero-config defaults and no tsconfig still points at a vite config
- * that is gone (which would break `tsc -b`).
+ * with Vite's zero-config defaults and no tsconfig that the build compiles still
+ * points at a vite config that is gone (which would break `tsc`). A tsconfig the
+ * build never selects is irrelevant.
  */
 function viteBuild(dir, pkg) {
   if (['ts', 'js', 'mjs', 'mts', 'cjs'].some((e) => existsSync(path.join(dir, `vite.config.${e}`)))) return true
   if (!/\bvite\b/.test(pkg.scripts.build)) return false
-  // An entry that cannot be read as a file (a directory, a broken symlink) references nothing.
-  const refsViteConfig = (n) => {
-    try {
-      return /vite\.config/.test(readFileSync(path.join(dir, n), 'utf8'))
-    } catch {
-      return false
-    }
-  }
-  return !readdirSync(dir).some((n) => /^tsconfig.*\.json$/.test(n) && refsViteConfig(n))
+  return !buildTsconfigs(dir, pkg).some((text) => /vite\.config/.test(text))
 }
 
 /** Contract-level anchor detection: by capability, not by byte-identical files. */
@@ -220,13 +315,14 @@ function closingBracket(src, open) {
 /** Appends an entry to the registry array literal, whatever follows its closing bracket. */
 export function insertRegistryEntry(source, entry) {
   // The registry is the array literal assigned (`= [`) that holds the slug entries; other arrays are skipped.
+  const code = blankComments(source)
   let close = -1
   let fallback = -1
-  for (const m of source.matchAll(/=\s*\[/g)) {
+  for (const m of code.matchAll(/=\s*\[/g)) {
     const open = m.index + m[0].length - 1
-    const end = closingBracket(source, open)
+    const end = closingBracket(code, open)
     if (end === -1) continue
-    if (SLUG_KEY.test(source.slice(open, end))) {
+    if (SLUG_KEY.test(code.slice(open, end))) {
       close = end
       break
     }
@@ -259,7 +355,7 @@ export function createPresentation(appDir, { slug, title }) {
   if (!kitIndex) throw new Error('no scene kit index (index.ts beside the Presentation component) found; scaffold first')
   const registry = readFileSync(registryFile, 'utf8')
   const folder = path.join(path.dirname(registryFile), slug)
-  if (existsSync(folder) || new RegExp(`${propKey('slug')}\\s*['"]${slug}['"]`).test(registry)) {
+  if (existsSync(folder) || new RegExp(`${propKey('slug')}\\s*['"]${slug}['"]`).test(blankComments(registry))) {
     throw new Error(`presentation "${slug}" already exists`)
   }
   const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk.tsx'),\n  },`
@@ -281,7 +377,7 @@ export function createPresentation(appDir, { slug, title }) {
 export function listPresentations(appDir) {
   const file = findRegistry(appDir)
   if (!file) return []
-  const src = readFileSync(file, 'utf8')
+  const src = blankComments(readFileSync(file, 'utf8'))
   return [...src.matchAll(new RegExp(`${propKey('slug')}\\s*['"]([^'"]+)['"]\\s*,\\s*${propKey('title')}\\s*(['"\`])(.*?)\\2`, 'gs'))].map((m) => ({ slug: m[1], title: m[3] }))
 }
 

@@ -37,8 +37,36 @@ export class VerifyError extends Error {
 
 export const previewUrl = (port, route = '/') => `http://${HOST}:${port}${route}`
 
+/** The source with comments replaced by spaces, so an example entry in a comment is not a route. */
+function blankComments(src) {
+  let out = ''
+  let i = 0
+  while (i < src.length) {
+    const c = src[i]
+    const next = src[i + 1]
+    let stop = i + 1
+    if (c === '/' && next === '/') {
+      const eol = src.indexOf('\n', i)
+      stop = eol === -1 ? src.length : eol
+      out += ' '.repeat(stop - i)
+    } else if (c === '/' && next === '*') {
+      const end = src.indexOf('*/', i + 2)
+      stop = end === -1 ? src.length : end + 2
+      out += src.slice(i, stop).replace(/[^\n]/g, ' ')
+    } else if (c === '"' || c === "'" || c === '`') {
+      while (stop < src.length && src[stop] !== c) stop += src[stop] === '\\' ? 2 : 1
+      stop = Math.min(stop + 1, src.length)
+      out += src.slice(i, stop)
+    } else {
+      out += c
+    }
+    i = stop
+  }
+  return out
+}
+
 export function parseRegistrySlugs(source) {
-  return [...source.matchAll(/(?:\bslug\b|"slug"|'slug')\s*:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
+  return [...blankComments(source).matchAll(/(?:\bslug\b|"slug"|'slug')\s*:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
 }
 
 /** Throws a `sample` VerifyError unless the registry and step data match the outline exactly. */

@@ -3,8 +3,7 @@
 // advisory `WARN step N: ...` lines. Warnings never change the exit status; capture failures do.
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
-import { launchChromium, projectRoot, registrySlugs, run, sleep, startPreview } from './lib/common.mjs'
+import { isMainModule, launchChromium, projectRoot, registrySlugs, run, sleep, startPreview } from './lib/common.mjs'
 
 export const DEFAULTS = {
   desktop: { width: 1440, height: 900 },
@@ -291,6 +290,6 @@ export async function inspect(argv, { root = projectRoot, log = console.log } = 
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url)) {
   process.exitCode = await inspect(process.argv.slice(2))
 }

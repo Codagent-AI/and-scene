@@ -1,4 +1,6 @@
-import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { AnimatePresence, LayoutGroup, MotionConfig, motion } from 'motion/react'
+import { useCallback, useRef } from 'react'
+import { pageToCanvas, type Point } from './canvasPoint.ts'
 import { ENTER_T } from './constants.ts'
 import type { DesignSize, Mode, Step } from './types.ts'
 import { stageRegion, useFitScale } from './useFitScale.ts'
@@ -19,10 +21,13 @@ export function Stage<P>({ steps, index, mode, design, tocVisible }: StageProps<
   const scale = useFitScale(mode, design, tocVisible)
   const region = stageRegion(mode, tocVisible)
   const step = steps[index]
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const transformPagePoint = useCallback((point: Point) => pageToCanvas(canvasRef.current, point), [])
   const { Scene } = step
   return (
     <div data-presentation-stage="" style={{ position: 'absolute', ...region, overflow: 'hidden' }}>
       <div
+        ref={canvasRef}
         data-presentation-canvas=""
         data-presentation-scale={scale.toFixed(4)}
         style={{
@@ -35,22 +40,25 @@ export function Stage<P>({ steps, index, mode, design, tocVisible }: StageProps<
           transformOrigin: 'center center',
         }}
       >
-        {/* Keyed by mode: a mode switch re-renders the scene instead of morphing it. */}
-        <LayoutGroup key={mode}>
-          <AnimatePresence initial={false}>
-            <motion.div
-              key={step.groupKey ?? step.id}
-              data-presentation-step={step.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: ENTER_T }}
-              style={{ position: 'absolute', inset: 0 }}
-            >
-              <Scene payload={step.payload as P} step={step} index={index} />
-            </motion.div>
-          </AnimatePresence>
-        </LayoutGroup>
+        {/* Layout deltas are measured in canvas coordinates so they stay correct under the fit scale. */}
+        <MotionConfig transformPagePoint={transformPagePoint}>
+          {/* Keyed by mode: a mode switch re-renders the scene instead of morphing it. */}
+          <LayoutGroup key={mode}>
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={step.groupKey ?? step.id}
+                data-presentation-step={step.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: ENTER_T }}
+                style={{ position: 'absolute', inset: 0 }}
+              >
+                <Scene payload={step.payload as P} step={step} index={index} />
+              </motion.div>
+            </AnimatePresence>
+          </LayoutGroup>
+        </MotionConfig>
       </div>
     </div>
   )

@@ -4,9 +4,9 @@
 //   node scaffold.mjs detect [dir]
 //   node scaffold.mjs apply [dir] [--confirmed] [--install]
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 export const TEMPLATE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates', 'bootstrap')
 
@@ -44,6 +44,47 @@ export function isMonorepo(dir) {
   return Boolean(pkg?.workspaces) || existsSync(path.join(dir, 'pnpm-workspace.yaml')) || ['packages', 'apps'].some((d) => existsSync(path.join(dir, d)))
 }
 
+const SOURCE_FILE = /\.(ts|tsx|js|jsx)$/
+const isRegistrySource = (s) => /\bslug\b/.test(s) && /\bload\s*:/.test(s) && /import\(/.test(s)
+
+/** The source file playing the registry role (relative path), preferring src/presentations/index.ts. */
+export function findRegistry(dir) {
+  const files = walk(path.join(dir, 'src')).filter((f) => SOURCE_FILE.test(f) && !/\.test\./.test(f))
+  const preferred = path.join(dir, 'src', 'presentations', 'index.ts')
+  const ordered = [...files.filter((f) => f === preferred), ...files.filter((f) => f !== preferred).sort((a, b) => a.length - b.length || a.localeCompare(b))]
+  const found = ordered.find((f) => isRegistrySource(readFileSync(f, 'utf8')))
+  return found ? path.relative(dir, found) : null
+}
+
+function resolveImport(from, spec) {
+  const base = path.resolve(path.dirname(from), spec)
+  const candidates = [base, ...['.ts', '.tsx', '.js', '.jsx'].map((e) => base + e), ...['.ts', '.tsx', '.js', '.jsx'].map((e) => path.join(base, `index${e}`))]
+  return candidates.find((c) => SOURCE_FILE.test(c) && existsSync(c) && statSync(c).isFile()) ?? null
+}
+
+/** Whether the app's browser entry (index.html script) reaches the registry through its imports. */
+export function registryIsRouted(dir, registryRel) {
+  if (!registryRel) return false
+  const html = existsSync(path.join(dir, 'index.html')) ? readFileSync(path.join(dir, 'index.html'), 'utf8') : ''
+  const entry = /<script[^>]*\bsrc=["']([^"']+)["']/i.exec(html)?.[1]
+  if (!entry) return false
+  const start = resolveImport(path.join(dir, 'index.html'), entry.startsWith('/') ? `.${entry}` : entry)
+  const target = path.join(dir, registryRel)
+  const seen = new Set()
+  const queue = start ? [start] : []
+  while (queue.length) {
+    const file = queue.pop()
+    if (seen.has(file)) continue
+    seen.add(file)
+    if (file === target) return true
+    for (const [, spec] of readFileSync(file, 'utf8').matchAll(/(?:from\s+|import\s*\(?\s*)['"](\.{1,2}\/[^'"]+)['"]/g)) {
+      const next = resolveImport(file, spec)
+      if (next) queue.push(next)
+    }
+  }
+  return false
+}
+
 /** Contract-level anchor detection: what the files provide, not what they are called. */
 export function anchorsAt(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
@@ -68,7 +109,8 @@ export function anchorsAt(dir) {
     some((s) => /\bbrowse\b/.test(s) && /\bpresent\b/.test(s)) &&
     some((s) => /scale\(/.test(s)) &&
     some((s) => /export (function|const) Presentation\b/.test(s))
-  const index = some((s) => /\bslug\b/.test(s) && /\bload\s*:/.test(s) && /import\(/.test(s))
+  const registry = findRegistry(dir)
+  const index = registry !== null && registryIsRouted(dir, registry)
   return { build, kit, index }
 }
 
@@ -93,6 +135,7 @@ export function detect(dir) {
     monorepo: isMonorepo(root),
     anchors,
     missing,
+    registry: findRegistry(target),
     needsConfirmation: !isEmpty(root) && missing.length > 0,
   }
 }
@@ -173,10 +216,28 @@ export function applyScaffold(dir, { confirmed = false, install = false, templat
       throw new Error(`install failed after scaffolding ${found.target}:\n${installed.join('\n')}`)
     }
   }
-  return { ...found, written: plan.copy.map((c) => c.rel), skipped: plan.skip, mergedPackageJson: plan.mergePackage, installed }
+  const remaining = detect(dir).missing
+  const followUp = remaining.includes('index')
+    ? [
+        `The registry is not reachable from the app entry (index.html script), so the new routes cannot be opened. ${plan.skip.includes('src/main.tsx') ? 'The existing src/main.tsx was kept. ' : ''}` +
+          'Make the entry render `<Router registry={PRESENTATIONS} pathname={window.location.pathname} />` ' +
+          "(`Router` from ./Router.tsx, `PRESENTATIONS` from the registry) or mount it at the host's routing point, then run detect again until `missing` is empty.",
+      ]
+    : []
+  return { ...found, written: plan.copy.map((c) => c.rel), skipped: plan.skip, mergedPackageJson: plan.mergePackage, installed, remaining, followUp }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+/** True when this file is the process entry point, also when started through a symlinked path. */
+function isMain() {
+  if (!process.argv[1]) return false
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+
+if (isMain()) {
   const [command, ...rest] = process.argv.slice(2)
   const flags = new Set(rest.filter((a) => a.startsWith('--')))
   const dir = rest.find((a) => !a.startsWith('--')) ?? process.cwd()

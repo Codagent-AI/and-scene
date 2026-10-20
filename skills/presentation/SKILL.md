@@ -51,10 +51,12 @@ trigger re-scaffolding:
 2. **Scene kit** — the `Step`/`SceneProps` contract, the stage that mounts the active step and runs
    morphs, present/browse navigation, chrome (captions, table of contents), and the fit-scaled canvas.
 3. **Presentation index** — the registry that maps each presentation slug to a lazy loader, so
-   several presentations coexist, each at its own route.
+   several presentations coexist, each at its own route. The app entry (the `index.html` script) must
+   reach it through a router, otherwise the routes cannot be opened.
 
 Run `node <skill-dir>/scripts/scaffold.mjs detect <project-dir>`. It reports the resolved `target`,
-which anchors exist there, and `needsConfirmation`:
+which anchors exist there, the `registry` file (whatever it is called; use it wherever this skill says
+"the registry"), and `needsConfirmation`:
 
 - an empty directory (only `.git` counts as empty) or a standalone project → scaffold at the root;
 - a **monorepo** (`workspaces` in `package.json`, a `pnpm-workspace.yaml`, or a `packages/` or `apps/`
@@ -70,6 +72,13 @@ and scripts into `package.json`).
 the target directory and which anchors you will add, and wait for their go-ahead. Only then run
 `node <skill-dir>/scripts/scaffold.mjs apply <project-dir> --confirmed --install`. For an empty
 directory no confirmation is needed: run `apply <project-dir> --install`.
+
+`apply` prints `remaining` (anchors still missing) and `followUp`. A host that keeps its own entry file
+(for example `src/main.tsx`) is never overwritten, so `index` stays missing until that entry renders
+the scaffold's `Router` (`<Router registry={PRESENTATIONS} pathname={window.location.pathname} />`,
+imported from `./Router.tsx` and the registry) or mounts it at the host's routing point. Make that
+edit yourself, keep the host's existing behavior at its own routes, and run `detect` again until
+`missing` is empty before generating anything.
 
 Do not assume dependencies are installed: `--install` runs `npm install` and installs Playwright's
 Chromium. The scaffold needs React, Vite, TypeScript (with React/Node types), Motion, Lucide icons,
@@ -100,7 +109,8 @@ Copy `templates/presentation/` to `src/presentations/<slug>/` in the target and 
   Make the active step visibly distinct and the "made by and-scene" attribution legible (at least 12px,
   not the browser default link color). Do not edit `src/presentation-kit/`.
 
-Then **register** it with one new line in `src/presentations/index.ts`
+Then **register** it with one new line in the registry (`src/presentations/index.ts` by default; use the
+`registry` path that `detect` reports)
 (`{ slug, title, load: () => import('./<slug>/Talk') }`) and add a matching entry to
 `verify.config.json` only if it should become the project's verified reference presentation. Existing
 presentations stay untouched and reachable. Mark a subtree that intentionally overlaps (and stays
@@ -109,7 +119,7 @@ readable) with `data-presentation-allow-overlap`; use it sparingly and never on 
 ### Modify an existing presentation
 
 Identify the target first. If the request does not name one, or the name is ambiguous, list the
-registered presentations (read `src/presentations/index.ts`) and ask which to change **before editing
+registered presentations (read the registry file that `detect` reports) and ask which to change **before editing
 anything**. Once the target is clear, ask only about the requested change (steps, entities, or style)
 and edit that presentation in place. Do not re-walk the create flow, re-scaffold, or touch other
 presentations beyond what the change needs.

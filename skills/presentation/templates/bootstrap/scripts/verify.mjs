@@ -2,8 +2,7 @@
 // and step through every sample step in Chromium against `vite preview` on 127.0.0.1.
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
-import { launchChromium, projectRoot, registryEntry, run, sleep, startPreview } from './lib/common.mjs'
+import { isMainModule, launchChromium, projectRoot, registryEntry, run, sleep, startPreview } from './lib/common.mjs'
 
 export class VerifyError extends Error {
   constructor(phase, message) {
@@ -67,6 +66,9 @@ const readStep = (page) =>
     }
   })
 
+/** Newcomers enter 0.6s after a step starts and take 0.4s, so a step is only done rendering after ~1s. */
+export const STEP_SETTLE_MS = 1200
+
 const failStep = (index, message) => new VerifyError('render', `step ${index + 1} (index ${index}): ${message}`)
 
 async function waitForIndex(page, expected) {
@@ -100,7 +102,7 @@ export async function renderSteps(page, origin, config, errors) {
       await page.keyboard.press('ArrowRight')
       await waitForIndex(page, i)
     }
-    await sleep(250)
+    await sleep(STEP_SETTLE_MS)
     const observed = await readStep(page)
     if (errors.length) throw failStep(i, errors[0])
     const transition = i === 0 ? (observed.index === 0 ? null : `first step has index ${observed.index}`) : checkTransition(i - 1, i, observed.index)
@@ -147,6 +149,6 @@ export async function verify({ root = projectRoot, log = console.log } = {}) {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url)) {
   process.exitCode = await verify()
 }

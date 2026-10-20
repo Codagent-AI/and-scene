@@ -1,10 +1,11 @@
 // @vitest-environment node
+import { spawnSync } from 'node:child_process'
 import { EventEmitter } from 'node:events'
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { HOST, registryEntry, registrySlugs } from '../../scripts/lib/common.mjs'
+import { HOST, registryEntry, registrySlugs, registrySource } from '../../scripts/lib/common.mjs'
 import { checkRegistry, checkTransition, collectBrowserErrors, compareStep, loadConfig, renderSteps, VerifyError } from '../../scripts/verify.mjs'
 
 const root = path.resolve(import.meta.dirname, '..', '..')
@@ -27,6 +28,21 @@ describe('registry checks', () => {
     expect(registrySlugs(dir)).toEqual(['one', 'two'])
     expect(registryEntry('two', dir)).toEqual({ slug: 'two', loadPath: './two/Talk' })
     expect(registryEntry('three', dir)).toBeNull()
+  })
+
+  it('finds a registry whose file was renamed, by what it provides', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'verify-unit-'))
+    mkdirSync(path.join(dir, 'src', 'presentations'), { recursive: true })
+    writeFileSync(path.join(dir, 'src', 'presentations', 'registry.ts'), registry)
+    writeFileSync(path.join(dir, 'src', 'other.ts'), 'export const x = 1')
+    expect(registrySlugs(dir)).toEqual(['one', 'two'])
+    expect(registryEntry('one', dir)).toEqual({ slug: 'one', loadPath: './one/Talk' })
+  })
+
+  it('names the missing registry instead of a bare ENOENT', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'verify-unit-'))
+    mkdirSync(path.join(dir, 'src'), { recursive: true })
+    expect(() => registrySource(dir)).toThrow(/no presentation registry found/)
   })
 
   it('fails the sample phase when the reference sample is not registered', () => {
@@ -133,5 +149,35 @@ describe('rendering the sample', () => {
   it('attributes a failure before the first step mounts its hooks to step 1', async () => {
     const rejected = renderSteps(fakePage(null), 'http://127.0.0.1:1', config, ['uncaught page error: kaput'])
     await expect(rejected).rejects.toMatchObject({ phase: 'render', message: expect.stringMatching(/^step 1 \(index 0\): .*kaput/) })
+  })
+})
+
+describe('late errors on the final step', () => {
+  it('waits out the newcomer entrance window and fails on an error raised during it', async () => {
+    const errors: string[] = []
+    const page = Object.assign(new EventEmitter(), {
+      goto: async () => {
+        setTimeout(() => errors.push('console.error: late final render fault'), 700)
+      },
+      waitForSelector: async () => {},
+      getAttribute: async () => '1',
+      evaluate: async () => ({ index: 0, mode: 'browse', era: 'e', title: 't', caption: 'c', entities: 1 }),
+    })
+    const rejected = renderSteps(page, 'http://127.0.0.1:1', { slug: 's', steps: [{ era: 'e', title: 't', caption: 'c' }] }, errors)
+    await expect(rejected).rejects.toMatchObject({ phase: 'render', message: expect.stringContaining('late final render fault') })
+  })
+})
+
+describe('entry point guard', () => {
+  it('still recognizes the script as main when it is started through a symlink', () => {
+    const real = mkdtempSync(path.join(os.tmpdir(), 'main-guard-'))
+    const links = mkdtempSync(path.join(os.tmpdir(), 'main-guard-link-'))
+    const common = path.join(root, 'scripts', 'lib', 'common.mjs')
+    writeFileSync(path.join(real, 'probe.mjs'), `import { isMainModule } from ${JSON.stringify(common)}\nconsole.log(isMainModule(import.meta.url))\n`)
+    symlinkSync(path.join(real, 'probe.mjs'), path.join(links, 'probe.mjs'))
+    const viaLink = spawnSync(process.execPath, [path.join(links, 'probe.mjs')], { encoding: 'utf8' })
+    expect(viaLink.stdout.trim()).toBe('true')
+    const imported = spawnSync(process.execPath, ['--input-type=module', '-e', `import ${JSON.stringify(path.join(real, 'probe.mjs'))}`], { encoding: 'utf8' })
+    expect(imported.stdout.trim()).toBe('false')
   })
 })

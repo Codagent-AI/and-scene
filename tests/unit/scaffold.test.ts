@@ -1,9 +1,10 @@
 // @vitest-environment node
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { anchorsAt, applyScaffold, detect, isEmpty, isMonorepo, mergePackageJson, planScaffold, TEMPLATE_DIR } from '../../skills/presentation/scripts/scaffold.mjs'
+import { anchorsAt, applyScaffold, detect, findRegistry, isEmpty, isMonorepo, mergePackageJson, planScaffold, TEMPLATE_DIR } from '../../skills/presentation/scripts/scaffold.mjs'
 
 const tmp = () => mkdtempSync(path.join(os.tmpdir(), 'scaffold-unit-'))
 const write = (dir: string, rel: string, content = '') => {
@@ -92,6 +93,13 @@ describe('anchor detection by contract', () => {
     cpSync(path.join(dir, 'src/presentation-kit'), path.join(dir, 'src/engine'), { recursive: true })
     rmSync(path.join(dir, 'src/presentation-kit'), { recursive: true })
     renameSync(path.join(dir, 'src/presentations/index.ts'), path.join(dir, 'src/presentations/registry.ts'))
+    // Keep the app consistent: imports follow the renames, as they would in a real host.
+    for (const file of readdirSync(path.join(dir, 'src'), { recursive: true, encoding: 'utf8' })) {
+      const full = path.join(dir, 'src', file)
+      if (!statSync(full).isFile() || !/\.(ts|tsx)$/.test(file)) continue
+      writeFileSync(full, readFileSync(full, 'utf8').replaceAll('presentation-kit', 'engine').replaceAll('presentations/index.ts', 'presentations/registry.ts'))
+    }
+    expect(findRegistry(dir)).toBe(path.join('src', 'presentations', 'registry.ts'))
     expect(anchorsAt(dir)).toEqual({ build: true, kit: true, index: true })
     const report = applyScaffold(dir, { confirmed: true })
     expect(report.written).toEqual([])
@@ -160,7 +168,10 @@ describe('applying a scaffold', () => {
     expect(pkg.dependencies.motion).toBeTruthy()
     expect(pkg.scripts.custom).toBe('x')
     expect(pkg.scripts.verify).toBeTruthy()
-    expect(anchorsAt(dir)).toEqual({ build: true, kit: true, index: true })
+    // The kept host entry never renders the scaffold's router, so the index is not complete until it does.
+    expect(anchorsAt(dir)).toEqual({ build: true, kit: true, index: false })
+    expect(report.remaining).toEqual(['index'])
+    expect(report.followUp).toHaveLength(1)
   })
 
   it('installs verification config together with the verification scripts when only the kit is missing', () => {
@@ -229,5 +240,59 @@ describe('applying a scaffold', () => {
   it('merges package.json without altering existing entries', () => {
     const merged = mergePackageJson({ scripts: { a: '1' }, dependencies: { x: '1' } }, { type: 'module', scripts: { a: '2', b: '3' }, dependencies: { x: '2', y: '2' }, devDependencies: { z: '1' } })
     expect(merged).toEqual({ type: 'module', scripts: { a: '1', b: '3' }, dependencies: { x: '1', y: '2' }, devDependencies: { z: '1' } })
+  })
+})
+
+describe('routing the registry (index anchor)', () => {
+  /** A working Vite/React/TypeScript host with its own entry and no kit or index. */
+  function buildOnlyHost() {
+    const dir = tmp()
+    for (const f of ['package.json', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'vite.config.ts', 'index.html']) cpSync(path.join(TEMPLATE_DIR, f), path.join(dir, f))
+    write(dir, 'src/main.tsx', "import { createRoot } from 'react-dom/client'\ncreateRoot(document.getElementById('root')!).render(<h1>Existing host dashboard</h1>)\n")
+    return dir
+  }
+
+  it('does not call a registry complete while the app entry never reaches it', () => {
+    const dir = buildOnlyHost()
+    const report = applyScaffold(dir, { confirmed: true })
+    expect(report.skipped).toContain('src/main.tsx')
+    expect(readFileSync(path.join(dir, 'src/main.tsx'), 'utf8')).toContain('Existing host dashboard')
+    expect(findRegistry(dir)).not.toBeNull()
+    expect(anchorsAt(dir).index).toBe(false)
+    expect(report.remaining).toContain('index')
+    expect(report.followUp.join(' ')).toMatch(/Router/)
+  })
+
+  it('reports the index complete once the host entry renders the router', () => {
+    const dir = buildOnlyHost()
+    applyScaffold(dir, { confirmed: true })
+    cpSync(path.join(TEMPLATE_DIR, 'src/main.tsx'), path.join(dir, 'src/main.tsx'))
+    expect(anchorsAt(dir).index).toBe(true)
+    expect(detect(dir).missing).toEqual([])
+    expect(detect(dir).registry).toBe(path.join('src', 'presentations', 'index.ts'))
+  })
+
+  it('has nothing to follow up on after a full scaffold', () => {
+    const dir = tmp()
+    const report = applyScaffold(dir)
+    expect(report.remaining).toEqual([])
+    expect(report.followUp).toEqual([])
+  })
+})
+
+describe('command line entry point', () => {
+  const scripts = path.resolve(import.meta.dirname, '..', '..', 'skills', 'presentation', 'scripts')
+
+  it('runs when invoked through a symlinked skill directory, and reports instead of silently doing nothing', () => {
+    const linkParent = tmp()
+    const link = path.join(linkParent, 'skill-scripts')
+    symlinkSync(scripts, link, 'dir')
+    const target = tmp()
+    const result = spawnSync(process.execPath, [path.join(link, 'scaffold.mjs'), 'detect', target], { encoding: 'utf8' })
+    expect(result.status).toBe(0)
+    expect(JSON.parse(result.stdout).missing).toEqual(['build', 'kit', 'index'])
+    const bad = spawnSync(process.execPath, [path.join(link, 'scaffold.mjs'), 'nonsense'], { encoding: 'utf8' })
+    expect(bad.status).toBe(1)
+    expect(bad.stderr).toMatch(/usage/)
   })
 })

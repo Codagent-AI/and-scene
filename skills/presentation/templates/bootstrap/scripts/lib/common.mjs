@@ -1,6 +1,6 @@
 // Shared helpers for verify.mjs and inspect-presentation.mjs.
 import { spawn } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, realpathSync } from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,17 +12,54 @@ export const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.u
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-/** Slugs of the explicit registry in src/presentations/index.ts. */
+const DEFAULT_REGISTRY = path.join('src', 'presentations', 'index.ts')
+const isRegistrySource = (source) => /\bslug\s*:/.test(source) && /\bload\s*:/.test(source) && /import\(/.test(source)
+
+function sourceFiles(dir) {
+  const files = []
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      if (entry.name !== 'node_modules') files.push(...sourceFiles(full))
+    } else if (/\.(ts|tsx|js|jsx)$/.test(entry.name) && !/\.test\./.test(entry.name)) files.push(full)
+  }
+  return files
+}
+
+/** Source of the presentation registry: src/presentations/index.ts, or whichever file under src/ plays that role. */
+export function registrySource(root = projectRoot) {
+  try {
+    const source = readFileSync(path.join(root, DEFAULT_REGISTRY), 'utf8')
+    if (isRegistrySource(source)) return source
+  } catch {
+    // The registry may carry another name; fall through to the contract-level search.
+  }
+  for (const file of sourceFiles(path.join(root, 'src')).sort((a, b) => a.length - b.length || a.localeCompare(b))) {
+    const source = readFileSync(file, 'utf8')
+    if (isRegistrySource(source)) return source
+  }
+  throw new Error(`no presentation registry found under src/ (expected ${DEFAULT_REGISTRY})`)
+}
+
+/** Slugs of the explicit registry. */
 export function registrySlugs(root = projectRoot) {
-  const source = readFileSync(path.join(root, 'src', 'presentations', 'index.ts'), 'utf8')
-  return [...source.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
+  return [...registrySource(root).matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
 }
 
 /** The registry entry for a slug, including the module its loader imports. */
 export function registryEntry(slug, root = projectRoot) {
-  const source = readFileSync(path.join(root, 'src', 'presentations', 'index.ts'), 'utf8')
-  const entry = new RegExp(`slug:\\s*['"]${slug}['"][\\s\\S]*?import\\(\\s*['"]([^'"]+)['"]\\s*\\)`).exec(source)
+  const entry = new RegExp(`slug:\\s*['"]${slug}['"][\\s\\S]*?import\\(\\s*['"]([^'"]+)['"]\\s*\\)`).exec(registrySource(root))
   return entry ? { slug, loadPath: entry[1] } : null
+}
+
+/** True when this module is the process entry point, also when it was started through a symlinked path. */
+export function isMainModule(metaUrl) {
+  if (!process.argv[1]) return false
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(metaUrl))
+  } catch {
+    return false
+  }
 }
 
 export function freePort() {

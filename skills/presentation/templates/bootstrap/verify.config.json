@@ -1,0 +1,8 @@
+{
+  "slug": "getting-started",
+  "steps": [
+    { "era": "start", "title": "Start with the idea", "caption": "Introduce the topic with a single entity." },
+    { "era": "start", "title": "Add the detail", "caption": "Bring in the next entity and connect it to the first." },
+    { "era": "finish", "title": "Land the result", "caption": "Finish the story without redrawing what is already there." }
+  ]
+}

@@ -1,0 +1,30 @@
+/** This presentation's layoutId namespace. Ids are stable for the whole scene. */
+const ns = (name: string) => `htmp/${name}`
+
+export const E = {
+  you: ns('you'),
+  prompt: ns('prompt'),
+  skill: ns('skill'),
+  converse: ns('converse'),
+  question: ns('question'),
+  tray: ns('tray'),
+  card: (n: number) => ns(`card-${n}`),
+  part: (n: number, part: 'title' | 'caption' | 'visual') => ns(`card-${n}-${part}`),
+  link: (n: number) => ns(`link-${n}`),
+  morph: (n: number) => ns(`morph-${n}`),
+  ghost: ns('ghost'),
+  ghostLabel: ns('ghost-label'),
+  depth: ns('depth'),
+  socket: ns('socket'),
+  socketLabel: ns('socket-label'),
+  verify: ns('verify'),
+  verifyLabel: ns('verify-label'),
+  verifyLink: ns('verify-link'),
+  pass: ns('pass'),
+  modify: ns('modify'),
+  modifyLabel: ns('modify-label'),
+  flag: ns('flag'),
+  flagLabel: ns('flag-label'),
+  reveal: ns('reveal'),
+  revealLabel: ns('reveal-label'),
+} as const

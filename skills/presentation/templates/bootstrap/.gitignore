@@ -1,0 +1,5 @@
+node_modules
+dist
+inspection
+*.local
+.DS_Store

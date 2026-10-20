@@ -1,0 +1,5 @@
+/*
+ * Presentation-owned styling goes here (plain CSS by default). The scene kit supplies no
+ * colors, fonts, spacing, borders or shadows: target its stable hooks, for example
+ * [data-presentation-active='true'] and [data-presentation-attribution].
+ */

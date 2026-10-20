@@ -17,9 +17,13 @@ that directory first and use absolute paths. The helper script is
 
 ## Workflow
 
-Run the phases in order: gather, resolve target and scaffold, generate or modify,
-self-verify. Choose create or modify from the request. When the request is to change an
-existing presentation, follow "Modify" instead of "Gather".
+Choose create or modify from the request.
+
+- **Create:** 1 Gather, 2 Resolve the target and scaffold, 3 Generate, 4 Self-verify.
+- **Modify an existing presentation:** 2 Resolve the target and scaffold (a no-op when all
+  three anchors exist), then "Modify", then 4 Self-verify. Skip "Gather".
+
+Always finish step 2 before creating or modifying anything.
 
 ### 1. Gather (create)
 
@@ -124,12 +128,14 @@ When asked to change a presentation:
    `node <skill-dir>/scripts/scaffold.mjs list <app-dir>`, list the existing
    presentations, and ask which one. Change nothing until the target is identified.
 2. Once identified, ask only about the requested changes (steps, entities, or style).
-   Do not restart the create questions and do not re-scaffold. Edit only that
-   presentation's files; touch the registry or verification files only when needed.
+   Do not restart the create questions and do not scaffold over existing
+   infrastructure (step 2 reuses anchors that exist). Edit only that presentation's files;
+   touch the registry or verification files only when needed.
 
 ### 4. Self-verify before reporting completion
 
-Never report success while any check fails. Fix the cause and re-run the check.
+Run this after every create and every modify. Never report success while the build, the
+render check, or the visual composition check fails: fix the cause and re-run that check.
 
 1. **Build:** `npm run build` must pass with no type errors.
 2. **Render:** `npm run verify` builds the app, checks the reference sample, and

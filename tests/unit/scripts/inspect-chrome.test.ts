@@ -5,6 +5,8 @@ import { collectPage, isIndistinct } from '../../../scripts/inspect-presentation
 interface Dot {
   text?: string
   style: string
+  /** Markup placed inside the control. */
+  inner?: string
 }
 
 // collectPage runs in the browser, so it reads the document through globals; give it a jsdom one.
@@ -12,7 +14,7 @@ const dom = new JSDOM('<!doctype html><body></body>')
 
 function mount(dots: Dot[]) {
   dom.window.document.body.innerHTML = `<div data-presentation-root>${dots
-    .map((dot, i) => `<button data-presentation-progress-dot${i === 0 ? ' data-presentation-active="true"' : ''} style="${dot.style}">${dot.text ?? ''}</button>`)
+    .map((dot, i) => `<button data-presentation-progress-dot${i === 0 ? ' data-presentation-active="true"' : ''} style="${dot.style}">${dot.inner ?? dot.text ?? ''}</button>`)
     .join('')}</div>`
 }
 
@@ -56,6 +58,29 @@ describe('active progress diagnostics on empty controls', () => {
   it('counts a text color change on a control that paints a label', () => {
     const labeled = (color: string) => ({ text: '1', style: `width: 12px; height: 12px; background: white; border: 1px solid black; color: ${color}` })
     mount([labeled('red'), labeled('blue'), labeled('blue')])
+    expect(progressIsIndistinct()).toBe(false)
+  })
+
+  const withInner = (inner: string) => (color: string) => ({ ...dot(color), inner })
+
+  it.each([
+    ['an empty hidden span', '<span hidden aria-hidden="true"></span>'],
+    ['an empty visible span', '<span></span>'],
+    ['a display:none child with text', '<span style="display: none">1</span>'],
+    ['a visibility:hidden child with text', '<span style="visibility: hidden">1</span>'],
+    ['a hidden child holding an svg', '<span hidden><svg></svg></span>'],
+  ])('is not fooled by a text color when the only child is %s', (_name, inner) => {
+    const make = withInner(inner)
+    mount([make('red'), make('blue'), make('blue')])
+    expect(progressIsIndistinct()).toBe(true)
+  })
+
+  it.each([
+    ['an inline svg icon', '<svg></svg>'],
+    ['a visible text child', '<span>1</span>'],
+  ])('counts a text color change when a child paints %s', (_name, inner) => {
+    const make = withInner(inner)
+    mount([make('red'), make('blue'), make('blue')])
     expect(progressIsIndistinct()).toBe(false)
   })
 })

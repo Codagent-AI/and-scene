@@ -165,16 +165,25 @@ describe('Appear', () => {
 })
 
 describe('appearMotion', () => {
+  const entrance = (motion: ReturnType<typeof appearMotion>) => (motion.animate as { transition?: { delay?: number } }).transition ?? {}
+
   it('gives a newcomer a delayed fade-in and every entity a fade-out', () => {
     const newcomer = appearMotion(true)
     expect(newcomer.initial).toEqual({ opacity: 0 })
-    expect(newcomer.animate?.transition.delay).toBe(ENTER_DELAY)
+    expect(entrance(newcomer).delay).toBe(ENTER_DELAY)
     expect(newcomer.exit.opacity).toBe(0)
-    expect(appearMotion(true, 2).animate?.transition.delay).toBe(2)
+    expect(entrance(appearMotion(true, 2)).delay).toBe(2)
   })
 
-  it('gives a continuing entity no entrance, so it is never faded in again', () => {
-    expect(Object.keys(appearMotion(false))).toEqual(['exit'])
+  it('gives a continuing entity no entrance, but keeps it targeting full visibility', () => {
+    const continuing = appearMotion(false)
+    expect('initial' in continuing).toBe(false)
+    expect(continuing.animate).toEqual({ opacity: 1 })
+    expect(continuing.exit.opacity).toBe(0)
+  })
+
+  it('keeps the same visible animate target whether or not an entity is a newcomer', () => {
+    expect(appearMotion(true).animate?.opacity).toBe(appearMotion(false).animate?.opacity)
   })
 
   it('lets any primitive, including Arrow, enter hidden without a wrapper', () => {

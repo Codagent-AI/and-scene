@@ -153,16 +153,35 @@ export function collectPage() {
     allowed: el.closest('[data-presentation-allow-overlap]') !== null,
     containers: candidates.map((c, j) => (c.el !== el && c.el.contains(el) ? j : -1)).filter((j) => j >= 0),
   }))
+  // What a control actually paints: visible text, or a graphic that takes the text color. Hidden
+  // subtrees and empty markup paint nothing, so they must not make a text-style difference count.
+  const paints = (el) => {
+    const found = { text: false, graphic: false }
+    const walk = (node) => {
+      for (const child of node.childNodes) {
+        if (child.nodeType === 3) {
+          if (child.textContent.trim()) found.text = true
+        } else if (child.nodeType === 1) {
+          const style = getComputedStyle(child)
+          if (style.display === 'none' || style.visibility === 'hidden' || child.hasAttribute('hidden')) continue
+          if (child.matches('svg,img,canvas,video,picture')) found.graphic = true
+          else walk(child)
+        }
+      }
+    }
+    walk(el)
+    return found
+  }
   const signature = (el) => {
     const s = getComputedStyle(el)
-    const empty = !el.textContent.trim()
+    const painted = paints(el)
     return {
       backgroundColor: s.backgroundColor, borderColor: s.borderTopColor, borderWidth: s.borderTopWidth,
       opacity: s.opacity, boxShadow: s.boxShadow, outlineStyle: s.outlineStyle, transform: s.transform,
       // Text styling only shows on a control that paints a glyph; an empty control (a dot) paints none.
-      ...(empty && el.children.length === 0 ? {} : { color: s.color, fontWeight: s.fontWeight, textDecorationLine: s.textDecorationLine }),
-      // A text label's size follows its content, so only empty controls (dots) can differ by size.
-      ...(empty ? { width: s.width, height: s.height } : {}),
+      ...(painted.text || painted.graphic ? { color: s.color, fontWeight: s.fontWeight, textDecorationLine: s.textDecorationLine } : {}),
+      // A text label's size follows its content, so only controls without painted text can differ by size.
+      ...(painted.text ? {} : { width: s.width, height: s.height }),
     }
   }
   const chrome = (selector) => {

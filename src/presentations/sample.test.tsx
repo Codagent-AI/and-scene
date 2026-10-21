@@ -214,6 +214,16 @@ describe('entrance wiring', () => {
     expect(you.style.opacity).toBe('1')
   })
 
+  it('finishes entering entities that become continuing mid-entrance', async () => {
+    render(<Presentation steps={STEPS} title="x" />)
+    await settled('you')
+    key(document.body, 'ArrowRight')
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    key(document.body, 'ArrowRight')
+    for (const id of ['skill', 'chat', 'question', 'card-1', 'tray']) await settled(id)
+    expect(node('you')!.style.opacity).toBe('1')
+  })
+
   it('treats exactly what is new on screen as a newcomer after a jump across steps', async () => {
     const view = render(<SampleScene payload={STEPS[0].payload} stepIndex={0} />)
     await settled('you')

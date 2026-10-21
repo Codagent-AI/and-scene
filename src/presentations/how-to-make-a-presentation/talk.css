@@ -48,8 +48,16 @@
   gap: 16px;
 }
 
+/* The row shrinks inside the padded footer: the progress group yields width first. */
+.htmp [data-presentation-controls] > button {
+  flex: none;
+}
+
 .htmp [data-presentation-progress] {
   display: flex;
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
   gap: 6px;
 }
 
@@ -69,10 +77,21 @@
 }
 
 .htmp [data-presentation-progress-item] {
-  min-width: 28px;
+  flex: 0 1 28px;
+  min-width: 0;
   padding: 2px 6px;
   font-size: 12px;
   color: var(--muted);
+}
+
+@media (max-width: 520px) {
+  .htmp [data-presentation-progress] {
+    gap: 2px;
+  }
+
+  .htmp [data-presentation-progress-item] {
+    padding: 2px 0;
+  }
 }
 
 .htmp [data-presentation-progress-item][data-presentation-active],

@@ -29,4 +29,15 @@ describe('sample styling is presentation-owned', () => {
     expect(attribution).toMatch(/text-decoration:\s*none/)
     expect(attribution).toMatch(/color:/)
   })
+
+  it('lets the footer controls shrink inside the padded footer instead of overflowing', () => {
+    // The padded footer narrows the content box; the progress group must yield width.
+    const progress = rule('.htmp [data-presentation-progress] ')
+    expect(progress).toMatch(/min-width:\s*0/)
+    expect(progress).toMatch(/flex:\s*1 1 auto/)
+    const item = rule('.htmp [data-presentation-progress-item] ')
+    expect(item).toMatch(/flex:\s*0 1 28px/)
+    expect(item).toMatch(/min-width:\s*0/)
+    expect(rule('.htmp [data-presentation-controls] > button')).toMatch(/flex:\s*none/)
+  })
 })

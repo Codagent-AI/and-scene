@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 export function parseRegistrySlugs(source) {
-  return [...source.matchAll(/\bslug:\s*(['"])([^'"]+)\1/g)].map((m) => m[2])
+  const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  return [...code.matchAll(/\bslug:\s*(['"])([^'"]+)\1/g)].map((m) => m[2])
 }
 
 export async function readRegistrySlugs(root) {

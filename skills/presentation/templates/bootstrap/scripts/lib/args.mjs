@@ -26,8 +26,10 @@ export function parseArgs(argv, { values = [], flags = [] } = {}) {
 // Per-step wait of the render check; must outlast the kit's layout morph + newcomer entrance.
 export const DEFAULT_RENDER_SETTLE_MS = 1000
 
-export function parsePositiveInt(text, name) {
-  if (!/^\d+$/.test(String(text))) throw new Error(`${name} must be a non-negative integer, got "${text}"`)
+export function parsePositiveInt(text, name, min = 0) {
+  if (!/^\d+$/.test(String(text)) || Number(text) < min) {
+    throw new Error(`${name} must be an integer of at least ${min}, got "${text}"`)
+  }
   return Number(text)
 }
 

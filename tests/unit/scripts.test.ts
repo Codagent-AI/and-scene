@@ -23,6 +23,11 @@ describe('arguments', () => {
     expect(() => parseArgs(['--nope'], {})).toThrow(/unknown option/)
     expect(() => parseArgs(['--viewport'], { values: ['viewport'] })).toThrow(/needs a value/)
   })
+  it('enforces a minimum so a zero timeout or port is rejected', () => {
+    expect(() => parsePositiveInt('0', '--step-timeout-ms', 1)).toThrow(/at least 1/)
+    expect(parsePositiveInt('0', '--settle-ms')).toBe(0)
+    expect(parsePositiveInt('1', '--port', 1)).toBe(1)
+  })
   it('validates numbers and viewports', () => {
     expect(parsePositiveInt('250', 'x')).toBe(250)
     expect(() => parsePositiveInt('-1', '--settle-ms')).toThrow(/--settle-ms/)
@@ -52,6 +57,10 @@ describe('registry selection', () => {
   it('enumerates every registered slug in order', () => {
     expect(parseRegistrySlugs(source)).toEqual(['one', 'two'])
     expect(selectRoutes(['one', 'two'], undefined)).toEqual(['one', 'two'])
+  })
+  it('ignores slugs that only appear in comments', () => {
+    const src = `// slug: 'ghost'\n/* { slug: "old", title: 'x' } */\n[{ slug: 'real', title: 'R', load: () => import('./r') }]`
+    expect(parseRegistrySlugs(src)).toEqual(['real'])
   })
   it('enforces a required sample only when asked', () => {
     expect(selectRoutes(['one'], 'one')).toEqual(['one'])

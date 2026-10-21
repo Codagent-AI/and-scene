@@ -144,9 +144,9 @@ function readOptions(argv) {
     const args = parseArgs(argv, { values: ['require-sample', 'step-timeout-ms', 'settle-ms', 'port'] })
     return {
       requireSample: args.values['require-sample'],
-      stepTimeoutMs: parsePositiveInt(args.values['step-timeout-ms'] ?? 5000, '--step-timeout-ms'),
+      stepTimeoutMs: parsePositiveInt(args.values['step-timeout-ms'] ?? 5000, '--step-timeout-ms', 1),
       settleMs: parsePositiveInt(args.values['settle-ms'] ?? DEFAULT_RENDER_SETTLE_MS, '--settle-ms'),
-      port: args.values.port === undefined ? undefined : parsePositiveInt(args.values.port, '--port'),
+      port: args.values.port === undefined ? undefined : parsePositiveInt(args.values.port, '--port', 1),
     }
   } catch (error) {
     throw new UsageError(error.message)

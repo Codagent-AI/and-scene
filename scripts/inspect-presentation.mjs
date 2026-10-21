@@ -52,7 +52,9 @@ async function main() {
     })
     const page = await browser.newPage({ viewport })
     log(`[inspect] open ${report.url}`)
-    await page.goto(report.url, { waitUntil: 'load' })
+    await page.goto(report.url, { waitUntil: 'load' }).catch((e) => {
+      throw new CaptureError(`could not open ${report.url}: ${e.message.split('\n')[0]}`)
+    })
     await page.waitForSelector('[data-step-count]', { timeout: 10_000 }).catch(() => {
       throw new CaptureError(`${slug}: no [data-step-count] hook rendered`)
     })

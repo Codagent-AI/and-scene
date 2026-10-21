@@ -36,14 +36,19 @@ function viteBin(root) {
   return join(dirname(pkg), typeof bin === 'string' ? bin : bin.vite)
 }
 
-async function waitReady(url, child, timeoutMs, log) {
+async function waitReady(url, child, timeoutMs, log, announced) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`preview server exited early with code ${child.exitCode}`)
+    // Only probe once our own server announced the address, so a foreign listener on the port is never mistaken for it.
+    if (!announced()) {
+      await new Promise((r) => setTimeout(r, 100))
+      continue
+    }
     try {
       log(`probe ${url}`)
       const res = await fetch(url, { signal: AbortSignal.timeout(2000) })
-      if (res.ok) return
+      if (res.ok && child.exitCode === null) return
     } catch {
       /* not ready yet */
     }
@@ -73,8 +78,11 @@ export async function startPreview(root, { port, log = () => {}, readyTimeoutMs 
     clearTimeout(killer)
   }
   const url = `http://${HOST}:${chosen}`
+  // Vite bolds the port with ANSI codes, so strip them before looking for our address.
+  // eslint-disable-next-line no-control-regex
+  const announced = () => output.replace(/\u001b\[[0-9;]*m/g, '').includes(url)
   try {
-    await waitReady(`${url}/`, child, readyTimeoutMs, log)
+    await waitReady(`${url}/`, child, readyTimeoutMs, log, announced)
   } catch (error) {
     await stop()
     throw Object.assign(error, { output })

@@ -27,6 +27,7 @@ async function main() {
     throw error
   })
   const warnings = []
+  console.log(`inspect: preview ${preview.url}`)
   try {
     const page = await browser.newPage({ viewport: { width: options.width, height: options.height } })
     await page.goto(`${preview.url}/${options.slug}`)

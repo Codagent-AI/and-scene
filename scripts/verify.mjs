@@ -72,6 +72,7 @@ async function renderRoute(url, slug, expected) {
     }
 
     await page.goto(`${url}/${slug}`)
+    console.log(`[verify] browser: ${page.url()}`)
     const root = await page.waitForSelector('[data-presentation-root]', { timeout: 10000 }).catch(() => null)
     if (!root) fail(`step 0 did not render at ${url}/${slug}`)
     const count = Number(await page.getAttribute('[data-presentation-root]', 'data-step-count'))
@@ -95,6 +96,8 @@ async function renderRoute(url, slug, expected) {
       }
       await page.waitForTimeout(SETTLE_MS)
       checkErrors()
+      const seen = await readStep(page)
+      console.log(`[verify] step ${i} ok: ${seen.title ?? '(title hidden)'}`)
     }
     return count
   } finally {

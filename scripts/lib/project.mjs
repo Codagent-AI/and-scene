@@ -4,7 +4,7 @@ import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/** All local browser automation uses IPv4 loopback, never `localhost`. */
+/** All local browser automation uses the IPv4 loopback address. */
 export const HOST = '127.0.0.1'
 
 /** The project root is the parent of `scripts/`, regardless of the caller's cwd. */

@@ -59,7 +59,7 @@ describe('sample phase', () => {
   it('fails when the reference sample is not registered', async () => {
     const r = await runFault('missing', (dir) => {
       addPresentation(dir, 'other')
-      edit(dir, 'src/presentations/index.ts', (t) => t.replace(/  \{\n    slug: 'how-to-make-a-presentation',[\s\S]*?\n  \},\n/, ''))
+      edit(dir, 'src/presentations/index.ts', (t) => t.replace(/ {2}\{\n {4}slug: 'how-to-make-a-presentation',[\s\S]*?\n {2}\},\n/, ''))
     })
     expectFailure(r, 'sample')
     expect(r.out).toMatch(/reference sample "how-to-make-a-presentation" is not registered/)

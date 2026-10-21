@@ -53,6 +53,16 @@ describe('template parity', () => {
   })
 })
 
+describe('verification timing', () => {
+  it('waits longer per step than the slowest kit entrance, so late errors are attributed', async () => {
+    const constants = await text(path.join(ROOT, 'src/presentation-kit/constants.ts'))
+    const num = (name: string) => Number(new RegExp(`export const ${name} = ([0-9.]+)`).exec(constants)![1])
+    const entrance = (num('ENTER_DELAY') + num('ENTER_T')) * 1000
+    const settle = Number(/const SETTLE_MS = (\d+)/.exec(await text(path.join(ROOT, 'scripts/verify.mjs')))![1])
+    expect(settle).toBeGreaterThan(entrance)
+  })
+})
+
 describe('npm scripts', () => {
   it('keeps npm test to the fast unit and contract projects', async () => {
     const pkg = await json(path.join(ROOT, 'package.json'))

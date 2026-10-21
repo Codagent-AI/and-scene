@@ -110,6 +110,36 @@ describe('grouped scenes', () => {
   })
 })
 
+describe('persisting entities that change state', () => {
+  function MoverScene({ payload }: SceneProps<{ moved: boolean }>) {
+    return (
+      <Box
+        id="mover"
+        data-testid="mover"
+        data-presentation-emphasis={payload.moved ? '' : undefined}
+        at={payload.moved ? { x: 300, y: 20, w: 120, h: 60 } : { x: 10, y: 10, w: 40, h: 40 }}
+      >
+        {payload.moved ? 'moved' : 'start'}
+      </Box>
+    )
+  }
+  const steps: Step<{ moved: boolean }>[] = [false, true].map((moved, i) => ({
+    id: `m${i}`, era: 'e', title: 't', caption: 'c', groupKey: 'g', Scene: MoverScene, payload: { moved },
+  }))
+
+  it('keeps one element and updates its position, size, label and emphasis in place', () => {
+    render(<Presentation steps={steps} title="t" />)
+    const mover = q('[data-testid=mover]')!
+    expect([mover.style.left, mover.style.width, mover.textContent]).toEqual(['10px', '40px', 'start'])
+    next()
+    expect(q('[data-testid=mover]')).toBe(mover)
+    expect([mover.style.left, mover.style.top, mover.style.width, mover.style.height]).toEqual(['300px', '20px', '120px', '60px'])
+    expect(mover.textContent).toBe('moved')
+    expect(mover.hasAttribute('data-presentation-emphasis')).toBe(true)
+    expect(document.querySelectorAll('[data-presentation-id=mover]')).toHaveLength(1)
+  })
+})
+
 describe('departing entities', () => {
   it('stay mounted while they exit, then are removed (grouped payload change)', async () => {
     mount([

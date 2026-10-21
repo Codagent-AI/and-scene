@@ -10,7 +10,7 @@ const TITLES = [
   'It assembles the scene', 'It checks its own work', 'Changed your mind? Loop it.', "You're looking at one",
 ]
 
-const verify = (dir: string) => run(process.execPath, [path.join(dir, 'scripts/verify.mjs')], os.tmpdir())
+const verify = (dir: string, args: string[] = []) => run(process.execPath, [path.join(dir, 'scripts/verify.mjs'), ...args], os.tmpdir())
 
 describe('E2E-001: reference presentation passes production verification', () => {
   let dir: string
@@ -54,6 +54,7 @@ interface Fault {
   phase: 'build' | 'sample' | 'render'
   message: RegExp
   step?: number
+  args?: string[]
 }
 
 const SCENE = 'src/presentations/how-to-make-a-presentation/DiagramScene.tsx'
@@ -122,6 +123,29 @@ const FAULTS: Fault[] = [
     inject: (dir) => mutate(dir, SCENE, SCENE_ANCHOR, `${SCENE_ANCHOR}  if (stage === 6) throw new Error('injected render crash')\n`),
   },
   {
+    name: 'an error raised when the final step\'s entrance animation completes',
+    phase: 'render',
+    step: 8,
+    message: /uncaught error at step 8: injected late failure/,
+    inject: (dir) => mutate(dir, SCENE, SCENE_ANCHOR, `${SCENE_ANCHOR}  if (stage === 8) setTimeout(() => { throw new Error('injected late failure') }, 1100)\n`),
+  },
+  {
+    name: 'a console error in another presentation selected by slug',
+    phase: 'render',
+    step: 0,
+    args: ['other'],
+    message: /console error at step 0: other presentation failure/,
+    inject: async (dir) => {
+      const { mkdir, writeFile } = await import('node:fs/promises')
+      await mkdir(path.join(dir, 'src/presentations/other'), { recursive: true })
+      await writeFile(
+        path.join(dir, 'src/presentations/other/Talk.tsx'),
+        "import { Presentation } from '../../presentation-kit'\nfunction Scene() { console.error('other presentation failure'); return null }\nconst STEPS = [{ id: 'a', era: 'e', title: 'A', caption: 'a', Scene, payload: undefined }]\nexport default function Talk() { return <Presentation steps={STEPS} title=\"Other\" /> }\n",
+      )
+      await mutate(dir, 'src/presentations/index.ts', '\n]', "\n  { slug: 'other', title: 'Other', load: () => import('./other/Talk') },\n]")
+    },
+  },
+  {
     name: 'a transition that does not advance the public step index',
     phase: 'render',
     step: 4,
@@ -137,7 +161,7 @@ describe('E2E-002: verification failures are actionable', () => {
     for (const fault of FAULTS) {
       const dir = await copyRepo()
       await fault.inject(dir)
-      results.set(fault.name, await verify(dir))
+      results.set(fault.name, await verify(dir, fault.args))
     }
   })
 
@@ -147,6 +171,7 @@ describe('E2E-002: verification failures are actionable', () => {
     expect(output).toContain(`verify: FAIL (${fault.phase})`)
     expect(output).toMatch(fault.message)
     expect(output).not.toMatch(/verify: PASS/)
+    if (fault.args) expect(output).toContain(`/${fault.args[0]}`)
     if (fault.step !== undefined) expect(output).toContain(`step ${fault.step}`)
     if (fault.phase === 'render') expect(await portIsClosed(previewPort(output))).toBe(true)
   })

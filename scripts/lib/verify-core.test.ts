@@ -14,6 +14,14 @@ describe('selectTarget', () => {
   it('fails when the sample title is wrong', () => {
     expect(() => selectTarget([{ slug: 's', title: 'Different' }], sample)).toThrow(/title is "Different"/)
   })
+  it('renders a requested registered presentation instead of the sample, still requiring the sample', () => {
+    const registry = [{ slug: 's', title: 'T' }, { slug: 'mine', title: 'Mine' }]
+    expect(selectTarget(registry, sample, 'mine')).toEqual({ slug: 'mine', expected: null })
+    expect(selectTarget(registry, sample, 's')).toEqual({ slug: 's', expected: sample.steps })
+    expect(selectTarget(registry, null, 'mine')).toEqual({ slug: 'mine', expected: null })
+    expect(() => selectTarget(registry, sample, 'ghost')).toThrow(/"ghost" is not registered/)
+    expect(() => selectTarget([{ slug: 'mine', title: 'Mine' }], sample, 'mine')).toThrow(/sample "s" is not registered/)
+  })
   it('falls back to the first registered route when no sample is mandatory', () => {
     expect(selectTarget([{ slug: 'a', title: 'A' }, { slug: 'b', title: 'B' }], null)).toEqual({ slug: 'a', expected: null })
     expect(() => selectTarget([], null)).toThrow(/no presentation is registered/)

@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 // Build the whole app, confirm the reference sample, and render every step of it
 // in Chromium against a production preview. Exits non-zero on any failure.
+// `npm run verify -- <slug>` renders that registered presentation instead of the default.
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { HOST, PROJECT_ROOT, launchBrowser, readRegistry, runBuild, startPreview } from './lib/project.mjs'
 import { checkAdvance, diffStep, formatError, selectTarget } from './lib/verify-core.mjs'
 
-const SETTLE_MS = 800
+// Longer than the kit's slowest entrance (ENTER_DELAY + ENTER_T = 1.05s), so errors raised when an
+// animation completes are still attributed to the step that caused them.
+const SETTLE_MS = 1300
 const STEP_TIMEOUT_MS = 4000
 
 class PhaseError extends Error {
@@ -113,7 +116,7 @@ async function main() {
       throw new PhaseError('build', `npm run build failed:\n${result.output.split('\n').slice(-40).join('\n')}`)
     }
   })
-  const target = await phase('sample', async () => selectTarget(await readRegistry(PROJECT_ROOT), config.sample))
+  const target = await phase('sample', async () => selectTarget(await readRegistry(PROJECT_ROOT), config.sample, process.argv[2] ?? null))
   const preview = await startPreview(PROJECT_ROOT)
   try {
     console.log(`[verify] preview: ${preview.url} (${HOST})`)

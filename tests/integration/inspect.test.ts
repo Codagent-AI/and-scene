@@ -30,6 +30,7 @@ const FIXTURES: Fixture[] = [
   { slug: 'fx-collision', css: COLLIDE_CSS, scene: `${LABELS}${OVERLAPPING}` },
   { slug: 'fx-allowed', css: STYLED_CSS, scene: `<div data-presentation-allow-overlap>${LABELS}${OVERLAPPING}</div>` },
   { slug: 'fx-mixed', css: COLLIDE_CSS, scene: `<div data-presentation-allow-overlap>${LABELS}${OVERLAPPING}</div>` },
+  { slug: 'fx-error', css: STYLED_CSS, scene: `${LABELS}{stage === 1 ? (console.error('fx boom'), null) : null}` },
   { slug: 'fx-tiny', css: TINY_CSS, scene: LABELS },
   { slug: 'fx-noattr', css: STYLED_CSS, scene: LABELS, props: 'attribution={false}' },
   {
@@ -172,6 +173,14 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     }
     expect(found).toContain('[data-presentation-attribution]')
     expect(found).not.toContain('overlap')
+  })
+
+  it('reports browser console errors as advisory warnings naming the step', async () => {
+    const result = await inspect('fx-error')
+    expect(result.code, result.output).toBe(0)
+    const found = warnings(result.output)
+    expect(found.some((w) => w.startsWith('WARN step 2: console error: fx boom'))).toBe(true)
+    expect(found.some((w) => w.startsWith('WARN step 1: console error'))).toBe(false)
   })
 
   it('reports an undersized attribution', async () => {

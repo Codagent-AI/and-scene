@@ -30,10 +30,17 @@ async function main() {
   console.log(`inspect: preview ${preview.url}`)
   try {
     const page = await browser.newPage({ viewport: { width: options.width, height: options.height } })
+    let current = 1
+    const browserErrors = []
+    page.on('console', (m) => {
+      if (m.type() === 'error') browserErrors.push(`step ${current}: console error: ${m.text()}`)
+    })
+    page.on('pageerror', (e) => browserErrors.push(`step ${current}: uncaught error: ${e.message}`))
     await page.goto(`${preview.url}/${options.slug}`)
     await page.waitForSelector('[data-presentation-root]', { timeout: 10000 })
     const count = Number(await page.getAttribute('[data-presentation-root]', 'data-step-count'))
     for (let i = 0; i < count; i++) {
+      current = i + 1
       if (i > 0) {
         await page.keyboard.press('ArrowRight')
         await page.waitForFunction(
@@ -43,6 +50,10 @@ async function main() {
         )
       }
       await page.waitForTimeout(options.settleMs)
+      for (const message of browserErrors.splice(0)) {
+        warnings.push(message)
+        console.log(`WARN ${message}`)
+      }
       await page.screenshot({ path: path.join(outDir, screenshotName(i)) })
       const snapshot = await page.evaluate(collectSnapshot, ACTIVE_STYLE_PROPS)
       for (const warning of analyzeSnapshot(i + 1, snapshot)) {

@@ -67,6 +67,9 @@ Then:
   dependencies into `package.json`, then runs `npm install` and installs Playwright's
   Chromium. Never assume dependencies are already installed. If it lists skipped files (for
   example an existing `src/main.tsx`), wire them to the router yourself.
+  If it reports `incompatible` dependencies (an existing major version that differs from what
+  the kit needs, for example React 18 against React 19), tell the user and ask before
+  upgrading them; do not report the scaffold as working until the build passes.
 
 The scaffold is styling-framework-neutral: no Tailwind, theme, colors, fonts, or card/button
 styles. Add a styling framework only if the host project already uses one or the user asks.
@@ -107,9 +110,10 @@ needed). Do not re-run the full create flow.
 Do not report success until all of these pass; when one fails, fix it and re-check.
 
 1. `npm run build` completes with no type errors.
-2. The presentation renders its first step with no runtime or console errors. Run
-   `npm run verify` (full build plus every step of the registered route) before completion;
-   a quicker build plus single-route check is fine while iterating.
+2. The presentation you created or modified renders every step with no runtime or console
+   errors: run `npm run verify -- <slug>` (full build plus every step of that route) before
+   completion; a quicker build plus single-route check is fine while iterating. Plain
+   `npm run verify` checks only the default route, which is not enough.
 3. Visual composition: run `npm run inspect -- <slug>`, the project-local screenshot helper
    (screenshots land in `.presentation-inspect/<slug>/`, taken after animations settle). If it
    is unavailable, write any temporary Playwright helper under the project root so it
@@ -118,7 +122,7 @@ Do not report success until all of these pass; when one fails, fix it and re-che
    presentation is responsive-sensitive. Important content must fit the canvas, intentional
    overlaps must stay readable, and nothing may collide with the caption, progress dots,
    table of contents, or navigation controls.
-4. Review each advisory warning the helper prints. Fix accidental overlaps, indistinct
+4. Review each advisory warning the helper prints, including console or page errors it saw while stepping. Fix accidental overlaps, indistinct
    current-step chrome, and unpolished attribution. Mark a genuinely intentional, readable
    overlap by putting `data-presentation-allow-overlap` on the smallest subtree containing
    both elements, and only there. Re-run the helper afterwards.

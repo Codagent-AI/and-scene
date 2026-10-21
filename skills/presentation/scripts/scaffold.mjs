@@ -44,8 +44,8 @@ export async function detectAnchors(dir) {
   }
   const any = (re) => sources.some((text) => re.test(text))
   const kit =
-    any(/export\s+(?:default\s+)?(?:function|const)\s+Presentation\b/) &&
-    any(/export\s+(?:type|interface)\s+Step\b/) &&
+    any(/export\s+(?:default\s+)?(?:function|const|class)\s+Presentation\b|export\s*\{[^}]*\bPresentation\b/) &&
+    any(/export\s+(?:type|interface)\s+Step\b|export\s+(?:type\s*)?\{[^}]*\bStep\b/) &&
     any(/AnimatePresence/) &&
     any(/keydown/)
   const index = any(/slug\s*:/) && any(/load\s*:/) && (await exists(path.join(dir, 'src', 'presentations')))
@@ -96,6 +96,9 @@ export async function resolveTarget(root) {
   return { target, reason, empty, anchors, missing, needsConfirmation: !empty && missing.length > 0 }
 }
 
+/** Verification and inspection tooling is copied whenever anything is scaffolded, since the package scripts depend on it. */
+const isTooling = (relative) => relative.startsWith('scripts/')
+
 function groupOf(relative) {
   if (relative.startsWith('src/presentation-kit/')) return 'kit'
   if (
@@ -107,26 +110,45 @@ function groupOf(relative) {
   return 'build'
 }
 
-async function mergePackageJson(targetFile, templateFile) {
+const major = (range) => /\d+/.exec(String(range))?.[0]
+
+/**
+ * Adds missing scripts and dependencies without changing existing ones. Returns
+ * the dependencies whose existing major version differs from what the kit needs.
+ */
+async function mergePackageJson(targetFile, templateFile, targetDir) {
   const current = await readJson(targetFile)
   const template = await readJson(templateFile)
   const merged = { ...current }
+  const incompatible = []
   for (const field of ['scripts', 'dependencies', 'devDependencies']) {
     merged[field] = { ...template[field], ...current[field] }
   }
+  for (const field of ['dependencies', 'devDependencies']) {
+    for (const [name, required] of Object.entries(template[field])) {
+      const existing = current[field]?.[name]
+      if (existing && major(existing) !== major(required)) incompatible.push({ name, existing, required })
+    }
+  }
+  // Only keep commands whose script files exist in the target.
+  for (const [name, command] of Object.entries(merged.scripts)) {
+    const file = /node (scripts\/\S+)/.exec(command)?.[1]
+    if (file && !(await exists(path.join(targetDir, file)))) delete merged.scripts[name]
+  }
   await writeFile(targetFile, `${JSON.stringify(merged, null, 2)}\n`)
+  return incompatible
 }
 
 /** Copies only the missing anchors' files; never overwrites an existing file. */
 export async function scaffold(targetDir, anchors) {
-  const result = { copied: [], skipped: [], merged: [] }
+  const result = { copied: [], skipped: [], merged: [], incompatible: [] }
   const missing = Object.entries(anchors).filter(([, present]) => !present).map(([name]) => name)
   if (missing.length === 0) return result
   await mkdir(targetDir, { recursive: true })
   const hadPackage = await exists(path.join(targetDir, 'package.json'))
   for (const file of await listFiles(BOOTSTRAP_DIR, new Set(['node_modules']))) {
     const relative = path.relative(BOOTSTRAP_DIR, file).split(path.sep).join('/')
-    if (!missing.includes(groupOf(relative))) continue
+    if (!isTooling(relative) && !missing.includes(groupOf(relative))) continue
     if (relative === 'package.json' || relative === 'package-lock.json') continue
     const target = path.join(targetDir, relative)
     if (await exists(target)) {
@@ -139,7 +161,7 @@ export async function scaffold(targetDir, anchors) {
   }
   // Dependencies are never assumed present: add every one that is missing.
   if (hadPackage) {
-    await mergePackageJson(path.join(targetDir, 'package.json'), path.join(BOOTSTRAP_DIR, 'package.json'))
+    result.incompatible = await mergePackageJson(path.join(targetDir, 'package.json'), path.join(BOOTSTRAP_DIR, 'package.json'), targetDir)
     result.merged.push('package.json')
   } else {
     for (const name of ['package.json', 'package-lock.json']) {

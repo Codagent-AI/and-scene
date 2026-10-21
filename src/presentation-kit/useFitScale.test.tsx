@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { StrictMode } from 'react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_CANVAS, DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT, TOC_WIDTH, WIDE_BREAKPOINT,
 } from './constants'
@@ -85,9 +86,16 @@ describe('useFitScale', () => {
     expect(result.current.tocVisible).toBe(false)
   })
 
-  it('removes its resize listener on unmount', () => {
-    const { unmount } = renderHook(() => useFitScale('browse'))
+  it.each([['plain', undefined], ['StrictMode', StrictMode]] as const)('removes every resize listener it added on unmount (%s)', (_name, wrapper) => {
+    const added: EventListenerOrEventListenerObject[] = []
+    const removed: EventListenerOrEventListenerObject[] = []
+    const add = vi.spyOn(window, 'addEventListener').mockImplementation((type, fn) => void (type === 'resize' && added.push(fn as never)))
+    const remove = vi.spyOn(window, 'removeEventListener').mockImplementation((type, fn) => void (type === 'resize' && removed.push(fn as never)))
+    const { unmount } = renderHook(() => useFitScale('browse'), { wrapper })
+    expect(added.length).toBeGreaterThan(0)
     unmount()
-    expect(() => resize(500, 500)).not.toThrow()
+    add.mockRestore()
+    remove.mockRestore()
+    for (const fn of added) expect(removed).toContain(fn)
   })
 })

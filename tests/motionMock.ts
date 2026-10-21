@@ -20,8 +20,12 @@ function stub(tag: string) {
   }
 }
 
+const stubs = new Map<string, ReturnType<typeof stub>>()
 export const motion = new Proxy({} as Record<string, ReturnType<typeof stub>>, {
-  get: (_, tag: string) => stub(tag),
+  get: (_, tag: string) => {
+    if (!stubs.has(tag)) stubs.set(tag, stub(tag)) // a stable component type per tag, so rerenders do not remount
+    return stubs.get(tag)!
+  },
 })
 export const AnimatePresence = ({ children }: { children?: ReactNode }) => children
 export const LayoutGroup = ({ children }: { children?: ReactNode }) => children

@@ -225,6 +225,21 @@ describe('direct jumps and active state', () => {
   })
 })
 
+describe('ToC with repeated era labels', () => {
+  it('marks exactly one entry current when the same label appears in separate runs', () => {
+    const steps = makeSteps().map((step, i) => ({ ...step, era: ['A', 'A', 'B', 'B', 'A', 'A'][i] }))
+    render(<Presentation steps={steps} title="Demo" />)
+    const active = () => qa('[data-presentation-toc-entry]').map((e) => e.hasAttribute('data-presentation-active'))
+    expect(qa('[data-presentation-toc-entry]').map((e) => e.textContent)).toEqual(['A', 'B', 'A'])
+    expect(active()).toEqual([true, false, false])
+    act(() => void fireEvent.click(qa('[data-presentation-progress-item]')[5]))
+    expect(active()).toEqual([false, false, true])
+    expect(qa('[data-presentation-toc-entry][aria-current="true"]')).toHaveLength(1)
+    act(() => void fireEvent.click(qa('[data-presentation-toc-entry]')[2]))
+    expect(root().getAttribute('data-step-index')).toBe('4')
+  })
+})
+
 describe('attribution and branding', () => {
   it('shows the default bottom-right "made by and-scene" link with a styling hook', () => {
     show()

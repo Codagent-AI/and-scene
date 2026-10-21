@@ -102,6 +102,22 @@ describe('generic primitives', () => {
     expect(find(container, 'm').style.pointerEvents).toBe('none')
   })
 
+  it('keeps the same element and layoutId while position, size, label and emphasis change', () => {
+    const view = (at: { x: number; y: number; w: number; h: number }, label: string, emphasis: boolean) => (
+      <Box id="mover" at={at} data-presentation-emphasis={emphasis ? '' : undefined}>
+        {label}
+      </Box>
+    )
+    const { container, rerender } = render(view({ x: 0, y: 0, w: 10, h: 10 }, 'before', false))
+    const el = find(container, 'mover')
+    rerender(view({ x: 200, y: 50, w: 80, h: 40 }, 'after', true))
+    expect(find(container, 'mover')).toBe(el)
+    expect(motionOf(el)).toMatchObject({ layoutId: 'mover', layout: true })
+    expect([el.style.left, el.style.top, el.style.width, el.style.height]).toEqual(['200px', '50px', '80px', '40px'])
+    expect(el.textContent).toBe('after')
+    expect(el.hasAttribute('data-presentation-emphasis')).toBe(true)
+  })
+
   it('lets a raw motion element with a stable layoutId sit beside the primitives', () => {
     const view = (x: number) => (
       <>

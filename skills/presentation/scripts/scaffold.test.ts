@@ -50,6 +50,17 @@ describe('anchor detection', () => {
     expect(await detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
   })
 
+  it('detects the contract regardless of export syntax', async () => {
+    const dir = await tmp()
+    await scaffold(dir, ALL_MISSING)
+    const types = path.join(dir, 'src/presentation-kit/types.ts')
+    const source = await readFile(types, 'utf8')
+    await writeFile(types, source.replace('export interface Step<', 'interface Step<') + '\nexport type { Step }\n')
+    const presentation = path.join(dir, 'src/presentation-kit/Presentation.tsx')
+    await writeFile(presentation, (await readFile(presentation, 'utf8')).replace('export function Presentation', 'function Presentation') + '\nexport { Presentation }\n')
+    expect(await detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
   it('reports a build-only project as missing the kit and index', async () => {
     const dir = await tmp()
     await writeBuildOnly(dir)
@@ -167,10 +178,39 @@ describe('scaffold', () => {
     expect(await detectAnchors(dir)).toMatchObject({ kit: true, index: true })
   })
 
+  it('never leaves a package command pointing at a missing script, even when the build anchor exists', async () => {
+    const dir = await tmp()
+    await writeBuildOnly(dir)
+    await scaffold(dir, await detectAnchors(dir))
+    const pkg = JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf8'))
+    expect(pkg.scripts.verify).toBe('node scripts/verify.mjs')
+    for (const command of Object.values(pkg.scripts) as string[]) {
+      const file = /node (scripts\/\S+)/.exec(command)?.[1]
+      if (file) expect(await exists(path.join(dir, file)), command).toBe(true)
+    }
+    expect(await exists(path.join(dir, 'scripts/lib/project.mjs'))).toBe(true)
+    expect(await exists(path.join(dir, 'scripts/verify.config.json'))).toBe(true)
+  })
+
+  it('reports existing dependencies whose major version the kit cannot use, and leaves them unchanged', async () => {
+    const dir = await tmp()
+    await writeBuildOnly(dir)
+    const result = await scaffold(dir, await detectAnchors(dir))
+    expect(result.incompatible).toEqual(expect.arrayContaining([{ name: 'react', existing: '^18.0.0', required: '^19.2.6' }]))
+    expect(result.incompatible.map((d: { name: string }) => d.name)).toContain('vite')
+    const pkg = JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf8'))
+    expect(pkg.dependencies.react).toBe('^18.0.0')
+  })
+
+  it('reports nothing incompatible for a fresh scaffold', async () => {
+    const dir = await tmp()
+    expect((await scaffold(dir, ALL_MISSING)).incompatible).toEqual([])
+  })
+
   it('does nothing when every anchor is present', async () => {
     const dir = await tmp()
     await scaffold(dir, ALL_MISSING)
-    expect(await scaffold(dir, { build: true, kit: true, index: true })).toEqual({ copied: [], skipped: [], merged: [] })
+    expect(await scaffold(dir, { build: true, kit: true, index: true })).toEqual({ copied: [], skipped: [], merged: [], incompatible: [] })
   })
 
   it('is independent of the caller working directory', async () => {

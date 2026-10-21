@@ -10,7 +10,8 @@ export interface TocProps {
 
 export function Toc({ steps, activeIndex, onJump }: TocProps) {
   const entries = tocEntries(steps)
-  const activeEra = steps[activeIndex]?.era
+  // Entries are runs of consecutive steps, so exactly one entry is current even when era labels repeat.
+  const activeEntry = entries.findLastIndex((entry) => entry.firstIndex <= activeIndex)
   return (
     <nav
       data-presentation-toc
@@ -25,8 +26,8 @@ export function Toc({ steps, activeIndex, onJump }: TocProps) {
       }}
     >
       <ol>
-        {entries.map((entry) => {
-          const active = entry.era === activeEra
+        {entries.map((entry, entryIndex) => {
+          const active = entryIndex === activeEntry
           return (
             <li key={entry.firstIndex}>
               <button

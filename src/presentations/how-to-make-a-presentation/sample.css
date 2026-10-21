@@ -1,0 +1,273 @@
+/* Look of "How to Use This Skill to Make a Presentation". Owned by this presentation. */
+[data-presentation-root] {
+  --ink: #f4efe2;
+  --muted: #b9b09a;
+  --line: #5b5546;
+  --accent: #e0b84c;
+  --panel: #1b1916;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: radial-gradient(circle at 20% 10%, #2a2417, #11100e 60%);
+}
+
+/* chrome */
+[data-presentation-header] {
+  align-items: baseline;
+  gap: 16px;
+  padding: 18px 24px 0;
+}
+[data-presentation-marker] {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+[data-presentation-header] [data-presentation-title] {
+  font-size: 22px;
+  font-weight: 650;
+  min-width: 0;
+}
+[data-presentation-footer] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0 24px 40px;
+}
+[data-presentation-footer] [data-presentation-title] {
+  max-width: 100%;
+  font-size: 28px;
+  font-weight: 650;
+  text-align: center;
+}
+[data-presentation-caption] {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.5;
+  text-align: center;
+}
+[data-presentation-toc],
+[data-presentation-progress],
+[data-presentation-controls] {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+[data-presentation-toc-entry] {
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+[data-presentation-toc-entry][data-presentation-active='true'] {
+  border-color: var(--accent);
+  color: #11100e;
+  background: var(--accent);
+  font-weight: 650;
+}
+[data-presentation-progress-dot] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+[data-presentation-progress-dot][data-presentation-active='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  transform: scale(1.35);
+}
+[data-presentation-prev],
+[data-presentation-next] {
+  padding: 6px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--panel);
+  font: inherit;
+  cursor: pointer;
+}
+[data-presentation-prev]:disabled,
+[data-presentation-next]:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+[data-presentation-attribution] {
+  margin: 0 14px 10px 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+[data-presentation-attribution]:hover {
+  color: var(--accent);
+}
+
+/* scene entities */
+[data-presentation-node='box'],
+[data-presentation-node='label'],
+[data-presentation-node='symbol-chip'],
+[data-presentation-node='emphasis'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 14px;
+  text-align: center;
+}
+[data-presentation-node='box'] {
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+[data-presentation-node='box'] svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--accent);
+}
+.actor {
+  border-color: var(--accent);
+  font-weight: 650;
+}
+.bubble {
+  border-radius: 18px;
+  color: var(--muted);
+}
+.chip {
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 12px;
+}
+.chip svg {
+  width: 13px;
+  height: 13px;
+}
+.step-card {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 8px 10px;
+  font-size: 12px;
+  text-align: left;
+}
+.step-card svg {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.step-card [data-card-part] {
+  display: block;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: #2a2720;
+  color: var(--muted);
+}
+.step-card [data-card-part='title'] {
+  color: var(--ink);
+  font-weight: 650;
+}
+.step-card [data-card-part='visual'] {
+  height: 22px;
+}
+.step-card.ghost {
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  color: var(--muted);
+}
+.step-card[data-edited='true'] {
+  border-color: var(--accent);
+}
+.control {
+  border-radius: 999px;
+  font-size: 12px;
+}
+.socket {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-size: 13px;
+}
+.verify {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 10px;
+  font-size: 12px;
+}
+.verify [data-card-part] {
+  display: block;
+  text-align: left;
+  color: var(--muted);
+}
+.verify [data-card-part='title'] {
+  color: var(--ink);
+  font-weight: 650;
+}
+.pass {
+  border-radius: 50%;
+  background: #2f7d4f;
+  color: #fff;
+}
+.pass svg {
+  width: 18px;
+  height: 18px;
+}
+.link-label,
+.tray-label,
+.modify-label {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.tray-label {
+  justify-content: flex-start;
+  text-transform: uppercase;
+}
+.edited-flag {
+  border-radius: 4px;
+  background: var(--accent);
+  color: #11100e;
+  font-size: 11px;
+  font-weight: 650;
+}
+.edited-flag svg {
+  width: 11px;
+  height: 11px;
+}
+.reveal-frame {
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  background: transparent;
+  pointer-events: none;
+}
+.reveal-label {
+  color: var(--accent);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+[data-presentation-node='arrow'] path[fill='none'] {
+  stroke-width: 1.5;
+}
+.dialog,
+.card-link,
+.plug {
+  color: var(--muted);
+}
+.modify {
+  color: var(--accent);
+}

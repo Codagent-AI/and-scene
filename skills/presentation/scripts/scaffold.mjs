@@ -130,9 +130,10 @@ async function mergePackageJson(targetFile, templateFile, targetDir) {
       if (existing && major(existing) !== major(required)) incompatible.push({ name, existing, required })
     }
   }
-  // Only keep commands whose script files exist in the target.
-  for (const [name, command] of Object.entries(merged.scripts)) {
-    const file = /node (scripts\/\S+)/.exec(command)?.[1]
+  // Drop template commands whose script files were not copied; never touch the project's own scripts.
+  for (const name of Object.keys(template.scripts)) {
+    if (current.scripts?.[name] !== undefined) continue
+    const file = /node (scripts\/\S+)/.exec(merged.scripts[name])?.[1]
     if (file && !(await exists(path.join(targetDir, file)))) delete merged.scripts[name]
   }
   await writeFile(targetFile, `${JSON.stringify(merged, null, 2)}\n`)

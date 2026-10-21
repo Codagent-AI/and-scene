@@ -192,6 +192,14 @@ describe('scaffold', () => {
     expect(await exists(path.join(dir, 'scripts/verify.config.json'))).toBe(true)
   })
 
+  it('keeps the project\'s own scripts even when their files do not exist', async () => {
+    const dir = await tmp()
+    await writeBuildOnly(dir, { scripts: { build: 'vite build', seed: 'node scripts/seed.js' } })
+    await scaffold(dir, await detectAnchors(dir))
+    const pkg = JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf8'))
+    expect(pkg.scripts.seed).toBe('node scripts/seed.js')
+  })
+
   it('reports existing dependencies whose major version the kit cannot use, and leaves them unchanged', async () => {
     const dir = await tmp()
     await writeBuildOnly(dir)

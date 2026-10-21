@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import type { HTMLMotionProps } from 'motion/react'
 import { ENTER_DELAY, ENTER_T, EXIT_T } from '../constants'
+import { FILL_STYLE } from './geometry'
 
 /**
  * Wraps newcomer entities: they fade in only after persisting entities have
@@ -14,7 +15,7 @@ export function Appear({ style, ...rest }: HTMLMotionProps<'div'>) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: { delay: ENTER_DELAY, duration: ENTER_T } }}
       exit={{ opacity: 0, transition: { delay: 0, duration: EXIT_T } }}
-      style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', pointerEvents: 'none', ...style }}
+      style={{ ...FILL_STYLE, pointerEvents: 'none', ...style }}
       {...rest}
     />
   )

@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { describe, expect, it } from 'vitest'
 import { ENTER_DELAY } from '../constants.ts'
 import { Appear } from './Appear.tsx'
+import { appearMotion } from './motion.ts'
 import { Arrow } from './Arrow.tsx'
 import { Box } from './Box.tsx'
 import { Emphasis } from './Emphasis.tsx'
@@ -160,5 +161,31 @@ describe('Appear', () => {
     view.rerender(<AnimatePresence>{null}</AnimatePresence>)
     expect(view.container.querySelector('[data-testid="gone"]')).not.toBeNull()
     await waitFor(() => expect(view.container.querySelector('[data-testid="gone"]')).toBeNull(), { timeout: 3000 })
+  })
+})
+
+describe('appearMotion', () => {
+  it('gives a newcomer a delayed fade-in and every entity a fade-out', () => {
+    const newcomer = appearMotion(true)
+    expect(newcomer.initial).toEqual({ opacity: 0 })
+    expect(newcomer.animate?.transition.delay).toBe(ENTER_DELAY)
+    expect(newcomer.exit.opacity).toBe(0)
+    expect(appearMotion(true, 2).animate?.transition.delay).toBe(2)
+  })
+
+  it('gives a continuing entity no entrance, so it is never faded in again', () => {
+    expect(Object.keys(appearMotion(false))).toEqual(['exit'])
+  })
+
+  it('lets any primitive, including Arrow, enter hidden without a wrapper', () => {
+    const { container } = render(
+      <>
+        <Box id="b" {...appearMotion(true)} />
+        <Arrow id="a" from={{ x: 0, y: 0 }} to={{ x: 5, y: 5 }} {...appearMotion(true)} />
+      </>,
+    )
+    expect((container.querySelector('[data-presentation-entity="b"]') as HTMLElement).style.opacity).toBe('0')
+    expect((container.querySelector('[data-presentation-entity="a"]') as SVGElement & { style: CSSStyleDeclaration }).style.opacity).toBe('0')
+    expect(container.querySelector('[data-presentation-appear]')).toBeNull()
   })
 })

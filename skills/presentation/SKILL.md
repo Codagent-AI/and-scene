@@ -135,9 +135,14 @@ if its slug, title or steps changed). Make scoped edits.
   paragraph browse caption, and the diagram state shown while it is active. Step
   numbers come from position; never number steps by hand.
 - Give every entity a stable id and keep it across steps. A persisting entity changes
-  position, size, label or emphasis in place. A newcomer is wrapped in `Appear`
-  (enters after the morphs settle); a departing entity is removed from an
-  `AnimatePresence` so it animates out. Do not wrap continuing entities in `Appear`.
+  position, size, label or emphasis in place. A newcomer enters after the morphs
+  settle and a departing entity is removed from an `AnimatePresence` so it animates
+  out. Do not wrap continuing entities in `Appear`. When an entity is conditionally
+  rendered, wrap it in `Appear`; when whether it is a newcomer depends on the step
+  you came from, spread `appearMotion(isNewcomer)` onto the entity instead, because
+  adding or removing a wrapper around an entity that stays on screen remounts it and
+  drops its morph. Decide newcomers from what is actually on screen, not from the
+  authored previous step, so navigating back or jumping still looks right.
 - Keep one scene for a run of related steps, with entities accumulating rather than
   being rearranged, unless the story needs a new diagram.
 - If the story intentionally overlaps or stacks entities, keep that composition and

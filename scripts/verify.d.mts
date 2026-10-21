@@ -29,6 +29,7 @@ export interface VerifyDeps {
   startPreview(root: string): Promise<Preview>
   launchBrowser(): Promise<Browser>
 }
+export const STEP_SETTLE_MS: number
 export function validateOutline(outline: unknown): Outline
 export function loadOutline(root: string): Outline
 export function loadOutlines(root: string): Outline[]

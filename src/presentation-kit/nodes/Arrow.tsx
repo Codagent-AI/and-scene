@@ -1,5 +1,5 @@
-import { useId, type SVGProps } from 'react'
-import { motion } from 'motion/react'
+import { useId } from 'react'
+import { motion, type SVGMotionProps } from 'motion/react'
 import { DESIGN_H, DESIGN_W, LAYOUT_T } from '../constants.ts'
 
 interface Point {
@@ -7,7 +7,7 @@ interface Point {
   y: number
 }
 
-type ArrowProps = Omit<SVGProps<SVGSVGElement>, 'id' | 'from' | 'to' | 'ref'> & {
+type ArrowProps = Omit<SVGMotionProps<SVGSVGElement>, 'id' | 'from' | 'to' | 'ref'> & {
   id: string
   from: Point
   to: Point
@@ -19,7 +19,7 @@ type ArrowProps = Omit<SVGProps<SVGSVGElement>, 'id' | 'from' | 'to' | 'ref'> & 
 export function Arrow({ id, from, to, twoWay = false, style, ...rest }: ArrowProps) {
   const head = `arrowhead-${useId()}`
   return (
-    <svg
+    <motion.svg
       data-presentation-entity={id}
       data-presentation-node="arrow"
       {...rest}
@@ -43,6 +43,6 @@ export function Arrow({ id, from, to, twoWay = false, style, ...rest }: ArrowPro
         animate={{ x1: from.x, y1: from.y, x2: to.x, y2: to.y }}
         transition={LAYOUT_T}
       />
-    </svg>
+    </motion.svg>
   )
 }

@@ -7,6 +7,12 @@ import { HOST, PhaseError, defaultDeps, escapeRegExp, isValidSlug, previewUrl } 
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const TRANSITION_TIMEOUT_MS = 5000
+/**
+ * How long a step stays open before it is called clean. It must outlast a step's whole entrance
+ * (the kit's layout morph, then the newcomers' delayed fade-in), so an error raised while the
+ * scene settles is attributed to that step instead of being missed.
+ */
+export const STEP_SETTLE_MS = 1200
 
 /** Validate the outline data this verifier enforces (scripts/verify.config.json). */
 export function validateOutline(outline) {
@@ -102,7 +108,20 @@ export async function renderSteps(page, outline, baseUrl, log = () => {}) {
     throw new PhaseError('render', 'the presentation must open in browse mode so titles and captions are rendered')
   }
   for (let i = 0; i < count; i++) {
-    current = i
+    current = i // anything raised while this step renders or settles belongs to it
+    if (i > 0) {
+      await page.keyboard.press('ArrowRight')
+      const landed = await page
+        .waitForFunction(
+          (expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(expected),
+          i,
+          { timeout: TRANSITION_TIMEOUT_MS },
+        )
+        .then(() => i, () => null)
+      checkTransition(i - 1, landed ?? (await readIndex(page)), i)
+    }
+    await page.waitForTimeout(STEP_SETTLE_MS)
+    collector.assertClean()
     const index = await readIndex(page)
     if (index !== i) throw new PhaseError('render', `step ${i + 1}: data-step-index is ${index}, expected ${i}`)
     const era = (await page.textContent('[data-presentation-era]'))?.trim()
@@ -112,23 +131,8 @@ export async function renderSteps(page, outline, baseUrl, log = () => {}) {
     if (era !== want.era) throw new PhaseError('render', `step ${i + 1}: era "${era}" does not match "${want.era}"`)
     if (title !== want.title) throw new PhaseError('render', `step ${i + 1}: title "${title}" does not match "${want.title}"`)
     if (caption !== want.caption) throw new PhaseError('render', `step ${i + 1}: caption does not match the outline`)
-    if (i < count - 1) {
-      current = i + 1 // anything raised while the next step renders belongs to that step
-      await page.keyboard.press('ArrowRight')
-      const landed = await page
-        .waitForFunction(
-          (expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(expected),
-          i + 1,
-          { timeout: TRANSITION_TIMEOUT_MS },
-        )
-        .then(() => i + 1, () => null)
-      checkTransition(i, landed ?? (await readIndex(page)), i + 1)
-    }
-    await page.waitForTimeout(150)
-    collector.assertClean()
     log(`verify: step ${i + 1}/${count} (data-step-index=${i}) "${title}" ok`)
   }
-  await page.waitForTimeout(500)
   collector.assertClean()
   return count
 }

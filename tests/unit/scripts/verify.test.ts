@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  checkRegistry, checkTransition, createErrorCollector, loadOutline, loadOutlines, renderSteps, validateOutline, verify,
+  STEP_SETTLE_MS, checkRegistry, checkTransition, createErrorCollector, loadOutline, loadOutlines, renderSteps, validateOutline, verify,
   type FakePage, type VerifyDeps,
 } from '../../../scripts/verify.mjs'
 import { SPEC_SLUG, SPEC_STEPS, SPEC_TITLE } from '../../helpers/spec-outline.ts'
@@ -181,15 +181,36 @@ describe('renderSteps', () => {
     expect(fake.page.keyboard.press).toHaveBeenCalledWith('ArrowRight')
   })
 
-  it('catches an error emitted on the last step after the final settle', async () => {
+  it('catches an error emitted on the last step during its settle window', async () => {
     const { fake, result } = run({
       onPress: () => undefined,
     })
-    fake.page.waitForTimeout = vi.fn(async (ms: number) => {
-      if (ms === 500) fake.emit('pageerror', new Error('late'))
+    let settles = 0
+    fake.page.waitForTimeout = vi.fn(async () => {
+      if (++settles === 3) fake.emit('pageerror', new Error('late'))
     })
     const error = await phaseOf(result)
     expect([error.phase, error.message]).toEqual(['render', expect.stringContaining('step 3: pageerror: late')])
+  })
+
+  it('holds every step, the first and last included, for longer than the kit entrance before calling it clean', async () => {
+    const { fake, result } = run()
+    await result()
+    const waits = fake.page.waitForTimeout.mock.calls.map(([ms]) => ms)
+    expect(waits).toHaveLength(3)
+    // layout morph (0.6s) + newcomer delay (0.05s) + entrance (0.4s)
+    for (const ms of waits) expect(ms).toBeGreaterThanOrEqual(1050)
+    expect(STEP_SETTLE_MS).toBeGreaterThanOrEqual(1050)
+  })
+
+  it('attributes an error raised while the first step settles to the first step', async () => {
+    const { fake, result } = run()
+    let settles = 0
+    fake.page.waitForTimeout = vi.fn(async () => {
+      if (++settles === 1) fake.emit('console', { type: () => 'error', text: () => 'first step timer' })
+    })
+    const error = await phaseOf(result)
+    expect(error.message).toContain('step 1: console.error: first step timer')
   })
 
   it('names the step whose console error fires, even when raised while navigating (listener installed before goto)', async () => {
@@ -204,10 +225,10 @@ describe('renderSteps', () => {
     const fake = fakePage({ onPress: (i) => { if (i === 0) fake.emit('console', { type: () => 'error', text: () => 'during transition' }) } })
     const error = await phaseOf(() => renderSteps(fake.page as unknown as FakePage, outline, 'http://127.0.0.1:1', (line) => lines.push(line)))
     expect(error.message).toContain('step 2: console.error: during transition')
-    expect(lines).toEqual(['verify: opening http://127.0.0.1:1/demo'])
+    expect(lines).toEqual(['verify: opening http://127.0.0.1:1/demo', 'verify: step 1/3 (data-step-index=0) "One" ok'])
     const ok = fakePage()
     await renderSteps(ok.page as unknown as FakePage, outline, 'http://127.0.0.1:1', (line) => lines.push(line))
-    expect(lines.slice(1)).toEqual([
+    expect(lines.slice(2)).toEqual([
       'verify: opening http://127.0.0.1:1/demo',
       'verify: step 1/3 (data-step-index=0) "One" ok',
       'verify: step 2/3 (data-step-index=1) "Two" ok',

@@ -155,12 +155,14 @@ export function collectPage() {
   }))
   const signature = (el) => {
     const s = getComputedStyle(el)
+    const empty = !el.textContent.trim()
     return {
-      color: s.color, backgroundColor: s.backgroundColor, borderColor: s.borderTopColor, borderWidth: s.borderTopWidth,
-      opacity: s.opacity, fontWeight: s.fontWeight, boxShadow: s.boxShadow,
-      textDecorationLine: s.textDecorationLine, outlineStyle: s.outlineStyle, transform: s.transform,
+      backgroundColor: s.backgroundColor, borderColor: s.borderTopColor, borderWidth: s.borderTopWidth,
+      opacity: s.opacity, boxShadow: s.boxShadow, outlineStyle: s.outlineStyle, transform: s.transform,
+      // Text styling only shows on a control that paints a glyph; an empty control (a dot) paints none.
+      ...(empty && el.children.length === 0 ? {} : { color: s.color, fontWeight: s.fontWeight, textDecorationLine: s.textDecorationLine }),
       // A text label's size follows its content, so only empty controls (dots) can differ by size.
-      ...(el.textContent.trim() ? {} : { width: s.width, height: s.height }),
+      ...(empty ? { width: s.width, height: s.height } : {}),
     }
   }
   const chrome = (selector) => {

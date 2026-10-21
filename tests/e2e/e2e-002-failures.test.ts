@@ -103,6 +103,25 @@ new MutationObserver(() => {
     )
   })
 
+  it('fails in the render phase for an error raised late in the final step\'s entrance, naming that step', async () => {
+    expectFailure(
+      await verifyFaulty((dir) =>
+        append(dir, 'src/main.tsx', `
+let armed = false
+new MutationObserver(() => {
+  const root = document.querySelector('[data-presentation-root]')
+  if (!armed && root?.getAttribute('data-step-index') === '8') {
+    armed = true
+    setTimeout(() => console.error('late error in the final step'), 900)
+  }
+}).observe(document, { subtree: true, attributes: true, childList: true })
+`),
+      ),
+      'render',
+      'step 9: console.error: late error in the final step',
+    )
+  })
+
   it('fails in the transition phase when a step does not advance, naming the step', async () => {
     const outcome = await verifyFaulty((dir) =>
       append(dir, 'src/main.tsx', `

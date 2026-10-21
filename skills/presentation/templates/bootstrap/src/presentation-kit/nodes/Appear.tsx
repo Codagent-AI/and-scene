@@ -9,7 +9,10 @@ type AppearProps = Omit<HTMLMotionProps<'div'>, 'initial' | 'animate' | 'exit'> 
 /**
  * Enters newcomers after persisting entities have finished moving. Wrap only
  * entities that are new in a step; continuing entities stay outside it.
- * Place inside an AnimatePresence to also animate departures.
+ * Place inside an AnimatePresence to also animate departures. A wrapper cannot be
+ * added to or removed from an entity that stays mounted without remounting it, so
+ * when newcomer status varies per step, spread `appearMotion(isNewcomer)` onto the
+ * entity instead.
  */
 export function Appear({ delay = ENTER_DELAY, style, ...rest }: AppearProps) {
   return (

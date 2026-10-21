@@ -13,12 +13,6 @@ export interface SceneState {
   frame: boolean
 }
 
-/** What a step hands the scene: its state, and the state it follows (so the scene can tell newcomers from continuing entities). */
-export interface Beat {
-  state: SceneState
-  previous: SceneState | null
-}
-
 export const START: SceneState = {
   skill: false,
   cards: 0,
@@ -29,4 +23,10 @@ export const START: SceneState = {
   verify: false,
   modify: false,
   frame: false,
+}
+
+/** The keys in `next` that were not on screen in `previous`. */
+export function newcomerKeys(previous: readonly string[], next: readonly string[]): Set<string> {
+  const before = new Set(previous)
+  return new Set(next.filter((key) => !before.has(key)))
 }

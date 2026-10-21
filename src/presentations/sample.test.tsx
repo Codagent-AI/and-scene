@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render } from '@testing-library/react'
+import { render, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { key } from '../../tests/helpers/events.ts'
 import { SPEC_STEPS } from '../../tests/helpers/spec-outline.ts'
@@ -7,6 +7,7 @@ import { Presentation } from '../presentation-kit/index.ts'
 import { PRESENTATIONS } from './index.ts'
 import { CARD_IDS, RECTS } from './how-to-make-a-presentation/entities.ts'
 import { SampleScene } from './how-to-make-a-presentation/Scene.tsx'
+import { newcomerKeys } from './how-to-make-a-presentation/state.ts'
 import { STEPS } from './how-to-make-a-presentation/steps/steps.ts'
 
 const SPEC = SPEC_STEPS
@@ -156,7 +157,7 @@ describe('scene content topology', () => {
 
   it('reaches a modify arc from the conversation into the route and flags the edited card', () => {
     expect(idsAt(7)).toEqual(expect.arrayContaining(['modify-arc', 'flag']))
-    expect(STEPS[7].payload.state.modify).toBe(true)
+    expect(STEPS[7].payload.modify).toBe(true)
   })
 
   it('ends with a labeled frame around everything on screen', () => {
@@ -173,32 +174,62 @@ describe('scene content topology', () => {
 })
 
 describe('entrance wiring', () => {
-  const wrapped = (id: string) => document.querySelector(`[data-presentation-entity="${id}"]`)?.closest('[data-presentation-appear]') ?? null
+  const node = (id: string) => document.querySelector<HTMLElement>(`[data-presentation-entity="${id}"]`)
+  const settled = (id: string) => waitFor(() => expect(node(id)!.style.opacity).toBe('1'), { timeout: 4000 })
 
-  it('wraps only newcomers in Appear: continuing entities sit outside it', () => {
+  it('never wraps an entity in Appear: entrances live on the entity itself', () => {
     render(<Presentation steps={STEPS} title="x" />)
-    expect(wrapped('you')).not.toBeNull()
+    for (let i = 0; i < 9; i++) {
+      expect(document.querySelector('[data-presentation-appear]'), `step ${i + 1}`).toBeNull()
+      key(document.body, 'ArrowRight')
+    }
+  })
+
+  it('enters a newcomer hidden while the entities already on screen stay put', () => {
+    render(<Presentation steps={STEPS} title="x" />)
+    expect(node('you')!.style.opacity).toBe('0')
     key(document.body, 'ArrowRight')
-    expect(wrapped('you')).toBeNull()
-    expect(wrapped('prompt')).toBeNull()
-    expect(wrapped('skill')).not.toBeNull()
-    expect((wrapped('skill') as HTMLElement).style.opacity).toBe('0')
-    key(document.body, 'ArrowRight')
-    expect(wrapped('skill')).toBeNull()
-    expect(wrapped('card-1')).not.toBeNull()
-    expect(wrapped('tray')).not.toBeNull()
+    expect(node('skill')!.style.opacity).toBe('0')
     expect(document.querySelectorAll('[data-presentation-scene]')).toHaveLength(1)
   })
 
-  it('wraps exactly the entities that are new in each step', () => {
-    for (let i = 0; i < 9; i++) {
-      const { container, unmount } = render(<SampleScene payload={STEPS[i].payload} stepIndex={i} />)
-      const entering = [...container.querySelectorAll('[data-presentation-appear] [data-presentation-entity]')]
-        .map((el) => el.getAttribute('data-presentation-entity')!)
-      const previous = i === 0 ? [] : idsAt(i - 1)
-      const nested = (id: string) => /^(card-\d)-(title|caption|visual)$/.test(id)
-      expect(entering.filter((id) => !nested(id)).sort(), `step ${i + 1}`).toEqual(idsAt(i).filter((id) => !previous.includes(id) && !nested(id)).sort())
-      unmount()
-    }
+  it('keeps one DOM node per continuing entity going forward and back, without fading it again', async () => {
+    render(<Presentation steps={STEPS} title="x" />)
+    await settled('you')
+    const you = node('you')!
+    const prompt = node('prompt')!
+    key(document.body, 'ArrowRight')
+    expect(node('you')).toBe(you)
+    expect(node('prompt')).toBe(prompt)
+    expect(you.style.opacity).toBe('1')
+    await settled('skill')
+    key(document.body, 'ArrowLeft')
+    expect(node('you')).toBe(you)
+    expect(node('prompt')).toBe(prompt)
+    expect(you.isConnected).toBe(true)
+    expect(you.style.opacity).toBe('1')
+    expect(prompt.style.opacity).toBe('1')
+    key(document.body, 'ArrowRight')
+    expect(node('you')).toBe(you)
+    expect(you.style.opacity).toBe('1')
+  })
+
+  it('treats exactly what is new on screen as a newcomer after a jump across steps', async () => {
+    const view = render(<SampleScene payload={STEPS[0].payload} stepIndex={0} />)
+    await settled('you')
+    const you = node('you')!
+    view.rerender(<SampleScene payload={STEPS[5].payload} stepIndex={5} />)
+    expect(node('you')).toBe(you)
+    expect(you.style.opacity).toBe('1')
+    for (const id of ['skill', 'card-1', 'tray', 'kit']) expect(node(id)!.style.opacity, id).toBe('0')
+  })
+})
+
+describe('newcomerKeys', () => {
+  it('lists only keys absent from the previous render', () => {
+    expect([...newcomerKeys(['a', 'b'], ['a', 'b', 'c'])]).toEqual(['c'])
+    expect([...newcomerKeys(['a', 'b', 'c'], ['a'])]).toEqual([])
+    expect([...newcomerKeys(['a'], ['a', 'b'])]).toEqual(['b'])
+    expect([...newcomerKeys([], ['a', 'b'])]).toEqual(['a', 'b'])
   })
 })

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { act, fireEvent, render } from '@testing-library/react'
+import { act, fireEvent, render, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { Presentation } from '../../src/presentation-kit'
 import { setViewport } from '../../src/presentation-kit/__tests__/fixtures'
@@ -160,6 +160,17 @@ describe('accumulation keeps earlier entities in place', () => {
     for (let i = 0; i < 8; i++) {
       press('ArrowRight')
       expect(entity(ENTITY.you)).toBe(you)
+    }
+  })
+
+  it('entities that entered with the sample\'s appear animation are not re-faded when they continue', async () => {
+    render(<Presentation steps={STEPS} title="x" />)
+    const you = entity(ENTITY.you)!
+    await waitFor(() => expect(Number(you.style.opacity)).toBe(1), { timeout: 3000 })
+    for (let i = 0; i < 8; i++) {
+      press('ArrowRight')
+      expect(entity(ENTITY.you)).toBe(you)
+      expect(you.style.opacity).toBe('1')
     }
   })
 

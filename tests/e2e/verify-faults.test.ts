@@ -1,6 +1,7 @@
 // E2E-002: verification failures are actionable. One fault per verification phase,
 // each applied to its own throwaway copy of the app.
 import { readFileSync, writeFileSync, mkdirSync, cpSync } from 'node:fs'
+import { createServer } from 'node:net'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { ROOT, cleanupTempDirs, copyApp, isPortOpen, leftoverProcesses, linkNodeModules, previewPort, run, tempDir, type RunResult } from '../helpers'
@@ -101,6 +102,13 @@ describe('render phase', () => {
     await expectCleanedUp(r)
   }, 220_000)
 
+  it('catches an error that fires during the final step\'s animation window', async () => {
+    const r = await runFault('late-animation', sceneFault("  useEffect(() => { if (n === 9) { const t = setTimeout(() => console.error('late animation error'), 800); return () => clearTimeout(t) } }, [n])"))
+    expectFailure(r, 'render')
+    expect(r.out).toMatch(/error at step 8: late animation error/)
+    await expectCleanedUp(r)
+  }, 220_000)
+
   it('fails when a step throws while rendering, identifying the step', async () => {
     const r = await runFault('throw', sceneFault("  if (n === 3) throw new Error('scene exploded')", false))
     expectFailure(r, 'render')
@@ -131,6 +139,23 @@ describe('render phase', () => {
     expect(r.out).toContain('how-to-make-a-presentation step 9/9 ok')
     expect(r.out).toMatch(/other: error at step 1: other route broke/)
     await expectCleanedUp(r)
+  }, 220_000)
+})
+
+describe('infrastructure failures', () => {
+  it('reports a preview that cannot start as a render-phase failure and cleans up', async () => {
+    const blocker = createServer()
+    await new Promise<void>((resolve) => blocker.listen(0, '127.0.0.1', resolve))
+    const { port } = blocker.address() as { port: number }
+    try {
+      const r = await runFault('busy-port', () => {}, ['--port', String(port)])
+      expectFailure(r, 'render')
+      expect(r.out).toMatch(/preview server failed/)
+      expect(r.out).not.toMatch(/\[verify\] FAIL \[(usage|internal)\]/)
+      expect(await leftoverProcesses(r.dir)).toEqual([])
+    } finally {
+      blocker.close()
+    }
   }, 220_000)
 })
 

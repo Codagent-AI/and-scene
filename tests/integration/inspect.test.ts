@@ -23,6 +23,11 @@ const ATTRIBUTION_CSS = `[data-presentation-attribution] { font-size: 13px; colo
 [data-presentation-progress] { display: flex; gap: 8px; }
 [data-presentation-footer] { display: flex; flex-direction: column; gap: 10px; }`
 
+const FONT_WEIGHT_CSS = `
+[data-presentation-progress-dot][data-presentation-active='true'] { font-weight: 700; }
+[data-presentation-toc-entry][data-presentation-active='true'] { background: #e0b84c; font-weight: 700; }
+${ATTRIBUTION_CSS}`
+
 interface Variant {
   slug: string
   css: string
@@ -57,6 +62,12 @@ const variants: Variant[] = [
     slug: 'fx-mixed',
     css: GOOD_CSS,
     scene: `{n >= 2 && (<>${pair('Allowed one', 'Allowed two', true, 60)}${pair('Gamma text', 'Delta text', false, 200)}</>)}`,
+  },
+  { slug: 'fx-fontweight-dots', css: FONT_WEIGHT_CSS, scene: '' },
+  {
+    slug: 'fx-svg-collision',
+    css: GOOD_CSS,
+    scene: `{n >= 2 && (<svg width="300" height="60" style={{ position: 'absolute', left: 80, top: 100 }}><text x="0" y="20">Svg alpha</text><text x="10" y="24">Svg beta</text></svg>)}`,
   },
   { slug: 'fx-indistinct', css: ATTRIBUTION_CSS, scene: '' },
   { slug: 'fx-default-attribution', css: ACTIVE_CSS, scene: '' },
@@ -183,6 +194,19 @@ describe('advisory warnings', () => {
     const overlap = warnings(r.out).filter((w) => w.includes('overlap'))
     expect(overlap.some((w) => w.includes('Gamma text') && w.includes('Delta text'))).toBe(true)
     expect(overlap.some((w) => w.includes('Allowed'))).toBe(false)
+  })
+
+  it('does not let a font-weight change on label-less progress dots count as a visible active state', async () => {
+    const r = await inspect('fx-fontweight-dots')
+    expect(r.code, r.out).toBe(0)
+    expect(warnings(r.out).some((l) => l.includes('active-chrome') && l.includes('progress indicator'))).toBe(true)
+    expect(warnings(r.out).some((l) => l.includes('active-chrome') && l.includes('table-of-contents'))).toBe(false)
+  })
+
+  it('reports an unmarked collision between SVG text elements', async () => {
+    const r = await inspect('fx-svg-collision')
+    expect(r.code, r.out).toBe(0)
+    expect(warnings(r.out).some((l) => l.includes('step 2 overlap') && l.includes('Svg alpha') && l.includes('Svg beta'))).toBe(true)
   })
 
   it('reports indistinct active chrome for progress indicators and the table of contents', async () => {

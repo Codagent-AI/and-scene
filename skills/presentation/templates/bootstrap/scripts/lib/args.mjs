@@ -23,6 +23,9 @@ export function parseArgs(argv, { values = [], flags = [] } = {}) {
   return out
 }
 
+// Per-step wait of the render check; must outlast the kit's layout morph + newcomer entrance.
+export const DEFAULT_RENDER_SETTLE_MS = 1000
+
 export function parsePositiveInt(text, name) {
   if (!/^\d+$/.test(String(text))) throw new Error(`${name} must be a non-negative integer, got "${text}"`)
   return Number(text)

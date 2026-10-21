@@ -3,8 +3,8 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ENTER_DELAY, ENTER_T, LAYOUT_T } from '../../src/presentation-kit/constants'
-import { parseArgs, parsePositiveInt, parseViewport } from '../../scripts/lib/args.mjs'
-import { DEFAULT_SETTLE_MS, DEFAULT_VIEWPORT, CaptureError, captureSteps, stepFile } from '../../scripts/lib/capture.mjs'
+import { DEFAULT_RENDER_SETTLE_MS, parseArgs, parsePositiveInt, parseViewport } from '../../scripts/lib/args.mjs'
+import { DEFAULT_SETTLE_MS, DEFAULT_VIEWPORT, CaptureError, captureSteps, parseStepCount, stepFile } from '../../scripts/lib/capture.mjs'
 import { attributionProblems, diagnoseStep, findOverlaps, indistinctActive, rectsOverlap } from '../../scripts/lib/diagnostics.mjs'
 import { SAMPLE_OUTLINE, validateOutline } from '../../scripts/lib/outline.mjs'
 import { parseRegistrySlugs, selectRoutes } from '../../scripts/lib/registry.mjs'
@@ -33,6 +33,10 @@ describe('arguments', () => {
   })
   it('the default settle interval outlasts the kit\'s layout morph and newcomer entrance', () => {
     expect(DEFAULT_SETTLE_MS / 1000).toBeGreaterThan(Math.max(LAYOUT_T, ENTER_DELAY + ENTER_T))
+  })
+  it('the render check waits longer per step than the kit\'s slowest animation', () => {
+    expect(DEFAULT_RENDER_SETTLE_MS / 1000).toBeGreaterThan(ENTER_DELAY + ENTER_T)
+    expect(DEFAULT_RENDER_SETTLE_MS / 1000).toBeGreaterThan(LAYOUT_T)
   })
   it('defaults to a 1440x900 viewport and a 1000ms settle interval', () => {
     expect(parseViewport(DEFAULT_VIEWPORT)).toEqual({ width: 1440, height: 900 })
@@ -228,6 +232,13 @@ describe('capture loop', () => {
     const { d } = driver(1)
     d.advance = async () => {}
     await expect(captureSteps({ count: 2, settleMs: 1, driver: d })).rejects.toBeInstanceOf(CaptureError)
+  })
+
+  it.each([null, '', '0', '-2', 'abc', '1.5'])('rejects the step count %j instead of capturing nothing', (raw) => {
+    expect(() => parseStepCount(raw)).toThrow(CaptureError)
+  })
+  it('accepts a positive integer step count', () => {
+    expect(parseStepCount('9')).toBe(9)
   })
 
   it('numbers files 1-based and zero-padded', () => {

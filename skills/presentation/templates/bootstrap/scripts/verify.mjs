@@ -8,7 +8,7 @@ import { readFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-import { parseArgs, parsePositiveInt } from './lib/args.mjs'
+import { DEFAULT_RENDER_SETTLE_MS, parseArgs, parsePositiveInt } from './lib/args.mjs'
 import { SAMPLE_OUTLINE, validateOutline } from './lib/outline.mjs'
 import { HOST, runBuild, startPreview } from './lib/preview.mjs'
 import { parseRegistrySlugs, selectRoutes } from './lib/registry.mjs'
@@ -54,7 +54,9 @@ async function readSlugs(requireSample) {
 
 async function renderRoute(browser, base, slug, { requireSample, stepTimeoutMs, settleMs }) {
   const url = `${base}/${slug}`
-  const page = await browser.newPage()
+  const page = await browser.newPage().catch((error) => {
+    throw new VerifyError('render', `${slug}: could not open a page: ${error.message.split('\n')[0]}`)
+  })
   let current = 0
   const errors = []
   // Attach listeners before navigating so errors during the first render are seen.
@@ -70,7 +72,9 @@ async function renderRoute(browser, base, slug, { requireSample, stepTimeoutMs, 
   }
   try {
     log(`[render] open ${url}`)
-    await page.goto(url, { waitUntil: 'load' })
+    await page.goto(url, { waitUntil: 'load' }).catch((error) => {
+      throw new VerifyError('render', `${slug}: could not open ${url}: ${error.message.split('\n')[0]}`)
+    })
     try {
       await page.waitForSelector('[data-step-count]', { timeout: stepTimeoutMs })
     } catch {
@@ -115,7 +119,9 @@ async function renderRoute(browser, base, slug, { requireSample, stepTimeoutMs, 
 }
 
 async function render(slugs, options) {
-  const preview = await startPreview(ROOT, { log: (line) => log(`[render] ${line}`) })
+  const preview = await startPreview(ROOT, { port: options.port, log: (line) => log(`[render] ${line}`) }).catch((error) => {
+    throw new VerifyError('render', `preview server failed: ${error.message}`)
+  })
   log(`[render] preview ${preview.url}/ (host ${HOST})`)
   let browser
   try {
@@ -131,13 +137,24 @@ async function render(slugs, options) {
   }
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2), { values: ['require-sample', 'step-timeout-ms', 'settle-ms'] })
-  const options = {
-    requireSample: args.values['require-sample'],
-    stepTimeoutMs: parsePositiveInt(args.values['step-timeout-ms'] ?? 5000, '--step-timeout-ms'),
-    settleMs: parsePositiveInt(args.values['settle-ms'] ?? 300, '--settle-ms'),
+class UsageError extends Error {}
+
+function readOptions(argv) {
+  try {
+    const args = parseArgs(argv, { values: ['require-sample', 'step-timeout-ms', 'settle-ms', 'port'] })
+    return {
+      requireSample: args.values['require-sample'],
+      stepTimeoutMs: parsePositiveInt(args.values['step-timeout-ms'] ?? 5000, '--step-timeout-ms'),
+      settleMs: parsePositiveInt(args.values['settle-ms'] ?? DEFAULT_RENDER_SETTLE_MS, '--settle-ms'),
+      port: args.values.port === undefined ? undefined : parsePositiveInt(args.values.port, '--port'),
+    }
+  } catch (error) {
+    throw new UsageError(error.message)
   }
+}
+
+async function main() {
+  const options = readOptions(process.argv.slice(2))
   await build()
   const slugs = await readSlugs(options.requireSample)
   await render(slugs, options)
@@ -145,10 +162,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  if (error instanceof VerifyError) {
-    console.error(`[verify] FAIL [${error.phase}] ${error.message}`)
-  } else {
-    console.error(`[verify] FAIL [usage] ${error.message}`)
-  }
+  const phase = error instanceof VerifyError ? error.phase : error instanceof UsageError ? 'usage' : 'internal'
+  console.error(`[verify] FAIL [${phase}] ${error.message}`)
   process.exitCode = 1
 })

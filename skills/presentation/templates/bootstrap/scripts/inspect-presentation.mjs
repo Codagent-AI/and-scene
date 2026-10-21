@@ -10,7 +10,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { parseArgs, parsePositiveInt, parseViewport } from './lib/args.mjs'
-import { CaptureError, DEFAULT_SETTLE_MS, DEFAULT_VIEWPORT, captureSteps } from './lib/capture.mjs'
+import { CaptureError, DEFAULT_SETTLE_MS, DEFAULT_VIEWPORT, captureSteps, parseStepCount } from './lib/capture.mjs'
 import { collectPageData } from './lib/collect.mjs'
 import { formatWarning } from './lib/diagnostics.mjs'
 import { runBuild, startPreview } from './lib/preview.mjs'
@@ -56,7 +56,7 @@ async function main() {
     await page.waitForSelector('[data-step-count]', { timeout: 10_000 }).catch(() => {
       throw new CaptureError(`${slug}: no [data-step-count] hook rendered`)
     })
-    const count = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
+    const count = parseStepCount(await page.getAttribute('[data-step-count]', 'data-step-count'))
     const result = await captureSteps({
       count,
       settleMs,

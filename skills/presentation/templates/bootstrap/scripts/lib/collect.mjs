@@ -15,7 +15,7 @@ export function collectPageData() {
   }
   const hasOwnText = (el) => Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.textContent.trim() !== '')
   const all = Array.from(document.querySelectorAll('body *')).filter((el) => {
-    if (el.closest('svg')) return false
+    if (el.closest('svg') && el.localName !== 'text' && el.localName !== 'tspan') return false
     return el.matches(CHROME) || hasOwnText(el)
   })
   const ids = new Map(all.map((el, i) => [el, i]))
@@ -38,7 +38,10 @@ export function collectPageData() {
     return {
       color: s.color, backgroundColor: s.backgroundColor, borderTopColor: s.borderTopColor,
       borderTopWidth: s.borderTopWidth, outlineStyle: s.outlineStyle, outlineColor: s.outlineColor,
-      opacity: s.opacity, fontWeight: s.fontWeight, textDecorationLine: s.textDecorationLine,
+      opacity: s.opacity,
+      // Font properties only show on controls that have a label.
+      fontWeight: el.textContent.trim() === '' ? '' : s.fontWeight,
+      textDecorationLine: el.textContent.trim() === '' ? '' : s.textDecorationLine,
       transform: s.transform, boxShadow: s.boxShadow,
       // Text-bearing controls differ in size just because their labels do.
       width: el.textContent.trim() === '' ? s.width : '', height: el.textContent.trim() === '' ? s.height : '',

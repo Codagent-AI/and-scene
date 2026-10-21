@@ -84,6 +84,9 @@ function EntityScene({ payload }: SceneProps<EntityPayload>) {
           leaving
         </Box>
       )}
+      <Box key="steady" entity="steady" appear style={{ left: 500, top: 20, width: 40, height: 40 }}>
+        steady
+      </Box>
       <motion.div
         key="raw"
         layoutId="raw"
@@ -130,6 +133,17 @@ describe('entity continuity', () => {
     expect(entity('keeper')!.style.opacity).not.toBe('0')
     expect(entity('raw')!.style.opacity).not.toBe('0')
     await waitFor(() => expect(Number(entity('newcomer')!.style.opacity)).toBe(1), { timeout: 3000 })
+  })
+
+  it('an entity that entered as a newcomer is not faded again when it continues into later steps', async () => {
+    render(<Presentation steps={entitySteps()} title="Deck" />)
+    const steady = entity('steady')!
+    await waitFor(() => expect(Number(steady.style.opacity)).toBe(1), { timeout: 3000 })
+    for (let i = 0; i < 2; i++) {
+      press('ArrowRight')
+      expect(entity('steady')).toBe(steady)
+      expect(steady.style.opacity).toBe('1')
+    }
   })
 
   it('a departing entity exits with an animation and is then removed', async () => {

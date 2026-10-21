@@ -7,6 +7,15 @@ export const DEFAULT_SETTLE_MS = 1000
 
 export class CaptureError extends Error {}
 
+/** The page's step count as a positive integer, or a CaptureError. */
+export function parseStepCount(raw) {
+  const count = Number(raw)
+  if (raw === null || raw === '' || !Number.isInteger(count) || count < 1) {
+    throw new CaptureError(`invalid step count ${JSON.stringify(raw)}`)
+  }
+  return count
+}
+
 export const stepFile = (step) => `step-${String(step).padStart(2, '0')}.png`
 
 /**

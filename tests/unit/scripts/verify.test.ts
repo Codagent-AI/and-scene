@@ -47,6 +47,8 @@ describe('outline data', () => {
     ['no slug', { ...outline, slug: '' }],
     ['no title', { ...outline, title: undefined }],
     ['no steps', { ...outline, steps: [] }],
+    ['a slug with pattern characters', { ...outline, slug: 'de.*' }],
+    ['an uppercase slug', { ...outline, slug: 'Demo' }],
     ['blank caption', { ...outline, steps: [{ era: 'a', title: 't', caption: '  ' }] }],
     ['missing era', { ...outline, steps: [{ title: 't', caption: 'c' }] }],
   ])('rejects %s', async (_name, bad) => {

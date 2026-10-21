@@ -3,7 +3,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { HOST, PhaseError, defaultDeps, previewUrl } from './lib/preview.mjs'
+import { HOST, PhaseError, defaultDeps, escapeRegExp, isValidSlug, previewUrl } from './lib/preview.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const TRANSITION_TIMEOUT_MS = 5000
@@ -17,6 +17,7 @@ export function validateOutline(outline) {
   for (const key of ['slug', 'title']) {
     if (typeof outline[key] !== 'string' || !outline[key].trim()) fail(`"${key}" must be a non-empty string`)
   }
+  if (!isValidSlug(outline.slug)) fail('"slug" may only contain lowercase letters, digits and hyphens')
   if (!Array.isArray(outline.steps) || outline.steps.length === 0) fail('"steps" must be a non-empty array')
   outline.steps.forEach((step, i) => {
     for (const key of ['era', 'title', 'caption']) {
@@ -50,7 +51,7 @@ export function checkRegistry(root, outline) {
   const indexFile = join(root, 'src', 'presentations', 'index.ts')
   if (!existsSync(indexFile)) throw new PhaseError('registry', 'missing src/presentations/index.ts')
   const source = readFileSync(indexFile, 'utf8')
-  const entry = new RegExp(`slug:\\s*['"]${outline.slug}['"][\\s\\S]*?import\\(\\s*['"]([^'"]+)['"]\\s*\\)`).exec(source)
+  const entry = new RegExp(`slug:\\s*['"]${escapeRegExp(outline.slug)}['"][\\s\\S]*?import\\(\\s*['"]([^'"]+)['"]\\s*\\)`).exec(source)
   if (!entry) throw new PhaseError('registry', `presentation "${outline.slug}" is not registered in src/presentations/index.ts`)
   const target = join(root, 'src', 'presentations', entry[1])
   if (!existsSync(target)) throw new PhaseError('registry', `registered presentation "${outline.slug}" is missing its entry file ${entry[1]}`)

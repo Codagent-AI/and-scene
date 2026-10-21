@@ -22,7 +22,11 @@ function entitiesAt(index: number): Map<string, Record<string, string>> {
   return out
 }
 
-const idsAt = (index: number) => [...entitiesAt(index).keys()]
+const idCache = new Map<number, string[]>()
+const idsAt = (index: number) => {
+  if (!idCache.has(index)) idCache.set(index, [...entitiesAt(index).keys()])
+  return idCache.get(index)!
+}
 
 describe('registration', () => {
   it('registers the sample under its route with a loader that resolves to a component', async () => {

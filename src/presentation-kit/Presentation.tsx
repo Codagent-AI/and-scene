@@ -18,6 +18,7 @@ export function Presentation<TPayload = undefined>({
   const scale = useFitScale(nav.mode)
   const viewport = useViewportSize()
   const step = steps[nav.index]
+  if (!step) return null
   return (
     <div
       data-presentation-root=""

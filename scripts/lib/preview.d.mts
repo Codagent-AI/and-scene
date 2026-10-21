@@ -1,6 +1,8 @@
 import type { ChildProcess } from 'node:child_process'
 
 export const HOST: '127.0.0.1'
+export function escapeRegExp(text: string): string
+export function isValidSlug(slug: unknown): boolean
 export class PhaseError extends Error {
   constructor(phase: string, message: string)
   phase: string

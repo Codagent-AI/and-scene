@@ -3,9 +3,9 @@
 // Screenshots land in inspection/<slug>/step-NN.png. Warnings are advisory (exit 0);
 // an unknown slug or a browser/preview failure exits non-zero.
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { PhaseError, defaultDeps, previewUrl } from './lib/preview.mjs'
+import { PhaseError, defaultDeps, escapeRegExp, isValidSlug, previewUrl } from './lib/preview.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 export const DEFAULT_SETTLE_MS = 1200
@@ -34,6 +34,8 @@ export function parseArgs(argv, env = {}) {
     else if (arg.startsWith('--')) throw new PhaseError('args', `unknown option ${arg}`)
     else options.slug = arg
   }
+  if (options.slug && !isValidSlug(options.slug)) throw new PhaseError('args', 'the slug may only contain lowercase letters, digits and hyphens')
+  if (isAbsolute(options.out) || options.out.split(/[\\/]/).includes('..')) throw new PhaseError('args', '--out must be a relative path inside the project')
   if (!options.slug) throw new PhaseError('args', 'usage: npm run inspect -- <slug> [--settle ms] [--viewport WxH] [--out dir] [--no-build]')
   if (!Number.isFinite(options.settleMs) || options.settleMs < 0) throw new PhaseError('args', '--settle expects milliseconds')
   return options
@@ -41,7 +43,7 @@ export function parseArgs(argv, env = {}) {
 
 export function isRegistered(root, slug) {
   const file = join(root, 'src', 'presentations', 'index.ts')
-  return existsSync(file) && new RegExp(`slug:\\s*['"]${slug}['"]`).test(readFileSync(file, 'utf8'))
+  return existsSync(file) && new RegExp(`slug:\\s*['"]${escapeRegExp(slug)}['"]`).test(readFileSync(file, 'utf8'))
 }
 
 export const stepFileName = (index) => `step-${String(index + 1).padStart(2, '0')}.png`

@@ -13,6 +13,13 @@ const stepTitle = () => q('[data-presentation-step-title]')?.textContent
 
 beforeEach(() => setViewport(1440, 900))
 
+describe('an empty step list', () => {
+  it('renders nothing instead of crashing', () => {
+    const { container } = render(<Presentation steps={[]} title="Deck" />)
+    expect(container.childElementCount).toBe(0)
+  })
+})
+
 describe('present and browse chrome', () => {
   it('present mode shows the marker and one-line title only', () => {
     render(<Presentation steps={makeSteps(4)} title="Deck" initialMode="present" />)

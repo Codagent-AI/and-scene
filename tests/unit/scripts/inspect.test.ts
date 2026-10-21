@@ -29,6 +29,14 @@ describe('arguments and paths', () => {
     expect(() => parseArgs(argv)).toThrow(expect.objectContaining({ phase: 'args' }))
   })
 
+  it.each([['--out', '../escape'], ['--out', '/tmp/abs'], ['--out', 'a/../../b']])('rejects %s %s (outside the project)', (flag, value) => {
+    expect(() => parseArgs(['talk', flag, value])).toThrow(expect.objectContaining({ phase: 'args' }))
+  })
+
+  it.each(['A.b', '(x', '.*', 'a/b'])('rejects the slug %j', (slug) => {
+    expect(() => parseArgs([slug])).toThrow(expect.objectContaining({ phase: 'args' }))
+  })
+
   it('names screenshots step-NN.png (1-based) under the project root', () => {
     expect([stepFileName(0), stepFileName(8), stepFileName(11)]).toEqual(['step-01.png', 'step-09.png', 'step-12.png'])
     expect(outputDir('/p', 'inspection', 'talk', { width: 1440, height: 900 })).toBe('/p/inspection/talk')
@@ -168,6 +176,11 @@ describe('inspect command', () => {
       deps: { runBuild: vi.fn(async () => ''), startPreview: vi.fn(async () => ({ port: 1, stop })), launchBrowser: vi.fn(), ...over },
     }
   }
+
+  it('matches slugs literally, never as patterns', () => {
+    const root = project()
+    for (const slug of ['.*', 'de.o', '(']) expect(isRegistered(root, slug)).toBe(false)
+  })
 
   it('recognizes registered slugs from the project root it is given', () => {
     const root = project()

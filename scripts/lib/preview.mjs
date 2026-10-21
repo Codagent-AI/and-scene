@@ -7,6 +7,11 @@ import { join } from 'node:path'
 
 export const HOST = '127.0.0.1'
 
+export const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** Slugs are route names and file names: lowercase letters, digits and hyphens. */
+export const isValidSlug = (slug) => typeof slug === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(slug)
+
 /** A phase failure carries the phase name so the report says what failed. */
 export class PhaseError extends Error {
   constructor(phase, message) {

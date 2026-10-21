@@ -68,6 +68,9 @@ Detection is by **contract**, not by byte-identical files. Different file names,
 extra dependencies are not a reason to re-scaffold; an existing kit that provides the contract is
 the kit. Look in the working directory first, then in a `presentations/` child directory. If an
 app with all three anchors exists, use it.
+In a monorepo, the root's own build setup is not a presentation app's anchor: unless the root
+itself has all three anchors, evaluate the anchors in `presentations/` (so a root with only a
+build setup still gets a full self-contained app there) and leave the root untouched.
 
 **Decide what to scaffold:**
 
@@ -185,7 +188,8 @@ affects); do not report success, and do not hand the failure to the user.
    step without errors; confirm the route you touched, not just the starter.
 3. **Visual composition** — run `npm run inspect -- <slug>`. It builds, serves a production
    preview, waits for animations to settle, and writes `.inspection/<slug>/step-NN.png` (1-based,
-   zero-padded) plus advisory warnings. Options: `--viewport WxH` (default 1440x900) and
+   zero-padded) plus advisory warnings; a non-default viewport writes to
+   `.inspection/<slug>-<W>x<H>/`, so the narrow pass keeps the desktop screenshots. Options: `--viewport WxH` (default 1440x900) and
    `--settle-ms N` (default 1000). Always use this project-local helper when it exists. Only if
    it does not, write a temporary Playwright helper **inside the project root** so it resolves
    Playwright from local dependencies — never an ad hoc script outside the project tree.

@@ -9,8 +9,8 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { DEFAULT_RENDER_SETTLE_MS, parseArgs, parsePositiveInt } from './lib/args.mjs'
-import { SAMPLE_OUTLINE, validateOutline } from './lib/outline.mjs'
-import { HOST, runBuild, startPreview } from './lib/preview.mjs'
+import { SAMPLE_OUTLINE, describeStep, validateOutline } from './lib/outline.mjs'
+import { HOST, previewFailureMessage, runBuild, startPreview } from './lib/preview.mjs'
 import { parseRegistrySlugs, selectRoutes } from './lib/registry.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -58,6 +58,7 @@ async function renderRoute(browser, base, slug, { requireSample, stepTimeoutMs, 
     throw new VerifyError('render', `${slug}: could not open a page: ${error.message.split('\n')[0]}`)
   })
   let current = 0
+  let total
   const errors = []
   // Attach listeners before navigating so errors during the first render are seen.
   page.on('console', (message) => {
@@ -67,7 +68,7 @@ async function renderRoute(browser, base, slug, { requireSample, stepTimeoutMs, 
   const checkErrors = () => {
     if (errors.length > 0) {
       const { step, text } = errors[0]
-      throw new VerifyError('render', `${slug}: error at step ${step}: ${text}`, step)
+      throw new VerifyError('render', `${slug}: error at ${describeStep(step, total)}: ${text}`, step)
     }
   }
   try {
@@ -83,6 +84,7 @@ async function renderRoute(browser, base, slug, { requireSample, stepTimeoutMs, 
     }
     const count = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
     if (!Number.isInteger(count) || count < 1) throw new VerifyError('render', `${slug}: invalid step count`, 0)
+    total = count
     const rendered = []
     for (let i = 0; i < count; i++) {
       current = i
@@ -93,7 +95,7 @@ async function renderRoute(browser, base, slug, { requireSample, stepTimeoutMs, 
         } catch {
           checkErrors()
           const actual = await page.getAttribute('[data-step-index]', 'data-step-index').catch(() => null)
-          throw new VerifyError('render', `${slug}: transition to step ${i} did not advance (data-step-index is ${actual})`, i)
+          throw new VerifyError('render', `${slug}: transition to ${describeStep(i, count)} did not advance (data-step-index is ${actual})`, i)
         }
       }
       await page.waitForTimeout(settleMs)
@@ -104,11 +106,14 @@ async function renderRoute(browser, base, slug, { requireSample, stepTimeoutMs, 
       })
       log(`[render] ${slug} step ${i + 1}/${count} ok`)
     }
+    // Keep observing the final step for one more window, so a late error there is not lost when the page closes.
+    await page.waitForTimeout(settleMs)
+    checkErrors()
     if (slug === requireSample) {
       const problems = validateOutline(rendered, SAMPLE_OUTLINE)
       if (problems.length > 0) {
         const [first] = problems
-        throw new VerifyError('sample', `${slug}: step ${first.index}: ${first.message}`, first.index)
+        throw new VerifyError('sample', `${slug}: ${describeStep(first.index, SAMPLE_OUTLINE.length)}: ${first.message}`, first.index)
       }
       log(`[sample] ${slug} matches the ${SAMPLE_OUTLINE.length}-step outline`)
     }
@@ -120,7 +125,7 @@ async function renderRoute(browser, base, slug, { requireSample, stepTimeoutMs, 
 
 async function render(slugs, options) {
   const preview = await startPreview(ROOT, { port: options.port, log: (line) => log(`[render] ${line}`) }).catch((error) => {
-    throw new VerifyError('render', `preview server failed: ${error.message}`)
+    throw new VerifyError('render', `preview server failed: ${previewFailureMessage(error)}`)
   })
   log(`[render] preview ${preview.url}/ (host ${HOST})`)
   let browser

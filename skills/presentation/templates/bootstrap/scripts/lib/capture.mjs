@@ -3,6 +3,13 @@
 import { diagnoseStep } from './diagnostics.mjs'
 
 export const DEFAULT_VIEWPORT = '1440x900'
+
+/** Artifact folder name: the slug at the default viewport, `<slug>-<W>x<H>` otherwise, so a narrow pass keeps the desktop shots. */
+export function inspectionDirName(slug, viewport) {
+  const [w, h] = DEFAULT_VIEWPORT.split('x').map(Number)
+  return viewport.width === w && viewport.height === h ? slug : `${slug}-${viewport.width}x${viewport.height}`
+}
+
 export const DEFAULT_SETTLE_MS = 1000
 
 export class CaptureError extends Error {}

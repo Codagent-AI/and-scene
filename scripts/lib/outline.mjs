@@ -31,3 +31,8 @@ export function validateOutline(actual, expected = SAMPLE_OUTLINE) {
   }
   return problems
 }
+
+/** Reader-facing step label: 1-based like the progress lines and screenshot names, plus the 0-based hook index. */
+export function describeStep(index, count) {
+  return count ? `step ${index + 1} of ${count} (index ${index})` : `step ${index + 1} (index ${index})`
+}

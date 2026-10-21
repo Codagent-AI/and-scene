@@ -161,10 +161,11 @@ describe('screenshots', () => {
   it('supports a narrow viewport and honors the settle interval there too', async () => {
     const r = await inspect('fx-clean', ['--viewport', '390x844', '--settle-ms', '1100'])
     expect(r.code, r.out).toBe(0)
+    const narrow = shotDir('fx-clean-390x844')
     for (const f of ['step-01.png', 'step-02.png', 'step-03.png']) {
-      expect(pngSize(readFileSync(join(shotDir('fx-clean'), f)))).toEqual({ width: 390, height: 844 })
+      expect(pngSize(readFileSync(join(narrow, f)))).toEqual({ width: 390, height: 844 })
     }
-    const report = JSON.parse(readFileSync(join(shotDir('fx-clean'), 'report.json'), 'utf8'))
+    const report = JSON.parse(readFileSync(join(narrow, 'report.json'), 'utf8'))
     expect(report.viewport).toEqual({ width: 390, height: 844 })
     for (const s of report.steps) expect(s.capturedAt - s.navigatedAt).toBeGreaterThanOrEqual(1100)
   })

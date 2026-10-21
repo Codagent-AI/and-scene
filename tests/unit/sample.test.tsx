@@ -125,6 +125,15 @@ describe('scene content per step (normative scene intent)', () => {
       expect(r.top + r.height).toBeLessThanOrEqual(f.top + f.height)
     }
   })
+  it('step 9: no scene element sits on the reveal frame stroke', () => {
+    const f = RECT.frame
+    for (const [name, r] of Object.entries(RECT).filter(([, r]) => r !== f)) {
+      expect(r.top, `${name} top`).not.toBe(f.top)
+      expect(r.left, `${name} left`).not.toBe(f.left)
+      expect(r.top + r.height, `${name} bottom`).not.toBe(f.top + f.height)
+      expect(r.left + r.width, `${name} right`).not.toBe(f.left + f.width)
+    }
+  })
 
   it('accumulates entities monotonically through step 7, then only adds', () => {
     for (let i = 1; i < 9; i++) {

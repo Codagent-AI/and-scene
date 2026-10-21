@@ -4,16 +4,17 @@
 // advisory visual warnings (overlap, indistinct active chrome, unpolished attribution).
 //   node scripts/inspect-presentation.mjs <slug> [--viewport 1440x900] [--settle-ms 1000]
 //                                         [--skip-build] [--out <dir>]
+// Screenshots go to .inspection/<slug>/ (default viewport) or .inspection/<slug>-<W>x<H>/ (any other viewport).
 // Warnings never change the exit code; only a failed capture does.
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { parseArgs, parsePositiveInt, parseViewport } from './lib/args.mjs'
-import { CaptureError, DEFAULT_SETTLE_MS, DEFAULT_VIEWPORT, captureSteps, parseStepCount } from './lib/capture.mjs'
+import { CaptureError, DEFAULT_SETTLE_MS, DEFAULT_VIEWPORT, captureSteps, inspectionDirName, parseStepCount } from './lib/capture.mjs'
 import { collectPageData } from './lib/collect.mjs'
 import { formatWarning } from './lib/diagnostics.mjs'
-import { runBuild, startPreview } from './lib/preview.mjs'
+import { previewFailureMessage, runBuild, startPreview } from './lib/preview.mjs'
 import { readRegistrySlugs } from './lib/registry.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -25,7 +26,7 @@ async function main() {
   if (!slug) throw new CaptureError('usage: inspect-presentation.mjs <slug> [--viewport WxH] [--settle-ms N] [--skip-build] [--out dir]')
   const viewport = parseViewport(args.values.viewport ?? DEFAULT_VIEWPORT)
   const settleMs = parsePositiveInt(args.values['settle-ms'] ?? DEFAULT_SETTLE_MS, '--settle-ms')
-  const outDir = args.values.out ? resolve(args.values.out) : join(ROOT, '.inspection', slug)
+  const outDir = args.values.out ? resolve(args.values.out) : join(ROOT, '.inspection', inspectionDirName(slug, viewport))
 
   const slugs = await readRegistrySlugs(ROOT)
   if (!slugs.includes(slug)) throw new CaptureError(`unknown presentation "${slug}" (registered: ${slugs.join(', ')})`)
@@ -41,7 +42,7 @@ async function main() {
   for (const name of await readdir(outDir)) if (/^step-\d+\.png$/.test(name)) await rm(join(outDir, name))
 
   const preview = await startPreview(ROOT, { log: (line) => log(`[inspect] ${line}`) }).catch((e) => {
-    throw new CaptureError(`preview server failed: ${e.message}`)
+    throw new CaptureError(`preview server failed: ${previewFailureMessage(e)}`)
   })
   let browser
   const warnings = []

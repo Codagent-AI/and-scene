@@ -89,3 +89,10 @@ export async function startPreview(root, { port, log = () => {}, readyTimeoutMs 
   }
   return { url, port: chosen, stop }
 }
+
+/** Failure text for a preview that did not start: the error plus the server's own last output lines (e.g. "Port N is already in use"). */
+export function previewFailureMessage(error) {
+  // eslint-disable-next-line no-control-regex
+  const tail = String(error.output ?? '').replace(/\u001b\[[0-9;]*m/g, '').trim().split('\n').filter(Boolean).slice(-5).join('\n')
+  return tail ? `${error.message}\n${tail}` : error.message
+}

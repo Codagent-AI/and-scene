@@ -73,7 +73,7 @@ describe('sample phase', () => {
       edit(dir, `${SAMPLE}/steps/index.ts`, (t) => t.replace('[step01, step02, step03,', '[step01, step03, step02,')),
     )
     expectFailure(r, 'sample')
-    expect(r.out).toMatch(/step 1: title is "Answers become steps"/)
+    expect(r.out).toMatch(/step 2 of 9 \(index 1\): title is "Answers become steps"/)
     await expectCleanedUp(r)
   }, 220_000)
 })
@@ -89,7 +89,7 @@ describe('render phase', () => {
   it('fails on a console error at a later step and identifies the step', async () => {
     const r = await runFault('console', sceneFault("  useEffect(() => { if (n === 5) console.error('boom at five') }, [n])"))
     expectFailure(r, 'render')
-    expect(r.out).toMatch(/error at step 4: boom at five/)
+    expect(r.out).toMatch(/error at step 5 of 9 \(index 4\): boom at five/)
     expect(r.out).toContain('step 4/9 ok')
     expect(r.out).not.toContain('step 5/9 ok')
     await expectCleanedUp(r)
@@ -98,21 +98,28 @@ describe('render phase', () => {
   it('fails on an uncaught page error at a later step and identifies the step', async () => {
     const r = await runFault('pageerror', sceneFault("  useEffect(() => { if (n === 7) setTimeout(() => { throw new Error('late failure') }, 0) }, [n])"))
     expectFailure(r, 'render')
-    expect(r.out).toMatch(/error at step 6: uncaught: late failure/)
+    expect(r.out).toMatch(/error at step 7 of 9 \(index 6\): uncaught: late failure/)
     await expectCleanedUp(r)
   }, 220_000)
 
   it('catches an error that fires during the final step\'s animation window', async () => {
     const r = await runFault('late-animation', sceneFault("  useEffect(() => { if (n === 9) { const t = setTimeout(() => console.error('late animation error'), 800); return () => clearTimeout(t) } }, [n])"))
     expectFailure(r, 'render')
-    expect(r.out).toMatch(/error at step 8: late animation error/)
+    expect(r.out).toMatch(/error at step 9 of 9 \(index 8\): late animation error/)
+    await expectCleanedUp(r)
+  }, 220_000)
+
+  it('keeps observing the final step past its first settle window', async () => {
+    const r = await runFault('late-final', sceneFault("  useEffect(() => { if (n === 9) { const t = setTimeout(() => console.error('late error on the last step'), 1500); return () => clearTimeout(t) } }, [n])"))
+    expectFailure(r, 'render')
+    expect(r.out).toMatch(/error at step 9 of 9 \(index 8\): late error on the last step/)
     await expectCleanedUp(r)
   }, 220_000)
 
   it('fails when a step throws while rendering, identifying the step', async () => {
     const r = await runFault('throw', sceneFault("  if (n === 3) throw new Error('scene exploded')", false))
     expectFailure(r, 'render')
-    expect(r.out).toMatch(/error at step 2:.*scene exploded/)
+    expect(r.out).toMatch(/error at step 3 of 9 \(index 2\):.*scene exploded/)
     await expectCleanedUp(r)
   }, 220_000)
 
@@ -123,7 +130,7 @@ describe('render phase', () => {
       ['--step-timeout-ms', '1500'],
     )
     expectFailure(r, 'render')
-    expect(r.out).toMatch(/transition to step 4 did not advance \(data-step-index is 3\)/)
+    expect(r.out).toMatch(/transition to step 5 of 9 \(index 4\) did not advance \(data-step-index is 3\)/)
     expect(r.out).toContain('step 4/9 ok')
     await expectCleanedUp(r)
   }, 220_000)
@@ -137,7 +144,7 @@ describe('render phase', () => {
     })
     expectFailure(r, 'render')
     expect(r.out).toContain('how-to-make-a-presentation step 9/9 ok')
-    expect(r.out).toMatch(/other: error at step 1: other route broke/)
+    expect(r.out).toMatch(/other: error at step 2 of \d+ \(index 1\): other route broke/)
     await expectCleanedUp(r)
   }, 220_000)
 })
@@ -151,6 +158,7 @@ describe('infrastructure failures', () => {
       const r = await runFault('busy-port', () => {}, ['--port', String(port)])
       expectFailure(r, 'render')
       expect(r.out).toMatch(/preview server failed/)
+      expect(r.out).toMatch(/already in use/)
       expect(r.out).not.toMatch(/\[verify\] FAIL \[(usage|internal)\]/)
       expect(await leftoverProcesses(r.dir)).toEqual([])
     } finally {

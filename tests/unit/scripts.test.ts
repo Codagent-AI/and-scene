@@ -4,9 +4,10 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ENTER_DELAY, ENTER_T, LAYOUT_T } from '../../src/presentation-kit/constants'
 import { DEFAULT_RENDER_SETTLE_MS, parseArgs, parsePositiveInt, parseViewport } from '../../scripts/lib/args.mjs'
-import { DEFAULT_SETTLE_MS, DEFAULT_VIEWPORT, CaptureError, captureSteps, parseStepCount, stepFile } from '../../scripts/lib/capture.mjs'
+import { DEFAULT_SETTLE_MS, DEFAULT_VIEWPORT, CaptureError, captureSteps, inspectionDirName, parseStepCount, stepFile } from '../../scripts/lib/capture.mjs'
 import { attributionProblems, diagnoseStep, findOverlaps, indistinctActive, rectsOverlap } from '../../scripts/lib/diagnostics.mjs'
-import { SAMPLE_OUTLINE, validateOutline } from '../../scripts/lib/outline.mjs'
+import { SAMPLE_OUTLINE, describeStep, validateOutline } from '../../scripts/lib/outline.mjs'
+import { previewFailureMessage } from '../../scripts/lib/preview.mjs'
 import { parseRegistrySlugs, selectRoutes } from '../../scripts/lib/registry.mjs'
 
 const SCRIPTS = join(__dirname, '../../scripts')
@@ -276,5 +277,24 @@ describe('loopback only', () => {
   it('opens routes relative to the preview URL', () => {
     expect(readFileSync(join(SCRIPTS, 'verify.mjs'), 'utf8')).toMatch(/`\$\{base\}\/\$\{slug\}`/)
     expect(readFileSync(join(SCRIPTS, 'inspect-presentation.mjs'), 'utf8')).toMatch(/`\$\{preview\.url\}\/\$\{slug\}`/)
+  })
+})
+
+describe('failure reporting', () => {
+  it('labels steps 1-based like the progress lines, keeping the hook index', () => {
+    expect(describeStep(3, 9)).toBe('step 4 of 9 (index 3)')
+    expect(describeStep(0)).toBe('step 1 (index 0)')
+  })
+  it('keeps the preview server\'s own last output lines in a start failure', () => {
+    const error = Object.assign(new Error('preview server exited early with code 1'), {
+      output: '\u001b[31mError: Port 4190 is already in use\u001b[0m\n',
+    })
+    expect(previewFailureMessage(error)).toBe('preview server exited early with code 1\nError: Port 4190 is already in use')
+    expect(previewFailureMessage(new Error('plain'))).toBe('plain')
+  })
+  it('keeps a narrow screenshot pass apart from the desktop one', () => {
+    const wide = parseViewport(DEFAULT_VIEWPORT)
+    expect(inspectionDirName('talk', wide)).toBe('talk')
+    expect(inspectionDirName('talk', parseViewport('390x844'))).toBe('talk-390x844')
   })
 })

@@ -1,0 +1,8 @@
+/* Host/app CSS only. The presentation kit ships no visual defaults. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

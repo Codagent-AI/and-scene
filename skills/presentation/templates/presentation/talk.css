@@ -1,0 +1,18 @@
+/* Presentation-owned styling. The scene kit ships no visual defaults: choose the
+   palette, type, spacing, borders, and shadows here. Hooks are data-presentation-*. */
+.__SLUG__ {
+  /* background, color, font-family */
+}
+
+/* Make the current step obvious in the progress dots and table of contents. */
+.__SLUG__ [data-presentation-progress-item][data-presentation-active],
+.__SLUG__ [data-presentation-toc-entry][data-presentation-active] {
+  font-weight: 700;
+  /* plus a distinct background or border color */
+}
+
+/* Keep the "made by and-scene" attribution legible and intentional. */
+.__SLUG__ [data-presentation-attribution] {
+  font-size: 13px;
+  text-decoration: none;
+}

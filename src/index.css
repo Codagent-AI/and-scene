@@ -1,0 +1,8 @@
+/* Host CSS only: the scene kit ships no styles; each presentation owns its look. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

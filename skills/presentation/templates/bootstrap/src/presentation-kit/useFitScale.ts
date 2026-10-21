@@ -1,25 +1,18 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useEffect, useState } from 'react'
+import { computeFitScale, type Viewport } from './fitScale'
+import type { Mode } from './types'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+function readViewport(): Viewport {
+  return { width: window.innerWidth, height: window.innerHeight }
+}
 
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
-  const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
-    }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+/** Fit scale for the active mode; recomputed on viewport resize and mode change. */
+export function useFitScale(mode: Mode): number {
+  const [viewport, setViewport] = useState<Viewport>(readViewport)
+  useEffect(() => {
+    const onResize = () => setViewport(readViewport())
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  return computeFitScale(mode, viewport)
 }

@@ -1,42 +1,32 @@
-/** Shared timing and geometry constants for the scene kit. */
-
-// Easing for layout morphs and reveals — slow, confident, presentation-grade.
-export const EASE = [0.22, 1, 0.36, 1] as const
-export const LAYOUT_T = { duration: 0.7, ease: EASE }
-
-// A newcomer waits this long before fading in, so the pieces already on screen
-// have visibly moved to their new spots first. Without it, a new element pops in
-// at full strength while the old ones are mid-morph, and the eye can't tell what
-// arrived from what just shifted. See the Appear helper in nodes.
-export const ENTER_DELAY = 0.4
-export const ENTER_T = { duration: 0.45, ease: EASE, delay: ENTER_DELAY }
-
-// The diagram is laid out once in this fixed "design canvas" and then scaled
-// uniformly to fit the viewport (see useFitScale). A fixed coordinate space
-// means the composition never reflows and the scale is constant during a
-// morph — so layoutId transitions stay clean at every viewport size.
 export const DESIGN_W = 880
 export const DESIGN_H = 380
-export const MIN_SCALE = 0.35
 
-/**
- * Per-mode stage geometry. Scale is constant *within* a mode, so step→step
- * layoutId morphs stay clean; toggling modes is a re-render, not a morph.
- *
- *  - browse  reserves generous chrome for the multi-line caption + nav at the
- *            bottom; the title sits at the top. Fits the full design canvas.
- *  - present carries the same top title but no caption — only progress dots sit
- *            at the bottom — so it keeps the title's headroom up top and trims
- *            the bottom band, fitting the diagram to a narrower width (~790)
- *            so a wide step doesn't shrink the rest. A higher max-scale lets the
- *            diagram grow on taller (16:9/4:3) screens.
- *
- * `fitW` is both the width fed to the fit calc and the canvas width, so the
- * scaled canvas always equals the available width (no horizontal overflow).
- */
-export const STAGE_LAYOUT = {
-  browse: { top: 96, bottom: 188, padX: 32, fitW: DESIGN_W, maxScale: 1.8 },
-  present: { top: 104, bottom: 76, padX: 20, fitW: 790, maxScale: 2.6 },
-} as const
+/** Lower bound for the fit scale so a tiny viewport never collapses the canvas. */
+export const MIN_SCALE = 0.1
 
-export type StageLayout = (typeof STAGE_LAYOUT)[keyof typeof STAGE_LAYOUT]
+export const EASE = [0.22, 1, 0.36, 1] as const
+
+/** Seconds a continuing entity takes to morph to its new layout. */
+export const LAYOUT_T = 0.5
+/** Seconds a newcomer takes to fade in. */
+export const ENTER_T = 0.35
+/** Seconds a newcomer waits so persisting entities settle first. */
+export const ENTER_DELAY = LAYOUT_T
+
+/** Viewport width (px) from which the table of contents is shown in browse mode. */
+export const WIDE_VIEWPORT = 900
+
+export interface StageGeometry {
+  /** Space reserved above the canvas for the header chrome. */
+  top: number
+  /** Space reserved below the canvas for the footer chrome. */
+  bottom: number
+  /** Space reserved on each side of the canvas. */
+  side: number
+}
+
+/** Per-mode fit geometry: the canvas is scaled into what the chrome leaves free. */
+export const STAGE_LAYOUT: Record<'browse' | 'present', StageGeometry> = {
+  browse: { top: 72, bottom: 270, side: 24 },
+  present: { top: 72, bottom: 120, side: 24 },
+}

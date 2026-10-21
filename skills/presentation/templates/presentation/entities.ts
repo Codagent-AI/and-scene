@@ -1,14 +1,15 @@
 /**
- * Stable layoutId namespace for this presentation.
- * Every entity that persists or morphs across steps gets a constant here.
+ * This presentation's entity namespace. Every value is a stable `layoutId`: an entity
+ * that keeps its id across steps morphs in place instead of disappearing and reappearing.
+ * Geometry is in design-canvas coordinates (880 x 380).
  */
-export const ENTITIES = {
-  /** Primary focal node — rename to match your topic. */
-  hero: 'hero',
-  /** Supporting label or annotation. */
-  caption: 'caption',
-  /** Connector between entities. */
-  flow: 'flow',
+export const ENTITY = {
+  source: 'source',
+  target: 'target',
+  link: 'source-target-link',
 } as const
 
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]
+export const RECT = {
+  source: { left: 60, top: 140, width: 200, height: 80 },
+  target: { left: 620, top: 140, width: 200, height: 80 },
+}

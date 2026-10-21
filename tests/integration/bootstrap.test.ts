@@ -4,7 +4,7 @@ import path from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { detectAnchors } from '../../skills/presentation/scripts/scaffold.mjs'
 import { ROOT, run, tempDir } from './helpers'
-import { TEMPLATE, TEST_FILE, rel, text, walk } from '../contract/helpers'
+import { TEST_FILE, rel, text, walk } from '../contract/helpers'
 import type { Result } from './helpers'
 
 const SCAFFOLD = path.join(ROOT, 'skills/presentation/scripts/scaffold.mjs')

@@ -73,7 +73,10 @@ function redCentroidX(image: { width: number; height: number; data: Buffer }) {
   for (let y = 0; y < image.height; y++) {
     for (let x = 0; x < image.width; x++) {
       const i = (y * image.width + x) * 4
-      if (image.data[i] === 255 && image.data[i + 1] === 0 && image.data[i + 2] === 0) (sum += x, count++)
+      if (image.data[i] === 255 && image.data[i + 1] === 0 && image.data[i + 2] === 0) {
+        sum += x
+        count++
+      }
     }
   }
   return { count, x: count ? sum / count : -1 }

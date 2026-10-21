@@ -2,7 +2,6 @@ import { render } from '@testing-library/react'
 import { Bird } from 'lucide-react'
 import { describe, expect, it } from 'vitest'
 import { Appear, Arrow, Box, Emphasis, Frame, Label, Presentation, SymbolChip } from './index'
-import type { SceneProps } from './types'
 
 /** Layout and motion plumbing the kit may set; nothing here is a visual treatment. */
 const LAYOUT_PROPS = new Set([
@@ -11,7 +10,7 @@ const LAYOUT_PROPS = new Set([
   'text-overflow', 'opacity',
 ])
 
-function Scene(_props: SceneProps<undefined>) {
+function Scene() {
   return (
     <>
       <Appear>

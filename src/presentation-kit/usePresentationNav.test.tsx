@@ -8,7 +8,7 @@ function setup(options: Parameters<typeof usePresentationNav>[0] = { count: 5 })
   return renderHook(() => usePresentationNav(options))
 }
 
-const press = (key: string, target: EventTarget = document.body) =>
+const press = (key: string, target: Element | Document = document.body) =>
   act(() => {
     fireEvent.keyDown(target, { key })
   })

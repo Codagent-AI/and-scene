@@ -1,5 +1,3 @@
-import type { EntityId } from './entities.ts'
-
 /** The diagram state for one step. Every field is cumulative: later steps only add. */
 export interface SceneState {
   skill: boolean
@@ -13,8 +11,12 @@ export interface SceneState {
   verify: boolean
   modify: boolean
   frame: boolean
-  /** The entity the emphasis marker rests on. */
-  focus: EntityId | null
+}
+
+/** What a step hands the scene: its state, and the state it follows (so the scene can tell newcomers from continuing entities). */
+export interface Beat {
+  state: SceneState
+  previous: SceneState | null
 }
 
 export const START: SceneState = {
@@ -27,5 +29,4 @@ export const START: SceneState = {
   verify: false,
   modify: false,
   frame: false,
-  focus: 'you',
 }

@@ -58,6 +58,14 @@ describe('E2E-002: verification failures are actionable', () => {
     expectFailure(await verifyFaulty((dir) => edit(dir, `${SAMPLE}/steps/steps.ts`, swap)), 'render', 'step 1: title')
   })
 
+  it('fails in the render phase when a step shows the wrong era, naming the step', async () => {
+    expectFailure(
+      await verifyFaulty((dir) => edit(dir, `${SAMPLE}/steps/steps.ts`, (s) => s.replace("step('gather-grows', 'the gathering'", "step('gather-grows', 'the ask'"))),
+      'render',
+      'step 4: era "the ask" does not match "the gathering"',
+    )
+  })
+
   it('fails in the render phase when a step emits a browser error, naming that step', async () => {
     const outcome = await verifyFaulty((dir) =>
       append(dir, 'src/main.tsx', `

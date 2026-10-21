@@ -52,6 +52,16 @@ describe('sceneKey', () => {
     expect(sceneKey(a)).not.toBe(sceneKey(step('d', Other, 'g', '2')))
     expect(sceneKey(step('x', Counting, undefined, '1'))).not.toBe(sceneKey(step('y', Counting, undefined, '1')))
   })
+
+  it('never lets a group name collide with an ungrouped step id', () => {
+    expect(sceneKey(step('b', Counting, 'step:a', '1'))).not.toBe(sceneKey(step('a', Counting, undefined, '1')))
+  })
+
+  it('remounts between a group named like an ungrouped id and that ungrouped step', () => {
+    const { go } = mount(step('b', Counting, 'step:a', 'one'))
+    go(step('a', Counting, undefined, 'two'))
+    expect(log.mounts).toBe(2)
+  })
 })
 
 describe('Stage scene lifecycle', () => {

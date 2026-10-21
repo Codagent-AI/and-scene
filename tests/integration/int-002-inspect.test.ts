@@ -69,7 +69,7 @@ const STEPS = `import type { Step } from '../../../presentation-kit/index.ts'
 import { VariantScene, type SceneState } from '../Scene.tsx'
 
 const step = (id: string, title: string, n: number): Step<SceneState> => ({
-  id, era: 'era ' + n, title, caption: 'caption ' + title, groupKey: 'v', Scene: VariantScene, payload: { n },
+  id, era: n === 1 ? 'era' : 'a much longer era', title, caption: 'caption ' + title, groupKey: 'v', Scene: VariantScene, payload: { n },
 })
 
 export const STEPS = [step('one', 'First', 1), step('two', 'Second', 2)]

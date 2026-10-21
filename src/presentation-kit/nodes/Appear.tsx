@@ -1,9 +1,7 @@
-import type { ReactNode } from 'react'
-import { motion } from 'motion/react'
+import { motion, type HTMLMotionProps } from 'motion/react'
 import { ENTER_DELAY, ENTER_T } from '../constants.ts'
 
-interface AppearProps {
-  children: ReactNode
+type AppearProps = Omit<HTMLMotionProps<'div'>, 'initial' | 'animate' | 'exit'> & {
   /** Seconds to wait; defaults to the full layout morph duration. */
   delay?: number
 }
@@ -13,16 +11,15 @@ interface AppearProps {
  * entities that are new in a step; continuing entities stay outside it.
  * Place inside an AnimatePresence to also animate departures.
  */
-export function Appear({ children, delay = ENTER_DELAY }: AppearProps) {
+export function Appear({ delay = ENTER_DELAY, style, ...rest }: AppearProps) {
   return (
     <motion.div
       data-presentation-appear=""
+      {...rest}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: { ...ENTER_T, delay } }}
       exit={{ opacity: 0, transition: ENTER_T }}
-      style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
-    >
-      {children}
-    </motion.div>
+      style={{ ...style, position: 'absolute', inset: 0, pointerEvents: 'none' }}
+    />
   )
 }

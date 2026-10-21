@@ -7,5 +7,7 @@ function sceneId(Scene: object): number {
 
 /** Steps with the same key keep one mounted scene; any other change remounts. */
 export function sceneKey(step: { id: string; groupKey?: string; Scene: object }): string {
-  return `${sceneId(step.Scene)}:${step.groupKey ?? `step:${step.id}`}`
+  // Distinct prefixes keep a group named "x" from colliding with an ungrouped step whose id is "x".
+  const identity = step.groupKey === undefined ? `step:${step.id}` : `group:${step.groupKey}`
+  return `${sceneId(step.Scene)}:${identity}`
 }

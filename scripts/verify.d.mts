@@ -31,6 +31,7 @@ export interface VerifyDeps {
 }
 export function validateOutline(outline: unknown): Outline
 export function loadOutline(root: string): Outline
+export function loadOutlines(root: string): Outline[]
 export function checkRegistry(root: string, outline: Outline): void
 export function checkTransition(from: number, to: number, expected: number): void
 export function createErrorCollector(
@@ -38,4 +39,4 @@ export function createErrorCollector(
   getStep: () => number,
 ): { errors: { step: number; kind: string; text: string }[]; assertClean(): void }
 export function renderSteps(page: FakePage, outline: Outline, baseUrl: string, log?: (line: string) => void): Promise<number>
-export function verify(root?: string, log?: (line: string) => void, deps?: VerifyDeps): Promise<Outline>
+export function verify(root?: string, log?: (line: string) => void, deps?: VerifyDeps): Promise<Outline[]>

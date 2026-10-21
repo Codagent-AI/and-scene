@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { key, setViewport } from '../../tests/helpers/events.ts'
 import { makeSteps } from '../../tests/helpers/fixtures.tsx'
 import { ATTRIBUTION_URL, DESIGN_H, DESIGN_W } from './constants.ts'
@@ -170,6 +170,15 @@ describe('navigation controls', () => {
 })
 
 describe('Toc grouping', () => {
+  it('renders an era that repeats non-consecutively without duplicate React keys', () => {
+    const errors: unknown[][] = []
+    const spy = vi.spyOn(console, 'error').mockImplementation((...args) => void errors.push(args))
+    render(<Presentation steps={makeSteps(5, ['a', 'a', 'b', 'a', 'a'])} title="Deck" />)
+    spy.mockRestore()
+    expect(errors).toEqual([])
+    expect(document.querySelectorAll('[data-presentation-toc-entry]')).toHaveLength(3)
+  })
+
   it('groups consecutive steps sharing an era and marks the active era', () => {
     expect(buildToc(makeSteps(5, ['a', 'a', 'b', 'a', 'a']), 3)).toEqual([
       { era: 'a', start: 0, active: false },

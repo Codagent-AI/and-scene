@@ -14,13 +14,14 @@ export const RECTS = {
   prompt: { x: 120, y: 82, w: 120, h: 26 },
   skill: { x: 730, y: 16, w: 120, h: 56 },
   question: { x: 440, y: 12, w: 100, h: 24 },
+  tray: { x: 20, y: 160, w: 852, h: 110 },
   'card-1': card(0),
   'card-2': card(1),
   'card-3': card(2),
   'card-4': card(3),
   ghost: card(4),
   verify: card(5),
-  kit: { x: 30, y: 260, w: 688, h: 32 },
+  kit: { x: 30, y: 270, w: 688, h: 32 },
   'check-build': { x: 768, y: 268, w: 48, h: 20 },
   'check-render': { x: 820, y: 268, w: 52, h: 20 },
   pass: { x: 846, y: 174, w: 20, h: 20 },
@@ -52,5 +53,3 @@ export const LINKS = [
 ] as const
 
 export const MODIFY_ARC = 'M 480 56 C 480 120, 224 100, 224 166'
-
-export const FOCUS_PAD = 6

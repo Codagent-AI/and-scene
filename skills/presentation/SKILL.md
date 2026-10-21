@@ -99,10 +99,13 @@ a CSS theme, default colors, fonts, card or button styles. Add a styling system 
 when the host project already uses one or the user explicitly asks for it.
 
 The template's `scripts/verify.config.json` describes the placeholder `example`
-presentation. When you create the user's first presentation, update that file's
-outline (slug, title, and each step's era, title and caption) to match it, and remove
-the placeholder from the registry once the user's presentation replaces it. Never
-change the logic of the scripts.
+presentation, which stays registered: never remove or rewrite an existing
+presentation, including the placeholder. Each time you create a presentation, add
+its outline (slug, title, and each step's era, title and caption) to that file so
+`npm run verify` checks it too: change the file to
+`{ "presentations": [ <existing outline>, <new outline> ] }`. When you modify a
+presentation's slug, title or steps, update only its own outline. Never change the
+logic of the scripts.
 
 ### 3. Create or modify
 

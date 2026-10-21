@@ -12,7 +12,7 @@ export function Toc({ steps, index, onJump }: TocProps) {
     <nav data-presentation-toc="" aria-label="Table of contents">
       <ol style={{ display: 'flex' }}>
         {buildToc(steps, index).map((entry) => (
-          <li key={entry.era}>
+          <li key={entry.start}>
             <button
               type="button"
               data-presentation-toc-entry=""

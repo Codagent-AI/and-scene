@@ -57,6 +57,7 @@
 [data-presentation-entity='you'], [data-presentation-entity='skill'] { border-color: var(--gold); font-weight: 650; font-size: 16px; }
 [data-presentation-entity^='card-'][data-presentation-node='box'] { justify-content: space-evenly; font-size: 11px; }
 [data-presentation-entity^='card-'][data-presentation-node='box'] > span { font-size: 11px; }
+[data-presentation-entity='tray'] { border: 0; background: rgba(248, 243, 230, 0.04); border-radius: 12px; }
 [data-presentation-entity='ghost'] { border-style: dashed; color: var(--dim); font-size: 12px; }
 [data-presentation-entity='kit'] { border-color: var(--gold); border-radius: 0 0 10px 10px; color: var(--gold); }
 [data-presentation-entity='verify'] { border-color: var(--good); }
@@ -64,7 +65,6 @@
 [data-presentation-entity='flag'] { color: var(--gold); border-color: var(--gold); }
 [data-presentation-entity='modify'] { color: var(--gold); border: 0; background: none; }
 [data-presentation-entity='modify-arc'] { color: var(--gold); }
-[data-presentation-entity='focus'] { border: 2px solid var(--gold); border-radius: 14px; box-shadow: 0 0 18px rgba(214, 178, 94, 0.35); }
 [data-presentation-entity='frame'] { border: 2px solid var(--gold); border-radius: 18px; }
 [data-presentation-entity='frame-label'] { color: var(--gold); font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; }
 [data-presentation-node='arrow'] { color: var(--dim); }

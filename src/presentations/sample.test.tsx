@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, waitFor } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { key } from '../../tests/helpers/events.ts'
 import { SPEC_STEPS } from '../../tests/helpers/spec-outline.ts'
@@ -69,10 +69,10 @@ describe('one continuously evolving scene', () => {
   })
 
   it('introduces exactly the specified entities at each beat', () => {
-    const added = (i: number) => idsAt(i).filter((id) => !(i > 0 && idsAt(i - 1).includes(id)) && id !== 'focus')
+    const added = (i: number) => idsAt(i).filter((id) => !(i > 0 && idsAt(i - 1).includes(id)))
     expect(added(0).sort()).toEqual(['prompt', 'you'])
     expect(added(1).sort()).toEqual(['chat', 'question', 'skill'])
-    expect(added(2).sort()).toEqual(['card-1', 'card-1-caption', 'card-1-title', 'card-1-visual', 'link-1', 'link-1-label'])
+    expect(added(2).sort()).toEqual(['card-1', 'card-1-caption', 'card-1-title', 'card-1-visual', 'link-1', 'link-1-label', 'tray'])
     expect(added(3).filter((id) => /^card-[234]$/.test(id)).sort()).toEqual(['card-2', 'card-3', 'card-4'])
     expect(added(4).sort()).toEqual(['control', 'ghost', 'link-4'])
     expect(added(5)).toEqual(['kit'])
@@ -81,9 +81,9 @@ describe('one continuously evolving scene', () => {
     expect(added(8).sort()).toEqual(['frame', 'frame-label'])
   })
 
-  it('never removes an entity once it has appeared (the emphasis marker aside)', () => {
+  it('never removes an entity once it has appeared', () => {
     for (let i = 1; i < 9; i++) {
-      const before = idsAt(i - 1).filter((id) => id !== 'focus')
+      const before = idsAt(i - 1)
       const after = idsAt(i)
       for (const id of before) expect(after).toContain(id)
     }
@@ -93,17 +93,10 @@ describe('one continuously evolving scene', () => {
     const first = new Map<string, Record<string, string>>()
     for (let i = 0; i < 9; i++) {
       for (const [id, geometry] of entitiesAt(i)) {
-        if (id === 'focus') continue
         if (first.has(id)) expect(geometry, `${id} at step ${i + 1}`).toEqual(first.get(id))
         else first.set(id, geometry)
       }
     }
-  })
-
-  it('moves the emphasis marker in place with a stable identity', () => {
-    const geometry = [3, 4].map((i) => entitiesAt(i).get('focus'))
-    expect(geometry[0]).not.toEqual(geometry[1])
-    expect(idsAt(8)).not.toContain('focus')
   })
 })
 
@@ -129,9 +122,23 @@ describe('scene content topology', () => {
     expect(RECTS.ghost.y).toBe(RECTS['card-4'].y)
   })
 
+  it('lands the first card in a tray that appears under the conversation', () => {
+    expect(idsAt(1)).not.toContain('tray')
+    expect(idsAt(2)).toEqual(expect.arrayContaining(['tray', 'card-1']))
+    expect(RECTS.tray.y).toBeGreaterThan(RECTS.you.y + RECTS.you.h)
+    const tray = RECTS.tray
+    for (const id of [...CARD_IDS, 'ghost', 'verify'] as const) {
+      const r = RECTS[id]
+      expect(r.x, id).toBeGreaterThanOrEqual(tray.x)
+      expect(r.y, id).toBeGreaterThanOrEqual(tray.y)
+      expect(r.x + r.w, id).toBeLessThanOrEqual(tray.x + tray.w)
+      expect(r.y + r.h, id).toBeLessThanOrEqual(tray.y + tray.h)
+    }
+  })
+
   it('plugs the scene kit into the tray bottom edge without framing the tray', () => {
-    const trayBottom = RECTS['card-1'].y + RECTS['card-1'].h
-    expect(RECTS.kit.y).toBe(trayBottom)
+    expect(RECTS.kit.y).toBe(RECTS.tray.y + RECTS.tray.h)
+    expect(idsAt(5)).toEqual(expect.arrayContaining(['kit', 'tray']))
     expect(idsAt(5)).not.toContain('frame')
   })
 
@@ -145,7 +152,7 @@ describe('scene content topology', () => {
 
   it('reaches a modify arc from the conversation into the route and flags the edited card', () => {
     expect(idsAt(7)).toEqual(expect.arrayContaining(['modify-arc', 'flag']))
-    expect(STEPS[7].payload.focus).toBe('card-2')
+    expect(STEPS[7].payload.state.modify).toBe(true)
   })
 
   it('ends with a labeled frame around everything on screen', () => {
@@ -162,18 +169,32 @@ describe('scene content topology', () => {
 })
 
 describe('entrance wiring', () => {
-  it('keeps continuing entities mounted and unfaded while only newcomers enter', async () => {
+  const wrapped = (id: string) => document.querySelector(`[data-presentation-entity="${id}"]`)?.closest('[data-presentation-appear]') ?? null
+
+  it('wraps only newcomers in Appear: continuing entities sit outside it', () => {
     render(<Presentation steps={STEPS} title="x" />)
-    const el = (id: string) => document.querySelector<HTMLElement>(`[data-presentation-entity="${id}"]`)
-    const wrapperOf = (id: string) => el(id)!.closest<HTMLElement>('[data-presentation-appear]')!
-    const you = el('you')
-    expect(you).not.toBeNull()
-    await waitFor(() => expect(wrapperOf('you').style.opacity).toBe('1'), { timeout: 3000 })
+    expect(wrapped('you')).not.toBeNull()
     key(document.body, 'ArrowRight')
-    expect(el('you')).toBe(you)
-    expect(el('skill')).not.toBeNull()
-    expect(wrapperOf('skill').style.opacity).toBe('0')
-    expect(wrapperOf('you').style.opacity).not.toBe('0')
+    expect(wrapped('you')).toBeNull()
+    expect(wrapped('prompt')).toBeNull()
+    expect(wrapped('skill')).not.toBeNull()
+    expect((wrapped('skill') as HTMLElement).style.opacity).toBe('0')
+    key(document.body, 'ArrowRight')
+    expect(wrapped('skill')).toBeNull()
+    expect(wrapped('card-1')).not.toBeNull()
+    expect(wrapped('tray')).not.toBeNull()
     expect(document.querySelectorAll('[data-presentation-scene]')).toHaveLength(1)
+  })
+
+  it('wraps exactly the entities that are new in each step', () => {
+    for (let i = 0; i < 9; i++) {
+      const { container, unmount } = render(<SampleScene payload={STEPS[i].payload} stepIndex={i} />)
+      const entering = [...container.querySelectorAll('[data-presentation-appear] [data-presentation-entity]')]
+        .map((el) => el.getAttribute('data-presentation-entity')!)
+      const previous = i === 0 ? [] : idsAt(i - 1)
+      const nested = (id: string) => /^(card-\d)-(title|caption|visual)$/.test(id)
+      expect(entering.filter((id) => !nested(id)).sort(), `step ${i + 1}`).toEqual(idsAt(i).filter((id) => !previous.includes(id) && !nested(id)).sort())
+      unmount()
+    }
   })
 })

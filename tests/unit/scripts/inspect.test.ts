@@ -210,4 +210,17 @@ describe('inspect command', () => {
     expect(close).toHaveBeenCalledOnce()
     expect(renderFail.stop).toHaveBeenCalledOnce()
   })
+
+  it('still stops the preview when closing the browser fails', async () => {
+    const close = vi.fn(async () => { throw new Error('close failed') })
+    const failing = deps({
+      launchBrowser: vi.fn(async () => ({
+        close,
+        newPage: async () => ({ goto: async () => undefined, waitForSelector: async () => { throw new Error('timeout') } }),
+      })),
+    })
+    await expect(inspect(['demo'], { root: project(), deps: failing.deps as never })).rejects.toThrow()
+    expect(close).toHaveBeenCalledOnce()
+    expect(failing.stop).toHaveBeenCalledOnce()
+  })
 })

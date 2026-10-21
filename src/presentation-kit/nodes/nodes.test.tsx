@@ -86,6 +86,28 @@ describe('Arrow', () => {
   })
 })
 
+describe('author hooks on Arrow and Appear', () => {
+  it('passes class, style and data attributes through Arrow while keeping its geometry', () => {
+    const { container } = render(<Arrow id="a" from={{ x: 0, y: 0 }} to={{ x: 5, y: 5 }} className="mine" style={{ opacity: 0.5, left: 99 }} data-extra="x" />)
+    const svg = container.querySelector('svg') as SVGElement & { style: CSSStyleDeclaration }
+    expect(svg.getAttribute('class')).toBe('mine')
+    expect(svg.getAttribute('data-extra')).toBe('x')
+    expect(svg.style.opacity).toBe('0.5')
+    expect(svg.style.position).toBe('absolute')
+    expect(svg.style.left).toBe('0px')
+  })
+
+  it('passes class, style and data attributes through Appear while keeping its entrance', () => {
+    const { container } = render(<Appear className="mine" style={{ zIndex: 3 }} data-extra="x"><span /></Appear>)
+    const el = first(container)
+    expect(el.className).toBe('mine')
+    expect(el.getAttribute('data-extra')).toBe('x')
+    expect(el.style.zIndex).toBe('3')
+    expect(el.style.opacity).toBe('0')
+    expect(el.hasAttribute('data-presentation-appear')).toBe(true)
+  })
+})
+
 describe('SceneLayer', () => {
   it('is absolutely positioned and leaves child coordinates, including overlaps, untouched', () => {
     const { container } = render(

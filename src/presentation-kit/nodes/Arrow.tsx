@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, type SVGProps } from 'react'
 import { motion } from 'motion/react'
 import { DESIGN_H, DESIGN_W, LAYOUT_T } from '../constants.ts'
 
@@ -7,28 +7,27 @@ interface Point {
   y: number
 }
 
-interface ArrowProps {
+type ArrowProps = Omit<SVGProps<SVGSVGElement>, 'id' | 'from' | 'to' | 'ref'> & {
   id: string
   from: Point
   to: Point
   /** Draw a head at both ends. */
   twoWay?: boolean
-  className?: string
 }
 
 /** A line in canvas coordinates; its endpoints animate in place. Inherits `currentColor`. */
-export function Arrow({ id, from, to, twoWay = false, className }: ArrowProps) {
+export function Arrow({ id, from, to, twoWay = false, style, ...rest }: ArrowProps) {
   const head = `arrowhead-${useId()}`
   return (
     <svg
       data-presentation-entity={id}
       data-presentation-node="arrow"
-      className={className}
+      {...rest}
       width={DESIGN_W}
       height={DESIGN_H}
       viewBox={`0 0 ${DESIGN_W} ${DESIGN_H}`}
       aria-hidden="true"
-      style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }}
+      style={{ ...style, position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }}
     >
       <defs>
         <marker id={head} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">

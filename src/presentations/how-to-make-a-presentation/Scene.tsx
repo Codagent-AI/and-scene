@@ -1,14 +1,14 @@
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  Appear, Arrow, Box, Emphasis, Frame, Label, LAYOUT_T, SceneLayer, SymbolChip,
+  Appear, Arrow, Box, Frame, Label, LAYOUT_T, SceneLayer, SymbolChip,
   type SceneProps,
 } from '../../presentation-kit/index.ts'
 import {
-  CARD_IDS, CHAT_ARROW, FOCUS_PAD, LINKS, MODIFY_ARC, RECTS, type EntityId,
+  CARD_IDS, CHAT_ARROW, LINKS, MODIFY_ARC, RECTS, type EntityId,
 } from './entities.ts'
-import type { SceneState } from './state.ts'
+import type { Beat, SceneState } from './state.ts'
 
 const at = (id: EntityId) => ({
   position: 'absolute' as const,
@@ -17,17 +17,6 @@ const at = (id: EntityId) => ({
   width: RECTS[id].w,
   height: RECTS[id].h,
 })
-
-function focusStyle(id: EntityId) {
-  const r = RECTS[id]
-  return {
-    position: 'absolute' as const,
-    left: r.x - FOCUS_PAD,
-    top: r.y - FOCUS_PAD,
-    width: r.w + FOCUS_PAD * 2,
-    height: r.h + FOCUS_PAD * 2,
-  }
-}
 
 /** The entities visible in a state, in paint order, each with the key that keeps it stable. */
 function entities(state: SceneState): [string, ReactNode][] {
@@ -42,6 +31,7 @@ function entities(state: SceneState): [string, ReactNode][] {
     add('question', <SymbolChip id="question" style={at('question')}>question</SymbolChip>)
   }
   if (state.control) add('control', <Box id="control" style={at('control')}>partial ↔ full</Box>)
+  if (state.cards > 0) add('tray', <Box id="tray" style={at('tray')} />)
   CARD_IDS.slice(0, state.cards).forEach((id) =>
     add(id, (
       <Box id={id} style={at(id)}>
@@ -88,18 +78,26 @@ function entities(state: SceneState): [string, ReactNode][] {
     add('frame', <Frame id="frame" style={at('frame')} />)
     add('frame-label', <Label id="frame-label" style={at('frame-label')}>you are looking at one</Label>)
   }
-  if (state.focus) add('focus', <Emphasis id="focus" style={focusStyle(state.focus)} />)
   return out
 }
 
-/** One persistent scene: entities keep their ids across steps, so they morph in place. */
-export function SampleScene({ payload }: SceneProps<SceneState>) {
+/** Entity keys visible in a state; the scene uses them to tell newcomers from continuing entities. */
+function entityKeys(state: SceneState): string[] {
+  return entities(state).map(([key]) => key)
+}
+
+/**
+ * One persistent scene. Only entities that are new in this step are wrapped in Appear (they enter
+ * once the morphs settle); continuing entities render bare, so they are never faded in again.
+ */
+export function SampleScene({ payload }: SceneProps<Beat>) {
+  const before = new Set(payload.previous ? entityKeys(payload.previous) : [])
   return (
     <SceneLayer>
       <AnimatePresence>
-        {entities(payload).map(([key, node]) => (
-          <Appear key={key}>{node}</Appear>
-        ))}
+        {entities(payload.state).map(([key, node]) =>
+          before.has(key) ? <Fragment key={key}>{node}</Fragment> : <Appear key={key}>{node}</Appear>,
+        )}
       </AnimatePresence>
     </SceneLayer>
   )

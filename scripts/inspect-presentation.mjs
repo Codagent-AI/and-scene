@@ -155,8 +155,10 @@ export function collectPage() {
     const s = getComputedStyle(el)
     return {
       color: s.color, backgroundColor: s.backgroundColor, borderColor: s.borderTopColor, borderWidth: s.borderTopWidth,
-      opacity: s.opacity, fontWeight: s.fontWeight, width: s.width, height: s.height, boxShadow: s.boxShadow,
+      opacity: s.opacity, fontWeight: s.fontWeight, boxShadow: s.boxShadow,
       textDecorationLine: s.textDecorationLine, outlineStyle: s.outlineStyle, transform: s.transform,
+      // A text label's size follows its content, so only empty controls (dots) can differ by size.
+      ...(el.textContent.trim() ? {} : { width: s.width, height: s.height }),
     }
   }
   const chrome = (selector) => {
@@ -227,8 +229,12 @@ export async function inspect(argv, { root = ROOT, env = process.env, log = cons
     })
     log(`inspect: wrote ${count} screenshots to ${dir}; ${warnings} advisory warning(s)`)
   } finally {
-    await browser?.close()
-    await preview.stop()
+    // The preview must stop even when closing the browser fails.
+    try {
+      await browser?.close()
+    } finally {
+      await preview.stop()
+    }
   }
 }
 

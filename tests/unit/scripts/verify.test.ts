@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  checkRegistry, checkTransition, createErrorCollector, loadOutline, renderSteps, validateOutline, verify,
+  checkRegistry, checkTransition, createErrorCollector, loadOutline, loadOutlines, renderSteps, validateOutline, verify,
   type FakePage, type VerifyDeps,
 } from '../../../scripts/verify.mjs'
 import { SPEC_SLUG, SPEC_STEPS, SPEC_TITLE } from '../../helpers/spec-outline.ts'
@@ -60,6 +60,16 @@ describe('outline data', () => {
     expect(loadOutline(root).slug).toBe('demo')
   })
 
+  it('accepts several presentations in one data file, validating each', async () => {
+    const other = { ...outline, slug: 'other' }
+    const root = tmpProject({ 'scripts/verify.config.json': JSON.stringify({ presentations: [outline, other] }) })
+    expect(loadOutlines(root).map((o) => o.slug)).toEqual(['demo', 'other'])
+    const bad = tmpProject({ 'scripts/verify.config.json': JSON.stringify({ presentations: [outline, { ...other, steps: [] }] }) })
+    expect((await phaseOf(() => loadOutlines(bad))).phase).toBe('outline')
+    const empty = tmpProject({ 'scripts/verify.config.json': JSON.stringify({ presentations: [] }) })
+    expect((await phaseOf(() => loadOutlines(empty))).phase).toBe('outline')
+  })
+
   it('fails the outline phase when the file is missing or not JSON', async () => {
     const missing = await phaseOf(() => loadOutline(tmpProject({})))
     expect([missing.phase, missing.message]).toEqual(['outline', expect.stringContaining('missing')])
@@ -109,12 +119,12 @@ describe('transition check', () => {
 })
 
 type Handler = (arg: never) => void
-function fakePage(script: { indexes?: number[]; title?: (i: number) => string; caption?: (i: number) => string; count?: number; mode?: string; onPress?: (i: number) => void; stall?: number } = {}) {
+function fakePage(script: { indexes?: number[]; era?: (i: number) => string; title?: (i: number) => string; caption?: (i: number) => string; count?: number; mode?: string; onPress?: (i: number) => void; stall?: number } = {}) {
   const handlers: Record<string, Handler> = {}
   let index = 0
   const page = {
     on: (event: string, handler: Handler) => (handlers[event] = handler),
-    goto: vi.fn(async () => undefined),
+    goto: vi.fn<(url: string, options?: unknown) => Promise<undefined>>(async () => undefined),
     waitForSelector: vi.fn(async () => undefined),
     waitForTimeout: vi.fn<(ms: number) => Promise<void>>(async () => undefined),
     getAttribute: vi.fn(async (_selector: string, name: string) =>
@@ -122,7 +132,8 @@ function fakePage(script: { indexes?: number[]; title?: (i: number) => string; c
         : name === 'data-presentation-mode' ? (script.mode ?? 'browse')
           : String(index)),
     textContent: vi.fn(async (selector: string) =>
-      selector.includes('title') ? (script.title?.(index) ?? outline.steps[index].title) : (script.caption?.(index) ?? outline.steps[index].caption)),
+      selector.includes('era') ? (script.era?.(index) ?? outline.steps[index].era)
+        : selector.includes('title') ? (script.title?.(index) ?? outline.steps[index].title) : (script.caption?.(index) ?? outline.steps[index].caption)),
     keyboard: { press: vi.fn(async () => { script.onPress?.(index) }) },
     waitForFunction: vi.fn(async (_fn: unknown, expected: number) => {
       if (script.stall === index) throw new Error('timeout')
@@ -210,6 +221,7 @@ describe('renderSteps', () => {
   })
 
   it.each([
+    ['era', { era: () => 'wrong era' }, 'step 1: era "wrong era" does not match "a"'],
     ['title', { title: () => 'Wrong' }, 'step 1: title "Wrong"'],
     ['caption', { caption: () => 'Wrong' }, 'step 1: caption does not match'],
     ['step count', { count: 5 }, 'expected 3 steps'],
@@ -272,11 +284,37 @@ describe('verify orchestration', () => {
   })
 
   it('closes the browser and stops the preview when rendering fails', async () => {
-    const { deps: d, stop, close } = deps({
-      launchBrowser: vi.fn(async () => ({ close: vi.fn(async () => undefined), newPage: async () => fakePage({ count: 9 }).page })),
+    const close = vi.fn(async () => undefined)
+    const { deps: d, stop } = deps({
+      launchBrowser: vi.fn(async () => ({ close, newPage: async () => fakePage({ count: 9 }).page })),
     })
     await expect(call(root(), d)).rejects.toThrow('expected 3 steps')
+    expect(close).toHaveBeenCalledOnce()
     expect(stop).toHaveBeenCalledOnce()
-    expect(close).not.toHaveBeenCalled()
+  })
+
+  it('still stops the preview when closing the browser fails', async () => {
+    const close = vi.fn(async () => { throw new Error('close failed') })
+    const { deps: d, stop } = deps({
+      launchBrowser: vi.fn(async () => ({ close, newPage: async () => fakePage({ count: 3 }).page })),
+    })
+    await expect(call(root(), d)).rejects.toThrow('close failed')
+    expect(close).toHaveBeenCalledOnce()
+    expect(stop).toHaveBeenCalledOnce()
+  })
+
+  it('verifies every presentation in the data file, each on its own page', async () => {
+    const dir = tmpProject({
+      'scripts/verify.config.json': JSON.stringify({ presentations: [outline, { ...outline, slug: 'other' }] }),
+      'src/presentations/index.ts': "export const P = [{ slug: 'demo', load: () => import('./demo/Talk.tsx') }, { slug: 'other', load: () => import('./other/Talk.tsx') }]",
+      'src/presentations/demo/Talk.tsx': 'x',
+      'src/presentations/other/Talk.tsx': 'x',
+    })
+    const pages: ReturnType<typeof fakePage>[] = []
+    const { deps: d } = deps({
+      launchBrowser: vi.fn(async () => ({ close: async () => undefined, newPage: async () => { const f = fakePage({ count: 3 }); pages.push(f); return f.page } })),
+    })
+    await call(dir, d)
+    expect(pages.map((p) => p.page.goto.mock.calls[0][0])).toEqual(['http://127.0.0.1:4321/demo', 'http://127.0.0.1:4321/other'])
   })
 })

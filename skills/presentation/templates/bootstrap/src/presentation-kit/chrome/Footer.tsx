@@ -27,9 +27,8 @@ export function Footer({ mode, steps, index, onPrev, onNext, onJump }: FooterPro
         height: STAGE_LAYOUT[mode].bottom,
       }}
     >
-      <div
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: ATTRIBUTION_HEIGHT, overflow: 'auto' }}
-      >
+      {/* In normal flow, so presentation-owned footer padding insets the content. */}
+      <div style={{ height: `calc(100% - ${ATTRIBUTION_HEIGHT}px)`, overflow: 'auto' }}>
         <h2 data-presentation-title style={browse ? undefined : ONE_LINE}>
           {step.title}
         </h2>

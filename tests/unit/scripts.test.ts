@@ -2,6 +2,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { ENTER_DELAY, ENTER_T, LAYOUT_T } from '../../src/presentation-kit/constants'
 import { parseArgs, parsePositiveInt, parseViewport } from '../../scripts/lib/args.mjs'
 import { DEFAULT_SETTLE_MS, DEFAULT_VIEWPORT, CaptureError, captureSteps, stepFile } from '../../scripts/lib/capture.mjs'
 import { attributionProblems, diagnoseStep, findOverlaps, indistinctActive, rectsOverlap } from '../../scripts/lib/diagnostics.mjs'
@@ -29,6 +30,9 @@ describe('arguments', () => {
     expect(parseViewport('390x844')).toEqual({ width: 390, height: 844 })
     expect(() => parseViewport('big')).toThrow(/--viewport/)
     expect(() => parseViewport('0x10')).toThrow()
+  })
+  it('the default settle interval outlasts the kit\'s layout morph and newcomer entrance', () => {
+    expect(DEFAULT_SETTLE_MS / 1000).toBeGreaterThan(Math.max(LAYOUT_T, ENTER_DELAY + ENTER_T))
   })
   it('defaults to a 1440x900 viewport and a 1000ms settle interval', () => {
     expect(parseViewport(DEFAULT_VIEWPORT)).toEqual({ width: 1440, height: 900 })

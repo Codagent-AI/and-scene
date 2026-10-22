@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import net from 'node:net'
 import path from 'node:path'
@@ -54,10 +54,15 @@ export async function startPreview(root, { port, timeoutMs = 30000 } = {}) {
     stdio: 'ignore',
   })
   const signalGroup = (signal) => {
+    if (process.platform === 'win32') {
+      // Windows has no process groups to signal; kill the tree instead.
+      spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+      return
+    }
     try {
       process.kill(-child.pid, signal)
-    } catch {
-      // already gone
+    } catch (error) {
+      if (error.code !== 'ESRCH') throw error
     }
   }
   /** SIGTERM the preview's process group, then SIGKILL it if it has not exited shortly after. */
@@ -65,8 +70,15 @@ export async function startPreview(root, { port, timeoutMs = 30000 } = {}) {
     if (child.pid === undefined || child.exitCode !== null) return
     const exited = new Promise((resolve) => child.once('exit', resolve))
     signalGroup('SIGTERM')
-    const timer = new Promise((resolve) => setTimeout(resolve, 2000, 'timeout'))
-    if ((await Promise.race([exited, timer])) === 'timeout') signalGroup('SIGKILL')
+    let timer
+    const timeout = new Promise((resolve) => {
+      timer = setTimeout(resolve, 2000, 'timeout')
+    })
+    try {
+      if ((await Promise.race([exited, timeout])) === 'timeout') signalGroup('SIGKILL')
+    } finally {
+      clearTimeout(timer)
+    }
   }
   try {
     await waitUntilReady(chosen, child, timeoutMs)

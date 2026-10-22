@@ -283,6 +283,35 @@ describe('createPresentation', () => {
   })
 })
 
+describe('failure handling', () => {
+  it('refuses a malformed package.json before copying anything', () => {
+    write('package.json', '{ not json')
+    expect(() => scaffold(dir)).toThrow(/not valid JSON/)
+    expect(exists('src')).toBe(false)
+  })
+
+  it('rolls the folder back when registration cannot be written', () => {
+    scaffold(dir)
+    const index = read('src/presentations/index.ts')
+    fs.chmodSync(path.join(dir, 'src/presentations/index.ts'), 0o444)
+    try {
+      if (process.getuid?.() !== 0) expect(() => createPresentation(dir, { slug: 'late', title: 'Late' })).toThrow()
+    } finally {
+      fs.chmodSync(path.join(dir, 'src/presentations/index.ts'), 0o644)
+    }
+    if (process.getuid?.() !== 0) expect(exists('src/presentations/late')).toBe(false)
+    expect(read('src/presentations/index.ts')).toBe(index)
+  })
+
+  it('registers at the closing bracket of the registry even with an earlier nested array', () => {
+    scaffold(dir)
+    write('src/presentations/index.ts', "export const X = [\n  [1],\n  {\n    slug: 'a',\n    title: 'A',\n    load: () => import('./a/Talk.tsx'),\n  },\n]\n")
+    createPresentation(dir, { slug: 'b', title: 'B' })
+    expect(read('src/presentations/index.ts').trimEnd().endsWith('  },\n]')).toBe(true)
+    expect(read('src/presentations/index.ts')).toMatch(/slug: 'b'/)
+  })
+})
+
 describe('slugify', () => {
   it('makes URL-safe slugs', () => {
     expect(slugify("How to Use This Skill!  (v2)")).toBe('how-to-use-this-skill-v2')

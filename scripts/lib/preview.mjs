@@ -39,7 +39,7 @@ export async function teardown({ browser, preview }) {
   try {
     await browser?.close()
   } finally {
-    preview?.stop()
+    await preview?.stop()
   }
 }
 
@@ -53,18 +53,25 @@ export async function startPreview(root, { port, timeoutMs = 30000 } = {}) {
     detached: true,
     stdio: 'ignore',
   })
-  const stop = () => {
-    if (child.pid === undefined || child.exitCode !== null) return
+  const signalGroup = (signal) => {
     try {
-      process.kill(-child.pid, 'SIGTERM')
+      process.kill(-child.pid, signal)
     } catch {
       // already gone
     }
   }
+  /** SIGTERM the preview's process group, then SIGKILL it if it has not exited shortly after. */
+  const stop = async () => {
+    if (child.pid === undefined || child.exitCode !== null) return
+    const exited = new Promise((resolve) => child.once('exit', resolve))
+    signalGroup('SIGTERM')
+    const timer = new Promise((resolve) => setTimeout(resolve, 2000, 'timeout'))
+    if ((await Promise.race([exited, timer])) === 'timeout') signalGroup('SIGKILL')
+  }
   try {
     await waitUntilReady(chosen, child, timeoutMs)
   } catch (error) {
-    stop()
+    await stop()
     throw error
   }
   return { port: chosen, url: (pathname) => urlFor(chosen, pathname), stop }

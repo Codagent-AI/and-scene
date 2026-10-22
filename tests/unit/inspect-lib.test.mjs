@@ -149,3 +149,12 @@ describe('teardown', () => {
     await teardown({})
   })
 })
+
+describe('buildApp', () => {
+  it('reports why npm could not run when there is no output', async () => {
+    const { buildApp } = await import('../../scripts/lib/build.mjs')
+    const result = buildApp('/nonexistent-directory-for-build-test')
+    expect(result.status).not.toBe(0)
+    expect(result.output).not.toBe('')
+  })
+})

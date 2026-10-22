@@ -208,6 +208,9 @@ export function scaffold(targetDir, anchors = missingAnchors(detectAnchors(targe
   const written = []
   const skipped = []
   const addedDependencies = []
+  const existingPackage = path.join(targetDir, 'package.json')
+  // Fail before copying anything if an existing manifest cannot be merged.
+  if (fs.existsSync(existingPackage) && !readJson(existingPackage)) throw new Error(`${existingPackage} is not valid JSON; fix it before scaffolding`)
   fs.mkdirSync(targetDir, { recursive: true })
   const hadPackage = fs.existsSync(path.join(targetDir, 'package.json'))
   for (const anchor of [...anchors, 'tooling']) {
@@ -262,18 +265,28 @@ export function createPresentation(appDir, { slug, title }, templateDir = PRESEN
   if (new RegExp(`slug:\\s*['"\`]${slug}['"\`]`).test(index)) throw new Error(`slug "${slug}" is already registered; choose another`)
   if (!REGISTRY_END.test(index)) throw new Error(`cannot find the end of the registry array in ${indexFile}`)
 
-  const written = []
-  for (const rel of listFiles(templateDir, '')) {
-    const dest = path.join(folder, rel.replaceAll('__SLUG__', slug))
-    fs.mkdirSync(path.dirname(dest), { recursive: true })
-    const text = fs
-      .readFileSync(path.join(templateDir, rel), 'utf8')
-      .replaceAll('__SLUG__', slug)
-      .replaceAll('__TITLE_LITERAL__', JSON.stringify(title))
-    fs.writeFileSync(dest, text)
-    written.push(path.relative(appDir, dest))
-  }
   const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk.tsx'),\n  },`
-  fs.writeFileSync(indexFile, index.replace(REGISTRY_END, `\n${entry}\n$1]$2`))
+  // The registry array closes at the last `]` on its own line, so nested arrays earlier in the file are safe.
+  const close = [...index.matchAll(new RegExp(REGISTRY_END, 'g'))].at(-1)
+  const updatedIndex = `${index.slice(0, close.index)}\n${entry}\n${close[1]}]${close[2]}${index.slice(close.index + close[0].length)}`
+  const written = []
+  try {
+    for (const rel of listFiles(templateDir, '')) {
+      const dest = path.join(folder, rel.replaceAll('__SLUG__', slug))
+      fs.mkdirSync(path.dirname(dest), { recursive: true })
+      const text = fs
+        .readFileSync(path.join(templateDir, rel), 'utf8')
+        .replaceAll('__SLUG__', slug)
+        .replaceAll('__TITLE_LITERAL__', JSON.stringify(title))
+      fs.writeFileSync(dest, text)
+      written.push(path.relative(appDir, dest))
+    }
+    fs.writeFileSync(indexFile, updatedIndex)
+  } catch (error) {
+    // Leave no orphan folder behind if any write fails.
+    fs.rmSync(folder, { recursive: true, force: true })
+    fs.writeFileSync(indexFile, index)
+    throw error
+  }
   return { slug, folder, written, route: `/${slug}` }
 }

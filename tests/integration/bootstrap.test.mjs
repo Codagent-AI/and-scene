@@ -111,7 +111,7 @@ describe('INT-001 materialized bootstrap', () => {
     const own = fs.readFileSync(path.join(app, 'src/presentations/smoke/smoke.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
     expect(own.trim()).toBe('')
     // The host stylesheet is a reset: no colours, fonts, spacing scale, borders or shadows.
-    const host = fs.readFileSync(path.join(app, 'src/index.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+    const host = fs.readFileSync(path.join(app, 'src/index.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace('box-sizing: border-box', '')
     expect(host).not.toMatch(/color|background|font|padding|gap|border|shadow|radius|--[a-z]/i)
   })
 })

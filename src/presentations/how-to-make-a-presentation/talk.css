@@ -1,0 +1,383 @@
+/* Look and feel of "How to Use This Skill to Make a Presentation".
+   The scene kit supplies hooks only; every visual choice lives here. */
+
+[data-presentation-root] {
+  --ink: #f8f3e6;
+  --muted: #9a9384;
+  --line: #3a362f;
+  --panel: #1b1916;
+  --amber: #f2b84b;
+  --teal: #5fd0c5;
+  --green: #62d27a;
+  background: #0d0c0b;
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+}
+
+/* ---- chrome ---- */
+
+[data-presentation-header] {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 24px;
+}
+
+[data-presentation-marker] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+[data-presentation-number] {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: #0d0c0b;
+  font-weight: 700;
+}
+
+[data-presentation-era] {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-presentation-header] [data-presentation-title] {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+[data-presentation-footer] {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: center;
+  gap: 12px 24px;
+  padding: 8px 32px;
+}
+
+[data-presentation-footer] [data-presentation-title] {
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  font-size: 30px;
+  line-height: 1.3;
+}
+
+[data-presentation-caption] {
+  flex-basis: 100%;
+  max-width: 72ch;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+[data-presentation-progress] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-presentation-progress-dot] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+[data-presentation-progress-dot][data-presentation-active="true"] {
+  border-color: var(--amber);
+  background: var(--amber);
+  transform: scale(1.5);
+}
+
+[data-presentation-controls] {
+  display: flex;
+  gap: 8px;
+}
+
+[data-presentation-controls] button {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+[data-presentation-controls] button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+[data-presentation-toc] ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-presentation-toc-entry] {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+[data-presentation-toc-entry][data-presentation-active="true"] {
+  border-left-color: var(--amber);
+  background: rgba(242, 184, 75, 0.12);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+[data-presentation-attribution] {
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--muted);
+  color: #c9c2b0;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+[data-presentation-attribution]:hover {
+  border-bottom-color: var(--amber);
+  color: var(--amber);
+}
+
+/* ---- scene entities ---- */
+
+[data-presentation-box] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 13px;
+  text-align: center;
+}
+
+[data-sample="actor"] {
+  border-color: var(--amber);
+}
+
+[data-sample="actor"] [data-presentation-box-label] {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+[data-sample="actor"] svg {
+  width: 28px;
+  height: 28px;
+  stroke: var(--amber);
+  fill: none;
+  stroke-width: 1.8;
+}
+
+[data-sample="bubble"] {
+  border-color: var(--amber);
+  border-radius: 18px 18px 18px 4px;
+  font-style: italic;
+}
+
+[data-sample="tray"] {
+  background: #14120f;
+  border-color: #2c2923;
+}
+
+[data-sample="tray"] [data-presentation-box-label] {
+  position: absolute;
+  top: 6px;
+  left: 12px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-sample="card"] {
+  justify-content: flex-start;
+  gap: 3px;
+  border-color: var(--teal);
+  background: #1f2423;
+  font-size: 11px;
+}
+
+[data-sample="card"] [data-presentation-box-label] {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+[data-sample-part] {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+[data-sample-part="title"] {
+  font-weight: 700;
+}
+
+[data-sample-part="caption"] {
+  color: var(--muted);
+}
+
+[data-sample-part="visual"] {
+  padding: 1px 4px;
+  border: 1px dashed var(--teal);
+  border-radius: 4px;
+  color: var(--teal);
+  text-align: center;
+}
+
+[data-sample="ghost"] {
+  border-style: dashed;
+  border-color: var(--muted);
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+[data-sample="socket"] {
+  border-color: var(--amber);
+  border-radius: 4px 4px 12px 12px;
+  background: #2b2418;
+  color: var(--amber);
+  font-weight: 700;
+}
+
+[data-sample="verify"] {
+  justify-content: flex-start;
+  border-color: var(--green);
+}
+
+[data-sample="verify"] [data-presentation-box-label] {
+  color: var(--green);
+  font-weight: 700;
+}
+
+[data-presentation-symbol-chip] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+[data-presentation-symbol]:empty {
+  display: none;
+}
+
+[data-sample="question"] {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+[data-sample="depth"] {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+[data-sample="check"] {
+  font-size: 11px;
+}
+
+[data-sample="pass"] {
+  border-color: var(--green);
+  background: var(--green);
+  color: #0d0c0b;
+  font-weight: 700;
+}
+
+[data-sample="link-label"] {
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+[data-presentation-arrow-line] {
+  fill: none;
+  stroke: #c9c2b0;
+  stroke-width: 2;
+}
+
+[data-presentation-arrow-head] {
+  fill: #c9c2b0;
+}
+
+[data-sample="conversation"] [data-presentation-arrow-line] {
+  stroke: var(--amber);
+}
+
+[data-sample="conversation"] [data-presentation-arrow-head] {
+  fill: var(--amber);
+}
+
+[data-sample="modify"] [data-presentation-arrow-line] {
+  stroke: var(--teal);
+  stroke-dasharray: 6 4;
+}
+
+[data-sample="modify"] [data-presentation-arrow-head] {
+  fill: var(--teal);
+}
+
+[data-sample="flag"] {
+  border: 2px solid var(--amber);
+  border-radius: 12px;
+}
+
+[data-sample="flag"] [data-sample-text] {
+  position: absolute;
+  top: -19px;
+  right: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--amber);
+  color: #0d0c0b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+[data-sample="reveal"] {
+  border: 2px solid var(--amber);
+  border-radius: 18px;
+}
+
+[data-sample="reveal"] [data-presentation-frame-label] {
+  position: absolute;
+  right: 0;
+  bottom: 6px;
+  left: 0;
+  color: var(--amber);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-align: center;
+}

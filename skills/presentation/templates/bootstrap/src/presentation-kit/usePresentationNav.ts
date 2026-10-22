@@ -65,8 +65,8 @@ export function usePresentationNav(options: { count: number; initialMode?: Mode 
     (target: number) => setIndex(clampIndex(target, count)),
     [count],
   )
-  const next = useCallback(() => setIndex((i) => clampIndex(i + 1, count)), [count])
-  const prev = useCallback(() => setIndex((i) => clampIndex(i - 1, count)), [count])
+  const next = useCallback(() => setIndex((i) => clampIndex(clampIndex(i, count) + 1, count)), [count])
+  const prev = useCallback(() => setIndex((i) => clampIndex(clampIndex(i, count) - 1, count)), [count])
   const toggleMode = useCallback(
     () => setMode((m) => (m === 'present' ? 'browse' : 'present')),
     [],

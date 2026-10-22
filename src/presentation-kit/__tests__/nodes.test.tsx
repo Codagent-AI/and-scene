@@ -1,4 +1,4 @@
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, render, waitFor } from '@testing-library/react'
 import { Anchor } from 'lucide-react'
 import { motion } from 'motion/react'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -162,5 +162,54 @@ describe('persisting entity (L-4)', () => {
     )
     expect(container.querySelector('[data-raw]')).not.toBeNull()
     expect(container.querySelector('[data-presentation-box]')).not.toBeNull()
+  })
+})
+
+describe('style forwarding on Appear, SceneLayer and Arrow', () => {
+  it.each([
+    ['Appear', 'data-presentation-appear', <Appear className="mine" data-extra="1" style={{ zIndex: 3 }} />],
+    ['SceneLayer', 'data-presentation-scene-layer', <SceneLayer className="mine" data-extra="1" style={{ zIndex: 3 }} />],
+    ['Arrow', 'data-presentation-arrow', <Arrow id="a" from={[0, 0]} to={[9, 9]} className="mine" data-extra="1" style={{ zIndex: 3 }} />],
+  ])('%s forwards class, data and style props', (_name, hook, element) => {
+    const { container } = render(element)
+    const el = container.querySelector(`[${hook}]`) as HTMLElement
+    expect(el.classList.contains('mine')).toBe(true)
+    expect(el.getAttribute('data-extra')).toBe('1')
+    expect(el.style.zIndex).toBe('3')
+  })
+})
+
+describe('Arrow morph', () => {
+  it('keeps one node and animates its path geometry to the new endpoints', async () => {
+    const { container, rerender } = render(<Arrow id="m" from={[0, 0]} to={[100, 0]} />)
+    const node = container.querySelector('[data-presentation-arrow]')
+    const line = container.querySelector('[data-presentation-arrow-line]') as SVGPathElement
+    expect(line.getAttribute('d')).toBe(arrowShaftPath([0, 0], [100, 0], 0))
+    rerender(<Arrow id="m" from={[0, 0]} to={[100, 80]} />)
+    expect(container.querySelector('[data-presentation-arrow]')).toBe(node)
+    await waitFor(() => expect(line.getAttribute('d')).toBe(arrowShaftPath([0, 0], [100, 80], 0)), { timeout: 3000 })
+  })
+})
+
+describe('Appear lifecycle', () => {
+  it('fades a newcomer in once and never resets it when the entity keeps rendering', async () => {
+    const view = render(
+      <Appear delay={0}>
+        <i>a</i>
+      </Appear>,
+    )
+    const node = view.container.querySelector('[data-presentation-appear]') as HTMLElement
+    expect(node.style.opacity).toBe('0')
+    await waitFor(() => expect(node.style.opacity).toBe('1'), { timeout: 3000 })
+    for (const text of ['b', 'c']) {
+      view.rerender(
+        <Appear delay={0}>
+          <i>{text}</i>
+        </Appear>,
+      )
+      expect(node.style.opacity).toBe('1')
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150))
+    expect(node.style.opacity).toBe('1')
   })
 })

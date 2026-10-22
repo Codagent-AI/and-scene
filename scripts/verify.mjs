@@ -7,7 +7,7 @@ import { parseArgs } from 'node:util'
 import { buildApp } from './lib/build.mjs'
 import { loadPlaywright, readNarration, readStepCount, readStepIndex, waitForStepIndex } from './lib/browse.mjs'
 import { SAMPLE_OUTLINE, SAMPLE_SLUG, checkSampleRegistration, compareOutline, registeredSlugs } from './lib/outline.mjs'
-import { startPreview } from './lib/preview.mjs'
+import { startPreview, teardown } from './lib/preview.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
 const { values: options } = parseArgs({
@@ -123,8 +123,7 @@ async function main() {
       }
     }
   } finally {
-    await browser?.close()
-    preview?.stop()
+    await teardown({ browser, preview })
   }
   console.log(`PASS verify: build, ${requireSample ? 'sample outline, ' : ''}render of ${slugs.length} presentation(s)`)
 }

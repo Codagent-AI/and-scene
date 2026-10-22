@@ -178,6 +178,40 @@ describe('scaffold', () => {
   })
 })
 
+describe('partial scaffold keeps package scripts and files consistent', () => {
+  it('copies the verify and inspect scripts that the added package scripts call', () => {
+    write('package.json', JSON.stringify(viteApp))
+    write('src/main.tsx', 'SENTINEL-main')
+    const result = scaffold(dir, ['kit', 'index'])
+    const pkg = JSON.parse(read('package.json'))
+    expect(pkg.scripts.verify).toMatch(/scripts\/verify\.mjs/)
+    for (const rel of ['scripts/verify.mjs', 'scripts/inspect-presentation.mjs', 'scripts/lib/preview.mjs']) expect(exists(rel), rel).toBe(true)
+    expect(pkg.type).toBeUndefined()
+    expect(read('src/main.tsx')).toBe('SENTINEL-main')
+    expect(result.integration).toEqual(['src/main.tsx'])
+  })
+
+  it('also adds missing tooling to an app whose anchors are all present', () => {
+    scaffold(dir)
+    fs.rmSync(path.join(dir, 'scripts'), { recursive: true })
+    expect(scaffold(dir).written).toContain('scripts/verify.mjs')
+  })
+})
+
+describe('index detection by contract', () => {
+  it('accepts a renamed registry with different spacing and a differently named type', () => {
+    scaffold(dir)
+    fs.renameSync(path.join(dir, 'src/presentations/index.ts'), path.join(dir, 'src/presentations/talks.ts'))
+    write('src/presentations/talks.ts', "export const talks = [\n  { slug: 'a', title: 'A', load: () => import ('./a/Talk.tsx') },\n]\n")
+    expect(detectAnchors(dir).index).toBe(true)
+  })
+
+  it('does not mistake the registry helper types alone for a registry', () => {
+    write('src/presentations/registry.ts', 'export interface PresentationEntry { slug: string }\n')
+    expect(detectAnchors(dir).index).toBe(false)
+  })
+})
+
 describe('mergePackageJson', () => {
   it('keeps declared versions and scripts and adds the rest', () => {
     const { merged, added } = mergePackageJson(
@@ -187,7 +221,7 @@ describe('mergePackageJson', () => {
     expect(merged.scripts).toEqual({ build: 'mine', verify: 'v' })
     expect(merged.dependencies).toEqual({ motion: '^1.0.0', react: '^19' })
     expect(added).toEqual(['dependencies.react', 'scripts.verify'])
-    expect(merged.type).toBe('module')
+    expect(merged.type).toBeUndefined()
   })
 })
 
@@ -204,7 +238,7 @@ describe('createPresentation', () => {
     expect(read('src/presentations/my-talk/entities.ts')).toContain("my-talk:topic")
     const index = read('src/presentations/index.ts')
     expect(index).toMatch(/slug: 'my-talk'/)
-    expect(index).toContain("title: 'It\\'s a Talk'")
+    expect(index).toContain('title: "It\'s a Talk"')
     expect(index).toContain("import('./my-talk/Talk.tsx')")
   })
 
@@ -229,6 +263,16 @@ describe('createPresentation', () => {
     write('src/presentations/index.ts', index.replace("slug: 'first'", "slug: 'taken'"))
     expect(() => createPresentation(dir, { slug: 'taken', title: 'T' })).toThrow(/already registered/)
     expect(read('src/presentations/first/Talk.tsx')).toBe(talk)
+  })
+
+  it('writes titles with quotes, backslashes and apostrophes as valid string literals', () => {
+    const title = 'A "quoted" \\ topic, it\'s fine'
+    createPresentation(dir, { slug: 'quoted', title })
+    const talk = read('src/presentations/quoted/Talk.tsx')
+    expect(talk).toContain(`title={${JSON.stringify(title)}}`)
+    expect(read('src/presentations/quoted/steps/01-opening.ts')).toContain(`title: ${JSON.stringify(title)}`)
+    expect(read('src/presentations/index.ts')).toContain(`title: ${JSON.stringify(title)}`)
+    expect(talk).not.toContain('__TITLE')
   })
 
   it('rejects invalid input and a missing index', () => {

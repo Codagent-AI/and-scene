@@ -34,6 +34,15 @@ async function waitUntilReady(port, child, timeoutMs) {
   throw new Error(`preview did not become ready on ${urlFor(port)} within ${timeoutMs}ms`)
 }
 
+/** Closes the browser, then always stops the preview, even when closing the browser rejects. */
+export async function teardown({ browser, preview }) {
+  try {
+    await browser?.close()
+  } finally {
+    preview?.stop()
+  }
+}
+
 /** Starts `vite preview` for the built app in `root`; `stop()` kills its whole process group. */
 export async function startPreview(root, { port, timeoutMs = 30000 } = {}) {
   const chosen = port ?? (await freePort())

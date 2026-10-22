@@ -30,6 +30,9 @@ beforeAll(() => {
   scaffoldOut = run('node', [cli, 'scaffold', '--project', app], { cwd: elsewhere })
   const created = run('node', [cli, 'create', '--project', app, '--slug', 'smoke', '--title', 'Smoke Test'], { cwd: elsewhere })
   expect(created.status, created.out).toBe(0)
+  // A title full of quote characters must still produce a presentation that builds.
+  const quoted = run('node', [cli, 'create', '--project', app, '--slug', 'quoted', '--title', 'A "quoted" \\ topic, it\'s fine'], { cwd: elsewhere })
+  expect(quoted.status, quoted.out).toBe(0)
   const install = run('npm', ['ci'], { cwd: app })
   expect(install.status, install.out).toBe(0)
   verifyOut = run('npm', ['run', 'verify'], { cwd: app })
@@ -76,6 +79,7 @@ describe('INT-001 materialized bootstrap', () => {
     expect(verifyOut.status, verifyOut.out).toBe(0)
     expect(verifyOut.out).toMatch(/PASS verify/)
     expect(verifyOut.out).toMatch(/render: http:\/\/127\.0\.0\.1:\d+\/smoke/)
+    expect(verifyOut.out).toMatch(/render: http:\/\/127\.0\.0\.1:\d+\/quoted/)
     expect(fs.existsSync(path.join(app, 'dist', 'index.html'))).toBe(true)
   })
 
@@ -107,7 +111,7 @@ describe('INT-001 materialized bootstrap', () => {
     expect(files(path.join(app, 'src/presentation-kit')).filter((f) => f.endsWith('.css'))).toEqual([])
     // Only the host shell and the presentation's own stylesheet exist; the latter has no declarations.
     const css = files(path.join(app, 'src')).filter((f) => f.endsWith('.css'))
-    expect(css.sort()).toEqual(['index.css', 'presentations/smoke/smoke.css'])
+    expect(css.sort()).toEqual(['index.css', 'presentations/quoted/quoted.css', 'presentations/smoke/smoke.css'])
     const own = fs.readFileSync(path.join(app, 'src/presentations/smoke/smoke.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
     expect(own.trim()).toBe('')
     // The host stylesheet is a reset: no colours, fonts, spacing scale, borders or shadows.

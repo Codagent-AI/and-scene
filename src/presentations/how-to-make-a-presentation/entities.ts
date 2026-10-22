@@ -1,6 +1,5 @@
 import { Bot, User } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { ENTER_DELAY } from '../../presentation-kit/constants.ts'
 import type { Point } from '../../presentation-kit/nodes/arrowGeometry.ts'
 
 /** This presentation's layoutId namespace: one stable id per entity on the shared canvas. */
@@ -79,7 +78,7 @@ export const ENTITIES: Record<EntityId, EntityDef> = {
   [ID.verify]: { id: ID.verify, kind: 'box', variant: 'verify', x: 720, ...CARD, label: 'verify' },
   [ID.verifyBuild]: { id: ID.verifyBuild, kind: 'chip', variant: 'check', overlap: true, x: 738, y: 208, w: 74, h: 18, symbol: '', text: 'build' },
   [ID.verifyRender]: { id: ID.verifyRender, kind: 'chip', variant: 'check', overlap: true, x: 738, y: 228, w: 74, h: 18, symbol: '', text: 'render' },
-  [ID.verifyPass]: { id: ID.verifyPass, kind: 'chip', variant: 'pass', overlap: true, delay: ENTER_DELAY + 0.5, x: 761, y: 248, w: 28, h: 18, symbol: '✓' },
+  [ID.verifyPass]: { id: ID.verifyPass, kind: 'chip', variant: 'pass', overlap: true, x: 761, y: 248, w: 28, h: 18, symbol: '✓' },
   [ID.linkGhostVerify]: { id: ID.linkGhostVerify, kind: 'link', variant: 'link', from: [660, 225], to: [720, 225] },
   [ID.modify]: { id: ID.modify, kind: 'link', variant: 'modify', from: [150, 104], to: [262, 176], bend: -30, label: 'modify', labelAt: [236, 116] },
   [ID.edited]: { id: ID.edited, kind: 'emphasis', variant: 'flag', overlap: true, x: 204, y: 174, w: 122, h: 102, text: 'edited' },

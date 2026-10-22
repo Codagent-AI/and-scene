@@ -180,6 +180,24 @@ describe('boundaries', () => {
   })
 })
 
+describe('a deck that shrinks below the stored position', () => {
+  it('moves from the clamped position on the first prev or next', () => {
+    const { result, rerender } = renderHook(({ count }) => usePresentationNav({ count }), { initialProps: { count: 5 } })
+    act(() => result.current.goTo(4))
+    rerender({ count: 2 })
+    expect(result.current.index).toBe(1)
+    key('ArrowLeft')
+    expect(result.current.index).toBe(0)
+    rerender({ count: 5 })
+    act(() => result.current.goTo(4))
+    rerender({ count: 2 })
+    swipe(-120)
+    expect(result.current.index).toBe(1)
+    act(() => result.current.prev())
+    expect(result.current.index).toBe(0)
+  })
+})
+
 describe('StrictMode mounting', () => {
   it('works inside a rendered tree under StrictMode', () => {
     function Probe() {

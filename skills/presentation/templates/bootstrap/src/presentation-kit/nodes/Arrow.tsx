@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import type { SVGMotionProps } from 'motion/react'
-import { DESIGN_H, DESIGN_W, EXIT_T } from '../constants.ts'
+import { DESIGN_H, DESIGN_W, EASE, EXIT_T, LAYOUT_T } from '../constants.ts'
 import { arcControl, arrowHeadPath, arrowShaftPath } from './arrowGeometry.ts'
 import type { Point } from './arrowGeometry.ts'
 
@@ -14,6 +14,11 @@ export interface ArrowProps extends Omit<SVGMotionProps<SVGSVGElement>, 'id' | '
   headSize?: number
   /** Bend the shaft into an arc, this many canvas units off the straight line. */
   bend?: number
+}
+
+/** Path geometry animates to its new value, so a persisting arrow morphs instead of jumping. */
+function morph(d: string) {
+  return { initial: false, animate: { d }, transition: { duration: LAYOUT_T, ease: EASE } } as const
 }
 
 /**
@@ -32,10 +37,10 @@ export function Arrow({ id, from, to, bidirectional = false, headSize = 10, bend
       exit={{ opacity: 0, transition: { duration: EXIT_T } }}
       {...rest}
     >
-      <path data-presentation-arrow-line="" d={arrowShaftPath(from, to, bend)} />
-      <path data-presentation-arrow-head="" d={arrowHeadPath(control, to, headSize)} />
+      <motion.path data-presentation-arrow-line="" {...morph(arrowShaftPath(from, to, bend))} />
+      <motion.path data-presentation-arrow-head="" {...morph(arrowHeadPath(control, to, headSize))} />
       {bidirectional ? (
-        <path data-presentation-arrow-head="" data-presentation-arrow-tail="" d={arrowHeadPath(control, from, headSize)} />
+        <motion.path data-presentation-arrow-head="" data-presentation-arrow-tail="" {...morph(arrowHeadPath(control, from, headSize))} />
       ) : null}
     </motion.svg>
   )

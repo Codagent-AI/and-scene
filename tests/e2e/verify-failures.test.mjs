@@ -143,10 +143,21 @@ describe('E2E-002 render phase', () => {
     expect(out).toMatch(/injected-step-exception/)
   })
 
+  it('fails when a component throws while rendering a later step, naming that step', async () => {
+    // Thrown in the render body itself (not an effect), which unmounts the tree and its step hooks.
+    const { out } = await verifyFails('render-exception', (app) =>
+      edit(app, scene, (s) =>
+        s.replace('export function SampleScene({ payload }: SceneProps<SamplePayload>) {', "export function SampleScene({ payload }: SceneProps<SamplePayload>) {\n  if (payload.visible.length === 15) throw new Error('injected-render-exception')"),
+      ),
+    )
+    expect(out).toMatch(/FAIL \[render\] .* at step 5 of \/how-to-make-a-presentation/)
+    expect(out).toMatch(/injected-render-exception/)
+  })
+
   it('fails when a transition does not advance the public step index', async () => {
     const { out } = await verifyFails('stuck-transition', (app) =>
       edit(app, 'src/presentation-kit/usePresentationNav.ts', (s) =>
-        s.replace('const next = useCallback(() => setIndex((i) => clampIndex(i + 1, count)), [count])', 'const next = useCallback(() => setIndex((i) => (i >= 3 ? i : clampIndex(i + 1, count))), [count])'),
+        s.replace('const next = useCallback(() => setIndex((i) => clampIndex(clampIndex(i, count) + 1, count)), [count])', 'const next = useCallback(() => setIndex((i) => (i >= 3 ? i : clampIndex(i + 1, count))), [count])'),
       ),
     )
     expect(out).toMatch(/FAIL \[render\] transition to step 4 of \/how-to-make-a-presentation failed: expected index 4, observed 3/)

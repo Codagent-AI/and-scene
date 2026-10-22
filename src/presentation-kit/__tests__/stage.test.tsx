@@ -102,6 +102,20 @@ describe('grouped scenes', () => {
   })
 })
 
+describe('continuing entities keep their entry', () => {
+  it('leaves a settled entity fully visible while a newcomer fades in', async () => {
+    mount([step('a', ['x']), step('b', ['x', 'y'])])
+    const wrapper = document.querySelector('[data-appear="x"]') as HTMLElement
+    await waitFor(() => expect(wrapper.style.opacity).toBe('1'), { timeout: 3000 })
+    key('ArrowRight')
+    const entering = document.querySelector('[data-appear="y"]') as HTMLElement
+    expect(wrapper.style.opacity).toBe('1')
+    expect(entering.style.opacity).toBe('0')
+    await waitFor(() => expect(entering.style.opacity).toBe('1'), { timeout: 3000 })
+    expect(wrapper.style.opacity).toBe('1')
+  })
+})
+
 describe('departing entities', () => {
   it('keeps a removed entity mounted while it exits, then removes it', async () => {
     mount([step('a', ['x', 'y']), step('b', ['x'])])

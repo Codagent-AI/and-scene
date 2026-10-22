@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { DEFAULTS, captureSteps, parseInspectArgs, parseViewport, screenshotPath } from '../../scripts/lib/inspect.mjs'
-import { HOST, urlFor } from '../../scripts/lib/preview.mjs'
+import { HOST, teardown, urlFor } from '../../scripts/lib/preview.mjs'
 
 const root = path.resolve(import.meta.dirname, '..', '..')
 
@@ -111,7 +111,7 @@ describe('script wiring', () => {
     expect(verify).toMatch(/compareOutline\(narration\)/)
     expect(verify).toMatch(/buildApp\(root\)/)
     expect(fs.readFileSync(path.join(root, 'scripts/lib/build.mjs'), 'utf8')).toMatch(/\['run', 'build'\]/)
-    expect(verify).toMatch(/finally \{[^}]*preview\?\.stop\(\)/s)
+    expect(verify).toMatch(/finally \{[^}]*teardown\(\{ browser, preview \}\)/s)
     expect(verify).toMatch(/process\.exit\(1\)/)
   })
 
@@ -131,5 +131,21 @@ describe('script wiring', () => {
 
   it('gitignores the screenshot directory', () => {
     expect(fs.readFileSync(path.join(root, '.gitignore'), 'utf8')).toMatch(/^inspection$/m)
+  })
+})
+
+describe('teardown', () => {
+  it('stops the preview even when closing the browser rejects', async () => {
+    let stopped = 0
+    const browser = { close: async () => Promise.reject(new Error('close failed')) }
+    await expect(teardown({ browser, preview: { stop: () => (stopped += 1) } })).rejects.toThrow('close failed')
+    expect(stopped).toBe(1)
+  })
+
+  it('stops the preview after a normal close and tolerates missing parts', async () => {
+    const order = []
+    await teardown({ browser: { close: async () => order.push('close') }, preview: { stop: () => order.push('stop') } })
+    expect(order).toEqual(['close', 'stop'])
+    await teardown({})
   })
 })

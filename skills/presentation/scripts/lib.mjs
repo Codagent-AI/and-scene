@@ -21,10 +21,10 @@ export const ANCHOR_FILES = {
     'eslint.config.js',
     '.gitignore',
     'public/favicon.svg',
-    'scripts/verify.mjs',
-    'scripts/inspect-presentation.mjs',
-    'scripts/lib',
   ],
+  // Verification and inspection tooling: the scaffolded package scripts point here, so it is
+  // copied whenever anything is scaffolded.
+  tooling: ['scripts/verify.mjs', 'scripts/inspect-presentation.mjs', 'scripts/lib'],
   kit: ['src/presentation-kit'],
   index: [
     'src/main.tsx',
@@ -36,6 +36,9 @@ export const ANCHOR_FILES = {
     'src/presentations/lazyPresentation.ts',
   ],
 }
+
+/** App-shell files that an existing project may already own; scaffolding never replaces them. */
+const ENTRY_FILES = ['src/main.tsx', 'src/index.css', 'index.html']
 
 const readJson = (file) => {
   try {
@@ -82,13 +85,18 @@ function hasSceneKit(dir) {
 
 /** Index anchor: a registry mapping presentations to routes. */
 function hasPresentationIndex(dir) {
-  for (const name of ['index.ts', 'index.tsx', 'index.js']) {
-    const file = path.join(dir, 'src', 'presentations', name)
-    if (!fs.existsSync(file)) continue
-    const text = fs.readFileSync(file, 'utf8')
-    if (/PresentationEntry/.test(text) || (/\bslug\b/.test(text) && /import\(/.test(text))) return true
-  }
-  return false
+  const folder = path.join(dir, 'src', 'presentations')
+  if (!fs.existsSync(folder)) return false
+  // Contract: a module that maps presentations (slug, title, lazy loader) to routes; names and spacing are free.
+  return fs
+    .readdirSync(folder)
+    .filter((name) => /\.(ts|tsx|js|jsx|mjs)$/.test(name))
+    .some((name) => {
+      const text = fs.readFileSync(path.join(folder, name), 'utf8')
+      const lazyEntries = /\bslug\b/.test(text) && /import\s*\(/.test(text)
+      const emptyRegistry = /=\s*\[/.test(text) && /PresentationEntry|\bslug\b/.test(text) && !/\binterface\b/.test(text)
+      return lazyEntries || emptyRegistry
+    })
 }
 
 export function detectAnchors(dir) {
@@ -189,7 +197,6 @@ export function mergePackageJson(existing, template) {
     }
     if (Object.keys(merged[field]).length === 0) delete merged[field]
   }
-  merged.type ??= template.type
   return { merged, added }
 }
 
@@ -203,7 +210,7 @@ export function scaffold(targetDir, anchors = missingAnchors(detectAnchors(targe
   const addedDependencies = []
   fs.mkdirSync(targetDir, { recursive: true })
   const hadPackage = fs.existsSync(path.join(targetDir, 'package.json'))
-  for (const anchor of anchors) {
+  for (const anchor of [...anchors, 'tooling']) {
     for (const rel of ANCHOR_FILES[anchor].flatMap((entry) => listFiles(templateDir, entry))) {
       const dest = path.join(targetDir, rel)
       if (rel === 'package-lock.json' && hadPackage) continue
@@ -224,7 +231,9 @@ export function scaffold(targetDir, anchors = missingAnchors(detectAnchors(targe
       addedDependencies.push(...added)
     }
   }
-  return { written, skipped, addedDependencies }
+  // An existing entry point is left alone, so it must be pointed at the router by hand.
+  const integration = skipped.filter((rel) => ENTRY_FILES.includes(rel))
+  return { written, skipped, addedDependencies, integration }
 }
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -260,11 +269,11 @@ export function createPresentation(appDir, { slug, title }, templateDir = PRESEN
     const text = fs
       .readFileSync(path.join(templateDir, rel), 'utf8')
       .replaceAll('__SLUG__', slug)
-      .replaceAll('__TITLE__', title.replaceAll("'", "\\'"))
+      .replaceAll('__TITLE_LITERAL__', JSON.stringify(title))
     fs.writeFileSync(dest, text)
     written.push(path.relative(appDir, dest))
   }
-  const entry = `  {\n    slug: '${slug}',\n    title: '${title.replaceAll("'", "\\'")}',\n    load: () => import('./${slug}/Talk.tsx'),\n  },`
+  const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk.tsx'),\n  },`
   fs.writeFileSync(indexFile, index.replace(REGISTRY_END, `\n${entry}\n$1]$2`))
   return { slug, folder, written, route: `/${slug}` }
 }

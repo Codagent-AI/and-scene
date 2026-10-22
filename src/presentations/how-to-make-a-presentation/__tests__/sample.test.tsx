@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import fs from 'node:fs'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { validateSteps } from '../../../presentation-kit/index.ts'
+import { ENTER_DELAY, ENTER_T, validateSteps } from '../../../presentation-kit/index.ts'
 import { ENTITIES, ID } from '../entities.ts'
 import type { EntityId } from '../entities.ts'
 import { STEPS } from '../steps/index.ts'
@@ -200,7 +200,6 @@ describe('scene composition contracts', () => {
     expect(ENTITIES[ID.verifyBuild]).toMatchObject({ text: 'build' })
     expect(ENTITIES[ID.verifyRender]).toMatchObject({ text: 'render' })
     expect(ENTITIES[ID.verifyPass]).toMatchObject({ variant: 'pass', symbol: '✓' })
-    expect(ENTITIES[ID.verifyPass].delay).toBeGreaterThan(ENTITIES[ID.verifyBuild].delay ?? 0)
   })
 
   it('reaches a modify arc from the conversation down into the tray and flags the edited card', () => {
@@ -223,6 +222,15 @@ describe('scene composition contracts', () => {
     }
     expect(ENTITIES[ID.frame]).toMatchObject({ kind: 'frame', overlap: true })
     expect((ENTITIES[ID.frame] as { label: string }).label.length).toBeGreaterThan(0)
+  })
+})
+
+describe('settled capture', () => {
+  it('finishes every entrance within the screenshot helper default settle interval', () => {
+    const settleMs = 1200
+    for (const def of Object.values(ENTITIES)) {
+      expect(((def.delay ?? ENTER_DELAY) + ENTER_T) * 1000, def.id).toBeLessThan(settleMs)
+    }
   })
 })
 

@@ -1,4 +1,5 @@
 // INT-002: the project-local screenshot helper emits faithful artifacts and advisory warnings.
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -127,11 +128,26 @@ describe('INT-002 screenshot helper', () => {
     expect(results.clean.out).toMatch(new RegExp(`inspect: wrote ${STEPS} screenshots`))
   })
 
-  it('uses a standard desktop viewport by default and honours an override', () => {
+  const size = (file) => {
+    const png = fs.readFileSync(file)
+    return [png.readUInt32BE(16), png.readUInt32BE(20)]
+  }
+  const hash = (file) => createHash('sha256').update(fs.readFileSync(file)).digest('hex')
+
+  it('captures real step content in order at the standard desktop viewport, and honours an override', () => {
     expect(results.clean.out).toMatch(/1440x900/)
+    const shots = ['step-00.png', 'step-01.png', 'step-02.png'].map((f) => path.join(app, 'shots', 'collision', f))
+    for (const shot of shots) expect(size(shot)).toEqual([1440, 900])
+    // The collision variant adds a second label only at step 1, so the images must differ there and only there.
+    const [a, b, c] = shots.map(hash)
+    expect(b).not.toBe(a)
+    expect(b).not.toBe(c)
+    const clean = ['step-00.png', 'step-01.png', 'step-02.png'].map((f) => hash(path.join(app, 'shots', 'clean', f)))
+    expect(new Set(clean).size).toBe(3)
     const narrow = inspect('clean', ['--viewport', '390x844'])
     expect(narrow.status, narrow.out).toBe(0)
     expect(narrow.out).toMatch(/390x844/)
+    expect(size(path.join(app, 'shots', 'clean', 'step-00.png'))).toEqual([390, 844])
   })
 
   it('waits out the settle interval before each capture, including the first step', () => {

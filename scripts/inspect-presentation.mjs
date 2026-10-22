@@ -7,7 +7,7 @@ import path from 'node:path'
 import { buildApp } from './lib/build.mjs'
 import { loadPlaywright, readStepCount, waitForStepIndex } from './lib/browse.mjs'
 import { captureSteps, parseInspectArgs, screenshotPath } from './lib/inspect.mjs'
-import { startPreview } from './lib/preview.mjs'
+import { startPreview, teardown } from './lib/preview.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
 
@@ -119,8 +119,7 @@ async function main() {
     })
     console.log(`inspect: wrote ${written.length} screenshots under ${path.join(outDir, options.slug)}`)
   } finally {
-    await browser?.close()
-    preview?.stop()
+    await teardown({ browser, preview })
   }
 }
 

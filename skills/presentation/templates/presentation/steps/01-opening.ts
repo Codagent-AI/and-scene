@@ -6,7 +6,7 @@ import type { Step } from '../../../presentation-kit/index.ts'
 export const STEP_01: Step<Payload> = {
   id: 'opening',
   era: 'the start',
-  title: '__TITLE__',
+  title: __TITLE_LITERAL__,
   caption: 'Replace this caption with what the viewer should take from the first step.',
   Scene,
   groupKey: 'scene',

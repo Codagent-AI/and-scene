@@ -1,0 +1,8 @@
+/* Host shell reset only. Colours, fonts and spacing belong to each presentation's own CSS. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

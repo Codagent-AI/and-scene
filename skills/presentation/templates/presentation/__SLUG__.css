@@ -1,0 +1,13 @@
+/* Styling for this presentation. The scene kit supplies hooks only, so every colour,
+   font, spacing, border, shadow and control treatment lives here (plain CSS by default).
+
+   Hooks you will want to style:
+     [data-presentation-root]              page background, text colour, font
+     [data-presentation-box] [data-presentation-label] [data-presentation-frame]
+     [data-presentation-arrow-line] [data-presentation-arrow-head]   (set stroke / fill)
+     [data-presentation-progress-dot][data-presentation-active="true"]   current step
+     [data-presentation-toc-entry][data-presentation-active="true"]      current era
+     [data-presentation-attribution]       make the "made by and-scene" link legible
+
+   Mark a deliberately stacked entity with the data-presentation-allow-overlap attribute so
+   the inspection helper does not warn about it. */

@@ -66,8 +66,10 @@ function hasBuildSetup(dir) {
 
 /** Kit anchor, checked by content so file naming and formatting do not matter. */
 function hasSceneKit(dir) {
-  const text = sourceFiles(path.join(dir, 'src'))
-    .filter((f) => !f.includes(`${path.sep}presentations${path.sep}`))
+  const src = path.join(dir, 'src')
+  // Only the registry's own folder is excluded; the app directory itself may be named `presentations`.
+  const text = sourceFiles(src)
+    .filter((f) => path.relative(src, f).split(path.sep)[0] !== 'presentations')
     .map((f) => fs.readFileSync(f, 'utf8'))
     .join('\n')
   return [

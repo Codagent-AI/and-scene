@@ -60,6 +60,17 @@ describe('detectAnchors', () => {
     expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
   })
 
+  it('finds the kit in an app whose own directory is named presentations/', () => {
+    const app = path.join(dir, 'presentations')
+    scaffold(app)
+    expect(detectAnchors(app)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('does not count kit markers that live only inside a presentation folder', () => {
+    write('src/presentations/demo/Kit.tsx', 'interface Step {} Scene AnimatePresence LayoutGroup keydown ArrowRight caption toc scale')
+    expect(detectAnchors(dir).kit).toBe(false)
+  })
+
   it('does not count a kit with a missing piece of the contract', () => {
     scaffold(dir)
     fs.rmSync(path.join(dir, 'src/presentation-kit/Stage.tsx'))
@@ -113,7 +124,13 @@ describe('resolveTarget', () => {
       fs.writeFileSync(path.join(nested, 'README.md'), 'x')
       fs.mkdirSync(path.join(nested, 'packages'))
       scaffold(path.join(nested, 'presentations'))
-      expect(resolveTarget(nested)).toMatchObject({ target: path.join(nested, 'presentations'), kind: 'existing-app' })
+      expect(resolveTarget(nested)).toMatchObject({
+        target: path.join(nested, 'presentations'),
+        kind: 'existing-app',
+        anchors: { build: true, kit: true, index: true },
+        missing: [],
+        confirm: false,
+      })
     } finally {
       fs.rmSync(nested, { recursive: true, force: true })
     }

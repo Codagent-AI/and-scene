@@ -271,6 +271,16 @@ describe('fixed canvas', () => {
     expect(canvas().style.transform).not.toMatch(/scale\([^)]*,/)
   })
 
+  it('centres the scaled canvas without a percentage translate, which skews layout morphs', () => {
+    renderDeck()
+    // Motion re-measures a scaled ancestor that carries a percentage translate, so every persisting
+    // entity lurched on each step change; the canvas must be centred with margins and only scaled.
+    expect(canvas().style.transform).not.toMatch(/translate/)
+    expect(canvas().style.transform).not.toContain('%')
+    expect(canvas().style.marginLeft).toBe(`${-DESIGN_W / 2}px`)
+    expect(canvas().style.marginTop).toBe(`${-DESIGN_H / 2}px`)
+  })
+
   it('keeps one scale across steps with different content, within a mode', () => {
     renderDeck()
     const first = scale()

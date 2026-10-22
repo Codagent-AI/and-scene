@@ -37,8 +37,10 @@ export function Stage<TPayload>({ step, stepIndex, mode, showToc }: StageProps<T
           top: '50%',
           width: DESIGN_W,
           height: DESIGN_H,
-          x: '-50%',
-          y: '-50%',
+          // Centred with margins, not a percentage translate: motion re-measures a scaled ancestor
+          // that has one, which makes every persisting entity lurch on each step change.
+          marginLeft: -DESIGN_W / 2,
+          marginTop: -DESIGN_H / 2,
           scale,
         }}
       >

@@ -1,5 +1,6 @@
 import { STAGE_LAYOUT } from '../constants.ts'
 import type { StepMeta, Mode } from '../types.ts'
+import { press } from './press.ts'
 
 export interface FooterProps {
   mode: Mode
@@ -8,13 +9,6 @@ export interface FooterProps {
   onPrev: () => void
   onNext: () => void
   onJump: (index: number) => void
-}
-
-type ClickEvent = { detail: number; currentTarget: { blur: () => void } }
-
-/** After a pointer click, hand the arrow keys back to the deck. */
-function releaseFocus(event: ClickEvent) {
-  if (event.detail > 0) event.currentTarget.blur()
 }
 
 export function Footer({ mode, steps, index, onPrev, onNext, onJump }: FooterProps) {
@@ -44,10 +38,7 @@ export function Footer({ mode, steps, index, onPrev, onNext, onJump }: FooterPro
             data-presentation-active={i === index ? 'true' : undefined}
             aria-current={i === index ? 'step' : undefined}
             aria-label={`Step ${i + 1}: ${step.title}`}
-            onClick={(event) => {
-              onJump(i)
-              releaseFocus(event)
-            }}
+            onClick={press(() => onJump(i))}
           />
         ))}
       </nav>
@@ -56,10 +47,7 @@ export function Footer({ mode, steps, index, onPrev, onNext, onJump }: FooterPro
           type="button"
           data-presentation-prev=""
           disabled={index === 0}
-          onClick={(event) => {
-            onPrev()
-            releaseFocus(event)
-          }}
+          onClick={press(onPrev)}
         >
           Previous
         </button>
@@ -67,10 +55,7 @@ export function Footer({ mode, steps, index, onPrev, onNext, onJump }: FooterPro
           type="button"
           data-presentation-next=""
           disabled={index === steps.length - 1}
-          onClick={(event) => {
-            onNext()
-            releaseFocus(event)
-          }}
+          onClick={press(onNext)}
         >
           Next
         </button>

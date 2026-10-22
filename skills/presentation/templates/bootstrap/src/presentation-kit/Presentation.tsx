@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Stage } from './Stage.tsx'
 import { Attribution } from './chrome/Attribution.tsx'
 import { Footer } from './chrome/Footer.tsx'
@@ -18,6 +19,9 @@ export function Presentation<TPayload = undefined>({
 }: PresentationProps<TPayload>) {
   const nav = usePresentationNav({ count: steps.length, initialMode })
   const { width } = useViewport()
+  useEffect(() => {
+    document.title = title
+  }, [title])
   const step = steps[nav.index]
   if (!step) return null
   const showToc = nav.mode === 'browse' && isWideViewport(width)
@@ -25,7 +29,6 @@ export function Presentation<TPayload = undefined>({
   return (
     <div
       data-presentation-root=""
-      data-presentation-title-text={title}
       data-presentation-mode={nav.mode}
       data-step-count={steps.length}
       data-step-index={nav.index}

@@ -2,9 +2,9 @@
 // Captures one settled screenshot per step of a registered presentation from a
 // production preview, and prints advisory visual-quality warnings. Warnings never
 // change the exit code; only real errors (build, browser, filesystem) do.
-import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+import { buildApp } from './lib/build.mjs'
 import { loadPlaywright, readStepCount, waitForStepIndex } from './lib/browse.mjs'
 import { captureSteps, parseInspectArgs, screenshotPath } from './lib/inspect.mjs'
 import { startPreview } from './lib/preview.mjs'
@@ -86,8 +86,8 @@ function collectFacts() {
 async function main() {
   const options = parseInspectArgs(process.argv.slice(2))
   if (options.build) {
-    const result = spawnSync('npm', ['run', 'build'], { cwd: root, encoding: 'utf8' })
-    if (result.status !== 0) throw new Error(`npm run build failed\n${result.stdout}${result.stderr}`)
+    const { status, output } = buildApp(root)
+    if (status !== 0) throw new Error(`npm run build failed\n${output}`)
   }
   const outDir = path.resolve(root, options.out)
   fs.mkdirSync(path.join(outDir, options.slug), { recursive: true })

@@ -109,7 +109,8 @@ describe('script wiring', () => {
   it('verify runs the real outline validators, the build, and always stops the preview', () => {
     expect(verify).toMatch(/import \{[^}]*compareOutline[^}]*checkSampleRegistration[^}]*\} from '\.\/lib\/outline\.mjs'|import \{[^}]*checkSampleRegistration[^}]*compareOutline[^}]*\} from '\.\/lib\/outline\.mjs'/)
     expect(verify).toMatch(/compareOutline\(narration\)/)
-    expect(verify).toMatch(/\['run', 'build'\]/)
+    expect(verify).toMatch(/buildApp\(root\)/)
+    expect(fs.readFileSync(path.join(root, 'scripts/lib/build.mjs'), 'utf8')).toMatch(/\['run', 'build'\]/)
     expect(verify).toMatch(/finally \{[^}]*preview\?\.stop\(\)/s)
     expect(verify).toMatch(/process\.exit\(1\)/)
   })

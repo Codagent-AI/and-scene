@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Deterministic build + browser-render verification. Exits non-zero on any failure
 // and names the failed phase (and, for browser faults, the offending step).
-import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
+import { buildApp } from './lib/build.mjs'
 import { loadPlaywright, readNarration, readStepCount, readStepIndex, waitForStepIndex } from './lib/browse.mjs'
 import { SAMPLE_OUTLINE, SAMPLE_SLUG, checkSampleRegistration, compareOutline, registeredSlugs } from './lib/outline.mjs'
 import { startPreview } from './lib/preview.mjs'
@@ -26,11 +26,8 @@ class PhaseError extends Error {
 }
 
 function build() {
-  const result = spawnSync('npm', ['run', 'build'], { cwd: root, encoding: 'utf8' })
-  if (result.status !== 0) {
-    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`.trim().split('\n').slice(-40).join('\n')
-    throw new PhaseError('build', `npm run build failed (exit ${result.status})\n${output}`)
-  }
+  const { status, output } = buildApp(root)
+  if (status !== 0) throw new PhaseError('build', `npm run build failed (exit ${status})\n${output}`)
 }
 
 function readRegistry() {

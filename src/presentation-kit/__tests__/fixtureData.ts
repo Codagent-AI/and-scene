@@ -14,10 +14,6 @@ export function makeSteps(extra: Partial<Step<Payload>> = {}): Step<Payload>[] {
   ]
 }
 
-export function fixtureReference() {
-  return makeSteps()[0]!.title
-}
-
 export function setViewportWidth(width: number) {
   Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: width })
 }

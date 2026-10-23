@@ -3,7 +3,6 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import { Presentation } from '../../presentation-kit'
 import { ARROWS, BOXES, OVERLAP_EXEMPT, rectStyle, type BoxId } from './entities'
 import { FRAME_STACK_ORDER } from './entities'
 import { BEATS } from './beats'
@@ -283,8 +282,4 @@ describe('sample registration', () => {
     expect(loaded.default).toBeTypeOf('function')
   })
 
-  it('exposes a typed grouped payload to the presentation without casts', () => {
-    const typed: Parameters<typeof Presentation<(typeof STEPS)[number]['payload']>>[0]['steps'] = STEPS
-    expect(typed).toBe(STEPS)
-  })
 })

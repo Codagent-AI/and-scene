@@ -5,7 +5,7 @@ import { MotionGlobalConfig } from 'motion/react'
 import { Presentation, type PresentationProps } from '../Presentation'
 import { ATTRIBUTION_URL } from '../constants'
 import { stepNumber } from '../chrome/stepNumber'
-import { fixtureReference, makeSteps, setViewportWidth, type Payload } from './fixtureData'
+import { makeSteps, setViewportWidth, type Payload } from './fixtureData'
 
 const deck = (props: Partial<PresentationProps<Payload>> = {}) => (
   <Presentation steps={makeSteps()} title="Deck" {...props} />
@@ -236,12 +236,6 @@ describe('navigation controls', () => {
     })
     expect(event.defaultPrevented).toBe(false)
     expect(root(view).getAttribute('data-step-index')).toBe('0')
-  })
-})
-
-describe('fixture reference', () => {
-  it('uses the first step for the initial state', () => {
-    expect(fixtureReference()).toBe('First title')
   })
 })
 

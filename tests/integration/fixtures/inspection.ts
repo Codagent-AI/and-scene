@@ -32,9 +32,9 @@ export function Scene({ payload }: SceneProps<{ step: number }>) {
 }
 `
 
-const STEPS = (css: string) => `import type { Step } from '../../presentation-kit'
+const STEPS = `import type { Step } from '../../presentation-kit'
 import { Scene } from './Scene'
-${css}
+
 const payloads = [1, 2, 3]
 export const STEPS: readonly Step<{ step: number }>[] = payloads.map((step) => ({
   id: \`step-\${step}\`,
@@ -73,10 +73,10 @@ ${slugs
 export const FIXTURE_FILES: Record<string, string> = {
   'src/presentations/index.ts': register(['fixture-plain', 'fixture-polished']),
   'src/presentations/fixture-plain/Scene.tsx': SCENE,
-  'src/presentations/fixture-plain/steps.ts': STEPS(''),
+  'src/presentations/fixture-plain/steps.ts': STEPS,
   'src/presentations/fixture-plain/Talk.tsx': talk(''),
   'src/presentations/fixture-polished/Scene.tsx': SCENE,
-  'src/presentations/fixture-polished/steps.ts': STEPS(''),
+  'src/presentations/fixture-polished/steps.ts': STEPS,
   'src/presentations/fixture-polished/presentation.css': POLISHED_CSS,
   'src/presentations/fixture-polished/Talk.tsx': talk("import './presentation.css'"),
 }

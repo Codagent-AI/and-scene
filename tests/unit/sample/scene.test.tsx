@@ -264,6 +264,8 @@ describe('composition geometry (L-9, L-54)', () => {
     const narrow = css.match(/@media \(max-width:\s*899px\)\s*\{([\s\S]*?)\n\}\n/)![1]
     expect(narrow).toMatch(/\[data-presentation-controls\]\s*\{[^}]*margin-right:\s*0/)
     expect(narrow).toMatch(/\[data-presentation-caption\]\s*\{[^}]*font-size:\s*14px/)
+    // present mode: the longest title must stay on one line inside the footer (F-6)
+    expect(narrow).toMatch(/\[data-presentation-title\]\s*\{[^}]*font-size:\s*22px/)
   })
 
   it('styles active chrome and attribution locally with concrete differences', () => {

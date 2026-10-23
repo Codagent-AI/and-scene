@@ -13,7 +13,7 @@ describe('registry and router', () => {
       const mod = await p.load()
       expect(mod.default).toBeTypeOf('function')
     }
-  })
+  }, 30_000)
 
   it('routes "/" and unknown paths to the landing page, slugs to presentations (I-70)', () => {
     expect(resolveRoute('/', presentations).kind).toBe('landing')

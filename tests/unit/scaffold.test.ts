@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import * as scaffoldModule from '../../skills/presentation/scripts/presentation-scaffold.mjs'
 // @ts-expect-error plain ESM script without type declarations
 import { drift } from '../../scripts/sync-template.mjs'
+// @ts-expect-error plain ESM script without type declarations
+import { readRegistry } from '../../scripts/lib/preview.mjs'
 
 interface Info {
   target: string
@@ -203,6 +205,7 @@ describe('scaffolding', () => {
     expect(entry).toContain("import { presentations } from './presentations'")
     expect(entry).toContain("resolveRoute(window.location.pathname, presentations)")
     expect(entry).toContain("import('./router')")
+    expect(entry).not.toMatch(/(^|[^.\w])await\s/m)
     expect(entry).toContain("import('./app-main')")
     expect(existsSync(path.join(dir, 'src/router.tsx'))).toBe(true)
     expect(existsSync(path.join(dir, 'src/routes.ts'))).toBe(true)
@@ -301,6 +304,26 @@ describe('adding presentations', () => {
     expect(registry).toContain('slug: "first"')
     expect(registry).toContain('slug: "second"')
     expect(read(dir, 'src/presentations/first/Scene.tsx')).toBe(firstFile)
+  })
+
+  it('writes titles literally: dollar patterns and placeholders in a title are not interpreted', () => {
+    const dir = scaffolded()
+    const title = "Save $$$ $& $' __NAME__ \"q\" \\ */"
+    lib.addPresentation(dir, { slug: 'money', title })
+    const talk = read(dir, 'src/presentations/money/Talk.tsx')
+    expect(talk).toContain(`title={${JSON.stringify(title)}}`)
+    expect(talk).toContain('className="money"')
+    expect(read(dir, 'src/presentations/money/style.css')).toContain('Save $$$ $& $\' __NAME__')
+    expect(readRegistry(dir)).toEqual([{ slug: 'money', title }])
+  })
+
+  it('reads quoted titles back exactly and fails loudly on an entry it cannot parse', () => {
+    const dir = scaffolded()
+    lib.addPresentation(dir, { slug: 'one', title: 'He said "hi"' })
+    expect(readRegistry(dir)).toEqual([{ slug: 'one', title: 'He said "hi"' }])
+    const file = path.join(dir, 'src/presentations/index.ts')
+    writeFileSync(file, read(dir, 'src/presentations/index.ts').replace(/\n\]\s*$/, "\n  { title: 'Odd', slug: 'odd', load: () => import('./odd/Talk') },\n]\n"))
+    expect(() => readRegistry(dir)).toThrow(/slug entries/)
   })
 
   it('rejects duplicates, invalid slugs, and a missing index', () => {

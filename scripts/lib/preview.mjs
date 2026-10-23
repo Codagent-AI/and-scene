@@ -27,9 +27,22 @@ export function freePort() {
 /** Slugs and titles from the explicit registry in src/presentations/index.ts. */
 export function readRegistry(root) {
   const source = readFileSync(path.join(root, 'src/presentations/index.ts'), 'utf8')
-  const entries = []
-  const pattern = /slug:\s*(['"])(.*?)\1\s*,\s*title:\s*(['"])(.*?)\3/gs
-  for (const match of source.matchAll(pattern)) entries.push({ slug: match[2], title: match[4] })
+  const string = String.raw`(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')`
+  const pattern = new RegExp(String.raw`slug:\s*${string}\s*,\s*title:\s*${string}`, 'gs')
+  const unquote = (double, single) =>
+    double !== undefined ? JSON.parse(`"${double}"`) : single.replace(/\\(.)/g, '$1')
+  const entries = [...source.matchAll(pattern)].map((m) => ({
+    slug: unquote(m[1], m[2]),
+    title: unquote(m[3], m[4]),
+  }))
+  // A registry line the parser cannot read must fail loudly rather than skip a presentation.
+  const declared = (source.match(/\bslug\s*:\s*['"]/g) ?? []).length
+  if (declared !== entries.length) {
+    throw new Fail(
+      'registry',
+      `src/presentations/index.ts has ${declared} slug entries but ${entries.length} could be read; write each entry as { slug: '...', title: '...', load: ... }`,
+    )
+  }
   return entries
 }
 

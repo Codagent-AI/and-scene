@@ -145,18 +145,17 @@ import { resolveRoute } from './routes'
 
 // Presentation routes get the router; every other path keeps the host app's original entry.
 if (resolveRoute(window.location.pathname, presentations)) {
-  const [{ StrictMode }, { createRoot }, { Router }] = await Promise.all([
-    import('react'),
-    import('react-dom/client'),
-    import('./router'),
-  ])
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <Router pathname={window.location.pathname} registry={presentations} />
-    </StrictMode>,
+  void Promise.all([import('react'), import('react-dom/client'), import('./router')]).then(
+    ([{ StrictMode }, { createRoot }, { Router }]) => {
+      createRoot(document.getElementById('root')!).render(
+        <StrictMode>
+          <Router pathname={window.location.pathname} registry={presentations} />
+        </StrictMode>,
+      )
+    },
   )
 } else {
-  await import('./app-main')
+  void import('./app-main')
 }
 `
 
@@ -217,7 +216,13 @@ export function scaffold(dir, { install = true, browser = true } = {}) {
   // Render verification needs a Chromium build; a fresh checkout has none cached.
   let browserInstalled = false
   if (install && browser) {
-    browserInstalled = spawnSync('npx', ['playwright', 'install', 'chromium'], { cwd: target, stdio: 'inherit' }).status === 0
+    const result = spawnSync('npx', ['playwright', 'install', 'chromium'], { cwd: target, stdio: 'inherit' })
+    browserInstalled = result.status === 0 && !result.error
+    if (!browserInstalled) {
+      console.error(
+        `warning: could not install Chromium (${result.error?.message ?? `exit ${result.status}`}). Run "npx playwright install chromium" in ${target} before npm run verify.`,
+      )
+    }
   }
   return { ...info, written, addedDeps, installed, browserInstalled, entryWired }
 }
@@ -229,11 +234,14 @@ export function nameFromSlug(slug) {
 
 /** Placeholders: `__TITLE_JSON__` is a JS string literal, `__TITLE__` is comment-safe plain text. */
 function fill(text, values) {
-  return text
-    .replaceAll('__SLUG__', values.slug)
-    .replaceAll('__TITLE_JSON__', JSON.stringify(values.title))
-    .replaceAll('__TITLE__', values.title.replaceAll('*/', '* /'))
-    .replaceAll('__NAME__', values.name)
+  const replacements = {
+    SLUG: values.slug,
+    TITLE_JSON: JSON.stringify(values.title),
+    TITLE: values.title.replaceAll('*/', '* /'),
+    NAME: values.name,
+  }
+  // One pass with a function replacer: user text is never re-scanned or read as `$` patterns.
+  return text.replace(/__(SLUG|TITLE_JSON|TITLE|NAME)__/g, (_match, key) => replacements[key])
 }
 
 /** Creates `src/presentations/<slug>/` from the template and registers it. */

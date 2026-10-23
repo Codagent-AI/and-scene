@@ -90,6 +90,35 @@ describe('canvas and fit scaling', () => {
   })
 })
 
+describe('fit scale after a responsive layout change', () => {
+  it('measures again once a resize makes the table of contents appear', () => {
+    const original = HTMLElement.prototype.getBoundingClientRect
+    const widthBefore = window.innerWidth
+    // the stage is narrower while the table-of-contents column is present
+    HTMLElement.prototype.getBoundingClientRect = function () {
+      if (!this.hasAttribute('data-presentation-stage')) return original.call(this)
+      const width = document.querySelector('[data-presentation-toc]') ? 1000 : 1240
+      return { width, height: 700, x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0 } as DOMRect
+    }
+    try {
+      window.innerWidth = 800
+      render(<Demo />)
+      const scale = () => document.querySelector('[data-presentation-canvas]')!.getAttribute('data-presentation-scale')
+      expect(document.querySelector('[data-presentation-toc]')).toBeNull()
+      expect(scale()).toBe(String(computeFitScale({ width: 1240, height: 700 }, 'browse')))
+      act(() => {
+        window.innerWidth = 1440
+        window.dispatchEvent(new Event('resize'))
+      })
+      expect(document.querySelector('[data-presentation-toc]')).not.toBeNull()
+      expect(scale()).toBe(String(computeFitScale({ width: 1000, height: 700 }, 'browse')))
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = original
+      window.innerWidth = widthBefore
+    }
+  })
+})
+
 describe('grouped scenes', () => {
   it('keeps one scene instance within a group and only swaps the payload', () => {
     const { unmount } = render(

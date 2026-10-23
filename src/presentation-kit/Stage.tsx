@@ -10,13 +10,15 @@ interface StageProps<TPayload> {
   stepIndex: number
   mode: Mode
   canvas?: Canvas
+  /** Changes when a responsive layout change moves the stage, so the fit scale is measured again. */
+  layoutKey?: unknown
 }
 
 /** Fixed design canvas, scaled to fit, hosting the active step's Scene. */
-export function Stage<TPayload>({ step, stepIndex, mode, canvas }: StageProps<TPayload>) {
+export function Stage<TPayload>({ step, stepIndex, mode, canvas, layoutKey }: StageProps<TPayload>) {
   const areaRef = useRef<HTMLDivElement>(null)
   const { width, height } = canvas ?? { width: DESIGN_W, height: DESIGN_H }
-  const scale = useFitScale(areaRef, mode, { width, height })
+  const scale = useFitScale(areaRef, mode, { width, height }, layoutKey)
   const Scene = step.Scene as ComponentType<SceneProps<TPayload>>
 
   return (

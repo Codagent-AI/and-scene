@@ -1,7 +1,31 @@
 // Pure helpers behind scripts/verify.mjs, kept free of browser and process concerns so they unit-test.
 
-/** Reads `{ slug, title }` entries from the explicit registry source. */
-export function parseRegistry(text) {
+/** Source text with `//` and block comments removed; string and template literals are left intact. */
+export function stripComments(text) {
+  let out = ''
+  for (let i = 0; i < text.length; ) {
+    const ch = text[i]
+    if (ch === '"' || ch === "'" || ch === '`') {
+      let j = i + 1
+      while (j < text.length && text[j] !== ch) j += text[j] === '\\' ? 2 : 1
+      out += text.slice(i, j + 1)
+      i = j + 1
+    } else if (ch === '/' && text[i + 1] === '/') {
+      while (i < text.length && text[i] !== '\n') i++
+    } else if (ch === '/' && text[i + 1] === '*') {
+      const end = text.indexOf('*/', i + 2)
+      i = end === -1 ? text.length : end + 2
+    } else {
+      out += ch
+      i++
+    }
+  }
+  return out
+}
+
+/** Reads `{ slug, title }` entries from the explicit registry source; commented-out entries do not count. */
+export function parseRegistry(source) {
+  const text = stripComments(source)
   const entries = []
   for (const match of text.matchAll(/slug:\s*(['"])((?:\\.|(?!\1).)*)\1\s*,\s*title:\s*(['"])((?:\\.|(?!\3).)*)\3/g)) {
     entries.push({ slug: match[2], title: match[4].replace(/\\(['"\\])/g, '$1') })

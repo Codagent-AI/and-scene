@@ -17,14 +17,17 @@ export function computeFitScale(
 }
 
 /**
- * Measures the stage area and returns the fit scale. It is re-measured only when the
- * window is resized or the mode or canvas changes, never because navigation made a
- * caption or title wrap differently, so every step of a viewport and mode shares one scale.
+ * Measures the stage area and returns the fit scale. It is re-measured when the window or
+ * the viewport-sized presentation root is resized, when the mode or canvas changes, and when
+ * `layoutKey` changes (a responsive layout change that moves the stage, such as the table of
+ * contents appearing). It is never re-measured because navigation made a caption or title
+ * wrap differently, so every step of a viewport and mode shares one scale.
  */
 export function useFitScale(
   ref: RefObject<HTMLElement | null>,
   mode: Mode,
   canvas: Canvas = DEFAULT_CANVAS,
+  layoutKey?: unknown,
 ): number {
   const [scale, setScale] = useState(1)
   const { width, height } = canvas
@@ -37,9 +40,24 @@ export function useFitScale(
       setScale(computeFitScale({ width: rect.width, height: rect.height }, mode, { width, height }))
     }
     measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [ref, mode, width, height])
+    let frame = 0
+    // The window event can arrive before the responsive layout has settled: measure again after it.
+    const onResize = () => {
+      measure()
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+    }
+    window.addEventListener('resize', onResize)
+    // The root is sized by the viewport alone, so observing it ignores content-driven stage changes.
+    const root = el.closest('[data-presentation-root]')
+    const observer = root && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
+    if (root) observer?.observe(root)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      cancelAnimationFrame(frame)
+      observer?.disconnect()
+    }
+  }, [ref, mode, width, height, layoutKey])
 
   return scale
 }

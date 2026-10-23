@@ -67,7 +67,7 @@ export function Presentation<TPayload>({
         style={{ display: 'grid', gridTemplateColumns: showToc ? 'auto minmax(0, 1fr)' : 'minmax(0, 1fr)', minHeight: 0 }}
       >
         {showToc ? <Toc eras={steps.map((s) => s.era)} index={nav.index} onGoTo={nav.goTo} /> : null}
-        <Stage step={step} stepIndex={nav.index} mode={nav.mode} canvas={canvas} />
+        <Stage step={step} stepIndex={nav.index} mode={nav.mode} canvas={canvas} layoutKey={showToc} />
       </div>
       <Footer
         mode={nav.mode}

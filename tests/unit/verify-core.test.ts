@@ -14,6 +14,10 @@ describe('parseRegistry', () => {
     const text = `[\n  { slug: 'a', title: 'A one', load: () => import('./a/Talk.tsx') },\n  { slug: "b", title: "B", load: () => import('./b/Talk.tsx') },\n  { slug: 'c', title: 'It\\'s C', load: () => import('./c/Talk.tsx') },\n]`
     expect(parseRegistry(text)).toEqual([{ slug: 'a', title: 'A one' }, { slug: 'b', title: 'B' }, { slug: 'c', title: "It's C" }])
   })
+  it('ignores entries that are commented out and keeps comment markers inside strings', () => {
+    const text = `[\n  // { slug: 'gone', title: 'Gone', load: () => import('./gone/Talk.tsx') },\n  /* { slug: 'old', title: 'Old', load: () => import('./old/Talk.tsx') }, */\n  { slug: 'kept', title: 'See http://example.com // now', load: () => import('./kept/Talk.tsx') }, // trailing\n]`
+    expect(parseRegistry(text)).toEqual([{ slug: 'kept', title: 'See http://example.com // now' }])
+  })
   it('finds nothing in an empty registry', () => {
     expect(parseRegistry('export const PRESENTATIONS = []')).toEqual([])
   })

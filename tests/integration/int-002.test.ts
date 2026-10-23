@@ -38,8 +38,11 @@ export function Scene({ payload }: SceneProps<ScenePayload>) {
           </div>
         </Appear>
       )}
-      {${opts.probe} && payload.index === 1 &&
-        createPortal(<span data-probe="">.</span>, document.querySelector('[data-presentation-root]')!)}
+      {${opts.probe} && payload.index === 1 && (
+        <Appear key="probe">
+          {createPortal(<span data-probe="">.</span>, document.querySelector('[data-presentation-root]')!)}
+        </Appear>
+      )}
       {payload.index === 1 && (
         <Appear key="allowed">
           <div className="fade" data-presentation-allow-overlap="">

@@ -50,7 +50,8 @@ export async function renderRoute({ page, url, allSteps, reference, errors, time
   const check = (step) => {
     if (errors.length > 0) throw new VerifyError('render', errors[0], { step })
   }
-  errors.length = 0
+  // `errors` is never cleared: anything that arrived since the last check, even
+  // after the previous route returned, fails the run instead of being discarded.
   await page.goto(url, { waitUntil: 'load' })
   const first = await waitForIndex(page, 0, timeoutMs, (s) =>
     s ? `step hooks report index ${s.index}, expected 0` : 'no [data-step-count] hook rendered (the route did not render a presentation)',
@@ -84,6 +85,5 @@ export async function renderRoute({ page, url, allSteps, reference, errors, time
     check(i)
     log(`  step index ${i} ok (${i + 1}/${count})`)
   }
-  check(last) // errors that arrived after the final settle belong to this route
   return { count, rendered: last + 1 }
 }

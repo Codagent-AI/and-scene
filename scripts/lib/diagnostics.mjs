@@ -77,8 +77,8 @@ export function inspectionDir(root, slug, narrow = false) {
   const dir = path.resolve(base, slug + (narrow ? '-narrow' : ''))
   if (!dir.startsWith(base + path.sep)) throw new Error(`refusing to write outside ${base}`)
   // A symlinked inspection/ would make the recursive delete follow it out of the project.
-  if (fs.existsSync(base) && fs.realpathSync(base) !== base) {
-    throw new Error(`refusing to use ${base}: it is a symlink or resolves outside the project`)
+  if (fs.existsSync(base) && fs.lstatSync(base).isSymbolicLink()) {
+    throw new Error(`refusing to use ${base}: it is a symlink`)
   }
   return dir
 }

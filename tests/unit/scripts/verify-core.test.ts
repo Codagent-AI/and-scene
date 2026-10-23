@@ -149,15 +149,11 @@ describe('render loop (L-52, L-66, L-67)', () => {
     expect(error.message).toMatch(/step three broke/)
   })
 
-  it('reports an error that arrives after the last settle, before the route returns', async () => {
-    const errors: string[] = []
+  it('does not discard errors that arrived after the previous route returned', async () => {
+    const errors = ['console error: late from previous route']
     const { page } = fakePage([st(1, 0)])
-    const wait = page.waitForTimeout
-    page.waitForTimeout = vi.fn(async (ms: number) => {
-      await wait(ms)
-      if (ms >= 1000) errors.push('console error: late')
-    })
     await expect(run(page, { errors })).rejects.toMatchObject({ phase: 'render', step: 0 })
+    expect(errors).toHaveLength(1)
   })
 
   it('fails when the rendered title or caption differs from the reference', async () => {

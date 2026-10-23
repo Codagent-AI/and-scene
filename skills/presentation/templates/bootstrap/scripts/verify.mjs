@@ -63,6 +63,8 @@ async function render({ config, registry, reference, args }) {
         log,
       })
     }
+    await page.waitForTimeout(300)
+    if (errors.length > 0) throw new VerifyError('render', errors[0], { step: 0 })
   } finally {
     await browser?.close().catch(() => {})
     await preview.stop()

@@ -154,6 +154,23 @@ describe('fixed-canvas fit scaling', () => {
     expect(880 * scale).toBeLessThanOrEqual(1206 - 48)
   })
 
+  it('observes the stage even when it mounts after the first render', () => {
+    const observed: Element[] = []
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe(el: Element) {
+          observed.push(el)
+        }
+        disconnect() {}
+      },
+    )
+    const { rerender } = render(<Stage steps={steps} index={5} mode="browse" />)
+    expect(observed).toHaveLength(0)
+    rerender(<Stage steps={steps} index={0} mode="browse" />)
+    expect(observed).toContain(stage())
+  })
+
   it('places the canvas centered inside the stage', () => {
     stubViewport(1000, 800)
     render(<Stage steps={steps} index={0} mode="browse" />)

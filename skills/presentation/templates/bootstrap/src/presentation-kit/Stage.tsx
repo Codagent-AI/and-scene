@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { DESIGN_H, DESIGN_W, ENTER_T, EASE } from './constants'
 import { layerStyle, stageStyle } from './layout'
@@ -32,13 +32,13 @@ export interface StageProps<P> {
  * stage. Steps sharing a groupKey keep one scene instance; a new group cross-fades.
  */
 export function Stage<P>({ steps, index, mode, designWidth = DESIGN_W, designHeight = DESIGN_H }: StageProps<P>) {
-  const ref = useRef<HTMLDivElement>(null)
-  const scale = useFitScale(ref, mode, designWidth, designHeight)
+  const [stageEl, setStageEl] = useState<HTMLDivElement | null>(null)
+  const scale = useFitScale(stageEl, mode, designWidth, designHeight)
   const step = steps[index]
   if (!step) return null
   const Scene = step.scene
   return (
-    <div ref={ref} data-presentation-stage="" style={stageStyle}>
+    <div ref={setStageEl} data-presentation-stage="" style={stageStyle}>
       <div style={{ position: 'relative', width: designWidth * scale, height: designHeight * scale }}>
         <div
           data-presentation-canvas=""

@@ -1,0 +1,211 @@
+/* Presentation-owned look. The scene kit ships no visual defaults. */
+[data-presentation-root] {
+  background: #f7f5ef;
+  color: #1d1f24;
+  font-family: system-ui, sans-serif;
+}
+
+[data-presentation-header] {
+  padding: 14px 24px 0;
+  font-size: 13px;
+  color: #5b5f69;
+}
+
+[data-presentation-marker] {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-presentation-deck-title] {
+  margin: 0 0 0 auto;
+}
+
+[data-presentation-footer] {
+  padding: 8px 24px 28px;
+}
+
+[data-presentation-step-title],
+[data-presentation-title] {
+  margin: 0 0 6px;
+  font-size: 22px;
+}
+
+[data-presentation-caption] {
+  margin: 0 0 12px;
+  max-width: 62ch;
+  line-height: 1.5;
+}
+
+[data-presentation-toc] ol {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+}
+
+[data-presentation-toc-entry] {
+  border: 1px solid #c9ccd4;
+  background: #fff;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+[data-presentation-toc-entry][data-presentation-active='true'] {
+  background: #1d1f24;
+  color: #fff;
+  border-color: #1d1f24;
+  font-weight: 700;
+}
+
+[data-presentation-progress] {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+[data-presentation-progress-dot] {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #8a8f9b;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+[data-presentation-progress-dot][data-presentation-active='true'] {
+  background: #2f6fed;
+  border-color: #2f6fed;
+  transform: scale(1.35);
+}
+
+[data-presentation-controls] {
+  display: flex;
+  gap: 8px;
+}
+
+[data-presentation-controls] button {
+  font: inherit;
+  padding: 4px 12px;
+  border: 1px solid #1d1f24;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+[data-presentation-controls] button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+[data-presentation-attribution] {
+  font-size: 12px;
+  color: #3b4352;
+  text-decoration: none;
+  border-bottom: 1px solid #3b4352;
+}
+
+/* Scene entities */
+.talk-person,
+.talk-card,
+.talk-tray,
+.talk-socket,
+.talk-verify,
+.talk-ghost,
+.talk-bubble,
+.talk-question,
+.talk-control,
+.talk-pass,
+.talk-note,
+.talk-reveal-label {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  font-size: 13px;
+  padding: 6px;
+  border-radius: 10px;
+}
+
+.talk-person,
+.talk-card,
+.talk-verify,
+.talk-socket {
+  background: #fff;
+  border: 1.5px solid #1d1f24;
+}
+
+.talk-tray {
+  /* Deliberately unframed: the tray is a region, not a box. */
+  background: transparent;
+  border: none;
+}
+
+.talk-ghost {
+  background: transparent;
+  border: 1.5px dashed #8a8f9b;
+  color: #5b5f69;
+}
+
+.talk-bubble,
+.talk-question {
+  background: #fff7d6;
+  border: 1px solid #c9a227;
+}
+
+.talk-control,
+.talk-pass {
+  background: #e7f6ec;
+  border: 1px solid #2c8a4b;
+  color: #1f6b38;
+  font-weight: 600;
+}
+
+.talk-note {
+  color: #5b5f69;
+  font-style: italic;
+}
+
+.talk-link,
+.talk-morph,
+.talk-chain,
+.talk-modify {
+  height: 0;
+  border-top: 2px solid #1d1f24;
+}
+
+.talk-modify {
+  border-top: 2px dashed #2f6fed;
+}
+
+.talk-edited {
+  border: 2px solid #2f6fed;
+  border-radius: 12px;
+}
+
+.talk-reveal {
+  border: 2px solid #1d1f24;
+  border-radius: 16px;
+  text-align: left;
+}
+
+.talk-reveal > span {
+  position: absolute;
+  top: -10px;
+  left: 14px;
+  background: #f7f5ef;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+.talk-reveal-label {
+  justify-content: flex-start;
+  font-size: 12px;
+  color: #5b5f69;
+}

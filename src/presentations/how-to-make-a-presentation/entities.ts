@@ -21,6 +21,8 @@ export const E = {
   control: 'htm-control',
   socket: 'htm-socket',
   verify: 'htm-verify',
+  link4: 'htm-link-4',
+  link4Label: 'htm-link-4-label',
   pass: 'htm-pass',
   modify: 'htm-modify',
   modifyLabel: 'htm-modify-label',

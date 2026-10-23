@@ -69,3 +69,9 @@ export function portIsClosed(port: number): Promise<boolean> {
     socket.once('error', () => resolve(true))
   })
 }
+
+/** Command lines of processes whose arguments mention `marker` (e.g. a browser using our TMPDIR). */
+export function processesMentioning(marker: string): string[] {
+  const out = execFileSync('ps', ['-eo', 'pid,args'], { encoding: 'utf8' })
+  return out.split('\n').filter((l) => l.includes(marker) && !l.includes('ps -eo'))
+}

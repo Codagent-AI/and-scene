@@ -18,7 +18,7 @@ export const ANCHORS = ['build', 'kit', 'index']
 const KIT_EXPORTS = ['Presentation', 'Stage', 'usePresentationNav', 'useFitScale', 'Step']
 const INDEX_FILES = new Set([
   'src/presentations/index.ts', 'src/presentations/types.ts',
-  'src/Router.tsx', 'src/router.ts', 'src/Landing.tsx',
+  'src/Router.tsx', 'src/router.ts', 'src/Landing.tsx', 'src/main.tsx',
 ])
 
 function walk(dir, skip = () => false) {
@@ -50,10 +50,32 @@ export function anchorOf(rel) {
   return 'build'
 }
 
-function exportsIdentifier(source, name) {
-  const declared = new RegExp(`export\\s+(?:default\\s+)?(?:declare\\s+)?(?:async\\s+)?(?:function|const|let|class|interface|type|enum)\\s+${name}\\b`)
-  const listed = new RegExp(`export\\s*(?:type\\s*)?\\{[^}]*\\b${name}\\b[^}]*\\}`)
-  return declared.test(source) || listed.test(source)
+/** The file both defines `name` and exports it (a re-export from elsewhere does not count). */
+function definesAndExports(source, name) {
+  const exportedDeclaration = new RegExp(`export\\s+(?:default\\s+)?(?:declare\\s+)?(?:async\\s+)?(?:function|const|let|class|interface|type|enum)\\s+${name}\\b`)
+  if (exportedDeclaration.test(source)) return true
+  const declaration = new RegExp(`(?:function|const|let|class|interface|type|enum)\\s+${name}\\b`)
+  const localList = new RegExp(`export\\s*(?:type\\s*)?\\{[^}]*\\b${name}\\b[^}]*\\}(?!\\s*from)`)
+  return declaration.test(source) && localList.test(source)
+}
+
+/** The registry module: any top-level file of src/presentations exporting `presentations`/`registry`. */
+export function findRegistryFile(appDir) {
+  const dir = path.join(appDir, 'src', 'presentations')
+  if (!existsSync(dir)) return undefined
+  const exportsRegistry = /export\s+(?:default\b|(?:const|let)\s+(?:presentations|registry)\b)/
+  return readdirSync(dir)
+    .filter((n) => /\.(ts|tsx|js|jsx)$/.test(n) && !/\.d\.ts$/.test(n) && n !== 'types.ts')
+    .sort((a, b) => (a.startsWith('index.') ? -1 : b.startsWith('index.') ? 1 : 0))
+    .map((n) => path.join(dir, n))
+    .find((f) => exportsRegistry.test(readFileSync(f, 'utf8')))
+}
+
+/** The module entry point named by index.html (default src/main.tsx). */
+export function findEntryPoint(appDir) {
+  const html = existsSync(path.join(appDir, 'index.html')) ? readFileSync(path.join(appDir, 'index.html'), 'utf8') : ''
+  const m = /<script[^>]*type=["']module["'][^>]*src=["']\/?([^"']+)["']/.exec(html)
+  return path.join(appDir, m ? m[1] : 'src/main.tsx')
 }
 
 /**
@@ -73,10 +95,9 @@ export function detectAnchors(appDir) {
   const kitSources = walk(src, (f) => f.startsWith(path.join(src, 'presentations') + path.sep))
     .filter((f) => /\.(ts|tsx|js|jsx)$/.test(f))
     .map((f) => readFileSync(f, 'utf8'))
-  const kit = KIT_EXPORTS.every((name) => kitSources.some((s) => exportsIdentifier(s, name)))
+  const kit = KIT_EXPORTS.every((name) => kitSources.some((s) => definesAndExports(s, name)))
 
-  const indexFile = ['ts', 'tsx', 'js', 'jsx'].map((e) => path.join(src, 'presentations', `index.${e}`)).find(existsSync)
-  const index = Boolean(indexFile && /export\s+(?:default\b|(?:const|let)\s+(?:presentations|registry)\b)/.test(readFileSync(indexFile, 'utf8')))
+  const index = Boolean(findRegistryFile(appDir))
   return { build, kit, index }
 }
 
@@ -132,12 +153,12 @@ function templateFiles(dir = BOOTSTRAP_DIR) {
 }
 
 /** Add template dependencies and scripts that an existing package.json lacks. */
-export function mergePackageJson(targetFile, templateFile = path.join(BOOTSTRAP_DIR, 'package.json')) {
+export function mergePackageJson(targetFile, { templateFile = path.join(BOOTSTRAP_DIR, 'package.json'), scripts = true } = {}) {
   const have = readJson(targetFile)
   const want = readJson(templateFile)
   if (!have) return false
   let changed = false
-  for (const section of ['dependencies', 'devDependencies', 'scripts']) {
+  for (const section of scripts ? ['dependencies', 'devDependencies', 'scripts'] : ['dependencies', 'devDependencies']) {
     have[section] ??= {}
     for (const [key, value] of Object.entries(want[section])) {
       const elsewhere = section !== 'scripts' && (have.dependencies?.[key] ?? have.devDependencies?.[key])
@@ -156,10 +177,20 @@ export function bootstrap(target, { anchors = resolveTarget(target).missing } = 
   target = path.resolve(target)
   const copied = []
   const skipped = []
+  const notes = []
+  if (anchors.length === 0) {
+    // Already scaffolded: touch nothing, not even package.json.
+    return { target, copied, skipped, notes, packageUpdated: false, installCommand: 'npm install', installNeeded: false }
+  }
   const hadPackage = existsSync(path.join(target, 'package.json'))
+  const entry = findEntryPoint(target)
   for (const rel of templateFiles()) {
     if (!anchors.includes(anchorOf(rel))) continue
-    const to = path.join(target, rel)
+    const to = rel === 'src/main.tsx' ? entry : path.join(target, rel)
+    if (rel === 'src/main.tsx' && existsSync(to)) {
+      wireEntryPoint(to, target, { copied, skipped, notes })
+      continue
+    }
     if (existsSync(to)) {
       skipped.push(rel)
       continue
@@ -168,16 +199,43 @@ export function bootstrap(target, { anchors = resolveTarget(target).missing } = 
     cpSync(path.join(BOOTSTRAP_DIR, rel), to)
     copied.push(rel)
   }
-  const packageUpdated = hadPackage ? mergePackageJson(path.join(target, 'package.json')) : false
+  const packageUpdated = hadPackage ? mergePackageJson(path.join(target, 'package.json'), { scripts: anchors.includes('kit') }) : false
   const freshLock = copied.includes('package-lock.json') && copied.includes('package.json')
   return {
     target,
     copied,
     skipped,
+    notes,
     packageUpdated,
     installCommand: freshLock ? 'npm ci' : 'npm install',
     installNeeded: copied.length > 0 || packageUpdated || !existsSync(path.join(target, 'node_modules')),
   }
+}
+
+/**
+ * An existing entry point that does not render the router would keep showing the
+ * old app. Back it up (as <entry>.bak) and install the router entry point.
+ */
+function wireEntryPoint(entry, target, { copied, skipped, notes }) {
+  const rel = path.relative(target, entry)
+  const current = readFileSync(entry, 'utf8')
+  if (/\bRouter\b/.test(current)) {
+    skipped.push(rel)
+    return
+  }
+  if (!/\.tsx?$/.test(entry)) {
+    notes.push(`${rel} does not render the presentation router and is not TypeScript: render <Router /> from src/Router.tsx yourself`)
+    return
+  }
+  writeFileSync(`${entry}.bak`, current)
+  let next = readFileSync(path.join(BOOTSTRAP_DIR, 'src/main.tsx'), 'utf8')
+  const dir = path.dirname(entry)
+  if (!existsSync(path.join(dir, 'index.css'))) next = next.replace(/^import '\.\/index\.css'\n/m, '')
+  const router = path.relative(dir, path.join(target, 'src/Router.tsx')).split(path.sep).join('/')
+  next = next.replace("'./Router.tsx'", `'${router.startsWith('.') ? router : `./${router}`}'`)
+  writeFileSync(entry, next)
+  copied.push(rel)
+  notes.push(`${rel} now renders the presentation router (the previous file is saved as ${rel}.bak)`)
 }
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -187,15 +245,21 @@ export function addPresentation(appDir, { slug, title }) {
   appDir = path.resolve(appDir)
   if (!SLUG.test(slug ?? '')) throw new Error(`invalid slug "${slug}": use lowercase letters, digits and hyphens`)
   if (!title) throw new Error('a presentation title is required')
-  const registryFile = path.join(appDir, 'src/presentations/index.ts')
-  if (!existsSync(registryFile)) throw new Error('presentation index is missing: run bootstrap first')
+  const registryFile = findRegistryFile(appDir)
+  if (!registryFile) throw new Error('presentation index is missing: run bootstrap first')
   const folder = path.join(appDir, 'src/presentations', slug)
   if (existsSync(folder)) throw new Error(`src/presentations/${slug}/ already exists; choose another slug`)
   const registry = readFileSync(registryFile, 'utf8')
   if (new RegExp(`slug:\\s*['"]${slug}['"]`).test(registry)) throw new Error(`slug "${slug}" is already registered`)
 
   const files = []
-  const fill = (text) => text.replaceAll('__SLUG__', slug).replaceAll('__TITLE__', title.replace(/["\\]/g, '\\$&')).replaceAll('__CLASS__', `talk-${slug}`)
+  // __TITLE_JSON__ is a JS string literal (valid in code and JSX expressions); __TITLE__ is for comments.
+  const fill = (text) =>
+    text
+      .replaceAll('__SLUG__', slug)
+      .replaceAll('__TITLE_JSON__', JSON.stringify(title))
+      .replaceAll('__TITLE__', title.replace(/\*\//g, '* /').replace(/\s+/g, ' '))
+      .replaceAll('__CLASS__', `talk-${slug}`)
   for (const abs of walk(PRESENTATION_DIR)) {
     const rel = path.relative(PRESENTATION_DIR, abs)
     const to = path.join(folder, rel)

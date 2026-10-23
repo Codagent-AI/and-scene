@@ -61,7 +61,7 @@ describe('reference sample renders as one accumulating scene', () => {
     3: [E.card2, E.card3, E.card4, E.link1, E.link2, E.link3],
     4: [E.ghost, E.control],
     5: [E.socket],
-    6: [E.verify, E.pass],
+    6: [E.verify, E.link4, E.pass],
     7: [E.modify, E.edited, E.editedFlag],
     8: [E.frame, E.reveal],
   }
@@ -157,6 +157,16 @@ describe('reference sample renders as one accumulating scene', () => {
     // verify is chained after the cards in the same row, with a green pass check on it
     expect(b(E.verify).top).toBe(b(E.card1).top)
     for (const c of [...cards, E.ghost]) expect(b(E.verify).left).toBeGreaterThan(right(c))
+    // a drawn connection runs from the last tray slot into verify
+    const chain = container.querySelector(`[data-presentation-entity="${E.link4}"] [data-presentation-arrow-shaft]`)!.getAttribute('d')!
+    const [cx1, cy1, , , cx2, cy2] = chain.match(/-?\d+(\.\d+)?/g)!.map(Number)
+    expect(cx1).toBeGreaterThanOrEqual(right(E.ghost))
+    expect(cx2).toBeLessThanOrEqual(b(E.verify).left)
+    expect(cx2 - cx1).toBeGreaterThan(20)
+    expect(cy1).toBe(cy2)
+    expect(cy1).toBeGreaterThan(b(E.verify).top)
+    expect(cy1).toBeLessThan(bottom(E.verify))
+    expect(get(m, E.link4Label).el.textContent).toBe('check')
     expect(get(m, E.verify).el.textContent).toContain('build')
     expect(get(m, E.verify).el.textContent).toContain('render')
     expect(get(m, E.pass).el.textContent).toBe('pass')

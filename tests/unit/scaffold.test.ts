@@ -5,7 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
-  addPresentation, anchorOf, bootstrap, BOOTSTRAP_DIR, detectAnchors, isMonorepo, mergePackageJson, resolveTarget,
+  addPresentation, anchorOf, bootstrap, BOOTSTRAP_DIR, PRESENTATION_DIR, detectAnchors, isMonorepo, mergePackageJson, resolveTarget,
 } from '../../skills/presentation/scripts/scaffold.mjs'
 import { ROOT } from '../helpers/spec-outline'
 
@@ -255,5 +255,109 @@ describe('addPresentation', () => {
     expect(registry).toContain("'old', title: 'Old', load: () => import('./old/Talk') },")
     expect(registry).toContain("slug: 'new-one'")
     expect(registry.trim().endsWith(']')).toBe(true)
+  })
+})
+
+describe('partial scaffolding of ordinary existing apps', () => {
+  /** A plain Vite + React + TS app: build anchor only, entry point renders its own App. */
+  const ordinaryApp = (entryName = 'main.tsx') => {
+    const d = tmp()
+    for (const f of ['package.json', 'package-lock.json', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'eslint.config.js']) {
+      cpSync(path.join(BOOTSTRAP_DIR, f), path.join(d, f))
+    }
+    write(path.join(d, 'index.html'), `<!doctype html><div id="root"></div><script type="module" src="/src/${entryName}"></script>`)
+    write(path.join(d, 'src/App.tsx'), 'export default function App() { return <p>my app</p> }\n')
+    write(path.join(d, `src/${entryName}`), "import { createRoot } from 'react-dom/client'\nimport App from './App'\ncreateRoot(document.getElementById('root')!).render(<App />)\n")
+    return d
+  }
+
+  it.each(['main.tsx', 'index.tsx'])('wires the router into the existing %s entry point and keeps a backup', (entry) => {
+    const d = ordinaryApp(entry)
+    const original = readFileSync(path.join(d, `src/${entry}`), 'utf8')
+    expect(detectAnchors(d)).toEqual({ build: true, kit: false, index: false })
+    const r = bootstrap(d)
+    const wired = readFileSync(path.join(d, `src/${entry}`), 'utf8')
+    expect(wired).toContain("import Router from './Router.tsx'")
+    expect(wired).toContain('<Router />')
+    expect(wired).not.toContain('<App />')
+    expect(wired).not.toContain("'./index.css'") // the app had no index.css
+    expect(readFileSync(path.join(d, `src/${entry}.bak`), 'utf8')).toBe(original)
+    expect(r.notes.join(' ')).toContain('now renders the presentation router')
+    expect(existsSync(path.join(d, 'src/Router.tsx'))).toBe(true)
+    expect(readFileSync(path.join(d, 'src/App.tsx'), 'utf8')).toContain('my app') // untouched
+    // the registered presentation is now reachable through the entry point
+    addPresentation(d, { slug: 'wired', title: 'Wired' })
+    expect(readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8')).toContain("slug: 'wired'")
+  })
+
+  it('leaves an entry point that already renders the router alone', () => {
+    const d = ordinaryApp()
+    bootstrap(d)
+    const before = digest(d)
+    const again = bootstrap(d, { anchors: ['index'] })
+    expect(digest(d)).toEqual(before)
+    expect(again.skipped).toContain('src/main.tsx')
+  })
+
+  it('does not modify a complete existing scaffold, not even package.json', () => {
+    const d = tmp()
+    materialize(d)
+    const pkg = JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8'))
+    delete pkg.scripts.verify
+    delete pkg.scripts.inspect
+    writeFileSync(path.join(d, 'package.json'), JSON.stringify(pkg))
+    const before = digest(d)
+    const r = bootstrap(d)
+    expect(r).toMatchObject({ copied: [], packageUpdated: false, installNeeded: false })
+    expect(digest(d)).toEqual(before)
+  })
+
+  it('does not add verification scripts when the kit anchor is already present', () => {
+    const d = tmp()
+    materialize(d)
+    rmSync(path.join(d, 'src/presentations'), { recursive: true })
+    const pkg = JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8'))
+    delete pkg.scripts.verify
+    writeFileSync(path.join(d, 'package.json'), JSON.stringify(pkg))
+    bootstrap(d)
+    expect(JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8')).scripts.verify).toBeUndefined()
+  })
+})
+
+describe('contract-level detection and registration under other names', () => {
+  it.each(['index.tsx', 'index.js', 'registry.ts'])('detects and registers into a registry named %s', (name) => {
+    const d = tmp()
+    materialize(d)
+    const dir = path.join(d, 'src/presentations')
+    renameSync(path.join(dir, 'index.ts'), path.join(dir, name))
+    expect(detectAnchors(d).index).toBe(true)
+    const r = addPresentation(d, { slug: 'other-name', title: 'Other' })
+    expect(r.registry).toBe(path.join('src/presentations', name))
+    expect(readFileSync(path.join(dir, name), 'utf8')).toContain("slug: 'other-name'")
+    expect(existsSync(path.join(dir, 'index.ts'))).toBe(false)
+  })
+
+  it('does not accept a kit whose barrel re-exports a deleted file', () => {
+    const d = tmp()
+    materialize(d)
+    expect(detectAnchors(d).kit).toBe(true)
+    rmSync(path.join(d, 'src/presentation-kit/Stage.tsx')) // the barrel still says: export { Stage } from './Stage'
+    expect(readFileSync(path.join(d, 'src/presentation-kit/index.ts'), 'utf8')).toContain("export { Stage } from './Stage'")
+    expect(detectAnchors(d).kit).toBe(false)
+  })
+})
+
+describe('generated presentation sources are valid for any title', () => {
+  it('writes the title as a JS string literal in Talk.tsx and keeps comments intact', () => {
+    const d = tmp()
+    bootstrap(d)
+    const title = 'Say "hi" */ \\ and <b>more</b>'
+    addPresentation(d, { slug: 'quoted', title })
+    const talk = readFileSync(path.join(d, 'src/presentations/quoted/Talk.tsx'), 'utf8')
+    expect(talk).toContain(`title={${JSON.stringify(title)}}`)
+    const css = readFileSync(path.join(d, 'src/presentations/quoted/talk.css'), 'utf8')
+    const template = readFileSync(path.join(PRESENTATION_DIR, 'talk.css'), 'utf8')
+    expect(css.match(/\*\//g)).toHaveLength(template.match(/\*\//g)!.length) // the title adds no comment terminator
+    expect(readFileSync(path.join(d, 'src/presentations/quoted/entities.ts'), 'utf8')).not.toContain('__')
   })
 })

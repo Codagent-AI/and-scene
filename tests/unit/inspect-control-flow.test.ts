@@ -4,12 +4,14 @@ import { inspect, InspectionError, parseArgs, stepFile } from '../../scripts/ins
 function fakes(overrides: Record<string, unknown> = {}) {
   const calls: string[] = []
   const snapshot = { items: [], activeChrome: [], attribution: { fontSize: 12, color: 'red', textDecorationLine: 'none' }, runningAnimations: 0, title: 't' }
+  let shown = 0
   const page = {
+    waitForFunction: vi.fn(async () => {}),
     goto: vi.fn(async () => {}),
     waitForSelector: vi.fn(async () => {}),
     getAttribute: vi.fn(async () => '2'),
     keyboard: { press: vi.fn(async () => {}) },
-    evaluate: vi.fn(async () => snapshot),
+    evaluate: vi.fn(async () => ({ ...snapshot, index: shown++ })),
     screenshot: vi.fn(async ({ path }: { path: string }) => { calls.push(`shot ${path}`) }),
   }
   const browser = { newPage: vi.fn(async () => page), close: vi.fn(async () => { calls.push('browser closed') }) }
@@ -60,13 +62,26 @@ describe('inspect control flow', () => {
     deps.launchBrowser = vi.fn(async () => ({
       newPage: async () => ({
         goto: async () => {}, waitForSelector: async () => {}, getAttribute: async () => '1',
-        keyboard: { press: async () => {} }, evaluate: async () => bad, screenshot: async () => {},
+        keyboard: { press: async () => {} }, waitForFunction: async () => {}, evaluate: async () => ({ ...bad, index: 0 }), screenshot: async () => {},
       }),
       close: async () => {},
     }))
     const report = await inspect({ root: '/p', slug: 's', build: false }, deps)
     expect(report.warnings).toHaveLength(1)
     expect(deps.log).toHaveBeenCalledWith(expect.stringContaining('WARN [attribution] step 1'))
+  })
+
+  it('refuses to capture a repeated step when navigation stalls, and when the page shows another step', async () => {
+    const a = fakes()
+    a.page.waitForFunction.mockRejectedValue(new Error('timeout'))
+    await expect(inspect({ root: '/p', slug: 's', build: false }, a.deps)).rejects.toThrow(/did not advance data-step-index to 1/)
+    expect(a.page.screenshot).toHaveBeenCalledTimes(1) // only the first step was captured
+    expect(a.browser.close).toHaveBeenCalled()
+
+    const b = fakes()
+    b.page.evaluate.mockResolvedValue({ items: [], activeChrome: [], attribution: null, runningAnimations: 0, title: 't', index: 0 })
+    await expect(inspect({ root: '/p', slug: 's', build: false }, b.deps)).rejects.toThrow(/expected step index 1 at capture but the page shows 0/)
+    expect(b.preview.close).toHaveBeenCalled()
   })
 
   it('fails and cleans up when the route does not load', async () => {

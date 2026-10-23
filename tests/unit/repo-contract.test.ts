@@ -102,7 +102,7 @@ describe('package scripts and routing decisions', () => {
 
   it('registers presentations in an explicit list rather than a glob', () => {
     expect(read('src/presentations/index.ts')).not.toContain('import.meta.glob')
-    expect(read('src/presentations/index.ts')).toMatch(/\{ slug: '[^']+', title: '[^']+', load: \(\) => import\(/)
+    expect(read('src/presentations/index.ts')).toMatch(/\{ slug: '[^']+', title: ('[^']+'|"[^"]+"), load: \(\) => import\(/)
   })
 })
 

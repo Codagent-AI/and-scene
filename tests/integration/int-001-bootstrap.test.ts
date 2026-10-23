@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { cleanupTmp, run, tmpDir } from '../helpers/proc'
@@ -27,6 +27,9 @@ beforeAll(async () => {
   expect(boot.code, boot.stderr).toBe(0)
   const add = await run('node', [CLI, 'add', app, 'smoke-test', 'Smoke Test'], { cwd })
   expect(add.code, add.stderr).toBe(0)
+  // a title with quotes, an ampersand, markup and a comment terminator must still generate valid sources
+  const quoted = await run('node', [CLI, 'add', app, 'quoted-title', 'Say "hi" & <b>bye</b> */'], { cwd })
+  expect(quoted.code, quoted.stderr).toBe(0)
   const install = await run('npm', ['ci', '--no-audit', '--no-fund'], { cwd: app, timeoutMs: 400000 })
   expect(install.code, install.stdout + install.stderr).toBe(0)
 })
@@ -65,6 +68,7 @@ describe('INT-001: materialized bootstrap', () => {
     expect(verify.code, out).toBe(0)
     expect(out).toContain('render: opening http://127.0.0.1:')
     expect(out).toContain('/smoke-test')
+    expect(out).toContain('/quoted-title')
     expect(out).toContain('observed step indices 0,1')
     expect(out).toMatch(/PASS verify/)
   })
@@ -92,5 +96,30 @@ describe('INT-001: materialized bootstrap', () => {
     for (const f of own.filter((x) => x.startsWith(`src${path.sep}presentation-kit`))) {
       expect(readFileSync(path.join(app, f), 'utf8'), f).not.toMatch(/\b(?:backgroundColor|fontFamily|boxShadow|borderRadius|fontSize)\s*:|#[0-9a-fA-F]{6}\b/)
     }
+  })
+
+  it('wires an ordinary existing Vite app (entry point renders its own App) to the registry, builds and renders it', async () => {
+    // build anchor only: the template's build files, but its own App and entry point
+    const ordinary = path.join(tmpDir('int001-ordinary'), 'ordinary')
+    mkdirSync(path.join(ordinary, 'src'), { recursive: true })
+    for (const f of ['package.json', 'package-lock.json', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'eslint.config.js', 'index.html', '.gitignore']) {
+      cpSync(path.join(app, f), path.join(ordinary, f))
+    }
+    writeFileSync(path.join(ordinary, 'src/App.tsx'), 'export default function App() { return <p>my own app</p> }\n')
+    writeFileSync(path.join(ordinary, 'src/main.tsx'), "import { createRoot } from 'react-dom/client'\nimport App from './App'\ncreateRoot(document.getElementById('root')!).render(<App />)\n")
+    symlinkSync(path.join(app, 'node_modules'), path.join(ordinary, 'node_modules'))
+
+    const resolved = JSON.parse((await run('node', [CLI, 'resolve', ordinary], { cwd })).stdout)
+    expect(resolved.anchors).toEqual({ build: true, kit: false, index: false })
+    const boot = JSON.parse((await run('node', [CLI, 'bootstrap', ordinary], { cwd })).stdout)
+    expect(boot.notes.join(' ')).toContain('now renders the presentation router')
+    expect(existsSync(path.join(ordinary, 'src/main.tsx.bak'))).toBe(true)
+    const add = await run('node', [CLI, 'add', ordinary, 'wired-up', 'Wired Up'], { cwd })
+    expect(add.code, add.stderr).toBe(0)
+
+    const verify = await run('npm', ['run', 'verify', '--silent'], { cwd: ordinary, timeoutMs: 400000 })
+    const out = verify.stdout + verify.stderr
+    expect(verify.code, out).toBe(0)
+    expect(out).toContain('/wired-up')
   })
 })

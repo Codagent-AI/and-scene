@@ -66,7 +66,7 @@ async function checkSample(root, log) {
   }
 }
 
-async function renderPresentation(browser, origin, slug, reference, { settleMs, log }) {
+export async function renderPresentation(browser, origin, slug, reference, { settleMs, log }) {
   const page = await browser.newPage()
   const errors = []
   page.on('console', (m) => m.type() === 'error' && errors.push(`console.error: ${m.text()}`))
@@ -85,6 +85,9 @@ async function renderPresentation(browser, origin, slug, reference, { settleMs, 
     }
     const count = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
     if (!(count > 0)) fail(0, count, 'data-step-count is not a positive number')
+    if (reference && reference.slug === slug && count !== reference.steps.length) {
+      fail(0, count, `data-step-count is ${count} but the reference outline has ${reference.steps.length} steps`)
+    }
     const seen = []
     for (let i = 0; i < count; i++) {
       if (i > 0) {
@@ -120,31 +123,40 @@ async function renderPresentation(browser, origin, slug, reference, { settleMs, 
   }
 }
 
-export async function verify({ root = process.cwd(), port, settleMs = 700, log = console.log } = {}) {
+const realDeps = {
+  build,
+  checkSample,
+  freePort,
+  startPreview,
+  waitForReady,
+  launchBrowser: async () => (await import('playwright')).chromium.launch(),
+  renderPresentation,
+}
+
+export async function verify({ root = process.cwd(), port, settleMs = 700, log = console.log } = {}, deps = realDeps) {
   log('verify: build')
-  await build(root)
+  await deps.build(root)
   log('build: ok')
-  const { slugs, reference } = await checkSample(root, log)
+  const { slugs, reference } = await deps.checkSample(root, log)
 
   let preview
   let browser
   try {
-    const p = port ?? (await freePort())
+    const p = port ?? (await deps.freePort())
     try {
-      preview = await startPreview(root, p)
-      await waitForReady(`${preview.origin}/`)
+      preview = await deps.startPreview(root, p)
+      await deps.waitForReady(`${preview.origin}/`)
     } catch (err) {
       throw new PhaseFailure('render', `could not start the production preview on ${HOST}:${p}: ${err.message}`)
     }
     log(`render: preview host ${HOST} port ${p}; readiness probe ${preview.origin}/`)
     try {
-      const { chromium } = await import('playwright')
-      browser = await chromium.launch()
+      browser = await deps.launchBrowser()
     } catch (err) {
       throw new PhaseFailure('render', `could not launch Chromium: ${err.message}`)
     }
     let steps = 0
-    for (const slug of slugs) steps += await renderPresentation(browser, preview.origin, slug, reference, { settleMs, log })
+    for (const slug of slugs) steps += await deps.renderPresentation(browser, preview.origin, slug, reference, { settleMs, log })
     return { presentations: slugs.length, steps }
   } finally {
     await browser?.close().catch(() => {})

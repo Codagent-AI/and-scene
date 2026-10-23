@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { motion } from 'motion/react'
 import { StrictMode, useEffect, useState } from 'react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { Box, hostKey, Presentation, SceneLayer, type SceneProps, type Step } from '../../src/presentation-kit'
+import { Arrow, Box, hostKey, Presentation, SceneLayer, type SceneProps, type Step } from '../../src/presentation-kit'
 import { setViewport } from '../helpers/fixtures'
 
 beforeEach(() => setViewport(1440))
@@ -203,5 +203,27 @@ describe('entities across steps', () => {
     const step: Step<undefined> = { id: 's', era: 'e', title: 't', caption: 'c', Scene: Raw, payload: undefined }
     render(<Presentation steps={[step]} title="t" />)
     expect(screen.getByTestId('raw').style.left).toBe('3px')
+  })
+})
+
+describe('arrows across replaced scenes', () => {
+  it('start from where the previous arrow with the same id was drawn, so they morph', () => {
+    const drawn = (to: number) =>
+      function ArrowScene() {
+        return (
+          <SceneLayer>
+            <Arrow key="arr" id="arrow-continuity" from={{ x: 0, y: 0 }} to={{ x: to, y: to }} />
+          </SceneLayer>
+        )
+      }
+    const mkArrow = (id: string, to: number): Step<undefined> => ({ id, era: 'e', title: id, caption: id, Scene: drawn(to), payload: undefined })
+    render(<Presentation steps={[mkArrow('one', 10), mkArrow('two', 90)]} title="t" />)
+    const shaft = (i: number) => document.querySelectorAll('[data-presentation-entity="arrow-continuity"] [data-presentation-arrow-shaft]')[i]
+    const first = shaft(0).getAttribute('d')
+    next()
+    expect(document.querySelectorAll('[data-presentation-entity="arrow-continuity"]')).toHaveLength(2)
+    expect(first).toBe('M 0 0 Q 5 5 10 10')
+    // the arriving arrow's path starts at the departing arrow's path (it then animates to 90,90)
+    expect(shaft(1).getAttribute('d')).toBe(first)
   })
 })

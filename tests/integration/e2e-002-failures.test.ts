@@ -2,7 +2,7 @@ import { appendFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { addPresentation } from '../../skills/presentation/scripts/scaffold.mjs'
-import { cleanupTmp, copyRepo, portIsClosed, run } from '../helpers/proc'
+import { cleanupTmp, copyRepo, portIsClosed, processesMentioning, run, tmpDir } from '../helpers/proc'
 
 afterAll(cleanupTmp)
 
@@ -78,6 +78,15 @@ const faults: Fault[] = [
     expectOutput: [/expected 9 steps, found 8/],
   },
   {
+    name: 'a browser step count that disagrees with the reference outline fails the render phase',
+    setup: (d) =>
+      edit(path.join(d, 'src/presentation-kit/Presentation.tsx'), (t) =>
+        t.replace('data-step-count={steps.length}', 'data-step-count={steps.length - 1}'),
+      ),
+    phase: 'render',
+    expectOutput: [/step index 0/, /data-step-count is 8 but the reference outline has 9 steps/],
+  },
+  {
     name: 'a console error while stepping fails the render phase and names the step',
     setup: (d) => breakStep(d, 4, "console.error('INJECTED console error')"),
     phase: 'render',
@@ -112,7 +121,8 @@ describe('E2E-002: `npm run verify` fails clearly on injected faults', () => {
   it.concurrent.each(faults)('$name', async ({ setup, phase, expectOutput }) => {
     const dir = copyRepo('e2e002')
     setup(dir)
-    const result = await run('node', ['scripts/verify.mjs'], { cwd: dir, timeoutMs: 400000 })
+    const scratch = tmpDir('e2e002-tmp')
+    const result = await run('node', ['scripts/verify.mjs'], { cwd: dir, timeoutMs: 400000, env: { TMPDIR: scratch } })
     const out = result.stdout + result.stderr
     expect(result.code, out).not.toBe(0)
     expect(result.stderr, out).toContain(`FAIL [${phase}]`)
@@ -128,6 +138,7 @@ describe('E2E-002: `npm run verify` fails clearly on injected faults', () => {
     if (phase === 'render') {
       expect(probe, out).not.toBeNull()
       expect(await portIsClosed(Number(probe![1]))).toBe(true)
+      expect(processesMentioning(scratch)).toEqual([]) // no browser left behind
     }
   })
 })

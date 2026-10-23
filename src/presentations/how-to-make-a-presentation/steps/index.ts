@@ -17,7 +17,7 @@ const s3 = [...s2, E.tray, E.card1] as const
 const s4 = [...s3, E.card2, E.card3, E.card4, E.link1, E.link1Label, E.link2, E.link2Label, E.link3, E.link3Label] as const
 const s5 = [...s4, E.ghost, E.control] as const
 const s6 = [...s5, E.socket] as const
-const s7 = [...s6, E.verify, E.pass] as const
+const s7 = [...s6, E.verify, E.link4, E.link4Label, E.pass] as const
 const s8 = [...s7, E.modify, E.modifyLabel, E.edited, E.editedFlag] as const
 const s9 = [...s8, E.frame, E.reveal] as const
 

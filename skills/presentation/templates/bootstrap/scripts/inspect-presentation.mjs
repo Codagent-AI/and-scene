@@ -71,16 +71,24 @@ export async function inspect(options, deps = realDeps) {
 
     const report = { slug, url, viewport, settleMs, steps: [], warnings: [] }
     for (let i = 0; i < count; i++) {
-      if (i > 0) await page.keyboard.press('ArrowRight')
+      if (i > 0) {
+        await page.keyboard.press('ArrowRight')
+        try {
+          await page.waitForFunction((n) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(n), i, { timeout: 4000 })
+        } catch {
+          throw new InspectionError(`ArrowRight from index ${i - 1} did not advance data-step-index to ${i}; refusing to capture a repeated step`)
+        }
+      }
       const elapsedMs = await deps.settle(settleMs)
       const snapshot = await page.evaluate(collectSnapshot)
+      if (snapshot.index !== i) throw new InspectionError(`expected step index ${i} at capture but the page shows ${snapshot.index}`)
       const file = stepFile(outDir, i)
       try {
         await page.screenshot({ path: file })
       } catch (err) {
         throw new InspectionError(`could not write screenshot ${file}: ${err.message}`)
       }
-      const warnings = diagnose({ ...snapshot, index: i })
+      const warnings = diagnose(snapshot)
       report.steps.push({ index: i, file, elapsedMs, runningAnimationsAtCapture: snapshot.runningAnimations, warnings: warnings.length })
       report.warnings.push(...warnings)
     }

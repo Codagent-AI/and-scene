@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest'
-import { cleanupTmp, portIsClosed, run } from '../helpers/proc'
+import { cleanupTmp, portIsClosed, processesMentioning, run, tmpDir } from '../helpers/proc'
 import { ROOT, specOutline } from '../helpers/spec-outline'
 
 afterAll(cleanupTmp)
@@ -7,7 +7,8 @@ afterAll(cleanupTmp)
 // E2E-001: the reference presentation passes production verification.
 describe('E2E-001: `npm run verify` on the committed repository', () => {
   it('builds, finds the nine-step sample, renders every step on 127.0.0.1 and exits zero with a clear pass', async () => {
-    const result = await run('npm', ['run', 'verify', '--silent'], { cwd: ROOT, timeoutMs: 400000 })
+    const scratch = tmpDir('e2e001-tmp') // the browser profile lives here, so leftover browsers are findable
+    const result = await run('npm', ['run', 'verify', '--silent'], { cwd: ROOT, timeoutMs: 400000, env: { TMPDIR: scratch } })
     const out = result.stdout + result.stderr
     expect(result.code, out).toBe(0)
     expect(result.stdout).toMatch(/^PASS verify:/m)
@@ -35,5 +36,7 @@ describe('E2E-001: `npm run verify` on the committed repository', () => {
 
     // the preview is gone once verification exits
     expect(await portIsClosed(port)).toBe(true)
+    // and so is the browser it launched
+    expect(processesMentioning(scratch)).toEqual([])
   })
 })

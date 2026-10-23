@@ -87,7 +87,10 @@ then). An empty directory needs no confirmation.
 Then run `node "$SKILL/scripts/scaffold.mjs" bootstrap <project-dir>`. It copies
 only the missing anchors from `$SKILL/templates/bootstrap/`, never overwrites an
 existing file, and merges any missing dependencies into an existing
-`package.json`. **Never assume the dependencies are installed**: run the
+`package.json`. When all three anchors already exist it changes nothing. If an
+existing entry point does not render the presentation router, it is replaced
+by the router entry point and the old one is kept as `<entry>.bak` (the
+`notes` in its output say so). **Never assume the dependencies are installed**: run the
 `installCommand` it reports (`npm ci` or `npm install`) in the target before
 creating the presentation. The dependency set is React, React DOM, Vite,
 `@vitejs/plugin-react`, TypeScript with `@types/react`, `@types/react-dom` and
@@ -140,16 +143,21 @@ Modeling rules:
 
 ## Modify
 
-1. Identify the target. If the user did not clearly name a presentation (or the
-   name is ambiguous), **list the existing presentations from
-   `src/presentations/index.ts` and ask which to modify before changing
+1. **Check the scaffold before editing anything.** Run
+   `node "$SKILL/scripts/scaffold.mjs" resolve <project-dir>`. If the scene kit
+   or presentation index is missing in a non-empty project, state the exact
+   target directory and **wait for the user to confirm before writing
+   anything**; then run `bootstrap` (only the missing anchors are added). No
+   edit, copy or install happens before that confirmation.
+2. Identify the target. If the user did not clearly name a presentation (or the
+   name is ambiguous), **list the existing presentations from the presentation
+   index (`src/presentations/index.ts`) and ask which to modify before changing
    anything.**
-2. Ask only about the requested change (steps, entities or style). Do not
+3. Ask only about the requested change (steps, entities or style). Do not
    re-walk the create questions, and leave other presentations alone.
-3. Edit that presentation's files in place (keep entity ids stable so morphs
-   stay clean). Make sure the scaffold anchors still exist; add only what is
-   missing, with the same confirm-first rule for a non-empty project.
-4. Run *Self-verify*.
+4. Edit that presentation's files in place (keep entity ids stable so morphs
+   stay clean).
+5. Run *Self-verify*.
 
 ## Self-verify
 

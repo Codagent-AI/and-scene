@@ -20,11 +20,11 @@ const card = (id: EntityId, slot: number, flagged: readonly EntityId[], appear: 
   </Box>
 )
 
-const link = (id: EntityId, labelId: EntityId, slot: number, appear: boolean) => (
+const link = (id: EntityId, labelId: EntityId, slot: number, appear: boolean, label = 'morph') => (
   <>
     <Arrow id={id} appear={appear} from={{ x: slotX(slot) + SLOT_SIZE + 4, y: 198 }} to={{ x: slotX(slot + 1) - 4, y: 198 }} />
     <SymbolChip id={labelId} appear={appear} x={slotX(slot) + SLOT_SIZE + 2} y={172} width={36} height={16}>
-      <span>morph</span>
+      <span>{label}</span>
     </SymbolChip>
   </>
 )
@@ -80,6 +80,9 @@ function render(id: EntityId, flagged: readonly EntityId[], appear: boolean): Re
           <span>render</span>
         </Box>
       )
+    case E.link4:
+      // verification is chained after the step cards: the last tray slot before verify links into it
+      return link(id, E.link4Label, 4, appear, 'check')
     case E.pass:
       return (
         <SymbolChip id={id} appear={appear} Icon={Check} iconSize={14} x={slotX(5) + 26} y={220} width={48} height={22} data-presentation-allow-overlap="">

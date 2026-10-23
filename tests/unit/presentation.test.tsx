@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { Presentation } from '../../src/presentation-kit'
 import { makeSteps, mounts, stubMatchMedia } from './fixtures'
@@ -29,6 +29,20 @@ describe('Presentation chrome and modes', () => {
       if (i < steps.length - 1) fireEvent.click(container.querySelector('[data-presentation-next]')!)
     }
     expect(root(container).getAttribute('data-step-index')).toBe('3')
+  })
+
+  it('derives step numbers from position after reordering, insertion, and removal', () => {
+    const steps = makeSteps()
+    const { container, rerender } = render(<Presentation title="Deck" steps={steps} />)
+    fireEvent.click(container.querySelectorAll('[data-presentation-progress-dot]')[2])
+    expect(container.querySelector('[data-presentation-marker]')?.textContent).toBe('03 · second era')
+    rerender(<Presentation title="Deck" steps={[...steps].reverse()} />)
+    expect(container.querySelector('[data-presentation-marker]')?.textContent).toBe('03 · first era')
+    rerender(<Presentation title="Deck" steps={[...steps, steps[0]]} />)
+    expect(container.querySelector('[data-presentation-marker]')?.textContent).toBe('03 · second era')
+    rerender(<Presentation title="Deck" steps={steps.slice(1)} />)
+    expect(container.querySelector('[data-presentation-marker]')?.textContent).toBe('03 · second era')
+    expect(container.querySelectorAll('[data-presentation-progress-dot]')).toHaveLength(4)
   })
 
   it('reports step count and index hooks in both modes', () => {
@@ -99,18 +113,34 @@ describe('Presentation navigation controls', () => {
     expect(container.querySelector('[data-presentation-step-title]')?.textContent).toBe('Gamma')
   })
 
-  it('exposes current-step semantics and an active hook on exactly one dot and era entry', () => {
+  it('on every step, exactly one dot and one era entry carry current-step semantics and the active hook', () => {
     const { container } = render(<Presentation title="Deck" steps={makeSteps()} />)
-    fireEvent.click(container.querySelectorAll('[data-presentation-progress-dot]')[3])
-    const dots = [...container.querySelectorAll('[data-presentation-progress-dot]')]
-    expect(dots.filter((d) => d.getAttribute('aria-current') === 'step')).toHaveLength(1)
-    expect(dots.filter((d) => d.getAttribute('data-presentation-active') === 'true')).toHaveLength(1)
-    expect(dots[3].getAttribute('aria-current')).toBe('step')
-    expect(dots[0].getAttribute('aria-current')).toBeNull()
-    const entries = [...container.querySelectorAll('[data-presentation-toc-entry]')]
-    expect(entries[1].getAttribute('aria-current')).toBe('step')
-    expect(entries[1].getAttribute('data-presentation-active')).toBe('true')
-    expect(entries[0].getAttribute('data-presentation-active')).toBeNull()
+    const steps = makeSteps()
+    for (let i = 0; i < steps.length; i += 1) {
+      fireEvent.click(container.querySelectorAll('[data-presentation-progress-dot]')[i])
+      const dots = [...container.querySelectorAll('[data-presentation-progress-dot]')]
+      expect(dots.filter((d) => d.getAttribute('aria-current') === 'step'), `dots at ${i}`).toHaveLength(1)
+      expect(dots.filter((d) => d.getAttribute('data-presentation-active') === 'true')).toHaveLength(1)
+      expect(dots[i].getAttribute('aria-current')).toBe('step')
+      const entries = [...container.querySelectorAll('[data-presentation-toc-entry]')]
+      const activeEra = steps[i].era
+      entries.forEach((entry) => {
+        const active = entry.textContent === activeEra
+        expect(entry.getAttribute('data-presentation-active') === 'true', `era ${entry.textContent} at ${i}`).toBe(active)
+        expect(entry.getAttribute('aria-current') === 'step', `aria at ${i}`).toBe(active)
+      })
+    }
+  })
+
+  it('the title, caption, and scene payload agree with the active index', async () => {
+    const { container } = render(<Presentation title="Deck" steps={makeSteps()} />)
+    const steps = makeSteps()
+    fireEvent.click(container.querySelectorAll('[data-presentation-progress-dot]')[2])
+    expect(container.querySelector('[data-presentation-step-title]')?.textContent).toBe(steps[2].title)
+    expect(container.querySelector('[data-presentation-caption]')?.textContent).toBe(steps[2].caption)
+    // The outgoing scene exits before it is removed, so wait until only the active scene remains.
+    await waitFor(() => expect(screen.getAllByTestId('scene')).toHaveLength(1), { timeout: 4000 })
+    expect(screen.getByTestId('scene').getAttribute('data-payload')).toBe(steps[2].payload)
   })
 
   it('prev and next are disabled at the ends and do nothing there', () => {

@@ -44,10 +44,13 @@ describe('materialized bootstrap', () => {
     expect(build.status, build.output).toBe(0)
   }, 300_000)
 
-  it('its registered route passes the local verification entry point', () => {
+  it('its registered route passes the local verification entry point, which leaves no preview running', async () => {
     const verify = run('npm', ['run', 'verify'], app)
     expect(verify.output).toContain('verify: PASS')
     expect(verify.status, verify.output).toBe(0)
+    const preview = verify.output.match(/preview ready at (http:\/\/127\.0\.0\.1:\d+)/)?.[1]
+    expect(preview).toBeDefined()
+    await expect(fetch(preview!, { signal: AbortSignal.timeout(2000) })).rejects.toThrow()
   }, 600_000)
 })
 

@@ -63,7 +63,7 @@ const overlapping = [
 const steps = (variant: string, layers: FixturePayload['labels'][]): Step<FixturePayload>[] =>
   layers.map((labels, i) => ({
     id: \`\${variant}-\${i}\`,
-    era: 'fixture era',
+    era: \`fixture era \${i + 1}\`,
     title: \`Step \${i + 1}\`,
     caption: 'Fixture caption for inspection.',
     Scene: FixtureScene as ComponentType<SceneProps<FixturePayload>>,

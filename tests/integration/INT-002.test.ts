@@ -89,7 +89,9 @@ describe('advisory chrome and attribution warnings', () => {
   it('warns when the active progress dot and ToC entry are indistinct from inactive ones', () => {
     const result = inspect('fixture-indistinct')
     expect(result.status).toBe(0)
-    expect(warningsFor(result.output).filter((line) => line.includes('indistinct'))).not.toHaveLength(0)
+    const warnings = warningsFor(result.output)
+    expect(warnings.some((line) => line.includes('indistinct') && line.includes('progress-dot'))).toBe(true)
+    expect(warnings.some((line) => line.includes('indistinct') && line.includes('toc-entry'))).toBe(true)
   }, 300_000)
 
   it('warns for a too-small attribution and names the styling hook', () => {

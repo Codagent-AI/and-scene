@@ -21,6 +21,13 @@ describe('routing and registry', () => {
     expect(await screen.findByText('How to Use This Skill to Make a Presentation', { selector: '[data-presentation-deck-title]' })).toBeTruthy()
   })
 
+  it('every registry entry loads its folder entry module, which default-exports a component', async () => {
+    for (const entry of presentations) {
+      const module = await entry.load()
+      expect(typeof module.default, entry.slug).toBe('function')
+    }
+  })
+
   it('registry slugs are unique and every entry has a non-empty title and a loader', () => {
     const slugs = presentations.map((entry) => entry.slug)
     expect(new Set(slugs).size).toBe(slugs.length)

@@ -25,14 +25,19 @@ function sceneOf(entities: string[]): ComponentType<SceneProps<string>> {
   }
 }
 
-/** A scene that counts its own mounts, so tests can detect remounts. */
+/** A scene that counts its own mounts, so tests can detect remounts, and shows its payload. */
 function countedSceneOf(entities: string[]): ComponentType<SceneProps<string>> {
   const Inner = sceneOf(entities)
   return function CountedScene(props: SceneProps<string>) {
     useEffect(() => {
       mounts.count += 1
     }, [])
-    return <Inner {...props} />
+    return (
+      <>
+        <span data-presentation-payload="">{props.payload}</span>
+        <Inner {...props} />
+      </>
+    )
   }
 }
 
@@ -79,6 +84,32 @@ describe('grouped scene persistence', () => {
     fireEvent.click(nextButton(container))
     expect(container.querySelector('[data-presentation-scene]')).toBe(root)
     expect(mounts.count).toBe(before)
+  })
+
+  it('an entity removed within a grouped scene animates out before it is removed', async () => {
+    // One Scene instance; the payload drops an entity. The departing node must outlive the change.
+    const Scene = function GroupedScene({ payload }: SceneProps<string>) {
+      return <SceneLayer>{(payload === 'a' ? ['keep', 'leave'] : ['keep']).map((id) => <Box key={id} id={id} />)}</SceneLayer>
+    }
+    const steps = [step('a', Scene, 'g'), step('b', Scene, 'g')]
+    const { container } = render(<Presentation title="t" steps={steps} />)
+    const node = container.querySelector('[data-presentation-scene]')
+    act(() => {
+      fireEvent.click(nextButton(container))
+    })
+    expect(container.querySelector('[data-presentation-scene]')).toBe(node)
+    expect(container.querySelector('[data-presentation-id="leave"]')).not.toBeNull()
+    await waitFor(() => expect(container.querySelector('[data-presentation-id="leave"]')).toBeNull(), { timeout: 4000 })
+    expect(container.querySelector('[data-presentation-id="keep"]')).not.toBeNull()
+  })
+
+  it('a grouped update shows the new payload in the same scene instance', () => {
+    const Scene = countedSceneOf(['x'])
+    const steps = [step('a', Scene, 'g'), step('b', Scene, 'g')]
+    const { container } = render(<Presentation title="t" steps={steps} />)
+    expect(container.querySelector('[data-presentation-payload]')?.textContent).toBe('a')
+    fireEvent.click(nextButton(container))
+    expect(container.querySelector('[data-presentation-payload]')?.textContent).toBe('b')
   })
 
   it('same groupKey but a different Scene remounts', () => {

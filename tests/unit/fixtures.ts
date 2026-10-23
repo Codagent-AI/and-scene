@@ -1,4 +1,4 @@
-import { useEffect, type ComponentType } from 'react'
+import { createElement, useEffect, type ComponentType } from 'react'
 import type { Step, SceneProps } from '../../src/presentation-kit'
 
 /** Counts mounts of a scene instance so tests can see remounts. */
@@ -8,7 +8,7 @@ export function CountingScene({ payload }: SceneProps<string>) {
   useEffect(() => {
     mounts.count += 1
   }, [])
-  return <div data-testid="scene" data-payload={payload} />
+  return createElement('div', { 'data-testid': 'scene', 'data-payload': payload })
 }
 
 export function makeSteps(extra: Partial<Step<string>> = {}): Step<string>[] {
@@ -33,4 +33,22 @@ export function stubMatchMedia(wide: boolean) {
     removeListener: () => {},
     dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia
+}
+
+/** Stubs matchMedia for `(min-width: Npx)` queries against a viewport of the given width. */
+export function stubViewport(width: number) {
+  window.matchMedia = ((query: string) => {
+    const min = /min-width:\s*(\d+)px/.exec(query)
+    const matches = min ? width >= Number(min[1]) : false
+    return {
+      matches,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }
+  }) as unknown as typeof window.matchMedia
 }

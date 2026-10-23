@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, existsSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -15,6 +15,14 @@ import {
 const SCRIPT = join(import.meta.dirname, '..', '..', 'skills', 'presentation', 'scripts', 'scaffold.mjs')
 
 let dir: string
+
+/** Every file under a directory, relative to it. */
+function listAll(root: string, rel = ''): string[] {
+  return readdirSync(join(root, rel), { withFileTypes: true }).flatMap((entry) => {
+    const next = join(rel, entry.name)
+    return entry.isDirectory() ? listAll(root, next) : [next]
+  })
+}
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'scaffold-unit-'))
@@ -132,6 +140,25 @@ describe('scaffolding', () => {
     expect(result.skipped).toContain('src/presentation-kit/index.ts')
     expect(result.skipped).toContain('package.json')
     expect(result.skipped).toContain('package-lock.json')
+  })
+
+  it('a complete project is reused and every existing file stays byte-identical', async () => {
+    await scaffoldInto(dir)
+    const snapshot = listAll(dir).map((rel) => [rel, readFileSync(join(dir, rel), 'utf8')])
+    const stdout = execFileSync('node', [SCRIPT, 'scaffold', dir], { encoding: 'utf8' })
+    expect(JSON.parse(stdout)).toMatchObject({ action: 'reuse', created: [], skipped: [] })
+    expect(listAll(dir).map((rel) => [rel, readFileSync(join(dir, rel), 'utf8')])).toEqual(snapshot)
+  })
+
+  it('a partial scaffold creates only the missing files and leaves present ones alone', async () => {
+    write('package.json', '{"name":"partial"}')
+    write('vite.config.ts', 'export default {}')
+    const result = await scaffoldInto(dir)
+    expect(result.created).toContain('src/presentations/index.ts')
+    expect(result.created).toContain('src/presentation-kit/types.ts')
+    expect(result.skipped).toEqual(expect.arrayContaining(['package.json', 'vite.config.ts']))
+    expect(existsSync(join(dir, 'src/presentations/index.ts'))).toBe(true)
+    expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe('{"name":"partial"}')
   })
 
   it('reports the required dependencies a project does not declare', async () => {

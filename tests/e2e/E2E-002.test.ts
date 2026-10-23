@@ -48,18 +48,20 @@ async function previewStopped(output: string): Promise<boolean> {
   }
 }
 
-function expectFailure(result: { status: number | null; output: string }, phase: string, step?: number) {
+/** Asserts a failing verification names its phase (and step) and leaves no preview running. */
+async function expectFailure(result: { status: number | null; output: string }, phase: string, step?: number) {
   expect(result.status, result.output).not.toBe(0)
   expect(result.output).toContain(`verify: FAIL (${phase})`)
   expect(result.output).not.toContain('verify: PASS')
   if (step !== undefined) expect(result.output).toMatch(new RegExp(`${phase}: step ${step}\\b`))
+  expect(await previewStopped(result.output)).toBe(true)
 }
 
 describe('build failure', () => {
   it('a type error in a non-sample application file fails in the build phase', async () => {
     const dir = faulty((text) => `${text}\nexport const broken: number = 'x'\n`, 'src/Landing.tsx')
     const result = run('npm', ['run', 'verify'], dir, 300_000)
-    expectFailure(result, 'build')
+    await expectFailure(result, 'build')
     expect(await previewStopped(result.output)).toBe(true)
   }, 400_000)
 })
@@ -83,39 +85,67 @@ describe('sample failures', () => {
       'src/presentations/index.ts',
     )
     const result = run('npm', ['run', 'verify'], dir, 300_000)
-    expectFailure(result, 'sample')
+    await expectFailure(result, 'sample')
   }, 400_000)
 
-  it('two steps swapped out of order fail at the first step that differs', () => {
+  it('two steps swapped out of order fail at the first step that differs', async () => {
     const dir = faulty(
       (text) => replaceOnce(text, 'step02, step03,', 'step03, step02,'),
       'src/presentations/how-to-make-a-presentation/steps/index.ts',
     )
     const result = run('npm', ['run', 'verify'], dir, 300_000)
-    expectFailure(result, 'sample', 1)
+    await expectFailure(result, 'sample', 1)
   }, 400_000)
 
-  it('a changed normative title fails and names the step', () => {
+  it('a changed normative title fails and names the step', async () => {
     const dir = faulty(
       (text) => replaceOnce(text, "title: 'Answers become steps'", "title: 'Answers become'"),
       'src/presentations/how-to-make-a-presentation/steps/03-answers-become-steps.tsx',
     )
     const result = run('npm', ['run', 'verify'], dir, 300_000)
-    expectFailure(result, 'sample', 2)
+    await expectFailure(result, 'sample', 2)
   }, 400_000)
 
-  it('a changed normative caption fails and names the step', () => {
+  it('a changed normative caption fails and names the step', async () => {
     const dir = faulty(
       (text) => replaceOnce(text, 'One question at a time:', 'One question:'),
       'src/presentations/how-to-make-a-presentation/steps/02-the-skill-interviews-you.tsx',
     )
     const result = run('npm', ['run', 'verify'], dir, 300_000)
-    expectFailure(result, 'sample', 1)
+    await expectFailure(result, 'sample', 1)
   }, 400_000)
 })
 
 describe('browser and transition failures', () => {
-  it('a console error raised while entering step 4 fails the render phase at that step', () => {
+  it('a console error on the first step fails the render phase at step 1', async () => {
+    const dir = faulty(
+      (text) =>
+        replaceOnce(
+          text,
+          'export function Diagram({ payload }: SceneProps<DiagramState>) {',
+          "export function Diagram({ payload }: SceneProps<DiagramState>) {\n  if (payload.visible.length === 2) console.error('fault')",
+        ),
+      'src/presentations/how-to-make-a-presentation/scene.tsx',
+    )
+    const result = run('npm', ['run', 'verify'], dir, 300_000)
+    await expectFailure(result, 'render', 0)
+  }, 400_000)
+
+  it('a console error on the final step fails the render phase at step 9', async () => {
+    const dir = faulty(
+      (text) =>
+        replaceOnce(
+          text,
+          'export function Diagram({ payload }: SceneProps<DiagramState>) {',
+          "export function Diagram({ payload }: SceneProps<DiagramState>) {\n  if (payload.added.includes('reveal-frame')) console.error('fault')",
+        ),
+      'src/presentations/how-to-make-a-presentation/scene.tsx',
+    )
+    const result = run('npm', ['run', 'verify'], dir, 300_000)
+    await expectFailure(result, 'render', 8)
+  }, 400_000)
+
+  it('a console error raised while entering step 4 fails the render phase at that step', async () => {
     const dir = faulty(
       (text) =>
         replaceOnce(
@@ -126,10 +156,10 @@ describe('browser and transition failures', () => {
       'src/presentations/how-to-make-a-presentation/scene.tsx',
     )
     const result = run('npm', ['run', 'verify'], dir, 300_000)
-    expectFailure(result, 'render', 3)
+    await expectFailure(result, 'render', 3)
   }, 400_000)
 
-  it('an uncaught page error raised while entering step 4 fails the render phase at that step', () => {
+  it('an uncaught page error raised while entering step 4 fails the render phase at that step', async () => {
     const dir = faulty(
       (text) =>
         replaceOnce(
@@ -140,10 +170,10 @@ describe('browser and transition failures', () => {
       'src/presentations/how-to-make-a-presentation/scene.tsx',
     )
     const result = run('npm', ['run', 'verify'], dir, 300_000)
-    expectFailure(result, 'render', 3)
+    await expectFailure(result, 'render', 3)
   }, 400_000)
 
-  it('a transition that does not advance the public step index fails the transition phase at the stuck step', () => {
+  it('a transition that does not advance the public step index fails the transition phase at the stuck step', async () => {
     const dir = faulty(
       (text) =>
         replaceOnce(
@@ -154,7 +184,7 @@ describe('browser and transition failures', () => {
       'src/presentation-kit/usePresentationNav.ts',
     )
     const result = run('npm', ['run', 'verify'], dir, 300_000)
-    expectFailure(result, 'transition', 3)
+    await expectFailure(result, 'transition', 3)
   }, 400_000)
 })
 

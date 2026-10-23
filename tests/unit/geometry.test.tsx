@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
-import { render, renderHook, act } from '@testing-library/react'
+import { act, fireEvent, render, renderHook } from '@testing-library/react'
 import { useRef } from 'react'
 import { computeFitScale, useFitScale } from '../../src/presentation-kit/useFitScale'
 import { DESIGN_H, DESIGN_W, ENTER_DELAY, LAYOUT_T, MIN_SCALE, STAGE_LAYOUT, WIDE_BREAKPOINT } from '../../src/presentation-kit/constants'
 import { Presentation } from '../../src/presentation-kit'
-import { makeSteps, stubMatchMedia } from './fixtures'
+import { makeSteps, stubMatchMedia, stubViewport } from './fixtures'
 
 describe('canvas and timing constants', () => {
   it('the default design canvas is 880 × 380', () => {
@@ -73,6 +73,43 @@ describe('useFitScale', () => {
     })
     expect(result.current).toBeLessThan(first)
     spy.mockRestore()
+  })
+
+  it('the table of contents appears at or above the breakpoint and is absent just below it', () => {
+    const { container, unmount } = render(<Presentation title="t" steps={makeSteps()} />)
+    for (const [width, expected] of [[899, false], [900, true], [1280, true], [390, false]] as const) {
+      unmount()
+      stubViewport(width)
+      const view = render(<Presentation title="t" steps={makeSteps()} />)
+      expect(view.container.querySelector('[data-presentation-toc]') !== null, `width ${width}`).toBe(expected)
+      for (const hook of ['[data-presentation-caption]', '[data-presentation-prev]', '[data-presentation-progress]']) {
+        expect(view.container.querySelector(hook), `${hook} at ${width}`).not.toBeNull()
+      }
+      view.unmount()
+    }
+    expect(container).toBeDefined()
+  })
+
+  it('the scale stays the same across steps at a fixed viewport and mode', () => {
+    stubViewport(1280)
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, top: 0, left: 0, right: 1100, bottom: 600, width: 1100, height: 600, toJSON: () => ({}),
+    } as DOMRect)
+    const { container } = render(<Presentation title="t" steps={makeSteps()} />)
+    const scaleOf = () => (container.querySelector('[data-presentation-canvas]') as HTMLElement).style.transform
+    const first = scaleOf()
+    fireEvent.click(container.querySelector('[data-presentation-next]')!)
+    fireEvent.click(container.querySelector('[data-presentation-next]')!)
+    expect(scaleOf()).toBe(first)
+    spy.mockRestore()
+  })
+
+  it('a presentation can override the design canvas, and omitted fields keep the mode default', () => {
+    stubViewport(1280)
+    const { container } = render(<Presentation title="t" steps={makeSteps()} design={{ width: 640 }} />)
+    const canvas = container.querySelector('[data-presentation-canvas]') as HTMLElement
+    expect(canvas.style.width).toBe('640px')
+    expect(canvas.style.height).toBe(`${DESIGN_H}px`)
   })
 
   it('Presentation applies the stage scale to the canvas via a single uniform transform', () => {

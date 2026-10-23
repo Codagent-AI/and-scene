@@ -70,6 +70,15 @@ describe('reference sample scene', () => {
     expect(css).toMatch(/\[data-presentation-attribution\]\s*\{[^}]*font-size:\s*1[1-9]px/)
   })
 
+  it('keeps dense scene labels large enough to stay legible after narrow-viewport scaling', () => {
+    const css = readFileSync('src/presentations/how-to-make-a-presentation/talk.css', 'utf8')
+    const size = (variant: string) =>
+      Number(new RegExp(`variant='${variant}'\\]\\s*\\{[^}]*font-size:\\s*(\\d+)px`).exec(css)?.[1])
+    expect(size('part')).toBeGreaterThanOrEqual(18)
+    expect(size('card')).toBeGreaterThanOrEqual(16)
+    expect(size('caption')).toBeGreaterThanOrEqual(14)
+  })
+
   it('keeps its entity ids and literal canvas coordinates in its own entities.ts (I-13)', () => {
     const entities = readFileSync('src/presentations/how-to-make-a-presentation/entities.ts', 'utf8')
     expect(entities).toMatch(/export const E = /)

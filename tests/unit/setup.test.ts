@@ -6,7 +6,7 @@ import {
 import os from 'node:os'
 import path from 'node:path'
 import {
-  createPresentation, detect, detectAnchors, scaffold,
+  createPresentation, detect, detectAnchors, installArgs, scaffold,
 } from '../../skills/presentation/scripts/setup.mjs'
 
 let tmp: string
@@ -277,5 +277,13 @@ describe('create', () => {
     expect(() => createPresentation(tmp, 'taken', 'Taken')).toThrow(/already registered/)
     expect(read('src/presentations/index.ts')).toBe(before)
     expect(existsSync(path.join(tmp, 'src/presentations/taken'))).toBe(false)
+  })
+})
+
+describe('dependency install target', () => {
+  it('pins npm to the scaffold target so a workspace member installs locally, not at the root', () => {
+    const target = path.join(tmp, 'monorepo', 'presentations')
+    expect(installArgs(target)).toEqual(['install', '--prefix', target])
+    expect(installArgs(path.relative(process.cwd(), target))).toEqual(['install', '--prefix', target])
   })
 })

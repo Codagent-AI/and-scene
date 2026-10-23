@@ -197,6 +197,14 @@ function wireEntryPoint(targetDir) {
   return { entry: path.relative(targetDir, entry), host: path.relative(targetDir, host) }
 }
 
+/**
+ * `--prefix` pins npm to the target. Without it, npm run inside an npm workspace member
+ * installs into the workspace root, so the target would not be a self-contained app.
+ */
+export function installArgs(targetDir) {
+  return ['install', '--prefix', path.resolve(targetDir)]
+}
+
 /** Copies only the missing anchors. Existing files are never overwritten. */
 export function scaffold(targetDir, { install = true } = {}) {
   targetDir = path.resolve(targetDir)
@@ -232,7 +240,7 @@ export function scaffold(targetDir, { install = true } = {}) {
   let installed = false
   let installError = null
   if (install && (written.length || merged.length)) {
-    const r = spawnSync('npm', ['install'], { cwd: targetDir, stdio: 'inherit' })
+    const r = spawnSync('npm', installArgs(targetDir), { cwd: targetDir, stdio: 'inherit' })
     if (r.status === 0) installed = true
     else installError = `npm install failed (exit ${r.status ?? 'signal'}); files were already written, rerun npm install in ${targetDir}`
   }

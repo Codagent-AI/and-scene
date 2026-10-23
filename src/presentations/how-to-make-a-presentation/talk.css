@@ -108,15 +108,15 @@
   background: #1b222b;
 }
 [data-presentation-node='box'] [data-presentation-glyph] { width: 18px; height: 18px; color: var(--accent); }
-[data-presentation-variant='card'] { font-size: 13px; color: var(--muted); }
-[data-presentation-variant='part'] { font-size: 12px; color: var(--ink); }
+[data-presentation-variant='card'] { font-size: 16px; color: var(--muted); }
+[data-presentation-variant='part'] { font-size: 18px; color: var(--ink); }
 [data-presentation-variant='ghost'] { border-style: dashed; color: var(--muted); background: transparent; }
 [data-presentation-variant='socket'] { border-color: var(--accent); flex-direction: row; justify-content: center; }
 [data-presentation-variant='bubble'] {
   display: flex; align-items: center; justify-content: center;
   border-radius: 14px; background: #263140; font-size: 14px;
 }
-[data-presentation-variant='caption'] { font-size: 12px; color: var(--muted); }
+[data-presentation-variant='caption'] { font-size: 14px; color: var(--muted); }
 [data-presentation-node='chip'] {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   border-radius: 999px; background: #263140; font-size: 13px;

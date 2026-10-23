@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { presentations } from '../../src/presentations'
 import { resolveRoute } from '../../src/router'
-import { parseRegistry, readRegistry } from '../../scripts/lib/runtime.mjs'
+import { packageDir, parseRegistry, readRegistry } from '../../scripts/lib/runtime.mjs'
 
 describe('registry and router', () => {
   it('registers the reference sample with unique slugs and loadable presentations (I-42)', async () => {
@@ -36,5 +38,25 @@ describe('registry and router', () => {
     expect(parsed[0].dir).toBe('how-to-make-a-presentation')
     expect(parseRegistry(readFileSync('src/presentations/index.ts', 'utf8'))).toEqual(parsed)
     expect(parseRegistry('export const presentations = []')).toEqual([])
+  })
+})
+
+describe('packageDir', () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'pkgdir-'))
+  const pkg = (dir: string, name: string) => {
+    mkdirSync(path.join(dir, 'node_modules', name), { recursive: true })
+    writeFileSync(path.join(dir, 'node_modules', name, 'package.json'), JSON.stringify({ name, version: '1.0.0' }))
+  }
+
+  it('finds a dependency hoisted to a workspace root above the project', () => {
+    pkg(root, 'hoisted-dep')
+    const app = path.join(root, 'presentations')
+    mkdirSync(app, { recursive: true })
+    writeFileSync(path.join(app, 'package.json'), '{}')
+    expect(packageDir(app, 'hoisted-dep')).toBe(path.join(root, 'node_modules', 'hoisted-dep'))
+  })
+
+  it('falls back to the project node_modules path when nothing resolves', () => {
+    expect(packageDir(root, 'missing-dep')).toBe(path.join(root, 'node_modules', 'missing-dep'))
   })
 })

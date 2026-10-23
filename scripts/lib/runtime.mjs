@@ -2,8 +2,10 @@
 // production preview on 127.0.0.1, and browser launch.
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import net from 'node:net'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 export const HOST = '127.0.0.1'
 
@@ -20,6 +22,18 @@ export function readRegistry(root) {
     .map((f) => path.join(root, 'src', 'presentations', f))
     .find((f) => existsSync(f))
   return file ? parseRegistry(readFileSync(file, 'utf8')) : []
+}
+
+/**
+ * Directory of an installed dependency as the project at `root` resolves it, so a
+ * workspace host that hoists dependencies still works; falls back to `root/node_modules`.
+ */
+export function packageDir(root, name) {
+  try {
+    return path.dirname(createRequire(path.join(root, 'package.json')).resolve(`${name}/package.json`))
+  } catch {
+    return path.join(root, 'node_modules', name)
+  }
 }
 
 export function freePort() {
@@ -46,7 +60,7 @@ export function run(command, args, { cwd, label }) {
 
 /** Starts `vite preview` bound to 127.0.0.1 and waits until it answers on that address. */
 export async function startPreview(root) {
-  const vite = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')
+  const vite = path.join(packageDir(root, 'vite'), 'bin', 'vite.js')
   const port = await freePort()
   const child = spawn(
     process.execPath,
@@ -85,7 +99,7 @@ export async function startPreview(root) {
 
 export async function launchBrowser(root) {
   const { chromium } = await import(
-    new URL(`file://${path.join(root, 'node_modules', 'playwright', 'index.mjs')}`)
+    pathToFileURL(path.join(packageDir(root, 'playwright'), 'index.mjs'))
   )
   return chromium.launch({
     executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,

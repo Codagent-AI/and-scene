@@ -4,6 +4,8 @@ import { join } from 'node:path'
 
 const HOST = '127.0.0.1'
 const READY_TIMEOUT_MS = 30_000
+/** Most recent output kept from the preview process, for startup failures. */
+const OUTPUT_TAIL_CHARS = 4_000
 
 /** Every preview process this module has started and not yet seen exit, including ones still starting. */
 const running = new Set()
@@ -47,6 +49,13 @@ export async function startPreview(root, port) {
     { cwd: root, detached: true, stdio: ['ignore', 'pipe', 'pipe'] },
   )
   running.add(child)
+  // Drain both pipes so vite never blocks on a full buffer; keep only the tail for error reports.
+  let outputTail = ''
+  const keep = (chunk) => {
+    outputTail = (outputTail + String(chunk)).slice(-OUTPUT_TAIL_CHARS)
+  }
+  child.stdout.on('data', keep)
+  child.stderr.on('data', keep)
   let exited = null
   child.on('exit', (code, signal) => {
     running.delete(child)
@@ -56,7 +65,9 @@ export async function startPreview(root, port) {
   const url = `http://${HOST}:${port}`
   const deadline = Date.now() + READY_TIMEOUT_MS
   while (Date.now() < deadline) {
-    if (exited) throw new Error(`vite preview exited (${exited.code ?? exited.signal}) before it was ready`)
+    if (exited) {
+      throw new Error(`vite preview exited (${exited.code ?? exited.signal}) before it was ready:\n${outputTail.trim()}`)
+    }
     try {
       const response = await fetch(`${url}/`)
       if (response.ok) return { url, stop: () => stopProcessGroup(child) }
@@ -66,7 +77,7 @@ export async function startPreview(root, port) {
     await new Promise((resolve) => setTimeout(resolve, 150))
   }
   await stopProcessGroup(child)
-  throw new Error(`vite preview was not ready at ${url} within ${READY_TIMEOUT_MS} ms`)
+  throw new Error(`vite preview was not ready at ${url} within ${READY_TIMEOUT_MS} ms:\n${outputTail.trim()}`)
 }
 
 /** Stops a detached child and every process it started. */

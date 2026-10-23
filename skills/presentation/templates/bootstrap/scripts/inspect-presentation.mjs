@@ -4,9 +4,9 @@
 // Warnings are advisory: they never change the exit code. Only capture failures exit non-zero.
 import { mkdir, rm } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { join } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import { chromium } from 'playwright'
-import { findFreePort, runBuild, startPreview } from './lib/preview.mjs'
+import { findFreePort, runBuild, startPreview, stopAllPreviews } from './lib/preview.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 /** Covers the kit's longest transition: layout (0.6 s) + newcomer delay (0.7 s) + fade (0.5 s). */
@@ -15,6 +15,8 @@ const DEFAULT_VIEWPORT = { width: 1280, height: 720 }
 const OVERLAP_MIN_AREA = 16
 const STABLE_SAMPLE_MS = 150
 const STABLE_TIMEOUT_MS = 4000
+/** Presentation slugs are lowercase words joined by hyphens, as the registry requires. */
+const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/
 
 function parseArgs(argv) {
   const options = { slug: null, settle: DEFAULT_SETTLE_MS, viewport: DEFAULT_VIEWPORT, skipBuild: false, positions: false }
@@ -30,6 +32,7 @@ function parseArgs(argv) {
     else throw new Error(`unexpected argument: ${arg}`)
   }
   if (!options.slug) throw new Error('usage: inspect-presentation.mjs <slug>')
+  if (!SLUG_PATTERN.test(options.slug)) throw new Error(`invalid slug: ${options.slug}`)
   return options
 }
 
@@ -144,14 +147,18 @@ async function waitUntilStable(page) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2))
-  const outDir = join(root, '.inspection', options.slug)
+  const inspectionRoot = resolve(root, '.inspection')
+  const outDir = resolve(inspectionRoot, options.slug)
+  // Only ever clear a directory strictly inside .inspection/.
+  if (!outDir.startsWith(inspectionRoot + sep)) throw new Error(`refusing to write outside ${inspectionRoot}`)
   await rm(outDir, { recursive: true, force: true })
   await mkdir(outDir, { recursive: true })
 
   if (!options.skipBuild) await runBuild(root, (line) => console.log(line))
+  let browser = null
   const preview = await startPreview(root, await findFreePort())
-  const browser = await chromium.launch()
   try {
+    browser = await chromium.launch()
     const page = await browser.newPage({ viewport: options.viewport })
     await page.goto(`${preview.url}/${options.slug}`)
     const rootLocator = page.locator('[data-presentation-root]')
@@ -180,12 +187,20 @@ async function main() {
     }
     console.log(`inspect: ${count} steps captured for ${options.slug}`)
   } finally {
-    await browser.close()
-    await preview.stop()
+    await browser?.close()
+    await stopAllPreviews()
   }
 }
 
-main().catch((error) => {
+// Ctrl-C or a termination signal stops every preview this run started before exiting.
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => {
+    stopAllPreviews().finally(() => process.exit(signal === 'SIGINT' ? 130 : 143))
+  })
+}
+
+main().catch(async (error) => {
   console.error(`inspect: ${error.message}`)
+  await stopAllPreviews()
   process.exit(1)
 })

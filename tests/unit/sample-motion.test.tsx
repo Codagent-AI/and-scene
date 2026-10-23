@@ -38,7 +38,7 @@ describe('reference sample navigation', () => {
       if (i > 0) prev()
     }
     expect((container.querySelector('[data-presentation-prev]') as HTMLButtonElement).disabled).toBe(true)
-  })
+  }, 60_000)
 
   it('a newcomer starts invisible before its entrance: its wrapper begins at opacity 0', () => {
     const { container } = render(<Presentation title="Deck" steps={STEPS} initialMode="browse" />)

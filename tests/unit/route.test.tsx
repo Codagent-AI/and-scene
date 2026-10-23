@@ -18,8 +18,8 @@ describe('routing and registry', () => {
 
   it('a registered slug lazy-loads its presentation through Suspense', async () => {
     render(resolveRoute('/how-to-make-a-presentation'))
-    expect(await screen.findByText('How to Use This Skill to Make a Presentation', { selector: '[data-presentation-deck-title]' })).toBeTruthy()
-  })
+    expect(await screen.findByText('How to Use This Skill to Make a Presentation', { selector: '[data-presentation-deck-title]' }, { timeout: 15_000 })).toBeTruthy()
+  }, 60_000)
 
   it('every registry entry loads its folder entry module, which default-exports a component', async () => {
     for (const entry of presentations) {

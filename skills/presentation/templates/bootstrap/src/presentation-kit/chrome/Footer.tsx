@@ -14,7 +14,7 @@ interface FooterProps {
 export function Footer({ mode, steps, index, attribution, onGoTo }: FooterProps) {
   const step = steps[index]
   return (
-    <footer data-presentation-footer="">
+    <footer data-presentation-footer="" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
       {mode === 'present' ? (
         <h1 data-presentation-title="">{step.title}</h1>
       ) : (
@@ -60,6 +60,7 @@ export function Footer({ mode, steps, index, attribution, onGoTo }: FooterProps)
         <a
           data-presentation-attribution=""
           href={attribution.href}
+          style={{ marginLeft: 'auto' }}
           target="_blank"
           rel="noreferrer"
         >

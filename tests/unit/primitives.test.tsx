@@ -3,7 +3,7 @@ import { render } from '@testing-library/react'
 import { Check } from 'lucide-react'
 import { motion } from 'motion/react'
 import { describe, expect, it } from 'vitest'
-import { ALLOW_OVERLAP, Appear, Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip, arrowPath } from '../../src/presentation-kit'
+import { ALLOW_OVERLAP, Appear, Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip, arrowBox, arrowPath } from '../../src/presentation-kit'
 
 describe('node primitives', () => {
   it.each([
@@ -45,6 +45,16 @@ describe('node primitives', () => {
     const svg = container.querySelector('[data-presentation-entity="a"]')
     expect(svg?.getAttribute('data-presentation-kind')).toBe('arrow')
     expect(svg?.querySelector('path[marker-start]')).not.toBeNull()
+  })
+
+  it('positions an arrow as an entity box around its geometry so it can morph like other entities', () => {
+    expect(arrowBox({ x: 100, y: 50 }, { x: 300, y: 50 })).toEqual({ x: 88, y: 38, width: 224, height: 24 })
+    const { container } = render(<Arrow id="m" from={{ x: 100, y: 50 }} to={{ x: 300, y: 50 }} />)
+    const svg = container.querySelector('[data-presentation-entity="m"]') as SVGElement
+    expect([svg.style.position, svg.style.left, svg.style.top]).toEqual(['absolute', '88px', '38px'])
+    expect(svg.getAttribute('width')).toBe('224')
+    // Local path coordinates: the line starts at the pad offset inside its own box.
+    expect(svg.querySelector(':scope > path')?.getAttribute('d')).toBe('M 12 12 Q 112 12 212 12')
   })
 
   it('supports raw motion elements with stable layoutIds next to primitives, and stacked entities', () => {

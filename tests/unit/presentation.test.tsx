@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useEffect } from 'react'
 import { describe, expect, it } from 'vitest'
-import { Box, Presentation, SceneLayer, defineStep } from '../../src/presentation-kit'
+import { Box, LAYOUT_T, Presentation, SceneLayer, defineStep } from '../../src/presentation-kit'
 import type { PresentationStep, SceneProps } from '../../src/presentation-kit'
 
 interface Payload {
@@ -42,6 +42,7 @@ const steps = [
   defineStep({ ...meta(4, 'two'), Scene, payload: { ids: ['z'] } }),
 ]
 
+const opacity = (el: HTMLElement | null) => Number(el?.style.opacity ?? Number.NaN)
 const root = (c: HTMLElement) => c.querySelector('[data-presentation-root]') as HTMLElement
 const press = (k: string) => act(() => void fireEvent.keyDown(window, { key: k }))
 
@@ -146,6 +147,9 @@ describe('Presentation chrome', () => {
     expect(link).toHaveAttribute('href', 'https://github.com/and-scene/and-scene')
     expect(link).toHaveAttribute('data-presentation-attribution')
     expect(container.querySelector('[data-presentation-footer]')).toContainElement(link)
+    // Default placement is kit geometry: the footer is the last row and pushes the link to its right end.
+    expect(container.querySelector('[data-presentation-footer]')).toBe(root(container).lastElementChild)
+    expect(link.style.marginLeft).toBe('auto')
     const header = container.querySelector('[data-presentation-header]') as HTMLElement
     expect(within(header).queryByRole('link')).toBeNull()
     expect(container.querySelector('[data-presentation-brand]')).toBeNull()
@@ -188,18 +192,59 @@ describe('Stage scene persistence and entity transitions', () => {
   it('keeps a continuing entity in place without re-fading it, fades newcomers in, and removes leavers', async () => {
     const { container } = render(<Presentation steps={steps} title="Deck" />)
     const entity = (id: string) => container.querySelector(`[data-presentation-entity="${id}"]`) as HTMLElement | null
-    await waitFor(() => expect(entity('a')?.style.opacity).toBe('1'))
+    await waitFor(() => expect(opacity(entity('a'))).toBeGreaterThan(0.99))
     const a = entity('a')
     press('ArrowRight')
     // Newcomer b mounts hidden (it waits for persisting entities); a is the same node, still opaque.
     expect(entity('b')?.style.opacity).toBe('0')
     expect(entity('a')).toBe(a)
-    expect(entity('a')?.style.opacity).toBe('1')
-    await waitFor(() => expect(entity('b')?.style.opacity).toBe('1'))
+    expect(opacity(entity('a'))).toBeGreaterThan(0.99)
+    await waitFor(() => expect(opacity(entity('b'))).toBeGreaterThan(0.99))
     press('ArrowRight')
-    // Leaving entity a is removed after its exit; b continues as the same node.
+    // Leaving entity a stays mounted while it animates out, then is removed; b continues as the same node.
     const b = entity('b')
+    expect(entity('a')).not.toBeNull()
     await waitFor(() => expect(entity('a')).toBeNull())
     expect(entity('b')).toBe(b)
+  })
+})
+
+describe('entity motion', () => {
+  const rectFromStyle = function (this: HTMLElement) {
+    const n = (v: string) => Number.parseFloat(v) || 0
+    const [x, y, width, height] = [n(this.style.left), n(this.style.top), n(this.style.width), n(this.style.height)]
+    return { x, y, left: x, top: y, width, height, right: x + width, bottom: y + height, toJSON: () => ({}) } as DOMRect
+  }
+
+  function Mover({ payload }: SceneProps<{ x: number; newcomer: boolean }>) {
+    return (
+      <SceneLayer>
+        <Box key="m" id="m" x={payload.x} y={10} width={100} height={40} />
+        {payload.newcomer && <Box key="n" id="n" x={10} y={100} width={100} height={40} />}
+      </SceneLayer>
+    )
+  }
+  const moving = [
+    defineStep({ ...meta(1, 'e'), groupKey: 'g', Scene: Mover, payload: { x: 10, newcomer: false } }),
+    defineStep({ ...meta(2, 'e'), groupKey: 'g', Scene: Mover, payload: { x: 410, newcomer: true } }),
+  ]
+
+  it('animates a persisting entity to its new position and holds newcomers until it has settled', async () => {
+    const original = HTMLElement.prototype.getBoundingClientRect
+    HTMLElement.prototype.getBoundingClientRect = rectFromStyle
+    try {
+      const { container } = render(<Presentation steps={moving} title="Deck" />)
+      const entity = (id: string) => container.querySelector(`[data-presentation-entity="${id}"]`) as HTMLElement | null
+      await waitFor(() => expect(opacity(entity('m'))).toBeGreaterThan(0.99))
+      press('ArrowRight')
+      // The element is already at its new left, and layout projection offsets it back toward the old spot.
+      await waitFor(() => expect(entity('m')?.style.transform ?? 'none').toMatch(/translate/))
+      // Persisting motion lasts LAYOUT_T; the newcomer is still fully hidden at 90% of it.
+      await new Promise((r) => setTimeout(r, LAYOUT_T * 900))
+      expect(opacity(entity('n'))).toBe(0)
+      await waitFor(() => expect(opacity(entity('n'))).toBeGreaterThan(0.99), { timeout: 3000 })
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = original
+    }
   })
 })

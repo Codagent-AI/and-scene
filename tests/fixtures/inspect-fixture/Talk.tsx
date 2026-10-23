@@ -43,12 +43,12 @@ function Scene({ payload }: SceneProps<Payload>) {
 }
 
 const steps = [
-  ['clean', 'A clean step'],
-  ['collision', 'An unmarked text collision'],
-  ['allowed', 'An allowed overlap'],
-  ['after', 'Nothing suspicious'],
-].map(([id, title], step) =>
-  defineStep({ id, era: 'fixture', title, caption: `Caption for ${title}`, groupKey: 'fx', Scene, payload: { step } }),
+  ['clean', 'first era', 'A clean step'],
+  ['collision', 'first era', 'An unmarked text collision'],
+  ['allowed', 'second era', 'An allowed overlap'],
+  ['after', 'second era', 'Nothing suspicious'],
+].map(([id, era, title], step) =>
+  defineStep({ id, era, title, caption: `Caption for ${title}`, groupKey: 'fx', Scene, payload: { step } }),
 )
 
 export default function Talk() {

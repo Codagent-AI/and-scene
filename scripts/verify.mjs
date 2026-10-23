@@ -48,16 +48,13 @@ async function build(root) {
   if (code !== 0) throw new VerifyError('build', `npm run build failed:\n${out.trim().split('\n').slice(-15).join('\n')}`)
 }
 
-async function loadRegistry(root) {
-  const file = path.join(root, 'src/presentations/index.ts')
-  if (!existsSync(file)) throw new VerifyError('registry', 'src/presentations/index.ts is missing')
-  let registry
-  try {
-    registry = (await import(pathToFileURL(file).href)).presentations
-  } catch (e) {
-    throw new VerifyError('registry', `could not read the presentation registry: ${e.message}`)
-  }
-  if (!Array.isArray(registry)) throw new VerifyError('registry', 'registry does not export a presentations array')
+const REGISTRY_FILES = ['ts', 'tsx', 'js', 'jsx', 'mjs'].map((ext) => `src/presentations/index.${ext}`)
+
+/** Slugs registered in src/presentations/index.*; read from source so any registry file extension works. */
+export function loadRegistry(root) {
+  const file = REGISTRY_FILES.map((f) => path.join(root, f)).find(existsSync)
+  if (!file) throw new VerifyError('registry', 'src/presentations/index.ts is missing')
+  const registry = [...readFileSync(file, 'utf8').matchAll(/\bslug:\s*['"]([^'"]+)['"]/g)].map((m) => ({ slug: m[1] }))
   const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'))
   for (const slug of pkg.andScene?.requiredPresentations ?? []) {
     if (!registry.some((e) => e.slug === slug)) throw new VerifyError('registry', `required presentation "${slug}" is not registered`)
@@ -85,8 +82,8 @@ async function renderPresentation(browser, port, entry) {
   const errors = []
   page.on('console', (m) => m.type() === 'error' && errors.push(`console.error: ${m.text()}`))
   page.on('pageerror', (e) => errors.push(`uncaught exception: ${e.message}`))
-  const check = () => {
-    if (errors.length) throw new VerifyError('render', `${slug}: ${errors[0]}`, step)
+  const check = (at = step) => {
+    if (errors.length) throw new VerifyError('render', `${slug}: ${errors[0]}`, at)
   }
   try {
     await page.goto(`http://${HOST}:${port}/${slug}`, { waitUntil: 'load' })
@@ -120,7 +117,8 @@ async function renderPresentation(browser, port, entry) {
             { timeout: STEP_TIMEOUT_MS },
           )
         } catch {
-          check()
+          // An error raised while rendering the next step belongs to that step.
+          check(step + 1)
           throw new VerifyError('transition', `${slug}: ArrowRight did not advance past step ${step}`, step)
         }
       }
@@ -142,8 +140,8 @@ export async function verify(root, { skipBuild = false, slug } = {}) {
     console.log('[verify] build: npm run build')
     await build(root)
   }
-  console.log('[verify] registry: reading src/presentations/index.ts')
-  let entries = await loadRegistry(root)
+  console.log('[verify] registry: reading src/presentations/index')
+  let entries = loadRegistry(root)
   if (slug) {
     entries = entries.filter((e) => e.slug === slug)
     if (!entries.length) throw new VerifyError('registry', `"${slug}" is not registered`)

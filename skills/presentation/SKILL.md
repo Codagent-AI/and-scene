@@ -46,7 +46,7 @@ location and wait for the user to confirm before writing anything.**
 
 Then `node $SKILL/scripts/skill-tools.mjs scaffold <project dir>` copies only the missing anchors
 (existing files are never overwritten) from `templates/bootstrap/`. Do not assume dependencies are
-installed: run `npm install` and `npx playwright install chromium` in the target.
+installed: the tool also merges any missing dependencies and npm scripts into an existing `package.json` (never changing existing ones), so run `npm install` and `npx playwright install chromium` in the target. If the report's `wiring` field is set, the project's existing entry point is not using the router: connect it (render `<App pathname={window.location.pathname} />`) before reporting routes as reachable.
 
 The scaffold is styling-framework-neutral and ships zero presentation styling. Add Tailwind or
 another framework only if the host already uses it or the user asks.

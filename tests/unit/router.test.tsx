@@ -19,6 +19,8 @@ describe('routing and registry', () => {
 
   it('falls back to the landing page for an unknown route', () => {
     expect(resolveRoute('/nope', entries)).toEqual({ kind: 'landing' })
+    expect(resolveRoute('/a/unknown', entries)).toEqual({ kind: 'landing' })
+    expect(resolveRoute('/a/b-c', entries)).toEqual({ kind: 'landing' })
   })
 
   it('lists every registered presentation on the landing page', () => {

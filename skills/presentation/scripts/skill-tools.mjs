@@ -30,11 +30,17 @@ const ANCHOR_FILES = {
     'public',
     'src/main.tsx',
     'src/index.css',
-    'scripts',
   ],
   kit: ['src/presentation-kit'],
   index: ['src/presentations', 'src/Landing.tsx', 'src/router.ts', 'src/App.tsx'],
 }
+
+/** Verification/inspection scripts every presentation app needs, whichever anchors are being scaffolded. */
+const TOOLING_FILES = ['scripts']
+
+const SOURCE_EXTS = ['ts', 'tsx', 'js', 'jsx', 'mjs']
+const findFile = (root, dir, base) =>
+  readdirSync(path.join(root, dir)).find((n) => SOURCE_EXTS.some((e) => n === `${base}.${e}`))
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
@@ -58,8 +64,8 @@ function hasBuildSetup(root) {
 export function anchorsAt(root) {
   return {
     build: hasBuildSetup(root),
-    kit: ['Presentation.tsx', 'types.ts', 'Stage.tsx'].every((f) => existsSync(path.join(root, 'src/presentation-kit', f))),
-    index: ['ts', 'tsx'].some((ext) => existsSync(path.join(root, `src/presentations/index.${ext}`))),
+    kit: existsSync(path.join(root, 'src/presentation-kit')) && ['Presentation', 'types'].every((b) => findFile(root, 'src/presentation-kit', b)),
+    index: existsSync(path.join(root, 'src/presentations')) && Boolean(findFile(root, 'src/presentations', 'index')),
   }
 }
 
@@ -149,34 +155,68 @@ function mergePackageJson(target, report) {
 /** Copy the files of the given anchors from templates/bootstrap, never overwriting existing files. */
 export function scaffold(target, anchors = ANCHORS) {
   target = path.resolve(target)
-  const report = { target, created: [], skipped: [], added: [] }
+  const report = { target, created: [], skipped: [], added: [], wiring: null }
+  for (const anchor of anchors) if (!ANCHORS.includes(anchor)) throw new Error(`unknown anchor "${anchor}"`)
   mkdirSync(target, { recursive: true })
   const hadPackage = existsSync(path.join(target, 'package.json'))
-  for (const anchor of anchors) {
-    if (!ANCHORS.includes(anchor)) throw new Error(`unknown anchor "${anchor}"`)
-    for (const rel of ANCHOR_FILES[anchor]) {
-      if (rel === 'package-lock.json' && hadPackage) continue
-      copyMissing(path.join(BOOTSTRAP, rel), path.join(target, rel), report)
+  const files = [...anchors.flatMap((a) => ANCHOR_FILES[a]), ...TOOLING_FILES]
+  for (const rel of files) {
+    if (rel === 'package-lock.json' && hadPackage) continue
+    copyMissing(path.join(BOOTSTRAP, rel), path.join(target, rel), report)
+  }
+  // Kit, index and tooling all need the template's dependencies and npm scripts, even when the
+  // build setup itself already exists.
+  if (hadPackage) mergePackageJson(target, report)
+  if (anchors.includes('index')) {
+    const main = path.join(target, 'src/main.tsx')
+    if (!existsSync(main) || !/\bpathname\b/.test(readFileSync(main, 'utf8'))) {
+      report.wiring = 'The project entry point does not use the router: render <App pathname={window.location.pathname} /> from src/App.tsx (or call resolveRoute from src/router.ts) so each presentation is reachable at /<slug>. An existing src/main.tsx is never overwritten.'
     }
   }
-  if (hadPackage && anchors.includes('build')) mergePackageJson(target, report)
   report.created = report.created.map((f) => path.relative(target, f))
   report.skipped = report.skipped.map((f) => path.relative(target, f))
   return report
 }
 
-/** Insert a registry entry; existing entries are left untouched. */
+/** Index of the `]` closing the array literal that opens at `open`, skipping strings and comments. */
+function matchingBracket(source, open) {
+  let depth = 0
+  for (let i = open; i < source.length; i++) {
+    const c = source[i]
+    if (c === "'" || c === '"' || c === '`') {
+      for (i++; i < source.length && source[i] !== c; i++) if (source[i] === '\\') i++
+    } else if (c === '/' && source[i + 1] === '/') {
+      i = source.indexOf('\n', i)
+      if (i < 0) break
+    } else if (c === '/' && source[i + 1] === '*') {
+      i = source.indexOf('*/', i + 2) + 1
+    } else if (c === '[' || c === '(' || c === '{') depth++
+    else if (c === ']' || c === ')' || c === '}') {
+      depth--
+      if (depth === 0) return i
+    }
+  }
+  return -1
+}
+
+/** Insert a registry entry into the `presentations` array; existing entries are left untouched. */
 export function register(target, slug, title) {
   if (!SLUG.test(slug)) throw new Error(`invalid slug "${slug}": use lowercase words joined by hyphens`)
-  const file = ['ts', 'tsx'].map((e) => path.join(target, `src/presentations/index.${e}`)).find(existsSync)
-  if (!file) throw new Error('presentation index not found; scaffold the index anchor first')
+  const dir = path.join(target, 'src/presentations')
+  const name = existsSync(dir) && findFile(target, 'src/presentations', 'index')
+  if (!name) throw new Error('presentation index not found; scaffold the index anchor first')
+  const file = path.join(dir, name)
   const source = readFileSync(file, 'utf8')
   if (new RegExp(`slug:\\s*['"]${slug}['"]`).test(source)) throw new Error(`"${slug}" is already registered`)
-  const close = source.lastIndexOf(']')
-  if (close < 0) throw new Error('could not find the registry array')
+  const declaration = /\bpresentations\b[^=\n]*=\s*\[/.exec(source)
+  if (!declaration) throw new Error('could not find the `presentations` array in the registry')
+  const open = declaration.index + declaration[0].length - 1
+  const close = matchingBracket(source, open)
+  if (close < 0) throw new Error('could not find the end of the registry array')
   const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk.tsx'),\n  },\n`
-  const before = source.slice(0, close).replace(/\s*$/, '\n')
-  writeFileSync(file, before + entry + source.slice(close))
+  let before = source.slice(0, close).replace(/\s*$/, '')
+  if (!before.endsWith(',') && !before.endsWith('[')) before += ','
+  writeFileSync(file, `${before}\n${entry}${source.slice(close)}`)
   return file
 }
 
@@ -189,7 +229,7 @@ function materialize(from, to, tokens) {
       continue
     }
     let text = readFileSync(src, 'utf8')
-    for (const [token, value] of Object.entries(tokens)) text = text.replaceAll(token, value)
+    for (const [token, value] of Object.entries(tokens)) text = text.replaceAll(token, () => value)
     writeFileSync(path.join(to, name), text)
   }
 }
@@ -199,7 +239,7 @@ export function createPresentationFiles(target, slug, title) {
   if (!SLUG.test(slug)) throw new Error(`invalid slug "${slug}": use lowercase words joined by hyphens`)
   const dest = path.join(target, 'src/presentations', slug)
   if (existsSync(dest)) throw new Error(`${path.relative(target, dest)} already exists`)
-  materialize(PRESENTATION, dest, { __SLUG__: slug, __TITLE__: title.replaceAll('"', '\\"') })
+  materialize(PRESENTATION, dest, { __SLUG__: slug, __TITLE__: JSON.stringify(title) })
   return dest
 }
 

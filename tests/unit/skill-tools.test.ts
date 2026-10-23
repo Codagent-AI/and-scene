@@ -2,7 +2,9 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import ts from 'typescript'
 import { afterEach, describe, expect, it } from 'vitest'
+import { loadRegistry } from '../../scripts/verify.mjs'
 import { TEMPLATES, anchorsAt, detect, newPresentation, register, scaffold } from '../../skills/presentation/scripts/skill-tools.mjs'
 
 const made: string[] = []
@@ -70,9 +72,16 @@ describe('target and anchor detection', () => {
     write(dir, 'package.json', JSON.stringify(pkg))
     write(dir, 'vite.config.mts', 'export default {}')
     rmSync(path.join(dir, 'vite.config.ts'))
-    write(dir, 'src/presentations/index.tsx', 'export const presentations = []')
+    write(dir, 'src/presentations/index.tsx', "export const presentations = [{ slug: 'solo', title: 'Solo', load: () => import('./solo/Talk.tsx') }]")
     rmSync(path.join(dir, 'src/presentations/index.ts'))
+    for (const f of ['Presentation.tsx', 'types.ts']) {
+      rmSync(path.join(dir, 'src/presentation-kit', f))
+      write(dir, `src/presentation-kit/${f.replace('.tsx', '.jsx').replace('.ts', '.js')}`, '')
+    }
     expect(anchorsAt(dir)).toEqual({ build: true, kit: true, index: true })
+    // The verification script reads whichever registry file the project has.
+    write(dir, 'package.json', JSON.stringify({ ...pkg, andScene: { requiredPresentations: ['solo'] } }))
+    expect(loadRegistry(dir)).toEqual([{ slug: 'solo' }])
   })
 
   it('reports exactly the missing anchors for a partial scaffold', () => {
@@ -139,6 +148,28 @@ describe('scaffolding', () => {
     expect(existsSync(path.join(dir, 'package-lock.json'))).toBe(false)
   })
 
+  it('completes a partial scaffold that already has a build setup: dependencies, scripts and wiring', () => {
+    const dir = tmp()
+    write(dir, 'package.json', JSON.stringify({ name: 'host', scripts: { build: 'tsc -b && vite build' }, dependencies: { react: '^19', 'react-dom': '^19' }, devDependencies: { vite: '^8', typescript: '~6' } }))
+    write(dir, 'vite.config.ts', 'export default {}')
+    write(dir, 'src/main.tsx', "import './app.js'")
+    expect(detect(dir)).toMatchObject({ anchors: { build: true, kit: false, index: false }, missing: ['kit', 'index'] })
+    const report = scaffold(dir, ['kit', 'index'])
+    const pkg = JSON.parse(read(dir, 'package.json'))
+    for (const d of ['motion', 'lucide-react']) expect(pkg.dependencies[d], d).toBeDefined()
+    expect(pkg.devDependencies.playwright).toBeDefined()
+    expect(pkg.scripts.verify).toBe('node scripts/verify.mjs')
+    expect(pkg.scripts.build).toBe('tsc -b && vite build')
+    for (const f of ['scripts/verify.mjs', 'scripts/inspect-presentation.mjs', 'scripts/preview.mjs', 'src/presentation-kit/Presentation.tsx', 'src/presentations/index.ts', 'src/router.ts']) {
+      expect(existsSync(path.join(dir, f)), f).toBe(true)
+    }
+    // The existing entry point is kept, and the report says it still has to be connected to the router.
+    expect(read(dir, 'src/main.tsx')).toBe("import './app.js'")
+    expect(report.wiring).toMatch(/src\/main\.tsx/)
+    expect(scaffold(tmp()).wiring).toBeNull()
+    expect(scaffold(tmp(), ['index']).wiring).toMatch(/entry point/)
+  })
+
   it('rejects unknown anchors', () => {
     expect(() => scaffold(tmp(), ['nope'])).toThrow(/unknown anchor/)
   })
@@ -154,12 +185,43 @@ describe('creating and registering presentations', () => {
       expect(existsSync(path.join(dir, 'src/presentations/my-talk', f)), f).toBe(true)
     }
     expect(read(dir, 'src/presentations/my-talk/entities.ts')).toContain('`my-talk/${name}`')
-    expect(read(dir, 'src/presentations/my-talk/Talk.tsx')).toContain('title="My \\"Talk\\""')
+    expect(read(dir, 'src/presentations/my-talk/Talk.tsx')).toContain('title={"My \\"Talk\\""}')
     const after = read(dir, 'src/presentations/index.ts')
     expect(after).toContain("load: () => import('./my-talk/Talk.tsx')")
     expect(after).toContain("slug: 'starter'")
     expect(after.startsWith(before.slice(0, before.lastIndexOf(']') - 1))).toBe(true)
     expect(existsSync(path.join(dir, 'src/presentations/starter/Talk.tsx'))).toBe(true)
+  })
+
+  it('keeps a valid registry valid: no trailing comma, trailing satisfies, comments and brackets in strings', () => {
+    const dir = tmp()
+    write(dir, 'src/presentations/index.ts', `import type { PresentationEntry } from './types'
+
+// registry [first]
+export const presentations = [
+  { slug: 'old', title: 'Old [one]', load: () => import('./old/Talk.tsx') }
+] satisfies PresentationEntry[]
+
+export const other = [1, 2]
+`)
+    register(dir, 'fresh', 'Fresh')
+    const after = read(dir, 'src/presentations/index.ts')
+    const exported = ts.transpileModule(after, { compilerOptions: { module: ts.ModuleKind.ESNext }, reportDiagnostics: true })
+    expect(exported.diagnostics).toEqual([])
+    expect(after).toContain("title: 'Old [one]'")
+    expect(after).toMatch(/\},\n {2}\{\n {4}slug: 'fresh'[\s\S]*\},\n\] satisfies PresentationEntry\[\]/)
+    expect(after).toContain('export const other = [1, 2]')
+  })
+
+  it.each(['My "Talk"', 'Back\\slash $& and `tick` {brace}', "O'Neil <b>"])('generates compilable JSX for the title %j', (title) => {
+    const dir = tmp()
+    scaffold(dir)
+    newPresentation(dir, 'quoted', title)
+    const talk = read(dir, 'src/presentations/quoted/Talk.tsx')
+    const out = ts.transpileModule(talk, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext }, reportDiagnostics: true })
+    expect(out.diagnostics).toEqual([])
+    expect(out.outputText).toContain(JSON.stringify(title))
+    expect(read(dir, 'src/presentations/index.ts')).toContain(`title: ${JSON.stringify(title)}`)
   })
 
   it('refuses duplicate slugs, existing folders and invalid slugs without changing the registry', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CANVAS, DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT } from '../../src/presentation-kit/constants'
+import { DEFAULT_CANVAS, DESIGN_H, DESIGN_W, ENTER_DELAY, LAYOUT_T, MIN_SCALE, STAGE_LAYOUT } from '../../src/presentation-kit/constants'
 import { computeFitScale } from '../../src/presentation-kit/useFitScale'
 
 describe('fixed canvas fit scaling', () => {
@@ -25,5 +25,11 @@ describe('fixed canvas fit scaling', () => {
     expect(Object.keys(STAGE_LAYOUT).sort()).toEqual(['browse', 'present'])
     const small = computeFitScale({ width: 400, height: 400 }, { width: 200, height: 100 }, 0)
     expect(small).toBe(2)
+  })
+})
+
+describe('motion timing', () => {
+  it('starts newcomers only after persisting entities have finished moving', () => {
+    expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
   })
 })

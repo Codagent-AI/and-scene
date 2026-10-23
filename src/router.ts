@@ -5,9 +5,9 @@ export type Route =
   | { kind: 'landing' }
   | { kind: 'presentation'; entry: PresentationEntry }
 
-/** "/" → landing, "/<slug>" → that presentation, anything unknown → landing. */
+/** "/" → landing, "/<slug>" → that presentation, anything else (unknown slug or extra segments) → landing. */
 export function resolveRoute(pathname: string, entries: readonly PresentationEntry[] = registry): Route {
-  const slug = pathname.split('/').filter(Boolean)[0]
-  const entry = slug ? entries.find((e) => e.slug === slug) : undefined
+  const segments = pathname.split('/').filter(Boolean)
+  const entry = segments.length === 1 ? entries.find((e) => e.slug === segments[0]) : undefined
   return entry ? { kind: 'presentation', entry } : { kind: 'landing' }
 }

@@ -14,7 +14,7 @@ export const EASE = [0.22, 1, 0.36, 1] as const
 export const LAYOUT_T = 0.6
 export const ENTER_T = 0.4
 /** Newcomers wait for persisting entities to finish moving. */
-export const ENTER_DELAY = LAYOUT_T * 0.8
+export const ENTER_DELAY = LAYOUT_T
 
 /** Inset (px) kept free around the scaled canvas, per mode. */
 export const STAGE_LAYOUT: Record<Mode, { inset: number }> = {

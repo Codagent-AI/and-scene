@@ -52,7 +52,10 @@ describe('INT-002: screenshot helper', () => {
   })
 
   it('reports indistinct active chrome and unpolished attribution', () => {
-    expect(report.warnings.some((w) => w.kind === 'active-chrome' && /progress indicator/.test(w.message))).toBe(true)
+    const chrome = report.warnings.filter((w) => w.kind === 'active-chrome').map((w) => w.message)
+    expect(chrome.some((m) => /progress indicator/.test(m))).toBe(true)
+    // Table-of-contents entries of different widths are still indistinct without a current-state treatment.
+    expect(chrome.some((m) => /table-of-contents entry/.test(m))).toBe(true)
     const attribution = report.warnings.filter((w) => w.kind === 'attribution')
     expect(attribution.map((w) => w.message).join('\n')).toMatch(/browser-default link color/)
     expect(attribution[0].message).toContain('[data-presentation-attribution]')

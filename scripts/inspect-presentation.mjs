@@ -19,9 +19,9 @@ const intersects = (a, b) =>
   Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > OVERLAP_TOLERANCE
 
 /**
- * items: [{ id, label, rect, allowed, ancestors: [id], text: boolean }].
- * Reports pairs of visible text/chrome boxes that overlap, unless either sits in an
- * allow-overlap subtree or one contains the other in the DOM.
+ * items: [{ id, label, rect, allowed, ancestors: [id] }] - visible text, controls and chrome regions.
+ * Reports every pair of boxes that overlap (text/text, text/chrome, chrome/chrome), unless either
+ * sits in an allow-overlap subtree or one contains the other in the DOM.
  */
 export function findOverlaps(items) {
   const found = []
@@ -29,7 +29,6 @@ export function findOverlaps(items) {
     for (let j = i + 1; j < items.length; j++) {
       const a = items[i]
       const b = items[j]
-      if (!a.text && !b.text) continue
       if (a.allowed || b.allowed) continue
       if (a.ancestors.includes(b.id) || b.ancestors.includes(a.id)) continue
       if (intersects(a.rect, b.rect)) found.push([a.label, b.label])
@@ -44,13 +43,14 @@ const colorDistance = (a, b) => {
   return Math.max(...x.map((v, i) => Math.abs(v - (y[i] ?? 0))))
 }
 
-/** styles: { backgroundColor, color, borderColor, opacity, fontWeight, transform, width, height, textDecorationLine }. */
+/** styles: { backgroundColor, color, borderColor, opacity, fontWeight, transform, textDecorationLine }. */
 export function isDistinct(active, inactive) {
   for (const key of ['backgroundColor', 'color', 'borderColor']) {
     if (colorDistance(active[key], inactive[key]) >= 24) return true
   }
   if (active.backgroundColor !== inactive.backgroundColor && /rgba\(.*, 0\)$/.test(inactive.backgroundColor) !== /rgba\(.*, 0\)$/.test(active.backgroundColor)) return true
-  return ['opacity', 'fontWeight', 'transform', 'width', 'height', 'textDecorationLine'].some((k) => active[k] !== inactive[k])
+  // Size is deliberately not a signal: unstyled entries differ in width just from their labels.
+  return ['opacity', 'fontWeight', 'transform', 'textDecorationLine'].some((k) => active[k] !== inactive[k])
 }
 
 /** groups: [{ name, active, inactive }] with style snapshots (inactive may be null). */
@@ -86,7 +86,8 @@ function collectInPage() {
   const texts = [...root.querySelectorAll('*')].filter(
     (el) => !el.closest('svg') && [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && visible(el),
   )
-  const els = [...new Set([...chrome, ...texts])]
+  const controls = [...root.querySelectorAll('button, a[href]')].filter(visible)
+  const els = [...new Set([...chrome, ...texts, ...controls])]
   const items = els.map((el, id) => ({ el, id }))
   const rectOf = (el) => {
     const r = el.getBoundingClientRect()
@@ -96,7 +97,6 @@ function collectInPage() {
     id,
     label: label(el),
     rect: rectOf(el),
-    text: texts.includes(el),
     allowed: el.closest('[data-presentation-allow-overlap]') !== null,
     ancestors: items.filter((o) => o.el !== el && o.el.contains(el)).map((o) => o.id),
   }))
@@ -109,8 +109,6 @@ function collectInPage() {
       opacity: s.opacity,
       fontWeight: s.fontWeight,
       transform: s.transform,
-      width: s.width,
-      height: s.height,
       textDecorationLine: s.textDecorationLine,
     }
   }

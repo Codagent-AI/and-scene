@@ -79,6 +79,28 @@ describe('E2E-002: verification failures are actionable', () => {
         ),
     },
     {
+      name: 'an uncaught page exception',
+      phase: 'render',
+      step: 4,
+      expectText: /uncaught exception: .*uncaught at step 5/,
+      apply: (dir) =>
+        edit(path.join(dir, SAMPLE, 'steps/SampleScene.tsx'), (t) =>
+          t
+            .replace("import { Bot,", "import { useEffect } from 'react'\nimport { Bot,")
+            .replace('const s = payload.step\n', "const s = payload.step\n  useEffect(() => {\n    if (s === 4) setTimeout(() => { throw new Error('uncaught at step 5') }, 0)\n  }, [s])\n"),
+        ),
+    },
+    {
+      name: 'a step that throws while rendering',
+      phase: 'render',
+      step: 5,
+      expectText: /render failure at step 6/,
+      apply: (dir) =>
+        edit(path.join(dir, SAMPLE, 'steps/SampleScene.tsx'), (t) =>
+          t.replace('const s = payload.step\n', "const s = payload.step\n  if (s === 5) throw new Error('render failure at step 6')\n"),
+        ),
+    },
+    {
       name: 'a transition that does not advance the step index',
       phase: 'transition',
       step: 3,

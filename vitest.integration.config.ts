@@ -8,6 +8,8 @@ export default defineConfig({
     include: ['tests/integration/**/*.test.ts'],
     testTimeout: 600000,
     hookTimeout: 600000,
-    fileParallelism: true,
+    // The machine has few cores: run files one after another and cap concurrent cases.
+    fileParallelism: false,
+    maxConcurrency: 3,
   },
 })

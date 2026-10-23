@@ -13,12 +13,13 @@ export interface RunResult {
 
 export function run(command: string, args: string[], options: { cwd: string; timeoutMs?: number; env?: NodeJS.ProcessEnv }): Promise<RunResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd: options.cwd, env: { ...process.env, ...options.env, CI: '1' }, stdio: ['ignore', 'pipe', 'pipe'] })
+    const child = spawn(command, args, { cwd: options.cwd, env: { ...process.env, ...options.env, CI: '1' }, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
     let stdout = ''
     let stderr = ''
     child.stdout.on('data', (d) => (stdout += d))
     child.stderr.on('data', (d) => (stderr += d))
-    const timer = setTimeout(() => child.kill('SIGKILL'), options.timeoutMs ?? 300000)
+    // Kill the whole process group so a timed-out run leaves no build or browser behind.
+    const timer = setTimeout(() => process.kill(-child.pid!, 'SIGKILL'), options.timeoutMs ?? 300000)
     child.on('error', reject)
     child.on('close', (code) => {
       clearTimeout(timer)

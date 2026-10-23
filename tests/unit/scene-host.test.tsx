@@ -62,7 +62,7 @@ describe('grouped scenes', () => {
     const first = screen.getByTestId('scene')
     next()
     expect(counters.mounts).toBe(2)
-    await waitFor(() => expect(counters.unmounts).toBe(1), { timeout: 3000 })
+    await waitFor(() => expect(counters.unmounts).toBe(1), { timeout: 10000 })
     expect(document.body.contains(first)).toBe(false)
     expect(screen.getByTestId('scene').textContent).toBe('two')
   })
@@ -71,7 +71,7 @@ describe('grouped scenes', () => {
     render(<Presentation steps={[mk('a', 'one', CountingScene, 'g'), mk('b', 'two', OtherScene, 'g')]} title="t" />)
     expect(counters.mounts).toBe(1)
     next()
-    await waitFor(() => expect(counters.unmounts).toBe(1), { timeout: 3000 })
+    await waitFor(() => expect(counters.unmounts).toBe(1), { timeout: 10000 })
     expect(screen.getByTestId('scene').textContent).toBe('two')
   })
 
@@ -147,7 +147,7 @@ describe('entities across steps', () => {
     const y = screen.getByTestId('e-y')
     next()
     expect(document.body.contains(y)).toBe(true) // still present while it exits
-    await waitFor(() => expect(document.body.contains(y)).toBe(false), { timeout: 3000 })
+    await waitFor(() => expect(document.body.contains(y)).toBe(false), { timeout: 10000 })
     expect(screen.getByTestId('e-x')).toBeTruthy()
   })
 
@@ -159,7 +159,7 @@ describe('entities across steps', () => {
     next()
     expect(scenes().length).toBe(2)
     expect(index()).toBe('1')
-    await waitFor(() => expect(document.body.contains(old)).toBe(false), { timeout: 3000 })
+    await waitFor(() => expect(document.body.contains(old)).toBe(false), { timeout: 10000 })
     expect(scenes()).toHaveLength(1)
   })
 

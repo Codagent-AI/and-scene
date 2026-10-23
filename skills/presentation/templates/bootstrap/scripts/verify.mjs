@@ -2,10 +2,10 @@
 // Deterministic verification: build the whole app, check the reference sample,
 // then render every step of every registered presentation in Chromium against a
 // production preview on 127.0.0.1. Exits non-zero, naming the phase, on failure.
-import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { runBuild, tail } from './lib/build.mjs'
 import { compareOutline, checkRegistration } from './lib/outline.mjs'
 import { freePort, HOST, startPreview, waitForReady } from './lib/preview.mjs'
 
@@ -16,19 +16,14 @@ export class PhaseFailure extends Error {
   }
 }
 
-function runBuild(root) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('npm', ['run', 'build'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-    let output = ''
-    child.stdout.on('data', (d) => (output += d))
-    child.stderr.on('data', (d) => (output += d))
-    child.on('error', (err) => reject(new PhaseFailure('build', `could not run npm run build: ${err.message}`)))
-    child.on('close', (code) => {
-      if (code === 0) return resolve()
-      const tail = output.trim().split('\n').slice(-30).join('\n')
-      reject(new PhaseFailure('build', `npm run build exited with code ${code}\n${tail}`))
-    })
-  })
+async function build(root) {
+  let result
+  try {
+    result = await runBuild(root)
+  } catch (err) {
+    throw new PhaseFailure('build', `could not run npm run build: ${err.message}`)
+  }
+  if (result.code !== 0) throw new PhaseFailure('build', `npm run build exited with code ${result.code}\n${tail(result.output)}`)
 }
 
 function readConfig(root) {
@@ -127,7 +122,7 @@ async function renderPresentation(browser, origin, slug, reference, { settleMs, 
 
 export async function verify({ root = process.cwd(), port, settleMs = 700, log = console.log } = {}) {
   log('verify: build')
-  await runBuild(root)
+  await build(root)
   log('build: ok')
   const { slugs, reference } = await checkSample(root, log)
 

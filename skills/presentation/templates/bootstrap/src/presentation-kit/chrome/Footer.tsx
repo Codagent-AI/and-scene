@@ -1,3 +1,4 @@
+import { activeAttrs } from './active'
 import type { StepMeta, Mode } from '../types'
 
 export interface FooterProps {
@@ -30,8 +31,7 @@ export function Footer({ mode, step, steps, index, onPrev, onNext, onJump }: Foo
                   key={s.id}
                   type="button"
                   data-presentation-progress-item=""
-                  data-presentation-active={active ? 'true' : undefined}
-                  aria-current={active ? 'step' : undefined}
+                  {...activeAttrs(active)}
                   aria-label={`Step ${i + 1}: ${s.title}`}
                   onClick={() => onJump(i)}
                 />

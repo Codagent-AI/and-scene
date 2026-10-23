@@ -1,3 +1,4 @@
+import { activeAttrs } from './active'
 import { eraEntries } from '../validate'
 import type { StepMeta } from '../types'
 
@@ -20,8 +21,7 @@ export function Toc({ steps, index, top, onJump }: TocProps) {
               <button
                 type="button"
                 data-presentation-toc-entry=""
-                data-presentation-active={active ? 'true' : undefined}
-                aria-current={active ? 'step' : undefined}
+                {...activeAttrs(active)}
                 onClick={() => onJump(firstIndex)}
               >
                 {era}

@@ -2,10 +2,10 @@
 // Captures one settled screenshot per step of a registered presentation from a
 // production preview on 127.0.0.1, and prints advisory visual warnings.
 // Warnings never fail the run; only operational failures exit non-zero.
-import { spawn } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { runBuild, tail } from './lib/build.mjs'
 import { collectSnapshot } from './lib/collect.mjs'
 import { diagnose, settle } from './lib/diagnostics.mjs'
 import { freePort, HOST, startPreview, waitForReady } from './lib/preview.mjs'
@@ -15,16 +15,13 @@ export const DEFAULT_VIEWPORT = { width: 1440, height: 900 }
 
 export class InspectionError extends Error {}
 
-function runBuild(root) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('npm', ['run', 'build'], { cwd: root, stdio: 'inherit' })
-    child.on('error', reject)
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new InspectionError(`npm run build exited with code ${code}`))))
-  })
+async function build(root) {
+  const { code, output } = await runBuild(root)
+  if (code !== 0) throw new InspectionError(`npm run build exited with code ${code}\n${tail(output)}`)
 }
 
 const realDeps = {
-  build: runBuild,
+  build,
   freePort,
   startPreview,
   waitForReady,

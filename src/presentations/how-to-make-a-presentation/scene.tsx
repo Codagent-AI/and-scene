@@ -10,8 +10,8 @@ export interface ScenePayload {
   flagged?: readonly EntityId[]
 }
 
-const card = (id: EntityId, slot: number) => (
-  <Box id={id} x={slotX(slot)} y={SLOT_Y} width={SLOT_SIZE} height={SLOT_SIZE}>
+const card = (id: EntityId, slot: number, flagged: readonly EntityId[]) => (
+  <Box id={id} emphasis={flagged.includes(id)} x={slotX(slot)} y={SLOT_Y} width={SLOT_SIZE} height={SLOT_SIZE}>
     <span data-part="title">title</span>
     <span data-part="caption">caption</span>
     <span data-part="visual">visual</span>
@@ -42,19 +42,13 @@ function render(id: EntityId, flagged: readonly EntityId[]): ReactNode {
     case E.tray:
       return <Box id={id} kind="tray" x={30} y={136} width={820} height={134} />
     case E.card1:
-      return card(id, 0)
+      return card(id, 0, flagged)
     case E.card2:
-      return card(id, 1)
+      return card(id, 1, flagged)
     case E.card3:
-      return (
-        <Box id={id} emphasis={flagged.includes(id)} x={slotX(2)} y={SLOT_Y} width={SLOT_SIZE} height={SLOT_SIZE}>
-          <span data-part="title">title</span>
-          <span data-part="caption">caption</span>
-          <span data-part="visual">visual</span>
-        </Box>
-      )
+      return card(id, 2, flagged)
     case E.card4:
-      return card(id, 3)
+      return card(id, 3, flagged)
     case E.link1:
       return link(id, E.link1Label, 0)
     case E.link2:

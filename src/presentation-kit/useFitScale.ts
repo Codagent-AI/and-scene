@@ -6,10 +6,10 @@ import type { Canvas, Mode } from './constants'
 export function computeFitScale(
   available: { width: number; height: number },
   canvas: Canvas,
-  padding: number,
+  inset: number,
 ): number {
-  const w = (available.width - padding * 2) / canvas.width
-  const h = (available.height - padding * 2) / canvas.height
+  const w = (available.width - inset * 2) / canvas.width
+  const h = (available.height - inset * 2) / canvas.height
   const scale = Math.min(w, h)
   return Number.isFinite(scale) ? Math.max(MIN_SCALE, scale) : MIN_SCALE
 }
@@ -32,5 +32,5 @@ export function useFitScale(ref: RefObject<HTMLElement | null>, canvas: Canvas, 
     return () => observer.disconnect()
   }, [ref])
 
-  return computeFitScale(size, canvas, STAGE_LAYOUT[mode].padding)
+  return computeFitScale(size, canvas, STAGE_LAYOUT[mode].inset)
 }

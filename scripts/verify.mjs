@@ -1,14 +1,11 @@
-#!/usr/bin/env node
 // Build + browser-render verification: `npm run verify`.
 // Phases: build -> registry -> preview -> render. Any failure exits non-zero and names the phase
 // (and the step, for browser faults). Preview and browser always use the IPv4 loopback address.
-import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
-import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { HOST, freePort, run, startPreview } from './preview.mjs'
 
-export const HOST = '127.0.0.1'
 export const STEP_TIMEOUT_MS = 4000
 
 /** Normative outlines (titles and captions, in order) keyed by presentation slug. */
@@ -46,28 +43,6 @@ export function outlineMismatch(slug, index, observed) {
   return null
 }
 
-function run(cmd, args, cwd) {
-  return new Promise((resolve) => {
-    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
-    let out = ''
-    child.stdout.on('data', (d) => (out += d))
-    child.stderr.on('data', (d) => (out += d))
-    child.on('error', (e) => resolve({ code: 1, out: String(e) }))
-    child.on('close', (code) => resolve({ code, out }))
-  })
-}
-
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer()
-    server.once('error', reject)
-    server.listen(0, HOST, () => {
-      const { port } = server.address()
-      server.close(() => resolve(port))
-    })
-  })
-}
-
 async function build(root) {
   const { code, out } = await run('npm', ['run', 'build'], root)
   if (code !== 0) throw new VerifyError('build', `npm run build failed:\n${out.trim().split('\n').slice(-15).join('\n')}`)
@@ -89,39 +64,6 @@ async function loadRegistry(root) {
   }
   if (registry.length === 0) throw new VerifyError('registry', 'no presentations are registered')
   return registry
-}
-
-async function startPreview(root, port) {
-  const vite = path.join(root, 'node_modules/vite/bin/vite.js')
-  const child = spawn(process.execPath, [vite, 'preview', '--host', HOST, '--port', String(port), '--strictPort'], {
-    cwd: root,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
-  let log = ''
-  child.stdout.on('data', (d) => (log += d))
-  child.stderr.on('data', (d) => (log += d))
-  let exited = false
-  child.on('exit', () => (exited = true))
-  const stop = () =>
-    new Promise((resolve) => {
-      if (exited) return resolve()
-      child.once('exit', resolve)
-      child.kill('SIGTERM')
-      setTimeout(() => child.kill('SIGKILL'), 3000).unref()
-    })
-  const deadline = Date.now() + 30_000
-  while (Date.now() < deadline) {
-    if (exited) break
-    try {
-      const res = await fetch(`http://${HOST}:${port}/`)
-      if (res.ok) return { stop }
-    } catch {
-      /* not ready yet */
-    }
-    await new Promise((r) => setTimeout(r, 200))
-  }
-  await stop()
-  throw new VerifyError('preview', `vite preview did not become ready on ${HOST}:${port}\n${log.trim()}`)
 }
 
 async function readStep(page) {
@@ -208,7 +150,9 @@ export async function verify(root, { skipBuild = false, slug } = {}) {
   }
   const port = await freePort()
   console.log(`[verify] preview: vite preview on http://${HOST}:${port}`)
-  const preview = await startPreview(root, port)
+  const preview = await startPreview(root, port).catch((e) => {
+    throw new VerifyError('preview', e.message)
+  })
   let browser
   let steps = 0
   try {

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // Refresh skills/presentation/templates/bootstrap from the canonical sources:
 // the kit, the verification/inspection scripts, and a starter presentation.
 // `npm run sync:templates`; a parity test fails when the snapshot drifts.
@@ -14,7 +13,7 @@ rmSync(path.join(bootstrap, 'src/presentation-kit'), { recursive: true, force: t
 cpSync(path.join(root, 'src/presentation-kit'), path.join(bootstrap, 'src/presentation-kit'), { recursive: true })
 
 mkdirSync(path.join(bootstrap, 'scripts'), { recursive: true })
-for (const name of ['verify.mjs', 'inspect-presentation.mjs']) {
+for (const name of ['verify.mjs', 'inspect-presentation.mjs', 'preview.mjs']) {
   cpSync(path.join(root, 'scripts', name), path.join(bootstrap, 'scripts', name))
 }
 

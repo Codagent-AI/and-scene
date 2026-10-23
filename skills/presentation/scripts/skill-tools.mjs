@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // Helpers behind skills/presentation/SKILL.md: detect scaffold anchors and the target,
 // scaffold missing anchors, create + register a presentation. Templates are resolved
 // relative to this file, never the caller's working directory.

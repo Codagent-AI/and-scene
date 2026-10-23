@@ -16,10 +16,10 @@ export const ENTER_T = 0.4
 /** Newcomers wait for persisting entities to finish moving. */
 export const ENTER_DELAY = LAYOUT_T * 0.8
 
-/** Padding (px) kept free around the scaled canvas, per mode. */
-export const STAGE_LAYOUT: Record<Mode, { padding: number }> = {
-  browse: { padding: 16 },
-  present: { padding: 32 },
+/** Inset (px) kept free around the scaled canvas, per mode. */
+export const STAGE_LAYOUT: Record<Mode, { inset: number }> = {
+  browse: { inset: 16 },
+  present: { inset: 32 },
 }
 
 /** Viewport width (px) at which the browse table of contents appears. */

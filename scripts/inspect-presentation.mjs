@@ -1,15 +1,12 @@
-#!/usr/bin/env node
 // Per-step screenshots + advisory visual diagnostics: `npm run inspect -- <slug> [options]`.
 // Options: --viewport WxH (default 1440x900)  --settle ms (default 1200)  --out dir (default .inspection)
 //          --skip-build (reuse an existing dist/)
 // Warnings are advisory: the process exits 0 unless the capture itself fails.
-import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
-import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { HOST, freePort, run, startPreview } from './preview.mjs'
 
-export const HOST = '127.0.0.1'
 const OVERLAP_TOLERANCE = 2
 const DEFAULT_LINK_COLORS = new Set(['rgb(0, 0, 238)', 'rgb(85, 26, 139)'])
 const MIN_ATTRIBUTION_FONT = 12
@@ -136,60 +133,17 @@ function collectInPage() {
 
 // ---- driver ------------------------------------------------------------------
 
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer()
-    server.once('error', reject)
-    server.listen(0, HOST, () => {
-      const { port } = server.address()
-      server.close(() => resolve(port))
-    })
-  })
-}
-
-function runBuild(root) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('npm', ['run', 'build'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-    let out = ''
-    child.stdout.on('data', (d) => (out += d))
-    child.stderr.on('data', (d) => (out += d))
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`npm run build failed:\n${out.slice(-1500)}`))))
-  })
-}
-
-async function startPreview(root, port) {
-  const vite = path.join(root, 'node_modules/vite/bin/vite.js')
-  const child = spawn(process.execPath, [vite, 'preview', '--host', HOST, '--port', String(port), '--strictPort'], {
-    cwd: root,
-    stdio: 'ignore',
-  })
-  const stop = () =>
-    new Promise((resolve) => {
-      if (child.exitCode !== null) return resolve()
-      child.once('exit', resolve)
-      child.kill('SIGTERM')
-      setTimeout(() => child.kill('SIGKILL'), 3000).unref()
-    })
-  for (let i = 0; i < 150; i++) {
-    try {
-      if ((await fetch(`http://${HOST}:${port}/`)).ok) return stop
-    } catch {
-      /* not ready */
-    }
-    await new Promise((r) => setTimeout(r, 200))
-  }
-  await stop()
-  throw new Error('vite preview did not become ready')
-}
-
 export async function inspect(root, slug, { viewport = '1440x900', settle = 1200, out = '.inspection', skipBuild = false } = {}) {
   const [width, height] = viewport.split('x').map(Number)
   if (!width || !height) throw new Error(`invalid --viewport "${viewport}"`)
-  if (!skipBuild) await runBuild(root)
+  if (!skipBuild) {
+    const build = await run('npm', ['run', 'build'], root)
+    if (build.code !== 0) throw new Error(`npm run build failed:\n${build.out.slice(-1500)}`)
+  }
   const dir = path.resolve(root, out, slug, viewport)
   mkdirSync(dir, { recursive: true })
   const port = await freePort()
-  const stop = await startPreview(root, port)
+  const { stop } = await startPreview(root, port)
   const { chromium } = await import('playwright')
   const browser = await chromium.launch()
   const report = { slug, viewport, settleMs: settle, captures: [], warnings: [] }

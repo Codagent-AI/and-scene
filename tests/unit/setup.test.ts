@@ -188,6 +188,18 @@ describe('scaffold', () => {
     expect(r.merged).not.toContain('dependencies.react')
   })
 
+  it('reports an invalid package.json clearly and writes nothing (I-33)', () => {
+    write('package.json', '{ not json')
+    expect(() => scaffold(tmp, { install: false })).toThrow(/not valid JSON/)
+    expect(existsSync(path.join(tmp, 'src'))).toBe(false)
+  })
+
+  it('does not change the module type of an existing package.json (I-33)', () => {
+    write('package.json', JSON.stringify({ name: 'cjs', scripts: { build: 'x' } }))
+    scaffold(tmp, { install: false })
+    expect(JSON.parse(read('package.json')).type).toBeUndefined()
+  })
+
   it('resolves templates from the skill directory, independent of the cwd (I-38)', () => {
     const script = path.resolve('skills/presentation/scripts/setup.mjs')
     const target = path.join(tmp, 'app')

@@ -146,6 +146,7 @@ function expand(group) {
 function mergePackageJson(targetFile) {
   const template = readJson(path.join(BOOTSTRAP, 'package.json'))
   const existing = readJson(targetFile)
+  if (!existing) throw new Error(`${targetFile} is not valid JSON; fix it before scaffolding`)
   const merged = { ...existing }
   const added = []
   for (const section of ['dependencies', 'devDependencies', 'scripts']) {
@@ -160,7 +161,6 @@ function mergePackageJson(targetFile) {
       }
     }
   }
-  if (!existing.type) merged.type = 'module'
   writeFileSync(targetFile, `${JSON.stringify(merged, null, 2)}\n`)
   return added
 }
@@ -230,12 +230,13 @@ export function scaffold(targetDir, { install = true } = {}) {
     if (wired) written.push(wired.entry, 'src/main.presentation.tsx')
   }
   let installed = false
+  let installError = null
   if (install && (written.length || merged.length)) {
     const r = spawnSync('npm', ['install'], { cwd: targetDir, stdio: 'inherit' })
-    if (r.status !== 0) throw new Error('npm install failed')
-    installed = true
+    if (r.status === 0) installed = true
+    else installError = `npm install failed (exit ${r.status ?? 'signal'}); files were already written, rerun npm install in ${targetDir}`
   }
-  return { targetDir, anchors, written, skipped, merged, wired, installed }
+  return { targetDir, anchors, written, skipped, merged, wired, installed, installError }
 }
 
 // ---- create a presentation --------------------------------------------
@@ -291,6 +292,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     else if (cmd === 'create') result = createPresentation(rest[0], rest[1], rest[2] ?? rest[1])
     else throw new Error('usage: setup.mjs detect|scaffold|create ...')
     console.log(JSON.stringify(result, null, 2))
+    if (result.installError) process.exitCode = 1
   } catch (e) {
     console.error(`setup: ${e.message}`)
     process.exitCode = 1

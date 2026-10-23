@@ -72,7 +72,7 @@ export async function startPreview(root) {
   while (Date.now() < deadline) {
     if (exited) throw new Error(`preview exited early:\n${log}`)
     try {
-      const res = await fetch(`${origin}/`)
+      const res = await fetch(`${origin}/`, { signal: AbortSignal.timeout(2000) })
       if (res.ok) return { origin, stop }
     } catch {
       /* not ready yet */

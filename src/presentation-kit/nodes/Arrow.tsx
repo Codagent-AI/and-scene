@@ -1,5 +1,5 @@
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { EASE, LAYOUT_T } from '../constants'
+import { entityProps } from './geometry'
 
 export interface ArrowProps extends Omit<HTMLMotionProps<'div'>, 'id' | 'layoutId'> {
   entity: string
@@ -40,11 +40,7 @@ export function Arrow({ entity, from, to, bidirectional, curve = 0, style, ...re
   const startAngle = Math.atan2(y1 - cy, x1 - cx)
   return (
     <motion.div
-      layout
-      layoutId={entity}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
-      data-presentation-arrow=""
-      data-presentation-entity={entity}
+      {...entityProps(entity, 'arrow')}
       {...rest}
       style={{ position: 'absolute', left, top, width: w, height: h, pointerEvents: 'none', ...style }}
     >

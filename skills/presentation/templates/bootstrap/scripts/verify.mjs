@@ -54,7 +54,11 @@ export function parseArgs(argv) {
   return args
 }
 
-/** Problems with how the registry source declares a presentation slug (and title/loader when given). */
+/**
+ * Problems with how the registry source declares a presentation slug (and title/loader when given).
+ * @param {string} indexSource
+ * @param {{ slug: string, title?: string }} expected
+ */
 export function checkRegistration(indexSource, { slug, title }) {
   const problems = []
   const entry = new RegExp(`\\{[^{}]*slug:\\s*(['"])${slug}\\1[^{}]*\\}`, 's').exec(indexSource)

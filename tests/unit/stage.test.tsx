@@ -105,12 +105,11 @@ describe('grouped scenes persist (L-4, L-7, I-5)', () => {
     const stage = read('Stage.tsx')
     expect(stage).toMatch(/<LayoutGroup>[\s\S]*<AnimatePresence[\s\S]*<motion\.div[\s\S]*exit=\{\{ opacity: 0 \}\}/)
     expect(stage).toMatch(/initial=\{\{ opacity: 0 \}\}[\s\S]*animate=\{\{ opacity: 1 \}\}[\s\S]*transition=\{\{ duration: ENTER_T/)
-    for (const f of ['Box', 'Label', 'Arrow', 'Frame', 'Emphasis', 'SymbolChip']) {
-      const src = read(`nodes/${f}.tsx`)
-      expect(src).toMatch(/\blayout\b/)
-      expect(src).toMatch(/layoutId=\{entity\}/)
-      expect(src).toMatch(/duration: LAYOUT_T/)
-    }
+    const shared = read('nodes/geometry.ts')
+    expect(shared).toMatch(/layout: true/)
+    expect(shared).toMatch(/layoutId: entity/)
+    expect(shared).toMatch(/duration: LAYOUT_T/)
+    for (const f of ['Box', 'Label', 'Arrow', 'Frame', 'Emphasis', 'SymbolChip']) expect(read(`nodes/${f}.tsx`)).toMatch(/\{\.\.\.entityProps\(entity, '/)
   })
 })
 

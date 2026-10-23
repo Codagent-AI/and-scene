@@ -104,7 +104,7 @@ describe('plan and confirmation (L-43, I-38)', () => {
     const p = plan(tmp())
     expect(p.missing).toEqual(['build', 'kit', 'index'])
     expect(p.needsConfirmation).toBe(false)
-    expect(p.files.some((f) => f.rel.startsWith('src/presentation-kit'))).toBe(true)
+    expect(p.files.some((f: { rel: string }) => f.rel.startsWith('src/presentation-kit'))).toBe(true)
   })
   it('skips scaffolding entirely when all anchors exist', () => {
     const p = plan(full())

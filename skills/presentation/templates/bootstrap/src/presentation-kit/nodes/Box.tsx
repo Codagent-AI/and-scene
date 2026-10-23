@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { LAYOUT_T, EASE } from '../constants'
-import { placeStyle, type Rect } from './geometry'
+import { entityProps, placeStyle, type Rect } from './geometry'
 
 export interface BoxProps extends Omit<HTMLMotionProps<'div'>, 'id' | 'layoutId' | 'children'> {
   children?: ReactNode
@@ -16,11 +15,7 @@ export interface BoxProps extends Omit<HTMLMotionProps<'div'>, 'id' | 'layoutId'
 export function Box({ entity, at, Icon, style, children, ...rest }: BoxProps) {
   return (
     <motion.div
-      layout
-      layoutId={entity}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
-      data-presentation-box=""
-      data-presentation-entity={entity}
+      {...entityProps(entity, 'box')}
       {...rest}
       style={placeStyle(at, style)}
     >

@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { motion, type HTMLMotionProps } from 'motion/react'
-import { EASE, LAYOUT_T } from '../constants'
-import { placeStyle, type Rect } from './geometry'
+import { entityProps, placeStyle, type Rect } from './geometry'
 
 export interface SymbolChipProps extends Omit<HTMLMotionProps<'span'>, 'id' | 'layoutId' | 'children'> {
   children?: ReactNode
@@ -14,11 +13,7 @@ export interface SymbolChipProps extends Omit<HTMLMotionProps<'span'>, 'id' | 'l
 export function SymbolChip({ entity, at, symbol, style, children, ...rest }: SymbolChipProps) {
   return (
     <motion.span
-      layout
-      layoutId={entity}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
-      data-presentation-symbol-chip=""
-      data-presentation-entity={entity}
+      {...entityProps(entity, 'symbol-chip')}
       {...rest}
       style={placeStyle(at, style)}
     >

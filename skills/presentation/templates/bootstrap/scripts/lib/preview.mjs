@@ -67,7 +67,7 @@ export async function startPreview(cwd, { timeoutMs = 30_000 } = {}) {
   })
   const exited = new Promise((resolve) => child.once('exit', resolve))
   const stop = async () => {
-    if (child.exitCode === null && child.pid) {
+    if (child.exitCode === null && child.signalCode === null && child.pid) {
       try {
         process.kill(-child.pid, 'SIGTERM')
       } catch {
@@ -80,7 +80,8 @@ export async function startPreview(cwd, { timeoutMs = 30_000 } = {}) {
           // already gone
         }
       }, 5000)
-      await exited
+      // Never hang a verify/inspect run on a child that will not report its exit.
+      await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 8000))])
       clearTimeout(timer)
     }
   }

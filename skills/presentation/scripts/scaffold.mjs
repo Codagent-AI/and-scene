@@ -166,8 +166,16 @@ export function plan(dir) {
     needsConfirmation: missing.length > 0 && !isEmptyDir(root),
     files: files.map((rel) => ({ rel, exists: existsSync(path.join(target, rel)) })),
     mergePackageJson: missing.length > 0,
-    entry: replacesEntry ? { path: entry, backup: backupName(target, entry) } : null,
+    entry: replacesEntry ? { path: entry, backup: backupName(target, entry), router: routerEntryName(target, entry) } : null,
   }
+}
+
+/** Where the router entry goes: src/main.tsx, unless that is unrelated user code (then a non-colliding name). */
+function routerEntryName(target, entry) {
+  if (entry === 'src/main.tsx' || !existsSync(path.join(target, 'src/main.tsx'))) return 'src/main.tsx'
+  let name = 'src/presentations-main.tsx'
+  for (let i = 2; existsSync(path.join(target, name)); i++) name = `src/presentations-main-${i}.tsx`
+  return name
 }
 
 function backupName(target, entry) {
@@ -199,7 +207,7 @@ export function mergePackageJson(existing, template) {
 export function apply(dir, { confirmed = false, install = false } = {}) {
   const p = plan(dir)
   if (p.needsConfirmation && !confirmed) {
-    const err = new Error(`confirmation required: scaffold into ${p.target} (missing: ${p.missing.join(', ')}${p.entry ? `; entry ${p.entry.path} will be replaced, original saved as ${p.entry.backup}` : ''}); rerun with --confirmed after the user agrees`)
+    const err = new Error(`confirmation required: scaffold into ${p.target} (missing: ${p.missing.join(', ')}${p.entry ? `; entry ${p.entry.path} will be replaced, original saved as ${p.entry.backup}${p.entry.router === 'src/main.tsx' ? '' : `; router entry written to ${p.entry.router}`}` : ''}); rerun with --confirmed after the user agrees`)
     err.code = 'NEEDS_CONFIRMATION'
     throw err
   }
@@ -223,8 +231,8 @@ export function apply(dir, { confirmed = false, install = false } = {}) {
     written.push(p.entry.backup)
   }
   for (const { rel, exists } of p.files) {
-    const isEntry = p.entry && rel === 'src/main.tsx'
-    if (exists && !isEntry) {
+    if (p.entry && rel === 'src/main.tsx') continue // written below under its collision-free name
+    if (exists) {
       skipped.push(rel)
       continue
     }
@@ -233,10 +241,15 @@ export function apply(dir, { confirmed = false, install = false } = {}) {
     cpSync(path.join(TEMPLATES.bootstrap, rel), to)
     written.push(rel)
   }
-  if (p.entry && p.entry.path !== 'src/main.tsx') {
-    const html = path.join(p.target, 'index.html')
-    writeFileSync(html, readFileSync(html, 'utf8').replace(new RegExp(`(src=["']/?)${p.entry.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), '$1src/main.tsx'))
-    written.push('index.html')
+  if (p.entry) {
+    cpSync(path.join(TEMPLATES.bootstrap, 'src/main.tsx'), path.join(p.target, p.entry.router))
+    written.push(p.entry.router)
+    if (p.entry.path !== p.entry.router) {
+      const html = path.join(p.target, 'index.html')
+      const escaped = p.entry.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      writeFileSync(html, readFileSync(html, 'utf8').replace(new RegExp(`(src=["']/?)${escaped}`), `$1${p.entry.router}`))
+      written.push('index.html')
+    }
   }
   let installed = false
   if (install && p.mergePackageJson) {

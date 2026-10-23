@@ -23,6 +23,9 @@ const ORACLE = [
   ['the reveal', "You're looking at one", 'This presentation was built exactly this way. Thanks for watching.'],
 ] as const
 
+// These walk all nine steps with real animation timers; leave headroom when the whole suite runs in parallel.
+vi.setConfig({ testTimeout: 20_000 })
+
 describe('reference sample outline (L-49, L-50, I-24)', () => {
   it('matches the nine normative eras, titles and captions in order', () => {
     expect(STEPS.map((s) => [s.era, s.title, s.caption])).toEqual(ORACLE.map((o) => [...o]))

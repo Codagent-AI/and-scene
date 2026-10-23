@@ -5,7 +5,7 @@ import {
   CANONICAL_SAMPLE, VerifyError, checkOutline, checkRegistration, exitCodeFor, formatFailure, indexProblem, parseArgs as parseVerifyArgs,
 } from '../../scripts/verify.mjs'
 import {
-  DEFAULT_SETTLE_MS, DISTINCT_PROPS, MIN_ATTRIBUTION_FONT_PX, UA_LINK_COLOR, analyzeSnapshot, attributionIssues, captureSteps, findOverlaps,
+  DEFAULT_SETTLE_MS, DISTINCT_PROPS, SLUG_PATTERN, inspect, MIN_ATTRIBUTION_FONT_PX, UA_LINK_COLOR, analyzeSnapshot, attributionIssues, captureSteps, findOverlaps,
   isIndistinct, parseArgs as parseInspectArgs, resolveSettle, screenshotName,
 } from '../../scripts/inspect-presentation.mjs'
 import { HOST, previewUrl } from '../../scripts/lib/preview.mjs'
@@ -121,6 +121,14 @@ describe('inspect settle interval (L-60)', () => {
   it('parses slug, flags and output directory', () => {
     expect(parseInspectArgs(['demo', '--narrow', '--settle', '5', '--no-build'], {})).toMatchObject({ slug: 'demo', narrow: true, noBuild: true, settleMs: 5, outDir: 'inspection' })
     expect(parseInspectArgs(['--out', 'x', 'demo'], {}).slug).toBe('demo')
+  })
+  it('rejects --out without a value and slugs that could escape the project', async () => {
+    expect(() => parseInspectArgs(['demo', '--out'], {})).toThrow(/--out requires a directory/)
+    expect(() => parseInspectArgs(['demo', '--out', '--narrow'], {})).toThrow(/--out requires/)
+    for (const slug of ['../../x', 'a/b', 'A', '-a', 'a--b', '']) {
+      await expect(inspect({ slug, noBuild: true, root: '/nonexistent' })).rejects.toThrow(slug ? /invalid slug/ : /usage/)
+    }
+    expect(SLUG_PATTERN.test('how-to-make-a-presentation')).toBe(true)
   })
   it('names screenshots predictably', () => {
     expect(screenshotName(0)).toBe('step-01.png')

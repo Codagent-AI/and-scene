@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
 import { previewUrl, runBuild, startPreview } from './lib/preview.mjs'
 
+export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 export const DEFAULT_SETTLE_MS = 1500
 export const DESKTOP_VIEWPORT = { width: 1440, height: 900 }
 export const NARROW_VIEWPORT = { width: 390, height: 844 }
@@ -32,6 +33,7 @@ export function resolveSettle(argv, env) {
 export function parseArgs(argv, env = process.env) {
   const slug = argv.find((a, i) => !a.startsWith('--') && argv[i - 1] !== '--settle' && argv[i - 1] !== '--out')
   const o = argv.indexOf('--out')
+  if (o >= 0 && (!argv[o + 1] || argv[o + 1].startsWith('--'))) throw new Error('--out requires a directory')
   return {
     slug,
     narrow: argv.includes('--narrow'),
@@ -176,6 +178,7 @@ export async function captureSteps(page, { count, settleMs, dir, onWarning, log,
 }
 
 export async function inspect({ root = process.cwd(), slug, narrow = false, noBuild = false, settleMs = DEFAULT_SETTLE_MS, outDir = 'inspection' }) {
+  if (slug && !SLUG_PATTERN.test(slug)) throw new Error(`invalid slug "${slug}": use lowercase letters, digits and single hyphens`)
   if (!slug) throw new Error('usage: npm run inspect -- <slug> [--narrow] [--settle ms] [--no-build]')
   if (!noBuild) {
     const build = await runBuild(root)

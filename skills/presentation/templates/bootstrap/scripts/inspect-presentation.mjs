@@ -7,7 +7,7 @@ import { mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-import { attributionWarning, chromeWarning, overlapWarnings, indistinctActive } from './lib/diagnostics.mjs'
+import { stepWarnings } from './lib/diagnostics.mjs'
 import { collectPageDiagnostics } from './lib/collect.mjs'
 import { inspectionDirectory, stepFileName } from './lib/paths.mjs'
 import { startPreview } from './lib/preview.mjs'
@@ -32,20 +32,6 @@ export function parseArguments(argv) {
   if (!options.slug) throw new Error('usage: npm run inspect -- <slug> [--narrow] [--settle <ms>]')
   if (!Number.isFinite(options.settleMs) || options.settleMs < 0) throw new Error('--settle must be a non-negative number')
   return options
-}
-
-function stepWarnings(step, diagnostics) {
-  if (!diagnostics) return []
-  const warnings = overlapWarnings(step, diagnostics.items)
-  if (diagnostics.progress && indistinctActive(diagnostics.progress.active, diagnostics.progress.inactive)) {
-    warnings.push(chromeWarning(step, 'progress indicator'))
-  }
-  if (diagnostics.toc && indistinctActive(diagnostics.toc.active, diagnostics.toc.inactive)) {
-    warnings.push(chromeWarning(step, 'table-of-contents entry'))
-  }
-  const attribution = attributionWarning(step, diagnostics.attribution)
-  if (attribution) warnings.push(attribution)
-  return warnings
 }
 
 /** Builds first so the screenshots always come from the current source. */

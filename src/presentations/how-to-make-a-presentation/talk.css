@@ -1,0 +1,216 @@
+/* Visual style for this presentation. The scene kit supplies none; everything
+   below targets the kit's data-presentation-* hooks. */
+.talk-htm {
+  --ink: #e9edf7;
+  --muted: #9aa6bf;
+  --bg: #0e1424;
+  --panel: #18203a;
+  --line: #3a4668;
+  --accent: #7aa2ff;
+  --ok: #4ade80;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+/* chrome */
+.talk-htm button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.talk-htm button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.talk-htm [data-presentation-header] {
+  height: 56px;
+  padding: 0 20px;
+}
+.talk-htm [data-presentation-marker] {
+  font-weight: 700;
+  color: var(--accent);
+  margin-right: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.talk-htm [data-presentation-era] {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+.talk-htm [data-presentation-footer] {
+  padding: 0 20px 30px;
+  text-align: center;
+}
+.talk-htm [data-presentation-title] {
+  margin: 0 0 4px;
+  font-size: 24px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.talk-htm [data-presentation-caption] {
+  margin: 0 auto 10px;
+  max-width: 68ch;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.talk-htm [data-presentation-controls] {
+  margin: 0 auto;
+  max-width: 460px;
+  gap: 12px;
+}
+.talk-htm [data-presentation-progress] {
+  gap: 8px;
+}
+.talk-htm [data-presentation-progress-item] {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+}
+.talk-htm [data-presentation-progress-item][data-presentation-active='true'] {
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.talk-htm [data-presentation-toc] {
+  margin-left: 16px;
+  width: 168px;
+}
+.talk-htm [data-presentation-toc] ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.talk-htm [data-presentation-toc-entry] {
+  display: block;
+  width: 100%;
+  margin-bottom: 6px;
+  text-align: left;
+  border-color: transparent;
+  color: var(--muted);
+}
+.talk-htm [data-presentation-toc-entry][data-presentation-active='true'] {
+  color: var(--ink);
+  font-weight: 700;
+  background: var(--panel);
+  border-color: var(--accent);
+}
+.talk-htm [data-presentation-attribution-slot] {
+  margin: 0 14px 6px 0;
+}
+.talk-htm [data-presentation-attribution] {
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* entities */
+.talk-htm [data-presentation-entity] {
+  box-sizing: border-box;
+  font-size: 13px;
+  line-height: 16px;
+}
+.talk-htm [data-presentation-kind='box'],
+.talk-htm [data-presentation-kind='bubble'],
+.talk-htm [data-presentation-kind='ghost'] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--panel);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  text-align: center;
+}
+.talk-htm [data-presentation-kind='bubble'] {
+  border-radius: 16px 16px 16px 2px;
+}
+.talk-htm [data-presentation-kind='ghost'] {
+  background: transparent;
+  border-style: dashed;
+  color: var(--muted);
+  font-size: 11px;
+}
+.talk-htm [data-presentation-kind='tray'] {
+  background: rgba(122, 162, 255, 0.07);
+  border-radius: 12px;
+}
+.talk-htm [data-presentation-entity^='htm-card'],
+.talk-htm [data-presentation-entity='htm-verify'] {
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 8px;
+  font-size: 11px;
+  text-align: left;
+}
+.talk-htm [data-part='title'] {
+  font-weight: 700;
+}
+.talk-htm [data-part='caption'] {
+  color: var(--muted);
+}
+.talk-htm [data-part='visual'] {
+  color: var(--accent);
+}
+.talk-htm [data-presentation-entity='htm-socket'] {
+  border-color: var(--accent);
+  font-size: 11px;
+  gap: 0;
+}
+.talk-htm [data-presentation-kind='symbol-chip'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+.talk-htm [data-presentation-entity='htm-pass'] {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.talk-htm [data-presentation-entity='htm-edited-flag'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.talk-htm [data-presentation-kind='emphasis'] {
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 0 14px rgba(122, 162, 255, 0.55);
+  pointer-events: none;
+}
+.talk-htm [data-presentation-kind='frame'] {
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+  pointer-events: none;
+}
+.talk-htm [data-presentation-kind='label'] {
+  text-align: center;
+  color: var(--accent);
+  font-size: 12px;
+}
+.talk-htm [data-presentation-kind='arrow'] {
+  color: var(--accent);
+}
+.talk-htm [data-presentation-kind='arrow'] path[data-presentation-arrow-shaft] {
+  stroke-width: 2;
+}

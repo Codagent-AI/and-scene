@@ -5,7 +5,7 @@ description: Create or modify a scene-based, step-by-step presentation as a self
 
 # Presentation
 
-This procedure builds a presentation from a topic, a visual style, and a list of steps. Follow the sections in order. Do not skip the self-verification in section 7.
+This procedure creates or modifies a presentation. Choose the branch first. To create a presentation, follow sections 1 to 5. To modify an existing one, go to section 6 and skip section 1. Both branches end with the self-verification in section 7.
 
 ## Paths
 
@@ -13,8 +13,9 @@ This procedure builds a presentation from a topic, a visual style, and a list of
 - The helper is `<skill-dir>/scripts/scaffold.mjs`. It locates its templates from its own file location, so it works from any working directory.
 - The bootstrap template is `<skill-dir>/templates/bootstrap/`. Copy from there only through the helper.
 
-## 1. Gather the presentation
+## 1. Gather the presentation (create only)
 
+- Use this section only when the request creates a new presentation. A request to change an existing presentation goes straight to section 6, and you do not ask the creation questions.
 - Ask one question at a time. Cover the topic first, then the visual style, then each step's content and visual description, in step order.
 - Ask only for details the prompt does not already contain. If the prompt already gives the topic, the style, and every step, skip the questions and go to section 2.
 - Never invent details the user can still provide. If the user chooses to build with partial detail, build from what was captured, fill only the gaps needed to build, list those gaps in your final report, and offer to iterate.
@@ -58,7 +59,7 @@ The helper never overwrites an existing file. It merges `package.json` only by a
 1. Run `node <skill-dir>/scripts/scaffold.mjs <project-dir> --apply` only after any required confirmation. The helper writes the planned files and reports the paths it wrote or merged.
 2. Change into `target.appDir` and run `npm install`. Run it after every scaffold, even if `node_modules` already exists, because the merged dependencies may be new. Do not assume the dependencies are installed.
 3. Run `npm run build` in `target.appDir`. Fix any error before continuing.
-4. If the host already had a build setup, check that `package.json` has the `verify` and `inspect` scripts and a `playwright` dev dependency. Add any that are missing from the bootstrap `package.json` in `<skill-dir>/templates/bootstrap/`, and keep every existing value. If the host has no `"type": "module"` field and the scaffolded config files need it, ask the user before changing it, because it affects the host's other files.
+4. If the host already had a build setup, the helper merges the bootstrap `package.json` into it: every missing dependency (for example `motion` and `lucide-react`), devDependency, and script (`verify`, `inspect`) is added, and every existing value is kept. Check that the merged file declares `react`, `react-dom`, `motion`, `lucide-react`, `vite`, `typescript`, `playwright`, and the `verify` and `inspect` scripts before you run `npm install`. If a required entry is missing, add it to `package.json` yourself and keep the existing values. If the host has no `"type": "module"` field and the scaffolded config files need it, ask the user before changing it, because it affects the host's other files.
 5. The scaffold ships no styling framework and no default colors, fonts, spacing, cards, or buttons. Keep it that way. Styling goes only in presentation-owned or host-owned files.
 
 ## 5. Create a presentation

@@ -59,19 +59,31 @@ async function diagnose(page) {
         return marked !== null && marked.contains(b)
       }
 
-      // Overlap: two visible text elements whose boxes intersect, neither containing the other.
-      const texts = [...root.querySelectorAll('*')].filter((el) => ownText(el) && isShown(el))
-      for (let i = 0; i < texts.length; i += 1) {
-        for (let j = i + 1; j < texts.length; j += 1) {
-          const a = texts[i]
-          const b = texts[j]
+      // A readable name for an element, used in warnings.
+      const labelOf = (el) => {
+        const text = el.textContent.trim()
+        if (text) return text.slice(0, 30)
+        if (el.hasAttribute('data-presentation-progress-dot')) return 'progress dot'
+        return el.getAttribute('aria-label') || el.tagName.toLowerCase()
+      }
+
+      // Overlap: visible text or chrome (a control, a progress dot) whose boxes intersect, neither containing
+      // the other. Text is measured by its glyphs; controls without text by their boxes.
+      const chromeSelector = 'button, a[href], [data-presentation-progress-dot]'
+      const candidates = [...root.querySelectorAll('*')]
+        .filter((el) => (ownText(el) || el.matches(chromeSelector)) && isShown(el))
+        .map((el) => ({ el, rect: ownText(el) ? textBox(el) : el.getBoundingClientRect() }))
+      for (let i = 0; i < candidates.length; i += 1) {
+        for (let j = i + 1; j < candidates.length; j += 1) {
+          const a = candidates[i].el
+          const b = candidates[j].el
           if (a.contains(b) || b.contains(a) || exemptPair(a, b) || exemptPair(b, a)) continue
-          const ra = textBox(a)
-          const rb = textBox(b)
+          const ra = candidates[i].rect
+          const rb = candidates[j].rect
           const w = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left)
           const h = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top)
           if (w > 0 && h > 0 && w * h >= minArea) {
-            warnings.push(`step ${stepLabel}: overlap between "${a.textContent.trim().slice(0, 30)}" and "${b.textContent.trim().slice(0, 30)}"`)
+            warnings.push(`step ${stepLabel}: overlap between "${labelOf(a)}" and "${labelOf(b)}"`)
           }
         }
       }
@@ -154,8 +166,10 @@ async function main() {
         (expected) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(expected),
         index,
       )
+      const started = Date.now()
       await page.waitForTimeout(options.settle)
       await waitUntilStable(page)
+      console.log(`settled: step ${String(index + 1).padStart(2, '0')} waited ${Date.now() - started}ms (configured settle ${options.settle}ms)`)
       const file = join(outDir, `step-${String(index + 1).padStart(2, '0')}.png`)
       await page.screenshot({ path: file })
       console.log(`captured: ${file}`)

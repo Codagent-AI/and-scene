@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
-import { findFreePort, runBuild, startPreview } from './lib/preview.mjs'
+import { findFreePort, runBuild, startPreview, stopAllPreviews } from './lib/preview.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const SAMPLE_SLUG = 'how-to-make-a-presentation'
@@ -63,7 +63,13 @@ async function renderSample(baseUrl) {
     if (!url.startsWith('http://127.0.0.1:')) throw new VerifyFailure('render', `non-IPv4 URL ${url}`)
     await page.goto(url)
     const root = page.locator('[data-presentation-root]')
-    await root.waitFor({ timeout: STEP_TIMEOUT_MS })
+    try {
+      await root.waitFor({ timeout: STEP_TIMEOUT_MS })
+    } catch {
+      // The presentation never mounted: an initial render error is the likely cause, so report it.
+      const reason = errors.length > 0 ? errors.join('; ') : 'the presentation root did not mount'
+      throw new VerifyFailure('render', reason, 0)
+    }
     const count = Number(await root.getAttribute('data-step-count'))
     if (count !== EXPECTED_STEPS.length) {
       throw new VerifyFailure('sample', `expected ${EXPECTED_STEPS.length} steps, found ${count}`)
@@ -109,11 +115,8 @@ async function waitForIndex(root, expected, from, errors) {
 }
 
 async function main() {
-  let preview = null
-  const cleanup = async () => {
-    if (preview) await preview.stop()
-    preview = null
-  }
+  // Stops every preview this run started, including one still starting when a signal arrives.
+  const cleanup = () => stopAllPreviews()
   const onSignal = (signal) => {
     cleanup().finally(() => process.exit(signal === 'SIGINT' ? 130 : 143))
   }
@@ -125,7 +128,7 @@ async function main() {
       throw new VerifyFailure('build', error.message)
     })
     await checkSample()
-    preview = await startPreview(root, await findFreePort())
+    const preview = await startPreview(root, await findFreePort())
     log(`render: preview ready at ${preview.url}`)
     await renderSample(preview.url)
   } catch (error) {

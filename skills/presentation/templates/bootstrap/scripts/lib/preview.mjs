@@ -5,6 +5,9 @@ import { join } from 'node:path'
 const HOST = '127.0.0.1'
 const READY_TIMEOUT_MS = 30_000
 
+/** Every preview process this module has started and not yet seen exit, including ones still starting. */
+const running = new Set()
+
 /** Asks the OS for a free loopback port. */
 export function findFreePort() {
   return new Promise((resolve, reject) => {
@@ -43,8 +46,10 @@ export async function startPreview(root, port) {
     [viteBin, 'preview', '--host', HOST, '--port', String(port), '--strictPort'],
     { cwd: root, detached: true, stdio: ['ignore', 'pipe', 'pipe'] },
   )
+  running.add(child)
   let exited = null
   child.on('exit', (code, signal) => {
+    running.delete(child)
     exited = { code, signal }
   })
 
@@ -82,4 +87,9 @@ export function stopProcessGroup(child) {
       }
     }, 2_000).unref()
   })
+}
+
+/** Stops every preview this module started, whether or not it is ready yet. */
+export function stopAllPreviews() {
+  return Promise.all([...running].map(stopProcessGroup))
 }

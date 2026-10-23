@@ -65,7 +65,16 @@ export async function stopChild(child) {
   if (child.exitCode !== null || child.signalCode !== null) return
   child.kill('SIGTERM')
   const killer = setTimeout(() => child.kill('SIGKILL'), 5_000)
-  // Bound the wait so a child that ignores SIGKILL cannot hang the run.
-  await Promise.race([exited, sleep(10_000)])
-  clearTimeout(killer)
+  // Bound the wait so a child that ignores SIGKILL cannot hang the run. The bound timer is
+  // cleared once the race settles, so a prompt exit does not keep the event loop alive.
+  let bound
+  const timeout = new Promise((resolve) => {
+    bound = setTimeout(resolve, 10_000)
+  })
+  try {
+    await Promise.race([exited, timeout])
+  } finally {
+    clearTimeout(bound)
+    clearTimeout(killer)
+  }
 }

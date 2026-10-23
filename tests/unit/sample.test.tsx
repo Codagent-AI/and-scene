@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { presentations } from '../../src/presentations'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'
 import { Landing } from '../../src/Landing'
+import { Presentation } from '../../src/presentation-kit'
 import { Router } from '../../src/router'
 import { resolveRoute } from '../../src/routes'
 import type { PresentationEntry } from '../../src/presentations'
@@ -77,6 +78,20 @@ describe('reference sample', () => {
 
   it('every step has a caption', () => {
     for (const step of STEPS) expect(step.caption.length).toBeGreaterThan(0)
+  })
+})
+
+describe('entity continuity in the rendered sample', () => {
+  it('keeps the same DOM node for an entity that persists from one step to the next', async () => {
+    const { act, fireEvent } = await import('@testing-library/react')
+    render(<Presentation steps={STEPS} title="Sample" initialMode="present" />)
+    const idOf = (id: string) => document.querySelector(`[data-presentation-entity="${id}"]`)
+    const you = idOf('htp-you')
+    expect(you).not.toBeNull()
+    act(() => void fireEvent.keyDown(window, { key: 'ArrowRight' }))
+    expect(idOf('htp-skill')).not.toBeNull()
+    expect(idOf('htp-you')).toBe(you)
+    expect(document.querySelectorAll('[data-presentation-scene]')).toHaveLength(1)
   })
 })
 

@@ -1,22 +1,46 @@
 // Pure helpers behind scripts/verify.mjs, kept free of browser and process concerns so they unit-test.
 
-/** Source text with `//` and block comments removed; string and template literals are left intact. */
+const REGEX_KEYWORDS = new Set(['return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'throw', 'case', 'do', 'else', 'yield', 'await'])
+
+/** Source text with `//` and block comments removed; string, template and regex literals are left intact. */
 export function stripComments(text) {
   let out = ''
+  let last = '' // last significant character emitted, to tell a regex literal from a division
+  let word = ''
+  const emit = (chunk) => {
+    out += chunk
+    const trimmed = chunk.trimEnd()
+    if (!trimmed) return
+    last = trimmed.at(-1)
+    word = /[\w$]$/.test(trimmed) ? (trimmed.match(/[\w$]+$/)?.[0] ?? '') : ''
+  }
   for (let i = 0; i < text.length; ) {
     const ch = text[i]
     if (ch === '"' || ch === "'" || ch === '`') {
       let j = i + 1
       while (j < text.length && text[j] !== ch) j += text[j] === '\\' ? 2 : 1
-      out += text.slice(i, j + 1)
+      emit(text.slice(i, j + 1))
       i = j + 1
     } else if (ch === '/' && text[i + 1] === '/') {
       while (i < text.length && text[i] !== '\n') i++
     } else if (ch === '/' && text[i + 1] === '*') {
       const end = text.indexOf('*/', i + 2)
       i = end === -1 ? text.length : end + 2
+    } else if (ch === '/' && (last === '' || /[(,=:[!&|?{};+\-*%<>~^]/.test(last) || REGEX_KEYWORDS.has(word))) {
+      let j = i + 1
+      let inClass = false
+      while (j < text.length && text[j] !== '\n' && (inClass || text[j] !== '/')) {
+        if (text[j] === '\\') j++
+        else if (text[j] === '[') inClass = true
+        else if (text[j] === ']') inClass = false
+        j++
+      }
+      j++
+      while (j < text.length && /[a-z]/i.test(text[j])) j++
+      emit(text.slice(i, j))
+      i = j
     } else {
-      out += ch
+      emit(ch)
       i++
     }
   }

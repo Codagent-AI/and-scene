@@ -18,6 +18,17 @@ describe('parseRegistry', () => {
     const text = `[\n  // { slug: 'gone', title: 'Gone', load: () => import('./gone/Talk.tsx') },\n  /* { slug: 'old', title: 'Old', load: () => import('./old/Talk.tsx') }, */\n  { slug: 'kept', title: 'See http://example.com // now', load: () => import('./kept/Talk.tsx') }, // trailing\n]`
     expect(parseRegistry(text)).toEqual([{ slug: 'kept', title: 'See http://example.com // now' }])
   })
+  it('is not thrown off by regex literals that contain comment or quote characters', () => {
+    const live = "{ slug: 'live', title: 'Live', load: () => import('./live/Talk.tsx') },"
+    const star = `/** doc */\nexport const SRC_GLOB = /src\\/*.ts/\nexport const PRESENTATIONS = [\n  ${live}\n]`
+    expect(parseRegistry(star)).toEqual([{ slug: 'live', title: 'Live' }])
+    const quote = `export const Q = /'/\nexport const P = [\n  // { slug: 'old', title: 'Old', load: () => import('./old/Talk.tsx') },\n  ${live}\n]`
+    expect(parseRegistry(quote)).toEqual([{ slug: 'live', title: 'Live' }])
+    const division = `const half = total / 2 // note\nconst P = [\n  ${live}\n]`
+    expect(parseRegistry(division)).toEqual([{ slug: 'live', title: 'Live' }])
+    const classSlash = `const R = /[/*]x/g\nconst P = [\n  ${live}\n]`
+    expect(parseRegistry(classSlash)).toEqual([{ slug: 'live', title: 'Live' }])
+  })
   it('finds nothing in an empty registry', () => {
     expect(parseRegistry('export const PRESENTATIONS = []')).toEqual([])
   })

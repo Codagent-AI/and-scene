@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import net from 'node:net'
 import path from 'node:path'
 
@@ -57,10 +58,25 @@ export function runBuild(root) {
   })
 }
 
+/**
+ * Vite's CLI entry as Node resolves it from the app, so a copy hoisted to a workspace root
+ * (or any parent node_modules) is found as well as an app-local install.
+ */
+export function resolveViteBin(root) {
+  let manifest
+  try {
+    manifest = createRequire(path.join(root, 'package.json')).resolve('vite/package.json')
+  } catch {
+    throw new Fail('preview', `vite is not installed for ${root}; run npm install in the app first`)
+  }
+  const { bin } = JSON.parse(readFileSync(manifest, 'utf8'))
+  return path.join(path.dirname(manifest), typeof bin === 'string' ? bin : bin.vite)
+}
+
 /** Starts `vite preview` on 127.0.0.1 and resolves once it answers; `stop()` kills it. */
 export async function startPreview(root, { timeoutMs = 30000 } = {}) {
   const port = await freePort()
-  const vite = path.join(root, 'node_modules/vite/bin/vite.js')
+  const vite = resolveViteBin(root)
   const child = spawn(
     process.execPath,
     [vite, 'preview', '--host', HOST, '--port', String(port), '--strictPort'],

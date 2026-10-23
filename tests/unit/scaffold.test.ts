@@ -8,7 +8,7 @@ import * as scaffoldModule from '../../skills/presentation/scripts/presentation-
 // @ts-expect-error plain ESM script without type declarations
 import { drift } from '../../scripts/sync-template.mjs'
 // @ts-expect-error plain ESM script without type declarations
-import { readRegistry } from '../../scripts/lib/preview.mjs'
+import { readRegistry, resolveViteBin } from '../../scripts/lib/preview.mjs'
 
 interface Info {
   target: string
@@ -306,6 +306,34 @@ describe('install command', () => {
     const target = app(dir, 'presentations')
     expect(lib.isWorkspaceMember(target)).toBe(false)
     expect(lib.installCommand(target, [])).toBe('ci')
+  })
+})
+
+describe('vite resolution', () => {
+  const fakeVite = (dir: string) => {
+    write(dir, 'node_modules/vite/package.json', JSON.stringify({ name: 'vite', bin: { vite: 'bin/vite.js' }, exports: { './package.json': './package.json' } }))
+    write(dir, 'node_modules/vite/bin/vite.js', '')
+  }
+
+  it('finds an app-local vite', () => {
+    const dir = tmp()
+    write(dir, 'package.json', '{}')
+    fakeVite(dir)
+    expect(resolveViteBin(dir)).toBe(path.join(dir, 'node_modules/vite/bin/vite.js'))
+  })
+
+  it('finds a vite hoisted to the workspace root, where npm installs it for a member app', () => {
+    const dir = tmp()
+    write(dir, 'package.json', buildPackage({ workspaces: ['presentations'] }))
+    write(dir, 'presentations/package.json', buildPackage())
+    fakeVite(dir)
+    expect(resolveViteBin(path.join(dir, 'presentations'))).toBe(path.join(dir, 'node_modules/vite/bin/vite.js'))
+  })
+
+  it('reports a missing vite as an actionable preview failure', () => {
+    const dir = tmp()
+    write(dir, 'package.json', '{}')
+    expect(() => resolveViteBin(dir)).toThrow(/vite is not installed/)
   })
 })
 

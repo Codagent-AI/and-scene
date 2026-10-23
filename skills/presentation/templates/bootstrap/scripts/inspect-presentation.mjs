@@ -117,10 +117,6 @@ async function geometrySnapshot(page) {
   )
 }
 
-async function positions(page) {
-  return geometrySnapshot(page)
-}
-
 /** Waits until entity geometry stops changing, so captures show the completed state. */
 async function waitUntilStable(page) {
   const deadline = Date.now() + STABLE_TIMEOUT_MS
@@ -164,7 +160,7 @@ async function main() {
       await page.screenshot({ path: file })
       console.log(`captured: ${file}`)
       if (options.positions) {
-        for (const line of await positions(page)) console.log(`position: step ${String(index + 1).padStart(2, '0')} ${line}`)
+        for (const line of await geometrySnapshot(page)) console.log(`position: step ${String(index + 1).padStart(2, '0')} ${line}`)
       }
       for (const warning of await diagnose(page)) console.log(`warning: ${warning}`)
     }

@@ -130,13 +130,11 @@ describe('Presentation navigation controls', () => {
 
   it('a focused control keeps its keys: arrow keys inside a button do not move the deck', () => {
     const { container } = render(<Presentation title="Deck" steps={makeSteps()} />)
-    const prev = container.querySelector('[data-presentation-prev]') as HTMLButtonElement
     const next = container.querySelector('[data-presentation-next]') as HTMLButtonElement
     next.focus()
     fireEvent.keyDown(next, { key: 'ArrowRight' })
     fireEvent.keyDown(next, { key: ' ' })
     expect(root(container).getAttribute('data-step-index')).toBe('0')
-    expect(prev).toBeDefined()
   })
 })
 

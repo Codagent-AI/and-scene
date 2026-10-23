@@ -1,8 +1,7 @@
 // Copied into a disposable app by INT-002. Each variant is a registered
 // presentation with a known visual defect (or none), styled by an inline <style>
 // so the page for one slug never inherits another's CSS.
-import { useEffect, useState } from 'react'
-import { Appear, Box, Label, Presentation, SceneLayer, type SceneProps, type Step } from '../../presentation-kit/index.ts'
+import { Appear, Box, Label, Presentation, SceneLayer, type SceneProps, type Step } from '../../../src/presentation-kit/index.ts'
 
 export type Variant = 'clean' | 'collision' | 'allowed' | 'chrome' | 'attribution-small' | 'attribution-default' | 'settle'
 
@@ -33,8 +32,6 @@ const C = { x: 500, y: 200, w: 200, h: 30 }
 const D = { x: 550, y: 205, w: 200, h: 30 } // overlaps C
 
 function Scene({ payload, variant }: SceneProps<Payload> & { variant: Variant }) {
-  const [moved, setMoved] = useState(false)
-  useEffect(() => setMoved(payload.stage >= 2), [payload.stage])
   const s = payload.stage
   const pair = (first: typeof A, second: typeof A, texts: [string, string], allowed = false) => {
     const inner = (
@@ -56,7 +53,7 @@ function Scene({ payload, variant }: SceneProps<Payload> & { variant: Variant })
       {variant === 'settle' ? (
         <div
           data-testid="mover"
-          style={{ position: 'absolute', top: 200, left: moved ? 600 : 0, width: 80, height: 80, background: '#c0392b', transition: 'left 800ms linear' }}
+          style={{ position: 'absolute', top: 200, left: s >= 2 ? 600 : 0, width: 80, height: 80, background: '#c0392b', transition: 'left 800ms linear' }}
         />
       ) : null}
     </SceneLayer>

@@ -28,7 +28,7 @@ const dimensions = (file: string) => {
 
 beforeAll(async () => {
   dir = copyProject()
-  write(dir, 'src/presentations/fixtures/index.tsx', readFileSync(path.join(REPO, 'tests/integration/fixtures/inspect-fixtures.tsx'), 'utf8').replace(/\.\.\/\.\.\/presentation-kit/g, '../../presentation-kit'))
+  write(dir, 'src/presentations/fixtures/index.tsx', readFileSync(path.join(REPO, 'tests/integration/fixtures/inspect-fixtures.tsx'), 'utf8').replace(/\.\.\/\.\.\/\.\.\/src\/presentation-kit/g, '../../presentation-kit'))
   for (const v of VARIANTS) {
     write(dir, `src/presentations/fx-${v}/Talk.tsx`, `import { makeTalk } from '../fixtures/index.tsx'\nexport default makeTalk('${v}')\n`)
   }

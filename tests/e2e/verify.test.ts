@@ -63,7 +63,7 @@ describe('build phase', () => {
 
 describe('sample-outline phase', () => {
   it('fails when the sample is missing from the registry although the app still compiles', async () => {
-    const r = await verifyWith((dir) => edit(dir, 'src/presentations/index.ts', (t) => t.replace(/\n  \{[\s\S]*?\n  \},/, '')))
+    const r = await verifyWith((dir) => edit(dir, 'src/presentations/index.ts', (t) => t.replace(/\n {2}\{[\s\S]*?\n {2}\},/, '')))
     expectFailure(r, 'sample-outline')
     expect(r.output).toMatch(/"how-to-make-a-presentation" is not registered/)
   })

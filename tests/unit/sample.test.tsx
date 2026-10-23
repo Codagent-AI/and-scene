@@ -76,7 +76,8 @@ describe('reference sample scene', () => {
       Number(new RegExp(`variant='${variant}'\\]\\s*\\{[^}]*font-size:\\s*(\\d+)px`).exec(css)?.[1])
     expect(size('part')).toBeGreaterThanOrEqual(18)
     expect(size('card')).toBeGreaterThanOrEqual(16)
-    expect(size('caption')).toBeGreaterThanOrEqual(14)
+    expect(size('caption')).toBeGreaterThanOrEqual(16)
+    expect(size('bubble')).toBeGreaterThanOrEqual(16)
   })
 
   it('keeps its entity ids and literal canvas coordinates in its own entities.ts (I-13)', () => {

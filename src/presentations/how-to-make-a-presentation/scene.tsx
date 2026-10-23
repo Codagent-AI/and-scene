@@ -67,7 +67,7 @@ function render(id: EntityId, flagged: readonly EntityId[], appear: boolean): Re
       return <SymbolChip id={id} appear={appear} x={40} y={94} width={130} height={24}><span>partial ↔ full</span></SymbolChip>
     case E.socket:
       return (
-        <Box id={id} appear={appear} Icon={Plug} iconSize={14} x={330} y={258} width={220} height={48}>
+        <Box id={id} appear={appear} Icon={Plug} iconSize={14} x={330} y={258} width={220} height={52}>
           <span>scene kit</span>
           <span>boxes · arrows · motion</span>
         </Box>
@@ -98,9 +98,9 @@ function render(id: EntityId, flagged: readonly EntityId[], appear: boolean): Re
     case E.editedFlag:
       return <SymbolChip id={id} appear={appear} x={344} y={114} width={60} height={22}><span>edited</span></SymbolChip>
     case E.frame:
-      return <Frame id={id} appear={appear} x={4} y={2} width={872} height={330} />
+      return <Frame id={id} appear={appear} x={4} y={2} width={872} height={342} />
     case E.reveal:
-      return <Label id={id} appear={appear} x={240} y={310} width={400} height={20}><span>an example of the skill's own output</span></Label>
+      return <Label id={id} appear={appear} x={240} y={320} width={400} height={18}><span>an example of the skill's own output</span></Label>
   }
 }
 

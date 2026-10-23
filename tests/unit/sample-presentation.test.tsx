@@ -248,6 +248,13 @@ describe('reference sample diagram legibility', () => {
     expect(size(".talk-htm [data-presentation-entity='htm-verify']")).toBeGreaterThanOrEqual(16)
   })
 
+  it('gives the two-line socket label line boxes that clear its glyph rectangles', () => {
+    const socket = rule(".talk-htm [data-presentation-entity='htm-socket']")
+    const fontSize = Number(/font-size:\s*(\d+)px/.exec(socket)![1])
+    const lineHeight = Number(/line-height:\s*(\d+)px/.exec(socket)![1])
+    expect(lineHeight).toBeGreaterThanOrEqual(Math.ceil(fontSize * 1.25))
+  })
+
   it('never sets diagram text below 12px', () => {
     const diagram = css.slice(css.indexOf('/* entities */'))
     const sizes = [...diagram.matchAll(/font-size:\s*(\d+)px/g)].map((m) => Number(m[1]))

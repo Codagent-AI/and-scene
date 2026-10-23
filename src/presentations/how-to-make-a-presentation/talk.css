@@ -181,7 +181,8 @@
 .talk-htm [data-presentation-entity='htm-socket'] {
   border-color: var(--accent);
   font-size: 14px;
-  line-height: 16px;
+  /* line boxes taller than the glyph rectangles, so the two lines never touch */
+  line-height: 18px;
   gap: 0;
 }
 .talk-htm [data-presentation-kind='symbol-chip'] {

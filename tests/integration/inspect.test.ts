@@ -11,7 +11,7 @@ interface Warning {
 }
 interface Report {
   settleMs: number
-  steps: { index: number; file: string; warnings: Warning[] }[]
+  steps: { index: number; file: string; settledMs: number; warnings: Warning[] }[]
 }
 
 const TALK = `import { Label, Presentation, SceneLayer, type SceneProps, type Step } from '../../presentation-kit'
@@ -29,7 +29,7 @@ function Scene({ index }: SceneProps) {
   )
 }
 
-const STEPS: Step[] = ['one', 'one', 'two'].map((era, i) => ({
+const STEPS: Step[] = ['one', 'one', 'a much longer era'].map((era, i) => ({
   id: 'step-' + i, era, title: 'Title ' + i, caption: 'Caption ' + i, groupKey: 'g', Scene,
 }))
 
@@ -52,6 +52,9 @@ function inspect(css: string, extra: string[] = []) {
   const report = JSON.parse(readFileSync(path.join(dir, 'inspection/fixture/report.json'), 'utf8')) as Report
   return { result, report, elapsed: Date.now() - started }
 }
+
+const messages = (report: Report, step: number, kind: string) =>
+  report.steps[step - 1].warnings.filter((w) => w.kind === kind).map((w) => w.message)
 
 const kinds = (report: Report, step: number) => report.steps[step - 1].warnings.map((w) => w.kind)
 
@@ -90,8 +93,11 @@ describe('INT: screenshot helper emits faithful artifacts and advisory warnings'
     expect(kinds(report, 3)).not.toContain('overlap')
     // Unstyled chrome: active state and attribution are flagged on every step.
     for (const step of [1, 2, 3]) {
-      expect(kinds(report, step)).toContain('active-chrome')
       expect(kinds(report, step)).toContain('attribution')
+      const chrome = messages(report, step, 'active-chrome')
+      expect(chrome.some((m) => m.includes('progress indicator'))).toBe(true)
+      // Entries of different text length must still count as indistinct.
+      expect(chrome.some((m) => m.includes('table-of-contents entry'))).toBe(true)
     }
     expect(result.stdout).toMatch(/WARN step 2 \[overlap\]/)
     expect(result.stdout).toMatch(/inspect: 3 screenshots/)
@@ -114,6 +120,8 @@ describe('INT: screenshot helper emits faithful artifacts and advisory warnings'
     const { report, elapsed } = inspect(css, ['--settle', '1500'])
     expect(report.settleMs).toBe(1500)
     expect(elapsed).toBeGreaterThanOrEqual(3 * 1500)
+    // Every capture, not just the whole run, waited the settle interval after its transition.
+    for (const step of report.steps) expect(step.settledMs).toBeGreaterThanOrEqual(1500)
     expect(report.steps.map((s) => s.warnings.map((w) => w.kind))).toEqual([[], ['overlap'], []])
   })
 

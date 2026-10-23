@@ -63,7 +63,11 @@ node SKILL_DIR/scripts/presentation-scaffold.mjs scaffold <project-dir> [--yes]
 
 This writes only the missing anchors, never overwrites existing files, adds any missing dependencies to
 `package.json`, and runs the install. Do not assume any dependency is already installed (React, Vite,
-TypeScript, Motion, Lucide, ESLint, Playwright). The scaffold is styling-framework neutral and ships no
+TypeScript, Motion, Lucide, ESLint, Playwright). The scaffold also installs the Chromium build that
+`npm run verify` and `npm run inspect` launch (`npx playwright install chromium`; run it yourself if
+either reports that Chromium could not be launched). If the project already has an entry file
+(`src/main.tsx`), the scaffold moves it to `src/app-main.tsx` and puts a routed entry in its place, so
+presentation routes render while every other path still shows the host app. The scaffold is styling-framework neutral and ships no
 colors, fonts, spacing, card or button styles. If every anchor exists, skip scaffolding entirely.
 
 ## 3. Generate or modify

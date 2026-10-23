@@ -1,3 +1,5 @@
+import { motion } from 'motion/react'
+import { EASE, LAYOUT_T } from '../constants'
 import { Entity, type EntityProps } from './Entity'
 
 export interface ArrowProps extends Omit<EntityProps, 'x' | 'y' | 'width' | 'height' | 'children'> {
@@ -11,9 +13,10 @@ export interface ArrowProps extends Omit<EntityProps, 'x' | 'y' | 'width' | 'hei
 
 /** A line or curve between two canvas points. Strokes inherit the surrounding text color. */
 export function Arrow({ id, from, to, via, both, ...props }: ArrowProps) {
-  const d = via
-    ? `M${from[0]} ${from[1]} Q${via[0]} ${via[1]} ${to[0]} ${to[1]}`
-    : `M${from[0]} ${from[1]} L${to[0]} ${to[1]}`
+  // Always a quadratic curve (a straight line puts the control point at the midpoint) so
+  // the path keeps one shape and its geometry can animate when the endpoints move.
+  const control = via ?? [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
+  const d = `M${from[0]} ${from[1]} Q${control[0]} ${control[1]} ${to[0]} ${to[1]}`
   const head = `${id}-head`
   return (
     <Entity
@@ -41,8 +44,10 @@ export function Arrow({ id, from, to, via, both, ...props }: ArrowProps) {
             <path d="M0 0 L10 5 L0 10 z" fill="currentColor" />
           </marker>
         </defs>
-        <path
-          d={d}
+        <motion.path
+          initial={false}
+          animate={{ d }}
+          transition={{ duration: LAYOUT_T, ease: EASE }}
           fill="none"
           stroke="currentColor"
           strokeWidth={2}

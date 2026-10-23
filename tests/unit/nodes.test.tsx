@@ -6,6 +6,7 @@ import {
   Arrow,
   Box,
   ENTER_DELAY,
+  EXIT_T,
   Emphasis,
   Frame,
   LAYOUT_T,
@@ -62,7 +63,7 @@ describe('node primitives', () => {
     expect(el.style.top).toBe('50px')
   })
 
-  it('fades newcomers in, after the layout move, but not continuing entities', () => {
+  it('fades newcomers in, after the layout move, but not continuing entities', async () => {
     const { container, rerender } = render(
       <SceneLayer>
         <Box key="continuing" id="continuing">stay</Box>
@@ -74,27 +75,77 @@ describe('node primitives', () => {
         <Appear key="newcomer" id="newcomer">new</Appear>
       </SceneLayer>,
     )
-    expect(container.querySelector<HTMLElement>('[data-presentation-entity="continuing"]')!.style.opacity).toBe('')
-    expect(container.querySelector<HTMLElement>('[data-presentation-entity="newcomer"]')!.style.opacity).toBe('0')
+    const opacity = (id: string) =>
+      container.querySelector<HTMLElement>(`[data-presentation-entity="${id}"]`)!.style.opacity
+    expect(opacity('continuing')).toBe('')
+    expect(opacity('newcomer')).toBe('0')
     expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
+    // Still hidden while persisting entities are moving (the entry delay has not elapsed)...
+    await new Promise((resolve) => setTimeout(resolve, ENTER_DELAY * 1000 * 0.4))
+    expect(Number(opacity('newcomer'))).toBe(0)
+    // ...and fully visible once the entry has run.
+    await waitFor(() => expect(Number(opacity('newcomer'))).toBe(1), { timeout: 3000 })
   })
 
-  it('animates a departing entity out and removes it', async () => {
+  it('animates a departing entity out before removing it', async () => {
     const { container, rerender } = render(
       <SceneLayer>
         <Box key="a" id="a">a</Box>
         <Box key="b" id="b">b</Box>
       </SceneLayer>,
     )
+    const find = (id: string) => container.querySelector<HTMLElement>(`[data-presentation-entity="${id}"]`)
+    const departing = find('b')!
+    const removedAfter = { at: 0 }
+    const started = performance.now()
     rerender(
       <SceneLayer>
         <Box key="a" id="a">a</Box>
       </SceneLayer>,
     )
-    await waitFor(() => expect(container.querySelector('[data-presentation-entity="b"]')).toBeNull(), {
-      timeout: 3000,
-    })
-    expect(container.querySelector('[data-presentation-entity="a"]')).not.toBeNull()
+    // The exit animation keeps the node mounted for a moment instead of dropping it at once.
+    expect(find('b')).toBe(departing)
+    const seen: number[] = []
+    await waitFor(
+      () => {
+        const el = find('b')
+        if (el) seen.push(Number(el.style.opacity === '' ? 1 : el.style.opacity))
+        removedAfter.at = performance.now() - started
+        expect(el).toBeNull()
+      },
+      { timeout: 3000, interval: 10 },
+    )
+    expect(removedAfter.at).toBeGreaterThanOrEqual(EXIT_T * 1000 * 0.5)
+    expect(Math.min(...seen)).toBeLessThan(1)
+    expect(find('a')).not.toBeNull()
+  })
+
+  it('animates a persisting arrow between geometries instead of snapping', async () => {
+    const pathOf = (container: HTMLElement) =>
+      container.querySelector('[data-presentation-arrow-svg] > path')!.getAttribute('d')!
+    const { container, rerender } = render(
+      <SceneLayer>
+        <Arrow key="arrow" id="arrow" from={[0, 0]} to={[100, 0]} />
+      </SceneLayer>,
+    )
+    const before = pathOf(container)
+    expect(before).toBe('M0 0 Q50 0 100 0')
+    rerender(
+      <SceneLayer>
+        <Arrow key="arrow" id="arrow" from={[0, 0]} to={[100, 100]} via={[100, 0]} />
+      </SceneLayer>,
+    )
+    const target = 'M0 0 Q100 0 100 100'
+    const seen = new Set<string>()
+    await waitFor(
+      () => {
+        seen.add(pathOf(container))
+        expect(pathOf(container)).toBe(target)
+      },
+      { timeout: 3000, interval: 10 },
+    )
+    // At least one in-between shape was rendered on the way.
+    expect([...seen].filter((d) => d !== before && d !== target).length).toBeGreaterThan(0)
   })
 
   it('marks intentional overlap regions with a hook', () => {

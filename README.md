@@ -10,6 +10,7 @@ collapse, connect, and re-label as the talk arc develops.
 
 ```bash
 npm ci
+npx playwright install chromium   # once, for verify / inspect / integration tests
 npm run dev
 npm test                  # fast unit and contract tests (Vitest)
 npm run lint              # ESLint

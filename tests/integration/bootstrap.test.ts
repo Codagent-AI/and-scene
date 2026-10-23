@@ -46,7 +46,7 @@ describe('INT: materialized bootstrap is complete and style-neutral', () => {
   })
 
   it('builds, lints, and passes the route smoke check through its own verify entry point', () => {
-    const add = run('node', [cli, 'add', app, '--slug', 'smoke', '--title', 'Smoke Test'], elsewhere)
+    const add = run('node', [cli, 'add', app, '--slug', 'smoke', '--title', 'Smoke "Test" */ it\'s'], elsewhere)
     expect(add.status, add.output).toBe(0)
     const lint = run('npm', ['run', 'lint'], app)
     expect(lint.status, lint.output).toBe(0)

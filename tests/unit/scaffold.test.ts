@@ -61,10 +61,18 @@ describe('anchor detection', () => {
   it('is keyed on the contract, not on a byte-identical scaffold', () => {
     const dir = tmp()
     write(dir, 'package.json', buildPackage({ dependencies: { 'something-else': '1' } }))
-    write(dir, 'src/presentation-kit/Presentation.jsx', '// custom')
-    write(dir, 'src/presentation-kit/types.js', '// custom')
-    write(dir, 'src/presentations/index.js', '// custom')
+    write(dir, 'src/presentation-kit/Presentation.jsx', 'export const Presentation = () => null')
+    write(dir, 'src/presentation-kit/types.js', 'export const Step = {}')
+    write(dir, 'src/presentations/index.tsx', 'export const presentations = []')
     expect(lib.detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('does not accept empty or comment-only files, or an index the tooling cannot read, as anchors', () => {
+    const dir = tmp()
+    write(dir, 'src/presentation-kit/Presentation.tsx', '// placeholder')
+    write(dir, 'src/presentation-kit/types.ts', '')
+    write(dir, 'src/presentations/index.js', 'export const presentations = []')
+    expect(lib.detectAnchors(dir)).toEqual({ build: false, kit: false, index: false })
   })
 
   it('does not treat a manifest without a build script or Vite/React/TypeScript as a build setup', () => {
@@ -152,7 +160,8 @@ describe('scaffolding', () => {
     write(dir, 'src/presentations/index.ts', registry)
     write(dir, 'src/main.tsx', '// mine')
     const result = lib.scaffold(dir, { install: false })
-    expect(result.written.every((f) => f.startsWith('src/presentation-kit/'))).toBe(true)
+    const outside = result.written.filter((f) => !f.startsWith('src/presentation-kit/') && !f.startsWith('scripts/'))
+    expect(outside).toEqual([])
     expect(read(dir, 'src/presentations/index.ts')).toBe(registry)
     expect(read(dir, 'src/main.tsx')).toBe('// mine')
     expect(lib.detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
@@ -169,6 +178,43 @@ describe('scaffolding', () => {
     }
     expect(pkg.scripts.verify).toBe('node scripts/verify.mjs')
     expect(pkg.scripts.build).toBe('tsc -b && vite build')
+  })
+
+  it('copies the verification scripts that the added npm commands run, even when the build already exists', () => {
+    const dir = tmp()
+    write(dir, 'package.json', buildPackage())
+    lib.scaffold(dir, { install: false })
+    const scripts = JSON.parse(read(dir, 'package.json')).scripts as Record<string, string>
+    for (const command of [scripts.verify, scripts.inspect]) {
+      const file = command.replace(/^node /, '')
+      expect(existsSync(path.join(dir, file)), file).toBe(true)
+    }
+    expect(existsSync(path.join(dir, 'scripts/lib/preview.mjs'))).toBe(true)
+  })
+
+  it('routes presentations from an existing app entry and keeps the host app for other paths', () => {
+    const dir = tmp()
+    write(dir, 'package.json', buildPackage())
+    write(dir, 'src/main.tsx', "import './App'\nconsole.log('host app')\n")
+    const result = lib.scaffold(dir, { install: false }) as Info & { entryWired: boolean }
+    expect(result.entryWired).toBe(true)
+    expect(read(dir, 'src/app-main.tsx')).toBe("import './App'\nconsole.log('host app')\n")
+    const entry = read(dir, 'src/main.tsx')
+    expect(entry).toContain("import { presentations } from './presentations'")
+    expect(entry).toContain("resolveRoute(window.location.pathname, presentations)")
+    expect(entry).toContain("import('./router')")
+    expect(entry).toContain("import('./app-main')")
+    expect(existsSync(path.join(dir, 'src/router.tsx'))).toBe(true)
+    expect(existsSync(path.join(dir, 'src/routes.ts'))).toBe(true)
+  })
+
+  it('does not rewire an entry that already knows about presentations', () => {
+    const dir = tmp()
+    write(dir, 'package.json', buildPackage())
+    write(dir, 'src/main.tsx', "import { presentations } from './presentations'\n")
+    const result = lib.scaffold(dir, { install: false }) as Info & { entryWired: boolean }
+    expect(result.entryWired).toBe(false)
+    expect(existsSync(path.join(dir, 'src/app-main.tsx'))).toBe(false)
   })
 
   it('scaffolds a monorepo into presentations/ and leaves the root untouched', () => {
@@ -235,9 +281,12 @@ describe('adding presentations', () => {
 
   it('creates a self-contained folder and registers it', () => {
     const dir = scaffolded()
-    lib.addPresentation(dir, { slug: 'my-talk', title: 'My "Talk"' })
+    lib.addPresentation(dir, { slug: 'my-talk', title: 'My "Talk" */ end \\ \'' })
     expect(existsSync(path.join(dir, 'src/presentations/my-talk/Talk.tsx'))).toBe(true)
-    expect(read(dir, 'src/presentations/my-talk/Talk.tsx')).toContain('className="my-talk"')
+    const talk = read(dir, 'src/presentations/my-talk/Talk.tsx')
+    expect(talk).toContain('className="my-talk"')
+    expect(talk).toContain('title={"My \\"Talk\\" */ end \\\\ \'"}')
+    expect(read(dir, 'src/presentations/my-talk/style.css').split('*/').length).toBe(2)
     expect(read(dir, 'src/presentations/my-talk/style.css')).toContain('.my-talk')
     expect(read(dir, 'src/presentations/index.ts')).toContain('slug: "my-talk"')
     expect(read(dir, 'src/presentations/index.ts')).toContain("import('./my-talk/Talk')")

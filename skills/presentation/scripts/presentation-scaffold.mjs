@@ -2,7 +2,7 @@
 // Deterministic helpers behind the presentation skill: detect the scaffold
 // anchors, resolve the target, scaffold what is missing, and add presentations.
 //   node presentation-scaffold.mjs detect <dir>
-//   node presentation-scaffold.mjs scaffold <dir> [--yes] [--no-install]
+//   node presentation-scaffold.mjs scaffold <dir> [--yes] [--no-install] [--no-browser]
 //   node presentation-scaffold.mjs add <target> --slug <slug> --title <title>
 // Templates are resolved relative to this skill's own directory (the one that holds SKILL.md).
 import { spawnSync } from 'node:child_process'
@@ -64,11 +64,15 @@ export function detectAnchors(dir) {
       build = false
     }
   }
+  // Kit and index count only when they export something: an empty or comment-only file is no contract.
+  const exportsSomething = (file) => existsSync(file) && /^\s*export\s/m.test(readFileSync(file, 'utf8'))
+  const find = (folder, pattern) =>
+    existsSync(folder) ? readdirSync(folder).filter((name) => pattern.test(name)).map((name) => path.join(folder, name)) : []
   const kitDir = path.join(dir, 'src/presentation-kit')
-  const kitNames = existsSync(kitDir) ? readdirSync(kitDir) : []
-  const kit = kitNames.some((n) => /^Presentation\.[jt]sx?$/.test(n)) && kitNames.some((n) => /^types\.[jt]s$/.test(n))
-  const presentationsDir = path.join(dir, 'src/presentations')
-  const index = existsSync(presentationsDir) && readdirSync(presentationsDir).some((n) => /^index\.[jt]sx?$/.test(n))
+  const kit =
+    find(kitDir, /^Presentation\.[jt]sx?$/).some(exportsSomething) &&
+    find(kitDir, /^types\.[jt]s$/).some(exportsSomething)
+  const index = find(path.join(dir, 'src/presentations'), /^index\.tsx?$/).some(exportsSomething)
   return { build, kit, index }
 }
 
@@ -136,17 +140,51 @@ export function mergePackageJson(existing, template) {
   return { merged, added }
 }
 
+const ROUTED_ENTRY = `import { presentations } from './presentations'
+import { resolveRoute } from './routes'
+
+// Presentation routes get the router; every other path keeps the host app's original entry.
+if (resolveRoute(window.location.pathname, presentations)) {
+  const [{ StrictMode }, { createRoot }, { Router }] = await Promise.all([
+    import('react'),
+    import('react-dom/client'),
+    import('./router'),
+  ])
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <Router pathname={window.location.pathname} registry={presentations} />
+    </StrictMode>,
+  )
+} else {
+  await import('./app-main')
+}
+`
+
+/**
+ * An existing app entry keeps mounting the host app, so presentation routes would never render.
+ * Move it to `app-main.tsx` and put a routed entry in its place. Returns whether it rewired.
+ */
+function wireEntry(target, existing) {
+  const moved = path.join(target, 'src/app-main.tsx')
+  if (/presentations/.test(existing) || existsSync(moved)) return false
+  writeFileSync(moved, existing)
+  writeFileSync(path.join(target, 'src/main.tsx'), ROUTED_ENTRY)
+  return true
+}
+
 /** Writes the files of the missing anchors; existing files are never overwritten. */
-export function scaffold(dir, { install = true } = {}) {
+export function scaffold(dir, { install = true, browser = true } = {}) {
   const info = detect(dir)
   const { target } = info
   mkdirSync(target, { recursive: true })
   const written = []
+  const entryFile = path.join(target, 'src/main.tsx')
+  const existingEntry = existsSync(entryFile) ? readFileSync(entryFile, 'utf8') : null
   const templatePkg = readJson(path.join(BOOTSTRAP_DIR, 'package.json'))
 
   for (const file of listFiles(BOOTSTRAP_DIR)) {
-    const anchor = anchorOf(file)
-    if (!info.missing.includes(anchor)) continue
+    // The verification scripts back the npm commands added below, so they are ensured on every run.
+    if (!file.startsWith('scripts/') && !info.missing.includes(anchorOf(file))) continue
     const dest = path.join(target, file)
     if (existsSync(dest)) continue
     if (file === 'package-lock.json' && existsSync(path.join(target, 'package.json'))) continue
@@ -154,6 +192,8 @@ export function scaffold(dir, { install = true } = {}) {
     copyFileSync(path.join(BOOTSTRAP_DIR, file), dest)
     written.push(file)
   }
+
+  const entryWired = info.missing.includes('index') && existingEntry !== null && wireEntry(target, existingEntry)
 
   // The dependency set is never assumed: add whatever the manifest lacks.
   let addedDeps = []
@@ -174,7 +214,12 @@ export function scaffold(dir, { install = true } = {}) {
     if (result.status !== 0) throw new Error(`npm ${command} failed in ${target}`)
     installed = true
   }
-  return { ...info, written, addedDeps, installed }
+  // Render verification needs a Chromium build; a fresh checkout has none cached.
+  let browserInstalled = false
+  if (install && browser) {
+    browserInstalled = spawnSync('npx', ['playwright', 'install', 'chromium'], { cwd: target, stdio: 'inherit' }).status === 0
+  }
+  return { ...info, written, addedDeps, installed, browserInstalled, entryWired }
 }
 
 /** CSS-class / id prefix derived from a slug. */
@@ -182,14 +227,21 @@ export function nameFromSlug(slug) {
   return slug.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase()
 }
 
+/** Placeholders: `__TITLE_JSON__` is a JS string literal, `__TITLE__` is comment-safe plain text. */
 function fill(text, values) {
-  return text.replaceAll('__SLUG__', values.slug).replaceAll('__TITLE__', values.title).replaceAll('__NAME__', values.name)
+  return text
+    .replaceAll('__SLUG__', values.slug)
+    .replaceAll('__TITLE_JSON__', JSON.stringify(values.title))
+    .replaceAll('__TITLE__', values.title.replaceAll('*/', '* /'))
+    .replaceAll('__NAME__', values.name)
 }
 
 /** Creates `src/presentations/<slug>/` from the template and registers it. */
 export function addPresentation(target, { slug, title }) {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error(`invalid slug "${slug}": use lowercase words joined by "-"`)
-  const registryFile = path.join(target, 'src/presentations/index.ts')
+  const registryFile = ['index.ts', 'index.tsx']
+    .map((name) => path.join(target, 'src/presentations', name))
+    .find((file) => existsSync(file)) ?? path.join(target, 'src/presentations/index.ts')
   if (!existsSync(registryFile)) throw new Error(`no presentation index at ${registryFile}; scaffold first`)
   const folder = path.join(target, 'src/presentations', slug)
   if (existsSync(folder)) throw new Error(`presentation "${slug}" already exists`)
@@ -227,7 +279,7 @@ function main(argv) {
       )
       process.exit(2)
     } else {
-      console.log(JSON.stringify(scaffold(dir, { install: !rest.includes('--no-install') }), null, 2))
+      console.log(JSON.stringify(scaffold(dir, { install: !rest.includes('--no-install'), browser: !rest.includes('--no-browser') }), null, 2))
     }
   } else if (command === 'add' && dir) {
     const slug = option('--slug')

@@ -78,23 +78,24 @@ function diagnose() {
   }
 
   // 2. Active navigation indistinguishable from inactive siblings.
-  const signature = (el) => {
+  // Size only counts for indicators whose size is not driven by their text (the progress dots).
+  const signature = (el, withSize) => {
     const s = getComputedStyle(el)
     const r = el.getBoundingClientRect()
     return [
       s.color, s.backgroundColor, s.borderTopColor, s.borderTopWidth, s.opacity, s.fontWeight,
       s.textDecorationLine, s.boxShadow, s.outlineStyle, s.transform, s.borderRadius,
-      Math.round(r.width), Math.round(r.height),
+      ...(withSize ? [Math.round(r.width), Math.round(r.height)] : []),
     ].join('|')
   }
-  for (const [label, itemSelector] of [
-    ['progress indicator', '[data-presentation-progress-item]'],
-    ['table-of-contents entry', '[data-presentation-toc-item]'],
+  for (const [label, itemSelector, withSize] of [
+    ['progress indicator', '[data-presentation-progress-item]', true],
+    ['table-of-contents entry', '[data-presentation-toc-item]', false],
   ]) {
     const nodes = [...document.querySelectorAll(itemSelector)].filter(visible)
     const active = nodes.find((n) => n.getAttribute('aria-current') === 'step')
     const inactive = nodes.filter((n) => n !== active)
-    if (active && inactive.length > 0 && inactive.every((n) => signature(n) === signature(active))) {
+    if (active && inactive.length > 0 && inactive.every((n) => signature(n, withSize) === signature(active, withSize))) {
       warnings.push({
         kind: 'active-chrome',
         message: `active ${label} is visually indistinguishable from inactive ones (style it with [data-presentation-active])`,
@@ -153,7 +154,13 @@ async function main() {
   }
 
   const preview = await startPreview(root)
-  const browser = await chromium.launch()
+  let browser
+  try {
+    browser = await chromium.launch()
+  } catch (error) {
+    await preview.stop()
+    throw new Fail('browser', `could not launch Chromium (run "npx playwright install chromium"): ${error.message}`)
+  }
   try {
     const page = await browser.newPage({ viewport: { width, height } })
     const pageErrors = []
@@ -168,7 +175,9 @@ async function main() {
     const report = { slug, viewport: { width, height }, settleMs: options.settle, steps: [] }
     let warningCount = 0
     for (let i = 0; i < count; i++) {
+      let advancedAt = Date.now()
       if (i > 0) {
+        advancedAt = Date.now()
         await page.keyboard.press('ArrowRight')
         await page.waitForFunction(
           (expected) => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(expected),
@@ -177,11 +186,17 @@ async function main() {
       }
       await page.waitForTimeout(options.settle)
       const file = path.join(out, `step-${String(i + 1).padStart(2, '0')}.png`)
+      const capturedAt = Date.now()
       await page.screenshot({ path: file })
       const warnings = await page.evaluate(diagnose)
       warningCount += warnings.length
       for (const warning of warnings) console.log(`WARN step ${i + 1} [${warning.kind}] ${warning.message}`)
-      report.steps.push({ index: i + 1, file: path.relative(root, file), settledMs: options.settle, warnings })
+      report.steps.push({
+        index: i + 1,
+        file: path.relative(root, file),
+        settledMs: capturedAt - advancedAt,
+        warnings,
+      })
     }
     report.pageErrors = pageErrors
     writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n')

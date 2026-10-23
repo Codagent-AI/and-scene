@@ -111,7 +111,11 @@ async function main() {
   console.log(`verify: preview at ${preview.url}`)
   let browser
   try {
-    browser = await chromium.launch()
+    try {
+      browser = await chromium.launch()
+    } catch (error) {
+      throw new Fail('browser', `could not launch Chromium (run "npx playwright install chromium"): ${error.message}`)
+    }
     let total = 0
     for (const { slug } of registry) {
       const steps = await verifyPresentation(browser, preview.url, slug, outline?.slug === slug ? outline : null)

@@ -247,9 +247,13 @@ describe('typed payloads reach the boundary without casts (L-3, I-3)', () => {
     const badScene: Step<A> = { id: 'a', era: 'e', title: 't', caption: 'c', Scene: SceneB, payload: { n: 1 } }
     // @ts-expect-error every narration field is required (caption missing)
     const missing: Step<A> = { id: 'a', era: 'e', title: 't', Scene: SceneA, payload: { n: 1 } }
+    // @ts-expect-error id is required
+    const missingId: Step<A> = { era: 'e', title: 't', caption: 'c', Scene: SceneA, payload: { n: 1 } }
+    // @ts-expect-error era is required
+    const missingEra: Step<A> = { id: 'a', title: 't', caption: 'c', Scene: SceneA, payload: { n: 1 } }
     // @ts-expect-error title is required
     const missingTitle: Step<A> = { id: 'a', era: 'e', caption: 'c', Scene: SceneA, payload: { n: 1 } }
-    expect([badPayload, badScene, missing, missingTitle]).toHaveLength(4)
+    expect([badPayload, badScene, missing, missingTitle, missingId, missingEra]).toHaveLength(6)
   })
 })
 

@@ -1,5 +1,7 @@
 // Captures one settled screenshot per step of a registered presentation from a production preview
 // and prints advisory visual warnings. Warnings never change the exit code.
+// Usage: npm run inspect -- <slug> [--narrow] [--settle ms] [--no-build] [--out dir]
+// Settle interval precedence: --settle flag, then INSPECT_SETTLE_MS, then DEFAULT_SETTLE_MS.
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'

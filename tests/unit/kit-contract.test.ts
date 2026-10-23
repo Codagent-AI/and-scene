@@ -53,6 +53,19 @@ describe('style ownership boundary (L-10, L-12, I-7, L-40, I-41)', () => {
   })
 })
 
+describe('scaffold ships no visual defaults (L-40, I-41)', () => {
+  const VISUAL = /(^|[;{\s])(color|background(-color)?|font(-[a-z]+)?|border(-[a-z]+)*|box-shadow|text-shadow|padding(-[a-z]+)*|gap|--[a-z-]+)\s*:/m
+  it('has only reset-level CSS in the bootstrap template, including its starter presentation', () => {
+    const css = files(BOOT).filter((f) => f.endsWith('.css') && !f.includes('node_modules'))
+    expect(css.map((f) => path.relative(BOOT, f)).sort()).toEqual(['src/index.css', 'src/presentations/starter/presentation.css'])
+    for (const f of css) expect(readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''), f).not.toMatch(VISUAL)
+  })
+  it('has no CSS in the presentation template beyond guidance comments', () => {
+    const f = 'skills/presentation/templates/presentation/presentation.css'
+    expect(readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').trim()).toBe('')
+  })
+})
+
 describe('template parity (L-67, I-42)', () => {
   const isTest = (f: string) => /\.test\.|__tests__/.test(f)
   const rel = (list: string[], base: string) => list.map((f) => path.relative(base, f)).sort()

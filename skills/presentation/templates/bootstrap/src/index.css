@@ -1,0 +1,7 @@
+/* Host/app CSS only. The presentation kit ships no visual defaults. */
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}

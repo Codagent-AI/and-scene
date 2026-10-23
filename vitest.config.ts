@@ -1,7 +1,6 @@
 import { defineConfig } from 'vitest/config'
 
-// Fast unit, component and contract tests only. Browser-backed and
-// materialization tests live in tests/integration and tests/e2e.
+// Fast unit, component and contract tests only.
 export default defineConfig({
   test: {
     environment: 'jsdom',

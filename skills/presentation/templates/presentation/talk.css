@@ -1,0 +1,29 @@
+/*
+ * The look of this presentation lives in this file. The scene kit supplies
+ * geometry and stable data-presentation-* hooks only, and this template ships no
+ * palette, fonts or component treatments: write them from the style the user
+ * described. Plain CSS is the default; use another styling system only when the
+ * host already does or the user explicitly asks.
+ *
+ * Hooks to style (all rendered by the kit):
+ *   [data-presentation-root]            page background, text color, font family
+ *   [data-presentation-header]          marker row: [data-presentation-marker],
+ *                                       [data-presentation-era], [data-presentation-header-title]
+ *   [data-presentation-footer]          [data-presentation-caption] (browse),
+ *                                       [data-presentation-title] (present),
+ *                                       [data-presentation-progress] with [data-presentation-dot],
+ *                                       [data-presentation-controls] with [data-presentation-prev|next]
+ *   [data-presentation-toc]             table of contents with [data-presentation-toc-entry]
+ *   [data-presentation-box|label|frame|emphasis|symbol-chip|arrow]   scene entities
+ *
+ * Required polish:
+ *   - Make the active step visibly different from the others, using concrete
+ *     differences (size, color, weight) on
+ *       [data-presentation-dot][data-presentation-active='true']
+ *       [data-presentation-toc-entry][data-presentation-active='true']
+ *   - Make the attribution link legible and intentional (at least 11px, not the
+ *     browser-default blue underline) with [data-presentation-attribution], and keep
+ *     it clear of the controls in the bottom-right corner.
+ *   - Mark an intentional, readable overlap with data-presentation-allow-overlap on
+ *     that one element (and say why in a comment); never on a whole scene.
+ */

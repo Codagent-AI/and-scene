@@ -42,7 +42,8 @@ export function scanSource(file: string, source: string): Finding[] {
   return findings
 }
 
+/** Scans look-bearing sources; tooling scripts that merely read computed styles are skipped. */
 export function scanDir(dir: string): Finding[] {
-  const files = walk(dir, (f) => /\.(css|ts|tsx|js|jsx|mjs)$/.test(f))
+  const files = walk(dir, (f) => /\.(css|ts|tsx|js|jsx)$/.test(f))
   return files.flatMap((f) => scanSource(f, readFileSync(f, 'utf8')))
 }

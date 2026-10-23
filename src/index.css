@@ -1,0 +1,7 @@
+/* Host page only: sizing for the full-viewport presentation root. No visual defaults. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

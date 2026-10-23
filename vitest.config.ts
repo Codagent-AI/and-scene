@@ -1,11 +1,11 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
+// Fast unit and contract tests. Browser-backed and process-level suites live in vitest.slow.config.ts.
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    css: true,
+    include: ['tests/unit/**/*.test.{ts,tsx}'],
+    environment: 'node',
   },
 })

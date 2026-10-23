@@ -1,25 +1,38 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
-
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+import { useCallback, useSyncExternalStore } from 'react'
+import { fitScale } from './fit'
+import { DESIGN_H, DESIGN_W } from './constants'
+import type { Mode } from './types'
 
 /**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
+ * Uniform fit scale for `mode`. The width is the stage's own width, so a side column
+ * such as the table of contents is excluded. The height is the window height less the
+ * mode's fixed chrome reservation, so the scale never follows a step's caption length.
+ * `stage` is the element itself (held in state by a callback ref), so the observer is
+ * attached whenever the element mounts. Falls back to the window width until measured.
  */
-export function useFitScale(layout: StageLayout) {
-  const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
-    }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+export function useFitScale(
+  stage: HTMLElement | null,
+  mode: Mode,
+  designWidth: number = DESIGN_W,
+  designHeight: number = DESIGN_H,
+): number {
+  const subscribe = useCallback(
+    (notify: () => void) => {
+      const observer = stage && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(notify) : null
+      if (stage) observer?.observe(stage)
+      window.addEventListener('resize', notify)
+      return () => {
+        observer?.disconnect()
+        window.removeEventListener('resize', notify)
+      }
+    },
+    [stage],
+  )
+  const size = useSyncExternalStore(
+    subscribe,
+    () => `${stage?.getBoundingClientRect().width || window.innerWidth}x${window.innerHeight}`,
+    () => '0x0',
+  )
+  const [width, height] = size.split('x').map(Number)
+  return fitScale({ width, height }, mode, designWidth, designHeight)
 }

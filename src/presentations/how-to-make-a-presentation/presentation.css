@@ -1,0 +1,329 @@
+/* Presentation-owned styling for the reference sample. The scene kit ships none of this. */
+
+:root {
+  --paper: #f6f1e7;
+  --ink: #1d1b16;
+  --muted: #6b6558;
+  --accent: #2f6fd6;
+  --card: #fffdf8;
+  --pass: #2f8f5b;
+  --ghost: #a39b8a;
+}
+
+[data-presentation-root] {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  padding: 16px 24px 0;
+  box-sizing: border-box;
+}
+
+[data-presentation-header] {
+  padding-bottom: 8px;
+}
+
+/* On phone widths the scene is width-limited, so give it every spare pixel. */
+@media (max-width: 640px) {
+  [data-presentation-root] {
+    padding: 12px 8px 0;
+  }
+}
+
+[data-presentation-marker] {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+[data-presentation-marker-era] {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+[data-presentation-deck-title] {
+  margin: 0 0 0 auto;
+  min-width: 0;
+  padding-left: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+[data-presentation-mode-toggle],
+[data-presentation-prev],
+[data-presentation-next] {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+[data-presentation-prev]:disabled,
+[data-presentation-next]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+[data-presentation-toc-entry] {
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+[data-presentation-toc] {
+  width: 170px;
+  flex: none;
+  padding-right: 16px;
+}
+
+[data-presentation-toc-entry][data-presentation-active='true'] {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+[data-presentation-step-title] {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-presentation-caption] {
+  margin: 4px 0 8px;
+  font-size: 15px;
+  line-height: 1.4;
+  max-width: 760px;
+}
+
+[data-presentation-footer] {
+  padding-bottom: 34px;
+}
+
+[data-presentation-controls] {
+  margin-top: 4px;
+}
+
+[data-presentation-progress-list] {
+  gap: 8px;
+}
+
+[data-presentation-progress] {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+[data-presentation-progress][data-presentation-active='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.5);
+}
+
+[data-presentation-stage] {
+  padding-bottom: 4px;
+}
+
+[data-presentation-attribution] {
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--muted);
+}
+
+/* Scene entities */
+
+.sample-text {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.sample-node,
+.sample-socket,
+.sample-question,
+.sample-bubble,
+.sample-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  background: var(--card);
+  padding: 6px 8px;
+}
+
+.sample-you {
+  justify-content: flex-start;
+  padding-left: 12px;
+}
+
+.sample-bubble {
+  border-radius: 16px;
+  font-style: italic;
+}
+
+.sample-question {
+  border-radius: 999px;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sample-control {
+  border-color: var(--accent);
+  background: var(--paper);
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+[data-presentation-arrow-line] {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+[data-presentation-arrowhead] {
+  fill: var(--ink);
+}
+
+.sample-card {
+  display: block;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: var(--card);
+  box-sizing: border-box;
+}
+
+.sample-card > span {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  display: block;
+}
+
+.sample-card-title {
+  top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sample-card-caption {
+  top: 34px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.sample-card-visual {
+  top: 92px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+.sample-ghost {
+  border-style: dashed;
+  border-color: var(--ghost);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ghost);
+}
+
+.sample-ghost > span {
+  position: static;
+}
+
+.sample-morph [data-presentation-arrow-line] {
+  stroke: var(--accent);
+}
+
+.sample-morph [data-presentation-arrowhead] {
+  fill: var(--accent);
+}
+
+.sample-morph-label {
+  font-size: 11px;
+  color: var(--accent);
+  text-align: center;
+}
+
+.sample-socket {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+
+.sample-verify {
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px;
+  border-color: var(--pass);
+}
+
+.sample-pass .sample-text {
+  font-size: 11px;
+}
+
+.sample-pass {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 999px;
+  background: var(--pass);
+  color: #ffffff;
+  justify-content: center;
+}
+
+.sample-modify [data-presentation-arrow-line] {
+  stroke: var(--accent);
+  stroke-dasharray: 4 3;
+}
+
+.sample-modify [data-presentation-arrowhead] {
+  fill: var(--accent);
+}
+
+.sample-modify-label {
+  font-size: 11px;
+  color: var(--accent);
+  font-style: italic;
+}
+
+.sample-flag {
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+}
+
+.sample-reveal {
+  border: 1.5px dashed var(--muted);
+  border-radius: 18px;
+}
+
+.sample-reveal-label {
+  position: absolute;
+  left: 12px;
+  top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}

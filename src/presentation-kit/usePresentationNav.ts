@@ -1,93 +1,84 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { SWIPE_MIN_PX } from './constants'
+import { isInteractive } from './interactive'
 import type { Mode } from './types'
 
+const clamp = (value: number, last: number) => Math.min(Math.max(value, 0), last)
+
 /**
- * Step index + presenter/browse mode, driven by the keyboard and surfaced for
- * the on-screen controls.
- *
- *   →/Space/PageDown  next        ←/PageUp  prev        P  toggle mode
- *
- * On touch screens the same next/prev is driven by a horizontal swipe: swipe
- * left to advance, right to go back.
+ * Step index, mode, and input handling for a presentation of `count` steps.
+ * Keys and swipes move one step at a time and clamp at both ends.
  */
-// A swipe must travel this far horizontally, and be clearly more horizontal
-// than vertical, before it counts — so taps and vertical scrolls never trip it.
-const SWIPE_MIN_PX = 50
-const SWIPE_RATIO = 1.5
-
-export function usePresentationNav(stepCount: number, initialMode: Mode = 'browse') {
-  const [step, setStep] = useState(0)
+export function usePresentationNav(count: number, initialMode: Mode = 'present') {
+  const last = Math.max(count - 1, 0)
+  const [raw, setIndex] = useState(0)
   const [mode, setMode] = useState<Mode>(initialMode)
+  const index = Math.min(raw, last)
 
-  const last = stepCount - 1
-  const next = useCallback(() => setStep((s) => Math.min(last, s + 1)), [last])
-  const prev = useCallback(() => setStep((s) => Math.max(0, s - 1)), [])
-  const toggleMode = useCallback(
-    () => setMode((m) => (m === 'browse' ? 'present' : 'browse')),
-    [],
-  )
+  const goTo = useCallback((target: number) => setIndex(clamp(target, last)), [last])
+  const next = useCallback(() => setIndex((i) => clamp(i + 1, last)), [last])
+  const prev = useCallback(() => setIndex((i) => clamp(i - 1, last)), [last])
+  const toggleMode = useCallback(() => setMode((m) => (m === 'present' ? 'browse' : 'present')), [])
 
+  const handlers = useRef({ next, prev, toggleMode })
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // Don't hijack keys aimed at a focused control: Space/arrows on the
-      // prev/next buttons or a progress dot should drive that control, not also
-      // advance the deck.
-      const target = e.target
-      if (
-        target instanceof HTMLElement &&
-        (target.closest('button, a, input, textarea, select') ||
-          target.isContentEditable)
-      ) {
-        return
-      }
-      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
-        e.preventDefault()
-        next()
-      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-        e.preventDefault()
-        prev()
-      } else if (e.key === 'p' || e.key === 'P') {
-        toggleMode()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    handlers.current = { next, prev, toggleMode }
   }, [next, prev, toggleMode])
 
   useEffect(() => {
-    // Horizontal swipe = next/prev. We track the start point and decide on
-    // release, so the gesture never interferes with scrolling or tapping a
-    // control mid-drag.
-    let startX = 0
-    let startY = 0
-    let tracking = false
-
-    const onStart = (e: TouchEvent) => {
-      // Single-finger only; a pinch/two-finger gesture isn't a page swipe.
-      tracking = e.touches.length === 1
-      if (tracking) {
-        startX = e.touches[0].clientX
-        startY = e.touches[0].clientY
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
+      if (isInteractive(event.target)) return
+      // Named keys (ArrowRight, PageDown...) ignore Shift; letter keys such as P do not.
+      if (event.shiftKey && event.key.length > 1) return
+      const { next: forward, prev: back, toggleMode: toggle } = handlers.current
+      let handled = true
+      switch (event.key) {
+        case 'ArrowRight':
+        case 'PageDown':
+        case ' ':
+          forward()
+          break
+        case 'ArrowLeft':
+        case 'PageUp':
+          back()
+          break
+        case 'p':
+        case 'P':
+          toggle()
+          break
+        default:
+          handled = false
       }
+      if (handled) event.preventDefault()
     }
-    const onEnd = (e: TouchEvent) => {
-      if (!tracking) return
-      tracking = false
-      const t = e.changedTouches[0]
-      const dx = t.clientX - startX
-      const dy = t.clientY - startY
-      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * SWIPE_RATIO) return
-      if (dx < 0) next()
-      else prev()
-    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
-    window.addEventListener('touchstart', onStart, { passive: true })
-    window.addEventListener('touchend', onEnd, { passive: true })
+  useEffect(() => {
+    let start: { x: number; y: number } | null = null
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0]
+      start = touch ? { x: touch.clientX, y: touch.clientY } : null
+    }
+    const onTouchEnd = (event: TouchEvent) => {
+      const touch = event.changedTouches[0]
+      if (!start || !touch) return
+      const dx = touch.clientX - start.x
+      const dy = touch.clientY - start.y
+      start = null
+      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) <= Math.abs(dy)) return
+      if (dx < 0) handlers.current.next()
+      else handlers.current.prev()
+    }
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
     return () => {
-      window.removeEventListener('touchstart', onStart)
-      window.removeEventListener('touchend', onEnd)
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchend', onTouchEnd)
     }
-  }, [next, prev])
+  }, [])
 
-  return { step, setStep, next, prev, last, mode, toggleMode }
+  return { index, goTo, next, prev, mode, setMode, toggleMode }
 }

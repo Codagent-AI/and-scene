@@ -1,60 +1,35 @@
-import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
-import { EASE } from '../constants'
+import type { Mode } from '../types'
+import { headerStyle } from '../layout'
 
-/**
- * Top chrome: a thin row carrying optional host branding (top-left) and the
- * step marker (top-right), with the step title centered just below it — in
- * **both** modes.
- * The title is keyed so it remounts and fades in on each step change.
- *
- * The era label is no longer shown here — it drives the table of contents down
- * the left margin instead (see Toc).
- *
- * Branding is configurable so adopters can drop in their own logo and home
- * link. If `brand` is omitted, the top-left slot is empty.
- */
-export function Header({
-  marker,
-  title,
-  brand,
-  homeHref = '/',
-  homeLabel = 'And Scene home',
-}: {
-  marker: string
-  title: string
+export interface HeaderProps {
   brand?: ReactNode
-  homeHref?: string
-  homeLabel?: string
-}) {
+  number: number
+  total: number
+  era: string
+  title: string
+  mode: Mode
+  onToggleMode: () => void
+}
+
+/** Top row: optional host brand, step marker, deck title in browse mode, mode toggle. */
+export function Header({ brand, number, total, era, title, mode, onToggleMode }: HeaderProps) {
   return (
-    <header
-      data-presentation-header
-      style={{ position: 'absolute', left: 0, right: 0, top: 0, zIndex: 20, padding: '24px 40px 0' }}
-    >
-      <div
-        data-presentation-header-row
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}
+    <header data-presentation-header="" style={headerStyle}>
+      <div data-presentation-brand="">{brand}</div>
+      <p data-presentation-marker="">
+        <span data-presentation-marker-number="">{`${number} / ${total}`}</span>{' '}
+        <span data-presentation-marker-era="">{era}</span>
+      </p>
+      {mode === 'browse' ? <p data-presentation-deck-title="">{title}</p> : null}
+      <button
+        type="button"
+        data-presentation-mode-toggle=""
+        aria-pressed={mode === 'present'}
+        onClick={onToggleMode}
       >
-        {brand ? (
-          <a href={homeHref} aria-label={homeLabel} data-presentation-home>
-            {brand}
-          </a>
-        ) : (
-          <span aria-hidden="true" data-presentation-home-spacer />
-        )}
-        <span data-presentation-marker>{marker}</span>
-      </div>
-      <motion.h1
-        key={title}
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: EASE }}
-        data-presentation-title
-        style={{ margin: '12px 0 0', textAlign: 'center' }}
-      >
-        {title}
-      </motion.h1>
+        {mode === 'present' ? 'Browse' : 'Present'}
+      </button>
     </header>
   )
 }

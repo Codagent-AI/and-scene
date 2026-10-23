@@ -1,429 +1,195 @@
-import { spawn } from 'node:child_process'
-import { mkdir } from 'node:fs/promises'
-import { dirname, join, resolve, sep } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+#!/usr/bin/env node
+// Captures one settled screenshot per step of a registered presentation from a
+// production preview, and prints advisory visual warnings. Warnings never change
+// the exit code; only execution failures (unknown slug, browser or build errors) do.
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
+import { startPreview } from './lib/browser.mjs'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const VITE_BIN = join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'vite.cmd' : 'vite')
-const OUT_ROOT = join(ROOT, 'artifacts', 'presentation-inspection')
-const DEFAULT_SETTLE_MS = 950
-const PREVIEW_URL_RE = /http:\/\/127\.0\.0\.1:(\d+)\//
+const ROOT = fileURLToPath(new URL('..', import.meta.url))
+const VIEWPORT = { width: 1440, height: 900 }
+/** Longer than the morph (0.6s) plus newcomer delay (0.7s) and fade (0.45s). */
+const DEFAULT_SETTLE_MS = 2000
 
-function parseArgs() {
-  const args = process.argv.slice(2)
-  const opts = { slug: '', width: 1440, height: 900, settleMs: DEFAULT_SETTLE_MS }
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
-    if (arg === '--width') opts.width = Number(args[++i])
-    else if (arg === '--height') opts.height = Number(args[++i])
-    else if (arg === '--settle-ms') opts.settleMs = Number(args[++i])
-    else if (arg === '--slug' || arg === '--route') opts.slug = normalizeSlug(args[++i] ?? '')
-    else if (!arg.startsWith('--') && !opts.slug) opts.slug = normalizeSlug(arg)
+const USAGE = `usage: npm run inspect -- <slug> [--settle <ms>] [--out <dir>] [--viewport <width>]
+
+Captures .inspection/<slug>/step-NN.png for every step and prints advisory warnings.
+  --settle    wait after each step change before capturing (default ${DEFAULT_SETTLE_MS} ms,
+              or INSPECT_SETTLE_MS)
+  --out       artifact directory (default .inspection/<slug>)
+  --viewport  viewport width in px; height stays ${VIEWPORT.height} (default ${VIEWPORT.width})
+`
+
+export function parseArgs(argv) {
+  const options = { settle: Number(process.env.INSPECT_SETTLE_MS ?? DEFAULT_SETTLE_MS), width: VIEWPORT.width }
+  const positional = []
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i]
+    if (arg === '--help' || arg === '-h') options.help = true
+    else if (arg === '--settle') options.settle = Number(argv[++i])
+    else if (arg === '--out') options.out = argv[++i]
+    else if (arg === '--viewport') options.width = Number(argv[++i])
+    else positional.push(arg)
   }
-  if (!Number.isFinite(opts.width) || opts.width < 320) throw new Error(`invalid width: ${opts.width}`)
-  if (!Number.isFinite(opts.height) || opts.height < 320) throw new Error(`invalid height: ${opts.height}`)
-  if (!Number.isFinite(opts.settleMs) || opts.settleMs < 0) {
-    throw new Error(`invalid --settle-ms: ${opts.settleMs}`)
-  }
-  return opts
+  options.slug = positional[0]
+  return options
 }
 
-function normalizeSlug(value) {
-  return value.replace(/^https?:\/\/[^/]+/, '').replace(/^\//, '').replace(/\/$/, '')
-}
-
-function artifactDirForSlug(slug) {
-  const safeName = slug.replace(/[\\/]+/g, '_')
-  if (!safeName || safeName.includes('..')) {
-    throw new Error(`invalid presentation slug for artifact output: ${slug}`)
-  }
-
-  const root = resolve(OUT_ROOT)
-  const outDir = resolve(root, safeName)
-  if (outDir !== root && outDir.startsWith(`${root}${sep}`)) return outDir
-  throw new Error(`presentation artifact output escaped ${OUT_ROOT}: ${slug}`)
-}
-
-function runBuild() {
-  return new Promise((resolve, reject) => {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-    const child = spawn(npm, ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: false })
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`build exited ${code}`))))
-    child.on('error', reject)
-  })
-}
-
-async function readRegistry() {
-  const registryUrl = pathToFileURL(join(ROOT, 'src/presentations/index.ts')).href
-  const mod = await import(registryUrl)
-  if (!Array.isArray(mod.presentations)) {
-    throw new Error('src/presentations/index.ts does not export a `presentations` array')
-  }
-  return mod.presentations
-}
-
-function childExited(child) {
-  return child.exitCode !== null || child.signalCode !== null
-}
-
-async function waitForPreview(baseUrl, child, deadlineMs = 30_000) {
-  const started = Date.now()
-  while (Date.now() - started < deadlineMs) {
-    if (childExited(child)) throw new Error(`vite preview exited before ready (code ${child.exitCode})`)
-    try {
-      const res = await fetch(baseUrl)
-      const html = await res.text()
-      if (res.ok && html.includes('id="root"')) return
-    } catch {
-      // server not listening yet
-    }
-    await new Promise((r) => setTimeout(r, 200))
-  }
-  throw new Error('vite preview did not become ready within 30s')
-}
-
-function stopPreview(child) {
-  return new Promise((resolve) => {
-    if (!child.pid) {
-      resolve()
-      return
-    }
-    child.once('close', () => resolve())
-    try {
-      process.kill(-child.pid, 'SIGTERM')
-    } catch {
-      child.kill('SIGTERM')
-    }
-    setTimeout(() => {
-      if (!childExited(child)) {
-        try {
-          process.kill(-child.pid, 'SIGKILL')
-        } catch {
-          child.kill('SIGKILL')
-        }
-      }
-      resolve()
-    }, 3000)
-  })
-}
-
-function startPreview() {
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      VITE_BIN,
-      ['preview', '--port', '0', '--host', '127.0.0.1'],
-      { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
-    )
-
-    let output = ''
-    let settled = false
-    let readyStarted = false
-
-    const cleanup = () => {
-      clearTimeout(timer)
-      child.stdout?.off('data', onData)
-      child.stderr?.off('data', onData)
-      child.off('error', onError)
-      child.off('close', onClose)
-    }
-    const rejectWith = async (err) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      await stopPreview(child)
-      reject(err)
-    }
-    const resolveWith = (value) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      resolve(value)
-    }
-    const onData = (chunk) => {
-      output += chunk.toString()
-      const match = output.match(PREVIEW_URL_RE)
-      if (!match || readyStarted) return
-      readyStarted = true
-      const baseUrl = match[0]
-      waitForPreview(baseUrl, child)
-        .then(() => resolveWith({ child, baseUrl }))
-        .catch(rejectWith)
-    }
-    const onError = (err) => rejectWith(err)
-    const onClose = (code) => {
-      if (!settled) rejectWith(new Error(`vite preview exited before ready (code ${code})`))
-    }
-    const timer = setTimeout(() => {
-      const detail = output.trim() ? ` Output:\n${output.trim()}` : ''
-      rejectWith(new Error(`vite preview did not print a local URL within 30s.${detail}`))
-    }, 30_000)
-
-    child.stdout?.on('data', onData)
-    child.stderr?.on('data', onData)
-    child.on('error', onError)
-    child.on('close', onClose)
-  })
-}
-
-async function findOverlapWarnings(page, slug, stepIndex) {
-  return page.evaluate(
-    ({ slug, stepIndex }) => {
-      const selectors = [
-        '[data-node-part="label"]',
-        '[data-node-part="subtitle"]',
-        '[data-node="label"]',
-        '[data-presentation-title]',
-        '[data-presentation-caption]',
-        '[data-presentation-toc-item]',
-        '[data-presentation-button]',
-      ]
-
-      const rectFor = (el) => {
-        const rect = el.getBoundingClientRect()
-        if (rect.width < 1 || rect.height < 1) return null
-        const style = window.getComputedStyle(el)
-        if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) < 0.2) {
-          return null
-        }
-        return {
-          left: rect.left,
-          right: rect.right,
-          top: rect.top,
-          bottom: rect.bottom,
-          width: rect.width,
-          height: rect.height,
-        }
-      }
-
-      const labelFor = (el) => {
-        const hook = Array.from(el.attributes)
-          .find((attr) => attr.name.startsWith('data-node') || attr.name.startsWith('data-presentation'))
-        const text = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40)
-        return `${hook ? hook.name : el.tagName.toLowerCase()}${text ? ` "${text}"` : ''}`
-      }
-
-      const items = selectors.flatMap((selector) =>
-        Array.from(document.querySelectorAll(selector)),
-      )
-        .filter((el) => !el.closest('[data-allow-overlap]'))
-        .map((el) => ({ el, rect: rectFor(el), label: labelFor(el) }))
-        .filter((item) => item.rect)
-
-      const warnings = []
-      for (let i = 0; i < items.length; i++) {
-        for (let j = i + 1; j < items.length; j++) {
-          const a = items[i]
-          const b = items[j]
-          if (a.el.contains(b.el) || b.el.contains(a.el)) continue
-          const left = Math.max(a.rect.left, b.rect.left)
-          const right = Math.min(a.rect.right, b.rect.right)
-          const top = Math.max(a.rect.top, b.rect.top)
-          const bottom = Math.min(a.rect.bottom, b.rect.bottom)
-          const width = right - left
-          const height = bottom - top
-          if (width <= 0 || height <= 0) continue
-
-          const area = width * height
-          const smaller = Math.min(a.rect.width * a.rect.height, b.rect.width * b.rect.height)
-          if (area < 24 || area / smaller < 0.08) continue
-
-          warnings.push(
-            `${slug} step ${stepIndex + 1}: ${a.label} overlaps ${b.label} (${Math.round(area)}px^2)`,
-          )
-          if (warnings.length >= 10) return warnings
-        }
-      }
-      return warnings
-    },
-    { slug, stepIndex },
-  )
-}
-
-export async function findChromeWarnings(page, slug, stepIndex) {
-  return page.evaluate(
-    ({ slug, stepIndex }) => {
-      const isVisible = (el) => {
-        if (!el) return false
-        const rect = el.getBoundingClientRect()
-        const style = window.getComputedStyle(el)
-        return (
-          rect.width >= 1 &&
-          rect.height >= 1 &&
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          Number(style.opacity) >= 0.2
-        )
-      }
-
-      const styleSignature = (el, { includeSize = false } = {}) => {
-        const style = window.getComputedStyle(el)
-        const rect = el.getBoundingClientRect()
-        const parts = [
-          style.color,
-          style.backgroundColor,
-          style.borderTopColor,
-          style.borderRightColor,
-          style.borderBottomColor,
-          style.borderLeftColor,
-          style.fontWeight,
-          style.opacity,
-          style.textDecorationLine,
-        ]
-        if (includeSize) parts.push(String(Math.round(rect.width)), String(Math.round(rect.height)))
-        return parts.join('|')
-      }
-
-      const warnings = []
-      const progressDots = Array.from(document.querySelectorAll('[data-presentation-progress-dot]'))
-        .filter(isVisible)
-      const activeProgress = progressDots.find((el) =>
-        el.getAttribute('data-active') === 'true' || el.getAttribute('aria-current') === 'step',
-      )
-      const inactiveProgress = progressDots.find((el) => el !== activeProgress)
-      if (!activeProgress && progressDots.length > 1) {
-        warnings.push(`${slug} step ${stepIndex + 1}: no active progress dot is exposed`)
-      } else if (
-        activeProgress &&
-        inactiveProgress &&
-        styleSignature(activeProgress, { includeSize: true }) ===
-          styleSignature(inactiveProgress, { includeSize: true })
-      ) {
-        warnings.push(
-          `${slug} step ${stepIndex + 1}: active progress dot looks identical to inactive dots; style [data-presentation-progress-dot][data-active='true']`,
-        )
-      }
-
-      const tocItems = Array.from(document.querySelectorAll('[data-presentation-toc-item]'))
-        .filter(isVisible)
-      const activeToc = tocItems.find((el) =>
-        el.getAttribute('data-active') === 'true' || el.getAttribute('aria-current') === 'step',
-      )
-      const inactiveToc = tocItems.find((el) => el !== activeToc)
-      if (!activeToc && tocItems.length > 1) {
-        warnings.push(`${slug} step ${stepIndex + 1}: no active table-of-contents item is exposed`)
-      } else if (activeToc && inactiveToc && styleSignature(activeToc) === styleSignature(inactiveToc)) {
-        warnings.push(
-          `${slug} step ${stepIndex + 1}: active table-of-contents item looks identical to inactive items; style [data-presentation-toc-item][data-active='true']`,
-        )
-      }
-
-      const attribution = document.querySelector('[data-presentation-attribution]')
-      if (!attribution) {
-        warnings.push(
-          `${slug}: attribution is not rendered; pass attribution={null} only for an intentional opt-out`,
-        )
-      } else if (!isVisible(attribution)) {
-        warnings.push(
-          `${slug}: attribution is present but not visible; style [data-presentation-attribution] in presentation CSS`,
-        )
-      } else {
-        const style = window.getComputedStyle(attribution)
-        const rect = attribution.getBoundingClientRect()
-        const fontSize = Number.parseFloat(style.fontSize)
-        const defaultLinkBlue = style.color === 'rgb(0, 0, 238)' || style.color === '-webkit-link'
-        if (fontSize < 12 || rect.height < 14 || defaultLinkBlue) {
-          warnings.push(
-            `${slug}: attribution appears too small or browser-default; style [data-presentation-attribution] in presentation CSS`,
-          )
-        }
-      }
-
-      return warnings
-    },
-    { slug, stepIndex },
-  )
-}
-
-export function appendInspectionWarnings(warnings, seenAttributionWarnings, additions) {
-  for (const warning of additions) {
-    const isAttributionWarning = warning.includes(': attribution ')
-    if (isAttributionWarning && seenAttributionWarnings.has(warning)) continue
-    warnings.push(warning)
-    if (isAttributionWarning) seenAttributionWarnings.add(warning)
-  }
-}
-
-async function capturePresentation(page, baseUrl, slug, width, height, settleMs) {
-  const outDir = artifactDirForSlug(slug)
-  await mkdir(outDir, { recursive: true })
-  await page.setViewportSize({ width, height })
-  await page.goto(`${baseUrl}${slug}`, { waitUntil: 'load', timeout: 30_000 })
-
-  const progress = page.locator('[data-testid="step-progress"]')
-  await progress.waitFor({ timeout: 10_000 })
-  const stepCount = Number(await progress.getAttribute('data-step-count'))
-  if (!Number.isFinite(stepCount) || stepCount < 1) {
-    throw new Error(`${slug}: invalid data-step-count: ${stepCount}`)
-  }
-
-  const written = []
+/** Runs in the page: returns advisory warnings for the current step. */
+function collectWarnings() {
+  const root = document.querySelector('[data-presentation-root]')
   const warnings = []
-  const seenAttributionWarnings = new Set()
-  for (let i = 0; i < stepCount; i++) {
-    const expectedIndex = Number(await progress.getAttribute('data-step-index'))
-    if (expectedIndex !== i) throw new Error(`${slug} step ${i}: expected index ${i}, got ${expectedIndex}`)
+  if (!root) return [{ kind: 'render', message: 'no presentation root rendered' }]
 
-    await page.waitForTimeout(settleMs)
-    warnings.push(...await findOverlapWarnings(page, slug, i))
-    appendInspectionWarnings(warnings, seenAttributionWarnings, await findChromeWarnings(page, slug, i))
+  const exempt = (el) => el.closest('[data-presentation-allow-overlap]') !== null
+  const visible = (el) => {
+    const rect = el.getBoundingClientRect()
+    const style = getComputedStyle(el)
+    return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && Number(style.opacity) > 0.05
+  }
+  const ownText = (el) => [...el.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '')
+  const describe = (el) => {
+    const entity = el.closest('[data-presentation-entity]')?.getAttribute('data-presentation-entity')
+    const text = el.textContent.trim().replace(/\s+/g, ' ').slice(0, 28) || el.getAttribute('aria-label') || el.tagName.toLowerCase()
+    return `${entity ? `${entity} ` : ''}"${text}"`
+  }
 
-    const path = join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
-    await page.screenshot({ path, fullPage: false })
-    written.push(path)
-
-    if (i < stepCount - 1) {
-      await page.keyboard.press('ArrowRight')
-      await page.waitForFunction(
-        (expected) => {
-          const el = document.querySelector('[data-testid="step-progress"]')
-          return el && Number(el.getAttribute('data-step-index')) === expected
-        },
-        i + 1,
-        { timeout: 5000 },
-      )
+  // Overlap between visible text/chrome that is not nested and not explicitly allowed.
+  // Chrome dots and controls have no text of their own, but still collide with text.
+  const chrome = '[data-presentation-progress], [data-presentation-prev], [data-presentation-next], [data-presentation-mode-toggle]'
+  const texts = [...root.querySelectorAll('*')].filter(
+    (el) =>
+      el.namespaceURI === 'http://www.w3.org/1999/xhtml' &&
+      (ownText(el) || el.matches(chrome)) &&
+      visible(el) &&
+      !exempt(el),
+  )
+  for (let i = 0; i < texts.length; i += 1) {
+    for (let j = i + 1; j < texts.length; j += 1) {
+      const a = texts[i]
+      const b = texts[j]
+      if (a.contains(b) || b.contains(a)) continue
+      const ra = a.getBoundingClientRect()
+      const rb = b.getBoundingClientRect()
+      const dx = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left)
+      const dy = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top)
+      if (dx > 2 && dy > 2) {
+        warnings.push({ kind: 'overlap', message: `${describe(a)} overlaps ${describe(b)}` })
+      }
     }
   }
-  return { written, warnings }
+
+  // Active chrome must differ visibly from an inactive sibling.
+  const props = ['color', 'background-color', 'font-weight', 'border-top-color', 'border-top-width', 'opacity', 'outline-style']
+  const signature = (el) => {
+    const style = getComputedStyle(el)
+    return props.map((prop) => style.getPropertyValue(prop)).join('|')
+  }
+  for (const [selector, label] of [
+    ['[data-presentation-progress]', 'progress indicator'],
+    ['[data-presentation-toc-entry]', 'table-of-contents entry'],
+  ]) {
+    const all = [...root.querySelectorAll(selector)]
+    const active = all.filter((el) => el.getAttribute('data-presentation-active') === 'true')
+    const inactive = all.find((el) => el.getAttribute('data-presentation-active') !== 'true')
+    for (const el of active) {
+      if (inactive && signature(el) === signature(inactive)) {
+        warnings.push({ kind: 'active-chrome', message: `active ${label} is visually indistinct from inactive controls` })
+      }
+    }
+  }
+
+  // Attribution: present, not too small, not browser default.
+  const attribution = root.querySelector('[data-presentation-attribution]')
+  if (!attribution) {
+    warnings.push({ kind: 'attribution', message: 'attribution link missing; keep [data-presentation-attribution]' })
+  } else {
+    const style = getComputedStyle(attribution)
+    const size = Number.parseFloat(style.fontSize)
+    if (size < 11) {
+      warnings.push({ kind: 'attribution', message: `attribution font-size ${size}px is too small; style [data-presentation-attribution]` })
+    }
+    const browserDefault = style.color === 'rgb(0, 0, 238)' && style.textDecorationLine.includes('underline') && size === 16
+    if (browserDefault) {
+      warnings.push({ kind: 'attribution', message: 'attribution is browser-default; style it via [data-presentation-attribution]' })
+    }
+  }
+  return warnings
+}
+
+function fail(message) {
+  console.error(message)
+  process.exitCode = 1
 }
 
 async function main() {
-  const opts = parseArgs()
-  await runBuild()
-
-  const presentations = await readRegistry()
-  const selected = opts.slug ? presentations.filter((entry) => entry.slug === opts.slug) : presentations
-  if (selected.length === 0) {
-    throw new Error(opts.slug ? `presentation not found: ${opts.slug}` : 'no presentations registered')
+  const options = parseArgs(process.argv.slice(2))
+  if (options.help) {
+    console.log(USAGE)
+    return
   }
+  if (!options.slug) return fail(`missing <slug>\n\n${USAGE}`)
 
-  const { child, baseUrl } = await startPreview()
-  let browser
-  try {
-    browser = await chromium.launch()
-    const page = await browser.newPage()
-    for (const { slug } of selected) {
-      const { written, warnings } = await capturePresentation(
-        page,
-        baseUrl,
-        slug,
-        opts.width,
-        opts.height,
-        opts.settleMs,
-      )
-      console.log(`INSPECT: ${slug} (${written.length} screenshot${written.length === 1 ? '' : 's'})`)
-      for (const path of written) console.log(path)
-      for (const warning of warnings) console.warn(`WARN [inspect-overlap]: ${warning}`)
-    }
-  } finally {
-    await browser?.close()
-    await stopPreview(child)
-  }
-}
-
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((err) => {
-    console.error(`FAIL [inspect]: ${err instanceof Error ? err.message : String(err)}`)
-    process.exit(1)
+  const build = spawnSync(process.execPath, [join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js'), 'build'], {
+    cwd: ROOT,
+    encoding: 'utf8',
   })
+  if (build.status !== 0) return fail(`vite build failed\n${build.stdout}${build.stderr}`)
+
+  const outDir = resolve(ROOT, options.out ?? join('.inspection', options.slug))
+  rmSync(outDir, { recursive: true, force: true })
+  mkdirSync(outDir, { recursive: true })
+
+  const warningLines = []
+  let count = 0
+  let preview = null
+  let browser = null
+  try {
+    preview = await startPreview(ROOT)
+    browser = await chromium.launch({ headless: true })
+    const page = await browser.newPage({ viewport: { width: options.width, height: VIEWPORT.height } })
+    const errors = []
+    page.on('console', (message) => {
+      if (message.type() === 'error') errors.push(message.text())
+    })
+    page.on('pageerror', (error) => errors.push(`uncaught: ${error.message}`))
+    const response = await page.goto(`${preview.url}/${options.slug}`, { waitUntil: 'load' })
+    if (!response || !response.ok()) return fail(`no presentation route for "${options.slug}"`)
+    await page.waitForSelector('[data-step-count]', { timeout: 15_000 }).catch(() => {
+      throw new Error(`"${options.slug}" did not render a presentation`)
+    })
+    count = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
+    let pressedAt = Date.now()
+    for (let index = 0; index < count; index += 1) {
+      await page.waitForTimeout(options.settle)
+      const number = String(index + 1).padStart(2, '0')
+      const shown = Number(await page.getAttribute('[data-step-index]', 'data-step-index'))
+      if (shown !== index) {
+        throw new Error(`expected step ${index} before capture, page shows ${shown}\n${errors.join('\n')}`.trimEnd())
+      }
+      for (const warning of await page.evaluate(collectWarnings)) {
+        warningLines.push(`WARN step ${number} ${warning.kind}: ${warning.message}`)
+      }
+      const elapsed = Date.now() - pressedAt
+      if (elapsed < options.settle) throw new Error(`step ${number} captured before the settle interval elapsed`)
+      await page.screenshot({ path: join(outDir, `step-${number}.png`) })
+      console.log(`step ${number} captured ${elapsed} ms after its step change (settle ${options.settle} ms)`)
+      if (index < count - 1) {
+        await page.keyboard.press('ArrowRight')
+        pressedAt = Date.now()
+      }
+    }
+    if (errors.length > 0) return fail(`runtime errors while inspecting:\n${errors.join('\n')}`)
+  } finally {
+    if (browser) await browser.close()
+    if (preview) await preview.stop()
+  }
+  writeFileSync(join(outDir, 'warnings.txt'), warningLines.map((line) => `${line}\n`).join(''))
+  for (const line of warningLines) console.log(line)
+  console.log(`captured ${count} screenshots in ${outDir}; ${warningLines.length} advisory warning(s)`)
 }
+
+await main()

@@ -1,42 +1,41 @@
-/** Shared timing and geometry constants for the scene kit. */
-
-// Easing for layout morphs and reveals — slow, confident, presentation-grade.
-export const EASE = [0.22, 1, 0.36, 1] as const
-export const LAYOUT_T = { duration: 0.7, ease: EASE }
-
-// A newcomer waits this long before fading in, so the pieces already on screen
-// have visibly moved to their new spots first. Without it, a new element pops in
-// at full strength while the old ones are mid-morph, and the eye can't tell what
-// arrived from what just shifted. See the Appear helper in nodes.
-export const ENTER_DELAY = 0.4
-export const ENTER_T = { duration: 0.45, ease: EASE, delay: ENTER_DELAY }
-
-// The diagram is laid out once in this fixed "design canvas" and then scaled
-// uniformly to fit the viewport (see useFitScale). A fixed coordinate space
-// means the composition never reflows and the scale is constant during a
-// morph — so layoutId transitions stay clean at every viewport size.
+/** Fixed design canvas every scene is composed in; it is scaled, never reflowed. */
 export const DESIGN_W = 880
 export const DESIGN_H = 380
-export const MIN_SCALE = 0.35
+
+/** Lower bound for the uniform fit scale so a tiny viewport still renders legibly. */
+export const MIN_SCALE = 0.2
+export const MAX_SCALE = 2
+
+export const EASE = [0.22, 1, 0.36, 1] as const
+
+/** Duration of a layout (layoutId) morph between two steps, in seconds. */
+export const LAYOUT_T = 0.6
+/** Duration of a newcomer's fade-in, in seconds. */
+export const ENTER_T = 0.45
+/** Newcomers start after persisting entities have finished morphing. */
+export const ENTER_DELAY = 0.7
+
+/** Table of contents shows only in browse mode at or above this viewport width. */
+export const TOC_MIN_WIDTH = 1024
+
+/** A horizontal swipe needs at least this much travel to count. */
+export const SWIPE_MIN_PX = 50
+
+export const ATTRIBUTION_HREF = 'https://github.com/Codagent-AI/and-scene'
+export const ATTRIBUTION_TEXT = 'made by and-scene'
 
 /**
- * Per-mode stage geometry. Scale is constant *within* a mode, so step→step
- * layoutId morphs stay clean; toggling modes is a re-render, not a morph.
- *
- *  - browse  reserves generous chrome for the multi-line caption + nav at the
- *            bottom; the title sits at the top. Fits the full design canvas.
- *  - present carries the same top title but no caption — only progress dots sit
- *            at the bottom — so it keeps the title's headroom up top and trims
- *            the bottom band, fitting the diagram to a narrower width (~790)
- *            so a wide step doesn't shrink the rest. A higher max-scale lets the
- *            diagram grow on taller (16:9/4:3) screens.
- *
- * `fitW` is both the width fed to the fit calc and the canvas width, so the
- * scaled canvas always equals the available width (no horizontal overflow).
+ * Vertical space reserved for header and footer chrome, per mode. The fit uses this
+ * fixed reservation rather than measuring the footer, so the scale never changes
+ * with a step's caption length.
  */
-export const STAGE_LAYOUT = {
-  browse: { top: 96, bottom: 188, padX: 32, fitW: DESIGN_W, maxScale: 1.8 },
-  present: { top: 104, bottom: 76, padX: 20, fitW: 790, maxScale: 2.6 },
+export const CHROME_HEIGHT = {
+  browse: 240,
+  present: 110,
 } as const
 
-export type StageLayout = (typeof STAGE_LAYOUT)[keyof typeof STAGE_LAYOUT]
+/** Padding kept free around the canvas when fitting it into the stage, per mode. */
+export const STAGE_LAYOUT = {
+  browse: { padX: 24, padY: 12 },
+  present: { padX: 32, padY: 24 },
+} as const

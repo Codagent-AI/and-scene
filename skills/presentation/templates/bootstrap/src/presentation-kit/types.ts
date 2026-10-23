@@ -1,45 +1,41 @@
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 
-export type Mode = 'browse' | 'present'
+export type Mode = 'present' | 'browse'
 
-/** Narration + identity for one beat of the evolving diagram. */
-export interface StepMeta<P extends Record<string, unknown> = Record<string, unknown>> {
-  /** Stable key for AnimatePresence + React reconciliation. */
+/** Props every scene receives: the active step's payload. */
+export interface SceneProps<P> {
+  payload: P
+}
+
+export type SceneComponent<P> = ComponentType<SceneProps<P>>
+
+/**
+ * One named state of a scene. Steps that share a `groupKey` and `scene` keep
+ * one mounted scene instance; only `payload` changes between them.
+ */
+export interface Step<P> {
+  /** Stable identity. Never used for display numbering. */
   id: string
-  /** Header label, e.g. "the model". */
+  /** Section/era label used by the table of contents. */
   era: string
-  /** Presenter-mode one-liner. */
+  /** One-line presenter title (present mode). */
   title: string
-  /** Browsing-mode paragraph. */
+  /** Multi-line browse caption. */
   caption: string
-  /**
-   * AnimatePresence key override. Consecutive steps that share a groupKey are
-   * NOT remounted when you navigate between them — the Scene instance persists
-   * and only its `step` prop changes, so elements already on screen never fade
-   * out and back in; they update in place (and a newly added element animates
-   * in on its own). Steps sharing a groupKey must also share the same `Scene`
-   * component. Defaults to `id`.
-   */
-  groupKey?: string
-  /** Per-step data handed to the Scene (e.g. how many chips to show). */
-  payload?: P
+  groupKey: string
+  scene: SceneComponent<P>
+  /** Diagram state shown while this step is active. */
+  payload: P
 }
 
-/**
- * Props every Scene receives. Most scenes ignore them; a grouped scene reads
- * `step.payload` to decide which sub-state of its diagram to render.
- */
-export interface SceneProps<P extends Record<string, unknown> = Record<string, unknown>> {
-  step: Step<P>
-}
-
-/**
- * A step = its narration + the diagram layer rendered while it is active.
- *
- * `Scene` composes the shared nodes (see ./nodes). Elements that should morph
- * between steps share a layoutId — that's the only contract between one step
- * and the next.
- */
-export interface Step<P extends Record<string, unknown> = Record<string, unknown>> extends StepMeta<P> {
-  Scene: ComponentType<SceneProps<P>>
+export interface PresentationProps<P> {
+  steps: readonly Step<P>[]
+  title: string
+  initialMode?: Mode
+  /** Set false to omit the attribution link (the kit shows it by default). */
+  attribution?: boolean
+  /** Host-supplied header brand. The kit adds none by default. */
+  brand?: ReactNode
+  designWidth?: number
+  designHeight?: number
 }

@@ -1,61 +1,73 @@
-import { AnimatePresence, LayoutGroup } from 'motion/react'
-import { DESIGN_H, STAGE_LAYOUT } from './constants'
+import { useState } from 'react'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { DESIGN_H, DESIGN_W, ENTER_T, EASE } from './constants'
+import { layerStyle, stageStyle } from './layout'
 import { useFitScale } from './useFitScale'
 import type { Mode, Step } from './types'
 
-/**
- * The fixed design canvas, scaled to fit the gap between header and footer.
- * transform-origin is the canvas center and the canvas is flex-centered, so the
- * diagram stays centered at any scale.
- *
- * Hosts the LayoutGroup + AnimatePresence: only the active step's Scene is
- * mounted (keyed by groupKey, falling back to id), so when the step changes the
- * outgoing and incoming scenes coexist briefly and their shared layoutId
- * elements morph between them. Steps that share a groupKey (and Scene) are NOT
- * remounted when navigating between them — the same instance persists and only
- * its `step` prop changes, so on-screen elements update in place instead of
- * re-animating. See StepMeta.groupKey.
- */
-export function Stage<P extends Record<string, unknown> = Record<string, unknown>>({
-  step,
-  mode,
-}: {
-  step: Step<P>
-  mode: Mode
-}) {
-  const layout = STAGE_LAYOUT[mode]
-  const scale = useFitScale(layout)
-  const Scene = step.Scene
+const sceneIds = new WeakMap<object, number>()
+let nextSceneId = 0
 
+/** Presence key: a new group or a new scene component both count as a new scene. */
+function sceneKey(groupKey: string, scene: object): string {
+  let id = sceneIds.get(scene)
+  if (id === undefined) {
+    id = nextSceneId
+    nextSceneId += 1
+    sceneIds.set(scene, id)
+  }
+  return `${groupKey}#${id}`
+}
+
+export interface StageProps<P> {
+  steps: readonly Step<P>[]
+  index: number
+  mode: Mode
+  designWidth?: number
+  designHeight?: number
+}
+
+/**
+ * Hosts the active step's scene on a fixed design canvas scaled uniformly to the
+ * stage. Steps sharing a groupKey keep one scene instance; a new group cross-fades.
+ */
+export function Stage<P>({ steps, index, mode, designWidth = DESIGN_W, designHeight = DESIGN_H }: StageProps<P>) {
+  const [stageEl, setStageEl] = useState<HTMLDivElement | null>(null)
+  const scale = useFitScale(stageEl, mode, designWidth, designHeight)
+  const step = steps[index]
+  if (!step) return null
+  const Scene = step.scene
   return (
-    <div
-      data-presentation-stage-shell
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: layout.top,
-        bottom: layout.bottom,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <div
-        data-presentation-stage
-        style={{
-          position: 'relative',
-          flexShrink: 0,
-          width: layout.fitW,
-          height: DESIGN_H,
-          transform: `scale(${scale})`,
-        }}
-      >
-        <LayoutGroup>
-          <AnimatePresence>
-            <Scene key={step.groupKey ?? step.id} step={step} />
-          </AnimatePresence>
-        </LayoutGroup>
+    <div ref={setStageEl} data-presentation-stage="" style={stageStyle}>
+      <div style={{ position: 'relative', width: designWidth * scale, height: designHeight * scale }}>
+        <div
+          data-presentation-canvas=""
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: designWidth,
+            height: designHeight,
+            transform: `scale(${scale})`,
+            transformOrigin: '0 0',
+          }}
+        >
+          <LayoutGroup>
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={sceneKey(step.groupKey, step.scene)}
+                data-presentation-scene={step.groupKey}
+                style={layerStyle}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: ENTER_T, ease: EASE }}
+              >
+                <Scene payload={step.payload} />
+              </motion.div>
+            </AnimatePresence>
+          </LayoutGroup>
+        </div>
       </div>
     </div>
   )

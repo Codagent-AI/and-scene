@@ -67,7 +67,8 @@ const PAGE_FAULT = `import { createElement } from 'react'
 import type { SceneProps } from '../../../presentation-kit'
 
 function FaultScene(props: SceneProps<SampleState>) {
-  if (props.payload.entities.length === 10) throw new Error('injected page fault')
+  // Step 4 is the only step with twelve entities on screen.
+  if (props.payload.entities.length === 12) throw new Error('injected page fault')
   return createElement(SampleScene, props)
 }
 

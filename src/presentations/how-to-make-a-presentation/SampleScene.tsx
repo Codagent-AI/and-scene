@@ -1,15 +1,26 @@
 import { CircleCheck, CircleHelp, Image as ImageIcon, Bot, User } from 'lucide-react'
 import { useState, type ReactElement } from 'react'
-import { Appear, Arrow, Box, Frame, Label, SceneLayer, SymbolChip, type SceneProps } from '../../presentation-kit'
+import { Arrow, Box, Frame, Label, SceneLayer, SymbolChip, type SceneProps } from '../../presentation-kit'
 import { ARROWS, FRAME_STACK_ORDER, layoutIdFor, rectStyle, type ArrowId, type EntityId } from './entities'
 import type { SampleEntity, SampleState } from './payload'
+
+/** Entry is a prop on the node, so one element with one key carries the entity across steps. */
+function entryAttributes(id: EntityId, entering: boolean) {
+  return { entering, 'data-presentation-entity': id, 'data-presentation-entering': entering ? id : undefined }
+}
 
 /** Positions a child inside a parent box, in the parent's own coordinates. */
 const inside = (left: number, top: number, width: number, height: number) => ({ left, top, width, height })
 
-function card(id: 'card1' | 'card2' | 'card3', entity: SampleEntity): ReactElement {
+function card(id: 'card1' | 'card2' | 'card3', entity: SampleEntity, entering: boolean): ReactElement {
   return (
-    <Box key={id} layoutId={layoutIdFor(id)} data-presentation-entity={id} data-presentation-state={entity.state} style={rectStyle(id)}>
+    <Box
+      key={id}
+      layoutId={layoutIdFor(id)}
+      {...entryAttributes(id, entering)}
+      data-presentation-state={entity.state}
+      style={rectStyle(id)}
+    >
       <Label style={inside(8, 8, 94, 20)} data-presentation-part="title">Title</Label>
       <Label style={inside(8, 34, 94, 50)} data-presentation-part="caption">Caption</Label>
       <SymbolChip style={inside(8, 92, 94, 20)} symbol="visual" Icon={ImageIcon} data-presentation-part="visual">
@@ -19,9 +30,9 @@ function card(id: 'card1' | 'card2' | 'card3', entity: SampleEntity): ReactEleme
   )
 }
 
-function renderEntity(entity: SampleEntity): ReactElement {
+function renderEntity(entity: SampleEntity, entering: boolean): ReactElement {
   const { id } = entity
-  const shared = { layoutId: layoutIdFor(id), 'data-presentation-entity': id }
+  const shared = { layoutId: layoutIdFor(id), ...entryAttributes(id, entering) }
   switch (id) {
     case 'you':
       return <Box key={id} {...shared} Icon={User} style={rectStyle('you')}>you</Box>
@@ -38,7 +49,7 @@ function renderEntity(entity: SampleEntity): ReactElement {
     case 'card1':
     case 'card2':
     case 'card3':
-      return card(id, entity)
+      return card(id, entity, entering)
     case 'ghost':
       return (
         <Box key={id} {...shared} style={rectStyle('ghost')} data-presentation-state="unspecified">
@@ -106,34 +117,21 @@ function renderEntity(entity: SampleEntity): ReactElement {
         </Frame>
       )
     default:
-      return renderArrow(id)
+      return renderArrow(id, entering)
   }
 }
 
-function renderArrow(id: ArrowId): ReactElement {
+function renderArrow(id: ArrowId, entering: boolean): ReactElement {
   const { from, to, bidirectional } = ARROWS[id]
   return (
     <Arrow
       key={id}
       layoutId={layoutIdFor(id)}
-      data-presentation-entity={id}
+      {...entryAttributes(id, entering)}
       from={from}
       to={to}
       bidirectional={bidirectional}
     />
-  )
-}
-
-/** Entering entities fade in after persisting ones settle; continuing ones are never wrapped. */
-function renderSceneEntity(entity: SampleEntity, entering: ReadonlySet<EntityId>): ReactElement {
-  const node = renderEntity(entity)
-  return entering.has(entity.id) ? (
-    // A distinct key keeps the wrapped and unwrapped forms of one entity from sharing a key.
-    <Appear key={`enter-${entity.id}`} data-presentation-entering={entity.id}>
-      {node}
-    </Appear>
-  ) : (
-    node
   )
 }
 
@@ -159,5 +157,9 @@ export function SampleScene({ payload }: SceneProps<SampleState>) {
     entering = new Set(ids.filter((id) => !previous.has(id)))
     setShown({ ids, entering })
   }
-  return <SceneLayer name="diagram">{payload.entities.map((entity) => renderSceneEntity(entity, entering))}</SceneLayer>
+  return (
+    <SceneLayer name="diagram">
+      {payload.entities.map((entity) => renderEntity(entity, entering.has(entity.id)))}
+    </SceneLayer>
+  )
 }

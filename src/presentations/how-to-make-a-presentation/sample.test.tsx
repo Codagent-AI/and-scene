@@ -211,6 +211,15 @@ describe('sample entry wrappers', () => {
     return new Set(visibleIds(STEPS[to]!).filter((id) => !before.has(id)))
   }
 
+  it('keeps a continuing entity as the same element when a newcomer beat follows it', async () => {
+    const { view, next } = renderSample()
+    await goTo(view, 0)
+    const you = view.container.querySelector('[data-presentation-entity="you"]')
+    next()
+    await goTo(view, 1)
+    expect(view.container.querySelector('[data-presentation-entity="you"]')).toBe(you)
+  })
+
   it('wraps exactly the newcomers of each forward step, and nothing when moving back', async () => {
     // Departing wrappers stay mounted until their exit finishes; jsdom cannot finish layout exits,
     // so completion is driven by the global flag. The flag does not change which entities are wrapped.

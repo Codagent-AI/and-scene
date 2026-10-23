@@ -76,7 +76,8 @@ differences (file naming, formatting, extra dependencies) do not count as missin
   entity (it morphs in place), and may let an entity leave (it exits). Do not impose one rule on
   every presentation; choose the layout that the topic's narrative needs.
 - Entry is decided by the scene, not stored per step: an entity enters when it was not on screen in
-  the previous step, whichever way the viewer moved. Wrap only those entities in `Appear`.
+  the previous step, whichever way the viewer moved. Pass `entering` to the newcomer's primitive; keep
+  the same key and element for continuing entities, so they are never remounted.
 - Compose the scene from kit primitives: `Box`, `Label`, `Arrow`, `Frame`, `Emphasis`,
   `SymbolChip`, `Appear`, and `SceneLayer`. For a diagram these do not fit, raw Motion elements
   with stable `layoutId`s are allowed, with literal coordinates.

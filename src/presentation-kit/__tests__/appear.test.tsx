@@ -54,8 +54,25 @@ describe('Appear entry', () => {
     spy.divProps.length = 0
     render(<Label layoutId="presentation:demo:gone">gone</Label>)
     const props = spy.divProps.find((p) => p.layoutId === 'presentation:demo:gone')!
-    expect(props.exit).toEqual({ opacity: 0 })
+    expect(props.exit).toEqual({ opacity: 0, transition: { delay: 0, duration: LAYOUT_T, ease: expect.any(Array) } })
     expect(props.transition).toEqual({ duration: LAYOUT_T, ease: expect.any(Array) })
+  })
+
+  it('hides a newcomer node on its own element and leaves a continuing node visible from the start', () => {
+    spy.divProps.length = 0
+    render(
+      <>
+        <Label layoutId="presentation:demo:new" entering>new</Label>
+        <Label layoutId="presentation:demo:kept">kept</Label>
+      </>,
+    )
+    const fresh = spy.divProps.find((p) => p.layoutId === 'presentation:demo:new')!
+    const kept = spy.divProps.find((p) => p.layoutId === 'presentation:demo:kept')!
+    expect(fresh.initial).toEqual({ opacity: 0 })
+    expect(fresh.animate).toEqual({ opacity: 1 })
+    expect(fresh.transition).toEqual({ delay: ENTER_DELAY, duration: ENTER_T, ease: expect.any(Array) })
+    expect(kept.initial).toBe(false)
+    expect(kept.animate).toBeUndefined()
   })
 
   it('forwards changed state to the same motion element when a continuing entity updates', () => {

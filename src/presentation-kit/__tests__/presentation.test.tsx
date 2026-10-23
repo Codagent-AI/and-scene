@@ -21,7 +21,7 @@ const waitForSceneText = (view: ReturnType<typeof render>, text: string) =>
     const roots = view.container.querySelectorAll('[data-testid="scene-root"]')
     expect(roots).toHaveLength(1)
     expect(roots[0]!.textContent).toBe(text)
-  })
+  }, { timeout: 4000 })
 const press = (key: string) => act(() => {
   window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))
 })

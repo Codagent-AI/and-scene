@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Appear, Arrow, Box, Label, SceneLayer, type SceneProps } from '../../presentation-kit'
+import { Arrow, Box, Label, SceneLayer, type SceneProps } from '../../presentation-kit'
 import { ARROWS, layoutIdFor, rectStyle, type ArrowId, type BoxId, type EntityId } from './entities'
 import type { SceneState } from './payload'
 
@@ -34,12 +34,13 @@ function isArrow(id: EntityId): id is ArrowId {
 
 function renderEntity(id: EntityId, entering: boolean) {
   const node = isArrow(id) ? (
-    <Arrow key={id} layoutId={layoutIdFor(id)} data-presentation-entity={id} {...ARROWS[id]} />
+    <Arrow key={id} layoutId={layoutIdFor(id)} data-presentation-entity={id} entering={entering} {...ARROWS[id]} />
   ) : (
-    <Box key={id} layoutId={layoutIdFor(id)} data-presentation-entity={id} style={rectStyle(id as BoxId)}>
+    <Box key={id} layoutId={layoutIdFor(id)} data-presentation-entity={id} entering={entering} style={rectStyle(id as BoxId)}>
       <Label>{id}</Label>
     </Box>
   )
-  // Newcomers fade in after persisting entities settle. Continuing entities are never wrapped.
-  return entering ? <Appear key={`enter-${id}`}>{node}</Appear> : node
+  // A newcomer fades in after persisting entities settle. The node keeps the same key either way,
+  // so a continuing entity is never remounted; it simply has no entry.
+  return node
 }

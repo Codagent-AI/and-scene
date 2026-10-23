@@ -30,6 +30,8 @@ export function parseArguments(argv) {
     else throw new Error(`unknown option ${arg}`)
   }
   if (!options.slug) throw new Error('usage: npm run inspect -- <slug> [--narrow] [--settle <ms>]')
+  // The slug names a directory and a URL path, so it must stay a plain route segment.
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(options.slug)) throw new Error(`invalid slug: ${options.slug}`)
   if (!Number.isFinite(options.settleMs) || options.settleMs < 0) throw new Error('--settle must be a non-negative number')
   return options
 }

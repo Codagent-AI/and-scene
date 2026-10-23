@@ -20,6 +20,9 @@ describe('inspection options', () => {
   it('rejects a missing slug, an unknown option, and a bad settle value', () => {
     expect(() => parseArguments([])).toThrow(/usage/)
     expect(() => parseArguments(['sample', '--wide'])).toThrow(/unknown option/)
+    expect(() => parseArguments(['../../x'])).toThrow(/invalid slug/)
+    expect(() => parseArguments(['Sample'])).toThrow(/invalid slug/)
+    expect(parseArguments(['how-to-make-a-presentation']).slug).toBe('how-to-make-a-presentation')
     expect(() => parseArguments(['sample', '--settle', '-5'])).toThrow(/non-negative/)
   })
 })

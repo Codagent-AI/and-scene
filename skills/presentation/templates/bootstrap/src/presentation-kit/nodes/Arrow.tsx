@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import type { CSSProperties } from 'react'
-import { EASE, LAYOUT_T } from '../constants'
 import { arrowPath, HEAD_LENGTH, type Point } from './arrowPath'
+import { entryMotion, EXIT_MOTION } from './entryMotion'
 
 export interface ArrowProps {
   layoutId?: string
@@ -9,6 +9,8 @@ export interface ArrowProps {
   to: Point
   /** Draw an arrowhead at both ends. */
   bidirectional?: boolean
+  /** True while this arrow is newly on screen; see NodeBase. */
+  entering?: boolean
   className?: string
   style?: CSSProperties
   [dataAttribute: `data-${string}`]: string | undefined
@@ -16,7 +18,7 @@ export interface ArrowProps {
 
 
 /** Straight arrow between two canvas points, drawn in canvas coordinates. */
-export function Arrow({ layoutId, from, to, bidirectional = false, style, ...rest }: ArrowProps) {
+export function Arrow({ layoutId, from, to, bidirectional = false, entering = false, style, ...rest }: ArrowProps) {
   const left = Math.min(from.x, to.x) - HEAD_LENGTH
   const top = Math.min(from.y, to.y) - HEAD_LENGTH
   const width = Math.abs(to.x - from.x) + 2 * HEAD_LENGTH
@@ -26,8 +28,8 @@ export function Arrow({ layoutId, from, to, bidirectional = false, style, ...res
       data-presentation-arrow=""
       layout
       layoutId={layoutId}
-      exit={{ opacity: 0 }}
-      transition={{ duration: LAYOUT_T, ease: EASE }}
+      exit={EXIT_MOTION}
+      {...entryMotion(entering)}
       viewBox={`${left} ${top} ${width} ${height}`}
       style={{ position: 'absolute', left, top, width, height, overflow: 'visible', ...style }}
       {...rest}

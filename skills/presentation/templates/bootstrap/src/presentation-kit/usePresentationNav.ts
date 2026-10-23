@@ -99,16 +99,19 @@ export function usePresentationNav(count: number, initialMode: Mode): Presentati
   }, [next, prev, toggleMode])
 
   useEffect(() => {
-    let start: { x: number; y: number } | null = null
+    // Only a single-finger gesture counts. The gesture is matched by touch identifier, so a second
+    // finger (pinch, or a scroll that lands mid-swipe) cancels it instead of turning the deck.
+    let start: { id: number; x: number; y: number } | null = null
     const onTouchStart = (event: TouchEvent) => {
       const touch = event.touches[0]
-      start = touch ? { x: touch.clientX, y: touch.clientY } : null
+      start = event.touches.length === 1 && touch ? { id: touch.identifier, x: touch.clientX, y: touch.clientY } : null
     }
     const onTouchEnd = (event: TouchEvent) => {
       const origin = start
-      const touch = event.changedTouches[0]
       start = null
-      if (!origin || !touch) return
+      if (!origin || event.touches.length !== 0) return
+      const touch = Array.from(event.changedTouches).find((candidate) => candidate.identifier === origin.id)
+      if (!touch) return
       const swipe = classifySwipe(touch.clientX - origin.x, touch.clientY - origin.y)
       if (swipe === 'left') next()
       else if (swipe === 'right') prev()

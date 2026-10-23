@@ -237,6 +237,27 @@ describe('touch swipe', () => {
     expect(index(view)).toBe(2)
   })
 
+  it('ignores a swipe that involves a second finger, such as a pinch', () => {
+    const view = render(<Harness count={5} />)
+    const make = (id: number, x: number) => ({ clientX: x, clientY: 200, identifier: id }) as unknown as Touch
+    const dispatch = (type: string, touches: Touch[], changed: Touch[]) => {
+      const event = new Event(type, { bubbles: true, cancelable: true }) as Event & { touches: Touch[]; changedTouches: Touch[] }
+      Object.defineProperty(event, 'touches', { value: touches })
+      Object.defineProperty(event, 'changedTouches', { value: changed })
+      act(() => {
+        window.dispatchEvent(event)
+      })
+    }
+    // A second finger lands, then the first lifts after a long horizontal move.
+    dispatch('touchstart', [make(1, 200)], [])
+    dispatch('touchstart', [make(1, 200), make(2, 300)], [])
+    dispatch('touchend', [make(2, 300)], [make(1, 40)])
+    expect(index(view)).toBe(0)
+    // The second finger lifting last ends the gesture without a step either.
+    dispatch('touchend', [], [make(2, 300)])
+    expect(index(view)).toBe(0)
+  })
+
   it('removes touch listeners on unmount', () => {
     const view = render(<Harness count={5} />)
     view.unmount()

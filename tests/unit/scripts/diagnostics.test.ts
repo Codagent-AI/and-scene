@@ -1,4 +1,6 @@
-import { readFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, symlinkSync } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   activeChromeWarnings,
@@ -148,5 +150,15 @@ describe('inspection output directory (L-69)', () => {
 
   it.each(['../src', '..', '.', 'a/b', '/etc', 'a/../../src', '', 'UPPER', 'x y', '-lead'])('refuses %j', (slug) => {
     expect(() => inspectionDir('/proj', slug)).toThrow(/invalid presentation slug/)
+  })
+})
+
+describe('symlinked inspection directory (L-69)', () => {
+  it('refuses to use an inspection/ symlink', () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'insp-'))
+    const elsewhere = mkdtempSync(path.join(os.tmpdir(), 'insp-out-'))
+    mkdirSync(path.join(elsewhere, 'x'))
+    symlinkSync(elsewhere, path.join(root, 'inspection'), 'dir')
+    expect(() => inspectionDir(root, 'x')).toThrow(/symlink/)
   })
 })

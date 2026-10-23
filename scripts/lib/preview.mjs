@@ -30,11 +30,12 @@ export async function startPreview(root, { readyTimeoutMs = 20000 } = {}) {
   })
   const exited = new Promise((resolve) => child.once('exit', resolve))
   const stop = async () => {
-    if (child.exitCode !== null) return
+    // The launcher may exit while its server lives on, so always signal the group.
     for (const signal of ['SIGTERM', 'SIGKILL']) {
       try {
-        process.kill(-child.pid, signal)
-      } catch {
+        process.kill(process.platform === 'win32' ? child.pid : -child.pid, signal)
+      } catch (error) {
+        if (error.code !== 'ESRCH') throw error
         return
       }
       if ((await Promise.race([exited.then(() => true), sleep(2000).then(() => false)]))) return

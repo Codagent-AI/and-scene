@@ -1,4 +1,5 @@
 // Pure helpers behind the screenshot helper's advisory warnings.
+import fs from 'node:fs'
 import path from 'node:path'
 
 export const MIN_OVERLAP_AREA = 4 // px², intersections at or below this are ignored
@@ -75,6 +76,10 @@ export function inspectionDir(root, slug, narrow = false) {
   const base = path.resolve(root, 'inspection')
   const dir = path.resolve(base, slug + (narrow ? '-narrow' : ''))
   if (!dir.startsWith(base + path.sep)) throw new Error(`refusing to write outside ${base}`)
+  // A symlinked inspection/ would make the recursive delete follow it out of the project.
+  if (fs.existsSync(base) && fs.realpathSync(base) !== base) {
+    throw new Error(`refusing to use ${base}: it is a symlink or resolves outside the project`)
+  }
   return dir
 }
 

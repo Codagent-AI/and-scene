@@ -84,5 +84,6 @@ export async function renderRoute({ page, url, allSteps, reference, errors, time
     check(i)
     log(`  step index ${i} ok (${i + 1}/${count})`)
   }
+  check(last) // errors that arrived after the final settle belong to this route
   return { count, rendered: last + 1 }
 }

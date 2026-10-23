@@ -149,6 +149,17 @@ describe('render loop (L-52, L-66, L-67)', () => {
     expect(error.message).toMatch(/step three broke/)
   })
 
+  it('reports an error that arrives after the last settle, before the route returns', async () => {
+    const errors: string[] = []
+    const { page } = fakePage([st(1, 0)])
+    const wait = page.waitForTimeout
+    page.waitForTimeout = vi.fn(async (ms: number) => {
+      await wait(ms)
+      if (ms >= 1000) errors.push('console error: late')
+    })
+    await expect(run(page, { errors })).rejects.toMatchObject({ phase: 'render', step: 0 })
+  })
+
   it('fails when the rendered title or caption differs from the reference', async () => {
     const reference = { steps: [{ title: 'T1', caption: 'C1' }, { title: 'Other', caption: 'C2' }] }
     const { page } = fakePage([st(2, 0), st(2, 1)])

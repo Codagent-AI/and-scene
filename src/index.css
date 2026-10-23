@@ -1,15 +1,5 @@
-/* Host styling only: the page background and body reset. Kit visuals live in presentations. */
+/* Host layout only: no colors, fonts, or spacing. Presentations own their look. */
 html,
 body {
-  margin: 0;
   min-height: 100%;
-  background: #f7f5ef;
-}
-
-.landing {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 56px 20px;
-  font-family: system-ui, sans-serif;
-  color: #1d1f24;
 }

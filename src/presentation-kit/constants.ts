@@ -35,7 +35,7 @@ export const SWIPE_MIN = 50
 export const TOC_MIN_WIDTH = 1024
 
 export const ATTRIBUTION_TEXT = 'made by and-scene'
-export const ATTRIBUTION_HREF = 'https://github.com/and-scene/and-scene'
+export const ATTRIBUTION_HREF = 'https://github.com/Codagent-AI/and-scene'
 
 /** Spread onto a subtree whose overlapping content is intentional and readable. */
 export const ALLOW_OVERLAP = { 'data-presentation-allow-overlap': '' } as const

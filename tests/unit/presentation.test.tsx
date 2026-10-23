@@ -1,3 +1,6 @@
+import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it } from 'vitest'
@@ -179,7 +182,11 @@ describe('attribution and brand', () => {
     const link = q('[data-presentation-attribution]') as HTMLAnchorElement
     expect(link.textContent).toBe('made by and-scene')
     expect(link.getAttribute('href')).toBe(ATTRIBUTION_HREF)
-    expect(link.getAttribute('href')).toBe('https://github.com/and-scene/and-scene')
+    // the link targets this repository: compare with the identity declared in package.json and git
+    const declared = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '../../package.json'), 'utf8')).repository.url
+    expect(`${link.getAttribute('href')}.git`).toBe(declared)
+    const origin = execFileSync('git', ['remote', 'get-url', 'origin'], { cwd: import.meta.dirname, encoding: 'utf8' }).trim()
+    expect(origin.replace(/^git@github\.com:/, 'https://github.com/')).toBe(declared)
     const bar = q('[data-presentation-footer-bar]') as HTMLElement
     expect(bar.lastElementChild).toBe(link)
     expect(link.style.marginLeft).toBe('auto')

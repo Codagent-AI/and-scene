@@ -43,5 +43,9 @@
   },
   "andScene": {
     "referenceSample": "how-to-make-a-presentation"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Codagent-AI/and-scene.git"
   }
 }

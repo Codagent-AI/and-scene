@@ -64,6 +64,11 @@ Create a new presentation:
 - Put the visual look in the presentation's own CSS (`talk.css`). Use plain CSS unless the host
   already uses another styling system or the user explicitly requests one. Never add styling to the
   scene kit.
+- Style the active chrome in the presentation's own CSS through the kit's hooks. Target
+  `[data-presentation-active='true']` on progress dots and table-of-contents entries so the active one
+  differs visibly from the inactive ones (for example color, background, or size). Target
+  `[data-presentation-attribution]` so the attribution is legible: at least 11 px, with a color that is
+  not the browser's default link styling.
 - Give each step a stable id, an era label, a one-line title, a caption, and its diagram payload.
   Only entities that are new in a step are wrapped in `Appear`. Continuing entities keep their
   `layoutId` and are not wrapped.

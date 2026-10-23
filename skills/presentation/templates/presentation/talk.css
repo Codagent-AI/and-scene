@@ -1,8 +1,64 @@
 /*
  * __SLUG__ owns its look: palette, type, spacing, borders and chrome treatment.
- * Style the scene kit through its data-presentation-* hooks, for example:
- *
- *   .__SLUG__ [data-presentation-progress-item][data-presentation-active] { ... }
- *   .__SLUG__ [data-presentation-toc-item][data-presentation-active] { ... }
- *   .__SLUG__ [data-presentation-attribution] { ... }
+ * Style the scene kit through its data-presentation-* hooks. The rules below
+ * only make the current-step chrome and the attribution legible; replace them
+ * with the presentation's designed look.
  */
+.__SLUG__ {
+  font-family: system-ui, sans-serif;
+}
+
+.__SLUG__ [data-presentation-header],
+.__SLUG__ [data-presentation-footer] {
+  padding-inline: 16px;
+}
+
+.__SLUG__ [data-presentation-footer] {
+  padding-bottom: 32px;
+}
+
+.__SLUG__ [data-presentation-progress] {
+  gap: 8px;
+}
+
+.__SLUG__ [data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+.__SLUG__ [data-presentation-progress-item][data-presentation-active] {
+  width: 28px;
+  border-radius: 6px;
+  opacity: 1;
+}
+
+.__SLUG__ [data-presentation-toc] {
+  padding-left: 16px;
+}
+
+.__SLUG__ [data-presentation-toc] ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.__SLUG__ [data-presentation-toc-item] {
+  opacity: 0.6;
+}
+
+.__SLUG__ [data-presentation-toc-item][data-presentation-active] {
+  font-weight: 700;
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.__SLUG__ [data-presentation-attribution] {
+  margin: 0 12px 8px 0;
+  font-size: 12px;
+  color: inherit;
+  opacity: 0.7;
+  text-decoration: none;
+}

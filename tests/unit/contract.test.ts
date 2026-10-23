@@ -88,9 +88,12 @@ describe('scene kit is style-neutral', () => {
     expect(files.some((f) => f.endsWith('.css'))).toBe(true)
   })
 
-  it('keeps the presentation template stylesheet declaration-free (the skill fills in the look)', () => {
+  it('gives the presentation template its own rules for active chrome and attribution, with no kit-level theme', () => {
     const css = stripComments(read('skills/presentation/templates/presentation/talk.css'))
-    expect(css.trim()).toBe('')
+    expect(css).toMatch(/\[data-presentation-progress-item\]\[data-presentation-active\]\s*\{[^}]*width:/)
+    expect(css).toMatch(/\[data-presentation-toc-item\]\[data-presentation-active\]\s*\{[^}]*font-weight/)
+    expect(css).toMatch(/\[data-presentation-attribution\]\s*\{[^}]*font-size:\s*1[1-9]px/)
+    expect(css).not.toMatch(COLOR_RE)
   })
 })
 

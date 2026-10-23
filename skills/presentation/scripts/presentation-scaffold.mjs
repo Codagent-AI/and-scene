@@ -171,7 +171,19 @@ function wireEntry(target, existing) {
   return true
 }
 
-/** Whether a parent package.json lists `target` among its npm workspaces. */
+const escapeRegex = (text) => text.replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+
+/** Whether a workspace glob (`dir`, `dir/*`, `dir/**`, `apps/*\/web`) matches a root-relative path. */
+function workspaceGlobMatches(glob, rel) {
+  const clean = glob.replace(/^\.\//, '').replace(/\/+$/, '')
+  const source = clean
+    .split('**')
+    .map((part) => part.split('*').map(escapeRegex).join('[^/]+'))
+    .join('.*')
+  return new RegExp(`^${source}$`).test(rel)
+}
+
+/** Whether a parent package.json lists `target` among its npm workspaces (honouring `!` exclusions). */
 export function isWorkspaceMember(target) {
   const dir = path.resolve(target)
   for (let parent = path.dirname(dir); ; parent = path.dirname(parent)) {
@@ -179,15 +191,13 @@ export function isWorkspaceMember(target) {
     if (existsSync(pkgFile)) {
       try {
         const { workspaces } = readJson(pkgFile)
-        const patterns = Array.isArray(workspaces) ? workspaces : (workspaces?.packages ?? [])
+        const listed = (Array.isArray(workspaces) ? workspaces : (workspaces?.packages ?? [])).filter(
+          (pattern) => typeof pattern === 'string',
+        )
         const rel = path.relative(parent, dir).split(path.sep).join('/')
-        const match = (pattern) => {
-          const clean = pattern.replace(/^\.\//, '').replace(/\/$/, '')
-          if (clean.endsWith('/**')) return rel.startsWith(clean.slice(0, -2))
-          if (clean.endsWith('/*')) return path.posix.dirname(rel) === clean.slice(0, -2)
-          return clean === rel
-        }
-        if (patterns.some(match)) return true
+        const included = listed.filter((p) => !p.startsWith('!')).some((p) => workspaceGlobMatches(p, rel))
+        const excluded = listed.filter((p) => p.startsWith('!')).some((p) => workspaceGlobMatches(p.slice(1), rel))
+        if (included && !excluded) return true
       } catch {
         /* unreadable manifest: not a workspace root */
       }
@@ -242,8 +252,15 @@ export function scaffold(dir, { install = true, browser = true } = {}) {
   let installed = false
   const needsInstall = written.includes('package.json') || addedDeps.length > 0 || !existsSync(path.join(target, 'node_modules'))
   if (install && needsInstall) {
-    const command = installCommand(target, addedDeps)
-    const result = spawnSync('npm', [command], { cwd: target, stdio: 'inherit' })
+    let command = installCommand(target, addedDeps)
+    let result = spawnSync('npm', [command], { cwd: target, stdio: 'inherit' })
+    if (result.status !== 0 && command === 'ci') {
+      // `npm ci` is only a reproducibility preference; a lockfile it cannot use (for example a workspace
+      // layout the detection above missed) must not stop the scaffold.
+      console.error(`warning: npm ci failed in ${target}; retrying with npm install.`)
+      command = 'install'
+      result = spawnSync('npm', [command], { cwd: target, stdio: 'inherit' })
+    }
     if (result.status !== 0) throw new Error(`npm ${command} failed in ${target}`)
     installed = true
   }

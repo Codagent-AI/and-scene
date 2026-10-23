@@ -283,6 +283,23 @@ describe('install command', () => {
     expect(lib.installCommand(app(dir, 'other/deck'), [])).toBe('ci')
   })
 
+  it.each([
+    ['a mid-path wildcard', ['apps/*/web'], 'apps/shop/web'],
+    ['a recursive glob', ['apps/**'], 'apps/shop/web'],
+    ['a bare wildcard directory', ['*'], 'presentations'],
+  ])('recognises a workspace member listed as %s', (_name, workspaces, rel) => {
+    const dir = tmp()
+    write(dir, 'package.json', buildPackage({ workspaces }))
+    expect(lib.installCommand(app(dir, rel), [])).toBe('install')
+  })
+
+  it('applies ! exclusions and ignores non-string entries', () => {
+    const dir = tmp()
+    write(dir, 'package.json', buildPackage({ workspaces: ['apps/*', '!apps/deck', 42] }))
+    expect(lib.installCommand(app(dir, 'apps/deck'), [])).toBe('ci')
+    expect(lib.installCommand(app(dir, 'apps/shop'), [])).toBe('install')
+  })
+
   it('keeps npm ci for an app that a workspace root does not list', () => {
     const dir = tmp()
     write(dir, 'package.json', buildPackage({ workspaces: ['packages/*'] }))

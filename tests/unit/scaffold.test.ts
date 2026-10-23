@@ -28,6 +28,8 @@ const lib = scaffoldModule as unknown as {
   scaffold: (dir: string, o: { install: boolean }) => Info
   mergePackageJson: (a: object, b: object) => { merged: Record<string, Record<string, string>>; added: string[] }
   addPresentation: (target: string, o: { slug: string; title: string }) => { folder: string }
+  installCommand: (target: string, addedDeps?: string[]) => 'ci' | 'install'
+  isWorkspaceMember: (target: string) => boolean
 }
 
 const root = path.resolve(__dirname, '../..')
@@ -241,6 +243,52 @@ describe('scaffolding', () => {
     expect(merged.dependencies).toEqual({ react: '^18.0.0', motion: '^12' })
     expect(merged.scripts).toEqual({ verify: 'mine', inspect: 'x' })
     expect(added).toEqual(['motion'])
+  })
+})
+
+describe('install command', () => {
+  const app = (dir: string, rel: string) => {
+    write(dir, `${rel}/package.json`, buildPackage())
+    write(dir, `${rel}/package-lock.json`, '{"lockfileVersion":3}')
+    return path.join(dir, rel)
+  }
+
+  it('uses npm ci for a standalone app with its own lockfile and nothing to add', () => {
+    const dir = tmp()
+    expect(lib.installCommand(app(dir, '.'), [])).toBe('ci')
+  })
+
+  it('uses npm install when dependencies were added', () => {
+    const dir = tmp()
+    expect(lib.installCommand(app(dir, '.'), ['motion'])).toBe('install')
+  })
+
+  it.each([
+    ['an exact path', ['presentations']],
+    ['a one-level glob', ['presentations', 'packages/*']],
+    ['a ./ prefixed path', ['./presentations']],
+    ['the packages object form', { packages: ['presentations'] }],
+  ])('uses npm install for a workspace member listed as %s, whose own lockfile npm ignores', (_name, workspaces) => {
+    const dir = tmp()
+    write(dir, 'package.json', buildPackage({ workspaces }))
+    const target = app(dir, 'presentations')
+    expect(lib.isWorkspaceMember(target)).toBe(true)
+    expect(lib.installCommand(target, [])).toBe('install')
+  })
+
+  it('matches glob workspaces by directory', () => {
+    const dir = tmp()
+    write(dir, 'package.json', buildPackage({ workspaces: ['apps/*'] }))
+    expect(lib.installCommand(app(dir, 'apps/deck'), [])).toBe('install')
+    expect(lib.installCommand(app(dir, 'other/deck'), [])).toBe('ci')
+  })
+
+  it('keeps npm ci for an app that a workspace root does not list', () => {
+    const dir = tmp()
+    write(dir, 'package.json', buildPackage({ workspaces: ['packages/*'] }))
+    const target = app(dir, 'presentations')
+    expect(lib.isWorkspaceMember(target)).toBe(false)
+    expect(lib.installCommand(target, [])).toBe('ci')
   })
 })
 

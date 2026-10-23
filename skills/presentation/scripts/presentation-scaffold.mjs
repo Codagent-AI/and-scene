@@ -171,6 +171,40 @@ function wireEntry(target, existing) {
   return true
 }
 
+/** Whether a parent package.json lists `target` among its npm workspaces. */
+export function isWorkspaceMember(target) {
+  const dir = path.resolve(target)
+  for (let parent = path.dirname(dir); ; parent = path.dirname(parent)) {
+    const pkgFile = path.join(parent, 'package.json')
+    if (existsSync(pkgFile)) {
+      try {
+        const { workspaces } = readJson(pkgFile)
+        const patterns = Array.isArray(workspaces) ? workspaces : (workspaces?.packages ?? [])
+        const rel = path.relative(parent, dir).split(path.sep).join('/')
+        const match = (pattern) => {
+          const clean = pattern.replace(/^\.\//, '').replace(/\/$/, '')
+          if (clean.endsWith('/**')) return rel.startsWith(clean.slice(0, -2))
+          if (clean.endsWith('/*')) return path.posix.dirname(rel) === clean.slice(0, -2)
+          return clean === rel
+        }
+        if (patterns.some(match)) return true
+      } catch {
+        /* unreadable manifest: not a workspace root */
+      }
+    }
+    if (parent === path.dirname(parent)) return false
+  }
+}
+
+/**
+ * `npm ci` needs the lockfile of the npm project root. A workspace member's own lockfile does not
+ * count (npm demands the root's), so members, and manifests that gained dependencies, use `npm install`.
+ */
+export function installCommand(target, addedDeps = []) {
+  const ownLock = existsSync(path.join(target, 'package-lock.json'))
+  return ownLock && addedDeps.length === 0 && !isWorkspaceMember(target) ? 'ci' : 'install'
+}
+
 /** Writes the files of the missing anchors; existing files are never overwritten. */
 export function scaffold(dir, { install = true, browser = true } = {}) {
   const info = detect(dir)
@@ -208,7 +242,7 @@ export function scaffold(dir, { install = true, browser = true } = {}) {
   let installed = false
   const needsInstall = written.includes('package.json') || addedDeps.length > 0 || !existsSync(path.join(target, 'node_modules'))
   if (install && needsInstall) {
-    const command = existsSync(path.join(target, 'package-lock.json')) && addedDeps.length === 0 ? 'ci' : 'install'
+    const command = installCommand(target, addedDeps)
     const result = spawnSync('npm', [command], { cwd: target, stdio: 'inherit' })
     if (result.status !== 0) throw new Error(`npm ${command} failed in ${target}`)
     installed = true

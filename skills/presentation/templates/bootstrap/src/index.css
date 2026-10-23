@@ -1,0 +1,10 @@
+/* Host CSS only. Presentations own their look in presentation-local CSS. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

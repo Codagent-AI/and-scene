@@ -1,0 +1,58 @@
+/* Presentation-owned styling. The scene kit supplies hooks only; replace this look. */
+.__CLASS__ {
+  --ink: #111111;
+  --paper: #fafafa;
+  --accent: #0b5fff;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: system-ui, sans-serif;
+}
+
+.__CLASS__-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+
+.__CLASS__-arrow {
+  color: var(--ink);
+}
+
+/* Make the active step visibly distinct in the progress dots and the contents list. */
+.__CLASS__ [data-presentation-dot] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: transparent;
+}
+.__CLASS__ [data-presentation-dot][data-presentation-active] {
+  width: 28px;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.__CLASS__ [data-presentation-toc-entry][data-presentation-active] {
+  font-weight: 700;
+  background: #e6edff;
+}
+
+/* A fixed caption height keeps the stage (and so the fit scale) identical on every step. */
+.__CLASS__ [data-presentation-caption] {
+  height: 4.5em;
+  overflow: hidden;
+}
+
+/* Keep the attribution legible. */
+.__CLASS__ [data-presentation-attribution] {
+  font-size: 13px;
+  color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .__CLASS__ [data-presentation-caption] {
+    font-size: 13px;
+  }
+}

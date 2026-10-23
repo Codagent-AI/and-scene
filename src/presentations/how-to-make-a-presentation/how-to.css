@@ -1,0 +1,287 @@
+/* Presentation-owned styling: the scene kit supplies hooks only. */
+.how-to {
+  --bg: #12100e;
+  --panel: #1d1a17;
+  --line: #4a4339;
+  --ink: #f4ecd8;
+  --muted: #b9ad94;
+  --accent: #e0b84f;
+  --good: #62c37a;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+.how-to [data-presentation-root] {
+  background: radial-gradient(circle at 20% 0%, #2a2318 0, var(--bg) 32rem);
+}
+
+.how-to button {
+  font: inherit;
+  color: inherit;
+}
+
+/* Header */
+.how-to [data-presentation-header] {
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.how-to [data-presentation-title] {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+.how-to [data-presentation-header-end] {
+  gap: 12px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+.how-to [data-presentation-marker] {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+.how-to [data-presentation-era] {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.how-to [data-presentation-mode-toggle],
+.how-to [data-presentation-prev],
+.how-to [data-presentation-next] {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  cursor: pointer;
+}
+.how-to [data-presentation-mode-toggle]:hover,
+.how-to [data-presentation-prev]:not(:disabled):hover,
+.how-to [data-presentation-next]:not(:disabled):hover {
+  border-color: var(--accent);
+}
+.how-to button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Footer */
+.how-to [data-presentation-footer] {
+  padding: 8px 24px 12px;
+  border-top: 1px solid var(--line);
+}
+.how-to [data-presentation-caption] {
+  height: 4.5em;
+  margin: 0 0 8px;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.how-to [data-presentation-footer-bar] {
+  gap: 16px;
+}
+.how-to [data-presentation-progress] {
+  gap: 8px;
+}
+.how-to [data-presentation-dot] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 2px solid var(--muted);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: width 0.2s;
+}
+.how-to [data-presentation-dot][data-presentation-active] {
+  width: 32px;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.how-to [data-presentation-footer-bar] > [data-presentation-title] {
+  font-size: 22px;
+  font-weight: 650;
+}
+.how-to [data-presentation-attribution] {
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+/* Table of contents */
+.how-to [data-presentation-toc] {
+  width: 200px;
+  padding: 16px 0 16px 24px;
+}
+.how-to [data-presentation-toc] li + li {
+  margin-top: 4px;
+}
+.how-to [data-presentation-toc-entry] {
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  text-align: left;
+  text-transform: capitalize;
+  color: var(--muted);
+  cursor: pointer;
+}
+.how-to [data-presentation-toc-entry][data-presentation-active] {
+  border-left-color: var(--accent);
+  background: #2f2819;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Scene entities */
+.how-to-scene {
+  font-size: 13px;
+}
+.how-to-scene [data-presentation-box],
+.how-to-scene [data-presentation-symbol-chip] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.how-to-actor,
+.how-to-bubble,
+.how-to-card,
+.how-to-verify,
+.how-to-socket {
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.how-to-actor {
+  font-size: 16px;
+  font-weight: 600;
+}
+.how-to-actor svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+.how-to-bubble {
+  border-radius: 14px;
+  color: var(--muted);
+}
+.how-to-tray {
+  border-radius: 14px;
+  background: #1a1713;
+}
+.how-to-card[data-kind='ghost'] {
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+}
+.how-to-part {
+  font-size: 12px;
+  color: var(--muted);
+}
+.how-to-part[data-part='title'],
+.how-to-part[data-part='verify'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.how-to-arrow {
+  color: var(--accent);
+}
+.how-to-arrow path {
+  stroke-width: 1.75;
+}
+.how-to-chip,
+.how-to-control {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 11px;
+  color: var(--ink);
+}
+.how-to-control svg {
+  width: 12px;
+  height: 12px;
+}
+.how-to-socket {
+  border-color: var(--accent);
+  border-radius: 4px 4px 12px 12px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.how-to-verify {
+  border-color: var(--good);
+}
+.how-to-pass {
+  border-radius: 999px;
+  background: var(--good);
+  color: #0b2414;
+}
+.how-to-pass svg {
+  width: 16px;
+  height: 16px;
+}
+.how-to-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  color: #1a1306;
+}
+.how-to-flag svg {
+  width: 10px;
+  height: 10px;
+}
+.how-to-frame {
+  border: 2px dashed var(--accent);
+  border-radius: 18px;
+}
+.how-to-frame-label {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+/* Narrow viewports */
+@media (max-width: 640px) {
+  .how-to [data-presentation-header] {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+  .how-to [data-presentation-title] {
+    font-size: 16px;
+  }
+  .how-to [data-presentation-footer] {
+    padding: 6px 12px 10px;
+  }
+  .how-to [data-presentation-caption] {
+    font-size: 13px;
+  }
+  .how-to [data-presentation-footer-bar] {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .how-to [data-presentation-progress] {
+    gap: 4px;
+  }
+  .how-to [data-presentation-dot] {
+    width: 10px;
+    height: 10px;
+  }
+  .how-to [data-presentation-dot][data-presentation-active] {
+    width: 22px;
+  }
+  .how-to [data-presentation-prev],
+  .how-to [data-presentation-next] {
+    padding: 4px 10px;
+  }
+}

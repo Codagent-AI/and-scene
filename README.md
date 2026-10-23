@@ -9,12 +9,23 @@ collapse, connect, and re-label as the talk arc develops.
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev
-npm run build
+npm test               # fast unit and contract tests
+npm run lint
+npm run build          # tsc -b && vite build
+npm run verify         # build, then render every step of every presentation in Chromium
+npm run inspect -- how-to-make-a-presentation   # settled screenshots + advisory warnings
+npm run test:integration   # bootstrap materialization and screenshot helper (browser-backed)
+npm run test:e2e           # production verification and its failure contract (browser-backed)
 ```
 
-## Current State
+## Layout
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+- `skills/presentation/` - the agent skill (`SKILL.md`), its scaffold/registration helpers and templates.
+- `src/presentation-kit/` - the canonical, style-neutral scene kit. Its bootstrap copy under
+  `skills/presentation/templates/bootstrap/` must stay byte-aligned (`npm run sync:templates`).
+- `src/presentations/` - the explicit registry and the worked sample, "How to Use This Skill to Make a Presentation".
+- `scripts/verify.mjs`, `scripts/inspect-presentation.mjs` - verification and screenshot helper.
+
+Playwright needs Chromium: `npx playwright install chromium`.

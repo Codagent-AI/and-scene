@@ -67,7 +67,7 @@ function render(id: EntityId, flagged: readonly EntityId[], appear: boolean): Re
       return <SymbolChip id={id} appear={appear} x={40} y={94} width={130} height={24}><span>partial ↔ full</span></SymbolChip>
     case E.socket:
       return (
-        <Box id={id} appear={appear} Icon={Plug} iconSize={14} x={360} y={258} width={160} height={44}>
+        <Box id={id} appear={appear} Icon={Plug} iconSize={14} x={330} y={258} width={220} height={48}>
           <span>scene kit</span>
           <span>boxes · arrows · motion</span>
         </Box>
@@ -85,7 +85,7 @@ function render(id: EntityId, flagged: readonly EntityId[], appear: boolean): Re
       return link(id, E.link4Label, 4, appear, 'check')
     case E.pass:
       return (
-        <SymbolChip id={id} appear={appear} Icon={Check} iconSize={14} x={slotX(5) + 26} y={220} width={48} height={22} data-presentation-allow-overlap="">
+        <SymbolChip id={id} appear={appear} Icon={Check} iconSize={14} x={slotX(5) + 20} y={224} width={60} height={22} data-presentation-allow-overlap="">
           <span>pass</span>
         </SymbolChip>
       )
@@ -96,11 +96,11 @@ function render(id: EntityId, flagged: readonly EntityId[], appear: boolean): Re
     case E.edited:
       return <Emphasis id={id} appear={appear} x={324} y={146} width={104} height={104} />
     case E.editedFlag:
-      return <SymbolChip id={id} appear={appear} x={350} y={116} width={60} height={18}><span>edited</span></SymbolChip>
+      return <SymbolChip id={id} appear={appear} x={344} y={114} width={60} height={22}><span>edited</span></SymbolChip>
     case E.frame:
       return <Frame id={id} appear={appear} x={4} y={2} width={872} height={330} />
     case E.reveal:
-      return <Label id={id} appear={appear} x={290} y={308} width={300} height={20}><span>an example of the skill's own output</span></Label>
+      return <Label id={id} appear={appear} x={240} y={310} width={400} height={20}><span>an example of the skill's own output</span></Label>
   }
 }
 

@@ -120,8 +120,10 @@
 /* entities */
 .talk-htm [data-presentation-entity] {
   box-sizing: border-box;
-  font-size: 13px;
-  line-height: 16px;
+  /* The canvas is scaled down on narrow viewports (about 0.43 at 390px), so
+     diagram text is sized in design pixels to stay legible once scaled. */
+  font-size: 22px;
+  line-height: 26px;
 }
 .talk-htm [data-presentation-kind='box'],
 .talk-htm [data-presentation-kind='bubble'],
@@ -138,12 +140,15 @@
 }
 .talk-htm [data-presentation-kind='bubble'] {
   border-radius: 16px 16px 16px 2px;
+  font-size: 20px;
+  line-height: 24px;
 }
 .talk-htm [data-presentation-kind='ghost'] {
   background: transparent;
   border-style: dashed;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 14px;
+  line-height: 16px;
 }
 .talk-htm [data-presentation-kind='tray'] {
   background: rgba(122, 162, 255, 0.07);
@@ -153,9 +158,16 @@
 .talk-htm [data-presentation-entity='htm-verify'] {
   justify-content: flex-start;
   align-items: stretch;
-  padding: 8px;
-  font-size: 11px;
+  padding: 6px;
+  gap: 2px;
+  font-size: 20px;
+  line-height: 24px;
   text-align: left;
+}
+.talk-htm [data-presentation-entity='htm-verify'] {
+  /* three lines must clear the pass check docked on its lower edge */
+  font-size: 17px;
+  line-height: 20px;
 }
 .talk-htm [data-part='title'] {
   font-weight: 700;
@@ -168,7 +180,8 @@
 }
 .talk-htm [data-presentation-entity='htm-socket'] {
   border-color: var(--accent);
-  font-size: 11px;
+  font-size: 14px;
+  line-height: 16px;
   gap: 0;
 }
 .talk-htm [data-presentation-kind='symbol-chip'] {
@@ -180,9 +193,13 @@
   border-radius: 999px;
   background: var(--bg);
   color: var(--muted);
-  font-size: 10px;
-  line-height: 14px;
+  font-size: 14px;
+  line-height: 18px;
   white-space: nowrap;
+}
+.talk-htm [data-presentation-entity^='htm-link'] {
+  font-size: 12px;
+  line-height: 14px;
 }
 .talk-htm [data-presentation-entity='htm-pass'] {
   color: var(--ok);
@@ -206,7 +223,8 @@
 .talk-htm [data-presentation-kind='label'] {
   text-align: center;
   color: var(--accent);
-  font-size: 12px;
+  font-size: 16px;
+  line-height: 20px;
 }
 .talk-htm [data-presentation-kind='arrow'] {
   color: var(--accent);

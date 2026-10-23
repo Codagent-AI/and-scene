@@ -228,3 +228,30 @@ describe('reference sample renders as one accumulating scene', () => {
     expect(container.querySelector('[data-presentation-root]')!.getAttribute('data-presentation-mode')).toBe('browse')
   })
 })
+
+describe('reference sample diagram legibility', () => {
+  // The 880 x 380 canvas is scaled to about 0.43 at a 390px viewport, so diagram
+  // text is sized in design pixels: primary content stays at 20px or above and
+  // even connector annotations never drop below 12px.
+  const css = readFileSync(path.join(ROOT, 'src/presentations/how-to-make-a-presentation/talk.css'), 'utf8')
+  const rule = (selector: string) => {
+    const at = css.indexOf(`${selector} {`)
+    expect(at, selector).toBeGreaterThanOrEqual(0)
+    return css.slice(at, css.indexOf('}', at))
+  }
+  const size = (selector: string) => Number(/font-size:\s*(\d+)px/.exec(rule(selector))![1])
+
+  it('sizes primary diagram text for the scaled canvas', () => {
+    expect(size(".talk-htm [data-presentation-entity]")).toBeGreaterThanOrEqual(20)
+    expect(size(".talk-htm [data-presentation-kind='bubble']")).toBeGreaterThanOrEqual(20)
+    expect(size(".talk-htm [data-presentation-entity^='htm-card'],\n.talk-htm [data-presentation-entity='htm-verify']")).toBeGreaterThanOrEqual(20)
+    expect(size(".talk-htm [data-presentation-entity='htm-verify']")).toBeGreaterThanOrEqual(16)
+  })
+
+  it('never sets diagram text below 12px', () => {
+    const diagram = css.slice(css.indexOf('/* entities */'))
+    const sizes = [...diagram.matchAll(/font-size:\s*(\d+)px/g)].map((m) => Number(m[1]))
+    expect(sizes.length).toBeGreaterThan(0)
+    expect(Math.min(...sizes)).toBeGreaterThanOrEqual(12)
+  })
+})

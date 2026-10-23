@@ -1,4 +1,5 @@
 import { STAGE_LAYOUT } from '../constants.ts'
+import { releaseFocusAfterPointer } from '../nav.ts'
 import type { Mode, StepMeta } from '../types.ts'
 
 interface FooterProps {
@@ -8,11 +9,6 @@ interface FooterProps {
   onPrev: () => void
   onNext: () => void
   onJump: (index: number) => void
-}
-
-function blurAfterPointer(e: React.MouseEvent<HTMLElement>) {
-  // A pointer click leaves focus on the control, which would then keep the arrow keys.
-  if (e.detail > 0) e.currentTarget.blur()
 }
 
 /** Present mode: the one-line title. Browse mode: caption, progress dots, prev/next. */
@@ -41,7 +37,7 @@ export function Footer({ meta, mode, titles, onPrev, onNext, onJump }: FooterPro
               aria-label={`Step ${i + 1}: ${title}`}
               onClick={(e) => {
                 onJump(i)
-                blurAfterPointer(e)
+                releaseFocusAfterPointer(e)
               }}
             />
           )
@@ -54,7 +50,7 @@ export function Footer({ meta, mode, titles, onPrev, onNext, onJump }: FooterPro
           aria-label="Previous step"
           onClick={(e) => {
             onPrev()
-            blurAfterPointer(e)
+            releaseFocusAfterPointer(e)
           }}
         >
           Previous
@@ -65,7 +61,7 @@ export function Footer({ meta, mode, titles, onPrev, onNext, onJump }: FooterPro
           aria-label="Next step"
           onClick={(e) => {
             onNext()
-            blurAfterPointer(e)
+            releaseFocusAfterPointer(e)
           }}
         >
           Next

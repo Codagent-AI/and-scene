@@ -1,4 +1,5 @@
 import { STAGE_LAYOUT } from '../constants.ts'
+import { releaseFocusAfterPointer } from '../nav.ts'
 import type { Era } from '../steps.ts'
 
 /** Era-based table of contents; an entry jumps to the first step of its era. */
@@ -27,7 +28,7 @@ export function Toc({ eras, activeIndex, onJump }: { eras: readonly Era[]; activ
                 aria-current={active ? 'true' : undefined}
                 onClick={(e) => {
                   onJump(era.firstIndex)
-                  if (e.detail > 0) e.currentTarget.blur()
+                  releaseFocusAfterPointer(e)
                 }}
               >
                 {era.label}

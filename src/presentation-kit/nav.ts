@@ -35,3 +35,8 @@ export function swipeAction(dx: number, dy: number): 'next' | 'prev' | null {
   if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) <= Math.abs(dy)) return null
   return dx < 0 ? 'next' : 'prev'
 }
+
+/** A pointer click leaves focus on the control, which would then keep the arrow keys. */
+export function releaseFocusAfterPointer(e: { detail: number; currentTarget: HTMLElement }): void {
+  if (e.detail > 0) e.currentTarget.blur()
+}

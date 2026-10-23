@@ -43,7 +43,7 @@ export const AT = {
   route: { x: 700, y: 318, w: 140, h: 44 },
   flag: { x: 195, y: 286, w: 100, h: 22 },
   frame: { x: 6, y: 4, w: 868, h: 372 },
-  frameLabel: { x: 380, y: 358, w: 120, h: 16 },
+  frameLabel: { x: 360, y: -4, w: 160, h: 18 },
 } as const
 
 export const CARD_Y_MID = 228

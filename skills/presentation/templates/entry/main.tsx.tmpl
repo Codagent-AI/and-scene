@@ -1,0 +1,9 @@
+// Routes registered presentations to the scene kit; every other path runs the host app.
+import { presentations } from '__SRC__/presentations'
+import { resolveRoute } from '__SRC__/router'
+
+if (resolveRoute(window.location.pathname, presentations).kind === 'presentation') {
+  void import('./main.presentation')
+} else {
+  void import('__HOST__')
+}

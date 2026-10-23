@@ -57,7 +57,7 @@ describe('INT-001: materialized bootstrap is complete and style-neutral', () => 
     expect(build.status, build.out).toBe(0)
     const lint = sh('npm', ['run', 'lint'], app)
     expect(lint.status, lint.out).toBe(0)
-    const css = walk(path.join(app, 'src')).filter((f) => f.endsWith('.css') && !f.includes('/presentations/'))
+    const css = walk(path.join(app, 'src')).filter((f) => f.endsWith('.css'))
     for (const f of css) expect(readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/color|font|background|--/)
   })
 

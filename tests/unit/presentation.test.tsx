@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { motion } from 'motion/react'
-import { Presentation, SceneLayer, type Step } from '../../src/presentation-kit'
+import { Box, Presentation, SceneLayer, type Step } from '../../src/presentation-kit'
 import { makeSteps, mounts, touch } from './helpers'
 
 const q = (sel: string) => document.querySelector(sel)
@@ -163,6 +163,9 @@ describe('scene hosting', () => {
     render(<Presentation steps={makeSteps(false)} title="Deck" />)
     expect(screen.getByTestId('scene')).toBeTruthy()
     fireEvent.click(q('[data-presentation-next]')!)
+    // Both scenes are mounted during the transition: the old one is animating out.
+    expect(screen.getByTestId('scene')).toBeTruthy()
+    expect(screen.getByTestId('other')).toBeTruthy()
     await waitFor(() => expect(screen.getByTestId('other')).toBeTruthy(), { timeout: 5000 })
     await waitFor(() => expect(screen.queryByTestId('scene')).toBeNull(), { timeout: 5000 })
   })
@@ -191,5 +194,27 @@ describe('scene hosting', () => {
     render(<Presentation steps={steps} title="Deck" />)
     const raw = screen.getByTestId('raw')
     expect([raw.style.left, raw.style.top]).toEqual(['12px', '34px'])
+  })
+
+  it('newcomers of a replaced (ungrouped) scene enter hidden, after the scene change begins (I-5)', () => {
+    const SceneOne = () => (
+      <SceneLayer>
+        <Box key="one" layoutId="one" appear data-testid="one">one</Box>
+      </SceneLayer>
+    )
+    const SceneTwo = () => (
+      <SceneLayer>
+        <Box key="two" layoutId="two" appear data-testid="two">two</Box>
+      </SceneLayer>
+    )
+    const steps: Step<undefined>[] = [
+      { id: 'a', era: 'e', title: 'A', caption: 'a', Scene: SceneOne, payload: undefined },
+      { id: 'b', era: 'e', title: 'B', caption: 'b', Scene: SceneTwo, payload: undefined },
+    ]
+    render(<Presentation steps={steps} title="Deck" />)
+    // First mount also enters as a newcomer.
+    expect(screen.getByTestId('one').style.opacity).toBe('0')
+    fireEvent.click(q('[data-presentation-next]')!)
+    expect(screen.getByTestId('two').style.opacity).toBe('0')
   })
 })

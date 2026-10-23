@@ -52,7 +52,9 @@ directory and wait for the user to confirm** before writing anything.
 
 Then run `node SKILL_DIR/scripts/setup.mjs scaffold <target>`. It copies only the missing anchors,
 never overwrites an existing file, merges missing dependencies and scripts into an existing
-`package.json`, and runs `npm install` (do not assume dependencies are installed). The runtime set is
+`package.json` (even when only the kit or index was missing), and runs `npm install` (do not assume
+dependencies are installed). If the project already has an entry module, it is kept as `<entry>.host.*`
+and a small router entry sends registered presentation routes to the kit and everything else to it. The runtime set is
 `react`, `react-dom`, `motion`, `lucide-react`; the build set is `vite`, `@vitejs/plugin-react`,
 `typescript`, the React/Node type packages, the ESLint stack, and `playwright`. The scaffold is
 style-neutral: no Tailwind, theme, colors, fonts, or card/button styles. If Playwright's browser is
@@ -63,7 +65,8 @@ missing, run `npx playwright install chromium`.
 **Create:** `node SKILL_DIR/scripts/setup.mjs create <target> <slug> "<Title>"` writes
 `src/presentations/<slug>/` (`entities.ts`, `steps/`, `Talk.tsx`, `talk.css`) and adds one line to
 the registry; the presentation is then reachable at `/<slug>`. Existing presentations are left
-untouched. Replace the placeholder content with the gathered steps:
+untouched. The generated `talk.css` is comments only and the scaffold's `starter` has no stylesheet:
+write the designed look yourself. Replace the placeholder content with the gathered steps:
 
 - `entities.ts` is this presentation's `layoutId` namespace: one stable id per entity.
 - Each step has `id`, `era` (section label), `title` (one line), `caption` (paragraph), and a

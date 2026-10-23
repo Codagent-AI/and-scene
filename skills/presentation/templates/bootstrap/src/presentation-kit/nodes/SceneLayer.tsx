@@ -12,7 +12,7 @@ export function SceneLayer({ children, className }: { children?: ReactNode; clas
       className={className}
       style={{ position: 'absolute', inset: 0 }}
     >
-      <AnimatePresence initial={false}>{children}</AnimatePresence>
+      <AnimatePresence>{children}</AnimatePresence>
     </div>
   )
 }

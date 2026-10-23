@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { spawnSync } from 'node:child_process'
 import {
-  existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync,
+  existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync,
 } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -44,14 +44,28 @@ describe('detect', () => {
     expect(again.merged).toEqual([])
   })
 
-  it('is keyed on contract anchors, not byte-identical files (I-32)', () => {
+  it('accepts renamed or reformatted implementations of the contract (I-32)', () => {
     scaffold(tmp, { install: false })
-    write('src/presentation-kit/Presentation.tsx', '// reformatted\nexport {}\n')
-    write('src/presentations/index.ts', 'export const presentations = []\n')
+    const kit = path.join(tmp, 'src/presentation-kit')
+    renameSync(path.join(kit, 'Presentation.tsx'), path.join(kit, 'Deck.tsx'))
+    renameSync(path.join(kit, 'Stage.tsx'), path.join(kit, 'Host.tsx'))
+    rmSync(path.join(tmp, 'src/presentations/index.ts'))
+    write('src/presentations/index.tsx', 'export const presentations = []\n')
     const pkg = JSON.parse(read('package.json'))
     pkg.dependencies.extra = '1.0.0'
     write('package.json', JSON.stringify(pkg))
     expect(detectAnchors(tmp)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('rejects stubs that do not implement the contract (I-32)', () => {
+    write('package.json', JSON.stringify(BUILD_PKG))
+    write('src/presentation-kit/Presentation.tsx', 'export {}\n')
+    write('src/presentation-kit/types.ts', 'export {}\n')
+    write('src/presentations/index.ts', 'export {}\n')
+    expect(detectAnchors(tmp)).toEqual({ build: true, kit: false, index: false })
+    scaffold(tmp, { install: false })
+    expect(detectAnchors(tmp).kit).toBe(false)
+    expect(read('src/presentation-kit/Presentation.tsx')).toBe('export {}\n')
   })
 
   it('scaffolds a non-empty standalone project at its root after confirmation (I-40, I-41)', () => {
@@ -102,7 +116,7 @@ describe('scaffold', () => {
     expect(existsSync(path.join(tmp, 'package-lock.json'))).toBe(true)
   })
 
-  it('adds only the missing anchors and leaves present ones untouched (I-35)', () => {
+  it('adds only the missing anchors, with their dependencies and tooling (I-35)', () => {
     write('package.json', JSON.stringify(BUILD_PKG, null, 2))
     write('vite.config.ts', '// mine')
     write('src/index.css', '/* mine */')
@@ -111,10 +125,55 @@ describe('scaffold', () => {
     expect(read('src/index.css')).toBe('/* mine */')
     expect(r.written.some((f: string) => f.startsWith('src/presentation-kit/'))).toBe(true)
     expect(r.written).toContain('src/presentations/index.ts')
+    expect(r.written).toContain('scripts/verify.mjs')
     expect(r.written).not.toContain('vite.config.ts')
     expect(r.written).not.toContain('package-lock.json')
-    expect(JSON.parse(read('package.json')).scripts.build).toBe('tsc -b && vite build')
+    const pkg = JSON.parse(read('package.json'))
+    expect(pkg.scripts.build).toBe('tsc -b && vite build')
+    expect(pkg.dependencies.react).toBe('^18.0.0')
+    for (const dep of ['motion', 'lucide-react']) expect(pkg.dependencies[dep], dep).toBeTruthy()
+    for (const dep of ['playwright', 'eslint']) expect(pkg.devDependencies[dep], dep).toBeTruthy()
+    expect(pkg.scripts.verify).toContain('verify.mjs')
     expect(detectAnchors(tmp)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('also completes dependencies when only the index is missing (I-35)', () => {
+    scaffold(tmp, { install: false })
+    const pkg = JSON.parse(read('package.json'))
+    delete pkg.dependencies.motion
+    write('package.json', JSON.stringify(pkg))
+    rmSync(path.join(tmp, 'src/presentations'), { recursive: true })
+    const r = scaffold(tmp, { install: false })
+    expect(r.merged).toContain('dependencies.motion')
+    expect(detectAnchors(tmp).index).toBe(true)
+  })
+
+  it('keeps an existing entry module as the host and routes presentations to the kit (I-35, I-42)', () => {
+    write('package.json', JSON.stringify(BUILD_PKG))
+    write('index.html', '<div id="root"></div><script type="module" src="/src/main.tsx"></script>')
+    const host = "import './index.css'\nconsole.log('host app')\n"
+    write('src/main.tsx', host)
+    const r = scaffold(tmp, { install: false })
+    expect(read('src/main.host.tsx')).toBe(host)
+    expect(read('src/main.tsx')).toMatch(/resolveRoute\(window\.location\.pathname, presentations\)/)
+    expect(read('src/main.tsx')).toContain("import('./main.host')")
+    expect(read('src/main.presentation.tsx')).toContain("from './Root'")
+    expect(r.wired).toMatchObject({ entry: 'src/main.tsx', host: 'src/main.host.tsx' })
+    expect(r.written).toContain('src/Root.tsx')
+    expect(read('index.html')).toContain('/src/main.tsx')
+    const again = scaffold(tmp, { install: false })
+    expect(again.wired).toBeNull()
+    expect(read('src/main.host.tsx')).toBe(host)
+  })
+
+  it('wraps whichever module index.html names as the entry (I-42)', () => {
+    write('package.json', JSON.stringify(BUILD_PKG))
+    write('index.html', '<script type="module" src="/src/boot/index.tsx"></script>')
+    write('src/boot/index.tsx', 'export {}\n')
+    scaffold(tmp, { install: false })
+    expect(existsSync(path.join(tmp, 'src/boot/index.host.tsx'))).toBe(true)
+    expect(read('src/boot/index.tsx')).toContain("from '../presentations'")
+    expect(read('src/boot/main.presentation.tsx')).toContain("from '../Root'")
   })
 
   it('merges missing dependencies without changing existing versions (I-33)', () => {
@@ -142,7 +201,7 @@ describe('scaffold', () => {
 })
 
 describe('create', () => {
-  const entry = (slug: string) => `slug: '${slug}'`
+  const entry = (slug: string) => `"slug": "${slug}"`.replace('"slug"', 'slug')
 
   it('writes a self-contained folder, registers it and keeps existing presentations (I-42, I-43, I-44)', () => {
     scaffold(tmp, { install: false })
@@ -152,15 +211,36 @@ describe('create', () => {
       expect(existsSync(path.join(tmp, 'src/presentations/my-topic', f)), f).toBe(true)
     }
     const index = read('src/presentations/index.ts')
-    expect(index).toContain(entry('starter'))
-    expect(index).toContain(entry('my-topic'))
+    expect(index).toContain(entry('starter').replace(/'/g, '"'))
+    expect(index).toContain('slug: "my-topic"')
     expect(index).toContain("import('./my-topic/Talk')")
-    expect(index).toContain("title: 'Bob\\'s Topic'")
-    expect(read('src/presentations/my-topic/steps/index.ts')).toContain("groupKey: 'my-topic'")
-    expect(read('src/presentations/my-topic/talk.css')).toContain('[data-presentation-active]')
+    expect(index).toContain('title: "Bob\'s Topic"')
+    expect(read('src/presentations/my-topic/steps/index.ts')).toContain("groupKey: '__SLUG__'".replace('__SLUG__', 'my-topic'))
     expect(read('src/presentation-kit/Presentation.tsx')).toBe(kitBefore)
     expect(existsSync(path.join(tmp, 'src/presentations/starter/Talk.tsx'))).toBe(true)
     expect(read('src/presentations/my-topic/Talk.tsx')).not.toContain('__')
+  })
+
+  it('writes titles with quotes, backslashes and comment terminators as valid code (I-42, I-49)', () => {
+    scaffold(tmp, { install: false })
+    const title = 'He said "hi" \\ it\'s */ done'
+    createPresentation(tmp, 'quoted', title)
+    const talk = read('src/presentations/quoted/Talk.tsx')
+    expect(talk).toContain(`title={${JSON.stringify(title)}}`)
+    const index = read('src/presentations/index.ts')
+    expect(index).toContain(`title: ${JSON.stringify(title)}`)
+    expect(read('src/presentations/quoted/entities.ts')).not.toContain('*/ done')
+    expect(read('src/presentations/quoted/talk.css')).not.toContain('done')
+  })
+
+  it('ships the presentation stylesheet as comments only, and can omit it', () => {
+    scaffold(tmp, { install: false })
+    createPresentation(tmp, 'plain', 'Plain', { styled: false })
+    expect(existsSync(path.join(tmp, 'src/presentations/plain/talk.css'))).toBe(false)
+    expect(read('src/presentations/plain/Talk.tsx')).not.toContain('talk.css')
+    createPresentation(tmp, 'styled', 'Styled')
+    expect(read('src/presentations/styled/Talk.tsx')).toContain("import './talk.css'")
+    expect(read('src/presentations/styled/talk.css').replace(/\/\*[\s\S]*?\*\//g, '').trim()).toBe('')
   })
 
   it('rejects bad or duplicate slugs and a missing index without writing', () => {
@@ -169,5 +249,21 @@ describe('create', () => {
     expect(() => createPresentation(tmp, 'Bad Slug', 'X')).toThrow(/kebab-case/)
     expect(() => createPresentation(tmp, 'starter', 'X')).toThrow(/already exists/)
     expect(existsSync(path.join(tmp, 'src/presentations/Bad Slug'))).toBe(false)
+  })
+
+  it('detects an already-registered slug whatever its quoting or folder (I-42, I-44)', () => {
+    scaffold(tmp, { install: false })
+    const index = read('src/presentations/index.ts')
+    write(
+      'src/presentations/index.ts',
+      index.replace(
+        /\]\s*$/,
+        '  { "slug": "taken", slug: "taken", title: "T", load: () => import("./elsewhere/Talk") },\n]\n',
+      ),
+    )
+    const before = read('src/presentations/index.ts')
+    expect(() => createPresentation(tmp, 'taken', 'Taken')).toThrow(/already registered/)
+    expect(read('src/presentations/index.ts')).toBe(before)
+    expect(existsSync(path.join(tmp, 'src/presentations/taken'))).toBe(false)
   })
 })

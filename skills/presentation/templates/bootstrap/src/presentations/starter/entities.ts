@@ -1,4 +1,4 @@
-/** Starter Presentation: stable entity ids (the layoutId namespace) and canvas coordinates (880 x 380). */
+/** starter: stable entity ids (the layoutId namespace) and canvas coordinates (880 x 380). */
 export const E = {
   topic: 'starter-topic',
   detail: 'starter-detail',

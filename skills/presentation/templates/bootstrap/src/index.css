@@ -1,5 +1,2 @@
-/* Host/app CSS. The scene kit ships no styles; each presentation owns its look. */
-html,
-body {
-  margin: 0;
-}
+/* Host/app CSS. Intentionally empty: the scene kit and scaffold ship no styles,
+   and each presentation owns its look in its own stylesheet. */

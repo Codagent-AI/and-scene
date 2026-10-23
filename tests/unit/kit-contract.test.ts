@@ -45,9 +45,18 @@ describe('style-neutral kit contract', () => {
     expect(walk(BOOTSTRAP).filter((f) => !f.includes('node_modules') && /tailwind/i.test(f))).toEqual([])
   })
 
-  it('scaffold CSS defines no theme, colors, fonts or component styles (I-11)', () => {
-    const css = readFileSync(`${BOOTSTRAP}/src/index.css`, 'utf8')
-    expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/color|font|background|border|shadow|--/i)
+  it('scaffold ships no styling layer: no stylesheet defines a theme, colors, fonts or component styles (I-11, I-36, I-37)', () => {
+    const sheets = walk(BOOTSTRAP).filter((f) => f.endsWith('.css') && !/node_modules|\/dist\//.test(f))
+    expect(sheets.length).toBeGreaterThan(0)
+    for (const f of sheets) {
+      const css = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+      expect(css, f).not.toMatch(/color|font|background|border|shadow|radius|padding|margin|--/i)
+    }
+    const starter = walk(`${BOOTSTRAP}/src/presentations`).filter((f) => !f.includes('node_modules'))
+    expect(starter.filter((f) => f.endsWith('.css'))).toEqual([])
+    for (const f of starter.filter((f) => /\.tsx?$/.test(f))) {
+      expect(readFileSync(f, 'utf8'), f).not.toMatch(/\.css['"]|style=\{\{[^}]*(color|background|border)/)
+    }
   })
 
   it('declares the complete dependency set in the scaffold (I-36)', () => {

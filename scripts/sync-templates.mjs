@@ -48,6 +48,7 @@ export const presentations: readonly PresentationEntry[] = [
 ]
 `,
   )
-  createPresentation(bootstrap, 'starter', 'Starter Presentation')
+  // The scaffold ships no styling layer: the starter has a route but no stylesheet.
+  createPresentation(bootstrap, 'starter', 'Starter Presentation', { styled: false })
   console.log('templates synced')
 }

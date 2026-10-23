@@ -6,7 +6,7 @@
 // Templates are resolved relative to this file, never the caller's working directory.
 import { spawnSync } from 'node:child_process'
 import {
-  cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync,
+  cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync,
 } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -25,14 +25,40 @@ const readJson = (file) => {
 
 // ---- detection ---------------------------------------------------------
 
+const SOURCE = /\.(?:ts|tsx|js|jsx|mjs)$/
+
+function sourcesUnder(dir) {
+  if (!existsSync(dir)) return ''
+  return listFiles(dir)
+    .filter((f) => SOURCE.test(f))
+    .map((f) => readFileSync(path.join(dir, f), 'utf8'))
+    .join('\n')
+}
+
+/** What a scene kit must provide, whatever its files are called. */
+const KIT_CONTRACT = [
+  /\b(?:interface|type)\s+Step\b/, // step contract
+  /\bSceneProps\b/,
+  /export\s+(?:default\s+)?(?:function|const)\s+Presentation\b|export\s*\{[^}]*\bPresentation\b[^}]*\}/,
+  /AnimatePresence/, // stage that mounts the active step and runs morphs
+  /ArrowRight/, // present/browse navigation
+  /toc/i, // chrome: table of contents
+  /caption/i, // chrome: captions
+  /scale/i, // fit-scale canvas
+]
+
 export function detectAnchors(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies }
-  const kitDir = path.join(dir, 'src', 'presentation-kit')
+  const kit = sourcesUnder(path.join(dir, 'src', 'presentation-kit'))
+  const indexFile = ['index.ts', 'index.tsx', 'index.js', 'index.jsx']
+    .map((f) => path.join(dir, 'src', 'presentations', f))
+    .find((f) => existsSync(f))
+  const index = indexFile ? readFileSync(indexFile, 'utf8') : ''
   return {
     build: Boolean(pkg?.scripts?.build && deps.vite && deps.react && deps.typescript),
-    kit: ['Presentation.tsx', 'Stage.tsx', 'types.ts'].every((f) => existsSync(path.join(kitDir, f))),
-    index: ['index.ts', 'index.tsx'].some((f) => existsSync(path.join(dir, 'src', 'presentations', f))),
+    kit: KIT_CONTRACT.every((re) => re.test(kit)),
+    index: /\bexport\b/.test(index) && /\b(?:presentations|slug)\b/.test(index),
   }
 }
 
@@ -101,8 +127,9 @@ function listFiles(root, rel = '') {
 const BUILD_FILES = [
   'package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json',
   'vite.config.ts', 'index.html', 'eslint.config.js', '.gitignore', '.npmrc', 'public', 'src/index.css',
-  'scripts',
 ]
+/** Needed whenever anything is scaffolded: the verification and inspection tooling. */
+const TOOLING_FILES = ['scripts']
 const INDEX_FILES = ['src/main.tsx', 'src/Root.tsx', 'src/router.ts', 'src/Landing.tsx', 'src/presentations']
 const KIT_FILES = ['src/presentation-kit']
 
@@ -138,17 +165,55 @@ function mergePackageJson(targetFile) {
   return added
 }
 
+const ENTRY_TEMPLATES = path.join(SKILL_DIR, 'templates', 'entry')
+
+/** Module entry named by index.html, or the conventional src/main.tsx. */
+function entryFile(targetDir) {
+  const html = path.join(targetDir, 'index.html')
+  const src = existsSync(html)
+    ? readFileSync(html, 'utf8').match(/<script[^>]*type=["']module["'][^>]*src=["']([^"']+)["']/)?.[1]
+    : null
+  return path.join(targetDir, (src ?? '/src/main.tsx').replace(/^\//, ''))
+}
+
+/**
+ * An existing entry point is kept as the host's app: the new entry routes registered
+ * presentations to the scene kit and hands every other path to the original module.
+ */
+function wireEntryPoint(targetDir) {
+  const entry = entryFile(targetDir)
+  if (!existsSync(entry)) return null
+  const text = readFileSync(entry, 'utf8')
+  if (/resolveRoute/.test(text)) return null
+  const { dir, name, ext } = path.parse(entry)
+  const host = path.join(dir, `${name}.host${ext}`)
+  if (existsSync(host)) return null
+  const srcRel = path.relative(dir, path.join(targetDir, 'src')).split(path.sep).join('/') || '.'
+  const fill = (t) => t.replaceAll('__SRC__', srcRel).replaceAll('__HOST__', `./${name}.host`)
+  renameSync(entry, host)
+  writeFileSync(entry, fill(readFileSync(path.join(ENTRY_TEMPLATES, 'main.tsx.tmpl'), 'utf8')))
+  const presentationEntry = path.join(dir, 'main.presentation.tsx')
+  writeFileSync(presentationEntry, fill(readFileSync(path.join(ENTRY_TEMPLATES, 'main.presentation.tsx.tmpl'), 'utf8')))
+  return { entry: path.relative(targetDir, entry), host: path.relative(targetDir, host) }
+}
+
 /** Copies only the missing anchors. Existing files are never overwritten. */
 export function scaffold(targetDir, { install = true } = {}) {
   targetDir = path.resolve(targetDir)
   mkdirSync(targetDir, { recursive: true })
   const anchors = detectAnchors(targetDir)
+  const missing = Object.keys(anchors).filter((k) => !anchors[k])
   const written = []
   const skipped = []
   let merged = []
-  for (const anchor of Object.keys(FILE_GROUPS)) {
-    if (anchors[anchor]) continue
-    for (const rel of expand(FILE_GROUPS[anchor])) {
+  let wired = null
+  if (missing.length) {
+    // Anything that gets scaffolded needs its dependencies and the verification tooling.
+    const groups = [...missing.map((a) => FILE_GROUPS[a]), TOOLING_FILES]
+    const files = [...new Set(groups.flatMap(expand))]
+    if (!files.includes('package.json')) files.push('package.json')
+    if (missing.includes('index')) wired = wireEntryPoint(targetDir)
+    for (const rel of files) {
       const dest = path.join(targetDir, rel)
       if (rel === 'package.json' && existsSync(dest)) {
         merged = mergePackageJson(dest)
@@ -162,6 +227,7 @@ export function scaffold(targetDir, { install = true } = {}) {
       cpSync(path.join(BOOTSTRAP, rel), dest)
       written.push(rel)
     }
+    if (wired) written.push(wired.entry, 'src/main.presentation.tsx')
   }
   let installed = false
   if (install && (written.length || merged.length)) {
@@ -169,7 +235,7 @@ export function scaffold(targetDir, { install = true } = {}) {
     if (r.status !== 0) throw new Error('npm install failed')
     installed = true
   }
-  return { targetDir, anchors, written, skipped, merged, installed }
+  return { targetDir, anchors, written, skipped, merged, wired, installed }
 }
 
 // ---- create a presentation --------------------------------------------
@@ -177,9 +243,16 @@ export function scaffold(targetDir, { install = true } = {}) {
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 const render = (text, slug, title) =>
-  text.replaceAll('__SLUG__', slug).replaceAll('__TITLE__', title.replaceAll('"', '\\"'))
+  text.replaceAll('__SLUG__', slug).replaceAll('__TITLE_JSON__', JSON.stringify(title))
 
-export function createPresentation(targetDir, slug, title) {
+const registeredSlugs = (indexText) =>
+  [...indexText.matchAll(/\bslug\s*:\s*(['"`])(.+?)\1/g)].map((m) => m[2])
+
+/**
+ * Writes src/presentations/<slug>/ and registers it. `styled: false` leaves out the
+ * presentation's stylesheet, for callers (the bootstrap starter) that must ship no styling.
+ */
+export function createPresentation(targetDir, slug, title, { styled = true } = {}) {
   if (!SLUG.test(slug)) throw new Error(`slug must be lowercase kebab-case, got "${slug}"`)
   const dir = path.join(targetDir, 'src', 'presentations', slug)
   const indexFile = ['index.ts', 'index.tsx']
@@ -188,16 +261,19 @@ export function createPresentation(targetDir, slug, title) {
   if (!indexFile) throw new Error('presentation index is missing: run scaffold first')
   if (existsSync(dir)) throw new Error(`presentation "${slug}" already exists`)
   const index = readFileSync(indexFile, 'utf8')
-  if (index.includes(`slug: '${slug}'`)) throw new Error(`slug "${slug}" is already registered`)
+  if (registeredSlugs(index).includes(slug)) throw new Error(`slug "${slug}" is already registered`)
 
   const files = []
   for (const rel of listFiles(PRESENTATION_TEMPLATES)) {
+    if (!styled && rel.startsWith('talk.css')) continue
     const dest = path.join(dir, rel.replace(/\.tmpl$/, ''))
     mkdirSync(path.dirname(dest), { recursive: true })
-    writeFileSync(dest, render(readFileSync(path.join(PRESENTATION_TEMPLATES, rel), 'utf8'), slug, title))
+    let text = render(readFileSync(path.join(PRESENTATION_TEMPLATES, rel), 'utf8'), slug, title)
+    if (!styled) text = text.replace(/^import '\.\/talk\.css'\n/m, '')
+    writeFileSync(dest, text)
     files.push(path.relative(targetDir, dest))
   }
-  const entry = `  {\n    slug: '${slug}',\n    title: '${title.replaceAll("'", "\\'")}',\n    load: () => import('./${slug}/Talk'),\n  },\n`
+  const entry = `  {\n    slug: ${JSON.stringify(slug)},\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk'),\n  },\n`
   const close = index.lastIndexOf(']')
   if (close < 0) throw new Error('could not find the registry array to extend')
   writeFileSync(indexFile, index.slice(0, close) + entry + index.slice(close))

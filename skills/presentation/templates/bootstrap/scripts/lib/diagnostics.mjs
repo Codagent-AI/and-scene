@@ -59,15 +59,39 @@ export function collectDiagnostics() {
     }
   }
 
+  // Chrome controls and text blocks colliding with each other (boxes, not just their text).
+  const chromeParts = [
+    ...document.querySelectorAll(
+      '[data-presentation-dot],[data-presentation-toc-item],[data-presentation-prev],[data-presentation-next],' +
+        '[data-presentation-attribution],[data-presentation-marker],[data-presentation-title],' +
+        '[data-presentation-step-title],[data-presentation-caption]',
+    ),
+  ].filter(visible)
+  for (let i = 0; i < chromeParts.length; i++) {
+    for (let j = i + 1; j < chromeParts.length; j++) {
+      const a = chromeParts[i]
+      const b = chromeParts[j]
+      if (a.contains(b) || b.contains(a) || allowed(a) || allowed(b)) continue
+      const ar = a.getBoundingClientRect()
+      const br = b.getBoundingClientRect()
+      const w = Math.min(ar.right, br.right) - Math.max(ar.left, br.left)
+      const h = Math.min(ar.bottom, br.bottom) - Math.max(ar.top, br.top)
+      if (w > 2 && h > 2) overlaps.push(`chrome ${label(a)} overlaps chrome ${label(b)}`)
+    }
+  }
+
   // Active chrome must differ from inactive siblings in at least one visual property.
   const PROPS = [
     'backgroundColor', 'color', 'borderTopColor', 'borderLeftColor', 'borderTopWidth',
     'width', 'height', 'opacity', 'boxShadow', 'fontWeight', 'outlineStyle', 'transform',
     'textDecorationLine',
   ]
+  const SIZE = ['width', 'height']
+  // A labelled entry's box size follows its text, so only unlabelled markers (dots) count it.
   const signature = (el) => {
     const cs = getComputedStyle(el)
-    return PROPS.map((p) => cs[p]).join('|')
+    const labelled = (el.textContent ?? '').trim() !== ''
+    return PROPS.filter((p) => !(labelled && SIZE.includes(p))).map((p) => cs[p]).join('|')
   }
   const indistinct = []
   for (const [name, sel] of [

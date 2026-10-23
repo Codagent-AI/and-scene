@@ -1,33 +1,10 @@
-/* Presentation-owned look for "__TITLE__". The reusable kit ships no styles. */
-[data-presentation-root] {
-  --bg: #fbfaf7;
-  --ink: #1d2733;
-  --muted: #5d6b7a;
-  --line: #b9c2cc;
-  --accent: #c2410c;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: system-ui, sans-serif;
-}
-[data-presentation-header] { padding: 0 24px; box-sizing: border-box; font-size: 14px; color: var(--muted); }
-[data-presentation-footer] {
-  padding: 0 24px; box-sizing: border-box; display: flex; flex-direction: column;
-  align-items: center; text-align: center; gap: 6px;
-}
-[data-presentation-step-title] { margin: 8px 0 0; font-size: 26px; }
-[data-presentation-caption] { margin: 0; max-width: 44rem; font-size: 16px; line-height: 1.45; color: var(--muted); }
-[data-presentation-progress] { display: flex; gap: 8px; }
-[data-presentation-dot] { width: 10px; height: 10px; padding: 0; border-radius: 50%; border: 1px solid var(--line); background: transparent; cursor: pointer; }
-[data-presentation-dot][data-presentation-active] { width: 22px; border-radius: 6px; background: var(--accent); border-color: var(--accent); }
-[data-presentation-controls] { display: flex; gap: 12px; }
-[data-presentation-controls] button { font: inherit; padding: 4px 14px; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
-[data-presentation-controls] button:disabled { opacity: 0.35; cursor: default; }
-[data-presentation-toc] ol { list-style: none; margin: 0; padding: 0; }
-[data-presentation-toc-item] { font: inherit; width: 100%; text-align: left; padding: 6px 10px; color: var(--muted); background: transparent; border: 0; border-left: 3px solid transparent; cursor: pointer; }
-[data-presentation-toc-item][data-presentation-active] { color: var(--ink); font-weight: 650; border-left-color: var(--accent); background: rgba(194, 65, 12, 0.1); }
-[data-presentation-attribution] { font-size: 12px; color: var(--muted); text-decoration: none; padding: 2px 6px; }
-[data-presentation-node='box'] {
-  display: flex; align-items: center; justify-content: center;
-  border: 2px solid var(--line); border-radius: 10px; background: #fff;
-}
-[data-presentation-node='arrow'] { color: var(--muted); }
+/* Presentation-owned look for __SLUG__. The scene kit ships no styles, so write them here.
+   Target the kit's stable hooks, for example:
+     [data-presentation-root]                      page / canvas background and fonts
+     [data-presentation-step-title], [data-presentation-caption]
+     [data-presentation-dot][data-presentation-active]            current progress step
+     [data-presentation-toc-item][data-presentation-active]       current table-of-contents entry
+     [data-presentation-prev], [data-presentation-next]           controls
+     [data-presentation-attribution]                               legible "made by and-scene" link
+     [data-presentation-node="box"] (also label, arrow, frame, emphasis, chip), [data-presentation-variant]
+   Mark a deliberate, readable overlap with data-presentation-allow-overlap on that subtree. */

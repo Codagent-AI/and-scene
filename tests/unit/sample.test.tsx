@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { SampleScene } from '../../src/presentations/how-to-make-a-presentation/steps/Scene'
@@ -41,12 +41,14 @@ describe('reference sample scene', () => {
     }
   })
 
-  it('continuing entities keep their DOM node and are not re-faded (I-8)', () => {
+  it('continuing entities keep their DOM node and are not re-faded (I-8)', async () => {
     const { rerender, getByText } = render(scene(1))
     const you = getByText('you')
+    expect(you.style.opacity).toBe('0') // newcomer starts hidden
+    await waitFor(() => expect(you.style.opacity).toBe('1'), { timeout: 5000 })
     rerender(scene(2))
     expect(getByText('you')).toBe(you)
-    expect(you.style.opacity).not.toBe('0')
+    expect(you.style.opacity).toBe('1') // stays fully visible: no fade restart
   })
 
   it('preserves the intentional stacking of the edit marker over its card (I-9)', () => {

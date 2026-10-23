@@ -83,6 +83,9 @@ describe('node primitives', () => {
         <Box key="a" layoutId="a">a</Box>
       </SceneLayer>,
     )
+    // Still mounted right after removal: it is animating out rather than vanishing.
+    const leaving = document.querySelector('[data-presentation-id="b"]') as HTMLElement
+    expect(leaving).not.toBeNull()
     await waitFor(() => expect(document.querySelector('[data-presentation-id="b"]')).toBeNull(), { timeout: 5000 })
     expect(document.querySelector('[data-presentation-id="a"]')).not.toBeNull()
   })

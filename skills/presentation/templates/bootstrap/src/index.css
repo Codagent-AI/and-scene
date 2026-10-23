@@ -1,0 +1,11 @@
+/* Host app CSS only. The scene kit ships no visual defaults. */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}

@@ -26,6 +26,12 @@ describe('parseRegistry', () => {
     expect(parseRegistry(quote)).toEqual([{ slug: 'live', title: 'Live' }])
     const division = `const half = total / 2 // note\nconst P = [\n  ${live}\n]`
     expect(parseRegistry(division)).toEqual([{ slug: 'live', title: 'Live' }])
+    for (const head of ['i++ / 2', 'i-- / 2', 'const j = <Foo {...p} />', 'const k = </div>', 'const o = {} / 2']) {
+      const trailing = `${head} // { slug: 'old', title: 'Old', load: () => import('./old/Talk.tsx') }\nconst P = [\n  ${live}\n]`
+      expect(parseRegistry(trailing)).toEqual([{ slug: 'live', title: 'Live' }])
+    }
+    const unclosed = `const x = a / b\nconst P = [\n  // { slug: 'old', title: 'Old', load: () => import('./old/Talk.tsx') },\n  ${live}\n]`
+    expect(parseRegistry(unclosed)).toEqual([{ slug: 'live', title: 'Live' }])
     const classSlash = `const R = /[/*]x/g\nconst P = [\n  ${live}\n]`
     expect(parseRegistry(classSlash)).toEqual([{ slug: 'live', title: 'Live' }])
   })

@@ -6,11 +6,13 @@ const REGEX_KEYWORDS = new Set(['return', 'typeof', 'instanceof', 'in', 'of', 'n
 export function stripComments(text) {
   let out = ''
   let last = '' // last significant character emitted, to tell a regex literal from a division
+  let beforeLast = ''
   let word = ''
   const emit = (chunk) => {
     out += chunk
     const trimmed = chunk.trimEnd()
     if (!trimmed) return
+    beforeLast = trimmed.length > 1 ? trimmed.at(-2) : last
     last = trimmed.at(-1)
     word = /[\w$]$/.test(trimmed) ? (trimmed.match(/[\w$]+$/)?.[0] ?? '') : ''
   }
@@ -26,7 +28,7 @@ export function stripComments(text) {
     } else if (ch === '/' && text[i + 1] === '*') {
       const end = text.indexOf('*/', i + 2)
       i = end === -1 ? text.length : end + 2
-    } else if (ch === '/' && (last === '' || /[(,=:[!&|?{};+\-*%<>~^]/.test(last) || REGEX_KEYWORDS.has(word))) {
+    } else if (ch === '/' && (last === '' || (/[(,=:[!&|?{;+\-*%~^]/.test(last) && !(beforeLast === last && /[+-]/.test(last))) || REGEX_KEYWORDS.has(word))) {
       let j = i + 1
       let inClass = false
       while (j < text.length && text[j] !== '\n' && (inClass || text[j] !== '/')) {
@@ -34,6 +36,12 @@ export function stripComments(text) {
         else if (text[j] === '[') inClass = true
         else if (text[j] === ']') inClass = false
         j++
+      }
+      if (text[j] !== '/') {
+        // no closing slash on this line: it was a division, not a regex literal
+        emit('/')
+        i++
+        continue
       }
       j++
       while (j < text.length && /[a-z]/i.test(text[j])) j++

@@ -1,7 +1,6 @@
 // Controlled presentation for the screenshot-helper integration test. It is
 // copied into a disposable app copy and registered once per variant.
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect } from 'react'
 import { Label, Presentation, SceneLayer, type SceneProps, type Step } from '../../presentation-kit'
 import './fixture.css'
 
@@ -20,21 +19,20 @@ interface Payload {
 
 /** Fixed-position text placed exactly over the title chrome. */
 function TitleCollider() {
-  const [rect, setRect] = useState<DOMRect | null>(null)
   useEffect(() => {
     const title = document.querySelector('[data-presentation-title]')
     if (!title) return
     const range = document.createRange()
     range.selectNodeContents(title)
-    setRect(range.getBoundingClientRect())
+    const rect = range.getBoundingClientRect()
+    const collider = document.createElement('div')
+    collider.setAttribute('data-fx-collider', '')
+    collider.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px`
+    collider.textContent = 'COLLIDING TEXT'
+    document.body.append(collider)
+    return () => collider.remove()
   }, [])
-  if (!rect) return null
-  return createPortal(
-    <div data-fx-collider="" style={{ position: 'fixed', left: rect.left, top: rect.top }}>
-      COLLIDING TEXT
-    </div>,
-    document.body,
-  )
+  return null
 }
 
 function FixtureScene({ index, payload }: SceneProps<Payload>) {

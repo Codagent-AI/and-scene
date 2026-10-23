@@ -117,6 +117,14 @@
   overflow: hidden;
 }
 
+/* The tray is an unframed region the step cards sit in: a faint fill, never a border or card. */
+[data-presentation-entity="tray"] {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(248, 243, 230, 0.03);
+}
+
 [data-presentation-entity="you"],
 [data-presentation-entity="skill"] {
   border-color: var(--gold);

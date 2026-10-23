@@ -163,6 +163,36 @@ describe('sample content', () => {
   })
 })
 
+describe('sample tray styling', () => {
+  // jsdom cannot resolve the sheet's custom properties, so the cascade is checked on the source:
+  // the tray rule must come after the generic box rule (equal specificity, so later wins) and
+  // must remove the card border and radius that rule gives every box.
+  const css = readFileSync(join(process.cwd(), 'src/presentations/how-to-make-a-presentation/presentation.css'), 'utf8')
+  const rules = Array.from(css.matchAll(/([^{}]+)\{([^{}]*)\}/g)).map((m) => ({
+    selector: m[1]!.replace(/\/\*[\s\S]*?\*\//g, '').trim(),
+    body: m[2]!,
+  }))
+
+  it('declares the tray unframed after the generic box rule', () => {
+    const generic = rules.findIndex((r) => r.selector.includes('[data-presentation-box]'))
+    const tray = rules.findIndex((r) => r.selector === '[data-presentation-entity="tray"]')
+    expect(generic).toBeGreaterThanOrEqual(0)
+    expect(tray).toBeGreaterThan(generic)
+    const body = rules[tray]!.body
+    expect(body).toMatch(/border:\s*(0|none)\s*;/)
+    expect(body).toMatch(/border-radius:\s*0\s*;/)
+  })
+
+  it('renders the tray as a plain box that this rule can reach in step 6', async () => {
+    const { view } = renderSample()
+    fireEvent.click(view.container.querySelectorAll<HTMLElement>('[data-presentation-progress]')[5]!)
+    await waitFor(() => expect(view.container.querySelector('[data-presentation-root]')!.getAttribute('data-step-index')).toBe('5'))
+    const tray = view.container.querySelector<HTMLElement>('[data-presentation-entity="tray"]')!
+    expect(tray.hasAttribute('data-presentation-box')).toBe(true)
+    expect(view.container.querySelector('[data-presentation-entity="frame"]')).toBeNull()
+  })
+})
+
 describe('sample rendered state', () => {
   it('renders exactly the entities each step lists, in every step', async () => {
     const { view, next } = renderSample()

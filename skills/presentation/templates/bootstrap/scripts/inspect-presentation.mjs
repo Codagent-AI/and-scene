@@ -142,8 +142,7 @@ export async function inspect(root, slug, { viewport = '1440x900', settle = 1200
   mkdirSync(dir, { recursive: true })
   const port = await freePort()
   const { stop } = await startPreview(root, port)
-  const { chromium } = await import('playwright')
-  const browser = await chromium.launch()
+  let browser
   const report = { slug, viewport, settleMs: settle, captures: [], warnings: [] }
   const seen = new Set()
   const warn = (step, kind, message) => {
@@ -154,6 +153,8 @@ export async function inspect(root, slug, { viewport = '1440x900', settle = 1200
     console.log(`WARN step ${step} ${kind}: ${message}`)
   }
   try {
+    const { chromium } = await import('playwright')
+    browser = await chromium.launch()
     const page = await browser.newPage({ viewport: { width, height } })
     await page.goto(`http://${HOST}:${port}/${slug}`, { waitUntil: 'load' })
     await page.waitForSelector('[data-presentation-root]', { timeout: 15000 })
@@ -173,7 +174,7 @@ export async function inspect(root, slug, { viewport = '1440x900', settle = 1200
       await page.keyboard.press('ArrowRight')
     }
   } finally {
-    await browser.close()
+    await browser?.close()
     await stop()
   }
   writeFileSync(path.join(dir, 'report.json'), JSON.stringify(report, null, 2))

@@ -114,6 +114,14 @@ describe('render phase: transitions', () => {
     expect(err.message).toMatch(/stayed 2.*expected 3/)
   })
 
+  it('surfaces a recorded browser error ahead of a generic timeout', async () => {
+    const check = () => {
+      throw new VerifyError('render', 'console.error: crash', 5)
+    }
+    const err = await failure(() => waitForIndex(sequence([null]), 6, { from: 5, pollMs: 1, timeoutMs: 5000, check }))
+    expect([err.step, err.message]).toEqual([5, 'console.error: crash'])
+  })
+
   it('fails immediately when the index jumps to the wrong step', async () => {
     const err = await failure(() => waitForIndex(sequence([2, 5]), 3, { from: 2, pollMs: 1, timeoutMs: 5000 }))
     expect(err.message).toMatch(/became 5, expected 3/)

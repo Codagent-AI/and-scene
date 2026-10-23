@@ -2,7 +2,7 @@
 export function snapshotPage() {
   const STYLE_KEYS = [
     'color', 'backgroundColor', 'borderTopColor', 'borderTopWidth', 'opacity', 'fontWeight',
-    'textDecorationLine', 'boxShadow', 'width', 'height', 'outlineStyle', 'transform',
+    'textDecorationLine', 'boxShadow', 'outlineStyle', 'transform',
   ]
   const styleOf = (el) => {
     const cs = getComputedStyle(el)

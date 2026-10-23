@@ -47,10 +47,14 @@ export function validateStepCount(count, outline) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-/** Render phase: waits for the public step index to become `expected`; anything else fails at `from`. */
-export async function waitForIndex(read, expected, { from = expected, timeoutMs = 5000, pollMs = 50 } = {}) {
+/**
+ * Render phase: waits for the public step index to become `expected`; anything else fails at `from`.
+ * `check` runs before each poll so a recorded browser error surfaces ahead of a generic timeout.
+ */
+export async function waitForIndex(read, expected, { from = expected, timeoutMs = 5000, pollMs = 50, check = () => {} } = {}) {
   const deadline = Date.now() + timeoutMs
   for (;;) {
+    check()
     const value = await read()
     if (value === expected) return
     if (value !== null && value !== from) {

@@ -45,7 +45,7 @@ describe('overlap warnings (L-71, L-72)', () => {
   })
 
   it('reports a painted box that hides another element\'s text its own text does not reach (F-4)', () => {
-    const chip = item('<span data-role="edited"> "edited"', 522, 427, 45, 18, { index: 0, cover: { x: 500, y: 424, w: 80, h: 24 }, within: [] })
+    const chip = item('<span data-role="edited"> "edited"', 522, 427, 45, 18, { index: 0, cover: { x: 500, y: 424, w: 80, h: 24 }, within: [], above: [1] })
     const word = item('<span data-part="visual"> "visual"', 476, 427, 39, 18, { index: 1, within: [] })
     const [w] = overlapWarnings([chip, word], 7)
     expect(w).toMatchObject({ step: 7, kind: 'overlap' })
@@ -54,8 +54,14 @@ describe('overlap warnings (L-71, L-72)', () => {
     expect(overlapWarnings([{ ...chip, allowed: true }, word], 7)).toEqual([])
   })
 
+  it('does not report text that is painted on top of a filled box beside it', () => {
+    const shape = item('<div data-role="shape"> "shape"', 522, 427, 45, 18, { index: 0, cover: { x: 470, y: 420, w: 120, h: 40 }, within: [], above: [] })
+    const label = item('<span data-role="label"> "label"', 476, 427, 39, 18, { index: 1, within: [] })
+    expect(overlapWarnings([shape, label], 7)).toEqual([])
+  })
+
   it('does not treat a box as covering the text inside it, or a box that misses the text', () => {
-    const outer = item('<div> "Outer"', 0, 0, 40, 10, { index: 0, cover: { x: 0, y: 0, w: 200, h: 100 }, within: [] })
+    const outer = item('<div> "Outer"', 0, 0, 40, 10, { index: 0, cover: { x: 0, y: 0, w: 200, h: 100 }, within: [], above: [1] })
     const inner = item('<span> "Inner"', 100, 50, 40, 10, { index: 1, within: [0] })
     expect(overlapWarnings([outer, inner], 1)).toEqual([])
     const far = item('<p> "Far"', 300, 300, 40, 10, { index: 2, within: [] })

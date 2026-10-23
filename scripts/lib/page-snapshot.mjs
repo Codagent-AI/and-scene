@@ -58,9 +58,26 @@ export function snapshotPage() {
       rect,
       cover: paintsBox(el) && box.width > 0 && box.height > 0 ? { x: box.left, y: box.top, w: box.width, h: box.height } : null,
       within: entries.flatMap(([other], i) => (other !== el && other.contains(el) ? [i] : [])),
+      above: [],
       allowed: el.closest('[data-presentation-allow-overlap]') !== null,
     }
   })
+  // A box only hides text painted beneath it: probe the hit-test stack where they meet.
+  for (const a of items) {
+    if (!a.cover) continue
+    for (const b of items) {
+      if (b === a || b.within.includes(a.index)) continue
+      const x1 = Math.max(a.cover.x, b.rect.x)
+      const y1 = Math.max(a.cover.y, b.rect.y)
+      const x2 = Math.min(a.cover.x + a.cover.w, b.rect.x + b.rect.w)
+      const y2 = Math.min(a.cover.y + a.cover.h, b.rect.y + b.rect.h)
+      if (x2 <= x1 || y2 <= y1) continue
+      const stack = document.elementsFromPoint((x1 + x2) / 2, (y1 + y2) / 2)
+      const top = stack.indexOf(entries[a.index][0])
+      const under = stack.indexOf(entries[b.index][0])
+      if (top >= 0 && (under < 0 || top < under)) a.above.push(b.index)
+    }
+  }
 
   // Text entries size to their label, so their box size says nothing about styling.
   const style = (el, includeSize) => {

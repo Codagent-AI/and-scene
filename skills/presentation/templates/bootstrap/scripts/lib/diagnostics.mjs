@@ -16,14 +16,16 @@ export function intersectionArea(a, b) {
 /**
  * `items`: visible text/chrome elements as `{ id, rect, allowed }`, where `rect` is the
  * element's own text range. An item that paints a background or border also has `cover`,
- * its box, and `within`, the indices of items that contain it. `allowed` is true inside a
+ * its box, `within`, the indices of items that contain it, and `above`, the indices of
+ * items whose text it is painted over. `allowed` is true inside a
  * `data-presentation-allow-overlap` subtree. Only the explicit marker exempts a pair:
  * nested elements are measured by their own text ranges, so a nested collision is as
  * suspicious as any other. A painted box hiding another item's text is a collision too,
- * except for text inside that box, which it contains by construction.
+ * except for text inside that box, which it contains by construction, and text painted
+ * on top of the box.
  */
 function coverArea(a, b) {
-  if (!a.cover || (b.within ?? []).includes(a.index)) return 0
+  if (!a.cover || (b.within ?? []).includes(a.index) || !(a.above ?? []).includes(b.index)) return 0
   return intersectionArea(a.cover, b.rect)
 }
 

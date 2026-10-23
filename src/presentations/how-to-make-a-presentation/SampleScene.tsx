@@ -75,10 +75,10 @@ function renderEntity(entity: SampleEntity): ReactElement {
         </Label>
       )
     case 'tray':
-      return <Box {...shared} style={rectStyle('tray')} data-presentation-tray="" />
+      return <Box key={id} {...shared} style={rectStyle('tray')} data-presentation-tray="" />
     case 'morphLabel':
       return (
-        <Label {...shared} style={rectStyle('morphLabel')}>
+        <Label key={id} {...shared} style={rectStyle('morphLabel')}>
           what morphs
         </Label>
       )

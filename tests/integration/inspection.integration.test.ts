@@ -66,7 +66,8 @@ describe('inspection helper on the fixture presentations', () => {
     expect(warnings.some((line) => line.includes('attribution'))).toBe(false)
     expect(warnings.some((line) => line.includes('indistinct'))).toBe(false)
     expect(warnings.some((line) => line.includes('table-of-contents entry'))).toBe(false)
-    expect(warnings.some((line) => line.includes('step 2') && line.includes('overlaps'))).toBe(false)
+    // The assertion message carries every warning, so a reviewer sees the elements involved.
+    expect(warnings.filter((line) => line.includes('step 2') && line.includes('overlaps')), warnings.join('\n')).toEqual([])
     expect(warnings.some((line) => line.includes('step 1') && line.includes('"collide-a" overlaps "collide-b"'))).toBe(true)
   }, 280_000)
 

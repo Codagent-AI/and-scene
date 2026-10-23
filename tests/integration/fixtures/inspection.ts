@@ -60,6 +60,8 @@ const POLISHED_CSS = `[data-presentation-progress][data-presentation-active="tru
 [data-presentation-progress] { width: 10px; height: 10px; border: 1px solid #666; background: transparent; }
 [data-presentation-attribution] { font-size: 14px; color: #c7a755; }
 [data-presentation-label] { font-size: 14px; }
+[data-presentation-progress-list], [data-presentation-controls] { gap: 14px; margin-top: 10px; }
+[data-presentation-controls] button { margin-right: 10px; }
 [data-presentation-toc-entry][aria-current="step"] { color: #c7a755; font-weight: 700; }`
 
 const register = (slugs: string[]) => `import type { PresentationEntry } from '../registry'

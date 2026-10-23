@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/react'
 import { Check } from 'lucide-react'
 import { createRef } from 'react'
-import { motion } from 'motion/react'
+import { motion, PresenceContext } from 'motion/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   Appear,
@@ -123,6 +123,27 @@ describe('Arrow continuity across scene instances', () => {
     expect(json(shaft, 'mInitial')).toEqual({ d: was })
     expect(json(shaft, 'mAnimate').d).toBe(shaftPath({ x: 0, y: 0 }, { x: 100, y: 80 }, 10))
     expect(json(q('[data-presentation-arrow-head="end"]'), 'mInitial').d).toBe(headPath({ x: 100, y: 0 }, { x: 0, y: 0 }, 10))
+  })
+})
+
+describe('Arrow under a presence that blocks initial animations', () => {
+  // SceneLayer is an AnimatePresence with initial={false}; in real Motion that
+  // makes every descendant skip `initial`, so a replaced scene's arrow would
+  // snap to its destination instead of morphing from its previous shape.
+  const blocked = { initial: false, isPresent: true, custom: undefined, onExitComplete: undefined, register: () => () => {} }
+
+  it('does not inherit the blocked presence, so its initial shape still animates', () => {
+    render(
+      <PresenceContext.Provider value={blocked as never}>
+        <motion.div data-testid="control" />
+        <Arrow id="presence-probe" from={{ x: 0, y: 0 }} to={{ x: 100, y: 0 }} bidirectional />
+      </PresenceContext.Provider>,
+    )
+    expect(q('[data-testid="control"]').getAttribute('data-m-presence-initial')).toBe('false')
+    const paths = document.querySelectorAll('[data-presentation-node="arrow"] path')
+    expect(paths).toHaveLength(3)
+    for (const path of paths) expect(path.getAttribute('data-m-presence-initial')).toBe('none')
+    expect(q('[data-presentation-node="arrow"]').getAttribute('data-m-presence-initial')).toBe('none')
   })
 })
 

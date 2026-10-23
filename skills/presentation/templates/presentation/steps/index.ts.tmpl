@@ -1,0 +1,16 @@
+import type { Step } from '../../../presentation-kit'
+import { MainScene, type ScenePayload } from './Scene'
+
+const BEATS = [
+  { id: 'topic', era: 'start', title: 'Start with the topic', caption: 'Replace this caption with the first beat of the story.' },
+  { id: 'detail', era: 'start', title: 'Add the detail', caption: 'Each step extends the same scene instead of starting a new slide.' },
+  { id: 'result', era: 'finish', title: 'Land the result', caption: 'The last beat shows where the story ends up.' },
+] as const
+
+/** Steps share a groupKey and scene, so the scene persists and entities morph in place. */
+export const STEPS: readonly Step<ScenePayload>[] = BEATS.map((beat, i) => ({
+  ...beat,
+  Scene: MainScene,
+  groupKey: '__SLUG__',
+  payload: { stage: i + 1 },
+}))

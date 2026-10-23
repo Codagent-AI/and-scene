@@ -1,0 +1,135 @@
+/* Presentation-owned look for "How to Use This Skill to Make a Presentation". */
+[data-presentation-root] {
+  --bg: #12161c;
+  --ink: #eef2f6;
+  --muted: #9aa7b5;
+  --line: #3a4656;
+  --accent: #ffb454;
+  --ok: #6fd08c;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-presentation-header] {
+  padding: 0 24px;
+  font-size: 14px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-sizing: border-box;
+}
+[data-presentation-marker-number] { color: var(--accent); font-weight: 600; }
+[data-presentation-title] { text-transform: none; letter-spacing: 0; }
+
+[data-presentation-footer] {
+  padding: 0 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+[data-presentation-step-title] { margin: 8px 0 0; font-size: 28px; font-weight: 650; }
+[data-presentation-caption] { margin: 0; max-width: 46rem; font-size: 17px; line-height: 1.45; color: var(--muted); }
+
+[data-presentation-progress] { display: flex; gap: 8px; margin-top: 6px; }
+[data-presentation-dot] {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+}
+[data-presentation-dot][data-presentation-active] {
+  width: 22px;
+  border-radius: 6px;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+[data-presentation-controls] { display: flex; gap: 12px; }
+[data-presentation-controls] button {
+  font: inherit;
+  font-size: 14px;
+  padding: 4px 14px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+[data-presentation-controls] button:disabled { opacity: 0.35; cursor: default; }
+
+[data-presentation-toc] { padding: 0 0 0 24px; box-sizing: border-box; }
+[data-presentation-toc] ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+[data-presentation-toc-item] {
+  font: inherit;
+  font-size: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+[data-presentation-toc-item][data-presentation-active] {
+  color: var(--ink);
+  font-weight: 650;
+  border-left-color: var(--accent);
+  background: rgba(255, 180, 84, 0.12);
+}
+
+[data-presentation-attribution] {
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(18, 22, 28, 0.85);
+}
+[data-presentation-attribution]:hover { color: var(--accent); }
+
+/* Scene entities */
+[data-presentation-node] { box-sizing: border-box; font-size: 15px; }
+[data-presentation-node='box'] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: #1b222b;
+}
+[data-presentation-node='box'] [data-presentation-glyph] { width: 18px; height: 18px; color: var(--accent); }
+[data-presentation-variant='card'] { font-size: 13px; color: var(--muted); }
+[data-presentation-variant='part'] { font-size: 12px; color: var(--ink); }
+[data-presentation-variant='ghost'] { border-style: dashed; color: var(--muted); background: transparent; }
+[data-presentation-variant='socket'] { border-color: var(--accent); flex-direction: row; justify-content: center; }
+[data-presentation-variant='bubble'] {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 14px; background: #263140; font-size: 14px;
+}
+[data-presentation-variant='caption'] { font-size: 12px; color: var(--muted); }
+[data-presentation-node='chip'] {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 999px; background: #263140; font-size: 13px;
+}
+[data-presentation-node='chip'] [data-presentation-glyph] { width: 14px; height: 14px; }
+[data-presentation-variant='pass'] { background: rgba(111, 208, 140, 0.18); color: var(--ok); }
+[data-presentation-variant='flag'] { background: rgba(255, 180, 84, 0.18); color: var(--accent); }
+[data-presentation-node='arrow'] { color: var(--muted); }
+[data-presentation-variant='modify'] { color: var(--accent); }
+[data-presentation-node='emphasis'] { border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 0 14px rgba(255, 180, 84, 0.5); }
+[data-presentation-node='frame'] { border: 2px solid var(--accent); border-radius: 18px; }
+[data-presentation-variant='frame-label'] {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--bg); color: var(--accent); font-size: 13px;
+}
+[data-presentation-variant='frame-label'] [data-presentation-glyph] { width: 14px; height: 14px; }

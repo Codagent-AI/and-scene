@@ -1,0 +1,5 @@
+/* Host/app CSS. The scene kit ships no styles; each presentation owns its look. */
+html,
+body {
+  margin: 0;
+}

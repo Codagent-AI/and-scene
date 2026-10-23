@@ -62,7 +62,18 @@ export function snapshotPage() {
       allowed: el.closest('[data-presentation-allow-overlap]') !== null,
     }
   })
-  // A box only hides text painted beneath it: probe the hit-test stack where they meet.
+  // A box only hides text painted beneath it. Hit-testing decides when it can; it skips
+  // `pointer-events: none` elements and off-screen points, so fall back to z-index, then
+  // document order (later siblings paint on top).
+  const zIndex = (el) => Number.parseInt(getComputedStyle(el).zIndex, 10) || 0
+  const paintedAbove = (boxEl, textEl, stack) => {
+    const top = stack.indexOf(boxEl)
+    const under = stack.indexOf(textEl)
+    if (top >= 0 && under >= 0) return top < under
+    if (top >= 0) return true
+    if (zIndex(boxEl) !== zIndex(textEl)) return zIndex(boxEl) > zIndex(textEl)
+    return (textEl.compareDocumentPosition(boxEl) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+  }
   for (const a of items) {
     if (!a.cover) continue
     for (const b of items) {
@@ -73,9 +84,7 @@ export function snapshotPage() {
       const y2 = Math.min(a.cover.y + a.cover.h, b.rect.y + b.rect.h)
       if (x2 <= x1 || y2 <= y1) continue
       const stack = document.elementsFromPoint((x1 + x2) / 2, (y1 + y2) / 2)
-      const top = stack.indexOf(entries[a.index][0])
-      const under = stack.indexOf(entries[b.index][0])
-      if (top >= 0 && (under < 0 || top < under)) a.above.push(b.index)
+      if (paintedAbove(entries[a.index][0], entries[b.index][0], stack)) a.above.push(b.index)
     }
   }
 

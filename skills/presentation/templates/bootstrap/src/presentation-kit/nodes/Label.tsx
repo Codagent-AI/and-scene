@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { EASE, LAYOUT_T } from '../constants.ts'
-import { dataProps, entityAttrs, type NodeProps } from './props.ts'
+import { dataProps, entityAttrs, morphProps, type NodeProps } from './props.ts'
 
 interface LabelProps extends NodeProps {
   children?: ReactNode
@@ -11,9 +10,7 @@ interface LabelProps extends NodeProps {
 export function Label({ id, className, style, children, ...rest }: LabelProps) {
   return (
     <motion.span
-      layout
-      layoutId={id}
-      transition={{ layout: { duration: LAYOUT_T, ease: EASE } }}
+      {...morphProps(id)}
       className={className}
       style={{ position: 'absolute', ...style }}
       {...entityAttrs('label', id)}

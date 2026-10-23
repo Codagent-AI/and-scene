@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { EASE, LAYOUT_T } from '../constants.ts'
-import { dataProps, entityAttrs, type NodeProps } from './props.ts'
+import { dataProps, entityAttrs, morphProps, type NodeProps } from './props.ts'
 
 interface EmphasisProps extends NodeProps {
   children?: ReactNode
@@ -11,9 +10,7 @@ interface EmphasisProps extends NodeProps {
 export function Emphasis({ id, className, style, children, ...rest }: EmphasisProps) {
   return (
     <motion.span
-      layout
-      layoutId={id}
-      transition={{ layout: { duration: LAYOUT_T, ease: EASE } }}
+      {...morphProps(id)}
       className={className}
       style={{ position: 'absolute', ...style }}
       {...entityAttrs('emphasis', id)}

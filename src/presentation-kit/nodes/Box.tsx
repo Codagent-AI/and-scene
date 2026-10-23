@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { motion } from 'motion/react'
-import { EASE, LAYOUT_T } from '../constants.ts'
-import { dataProps, entityAttrs, type NodeProps } from './props.ts'
+import { dataProps, entityAttrs, morphProps, type NodeProps } from './props.ts'
 
 interface BoxProps extends NodeProps {
   /** Optional glyph, passed as a component (icon-as-component pattern). */
@@ -14,9 +13,7 @@ interface BoxProps extends NodeProps {
 export function Box({ id, className, style, Icon, children, ...rest }: BoxProps) {
   return (
     <motion.div
-      layout
-      layoutId={id}
-      transition={{ layout: { duration: LAYOUT_T, ease: EASE } }}
+      {...morphProps(id)}
       className={className}
       style={{ position: 'absolute', ...style }}
       {...entityAttrs('box', id)}

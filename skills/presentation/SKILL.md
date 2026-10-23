@@ -35,7 +35,7 @@ Target resolution: an existing presentation app (kit or index present, in the pr
 
 - **All three anchors present**: skip scaffolding and go to step 3.
 - **Missing anchors**: scaffold only those, without disturbing present ones, and install dependencies (never assume React, Vite, TypeScript, Motion, Lucide, ESLint or Playwright are installed): `node <skill>/scripts/scaffold.mjs apply <project-dir> --install`.
-- **Non-empty project** (anything besides version-control metadata): first tell the user the target location and the missing anchors, and **wait for confirmation** before any write. Then add `--confirmed`. `apply` refuses without it. An empty directory needs no confirmation.
+- **Non-empty project** (anything besides version-control metadata): first tell the user the target location and the missing anchors, and **wait for confirmation** before any write. If `plan` reports an `entry`, say that the app's entry file will be replaced by the router entry and the original kept at `entry.backup` (the new routes are unreachable otherwise); tell the user how to mount their original app again if they want it. Then add `--confirmed`. `apply` refuses without it. If installation fails, `apply` exits non-zero: fix the cause and rerun; never report the scaffold as done. An empty directory needs no confirmation.
 - The scaffold is style-neutral: no Tailwind, theme, default colors, fonts, cards or buttons. Add a styling framework only if the host already uses one or the user asks for it.
 
 ## 3. Create or modify

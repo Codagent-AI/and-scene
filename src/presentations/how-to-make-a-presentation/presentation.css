@@ -170,9 +170,9 @@
   background: #e4ebfb;
   border-color: var(--accent);
 }
-.hmp [data-presentation-frame].hmp-tray {
-  box-sizing: border-box;
-  border: 1px solid #c9c4b3;
+.hmp [data-presentation-box].hmp-tray {
+  /* A filled surface, not a frame: the tray is never outlined before the reveal. */
+  border: 0;
   border-radius: 14px;
   background: #efece2;
 }

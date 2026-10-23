@@ -284,3 +284,31 @@ describe('kit stage reservation', () => {
     expect(Plain).toBeTypeOf('function')
   })
 })
+
+describe('every chrome and canvas part exposes its stable hook (L-11, I-8)', () => {
+  it('renders the full hook set in browse mode on a wide viewport', () => {
+    const { container } = open({ brand: <span>b</span> }, 1400)
+    const expected = [
+      'root', 'header', 'brand', 'marker', 'marker-number', 'marker-era', 'title', 'toc', 'toc-entry', 'stage', 'canvas', 'canvas-inner', 'scene-host',
+      'footer', 'caption', 'controls', 'prev', 'next', 'progress-list', 'progress', 'attribution',
+    ]
+    for (const hook of expected) expect(q(container, hook), `data-presentation-${hook}`).toBeTruthy()
+    expect(q(container, 'stage')?.contains(q(container, 'canvas'))).toBe(true)
+    expect(q(container, 'canvas')?.contains(q(container, 'canvas-inner'))).toBe(true)
+    expect(q(container, 'canvas-inner')?.contains(q(container, 'scene-host'))).toBe(true)
+    expect(q(container, 'footer')?.contains(q(container, 'controls'))).toBe(true)
+    expect(q(container, 'controls')?.contains(q(container, 'progress-list'))).toBe(true)
+    expect(q(container, 'root')?.hasAttribute('data-presentation-mode')).toBe(true)
+  })
+  it('keeps the shared hooks in present mode and drops the browse-only ones', () => {
+    const { container } = open({ initialMode: 'present' }, 1400)
+    for (const hook of ['root', 'header', 'marker', 'title', 'stage', 'canvas', 'canvas-inner', 'scene-host', 'footer', 'attribution']) expect(q(container, hook), hook).toBeTruthy()
+    for (const hook of ['controls', 'progress-list', 'progress', 'toc', 'caption', 'prev', 'next']) expect(q(container, hook), hook).toBeNull()
+  })
+  it('accepts author class and style on the root', () => {
+    const { container } = open({ className: 'deck', style: { opacity: 0.9 } })
+    const root = q(container, 'root') as HTMLElement
+    expect(root.className).toBe('deck')
+    expect(root.style.opacity).toBe('0.9')
+  })
+})

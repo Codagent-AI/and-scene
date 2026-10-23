@@ -3,5 +3,5 @@ import { STEPS } from './steps'
 import './presentation.css'
 
 export default function Talk() {
-  return <Presentation steps={STEPS} title="Starter Presentation" className="deck-starter" />
+  return <Presentation steps={STEPS} title={"Starter Presentation"} className="deck-starter" />
 }

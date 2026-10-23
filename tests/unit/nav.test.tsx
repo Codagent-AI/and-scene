@@ -164,6 +164,32 @@ describe('StrictMode and listener cleanup (C-3)', () => {
     key('ArrowRight')
     expect(stepIndex(container)).toBe(1)
   })
+  it('removes every window listener the full presentation adds, resize included, under StrictMode', () => {
+    setViewport(1200)
+    const added: [string, unknown][] = []
+    const removed: [string, unknown][] = []
+    const realAdd = window.addEventListener.bind(window)
+    const realRemove = window.removeEventListener.bind(window)
+    const add = vi.spyOn(window, 'addEventListener').mockImplementation((type: string, fn: EventListenerOrEventListenerObject, opts?: boolean | AddEventListenerOptions) => {
+      added.push([type, fn])
+      realAdd(type, fn, opts)
+    })
+    const remove = vi.spyOn(window, 'removeEventListener').mockImplementation((type: string, fn: EventListenerOrEventListenerObject, opts?: boolean | EventListenerOptions) => {
+      removed.push([type, fn])
+      realRemove(type, fn, opts)
+    })
+    const { unmount, container } = render(<StrictMode><Presentation steps={makeSteps()} title="t" /></StrictMode>)
+    expect(added.map(([t]) => t)).toEqual(expect.arrayContaining(['resize', 'keydown', 'touchstart', 'touchend', 'touchcancel']))
+    key('ArrowRight')
+    expect(stepIndex(container)).toBe(1)
+    unmount()
+    // Every registration is paired with a removal of the same function: nothing leaks, nothing double-fires.
+    for (const [type, fn] of added) expect(removed.some(([t, f]) => t === type && f === fn), type).toBe(true)
+    key('ArrowRight')
+    expect(stepIndex(container)).toBeNaN()
+    add.mockRestore()
+    remove.mockRestore()
+  })
   it('removes every listener on unmount', () => {
     const add = vi.spyOn(window, 'addEventListener')
     const remove = vi.spyOn(window, 'removeEventListener')

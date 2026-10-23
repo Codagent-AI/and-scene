@@ -1,4 +1,4 @@
-import { Appear, Arrow, Box, Presence, SceneLayer, type SceneProps } from '../../presentation-kit'
+import { Appear, Arrow, Box, Presence, SceneLayer, type SceneProps } from '__KIT__'
 import { E } from './entities'
 
 export interface Payload {
@@ -10,7 +10,7 @@ export function Scene({ payload: { n } }: SceneProps<Payload>) {
   return (
     <SceneLayer>
       <Box entity={E.topic} at={{ x: 120, y: 150, w: 200, h: 80 }} className="topic">
-        <span>__TITLE__</span>
+        <span>{__TITLE_LIT__}</span>
       </Box>
       <Presence>
         {n >= 2 && (

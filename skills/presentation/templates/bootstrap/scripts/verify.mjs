@@ -8,7 +8,11 @@ import { HOST, previewUrl, runBuild, startPreview } from './lib/preview.mjs'
 
 const SAMPLE_SLUG = 'how-to-make-a-presentation'
 const STEP_TIMEOUT_MS = 4000
-const SETTLE_MS = 300
+// Newcomers enter after ENTER_DELAY and fade for ENTER_T (src/presentation-kit/constants.ts); keep watching
+// for errors through that whole window before leaving a step.
+const KIT_ENTER_WINDOW_MS = 850
+const SETTLE_MARGIN_MS = 350
+const SETTLE_MS = KIT_ENTER_WINDOW_MS + SETTLE_MARGIN_MS
 
 // Normative outline, transcribed from the presentation-verification spec.
 export const CANONICAL_SAMPLE = {

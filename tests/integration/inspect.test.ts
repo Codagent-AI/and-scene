@@ -36,6 +36,9 @@ const FIXTURES: Fixture[] = [
   { slug: 'collision', css: ACTIVE_CSS + ATTR_OK, body: PAIR('alpha', 'beta', 100) },
   { slug: 'allowed', css: ACTIVE_CSS + ATTR_OK, body: `<div data-presentation-allow-overlap="" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}>${PAIR('alpha', 'beta', 100)}</div>` },
   { slug: 'mixed', css: ACTIVE_CSS + ATTR_OK, body: `<div data-presentation-allow-overlap="" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}>${PAIR('alpha', 'beta', 100)}</div>${PAIR('gamma', 'delta', 200)}` },
+  { slug: 'contained', css: ACTIVE_CSS + ATTR_OK, body: `<Box entity="big" at={{ x: 400, y: 100, w: 300, h: 80 }}><span>big outer text</span></Box><Box entity="small" at={{ x: 420, y: 120, w: 100, h: 20 }}><span>nested</span></Box>` },
+  { slug: 'svg-text', css: ACTIVE_CSS + ATTR_OK, body: `<Box entity="html" at={{ x: 400, y: 100, w: 200, h: 40 }}><span>htmltext</span></Box><svg style={{ position: 'absolute', left: 400, top: 100 }} width="200" height="40"><text x="10" y="25">svgtext</text></svg>` },
+  { slug: 'outline-only', css: `.fx [data-presentation-progress] { width: 12px; height: 12px; padding: 0; border: 0; background: #fff; outline: 1px solid #333; }\n.fx [data-presentation-progress][data-presentation-active='true'] { outline-width: 4px; }\n.fx [data-presentation-toc-entry] { border: 0; background: transparent; outline: 1px solid #333; }\n.fx [data-presentation-toc-entry][data-presentation-active='true'] { outline-width: 3px; }\n` + ATTR_OK },
   { slug: 'indistinct', css: ATTR_OK },
   { slug: 'attr-small', css: ACTIVE_CSS + ATTR_SMALL },
   { slug: 'attr-default', css: ACTIVE_CSS },
@@ -155,6 +158,24 @@ describe('INT-002: screenshot helper', () => {
     expect(w).toHaveLength(3)
     for (const [i, line] of w.entries()) expect(line).toMatch(new RegExp(`step ${i + 1}: overlap between .*"alpha".*"beta"|step ${i + 1}: overlap between .*"beta".*"alpha"`))
     expect([1, 2, 3].every((n) => existsSync(path.join(shots('collision'), `step-0${n}.png`)))).toBe(true)
+  })
+
+  it('reports nested unrelated text and SVG text collisions, but not controls told apart only by outline width', async () => {
+    const nested = await inspect('contained')
+    expect(nested.code, nested.output).toBe(0)
+    const nw = warnings(nested).filter((l) => /overlap/.test(l))
+    expect(nw).toHaveLength(3)
+    for (const line of nw) expect(line).toMatch(/big outer text.*nested|nested.*big outer text/)
+    const svg = await inspect('svg-text')
+    const sw = warnings(svg).filter((l) => /overlap/.test(l))
+    expect(sw).toHaveLength(3)
+    for (const line of sw) {
+      expect(line).toMatch(/htmltext/)
+      expect(line).toMatch(/svgtext/)
+    }
+    const outline = await inspect('outline-only')
+    expect(outline.code, outline.output).toBe(0)
+    expect(warnings(outline).filter((l) => /indistinct/.test(l))).toEqual([])
   })
 
   it('does not warn inside an allow-overlap subtree, but still warns about a simultaneous unmarked collision (L-62)', async () => {

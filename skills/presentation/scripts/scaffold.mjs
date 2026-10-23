@@ -51,30 +51,57 @@ export function detectMonorepo(dir) {
   return null
 }
 
-const KIT_SIGNALS = [
-  /\b(interface|type)\s+Step\b/,
+// Each signal is one capability of the scene-kit contract; removing any one means the kit is incomplete.
+export const KIT_SIGNALS = [
+  /\b(interface|type)\s+Step\b/, // step contract
   /\b(interface|type)\s+SceneProps\b/,
-  /\bexport\s+(default\s+)?(function|const)\s+Presentation\b/,
-  /\bAnimatePresence\b/,
-  /\bArrowRight\b/,
-  /\bscale\s*\(/,
+  /\bexport\s+(default\s+)?(function|const)\s+Presentation\b/, // presentation host
+  /\bAnimatePresence\b/, // stage / entity morphs
+  /\bLayoutGroup\b/,
+  /\bArrowRight\b/, // keyboard navigation
+  /\bPageDown\b/,
+  /\btouch(start|end)\b/i, // swipe
+  /['"]present['"]/, // present mode
+  /['"]browse['"]/, // browse mode
+  /\bcaption\b/i, // chrome: captions
+  /\btoc\b/i, // chrome: table of contents
+  /\bscale\s*\(/, // fit-scale canvas
 ]
 
 const REGISTRY_SIGNALS = [/\bslug\s*:/, /\bload\s*:/, /\bimport\s*\(/]
+const ROUTING_SIGNALS = [/\bpathname\b/, /\b(lazy|Suspense)\b/]
 
 function sourceFiles(dir) {
   return walk(path.join(dir, 'src')).filter((f) => /\.(ts|tsx|js|jsx)$/.test(f))
+}
+
+function readSources(dir) {
+  return sourceFiles(dir).map((f) => ({ rel: path.join('src', f), text: readFileSync(path.join(dir, 'src', f), 'utf8') }))
+}
+
+/** The file declaring the registry array (slug/load/import() entries), if any. */
+export function findRegistryFile(dir) {
+  return readSources(dir).find((f) => REGISTRY_SIGNALS.every((re) => re.test(f.text)))?.rel ?? null
+}
+
+/** Directory of the kit: the file exporting the Presentation component. */
+export function findKitDir(dir) {
+  const host = readSources(dir).find((f) => /\bexport\s+(default\s+)?(function|const)\s+Presentation\b/.test(f.text))
+  return host ? path.dirname(host.rel) : null
 }
 
 /** Contract-level detection: what the files do, not what they are called. */
 export function detectAnchors(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies }
-  const build = Boolean(pkg?.scripts?.build) && 'vite' in deps && 'react' in deps && 'typescript' in deps
-  const texts = sourceFiles(dir).map((f) => readFileSync(path.join(dir, 'src', f), 'utf8'))
-  const kitText = texts.join('\n')
-  const kit = KIT_SIGNALS.every((re) => re.test(kitText))
-  const index = texts.some((t) => REGISTRY_SIGNALS.every((re) => re.test(t)))
+  const build =
+    /\bvite\s+build\b/.test(pkg?.scripts?.build ?? '') &&
+    ['vite', 'react', 'react-dom', 'typescript'].every((d) => d in deps) &&
+    (existsSync(path.join(dir, 'index.html')) || existsSync(path.join(dir, 'tsconfig.json')))
+  const sources = readSources(dir)
+  const all = sources.map((f) => f.text).join('\n')
+  const kit = KIT_SIGNALS.every((re) => re.test(all))
+  const index = findRegistryFile(dir) !== null && ROUTING_SIGNALS.every((re) => re.test(all))
   return { build, kit, index }
 }
 
@@ -103,6 +130,18 @@ function groupOf(rel) {
   return 'build'
 }
 
+/** The module entry named by index.html (`/src/main.tsx` by default). */
+function findEntry(target) {
+  try {
+    const html = readFileSync(path.join(target, 'index.html'), 'utf8')
+    const m = /<script[^>]*type=["']module["'][^>]*src=["']\/?([^"']+)["']/.exec(html)
+    if (m) return m[1]
+  } catch {
+    // no index.html yet
+  }
+  return 'src/main.tsx'
+}
+
 export function plan(dir) {
   const root = path.resolve(dir)
   const { target, monorepo, reason } = resolveTarget(root)
@@ -113,6 +152,9 @@ export function plan(dir) {
   const files = walk(TEMPLATES.bootstrap)
     .filter((rel) => wanted.has(groupOf(rel)))
     .filter((rel) => rel !== 'package.json' && !(rel === 'package-lock.json' && existsSync(path.join(target, 'package.json'))))
+  // Without the index anchor the app's entry point does not mount the router, so the new routes would be unreachable.
+  const entry = findEntry(target)
+  const replacesEntry = !anchors.index && existsSync(path.join(target, entry))
   return {
     root,
     target,
@@ -124,7 +166,16 @@ export function plan(dir) {
     needsConfirmation: missing.length > 0 && !isEmptyDir(root),
     files: files.map((rel) => ({ rel, exists: existsSync(path.join(target, rel)) })),
     mergePackageJson: missing.length > 0,
+    entry: replacesEntry ? { path: entry, backup: backupName(target, entry) } : null,
   }
+}
+
+function backupName(target, entry) {
+  const ext = path.extname(entry)
+  const base = entry.slice(0, -ext.length)
+  let name = `${base}.original${ext}`
+  for (let i = 2; existsSync(path.join(target, name)); i++) name = `${base}.original-${i}${ext}`
+  return name
 }
 
 /** Adds missing dependencies and scripts to a package.json; existing entries are never changed. */
@@ -148,23 +199,32 @@ export function mergePackageJson(existing, template) {
 export function apply(dir, { confirmed = false, install = false } = {}) {
   const p = plan(dir)
   if (p.needsConfirmation && !confirmed) {
-    const err = new Error(`confirmation required: scaffold into ${p.target} (missing: ${p.missing.join(', ')}); rerun with --confirmed after the user agrees`)
+    const err = new Error(`confirmation required: scaffold into ${p.target} (missing: ${p.missing.join(', ')}${p.entry ? `; entry ${p.entry.path} will be replaced, original saved as ${p.entry.backup}` : ''}); rerun with --confirmed after the user agrees`)
     err.code = 'NEEDS_CONFIRMATION'
     throw err
   }
   const written = []
   const skipped = []
+  let freshLock = false
   if (p.mergePackageJson) {
     const templatePkg = readJson(path.join(TEMPLATES.bootstrap, 'package.json'))
     const file = path.join(p.target, 'package.json')
     mkdirSync(p.target, { recursive: true })
     const existing = readJson(file)
     const { merged, added } = mergePackageJson(existing ?? { name: path.basename(p.target), private: true, version: '0.0.0', type: 'module' }, templatePkg)
-    if (!existing || added.length) writeFileSync(file, JSON.stringify(merged, null, 2) + '\n')
-    if (!existing || added.length) written.push('package.json')
+    if (!existing || added.length) {
+      writeFileSync(file, JSON.stringify(merged, null, 2) + '\n')
+      written.push('package.json')
+    }
+    freshLock = !existing
+  }
+  if (p.entry) {
+    cpSync(path.join(p.target, p.entry.path), path.join(p.target, p.entry.backup))
+    written.push(p.entry.backup)
   }
   for (const { rel, exists } of p.files) {
-    if (exists) {
+    const isEntry = p.entry && rel === 'src/main.tsx'
+    if (exists && !isEntry) {
       skipped.push(rel)
       continue
     }
@@ -173,41 +233,65 @@ export function apply(dir, { confirmed = false, install = false } = {}) {
     cpSync(path.join(TEMPLATES.bootstrap, rel), to)
     written.push(rel)
   }
-  if (install && p.mergePackageJson) {
-    const hasLock = existsSync(path.join(p.target, 'package-lock.json'))
-    spawnSync('npm', [hasLock ? 'ci' : 'install'], { cwd: p.target, stdio: 'inherit' })
+  if (p.entry && p.entry.path !== 'src/main.tsx') {
+    const html = path.join(p.target, 'index.html')
+    writeFileSync(html, readFileSync(html, 'utf8').replace(new RegExp(`(src=["']/?)${p.entry.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), '$1src/main.tsx'))
+    written.push('index.html')
   }
-  return { ...p, written, skipped }
+  let installed = false
+  if (install && p.mergePackageJson) {
+    const run = spawnSync('npm', [freshLock ? 'ci' : 'install'], { cwd: p.target, stdio: 'inherit' })
+    if (run.status !== 0) {
+      const err = new Error(`dependency installation failed (npm ${freshLock ? 'ci' : 'install'} exited ${run.status}) in ${p.target}`)
+      err.code = 'INSTALL_FAILED'
+      throw err
+    }
+    installed = true
+  }
+  return { ...p, written, skipped, installed }
 }
 
-const render = (text, vars) => text.replaceAll('__SLUG__', vars.slug).replaceAll('__TITLE__', vars.title)
+const posix = (p) => p.split(path.sep).join('/')
 
-/** Adds one registry entry before the closing bracket; every existing line is preserved. */
+/** Substitutes slug, kit import path and a JS string literal for the title (valid in any source context). */
+function render(text, vars) {
+  return text.replaceAll('__SLUG__', vars.slug).replaceAll('__KIT__', vars.kit).replaceAll('__TITLE_LIT__', JSON.stringify(vars.title))
+}
+
+/** Adds one registry entry before the array's closing bracket; every existing line is preserved. */
 export function registerPresentation(source, { slug, title }) {
-  const entry = `  {\n    slug: ${JSON.stringify(slug)},\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk'),\n  },\n`
   if (new RegExp(`slug:\\s*['"]${slug}['"]`).test(source)) throw new Error(`slug already registered: ${slug}`)
-  const close = source.lastIndexOf('\n]')
-  if (close < 0) throw new Error('cannot find the end of the presentations array in src/presentations/index.ts')
-  return source.slice(0, close + 1) + entry + source.slice(close + 1)
+  const close = source.lastIndexOf(']')
+  if (close < 0) throw new Error('cannot find the end of the presentations array in the registry')
+  const before = source.slice(0, close).replace(/\s+$/, '')
+  const comma = /[,[]$/.test(before) ? '' : ','
+  const entry = `  {\n    slug: ${JSON.stringify(slug)},\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk'),\n  },`
+  return `${before}${comma}\n${entry}\n${source.slice(close)}`
 }
 
 export function createPresentation(dir, { slug, title }) {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug ?? '')) throw new Error(`invalid slug: ${slug}`)
   const { target } = resolveTarget(dir)
-  const folder = path.join(target, 'src', 'presentations', slug)
+  const registry = findRegistryFile(target)
+  if (!registry) throw new Error(`no presentation registry found under ${target}/src; scaffold first`)
+  const kitDir = findKitDir(target)
+  if (!kitDir || !['index.ts', 'index.tsx'].some((f) => existsSync(path.join(target, kitDir, f)))) {
+    throw new Error(`cannot locate the scene kit entry (index.ts) under ${target}/src; scaffold first`)
+  }
+  const folder = path.join(target, path.dirname(registry), slug)
   if (existsSync(folder)) throw new Error(`presentation folder already exists: ${folder}`)
-  const indexFile = path.join(target, 'src', 'presentations', 'index.ts')
-  const indexSource = readFileSync(indexFile, 'utf8')
-  const updated = registerPresentation(indexSource, { slug, title })
+  const registryFile = path.join(target, registry)
+  const updated = registerPresentation(readFileSync(registryFile, 'utf8'), { slug, title })
+  const kit = posix(path.relative(folder, path.join(target, kitDir)))
   const written = []
   for (const rel of walk(TEMPLATES.presentation)) {
     const to = path.join(folder, rel)
     mkdirSync(path.dirname(to), { recursive: true })
-    writeFileSync(to, render(readFileSync(path.join(TEMPLATES.presentation, rel), 'utf8'), { slug, title }))
+    writeFileSync(to, render(readFileSync(path.join(TEMPLATES.presentation, rel), 'utf8'), { slug, title, kit }))
     written.push(path.relative(target, to))
   }
-  writeFileSync(indexFile, updated)
-  return { target, written, registered: slug }
+  writeFileSync(registryFile, updated)
+  return { target, written, registered: slug, registry }
 }
 
 function main(argv) {

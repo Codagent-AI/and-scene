@@ -1,13 +1,15 @@
 // @vitest-environment node
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import ts from 'typescript'
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
-  SKILL_DIR, TEMPLATES, apply, createPresentation, detectAnchors, detectMonorepo, isEmptyDir, mergePackageJson, plan, registerPresentation, resolveTarget,
+  KIT_SIGNALS, SKILL_DIR, TEMPLATES, apply, createPresentation, detectAnchors, detectMonorepo, isEmptyDir, mergePackageJson, plan, registerPresentation, resolveTarget,
 } from '../../skills/presentation/scripts/scaffold.mjs'
 
+type PackageJson = { scripts: Record<string, string>; dependencies: Record<string, string>; devDependencies: Record<string, string> }
 const made: string[] = []
 const tmp = () => {
   const d = mkdtempSync(path.join(tmpdir(), 'scaffold-'))
@@ -25,7 +27,7 @@ const full = () => {
   return d
 }
 const pkg = (deps: Record<string, string> = {}, scripts: Record<string, string> = { build: 'tsc -b && vite build' }, extra: object = {}) =>
-  JSON.stringify({ name: 'x', scripts, dependencies: { react: '1' }, devDependencies: { vite: '1', typescript: '1', ...deps }, ...extra })
+  JSON.stringify({ name: 'x', scripts, dependencies: { react: '1', 'react-dom': '1' }, devDependencies: { vite: '1', typescript: '1', ...deps }, ...extra })
 
 describe('anchor detection is contract-level (L-37, I-37)', () => {
   it('finds nothing in an empty directory', () => {
@@ -48,6 +50,37 @@ describe('anchor detection is contract-level (L-37, I-37)', () => {
     write(d, 'src/presentation-kit/Presentation.tsx', '// nothing here\nexport const x = 1\n')
     write(d, 'src/presentations/index.ts', '// registry\nexport const presentations = []\n')
     expect(detectAnchors(d)).toEqual({ build: false, kit: false, index: false })
+  })
+  const srcFiles = (d: string): string[] =>
+    readdirSync(d).flatMap((n) => (statSync(path.join(d, n)).isDirectory() ? srcFiles(path.join(d, n)) : [path.join(d, n)]))
+  const scrub = (d: string, re: RegExp) => {
+    for (const f of srcFiles(path.join(d, 'src'))) writeFileSync(f, readFileSync(f, 'utf8').replace(new RegExp(re.source, re.flags.includes('g') ? re.flags : `${re.flags}g`), 'ZZZ'))
+  }
+  it.each(KIT_SIGNALS.map((re: RegExp, i: number) => [i, String(re)] as const))('is incomplete without kit capability #%i %s', (i) => {
+    const d = full()
+    scrub(d, KIT_SIGNALS[i] as RegExp)
+    expect(detectAnchors(d)).toEqual({ build: true, kit: false, index: true })
+  })
+  it('needs routing as well as a registry for the index anchor', () => {
+    const d = full()
+    scrub(d, /\bpathname\b/)
+    expect(detectAnchors(d).index).toBe(false)
+    const e = full()
+    scrub(e, /\bimport\s*\(/)
+    expect(detectAnchors(e).index).toBe(false)
+  })
+  it.each([
+    ['no build script', (p: PackageJson) => delete p.scripts.build],
+    ['a build that is not a vite build', (p: PackageJson) => (p.scripts.build = 'echo build')],
+    ['no typescript', (p: PackageJson) => delete p.devDependencies.typescript],
+    ['no react', (p: PackageJson) => delete p.dependencies.react],
+    ['no vite', (p: PackageJson) => delete p.devDependencies.vite],
+  ])('is not a Vite + React + TypeScript build with %s', (_n, mutate) => {
+    const d = full()
+    const p = JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8'))
+    mutate(p)
+    writeFileSync(path.join(d, 'package.json'), JSON.stringify(p))
+    expect(detectAnchors(d).build).toBe(false)
   })
   it('detects a missing individual anchor', () => {
     const d = full()
@@ -229,15 +262,24 @@ describe('skill-relative template resolution (L-41, I-39)', () => {
 
 describe('creating a presentation preserves the others (L-44, I-43)', () => {
   const registry = `import type { PresentationEntry } from './types'\n\nexport const presentations: PresentationEntry[] = [\n  {\n    slug: 'one',\n    title: 'One',\n    load: () => import('./one/Talk'),\n  },\n  {\n    slug: 'two',\n    title: 'Two',\n    load: () => import('./two/Talk'),\n  },\n]\n`
-  it('adds a third entry, keeping the first two lines intact', () => {
+  it('adds a third entry, keeping every existing line', () => {
     const out = registerPresentation(registry, { slug: 'three', title: 'Three' })
-    expect(out.startsWith(registry.slice(0, registry.lastIndexOf('\n]')))).toBe(true)
-    expect(out).toContain("slug: 'one'")
-    expect(out).toContain("slug: 'two'")
-    expect(out).toContain('slug: "three"')
+    for (const line of registry.split('\n')) expect(out).toContain(line)
+    expect(out.indexOf("slug: 'two'")).toBeLessThan(out.indexOf('slug: "three"'))
     expect(out).toMatch(/import\('\.\/three\/Talk'\)/)
     expect(() => registerPresentation(out, { slug: 'three', title: 'x' })).toThrow(/already registered/)
     expect(() => registerPresentation('export const x = 1', { slug: 'a', title: 'a' })).toThrow(/cannot find/)
+  })
+  it.each([
+    ['a closing bracket on the last entry line', "export const presentations = [{ slug: 'one', title: 'One', load: () => import('./one/Talk') }]"],
+    ['no trailing comma and CRLF', "export const presentations = [\r\n  { slug: 'one', title: 'One', load: () => import('./one/Talk') }\r\n]\r\n"],
+    ['an empty array', 'export const presentations: unknown[] = []\n'],
+  ])('registers into %s', (_n, source) => {
+    const out = registerPresentation(source, { slug: 'next', title: 'Next' })
+    const diagnostics = ts.transpileModule(out, { reportDiagnostics: true, compilerOptions: { target: ts.ScriptTarget.ES2022 } }).diagnostics
+    expect(diagnostics).toEqual([])
+    expect(out).toContain('slug: "next"')
+    if (source.includes("'one'")) expect(out).toContain("slug: 'one'")
   })
   it('writes a self-contained folder and leaves existing presentation files and entries untouched', () => {
     const d = full()
@@ -245,15 +287,131 @@ describe('creating a presentation preserves the others (L-44, I-43)', () => {
     const before = existing.map((f) => readFileSync(path.join(d, f), 'utf8'))
     const registryBefore = readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8')
     const r = createPresentation(d, { slug: 'my-deck', title: 'My "Deck"' })
-    expect(r.written.map((f) => path.basename(f)).sort()).toEqual(['Scene.tsx', 'Talk.tsx', 'entities.ts', 'presentation.css', 'steps.ts'])
+    expect(r.written.map((f: string) => path.basename(f)).sort()).toEqual(['Scene.tsx', 'Talk.tsx', 'entities.ts', 'presentation.css', 'steps.ts'])
     expect(existing.map((f) => readFileSync(path.join(d, f), 'utf8'))).toEqual(before)
     const registryAfter = readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8')
-    expect(registryAfter).toContain(registryBefore.slice(0, registryBefore.lastIndexOf('\n]')))
+    for (const line of registryBefore.split('\n').filter((l) => l.trim() && l.trim() !== ']')) expect(registryAfter).toContain(line)
     expect(registryAfter).toContain('"My \\"Deck\\""')
-    const css = readFileSync(path.join(d, 'src/presentations/my-deck/presentation.css'), 'utf8')
-    expect(css).toContain('.deck-my-deck')
+    expect(readFileSync(path.join(d, 'src/presentations/my-deck/presentation.css'), 'utf8')).toContain('.deck-my-deck')
     expect(readFileSync(path.join(d, 'src/presentations/my-deck/entities.ts'), 'utf8')).not.toMatch(/__SLUG__/)
     expect(() => createPresentation(d, { slug: 'my-deck', title: 'x' })).toThrow(/already exists/)
     expect(() => createPresentation(d, { slug: 'Bad Slug', title: 'x' })).toThrow(/invalid slug/)
+  })
+  it.each([`My "Deck"`, `It's <b>{x}</b> \\ end`, 'Back`tick ${x} & more', 'Line\nbreak'])('generates syntactically valid source for the title %j', (title) => {
+    const d = full()
+    const r = createPresentation(d, { slug: 'odd', title })
+    for (const rel of r.written.filter((f: string) => /\.tsx?$/.test(f))) {
+      const text = readFileSync(path.join(d, rel), 'utf8')
+      const kind = rel.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+      const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.ES2022, true, kind) as unknown as { parseDiagnostics: unknown[] }
+      expect(sf.parseDiagnostics, rel).toEqual([])
+      expect(text, rel).not.toMatch(/__[A-Z_]+__/)
+    }
+    expect(readFileSync(path.join(d, 'src/presentations/odd/Talk.tsx'), 'utf8')).toContain(`title={${JSON.stringify(title)}}`)
+  })
+  it('follows a renamed registry and kit instead of assuming default paths', () => {
+    const d = full()
+    renameSync(path.join(d, 'src/presentation-kit'), path.join(d, 'src/engine'))
+    mkdirSync(path.join(d, 'src/routing'))
+    renameSync(path.join(d, 'src/presentations/index.ts'), path.join(d, 'src/routing/registry.ts'))
+    const r = createPresentation(d, { slug: 'moved', title: 'Moved' })
+    expect(r.registry).toBe(path.join('src', 'routing', 'registry.ts'))
+    expect(existsSync(path.join(d, 'src/routing/moved/Talk.tsx'))).toBe(true)
+    expect(readFileSync(path.join(d, 'src/routing/moved/Talk.tsx'), 'utf8')).toContain("from '../../engine'")
+    expect(readFileSync(path.join(d, 'src/routing/registry.ts'), 'utf8')).toContain('slug: "moved"')
+    expect(existsSync(path.join(d, 'src/presentations/moved'))).toBe(false)
+  })
+  it('refuses to create without a registry or kit entry', () => {
+    expect(() => createPresentation(tmp(), { slug: 'x', title: 'x' })).toThrow(/no presentation registry/)
+  })
+})
+
+describe('adding the index to an existing app wires its entry point (L-37, L-39)', () => {
+  const existingApp = (entry = 'src/main.tsx') => {
+    const d = full()
+    for (const rel of ['src/Router.tsx', 'src/routes.ts', 'src/Landing.tsx', 'src/presentations']) rmSync(path.join(d, rel), { recursive: true })
+    writeFileSync(path.join(d, entry), "import { createRoot } from 'react-dom/client'\n// my app entry\n")
+    if (entry !== 'src/main.tsx') {
+      rmSync(path.join(d, 'src/main.tsx'), { force: true })
+      writeFileSync(path.join(d, 'index.html'), `<html><body><div id="root"></div><script type="module" src="/${entry}"></script></body></html>`)
+    }
+    return d
+  }
+  it('replaces the entry that never mounts the router, keeping the original beside it, and says so before writing', () => {
+    const d = existingApp()
+    const p = plan(d)
+    expect(p.missing).toEqual(['index'])
+    expect(p.entry).toEqual({ path: 'src/main.tsx', backup: 'src/main.original.tsx' })
+    expect(() => apply(d)).toThrow(/entry src\/main\.tsx will be replaced, original saved as src\/main\.original\.tsx/)
+    expect(readFileSync(path.join(d, 'src/main.tsx'), 'utf8')).toContain('// my app entry')
+    apply(d, { confirmed: true })
+    expect(readFileSync(path.join(d, 'src/main.original.tsx'), 'utf8')).toContain('// my app entry')
+    expect(readFileSync(path.join(d, 'src/main.tsx'), 'utf8')).toContain('<Router')
+    expect(detectAnchors(d)).toEqual({ build: true, kit: true, index: true })
+    expect(plan(d).entry).toBeNull()
+  })
+  it('repoints index.html when the existing entry has another name', () => {
+    const d = existingApp('src/index.tsx')
+    expect(plan(d).entry?.path).toBe('src/index.tsx')
+    apply(d, { confirmed: true })
+    expect(readFileSync(path.join(d, 'index.html'), 'utf8')).toContain('src="/src/main.tsx"')
+    expect(readFileSync(path.join(d, 'src/main.tsx'), 'utf8')).toContain('<Router')
+    expect(readFileSync(path.join(d, 'src/index.original.tsx'), 'utf8')).toContain('// my app entry')
+  })
+  it('leaves the entry alone when the index anchor already exists', () => {
+    const d = full()
+    const before = readFileSync(path.join(d, 'src/main.tsx'), 'utf8')
+    expect(plan(d).entry).toBeNull()
+    apply(d)
+    expect(readFileSync(path.join(d, 'src/main.tsx'), 'utf8')).toBe(before)
+  })
+})
+
+describe('dependency installation (L-38, I-40)', () => {
+  const withFakeNpm = (exitCode: number, fn: (argsFile: string) => void) => {
+    const bin = tmp()
+    const argsFile = path.join(bin, 'args.txt')
+    writeFileSync(path.join(bin, 'npm'), `#!/bin/sh\necho "$@" >> "${argsFile}"\nexit ${exitCode}\n`)
+    chmodSync(path.join(bin, 'npm'), 0o755)
+    const saved = process.env.PATH
+    process.env.PATH = `${bin}:${saved}`
+    try {
+      fn(argsFile)
+    } finally {
+      process.env.PATH = saved
+    }
+  }
+  it('uses npm ci for a fresh scaffold with the copied lock', () => {
+    withFakeNpm(0, (args) => {
+      const d = tmp()
+      expect(apply(d, { install: true }).installed).toBe(true)
+      expect(readFileSync(args, 'utf8').trim()).toBe('ci')
+    })
+  })
+  it('uses npm install, which updates the lock, when dependencies were merged into an existing package', () => {
+    withFakeNpm(0, (args) => {
+      const d = tmp()
+      write(d, 'package.json', pkg())
+      write(d, 'package-lock.json', '{}')
+      apply(d, { confirmed: true, install: true })
+      expect(readFileSync(args, 'utf8').trim()).toBe('install')
+    })
+  })
+  it('fails instead of reporting success when installation fails', () => {
+    withFakeNpm(1, () => {
+      const d = tmp()
+      expect(() => apply(d, { install: true })).toThrow(/dependency installation failed/)
+      try {
+        apply(tmp(), { install: true })
+      } catch (e) {
+        expect((e as { code: string }).code).toBe('INSTALL_FAILED')
+      }
+    })
+  })
+  it('does not install when nothing was scaffolded or install was not requested', () => {
+    withFakeNpm(1, () => {
+      expect(apply(full(), { install: true }).installed).toBe(false)
+      expect(apply(tmp()).installed).toBe(false)
+    })
   })
 })

@@ -10,7 +10,7 @@ export function Scene({ payload: { n } }: SceneProps<Payload>) {
   return (
     <SceneLayer>
       <Box entity={E.topic} at={{ x: 120, y: 150, w: 200, h: 80 }} className="topic">
-        <span>Starter Presentation</span>
+        <span>{"Starter Presentation"}</span>
       </Box>
       <Presence>
         {n >= 2 && (

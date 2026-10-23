@@ -16,7 +16,7 @@ export const UA_LINK_COLOR = 'rgb(0, 0, 238)'
 export const OVERLAP_MIN_AREA_PX = 4
 export const DISTINCT_PROPS = [
   'color', 'backgroundColor', 'borderColor', 'opacity', 'fontWeight', 'textDecorationLine',
-  'boxShadow', 'outlineStyle', 'outlineColor', 'width', 'height',
+  'boxShadow', 'outlineStyle', 'outlineColor', 'outlineWidth', 'width', 'height',
 ]
 
 /** CLI flag beats environment, which beats the default. */
@@ -48,11 +48,10 @@ export function screenshotName(index) {
 export const intersectionArea = (a, b) =>
   Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
 
-const contains = (a, b) => a.left <= b.left && a.top <= b.top && a.right >= b.right && a.bottom >= b.bottom
-
 /**
  * Items: { name, rect:{left,top,right,bottom}, visible, allowed, ancestors: string[] (names) }.
- * Containment of one item by another (a text container and its text) is not a collision.
+ * Only DOM ancestry (a text container and its own text, via `ancestors`) is exempt; unrelated elements whose
+ * boxes nest or intersect still collide unless an allow-overlap marker covers them.
  */
 export function findOverlaps(items) {
   const found = []
@@ -62,7 +61,6 @@ export function findOverlaps(items) {
       const a = live[i]
       const b = live[j]
       if (a.ancestors?.includes(b.name) || b.ancestors?.includes(a.name)) continue
-      if (contains(a.rect, b.rect) || contains(b.rect, a.rect)) continue
       if (intersectionArea(a.rect, b.rect) >= OVERLAP_MIN_AREA_PX) found.push([a.name, b.name])
     }
   }
@@ -100,7 +98,7 @@ export function analyzeSnapshot(step, snapshot) {
 }
 
 /** Runs in the page: gathers visible text/chrome rects and the computed styles the analysis needs. */
-export function collectSnapshot() {
+export function collectSnapshot(styleProps) {
   const CHROME = '[data-presentation-marker],[data-presentation-title],[data-presentation-caption],[data-presentation-prev],[data-presentation-next],[data-presentation-progress],[data-presentation-toc-entry],[data-presentation-attribution],[data-presentation-brand]'
   const describe = (el) => {
     const hook = [...el.attributes].find((a) => a.name.startsWith('data-presentation-') && a.name !== 'data-presentation-active' && a.name !== 'data-presentation-allow-overlap')
@@ -123,7 +121,7 @@ export function collectSnapshot() {
   const root = document.querySelector('[data-presentation-root]') ?? document.body
   const chrome = new Set(root.querySelectorAll(CHROME))
   const textLeaves = [...root.querySelectorAll('*')].filter(
-    (el) => ![...el.childNodes].every((n) => n.nodeType !== 3 || !n.textContent.trim()) && !el.closest('svg'),
+    (el) => ![...el.childNodes].every((n) => n.nodeType !== 3 || !n.textContent.trim()) && !(el.closest('svg') && el.tagName.toLowerCase() !== 'text' && el.tagName.toLowerCase() !== 'tspan'),
   )
   const els = [...new Set([...chrome, ...textLeaves])]
   const names = new Map(els.map((el) => [el, describe(el)]))
@@ -136,7 +134,7 @@ export function collectSnapshot() {
   }))
   const styleOf = (el) => {
     const cs = getComputedStyle(el)
-    return Object.fromEntries(['color', 'backgroundColor', 'borderColor', 'opacity', 'fontWeight', 'textDecorationLine', 'boxShadow', 'outlineStyle', 'outlineColor', 'width', 'height'].map((p) => [p, cs[p]]))
+    return Object.fromEntries(styleProps.map((p) => [p, cs[p]]))
   }
   const activeChrome = ['progress', 'toc-entry'].flatMap((hook) => {
     const all = [...root.querySelectorAll(`[data-presentation-${hook}]`)].filter(isVisible)
@@ -173,7 +171,7 @@ export async function captureSteps(page, { count, settleMs, dir, onWarning, log,
     const capturedAt = now()
     await page.screenshot({ path: path.join(dir, screenshotName(i)) })
     log.push({ step: i + 1, navigatedAt, capturedAt })
-    for (const w of analyzeSnapshot(i + 1, await page.evaluate(collectSnapshot))) onWarning(w)
+    for (const w of analyzeSnapshot(i + 1, await page.evaluate(collectSnapshot, DISTINCT_PROPS))) onWarning(w)
   }
 }
 

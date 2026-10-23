@@ -49,7 +49,7 @@ export function TalkScene({ payload: { n } }: SceneProps<TalkPayload>) {
       </Group>
 
       <Group id="tray" show={n >= 3}>
-        <Frame entity={E.tray} at={AT.tray} data-sample="tray" className="hmp-tray" />
+        <Box entity={E.tray} at={AT.tray} data-sample="tray" className="hmp-tray" />
         <Card i={0} />
       </Group>
       {/* The link between consecutive cards persists and stretches when the next card lands. */}

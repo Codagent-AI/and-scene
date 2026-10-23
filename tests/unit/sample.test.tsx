@@ -1,5 +1,9 @@
-import { fireEvent, render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { fireEvent, render, waitFor } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { describe, expect, it, vi } from 'vitest'
+
+// Shorten the newcomer fade so the nine-step traversal stays fast; real timings are asserted in stage.test.tsx.
+vi.mock('../../src/presentation-kit/constants', async (original) => ({ ...(await original<object>()), ENTER_DELAY: 0.03, ENTER_T: 0.05 }))
 import { presentations } from '../../src/presentations'
 import Talk from '../../src/presentations/how-to-make-a-presentation/Talk'
 import { OUTLINE } from '../../src/presentations/how-to-make-a-presentation/outline'
@@ -120,8 +124,15 @@ describe('reference sample scene (L-49, I-25)', () => {
     const plug = body(one('socket-plug'))
     expect(plug.t).toBe(tray.t + tray.h)
     expect(plug.t + plug.h).toBe(geo(one('scene-kit')).t)
-    expect(container.querySelectorAll('[data-presentation-frame]')).toHaveLength(1)
+    expect(container.querySelectorAll('[data-presentation-frame]')).toHaveLength(0)
+    expect(one('tray').hasAttribute('data-presentation-frame')).toBe(false)
     expect(sample('outer-frame')).toHaveLength(0)
+    const css = readFileSync('src/presentations/how-to-make-a-presentation/presentation.css', 'utf8')
+    const trayRule = /\.hmp-tray\s*\{([^}]*)\}/.exec(css)![1]!.replace(/\/\*[\s\S]*?\*\//g, '')
+    const decls = Object.fromEntries(trayRule.split(';').map((d) => d.split(':').map((x) => x.trim())).filter((d) => d[0]))
+    for (const [prop, value] of Object.entries(decls)) if (/^border/.test(prop!) && prop !== 'border-radius') expect(value, prop).toBe('0')
+    expect(decls.border).toBe('0')
+    expect(trayRule).not.toMatch(/outline|box-shadow/)
 
     // 7: verify chained after the cards in the same row, resolving to a green pass check
     next()
@@ -183,5 +194,51 @@ describe('reference sample scene (L-49, I-25)', () => {
     expect([...container.querySelectorAll('[data-presentation-toc-entry]')].map((e) => e.textContent)).toEqual(['the ask', 'the gathering', 'the build', 'the loop', 'the reveal'])
     fireEvent.click(container.querySelectorAll('[data-presentation-toc-entry]')[3] as Element)
     expect(stepIndex(container)).toBe(7)
+  })
+})
+
+describe('sample-wide continuity (L-8, L-49, I-6, I-25)', () => {
+  it('keeps every earlier entity and its introducing wrapper in place, fully opaque and unmoved, across all nine steps', async () => {
+    setViewport(1400, 900)
+    const { container } = render(<Talk />)
+    const nodes = () => [...container.querySelectorAll<HTMLElement>('[data-presentation-entity]')]
+    const wrappers = () => [...container.querySelectorAll<HTMLElement>('[data-sample-group]')]
+    const snapshot = new Map<string, { node: HTMLElement; geo: Geo }>()
+    const wrapperSeen = new Map<string, HTMLElement>()
+    for (let step = 1; step <= 9; step++) {
+      if (step > 1) key('ArrowRight')
+      // Earlier entities and wrappers: same node, same coordinates, never dipping below fully opaque.
+      for (const [id, { node, geo: g }] of snapshot) {
+        const now = nodes().find((n) => n.dataset.presentationEntity === id)
+        expect(now, `${id} at step ${step}`).toBe(node)
+        if (id !== 'hmp/link-0' && id !== 'hmp/link-label-0') expect(geo(now!), `${id} at step ${step}`).toEqual(g)
+      }
+      for (const [group, wrapper] of wrapperSeen) {
+        const now = wrappers().find((w) => w.dataset.sampleGroup === group)
+        expect(now, `${group} at step ${step}`).toBe(wrapper)
+        expect(wrapper.style.opacity, `${group} wrapper at step ${step}`).toBe('1')
+      }
+      // The newcomer group of this step starts hidden and fades in after the persisting ones settle.
+      const fresh = wrappers().filter((w) => !wrapperSeen.has(w.dataset.sampleGroup!))
+      expect(fresh.length).toBeGreaterThan(0)
+      for (const w of fresh) await waitFor(() => expect(w.style.opacity).toBe('1'), { timeout: 3000 })
+      for (const w of fresh) wrapperSeen.set(w.dataset.sampleGroup!, w)
+      for (const n of nodes()) if (!snapshot.has(n.dataset.presentationEntity!)) snapshot.set(n.dataset.presentationEntity!, { node: n, geo: geo(n) })
+    }
+    expect([...wrapperSeen.keys()]).toEqual(['you', 'skill', 'tray', 'link-0', 'more-cards', 'depth', 'socket', 'verify', 'modify', 'reveal'].filter((g) => wrapperSeen.has(g)))
+  })
+
+  it('morphs only the first link when the next card lands (its end moves, everything else is fixed)', () => {
+    setViewport(1400, 900)
+    const { container } = render(<Talk />)
+    key('ArrowRight')
+    key('ArrowRight')
+    const link = container.querySelector<HTMLElement>('[data-presentation-entity="hmp/link-0"]')!
+    const before = geo(link)
+    key('ArrowRight')
+    const after = geo(container.querySelector<HTMLElement>('[data-presentation-entity="hmp/link-0"]')!)
+    expect(container.querySelector('[data-presentation-entity="hmp/link-0"]')).toBe(link)
+    expect([after.l, after.t, after.h]).toEqual([before.l, before.t, before.h])
+    expect(after.w).toBeGreaterThan(before.w)
   })
 })

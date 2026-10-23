@@ -19,19 +19,25 @@ describe('INT-001: materialized bootstrap', () => {
   let build: Result
   let lint: Result
   let verify: Result
+  let created: Result
+  let createdBuild: Result
+  let createdVerify: Result
   let detect: Result
 
   beforeAll(async () => {
     before = sourceState()
     app = tempDir('int1-app')
     const elsewhere = tempDir('int1-cwd')
-    const applied = await run(process.execPath, [SCAFFOLD, 'apply', app], elsewhere)
-    expect(applied.code, applied.output).toBe(0)
-    install = await run('npm', ['ci'], app)
+    // The helper installs from the committed lock itself (npm ci) and fails loudly if that fails.
+    install = await run(process.execPath, [SCAFFOLD, 'apply', app, '--install'], elsewhere)
     build = await run('npm', ['run', 'build'], app)
     lint = await run('npm', ['run', 'lint'], app)
     verify = await run('npm', ['run', 'verify'], app)
     detect = await run(process.execPath, [SCAFFOLD, 'detect', app], elsewhere)
+    // A new presentation with a hostile title must still produce source that builds and renders.
+    created = await run(process.execPath, [SCAFFOLD, 'new', app, '--slug', 'hostile', '--title', `It's "quoted" <b>{x}</b> \\ end`], elsewhere)
+    createdBuild = await run('npm', ['run', 'build'], app)
+    createdVerify = await run('node', ['scripts/verify.mjs', '--route', 'hostile'], app)
   })
   afterAll(cleanupTempDirs)
 
@@ -41,6 +47,13 @@ describe('INT-001: materialized bootstrap', () => {
     expect(lint.code, lint.output).toBe(0)
     expect(verify.code, verify.output).toBe(0)
     expect(verify.output).toMatch(/VERIFY PASS: build, sample, render \(2 steps\) on 127\.0\.0\.1/)
+  })
+
+  it('creates a routed presentation with an awkward title that builds and renders (L-44, L-48)', () => {
+    expect(created.code, created.output).toBe(0)
+    expect(createdBuild.code, createdBuild.output).toBe(0)
+    expect(createdVerify.code, createdVerify.output).toBe(0)
+    expect(createdVerify.output).toMatch(/VERIFY PASS: build, sample, render \(2 steps\)/)
   })
 
   it('contains all three anchors, detected from an unrelated working directory (L-37, L-41)', () => {

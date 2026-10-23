@@ -146,7 +146,7 @@ const r = (left: number, top: number, right: number, bottom: number) => ({ left,
 const item = (name: string, rect: ReturnType<typeof r>, extra: object = {}) => ({ name, rect, visible: true, allowed: false, ancestors: [], ...extra })
 
 describe('overlap diagnostics (L-61, L-62, I-33)', () => {
-  it('reports intersecting visible text/chrome and ignores disjoint, hidden and contained pairs', () => {
+  it('reports intersecting or nested visible text/chrome of unrelated elements and ignores disjoint and hidden ones', () => {
     const pairs = findOverlaps([
       item('a', r(0, 0, 100, 20)),
       item('b', r(50, 10, 150, 30)),
@@ -155,7 +155,12 @@ describe('overlap diagnostics (L-61, L-62, I-33)', () => {
       item('inner', r(10, 2, 30, 8)),
       item('touch', r(100, 0, 140, 5)),
     ])
-    expect(pairs).toEqual([['a', 'b']])
+    expect(pairs).toEqual([['a', 'b'], ['a', 'inner']])
+  })
+  it('still reports unrelated elements whose boxes nest, unless marked', () => {
+    const nested = [item('outer', r(0, 0, 100, 100)), item('inner', r(10, 10, 50, 30))]
+    expect(findOverlaps(nested)).toEqual([['outer', 'inner']])
+    expect(findOverlaps([item('outer', r(0, 0, 100, 100), { allowed: true }), item('inner', r(10, 10, 50, 30), { allowed: true })])).toEqual([])
   })
   it('skips ancestor containment, even when only partly inside', () => {
     expect(findOverlaps([item('outer', r(0, 0, 100, 100)), item('inner', r(50, 50, 150, 150), { ancestors: ['outer'] })])).toEqual([])
@@ -178,9 +183,15 @@ describe('overlap diagnostics (L-61, L-62, I-33)', () => {
 
 describe('active-chrome and attribution diagnostics (L-63, L-64, C-1, I-34)', () => {
   const base = Object.fromEntries(DISTINCT_PROPS.map((p) => [p, 'same']))
+  // The property set the lead ruled on, written out independently of the implementation.
+  const RULED = ['color', 'backgroundColor', 'borderColor', 'opacity', 'fontWeight', 'textDecorationLine', 'boxShadow', 'outlineStyle', 'outlineColor', 'outlineWidth', 'width', 'height']
+  it('compares exactly the ruled properties, including outline width', () => {
+    expect([...DISTINCT_PROPS].sort()).toEqual([...RULED].sort())
+  })
   it('is indistinct only when every compared property is equal', () => {
-    expect(isIndistinct(base, { ...base })).toBe(true)
-    for (const p of DISTINCT_PROPS) expect(isIndistinct({ ...base, [p]: 'different' }, base), p).toBe(false)
+    const same = Object.fromEntries(RULED.map((p) => [p, 'same']))
+    expect(isIndistinct(same, { ...same })).toBe(true)
+    for (const p of RULED) expect(isIndistinct({ ...same, [p]: 'different' }, same), p).toBe(false)
   })
   it('warns with the step and affected hook', () => {
     const w = analyzeSnapshot(2, { items: [], activeChrome: [{ hook: 'data-presentation-progress', active: base, inactive: { ...base } }], attribution: { fontSizePx: 14, color: 'rgb(0, 0, 0)', textDecorationLine: 'none' } })

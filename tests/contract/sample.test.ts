@@ -48,21 +48,19 @@ describe('reference sample outline', () => {
 })
 
 describe('reference sample accumulates one scene', () => {
-  it('every step keeps everything on screen from the previous step, and only newcomers are added', () => {
+  it('every step keeps everything on screen from the previous step (the diagram accumulates)', () => {
     for (let i = 1; i < STEPS.length; i += 1) {
       const before = new Set(STEPS[i - 1].payload.visible)
       const now = new Set(STEPS[i].payload.visible)
       for (const id of before) expect(now.has(id), `step ${i + 1} dropped ${id}`).toBe(true)
-      const newcomers = STEPS[i].payload.visible.filter((id) => !before.has(id))
-      expect([...STEPS[i].payload.added].sort()).toEqual(newcomers.sort())
     }
   })
 
-  it('wraps only newcomers: continuing entities are never in the added list', () => {
-    for (let i = 1; i < STEPS.length; i += 1) {
-      const before = new Set(STEPS[i - 1].payload.visible)
-      for (const id of STEPS[i].payload.added) expect(before.has(id), `step ${i + 1} re-adds ${id}`).toBe(false)
-    }
+  it('the connector between you and the skill is two-way, and the verify node names its checks', () => {
+    expect(ENTITIES['talk-link']).toMatchObject({ kind: 'arrow', twoWay: true })
+    expect(ENTITIES.verify).toMatchObject({ kind: 'box' })
+    expect((ENTITIES.verify as { text: string }).text).toMatch(/build/)
+    expect((ENTITIES.verify as { text: string }).text).toMatch(/render/)
   })
 
   it('every visible entity is in the catalog, with fixed geometry shared by all steps', () => {

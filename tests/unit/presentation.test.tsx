@@ -38,11 +38,18 @@ describe('Presentation chrome and modes', () => {
     expect(container.querySelector('[data-presentation-marker]')?.textContent).toBe('03 · second era')
     rerender(<Presentation title="Deck" steps={[...steps].reverse()} />)
     expect(container.querySelector('[data-presentation-marker]')?.textContent).toBe('03 · first era')
-    rerender(<Presentation title="Deck" steps={[...steps, steps[0]]} />)
-    expect(container.querySelector('[data-presentation-marker]')?.textContent).toBe('03 · second era')
-    rerender(<Presentation title="Deck" steps={steps.slice(1)} />)
-    expect(container.querySelector('[data-presentation-marker]')?.textContent).toBe('03 · second era')
-    expect(container.querySelectorAll('[data-presentation-progress-dot]')).toHaveLength(4)
+    // A new step with its own stable id is inserted before the current position.
+    const inserted = { ...makeSteps()[0], id: 'inserted', title: 'Inserted', era: 'third era' }
+    const reversed = [...steps].reverse()
+    const withInsert = [reversed[0], inserted, ...reversed.slice(1)]
+    rerender(<Presentation title="Deck" steps={withInsert} />)
+    expect(container.querySelectorAll('[data-presentation-progress-dot]')).toHaveLength(5)
+    expect(container.querySelector('[data-presentation-marker]')?.textContent).toBe(`03 · ${withInsert[2].era}`)
+    // The step at the current position is removed; numbering follows the new positions.
+    const withoutFirst = steps.slice(1)
+    rerender(<Presentation title="Deck" steps={withoutFirst} />)
+    expect(container.querySelectorAll('[data-presentation-progress-dot]')).toHaveLength(3)
+    expect(container.querySelector('[data-presentation-marker]')?.textContent).toBe(`03 · ${withoutFirst[2].era}`)
   })
 
   it('reports step count and index hooks in both modes', () => {
@@ -143,6 +150,25 @@ describe('Presentation navigation controls', () => {
     expect(screen.getByTestId('scene').getAttribute('data-payload')).toBe(steps[2].payload)
   })
 
+  it('next walks forward and previous walks back through every step of the fixture', () => {
+    const { container } = render(<Presentation title="Deck" steps={makeSteps()} initialMode="browse" />)
+    const next = container.querySelector('[data-presentation-next]') as HTMLElement
+    const prev = container.querySelector('[data-presentation-prev]') as HTMLElement
+    const index = () => root(container).getAttribute('data-step-index')
+    fireEvent.click(next)
+    expect(index()).toBe('1')
+    fireEvent.click(next)
+    expect(index()).toBe('2')
+    fireEvent.click(next)
+    expect(index()).toBe('3')
+    fireEvent.click(prev)
+    expect(index()).toBe('2')
+    fireEvent.click(prev)
+    expect(index()).toBe('1')
+    fireEvent.click(prev)
+    expect(index()).toBe('0')
+  })
+
   it('prev and next are disabled at the ends and do nothing there', () => {
     const { container } = render(<Presentation title="Deck" steps={makeSteps()} />)
     const prev = container.querySelector('[data-presentation-prev]') as HTMLButtonElement
@@ -188,6 +214,12 @@ describe('Presentation attribution and branding', () => {
   it('the attribution link exposes a stable styling hook', () => {
     const { container } = render(<Presentation title="Deck" steps={makeSteps()} />)
     expect(container.querySelector('a[data-presentation-attribution]')).not.toBeNull()
+  })
+
+  it('omits the attribution link entirely when hideAttribution is set', () => {
+    const { container } = render(<Presentation title="Deck" steps={makeSteps()} hideAttribution />)
+    expect(container.querySelector('[data-presentation-attribution]')).toBeNull()
+    expect(container.querySelector('[data-presentation-attribution-slot]')).toBeNull()
   })
 
   it('the top-left brand slot is empty by default, and renders a host brand when provided', () => {

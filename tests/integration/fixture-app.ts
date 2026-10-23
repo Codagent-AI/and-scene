@@ -15,6 +15,8 @@ export const VARIANTS = [
   'attribution-small',
   'attribution-default',
   'attribution-missing',
+  'attribution-absent',
+  'chrome-overlap',
   'slow',
   'combined',
 ] as const
@@ -82,7 +84,12 @@ export function FixtureTalk({ variant }: { variant: string }) {
   const browserLink = variant === 'attribution-default' ? '' : undefined
   return (
     <div data-fixture={variant} data-distinct={distinct} data-browser-link={browserLink}>
-      <Presentation title={\`fixture \${variant}\`} steps={steps(variant, layers)} initialMode="browse" />
+      <Presentation
+        title={\`fixture \${variant}\`}
+        steps={steps(variant, layers)}
+        initialMode="browse"
+        hideAttribution={variant === 'attribution-absent'}
+      />
     </div>
   )
 }
@@ -112,6 +119,9 @@ const FIXTURE_CSS = `
 [data-fixture]:not([data-browser-link]) [data-presentation-attribution] { font-size: 13px; color: #222; text-decoration: none; }
 [data-fixture='attribution-small'] [data-presentation-attribution] { font-size: 9px !important; }
 [data-fixture='attribution-missing'] [data-presentation-attribution] { display: none !important; }
+/* The progress dots sit over the step title, so the text and the controls collide. */
+[data-fixture='chrome-overlap'] [data-presentation-footer] [data-presentation-progress] { position: absolute; left: 0; top: 0; }
+[data-fixture='chrome-overlap'] [data-presentation-step-title] { margin: 0; }
 `
 
 /** One Talk.tsx per variant, registered under the slug fixture-<variant>. */

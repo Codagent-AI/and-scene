@@ -2,14 +2,17 @@
 import { createElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render } from '@testing-library/react'
-import { LAYOUT_T, LAYOUT_TRANSITION } from '../../src/presentation-kit/constants'
+import { EXIT, LAYOUT_T, LAYOUT_TRANSITION } from '../../src/presentation-kit/constants'
 import { Presentation, Box, Label, Arrow, Frame, Emphasis, SymbolChip, SceneLayer } from '../../src/presentation-kit'
 import { stubViewport } from './fixtures'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'
 import { Diagram } from '../../src/presentations/how-to-make-a-presentation/scene'
+import type { DiagramState } from '../../src/presentations/how-to-make-a-presentation/entities'
+import { motion } from 'motion/react'
 
 // Records the props each motion element receives, and renders a plain element that keeps the
 // author-visible props (className, style, data-*, children). Motion-only props are dropped.
+// AnimatePresence stays real; these tests check props and DOM structure, not animation.
 const received: Array<Record<string, unknown>> = []
 const MOTION_ONLY = new Set(['layout', 'layoutId', 'transition', 'initial', 'animate', 'exit', 'rotate'])
 
@@ -31,7 +34,7 @@ function propsFor(predicate: (props: Record<string, unknown>) => boolean) {
   return received.filter(predicate)
 }
 
-describe('primitives pass layoutId and a layout transition to motion', () => {
+describe('primitives pass layoutId, a layout transition, and an exit to motion', () => {
   it.each([
     ['Box', <Box key="x" id="x" />],
     ['Label', <Label key="x" id="x" />],
@@ -39,49 +42,71 @@ describe('primitives pass layoutId and a layout transition to motion', () => {
     ['Frame', <Frame key="x" id="x" geometry={{ x: 0, y: 0, w: 1, h: 1 }} />],
     ['Emphasis', <Emphasis key="x" id="x" />],
     ['SymbolChip', <SymbolChip key="x" id="x" />],
-  ])('%s keeps its stable id as layoutId and morphs for LAYOUT_T', (_name, element) => {
+  ])('%s keeps its stable id as layoutId, morphs for LAYOUT_T, and exits by fading out', (_name, element) => {
     render(<SceneLayer>{element}</SceneLayer>)
     const [props] = propsFor((p) => p.layoutId === 'x')
     expect(props).toBeDefined()
     expect(props.layout).toBe(true)
     expect((props.transition as { layout: { duration: number } }).layout.duration).toBe(LAYOUT_T)
     expect((props.transition as { layout: unknown }).layout).toBe(LAYOUT_TRANSITION)
+    expect(props.exit).toBe(EXIT)
+    expect((props.exit as { opacity: number }).opacity).toBe(0)
+    expect((props.exit as { transition: { duration: number } }).transition.duration).toBe(LAYOUT_T)
   })
 })
 
-describe('continuing entities are not wrapped in newcomer fade-in', () => {
-  it('for every consecutive sample pair, continuing ids are outside Appear and new ids are inside it', () => {
+describe('newcomers are classified against the previous step, forward and backward', () => {
+  const payloadOf = (i: number): DiagramState => STEPS[i].payload
+
+  /** Which entity ids are wrapped in Appear when `payload` is shown after `previous`. */
+  function wrappedIds(payload: DiagramState, previous?: DiagramState) {
+    const { container, unmount } = render(<Diagram payload={payload} previous={previous} />)
+    const result = payload.visible.map((id) => {
+      const node = container.querySelector(`[data-presentation-id="${id}"]`)
+      return { id, wrapped: node!.closest('[data-presentation-appear]') !== null }
+    })
+    unmount()
+    return result
+  }
+
+  it('forward: an id visible in the previous step is outside Appear, and a new id is inside it', () => {
     for (let i = 1; i < STEPS.length; i += 1) {
-      const { container, unmount } = render(<Diagram payload={STEPS[i].payload} />)
-      const previous = new Set(STEPS[i - 1].payload.visible)
-      for (const id of STEPS[i].payload.visible) {
-        const node = container.querySelector(`[data-presentation-id="${id}"]`)
-        expect(node, `step ${i + 1} ${id}`).not.toBeNull()
-        const wrapped = node!.closest('[data-presentation-appear]') !== null
-        const newcomer = !previous.has(id)
-        expect(wrapped, `step ${i + 1} ${id} newcomer=${newcomer}`).toBe(newcomer)
+      const previous = new Set(payloadOf(i - 1).visible)
+      for (const { id, wrapped } of wrappedIds(payloadOf(i), payloadOf(i - 1))) {
+        expect(wrapped, `forward to step ${i + 1}, ${id}`).toBe(!previous.has(id))
       }
-      unmount()
+    }
+  })
+
+  it('backward: going from a later step back to an earlier one wraps nothing that was already on screen', () => {
+    for (let i = STEPS.length - 1; i >= 1; i -= 1) {
+      for (const { id, wrapped } of wrappedIds(payloadOf(i - 1), payloadOf(i))) {
+        expect(wrapped, `backward to step ${i}, ${id}`).toBe(false)
+      }
     }
   })
 
   it('a transition with no newcomers renders no Appear wrapper at all', () => {
-    const payload = { visible: ['you', 'prompt'], added: [], emphasized: [] }
-    const { container } = render(<Diagram payload={payload} />)
+    const payload = { visible: ['you', 'prompt'], emphasized: [] }
+    const { container } = render(<Diagram payload={payload} previous={payload} />)
     expect(container.querySelectorAll('[data-presentation-appear]')).toHaveLength(0)
   })
 })
 
 describe('coordinate-heavy diagrams with a raw motion element', () => {
-  it('a raw motion element keeps its layoutId and author coordinates inside a grouped scene', () => {
+  it('a raw motion element keeps its layoutId, and its author coordinates update within one grouped scene', () => {
+    stubViewport(1280)
     function Dot({ payload }: { payload: { x: number } }) {
       return createElement(
         SceneLayer,
         null,
-        createElement('div', { 'data-presentation-id': 'dot', style: { position: 'absolute', left: payload.x, top: 10 } }),
+        createElement(motion.div, {
+          layoutId: 'dot',
+          'data-presentation-id': 'dot',
+          style: { position: 'absolute', left: payload.x, top: 10 },
+        }),
       )
     }
-    stubViewport(1280)
     const steps = [0, 300].map((x, i) => ({
       id: `s${i}`,
       era: 'e',
@@ -93,6 +118,7 @@ describe('coordinate-heavy diagrams with a raw motion element', () => {
     }))
     const { container } = render(<Presentation title="t" steps={steps} />)
     const node = container.querySelector('[data-presentation-id="dot"]') as HTMLElement
+    expect(propsFor((p) => p.layoutId === 'dot').length).toBeGreaterThan(0)
     expect(node.style.left).toBe('0px')
     fireEvent.click(container.querySelector('[data-presentation-next]')!)
     expect(container.querySelector('[data-presentation-id="dot"]')).toBe(node)

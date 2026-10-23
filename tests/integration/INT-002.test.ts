@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { copyWithSharedModules, materializeBootstrap, removeDir, run } from './helpers'
@@ -51,17 +51,31 @@ describe('screenshot artifacts', () => {
     expect(result.output).toContain('inspect: 3 steps captured for fixture-clean')
   }, 300_000)
 
-  it('captures a settled completed state: the moving entity is at its final position after a zero settle', () => {
+  it('captures a settled completed state: a zero-settle image is byte-identical to the default-settle image, and the configured interval is honored', () => {
+    const copyStep2 = (name: string) => {
+      const dest = join(app, `${name}.png`)
+      copyFileSync(join(app, '.inspection/fixture-slow/step-02.png'), dest)
+      return readFileSync(dest)
+    }
     const settled = inspect('fixture-slow', ['--positions'])
+    const settledPng = copyStep2('settled-default')
     const immediate = inspect('fixture-slow', ['--positions', '--settle', '0'])
+    const immediatePng = copyStep2('settled-zero')
     expect(settled.status).toBe(0)
     expect(immediate.status).toBe(0)
+    // Completed state, not mid-transition: the two captures are the same pixels.
+    expect(immediatePng.equals(settledPng)).toBe(true)
+    // The configured interval is honored, and the report says what was waited.
+    const waited = (output: string) => Number(/settled: step 02 waited (\d+)ms \(configured settle (\d+)ms\)/.exec(output)?.[1])
+    expect(waited(settled.output)).toBeGreaterThanOrEqual(2000)
+    const slow = inspect('fixture-slow', ['--settle', '1500'])
+    expect(/configured settle 1500ms/.test(slow.output)).toBe(true)
+    expect(waited(slow.output)).toBeGreaterThanOrEqual(1500)
+    // The moving entity really moves between steps; the captures are not just the start position.
     const mover = (output: string, step: string) =>
       output.split('\n').find((line) => line.startsWith(`position: step ${step}`) && line.includes('mover='))
-    // The zero-settle capture waits for geometry to stop changing, so it matches the settled one.
     expect(mover(immediate.output, '02')).toBe(mover(settled.output, '02'))
-    // The entity really moves between steps, so the captured values are not just the start position.
-    expect(mover(settled.output, '02')).not.toBe(mover(settled.output, '01'))
+    expect(mover(settled.output, '02')?.split('mover=')[1]).not.toBe(mover(settled.output, '01')?.split('mover=')[1])
   }, 300_000)
 })
 
@@ -70,6 +84,12 @@ describe('advisory overlap warnings', () => {
     const result = inspect('fixture-collision')
     expect(result.status).toBe(0)
     expect(warningsFor(result.output).some((line) => line.startsWith('warning: step 1: overlap'))).toBe(true)
+  }, 300_000)
+
+  it('warns when text overlaps an empty progress dot (chrome without text)', () => {
+    const result = inspect('fixture-chrome-overlap')
+    expect(result.status).toBe(0)
+    expect(warningsFor(result.output).some((line) => line.startsWith('warning: step 1: overlap') && line.includes('progress dot'))).toBe(true)
   }, 300_000)
 
   it('does not warn when both overlapping elements are inside an allow-overlap subtree', () => {
@@ -104,6 +124,12 @@ describe('advisory chrome and attribution warnings', () => {
     const result = inspect('fixture-attribution-default')
     expect(result.status).toBe(0)
     expect(warningsFor(result.output).some((line) => line.includes('browser-default'))).toBe(true)
+  }, 300_000)
+
+  it('warns when the attribution element is absent from the page', () => {
+    const result = inspect('fixture-attribution-absent')
+    expect(result.status).toBe(0)
+    expect(warningsFor(result.output).some((line) => line.includes('attribution link missing'))).toBe(true)
   }, 300_000)
 
   it('warns when the attribution is missing or hidden', () => {

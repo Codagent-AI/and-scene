@@ -66,25 +66,30 @@ describe('usePresentationNav keyboard', () => {
     expect(result.current.index).toBe(0)
   })
 
-  it.each(['button', 'a', 'input', 'select', 'textarea', 'summary'])(
-    'focused %s keeps all navigation keys and does not navigate or toggle',
-    (tag) => {
-      const { result } = renderHook(() => usePresentationNav(9))
-      const element = document.createElement(tag)
-      if (tag === 'a') element.setAttribute('href', '#x')
-      document.body.appendChild(element)
-      const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+  it.each([
+    ['button', ''],
+    ['a', '#x'],
+    ['input', ''],
+    ['select', ''],
+    ['textarea', ''],
+    ['summary', ''],
+  ])('focused %s keeps every navigation key: no move, no mode change, no default prevented', (tag, href) => {
+    const { result } = renderHook(() => usePresentationNav(9))
+    act(() => result.current.goTo(4))
+    const element = document.createElement(tag)
+    if (href) element.setAttribute('href', href)
+    document.body.appendChild(element)
+    for (const key of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p', 'P']) {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
       act(() => {
         element.dispatchEvent(event)
       })
-      fireEvent.keyDown(element, { key: 'ArrowRight' })
-      fireEvent.keyDown(element, { key: 'p' })
-      expect(result.current.index).toBe(0)
-      expect(result.current.mode).toBe('browse')
-      expect(event.defaultPrevented).toBe(false)
-      element.remove()
-    },
-  )
+      expect(event.defaultPrevented, `${tag} ${key}`).toBe(false)
+      expect(result.current.index, `${tag} ${key}`).toBe(4)
+      expect(result.current.mode, `${tag} ${key}`).toBe('browse')
+    }
+    element.remove()
+  })
 
   it('keys inside a contenteditable descendant keep their keys', () => {
     const { result } = renderHook(() => usePresentationNav(9))

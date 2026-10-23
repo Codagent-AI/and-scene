@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { copyWithSharedModules, materializeBootstrap, removeDir, run } from '../integration/helpers'
 
@@ -122,8 +122,8 @@ describe('browser and transition failures', () => {
       (text) =>
         replaceOnce(
           text,
-          'export function Diagram({ payload }: SceneProps<DiagramState>) {',
-          "export function Diagram({ payload }: SceneProps<DiagramState>) {\n  if (payload.visible.length === 2) console.error('fault')",
+          'export function Diagram({ payload, previous }: SceneProps<DiagramState>) {',
+          "export function Diagram({ payload, previous }: SceneProps<DiagramState>) {\n  if (payload.visible.length === 2) console.error('fault')",
         ),
       'src/presentations/how-to-make-a-presentation/scene.tsx',
     )
@@ -136,8 +136,8 @@ describe('browser and transition failures', () => {
       (text) =>
         replaceOnce(
           text,
-          'export function Diagram({ payload }: SceneProps<DiagramState>) {',
-          "export function Diagram({ payload }: SceneProps<DiagramState>) {\n  if (payload.added.includes('reveal-frame')) console.error('fault')",
+          'export function Diagram({ payload, previous }: SceneProps<DiagramState>) {',
+          "export function Diagram({ payload, previous }: SceneProps<DiagramState>) {\n  if (payload.visible.includes('reveal-frame') && !(previous?.visible ?? []).includes('reveal-frame')) console.error('fault')",
         ),
       'src/presentations/how-to-make-a-presentation/scene.tsx',
     )
@@ -145,13 +145,27 @@ describe('browser and transition failures', () => {
     await expectFailure(result, 'render', 8)
   }, 400_000)
 
+  it('an uncaught page error on the first step fails the render phase at step 1', async () => {
+    const dir = faulty(
+      (text) =>
+        replaceOnce(
+          text,
+          'export function Diagram({ payload, previous }: SceneProps<DiagramState>) {',
+          "export function Diagram({ payload, previous }: SceneProps<DiagramState>) {\n  if (payload.visible.length === 2) throw new Error('fault')",
+        ),
+      'src/presentations/how-to-make-a-presentation/scene.tsx',
+    )
+    const result = run('npm', ['run', 'verify'], dir, 300_000)
+    await expectFailure(result, 'render', 0)
+  }, 400_000)
+
   it('a console error raised while entering step 4 fails the render phase at that step', async () => {
     const dir = faulty(
       (text) =>
         replaceOnce(
           text,
-          'export function Diagram({ payload }: SceneProps<DiagramState>) {',
-          "export function Diagram({ payload }: SceneProps<DiagramState>) {\n  if (payload.added.includes('card-2')) console.error('fault')",
+          'export function Diagram({ payload, previous }: SceneProps<DiagramState>) {',
+          "export function Diagram({ payload, previous }: SceneProps<DiagramState>) {\n  if (payload.visible.includes('card-2') && !(previous?.visible ?? []).includes('card-2')) console.error('fault')",
         ),
       'src/presentations/how-to-make-a-presentation/scene.tsx',
     )
@@ -164,8 +178,8 @@ describe('browser and transition failures', () => {
       (text) =>
         replaceOnce(
           text,
-          'export function Diagram({ payload }: SceneProps<DiagramState>) {',
-          "export function Diagram({ payload }: SceneProps<DiagramState>) {\n  if (payload.added.includes('card-2')) throw new Error('fault')",
+          'export function Diagram({ payload, previous }: SceneProps<DiagramState>) {',
+          "export function Diagram({ payload, previous }: SceneProps<DiagramState>) {\n  if (payload.visible.includes('card-2') && !(previous?.visible ?? []).includes('card-2')) throw new Error('fault')",
         ),
       'src/presentations/how-to-make-a-presentation/scene.tsx',
     )
@@ -189,6 +203,24 @@ describe('browser and transition failures', () => {
 })
 
 describe('process cleanup', () => {
+  it('interrupting verification while the preview is still starting leaves no preview process', async () => {
+    const dir = copyWithSharedModules(base, join(base, 'node_modules'), 'e2e002-start-')
+    copies.push(dir)
+    const child = spawn('npm', ['run', 'verify'], { cwd: dir, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
+    let output = ''
+    child.stdout.on('data', (chunk) => (output += chunk))
+    child.stderr.on('data', (chunk) => (output += chunk))
+    const exited = new Promise<number | null>((resolve) => child.on('exit', (code) => resolve(code)))
+    // Wait for the preview process to exist before it is ready, so the signal lands in the startup window.
+    await waitFor(() => previewRunning(dir) || output.includes('preview ready at'), 240_000)
+    expect(output, 'the preview was ready before the signal could land in its startup window').not.toContain('preview ready at')
+    process.kill(-child.pid!, 'SIGINT')
+    // npm relays the signal, so its own status is 130 or the signal itself; the preview must be gone either way.
+    expect([130, null]).toContain(await exited)
+    await waitFor(() => !previewRunning(dir), 10_000)
+    expect(previewRunning(dir)).toBe(false)
+  }, 400_000)
+
   it('interrupting a running verification stops the preview and releases its port', async () => {
     const dir = copyWithSharedModules(base, join(base, 'node_modules'), 'e2e002-int-')
     copies.push(dir)
@@ -204,6 +236,11 @@ describe('process cleanup', () => {
     expect(await previewStopped(output)).toBe(true)
   }, 400_000)
 })
+
+/** True while a `vite preview` process for this copy is alive. */
+function previewRunning(dir: string): boolean {
+  return spawnSync('pgrep', ['-f', `${dir}/node_modules/vite/bin/vite.js preview`]).status === 0
+}
 
 async function waitFor(predicate: () => boolean, timeout: number) {
   const deadline = Date.now() + timeout

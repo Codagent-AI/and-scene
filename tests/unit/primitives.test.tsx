@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { render } from '@testing-library/react'
 import { Bot } from 'lucide-react'
+import { motion } from 'motion/react'
 import { Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip } from '../../src/presentation-kit'
 
 const geometry = { x: 12, y: 34, w: 56, h: 78 }
@@ -76,13 +77,14 @@ describe('kit primitives expose stable hooks and forward author props', () => {
     for (const layer of layers) expect((layer as HTMLElement).style.position).toBe('absolute')
   })
 
-  it('a raw motion element with a stable id and author coordinates renders in a layer', () => {
+  it('a raw motion element with a stable layoutId and author coordinates renders in a layer', () => {
     const { container } = render(
       <SceneLayer>
-        <Box id="coords" geometry={{ x: 300, y: 40, w: 90, h: 30 }} className="raw" />
+        <motion.div layoutId="coords" className="raw" data-presentation-id="coords" style={{ position: 'absolute', left: 300, top: 40 }} />
       </SceneLayer>,
     )
     const node = container.querySelector('[data-presentation-id="coords"]') as HTMLElement
+    expect(node.tagName).toBe('DIV')
     expect(node.style.left).toBe('300px')
     expect(node.className).toBe('raw')
   })

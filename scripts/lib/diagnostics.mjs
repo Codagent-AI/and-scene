@@ -71,3 +71,18 @@ export function chromeWarning(step, label) {
     elements: [label],
   }
 }
+
+/** All advisory warnings for one settled step, from the page's collected diagnostics. */
+export function stepWarnings(step, diagnostics) {
+  if (!diagnostics) return []
+  const warnings = overlapWarnings(step, diagnostics.items)
+  if (diagnostics.progress && indistinctActive(diagnostics.progress.active, diagnostics.progress.inactive)) {
+    warnings.push(chromeWarning(step, 'progress indicator'))
+  }
+  if (diagnostics.toc && indistinctActive(diagnostics.toc.active, diagnostics.toc.inactive)) {
+    warnings.push(chromeWarning(step, 'table-of-contents entry'))
+  }
+  const attribution = attributionWarning(step, diagnostics.attribution)
+  if (attribution) warnings.push(attribution)
+  return warnings
+}

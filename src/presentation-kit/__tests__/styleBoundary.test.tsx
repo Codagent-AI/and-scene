@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { cwd } from 'node:process'
 import { render } from '@testing-library/react'
@@ -8,63 +8,15 @@ import { describe, expect, it } from 'vitest'
 import { Presentation } from '../Presentation'
 import { Appear, Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip } from '../index'
 import type { Step } from '../types'
+import { ALLOWED_STYLE, FORBIDDEN_IN_SOURCE, kitSourceFiles } from './styleRules'
 
 // Vitest runs from the repository root.
 const REPO_ROOT = cwd()
 const KIT_ROOT = join(REPO_ROOT, 'src/presentation-kit')
 
-/** Inline style properties the kit may set: placement, geometry, transforms, and overflow. */
-const ALLOWED_STYLE = new Set([
-  'position',
-  'left',
-  'top',
-  'right',
-  'bottom',
-  'inset',
-  'width',
-  'height',
-  'min-width',
-  'min-height',
-  'transform',
-  'transform-origin',
-  'display',
-  'flex',
-  'flex-direction',
-  'flex-grow',
-  'flex-shrink',
-  'flex-basis',
-  'align-items',
-  'justify-content',
-  'overflow',
-  'pointer-events',
-  'z-index',
-  'white-space',
-  'text-overflow',
-  // Motion writes opacity while an entry or exit runs. It is animation state, not a visual default.
-  'opacity',
-])
-
-/** Forbidden anywhere in kit source: visual declarations, style files, and framework hooks. */
-const FORBIDDEN_IN_SOURCE = [
-  /\b(color|background\w*|border\w*|font\w*|box-?[Ss]hadow|outline\w*|textShadow|text-shadow|filter|padding\w*|margin\w*|gap|rowGap|columnGap|borderRadius)\s*:/,
-  /\bstroke(Width|-width)?\s*[:=]/,
-  /\bfill\s*[:=]/,
-  /\.css['"]/,
-  /tailwind/i,
-  /--[a-z][\w-]*\s*:/,
-]
-
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry)
-    if (statSync(path).isDirectory()) return entry === '__tests__' ? [] : sourceFiles(path)
-    return /\.(ts|tsx)$/.test(entry) && !/\.test\./.test(entry) ? [path] : []
-  })
-}
-
 describe('style boundary (source contract)', () => {
   it('scans every non-test kit source file for visual declarations and style imports', () => {
-    const files = sourceFiles(KIT_ROOT)
+    const files = kitSourceFiles(KIT_ROOT)
     expect(files.length).toBeGreaterThan(10)
     const violations: string[] = []
     for (const file of files) {

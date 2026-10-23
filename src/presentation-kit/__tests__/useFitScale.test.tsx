@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useRef } from 'react'
+import { StrictMode, useRef } from 'react'
 import { DESIGN_W, STAGE_LAYOUT } from '../constants'
 import { fitScale, useFitScale } from '../useFitScale'
 
@@ -65,3 +65,19 @@ describe('useFitScale', () => {
     view.unmount()
   })
 })
+
+describe('useFitScale under StrictMode', () => {
+  it('keeps one live observer after double mounting and disconnects every observer on unmount', () => {
+    vi.stubGlobal('ResizeObserver', FakeResizeObserver)
+    const view = render(
+      <StrictMode>
+        <Probe mode="browse" onScale={() => {}} />
+      </StrictMode>,
+    )
+    const live = FakeResizeObserver.instances.filter((observer) => !observer.disconnected)
+    expect(live).toHaveLength(1)
+    view.unmount()
+    expect(FakeResizeObserver.instances.every((observer) => observer.disconnected)).toBe(true)
+  })
+})
+

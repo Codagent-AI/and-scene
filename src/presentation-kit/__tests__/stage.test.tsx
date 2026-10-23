@@ -147,6 +147,37 @@ describe('grouped scenes', () => {
 })
 
 describe('departing entities', () => {
+  it('keeps the same scale for different steps in one mode and changes it when the mode changes', () => {
+    class ResizeObserverStub {
+      callback: () => void
+      constructor(callback: () => void) {
+        this.callback = callback
+      }
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    const steps = [step('s1', { groupKey: 'g', payload: { entities: [] } }), step('s2', { groupKey: 'g', payload: { entities: [] } })]
+    const view = render(<Presentation steps={steps} title="Deck" />)
+    const stage = view.container.querySelector<HTMLElement>('[data-presentation-stage]')!
+    Object.defineProperty(stage, 'clientWidth', { configurable: true, value: 1000 })
+    Object.defineProperty(stage, 'clientHeight', { configurable: true, value: 400 })
+    const transform = () => view.container.querySelector<HTMLElement>('[data-presentation-canvas-inner]')!.style.transform
+    const resize = () =>
+      act(() => {
+        window.dispatchEvent(new Event('resize'))
+      })
+    resize()
+    const browse = transform()
+    fireEvent.click(nextButton(view.container))
+    resize()
+    expect(transform()).toBe(browse)
+    fireEvent.keyDown(window, { key: 'p' })
+    resize()
+    expect(transform()).not.toBe(browse)
+    vi.unstubAllGlobals()
+  })
+
   it('keeps a dropped entity mounted while its exit is pending', () => {
     MotionGlobalConfig.skipAnimations = false
     const steps = [

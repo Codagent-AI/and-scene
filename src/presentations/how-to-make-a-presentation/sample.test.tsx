@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, waitFor } from '@testing-library/react'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
+import { MotionGlobalConfig } from 'motion/react'
 import { ARROWS, BOXES, OVERLAP_EXEMPT, rectStyle, type BoxId } from './entities'
 import { FRAME_STACK_ORDER } from './entities'
 import { BEATS } from './beats'
@@ -182,6 +183,38 @@ describe('sample rendered state', () => {
   })
 })
 
+describe('sample entry wrappers', () => {
+  it('wraps only the newcomers of each step, forward and backward, and never a continuing entity', async () => {
+    const { view, next } = renderSample()
+    const expectedEntering = (index: number) => new Set(STEPS[index]!.payload.entities.filter((e) => e.entering).map((e) => e.id))
+    const wrapped = () =>
+      new Set(
+        Array.from(view.container.querySelectorAll<HTMLElement>('[data-presentation-entering]')).map((el) =>
+          el.getAttribute('data-presentation-entering'),
+        ),
+      )
+    const goTo = async (index: number) => {
+      await waitFor(() => expect(view.container.querySelector('[data-presentation-root]')!.getAttribute('data-step-index')).toBe(String(index)))
+    }
+    for (let i = 0; i < STEPS.length; i++) {
+      if (i > 0) next()
+      await goTo(i)
+      expect(wrapped()).toEqual(expectedEntering(i))
+    }
+    // Departing wrappers stay mounted until their exit finishes, so compare once they have left.
+    MotionGlobalConfig.skipAnimations = true
+    try {
+      for (let i = STEPS.length - 2; i >= 0; i--) {
+        fireEvent.click(view.container.querySelector('[data-presentation-control="prev"]') as HTMLElement)
+        await goTo(i)
+        await waitFor(() => expect(wrapped()).toEqual(expectedEntering(i)))
+      }
+    } finally {
+      MotionGlobalConfig.skipAnimations = false
+    }
+  })
+})
+
 describe('sample geometry', () => {
   const CANVAS = { width: 880, height: 380 }
   const rect = (id: BoxId) => BOXES[id]
@@ -233,6 +266,19 @@ describe('sample geometry', () => {
   })
 })
 
+describe('sample folder contract', () => {
+  it('keeps every import inside the presentation, the kit, or the React runtime packages', () => {
+    const dir = join(process.cwd(), 'src/presentations/how-to-make-a-presentation')
+    const files = ['Talk.tsx', 'entities.ts', 'beats.ts', 'payload.ts', 'SampleScene.tsx', 'steps/index.ts'].map((name) => join(dir, name))
+    const allowed = /^(\.\/|\.\.\/\.\.\/presentation-kit|\.\.\/|react|lucide-react|motion\/react|node:)/
+    for (const file of files) {
+      expect(existsSync(file), file).toBe(true)
+      const specifiers = Array.from(readFileSync(file, 'utf8').matchAll(/from '([^']+)'/g)).map((match) => match[1]!)
+      for (const specifier of specifiers) expect(allowed.test(specifier), `${file} imports ${specifier}`).toBe(true)
+    }
+  })
+})
+
 describe('sample rendering', () => {
   it('renders the first step, every step, and back again without console or page errors', async () => {
     const errors: unknown[] = []
@@ -273,6 +319,14 @@ describe('sample rendering', () => {
 })
 
 describe('sample registration', () => {
+  it('keeps every registry slug unique and its loader renderable', async () => {
+    const slugs = PRESENTATIONS.map((entry) => entry.slug)
+    expect(new Set(slugs).size).toBe(slugs.length)
+    for (const entry of PRESENTATIONS) {
+      expect((await entry.load()).default).toBeTypeOf('function')
+    }
+  })
+
   it('registers the reference slug and resolves its route to a renderable component', async () => {
     const entry = PRESENTATIONS.find((candidate) => candidate.slug === 'how-to-make-a-presentation')
     expect(entry).toBeDefined()

@@ -21,6 +21,13 @@ function Harness({ count, initial = 'browse' }: { count: number; initial?: 'brow
       <div contentEditable data-testid="editable">
         <span data-testid="editable-child" />
       </div>
+      <select data-testid="select">
+        <option>one</option>
+      </select>
+      <textarea data-testid="area" />
+      <details>
+        <summary data-testid="summary">summary</summary>
+      </details>
       <span data-testid="index-probe" data-last={nav.last} />
     </div>
   )
@@ -119,6 +126,9 @@ describe('keyboard navigation', () => {
     ['a button', 'control'],
     ['a text field', 'field'],
     ['a link', 'link'],
+    ['a select', 'select'],
+    ['a textarea', 'area'],
+    ['a summary', 'summary'],
     ['an element with a menu role', 'menu-child'],
     ['a contenteditable region', 'editable-child'],
   ])('leaves navigation keys to %s', (_label, testId) => {

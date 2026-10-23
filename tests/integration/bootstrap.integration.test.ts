@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { FORBIDDEN_IN_SOURCE, kitSourceFiles } from '../../src/presentation-kit/__tests__/styleRules'
 import { materializeTemplate, output, REPO, removeScratch, run, scratch } from '../support'
 
 // INT-001: the distributable bootstrap, materialized outside the repository, installs its own
@@ -33,11 +34,25 @@ describe('materialized bootstrap', () => {
     }
   })
 
-  it('keeps the materialized kit byte-identical to the canonical kit', () => {
-    const canonical = readFileSync(join(REPO, 'src/presentation-kit/nodes/Box.tsx'))
-    const copy = readFileSync(join(app, 'src/presentation-kit/nodes/Box.tsx'))
-    expect(copy.equals(canonical)).toBe(true)
+  it('keeps the materialized kit byte-identical to the canonical kit, file for file', () => {
+    const canonical = kitSourceFiles(join(REPO, 'src/presentation-kit')).map((file) => relative(join(REPO, 'src/presentation-kit'), file))
+    const copied = kitSourceFiles(join(app, 'src/presentation-kit')).map((file) => relative(join(app, 'src/presentation-kit'), file))
+    expect(copied.sort()).toEqual(canonical.sort())
+    for (const file of canonical) {
+      expect(readFileSync(join(app, 'src/presentation-kit', file)).equals(readFileSync(join(REPO, 'src/presentation-kit', file))), file).toBe(true)
+    }
     expect(existsSync(join(app, 'src/presentation-kit/__tests__'))).toBe(false)
+  })
+
+  it('ships a kit with zero visual defaults: no style literals, CSS files, or styling framework imports', () => {
+    const violations: string[] = []
+    for (const file of kitSourceFiles(join(app, 'src/presentation-kit'))) {
+      const text = readFileSync(file, 'utf8')
+      for (const pattern of FORBIDDEN_IN_SOURCE) {
+        if (pattern.test(text)) violations.push(`${relative(app, file)} matches ${pattern}`)
+      }
+    }
+    expect(violations).toEqual([])
   })
 
   it('builds and renders its registered route when verified from a different working directory', () => {

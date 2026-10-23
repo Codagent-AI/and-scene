@@ -7,6 +7,7 @@ import {
   indistinctActive,
   overlapWarnings,
   rectsIntersect,
+  stepWarnings,
 } from '../../scripts/lib/diagnostics.mjs'
 
 const item = (idx, label, rect, ancestors = []) => ({ idx, label, rect, ancestors })
@@ -84,3 +85,18 @@ describe('chromeWarning', () => {
     expect(warning.message).toContain('data-presentation-active')
   })
 })
+
+describe('stepWarnings entry point', () => {
+  it('reports a missing attribution for its step without crashing on a null attribution', () => {
+    const diagnostics = { items: [], progress: null, toc: null, attribution: { present: false, fontSizePx: 0, color: '' } }
+    const warnings = stepWarnings(4, diagnostics)
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0].step).toBe(4)
+    expect(warnings[0].message).toContain('data-presentation-attribution')
+  })
+
+  it('returns nothing when no presentation was mounted', () => {
+    expect(stepWarnings(1, null)).toEqual([])
+  })
+})
+

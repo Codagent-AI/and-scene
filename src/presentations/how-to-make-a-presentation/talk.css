@@ -40,7 +40,7 @@
 
 [data-presentation-footer] {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-content: start;
   gap: 14px 24px;
   padding: 14px 24px 40px 24px;
@@ -130,6 +130,37 @@
   color: var(--muted);
   text-decoration: none;
   border-bottom: 1px dotted var(--muted);
+}
+
+/* Narrow viewports: keep the caption and both controls inside the screen. */
+@media (max-width: 899px) {
+  [data-presentation-header] {
+    padding: 0 16px;
+  }
+  [data-presentation-footer] {
+    gap: 8px 12px;
+    padding: 10px 16px 34px 16px;
+  }
+  [data-presentation-caption] {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  [data-presentation-progress] {
+    gap: 5px;
+  }
+  [data-presentation-dot] {
+    width: 10px;
+    height: 10px;
+  }
+  [data-presentation-dot][data-presentation-active='true'] {
+    width: 16px;
+  }
+  [data-presentation-controls] {
+    margin-right: 0;
+  }
+  [data-presentation-controls] button {
+    padding: 5px 10px;
+  }
 }
 
 /* Scene entities */

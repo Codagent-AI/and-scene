@@ -84,6 +84,16 @@ describe('stage geometry (L-25, L-26, C-2)', () => {
     expect(motionOf(canvas).layoutRoot).toBe(true)
   })
 
+  it('centres the canvas with offsets, not a percentage translate that skews layout morphs (F-5)', () => {
+    setViewport(390, 844)
+    const { container } = render(<Presentation steps={makeSteps(2)} title="T" />)
+    const canvas = container.querySelector<HTMLElement>('[data-presentation-canvas]')!
+    expect(canvas.style.left).toBe(`calc(50% - ${DESIGN_W / 2}px)`)
+    expect(canvas.style.top).toBe(`calc(50% - ${DESIGN_H / 2}px)`)
+    expect(canvas.style.transform).not.toContain('translate')
+    expect(canvas.style.translate).toBe('')
+  })
+
   it('keeps the same scale across steps and recomputes on resize', () => {
     setViewport(1280, 720)
     const { container } = render(<Presentation steps={makeSteps(3)} title="T" />)

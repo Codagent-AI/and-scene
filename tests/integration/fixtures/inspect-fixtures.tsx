@@ -3,7 +3,7 @@
 // so the page for one slug never inherits another's CSS.
 import { Appear, Box, Label, Presentation, SceneLayer, type SceneProps, type Step } from '../../../src/presentation-kit/index.ts'
 
-export type Variant = 'clean' | 'collision' | 'nested' | 'allowed' | 'chrome' | 'attribution-small' | 'attribution-default' | 'settle'
+export type Variant = 'clean' | 'collision' | 'nested' | 'cover' | 'allowed' | 'chrome' | 'attribution-small' | 'attribution-default' | 'settle'
 
 interface Payload {
   stage: number
@@ -20,6 +20,7 @@ const CSS: Record<Variant, string> = {
   clean: BASE + POLISHED_CHROME + POLISHED_ATTRIBUTION,
   collision: BASE + POLISHED_CHROME + POLISHED_ATTRIBUTION,
   nested: BASE + POLISHED_CHROME + POLISHED_ATTRIBUTION,
+  cover: BASE + POLISHED_CHROME + POLISHED_ATTRIBUTION,
   allowed: BASE + POLISHED_CHROME + POLISHED_ATTRIBUTION,
   chrome: BASE + POLISHED_ATTRIBUTION,
   'attribution-small': BASE + POLISHED_CHROME + `[data-presentation-attribution] { font-size: 9px; color: #456; text-decoration: none; }`,
@@ -53,6 +54,15 @@ function Scene({ payload, variant }: SceneProps<Payload> & { variant: Variant })
         <Appear key="nest">
           <Box rect={{ x: 100, y: 100, w: 300, h: 60 }}>
             <span style={{ position: 'absolute', left: 4, top: 4 }}>Inner text</span>Outer text
+          </Box>
+        </Appear>
+      ) : null}
+      {variant === 'cover' && s === 2 ? (
+        <Appear key="cover">
+          <Label rect={A}>Hidden word</Label>
+          {/* A filled tag whose own text sits at its far end, so only its box reaches the word. */}
+          <Box rect={{ x: 150, y: 96, w: 200, h: 38 }} style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#fc0' }}>
+            tag
           </Box>
         </Appear>
       ) : null}

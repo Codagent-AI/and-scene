@@ -100,7 +100,7 @@ export const ENTITIES: readonly Entity[] = [
   { id: ID.verifyLink, stage: 7, kind: 'arrow', role: 'chain', from: { x: 676, y: 200 }, to: { x: 698, y: 200 } },
   { id: ID.route, stage: 8, kind: 'box', role: 'route', rect: { x: 40, y: 318, w: 800, h: 34 }, text: '/your-presentation' },
   { id: ID.modify, stage: 8, kind: 'arrow', role: 'modify', from: { x: 40, y: 64 }, via: { x: 2, y: 200 }, to: { x: 38, y: 335 } },
-  { id: ID.edited, stage: 8, kind: 'chip', role: 'edited', overlap: true, rect: { x: 196, y: 228, w: 76, h: 18 }, text: 'edited' },
+  { id: ID.edited, stage: 8, kind: 'chip', role: 'edited', overlap: true, rect: { x: 224, y: 155, w: 48, h: 16 }, text: 'edited' },
   { id: ID.frame, stage: 9, kind: 'frame', role: 'frame-label', rect: { x: 4, y: 2, w: 872, h: 374 } },
   { id: ID.frameLabel, stage: 9, kind: 'label', role: 'frame-label', rect: { x: 520, y: 356, w: 340, h: 18 }, text: 'this presentation, built with the skill' },
 ]

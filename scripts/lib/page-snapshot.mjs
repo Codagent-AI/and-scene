@@ -41,11 +41,26 @@ export function snapshotPage() {
     const r = el.getBoundingClientRect()
     if (r.width > 0 && r.height > 0) candidates.set(el, { x: r.left, y: r.top, w: r.width, h: r.height })
   }
-  const items = [...candidates].map(([el, rect]) => ({
-    id: label(el),
-    rect,
-    allowed: el.closest('[data-presentation-allow-overlap]') !== null,
-  }))
+  // An element that paints a background or border also hides whatever lies under its box,
+  // even where its own text does not reach.
+  const paintsBox = (el) => {
+    const s = getComputedStyle(el)
+    const bg = /^rgba?\(([^)]*)\)$/.exec(s.backgroundColor)
+    const alpha = bg ? (bg[1].split(/[,/]/).length > 3 ? Number(bg[1].split(/[,/]/)[3]) : 1) : 0
+    return alpha > 0.05 || (parseFloat(s.borderTopWidth) > 0 && s.borderTopStyle !== 'none')
+  }
+  const entries = [...candidates]
+  const items = entries.map(([el, rect], index) => {
+    const box = el.getBoundingClientRect()
+    return {
+      id: label(el),
+      index,
+      rect,
+      cover: paintsBox(el) && box.width > 0 && box.height > 0 ? { x: box.left, y: box.top, w: box.width, h: box.height } : null,
+      within: entries.flatMap(([other], i) => (other !== el && other.contains(el) ? [i] : [])),
+      allowed: el.closest('[data-presentation-allow-overlap]') !== null,
+    }
+  })
 
   // Text entries size to their label, so their box size says nothing about styling.
   const style = (el, includeSize) => {

@@ -44,6 +44,24 @@ describe('overlap warnings (L-71, L-72)', () => {
     expect(overlapWarnings([item('<div> "Outer"', 0, 0, 100, 20), item('<span> "Inner"', 5, 2, 40, 16, { allowed: true })], 1)).toEqual([])
   })
 
+  it('reports a painted box that hides another element\'s text its own text does not reach (F-4)', () => {
+    const chip = item('<span data-role="edited"> "edited"', 522, 427, 45, 18, { index: 0, cover: { x: 500, y: 424, w: 80, h: 24 }, within: [] })
+    const word = item('<span data-part="visual"> "visual"', 476, 427, 39, 18, { index: 1, within: [] })
+    const [w] = overlapWarnings([chip, word], 7)
+    expect(w).toMatchObject({ step: 7, kind: 'overlap' })
+    expect(w.message).toContain('data-role="edited"')
+    expect(w.message).toContain('data-part="visual"')
+    expect(overlapWarnings([{ ...chip, allowed: true }, word], 7)).toEqual([])
+  })
+
+  it('does not treat a box as covering the text inside it, or a box that misses the text', () => {
+    const outer = item('<div> "Outer"', 0, 0, 40, 10, { index: 0, cover: { x: 0, y: 0, w: 200, h: 100 }, within: [] })
+    const inner = item('<span> "Inner"', 100, 50, 40, 10, { index: 1, within: [0] })
+    expect(overlapWarnings([outer, inner], 1)).toEqual([])
+    const far = item('<p> "Far"', 300, 300, 40, 10, { index: 2, within: [] })
+    expect(overlapWarnings([outer, far], 1)).toEqual([])
+  })
+
   it('exempts allowed subtrees but still reports unrelated collisions', () => {
     const items = [
       item('socket', 0, 0, 50, 20, { allowed: true }),

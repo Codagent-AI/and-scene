@@ -202,6 +202,11 @@ describe('step intent (L-59..L-62)', () => {
     const card2 = box(ID.card2).rect
     expect(inside(flag.rect, card2)).toBe(true)
     expect(flag.overlap).toBe(true)
+    // It sits in the card's index row, beside "step 2", so it hides none of the card's text rows (F-1).
+    const rowBottom = card2.y + 6 + 17
+    expect(flag.rect.y).toBeGreaterThanOrEqual(card2.y)
+    expect(bottom(flag.rect)).toBeLessThanOrEqual(rowBottom)
+    expect(flag.rect.x).toBeGreaterThanOrEqual(card2.x + 6 + 40)
     expect(flag.text).toBe('edited')
     expect(box(ID.route).text).toMatch(/^\//)
   })
@@ -252,6 +257,13 @@ describe('composition geometry (L-9, L-54)', () => {
     const { container } = mount(8)
     const marked = [...container.querySelectorAll('[data-presentation-allow-overlap]')].map((e) => e.getAttribute('data-role'))
     expect(marked.sort()).toEqual(['edited', 'socket'])
+  })
+
+  it('keeps the caption column and both controls inside a narrow viewport (F-2)', () => {
+    expect(css).toMatch(/\[data-presentation-footer\]\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto/)
+    const narrow = css.match(/@media \(max-width:\s*899px\)\s*\{([\s\S]*?)\n\}\n/)![1]
+    expect(narrow).toMatch(/\[data-presentation-controls\]\s*\{[^}]*margin-right:\s*0/)
+    expect(narrow).toMatch(/\[data-presentation-caption\]\s*\{[^}]*font-size:\s*14px/)
   })
 
   it('styles active chrome and attribution locally with concrete differences', () => {

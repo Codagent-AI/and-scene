@@ -44,12 +44,12 @@ export function Stage<P>({ step, meta, mode, design = DEFAULT_DESIGN }: StagePro
         layoutRoot
         style={{
           position: 'absolute',
-          left: '50%',
-          top: '50%',
+          // Centre with calc() offsets: a percentage `x`/`y` translate here makes layout
+          // projection mis-measure every morph inside the scaled canvas.
+          left: `calc(50% - ${design.width / 2}px)`,
+          top: `calc(50% - ${design.height / 2}px)`,
           width: design.width,
           height: design.height,
-          x: '-50%',
-          y: '-50%',
           scale,
         }}
       >

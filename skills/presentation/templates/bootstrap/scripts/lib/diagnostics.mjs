@@ -14,11 +14,19 @@ export function intersectionArea(a, b) {
 }
 
 /**
- * `items`: visible text/chrome elements as `{ id, rect, allowed }`.
- * `allowed` is true inside a `data-presentation-allow-overlap` subtree. Only the
- * explicit marker exempts a pair: nested elements are measured by their own text
- * ranges, so a nested collision is as suspicious as any other.
+ * `items`: visible text/chrome elements as `{ id, rect, allowed }`, where `rect` is the
+ * element's own text range. An item that paints a background or border also has `cover`,
+ * its box, and `within`, the indices of items that contain it. `allowed` is true inside a
+ * `data-presentation-allow-overlap` subtree. Only the explicit marker exempts a pair:
+ * nested elements are measured by their own text ranges, so a nested collision is as
+ * suspicious as any other. A painted box hiding another item's text is a collision too,
+ * except for text inside that box, which it contains by construction.
  */
+function coverArea(a, b) {
+  if (!a.cover || (b.within ?? []).includes(a.index)) return 0
+  return intersectionArea(a.cover, b.rect)
+}
+
 export function overlapWarnings(items, step) {
   const warnings = []
   for (let i = 0; i < items.length; i++) {
@@ -26,9 +34,12 @@ export function overlapWarnings(items, step) {
       const a = items[i]
       const b = items[j]
       if (a.allowed || b.allowed) continue
-      const area = intersectionArea(a.rect, b.rect)
+      const direct = intersectionArea(a.rect, b.rect)
+      const covered = Math.max(coverArea(a, b), coverArea(b, a))
+      const area = Math.max(direct, covered)
       if (area > MIN_OVERLAP_AREA) {
-        warnings.push({ step, kind: 'overlap', message: `${a.id} overlaps ${b.id} (${Math.round(area)}px²); fix it or mark an intentional overlap with data-presentation-allow-overlap` })
+        const verb = direct > MIN_OVERLAP_AREA ? 'overlaps' : 'covers or is covered by'
+        warnings.push({ step, kind: 'overlap', message: `${a.id} ${verb} ${b.id} (${Math.round(area)}px²); fix it or mark an intentional overlap with data-presentation-allow-overlap` })
       }
     }
   }

@@ -152,6 +152,18 @@ describe('render phase', () => {
     await expectPreviewStopped(r.output)
   })
 
+  it('reports the error a step throws while rendering, not the missing transition it causes', async () => {
+    const r = await verifyWith((dir) =>
+      edit(dir, `${SAMPLE}/steps/Scene.tsx`, (t) =>
+        t.replace('export function Scene({ payload, previous }: SceneProps<ScenePayload>) {', "export function Scene({ payload, previous }: SceneProps<ScenePayload>) {\n  if (payload.stage === 5) throw new Error('boom at step 5')"),
+      ),
+    )
+    expectFailure(r, 'render (step index 4, step 5)')
+    expect(r.output).toContain('boom at step 5')
+    expect(r.output).not.toMatch(/transition did not advance/)
+    await expectPreviewStopped(r.output)
+  })
+
   it('fails when a transition does not advance the public step index', async () => {
     const r = await verifyWith((dir) =>
       edit(dir, `${SAMPLE}/steps/Scene.tsx`, (t) =>

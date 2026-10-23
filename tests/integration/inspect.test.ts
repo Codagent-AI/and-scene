@@ -5,7 +5,7 @@ import { copyProject, REPO, remove, run, write } from '../helpers/project.ts'
 
 // INT-002: the project-local screenshot helper against controlled registered
 // presentations in a disposable copy, driven through a production preview.
-const VARIANTS = ['clean', 'collision', 'nested', 'allowed', 'chrome', 'attribution-small', 'attribution-default', 'settle'] as const
+const VARIANTS = ['clean', 'collision', 'nested', 'cover', 'allowed', 'chrome', 'attribution-small', 'attribution-default', 'settle'] as const
 let dir: string
 
 interface Inspection {
@@ -81,6 +81,15 @@ describe('overlap diagnostics', () => {
     expect(r.warnings).toHaveLength(1)
     expect(r.warnings[0]).toMatch(/^WARN step 02 overlap:/)
     expect(r.warnings[0]).toContain('Inner text')
+  })
+
+  it('reports a filled box that covers another element\'s text its own text does not reach', async () => {
+    const r = await inspect('cover')
+    expect(r.code).toBe(0)
+    expect(r.warnings).toHaveLength(1)
+    expect(r.warnings[0]).toMatch(/^WARN step 02 overlap:/)
+    expect(r.warnings[0]).toContain('Hidden word')
+    expect(r.warnings[0]).toContain('"tag"')
   })
 
   it('exempts an allowed subtree without suppressing unrelated collisions', async () => {

@@ -30,15 +30,17 @@ async function readState(page) {
 }
 
 /** Polls the public step hooks until `data-step-index` equals `expected`. */
-async function waitForIndex(page, expected, timeoutMs, onTimeout) {
+async function waitForIndex(page, expected, timeoutMs, errors, onTimeout) {
   const deadline = Date.now() + timeoutMs
   let state = null
   while (Date.now() < deadline) {
     state = await readState(page)
     if (state && state.index === expected) return state
+    // A thrown render error is the cause of a step that never appears: report it, not the symptom.
+    if (errors.length > 0) throw new VerifyError('render', errors[0], { step: expected })
     await page.waitForTimeout(50)
   }
-  throw new VerifyError('render', onTimeout(state), { step: expected })
+  throw new VerifyError('render', errors[0] ?? onTimeout(state), { step: expected })
 }
 
 /**
@@ -53,7 +55,7 @@ export async function renderRoute({ page, url, allSteps, reference, errors, time
   // `errors` is never cleared: anything that arrived since the last check, even
   // after the previous route returned, fails the run instead of being discarded.
   await page.goto(url, { waitUntil: 'load' })
-  const first = await waitForIndex(page, 0, timeoutMs, (s) =>
+  const first = await waitForIndex(page, 0, timeoutMs, errors, (s) =>
     s ? `step hooks report index ${s.index}, expected 0` : 'no [data-step-count] hook rendered (the route did not render a presentation)',
   )
   const count = first.count
@@ -68,7 +70,7 @@ export async function renderRoute({ page, url, allSteps, reference, errors, time
         ? first
         : await (async () => {
             await page.keyboard.press('ArrowRight')
-            return waitForIndex(page, i, timeoutMs, (s) =>
+            return waitForIndex(page, i, timeoutMs, errors, (s) =>
               `transition did not advance: data-step-index is ${s ? s.index : 'missing'}, expected ${i} within ${timeoutMs}ms`,
             )
           })()

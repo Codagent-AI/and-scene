@@ -126,6 +126,20 @@ describe('render loop (L-52, L-66, L-67)', () => {
     expect(error.message).toMatch(/did not advance: data-step-index is 1, expected 2/)
   })
 
+  it('reports the thrown error instead of the missing transition when a step fails to render (F-3)', async () => {
+    const { page, presses } = fakePage([st(4, 0), st(4, 1), null, null])
+    const errors: string[] = []
+    const press = page.keyboard.press
+    page.keyboard.press = vi.fn(async (k: string) => {
+      await press(k)
+      if (presses.length === 2) errors.push('uncaught page error: boom at step 3')
+    })
+    const error = await run(page, { errors, reference: null }).catch((e) => e)
+    expect(error).toBeInstanceOf(VerifyError)
+    expect(error).toMatchObject({ phase: 'render', step: 2 })
+    expect(error.message).toBe('uncaught page error: boom at step 3')
+  })
+
   it('never counts a stale index as success', async () => {
     const stale = fakePage([st(2, 0), st(2, 0)])
     await expect(run(stale.page)).rejects.toMatchObject({ phase: 'render', step: 1 })

@@ -87,7 +87,8 @@ describe('INT-001: materialized bootstrap', () => {
   it('introduces no Tailwind or visual defaults in the reusable kit or the scaffold', () => {
     expect(existsSync(path.join(app, 'node_modules/tailwindcss'))).toBe(false)
     expect(existsSync(path.join(app, 'node_modules/@tailwindcss'))).toBe(false)
-    const own = walk(app).filter((f) => !f.startsWith(`src${path.sep}presentations${path.sep}smoke-test`) && f !== 'package-lock.json')
+    const generated = ['smoke-test', 'quoted-title'].map((slug) => `src${path.sep}presentations${path.sep}${slug}`)
+    const own = walk(app).filter((f) => !generated.some((g) => f.startsWith(g)) && f !== 'package-lock.json')
     for (const f of own) {
       expect(readFileSync(path.join(app, f), 'utf8'), f).not.toMatch(/tailwind/i)
     }

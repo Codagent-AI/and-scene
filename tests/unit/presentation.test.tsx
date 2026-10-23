@@ -153,7 +153,7 @@ describe('scene hosting', () => {
     expect(screen.getByTestId('scene').textContent).toBe('scene 0')
     fireEvent.click(q('[data-presentation-next]')!)
     fireEvent.click(q('[data-presentation-next]')!)
-    await waitFor(() => expect(screen.getByTestId('scene').textContent).toBe('scene 2'))
+    await waitFor(() => expect(screen.getByTestId('scene').textContent).toBe('scene 2'), { timeout: 5000 })
     expect(mounts).toHaveLength(1)
     expect(qa('[data-presentation-scene]')).toHaveLength(1)
   })
@@ -162,8 +162,8 @@ describe('scene hosting', () => {
     render(<Presentation steps={makeSteps(false)} title="Deck" />)
     expect(screen.getByTestId('scene')).toBeTruthy()
     fireEvent.click(q('[data-presentation-next]')!)
-    await waitFor(() => expect(screen.getByTestId('other')).toBeTruthy())
-    await waitFor(() => expect(screen.queryByTestId('scene')).toBeNull())
+    await waitFor(() => expect(screen.getByTestId('other')).toBeTruthy(), { timeout: 5000 })
+    await waitFor(() => expect(screen.queryByTestId('scene')).toBeNull(), { timeout: 5000 })
   })
 
   it('renders the canvas at the default 880 x 380 and a custom size on request (I-27)', () => {

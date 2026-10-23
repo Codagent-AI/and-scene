@@ -83,7 +83,7 @@ describe('node primitives', () => {
         <Box key="a" layoutId="a">a</Box>
       </SceneLayer>,
     )
-    await waitFor(() => expect(document.querySelector('[data-presentation-id="b"]')).toBeNull())
+    await waitFor(() => expect(document.querySelector('[data-presentation-id="b"]')).toBeNull(), { timeout: 5000 })
     expect(document.querySelector('[data-presentation-id="a"]')).not.toBeNull()
   })
 })

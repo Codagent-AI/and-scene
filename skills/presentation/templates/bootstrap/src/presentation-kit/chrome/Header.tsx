@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react'
+import type { HTMLAttributes, ReactNode } from 'react'
 import type { Mode } from '../types'
 
-export interface HeaderProps {
+export interface HeaderProps extends HTMLAttributes<HTMLElement> {
   brand?: ReactNode
   marker: string
   era: string
@@ -9,11 +9,12 @@ export interface HeaderProps {
   onToggleMode: () => void
 }
 
-export function Header({ brand, marker, era, mode, onToggleMode }: HeaderProps) {
+export function Header({ brand, marker, era, mode, onToggleMode, style, ...rest }: HeaderProps) {
   return (
     <header
       data-presentation-header=""
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+      {...rest}
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', ...style }}
     >
       <div data-presentation-brand-slot="">{brand}</div>
       <div data-presentation-marker-row="" style={{ display: 'flex', alignItems: 'center' }}>

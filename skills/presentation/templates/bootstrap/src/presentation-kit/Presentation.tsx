@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, type HTMLAttributes, type ReactNode } from 'react'
 import { Attribution, type AttributionOptions } from './chrome/Attribution'
 import { Footer } from './chrome/Footer'
 import { Header } from './chrome/Header'
@@ -10,7 +10,7 @@ import { useFitScale, useViewportSize } from './useFitScale'
 import { usePresentationNav } from './usePresentationNav'
 import { validateSteps } from './validate'
 
-export interface PresentationProps<TPayload> {
+export interface PresentationProps<TPayload> extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   steps: readonly Step<TPayload>[]
   title: string
   initialMode?: Mode
@@ -21,8 +21,6 @@ export interface PresentationProps<TPayload> {
   designWidth?: number
   designHeight?: number
   stageLayout?: Record<Mode, StageGeometry>
-  className?: string
-  style?: CSSProperties
 }
 
 export function Presentation<TPayload>({
@@ -34,8 +32,8 @@ export function Presentation<TPayload>({
   designWidth,
   designHeight,
   stageLayout = STAGE_LAYOUT,
-  className,
   style,
+  ...rest
 }: PresentationProps<TPayload>) {
   const problems = validateSteps(steps)
   if (problems.length > 0) throw new Error(`Invalid presentation "${title}": ${problems.join('; ')}`)
@@ -59,7 +57,7 @@ export function Presentation<TPayload>({
       data-step-index={nav.index}
       data-presentation-step-count={steps.length}
       data-presentation-step-index={nav.index}
-      className={className}
+      {...rest}
       style={{ position: 'fixed', inset: 0, overflow: 'hidden', ...style }}
     >
       <div

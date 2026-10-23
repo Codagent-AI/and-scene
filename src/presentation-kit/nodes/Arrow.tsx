@@ -1,8 +1,9 @@
 import { motion } from 'motion/react'
+import type { ComponentProps } from 'react'
 import { LAYOUT_TRANSITION, presenceProps } from '../motion'
 import { arrowHead, arrowShaft, control, type Point } from './arrowGeometry'
 
-export interface ArrowProps {
+export interface ArrowProps extends Omit<ComponentProps<typeof motion.svg>, 'id' | 'children' | 'initial' | 'animate' | 'exit' | 'from' | 'to'> {
   id: string
   from: Point
   to: Point
@@ -12,12 +13,10 @@ export interface ArrowProps {
   headSize?: number
   /** Newcomer: fade in after persisting entities settle (a number adds extra delay). */
   appear?: boolean | number
-  className?: string
-  style?: React.CSSProperties
 }
 
 /** An SVG arrow whose endpoints animate in place when its coordinates change. */
-export function Arrow({ id, from, to, bend = 0, bidirectional = false, headSize = 8, appear, className, style }: ArrowProps) {
+export function Arrow({ id, from, to, bend = 0, bidirectional = false, headSize = 8, appear, style, ...rest }: ArrowProps) {
   const c = control(from, to, bend)
   const endHead = arrowHead(to, c, headSize)
   const startHead = bidirectional ? arrowHead(from, c, headSize) : arrowHead(from, from, 0)
@@ -26,7 +25,7 @@ export function Arrow({ id, from, to, bend = 0, bidirectional = false, headSize 
       {...presenceProps(appear)}
       data-presentation-entity={id}
       data-presentation-kind="arrow"
-      className={className}
+      {...rest}
       style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', ...style }}
     >
       <motion.path data-presentation-arrow-shaft="" fill="none" stroke="currentColor" initial={false} animate={{ d: arrowShaft(from, to, bend) }} transition={LAYOUT_TRANSITION.layout} />

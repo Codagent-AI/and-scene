@@ -132,6 +132,13 @@ describe('INT-002: project-local screenshot helper', () => {
     })
   })
 
+  it.each([[[], 9], [['--viewport', '390x844'], 9]])('finds no advisory warnings on the committed sample (%j)', async (args, steps) => {
+    const result = await inspectRun('how-to-make-a-presentation', args as string[])
+    expect(result.code, result.stdout + result.stderr).toBe(0)
+    expect(warningsOf(result.stdout)).toEqual([])
+    expect(result.stdout).toContain(`${steps} screenshot(s)`)
+  })
+
   it('fails (non-zero) only for operational problems such as an unknown route', async () => {
     const result = await run('node', ['scripts/inspect-presentation.mjs', 'does-not-exist', '--no-build'], { cwd: app, timeoutMs: 120000 })
     expect(result.code).toBe(1)

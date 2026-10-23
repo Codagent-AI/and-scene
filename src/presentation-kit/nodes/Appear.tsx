@@ -1,24 +1,22 @@
 import { AnimatePresence, motion } from 'motion/react'
-import type { CSSProperties, ReactNode } from 'react'
+import type { ComponentProps, HTMLAttributes, ReactNode } from 'react'
 import { appearTransition, EXIT_TRANSITION } from '../motion'
 
-export interface AppearProps {
+export interface AppearProps extends Omit<ComponentProps<typeof motion.div>, 'children' | 'initial' | 'animate' | 'exit'> {
   children?: ReactNode
   /** Extra delay (seconds) after the base newcomer delay. */
   offset?: number
-  className?: string
-  style?: CSSProperties
 }
 
 /**
  * Wrap only newcomers. Enters after persisting entities have settled and
  * exits when removed (render it inside a SceneLayer, with a stable key).
  */
-export function Appear({ children, offset, className, style }: AppearProps) {
+export function Appear({ children, offset, style, ...rest }: AppearProps) {
   return (
     <motion.div
       data-presentation-appear=""
-      className={className}
+      {...rest}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: appearTransition(offset) }}
       exit={{ opacity: 0, transition: EXIT_TRANSITION }}
@@ -29,16 +27,14 @@ export function Appear({ children, offset, className, style }: AppearProps) {
   )
 }
 
-export interface SceneLayerProps {
+export interface SceneLayerProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode
-  className?: string
-  style?: CSSProperties
 }
 
 /** Absolutely positions one step's diagram so layers never reflow each other. */
-export function SceneLayer({ children, className, style }: SceneLayerProps) {
+export function SceneLayer({ children, style, ...rest }: SceneLayerProps) {
   return (
-    <div data-presentation-scene-layer="" className={className} style={{ position: 'absolute', inset: 0, ...style }}>
+    <div data-presentation-scene-layer="" {...rest} style={{ position: 'absolute', inset: 0, ...style }}>
       <AnimatePresence>{children}</AnimatePresence>
     </div>
   )

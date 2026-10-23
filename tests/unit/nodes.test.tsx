@@ -116,3 +116,52 @@ describe('Appear timing wiring', () => {
     vi.resetModules()
   })
 })
+
+describe('author hooks reach every kit part', () => {
+  const extras = { className: 'mine', 'data-extra': 'yes', style: { zIndex: 7 } }
+  const check = (el: Element | null, hookAttr: string) => {
+    expect(el, hookAttr).not.toBeNull()
+    expect(el!.hasAttribute(hookAttr)).toBe(true)
+    expect(el!.getAttribute('class')).toContain('mine')
+    expect(el!.getAttribute('data-extra')).toBe('yes')
+    expect((el as HTMLElement | SVGElement).style.zIndex).toBe('7')
+  }
+  const meta = { id: 's', era: 'e', title: 't', caption: 'c' }
+
+  it('Arrow, Appear and SceneLayer pass className, style and data-* through', () => {
+    const { container } = render(
+      <SceneLayer {...extras}>
+        <Appear key="a" {...extras}>
+          <Arrow id="ar" from={{ x: 0, y: 0 }} to={{ x: 5, y: 5 }} {...extras} />
+        </Appear>
+      </SceneLayer>,
+    )
+    check(container.querySelector('[data-presentation-scene-layer]'), 'data-presentation-scene-layer')
+    check(container.querySelector('[data-presentation-appear]'), 'data-presentation-appear')
+    check(container.querySelector('[data-presentation-kind="arrow"]'), 'data-presentation-entity')
+  })
+
+  it('Header, Footer, Toc, Attribution and Stage pass className, style and data-* through', async () => {
+    const { Header, Footer, Toc, Attribution, Stage } = await import('../../src/presentation-kit')
+    const step = { ...meta, Scene: () => null, payload: undefined }
+    const { container } = render(
+      <>
+        <Header marker="01" era="e" mode="browse" onToggleMode={() => {}} {...extras} />
+        <Footer mode="browse" step={step} steps={[step]} index={0} onPrev={() => {}} onNext={() => {}} onJump={() => {}} {...extras} />
+        <Toc steps={[step]} index={0} top={0} onJump={() => {}} {...extras} />
+        <Attribution {...extras} />
+        <Stage step={step} index={0} scale={1} {...extras} />
+      </>,
+    )
+    for (const hook of ['header', 'footer', 'toc', 'attribution', 'stage']) {
+      check(container.querySelector(`[data-presentation-${hook}]`), `data-presentation-${hook}`)
+    }
+  })
+
+  it('Presentation passes data-* through to its root', async () => {
+    const { Presentation } = await import('../../src/presentation-kit')
+    const step = { ...meta, Scene: () => null, payload: undefined }
+    const { container } = render(<Presentation steps={[step]} title="t" {...extras} />)
+    check(container.querySelector('[data-presentation-root]'), 'data-presentation-root')
+  })
+})

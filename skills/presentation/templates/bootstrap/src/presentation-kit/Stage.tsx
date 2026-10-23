@@ -1,10 +1,11 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import type { HTMLAttributes } from 'react'
 import { hostKey } from './hostKey'
 import { DESIGN_H, DESIGN_W } from './constants'
 import { EXIT_TRANSITION } from './motion'
 import type { SceneProps, Step } from './types'
 
-export interface StageProps<TPayload> {
+export interface StageProps<TPayload> extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   step: Step<TPayload>
   index: number
   scale: number
@@ -12,13 +13,14 @@ export interface StageProps<TPayload> {
   designHeight?: number
 }
 
-export function Stage<TPayload>({ step, index, scale, designWidth = DESIGN_W, designHeight = DESIGN_H }: StageProps<TPayload>) {
+export function Stage<TPayload>({ step, index, scale, designWidth = DESIGN_W, designHeight = DESIGN_H, style, ...rest }: StageProps<TPayload>) {
   const { Scene } = step
   const sceneProps: SceneProps<TPayload> = { payload: step.payload, step, index }
   return (
     <div
       data-presentation-stage=""
-      style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      {...rest}
+      style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style }}
     >
       <div
         data-presentation-canvas=""

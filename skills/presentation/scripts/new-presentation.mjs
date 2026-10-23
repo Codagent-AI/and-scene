@@ -23,13 +23,14 @@ export function registryLine(slug, title) {
 }
 
 export function createPresentation(target, slug, title) {
+  if (/[\u0000-\u001f\u007f]/.test(title)) throw new Error('invalid title: control characters (such as newlines) are not allowed')
   if (!SLUG.test(slug)) throw new Error(`invalid slug "${slug}": use lowercase letters, digits and single hyphens`)
   const presentations = path.join(target, 'src', 'presentations')
   const indexFile = findRegistry(target)
   if (!indexFile) throw new Error(`no presentation index under ${presentations}: scaffold first`)
   const index = fs.readFileSync(indexFile, 'utf8')
   const destDir = path.join(presentations, slug)
-  if (fs.existsSync(destDir) || index.includes(`slug: '${slug}'`)) throw new Error(`presentation "${slug}" already exists; refusing to overwrite it`)
+  if (fs.existsSync(destDir) || new RegExp(`slug:\\s*['"]${slug}['"]`).test(index)) throw new Error(`presentation "${slug}" already exists; refusing to overwrite it`)
   const close = index.lastIndexOf('\n]')
   if (close < 0) throw new Error(`could not find the end of the PRESENTATIONS array in ${indexFile}`)
 

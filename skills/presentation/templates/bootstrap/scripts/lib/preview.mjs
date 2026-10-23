@@ -28,8 +28,10 @@ export async function startPreview(root, log = console.log) {
   log(`preview: vite preview --host ${HOST} --port ${port}`)
   const child = spawn(process.execPath, args, { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
   let output = ''
-  child.stdout.on('data', (d) => (output += d))
-  child.stderr.on('data', (d) => (output += d))
+  // keep only the tail: it is only reported when startup fails
+  const collect = (d) => (output = (output + d).slice(-8000))
+  child.stdout.on('data', collect)
+  child.stderr.on('data', collect)
   let exited = false
   child.once('exit', () => (exited = true))
 
@@ -38,8 +40,11 @@ export async function startPreview(root, log = console.log) {
     const done = new Promise((resolve) => child.once('exit', resolve))
     child.kill('SIGTERM')
     const timer = setTimeout(() => child.kill('SIGKILL'), 3000)
-    await done
-    clearTimeout(timer)
+    try {
+      await done
+    } finally {
+      clearTimeout(timer)
+    }
   }
 
   const probe = previewUrl(port)

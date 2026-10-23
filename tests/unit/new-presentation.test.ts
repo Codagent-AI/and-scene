@@ -60,9 +60,13 @@ describe('createPresentation', () => {
   it('refuses an existing presentation, an invalid slug and a missing index, writing nothing', () => {
     const dir = scaffolded()
     createPresentation(dir, 'dup', 'Dup')
-    const before = registry(dir)
+    const before = registry(dir).replace("slug: 'dup'", 'slug: "dup"')
     expect(() => createPresentation(dir, 'dup', 'Again')).toThrowError(/already exists/)
     expect(() => createPresentation(dir, 'starter', 'x')).toThrowError(/already exists/)
+    fs.writeFileSync(path.join(dir, 'src/presentations/index.ts'), before)
+    fs.rmSync(path.join(dir, 'src/presentations/dup'), { recursive: true }) // only the registry entry remains
+    expect(() => createPresentation(dir, 'dup', 'Again'), 'double-quoted entry').toThrowError(/already exists/)
+    expect(() => createPresentation(dir, 'multi', 'two\nlines')).toThrowError(/control characters/)
     for (const bad of ['Bad Slug', '../escape', 'UPPER', '', 'a--b']) expect(() => createPresentation(dir, bad, 'x'), bad).toThrowError(/invalid slug/)
     expect(registry(dir)).toBe(before)
     expect(() => createPresentation(fs.mkdtempSync(path.join(os.tmpdir(), 'empty-')), 'x', 'x')).toThrowError(/no presentation index/)

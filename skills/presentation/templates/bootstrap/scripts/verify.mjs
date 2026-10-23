@@ -110,7 +110,8 @@ async function renderPresentation(browser, port, slug, reference) {
       failOnErrors()
       if (i === 0) {
         const attribution = await page.locator('[data-presentation-attribution]').first().boundingBox().catch(() => null)
-        if (attribution && !isBottomRight(attribution, page.viewportSize())) fail('attribution is not in the bottom-right corner')
+        if (!attribution) log(`render: ${slug} shows no attribution link (expected unless the presentation passes attribution={null})`)
+        else if (!isBottomRight(attribution, page.viewportSize())) fail('attribution is not in the bottom-right corner')
       }
       if (reference && slug === reference.slug) steps.push(await readStep(page))
       if (i < count - 1) {

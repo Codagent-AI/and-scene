@@ -60,10 +60,12 @@ export function collectSnapshot() {
 
   const style = (el) => {
     const cs = getComputedStyle(el)
+    // Text-bearing controls differ in size just because their labels differ.
+    const sized = (el.textContent || '').trim() === ''
     return {
       color: cs.color, backgroundColor: cs.backgroundColor, borderColor: cs.borderTopColor,
       borderWidth: cs.borderTopWidth, opacity: cs.opacity, fontWeight: cs.fontWeight,
-      transform: cs.transform, width: cs.width, height: cs.height,
+      transform: cs.transform, width: sized ? cs.width : '', height: sized ? cs.height : '',
     }
   }
   const chromeGroup = (name, selector) => {

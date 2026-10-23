@@ -1,0 +1,23 @@
+/* Layout shared by every variant; only the polish rules vary by class. */
+.fx [data-presentation-header] { height: 56px; padding: 0 20px; }
+.fx [data-presentation-footer] { padding: 0 20px 30px; text-align: center; }
+.fx [data-presentation-title] { margin: 0 0 4px; font-size: 22px; white-space: nowrap; }
+.fx [data-presentation-caption] { margin: 0 auto 10px; font-size: 14px; }
+.fx [data-presentation-controls] { margin: 0 auto; max-width: 460px; gap: 12px; }
+.fx [data-presentation-progress] { gap: 8px; }
+.fx [data-presentation-progress-item] { width: 10px; height: 10px; padding: 0; }
+.fx [data-presentation-toc] { margin-left: 16px; width: 168px; }
+.fx [data-presentation-toc] ol { margin: 0; padding: 0; list-style: none; }
+.fx [data-presentation-attribution-slot] { margin: 0 14px 6px 0; }
+.fx [data-presentation-entity] { font-size: 14px; }
+.fx [data-fx-pulse] { animation: fx-pulse 600ms linear; }
+@keyframes fx-pulse { from { opacity: 0.2; } to { opacity: 1; } }
+
+.fx-progress [data-presentation-progress-item][data-presentation-active='true'] {
+  width: 16px; height: 16px; background: #3b5bdb;
+}
+.fx-toc [data-presentation-toc-entry][data-presentation-active='true'] {
+  font-weight: 700; background: #e3e8ff;
+}
+.fx-attr-good [data-presentation-attribution] { font-size: 12px; color: #4b5570; text-decoration: underline; }
+.fx-attr-small [data-presentation-attribution] { font-size: 9px; color: #4b5570; }

@@ -3,7 +3,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import type { ComponentType } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { Landing } from './Landing'
-import { resolveRoute, type PresentationEntry } from './registry'
+import { lazyPresentations, resolveRoute, type PresentationEntry } from './registry'
 import { Router } from './Router'
 
 function fakeEntry(slug: string, label: string) {
@@ -44,7 +44,7 @@ describe('Router', () => {
   it('renders Landing on unknown paths and mounts no presentation', () => {
     const alpha = fakeEntry('alpha', 'Alpha')
     const beta = fakeEntry('beta', 'Beta')
-    render(<Router pathname="/nope" registry={[alpha.entry, beta.entry]} />)
+    render(<Router pathname="/nope" registry={[alpha.entry, beta.entry]} components={lazyPresentations([alpha.entry, beta.entry])} />)
     expect(screen.getAllByRole('link')).toHaveLength(2)
     expect(alpha.load).not.toHaveBeenCalled()
     expect(beta.load).not.toHaveBeenCalled()
@@ -54,7 +54,7 @@ describe('Router', () => {
     const alpha = fakeEntry('alpha', 'Alpha')
     const beta = fakeEntry('beta', 'Beta')
     await act(async () => {
-      render(<Router pathname="/beta" registry={[alpha.entry, beta.entry]} />)
+      render(<Router pathname="/beta" registry={[alpha.entry, beta.entry]} components={lazyPresentations([alpha.entry, beta.entry])} />)
     })
     expect(beta.load).toHaveBeenCalledTimes(1)
     expect(alpha.load).not.toHaveBeenCalled()
@@ -70,7 +70,7 @@ describe('Router', () => {
       load: () => new Promise((resolve) => (resolveLoad = resolve)),
     }
     await act(async () => {
-      render(<Router pathname="/slow" registry={[pending]} />)
+      render(<Router pathname="/slow" registry={[pending]} components={lazyPresentations([pending])} />)
     })
     expect(screen.getByRole('status').textContent).toContain('Loading')
     await act(async () => {

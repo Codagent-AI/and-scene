@@ -1,37 +1,26 @@
-import { Suspense, use } from 'react'
+import { Suspense, type ComponentType, type LazyExoticComponent } from 'react'
 import { Landing } from './Landing'
-import { resolveRoute, type PresentationEntry } from './registry'
-
-// Each entry's module is requested once and shared by every render, so Suspense
-// keeps the same pending promise until the presentation has loaded.
-const modules = new WeakMap<PresentationEntry, ReturnType<PresentationEntry['load']>>()
-
-function loadOnce(entry: PresentationEntry): ReturnType<PresentationEntry['load']> {
-  let pending = modules.get(entry)
-  if (!pending) {
-    pending = entry.load()
-    modules.set(entry, pending)
-  }
-  return pending
-}
-
-function PresentationModule({ entry }: { entry: PresentationEntry }) {
-  const { default: Presentation } = use(loadOnce(entry))
-  return <Presentation />
-}
+import { resolveRoute, type PresentationComponents, type PresentationEntry } from './registry'
 
 export interface RouterProps {
   pathname: string
   registry: readonly PresentationEntry[]
+  components: PresentationComponents
 }
 
-/** Renders Landing, or the matched presentation loaded on demand inside Suspense. */
-export function Router({ pathname, registry }: RouterProps) {
+/** Mounts a presentation component handed in as a prop. */
+function Mounted({ Component }: { Component: LazyExoticComponent<ComponentType> }) {
+  return <Component />
+}
+
+/** Renders Landing, or the matched presentation loaded lazily inside Suspense. */
+export function Router({ pathname, registry, components }: RouterProps) {
   const route = resolveRoute(pathname, registry)
   if (route.kind === 'landing') return <Landing registry={registry} />
+  const Component = components.get(route.entry.slug)!
   return (
     <Suspense fallback={<p role="status">Loading presentation…</p>}>
-      <PresentationModule entry={route.entry} />
+      <Mounted Component={Component} />
     </Suspense>
   )
 }

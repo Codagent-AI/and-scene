@@ -31,7 +31,6 @@ const INDEX_FILES = [
 ]
 const KIT_PREFIX = 'src/presentation-kit/'
 const VERIFY_PREFIXES = ['scripts/', 'src/presentations/how-to-make-a-presentation/']
-const KIT_EXPORTS = ['Presentation', 'usePresentationNav', 'useFitScale', 'Step']
 const MONOREPO_DIRS = ['packages', 'apps']
 
 const exists = async (p) => fs.access(p).then(() => true, () => false)
@@ -88,19 +87,34 @@ async function detectBuild(appDir) {
   return hasDeps && hasBuild && hasVite
 }
 
+// Capability checks on the kit's behaviour, not its names. Any file may provide each capability.
+const KIT_CAPABILITIES = {
+  step: (all) => /\bera\s*:/.test(all) && /\bcaption\s*:/.test(all) && /\bpayload\s*:/.test(all) && /\bscene\s*:/.test(all),
+  navigation: (all) =>
+    /addEventListener\(\s*['"]keydown['"]/.test(all) &&
+    /ArrowRight/.test(all) &&
+    /addEventListener\(\s*['"]touchend['"]/.test(all),
+  fit: (all) => /getBoundingClientRect|ResizeObserver|innerWidth/.test(all) && /Math\.min\(/.test(all) && /scale\(/.test(all),
+  stepsRendered: (all) => /\bsteps\b/.test(all) && /\.map\(/.test(all),
+}
+
 async function detectKit(appDir) {
   const files = await listFiles(path.join(appDir, 'src', 'presentation-kit'), (f) => /\.tsx?$/.test(f))
+  const texts = await Promise.all(files.map((file) => readText(file)))
   const names = new Set()
-  for (const file of files) {
-    for (const name of exportedNames((await readText(file)) ?? '')) names.add(name)
-  }
-  return KIT_EXPORTS.every((name) => names.has(name))
+  for (const text of texts) for (const name of exportedNames(text ?? '')) names.add(name)
+  const all = texts.join('\n')
+  return names.has('Step') && Object.values(KIT_CAPABILITIES).every((holds) => holds(all))
 }
 
 async function detectIndex(appDir) {
   const source = await readText(path.join(appDir, 'src', 'presentations', 'index.ts'))
   if (source === null) return false
-  return exportedNames(source).has('PRESENTATIONS') && /\bslug\s*:/.test(source) && /\bload\s*:/.test(source)
+  return (
+    exportedNames(source).has('PRESENTATIONS') &&
+    /\bslug\s*:/.test(source) &&
+    /\bload\s*:\s*\(\s*\)\s*=>\s*import\(/.test(source)
+  )
 }
 
 // Contract-level anchor detection; cosmetic differences do not change the result.
@@ -178,14 +192,16 @@ export async function planScaffold(appDir, { templateRoot = TEMPLATE_ROOT } = {}
   const rels = await templateFiles(templateRoot)
   const files = []
   for (const rel of rels) {
+    const dest = path.join(appDir, rel)
+    // package.json is always merged, so dependencies the kit needs are declared even when the build anchor exists.
+    if (rel === 'package.json') {
+      files.push({ rel, action: (await exists(dest)) ? 'merge-package-json' : 'create' })
+      continue
+    }
     const group = groupOf(rel)
     if (group === null) continue
     if (group !== 'verify' && !missingAnchors.includes(group)) continue
-    const dest = path.join(appDir, rel)
-    let action = 'skip-existing'
-    if (!(await exists(dest))) action = 'create'
-    else if (rel === 'package.json') action = 'merge-package-json'
-    files.push({ rel, action })
+    files.push({ rel, action: (await exists(dest)) ? 'skip-existing' : 'create' })
   }
   return { missingAnchors, files }
 }

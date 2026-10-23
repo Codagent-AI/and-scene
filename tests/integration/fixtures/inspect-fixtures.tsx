@@ -3,7 +3,7 @@
 // so the page for one slug never inherits another's CSS.
 import { Appear, Box, Label, Presentation, SceneLayer, type SceneProps, type Step } from '../../../src/presentation-kit/index.ts'
 
-export type Variant = 'clean' | 'collision' | 'allowed' | 'chrome' | 'attribution-small' | 'attribution-default' | 'settle'
+export type Variant = 'clean' | 'collision' | 'nested' | 'allowed' | 'chrome' | 'attribution-small' | 'attribution-default' | 'settle'
 
 interface Payload {
   stage: number
@@ -19,6 +19,7 @@ const BASE = 'h1, p, ol { margin: 0; padding: 0; } ol { list-style: none; } [dat
 const CSS: Record<Variant, string> = {
   clean: BASE + POLISHED_CHROME + POLISHED_ATTRIBUTION,
   collision: BASE + POLISHED_CHROME + POLISHED_ATTRIBUTION,
+  nested: BASE + POLISHED_CHROME + POLISHED_ATTRIBUTION,
   allowed: BASE + POLISHED_CHROME + POLISHED_ATTRIBUTION,
   chrome: BASE + POLISHED_ATTRIBUTION,
   'attribution-small': BASE + POLISHED_CHROME + `[data-presentation-attribution] { font-size: 9px; color: #456; text-decoration: none; }`,
@@ -48,6 +49,13 @@ function Scene({ payload, variant }: SceneProps<Payload> & { variant: Variant })
         <Box rect={{ x: 20, y: 20, w: 200, h: 40 }}>Base entity</Box>
       </Appear>
       {variant === 'collision' && s === 2 ? <Appear key="pair">{pair(A, B, ['Alpha text', 'Beta text'])}</Appear> : null}
+      {variant === 'nested' && s === 2 ? (
+        <Appear key="nest">
+          <Box rect={{ x: 100, y: 100, w: 300, h: 60 }}>
+            <span style={{ position: 'absolute', left: 4, top: 4 }}>Inner text</span>Outer text
+          </Box>
+        </Appear>
+      ) : null}
       {variant === 'allowed' && s === 2 ? <Appear key="pair">{pair(A, B, ['Alpha text', 'Beta text'], true)}</Appear> : null}
       {variant === 'allowed' && s === 3 ? <Appear key="other">{pair(C, D, ['Gamma text', 'Delta text'])}</Appear> : null}
       {variant === 'settle' ? (

@@ -41,13 +41,10 @@ export function snapshotPage() {
     const r = el.getBoundingClientRect()
     if (r.width > 0 && r.height > 0) candidates.set(el, { x: r.left, y: r.top, w: r.width, h: r.height })
   }
-  const ids = new Map([...candidates.keys()].map((el, i) => [el, i]))
   const items = [...candidates].map(([el, rect]) => ({
     id: label(el),
     rect,
     allowed: el.closest('[data-presentation-allow-overlap]') !== null,
-    nested: [...candidates.keys()].filter((o) => o !== el && (el.contains(o) || o.contains(el))).map(label),
-    n: ids.get(el),
   }))
 
   // Text entries size to their label, so their box size says nothing about styling.

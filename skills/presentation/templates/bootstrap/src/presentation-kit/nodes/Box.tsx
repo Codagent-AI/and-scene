@@ -1,6 +1,7 @@
 import { motion, type HTMLMotionProps } from 'motion/react'
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
+import { LAYOUT_TRANSITION } from '../constants.ts'
 import { rectStyle } from '../geometry.ts'
 import type { Rect } from '../types.ts'
 
@@ -18,7 +19,7 @@ export interface BoxProps extends NodeProps {
 /** Generic container entity. Carries `layoutId` for in-place morphs; supplies no look. */
 export function Box({ rect, Icon, style, children, ...rest }: BoxProps) {
   return (
-    <motion.div data-presentation-box="" layout {...rest} style={{ ...rectStyle(rect), ...style }}>
+    <motion.div data-presentation-box="" layout transition={LAYOUT_TRANSITION} {...rest} style={{ ...rectStyle(rect), ...style }}>
       {Icon ? <Icon data-presentation-icon="" aria-hidden="true" /> : null}
       {children}
     </motion.div>

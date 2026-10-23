@@ -1,7 +1,7 @@
 import { act, fireEvent, render } from '@testing-library/react'
 import { useEffect } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { Appear, Box, Presentation, SceneLayer, sceneKey, type SceneProps } from '../../../src/presentation-kit/index.ts'
+import { Appear, Box, Emphasis, Frame, Label, Presentation, SceneLayer, SymbolChip, sceneKey, type SceneProps } from '../../../src/presentation-kit/index.ts'
 import { DESIGN_H, DESIGN_W, ENTER_DELAY, ENTER_T, LAYOUT_T, STAGE_LAYOUT } from '../../../src/presentation-kit/constants.ts'
 import { makeSteps, setViewport, TextScene, type Payload } from '../helpers/fixtures.tsx'
 import { motionOf } from '../helpers/motionMock.tsx'
@@ -145,6 +145,28 @@ describe('stage geometry (L-25, L-26, C-2)', () => {
   })
 })
 
+describe('entry ordering uses the real layout duration (L-5)', () => {
+  it.each([
+    ['Box', <Box key="x" />],
+    ['Label', <Label key="x" />],
+    ['Frame', <Frame key="x" />],
+    ['Emphasis', <Emphasis key="x" />],
+    ['SymbolChip', <SymbolChip key="x" />],
+  ])('%s moves with LAYOUT_T and newcomers wait at least that long', (_n, el) => {
+    const { container } = render(<>{el}<Appear /></>)
+    const entity = container.firstElementChild!
+    const layoutTransition = (motionOf(entity).transition as { layout: { duration: number } }).layout
+    expect(layoutTransition.duration).toBe(LAYOUT_T)
+    const appear = motionOf(container.querySelector('[data-presentation-appear]')!) as { animate: { transition: { delay: number } } }
+    expect(appear.animate.transition.delay).toBeGreaterThanOrEqual(layoutTransition.duration)
+  })
+
+  it('lets a caller override the layout transition', () => {
+    const { container } = render(<Box transition={{ layout: { duration: 2 } }} />)
+    expect((motionOf(container.firstElementChild!).transition as { layout: { duration: number } }).layout.duration).toBe(2)
+  })
+})
+
 describe('entities (L-4, L-5, L-6, L-8)', () => {
   it('forwards a stable layoutId and layout projection on Box', () => {
     const { container, rerender } = render(
@@ -177,11 +199,11 @@ describe('entities (L-4, L-5, L-6, L-8)', () => {
   })
 
   it('applies the entrance only to entities that are new at a step', () => {
-    function Scene({ payload }: SceneProps<{ ids: string[] }>) {
+    function Scene({ payload, previous }: SceneProps<{ ids: string[] }>) {
       return (
         <SceneLayer>
           {payload.ids.map((id) => (
-            <Appear key={id} data-id={id}>
+            <Appear key={id} data-id={id} enter={!previous?.ids.includes(id)}>
               <Box layoutId={id}>{id}</Box>
             </Appear>
           ))}
@@ -194,16 +216,43 @@ describe('entities (L-4, L-5, L-6, L-8)', () => {
     const steps = [mk(['a', 'b'], 0), mk(['a', 'b', 'c'], 1), mk(['a', 'c'], 2)]
     const { container } = render(<Presentation steps={steps} title="T" />)
     const node = (id: string) => container.querySelector<HTMLElement>(`[data-id="${id}"]`)
+    const motion = (id: string) => motionOf(node(id)!) as { initial: unknown; animate: { transition?: { delay: number } } }
+    // first mount: everything is new and enters after the delay
+    expect(motion('a').initial).toEqual({ opacity: 0 })
+    expect(motion('a').animate.transition?.delay).toBe(ENTER_DELAY)
     const a = node('a')!
     const b = node('b')!
     key('ArrowRight')
-    expect(node('a')).toBe(a) // continuing entities are not remounted, so not re-faded
+    expect(node('a')).toBe(a) // not remounted
     expect(node('b')).toBe(b)
-    const c = node('c')!
-    expect(c).not.toBeNull()
-    expect(c.getAttribute('data-layout-id')).toBeNull()
-    expect(motionOf(c).initial).toEqual({ opacity: 0 })
-    expect(c.querySelector('[data-presentation-box]')!.getAttribute('data-layout-id')).toBe('c')
+    // continuing entities carry no entrance behavior; the newcomer does
+    expect(motion('a').initial).toBe(false)
+    expect(motion('a').animate.transition).toBeUndefined()
+    expect(motion('b').initial).toBe(false)
+    expect(motion('c').initial).toEqual({ opacity: 0 })
+    expect(motion('c').animate.transition?.delay).toBe(ENTER_DELAY)
+    expect(node('c')!.querySelector('[data-presentation-box]')!.getAttribute('data-layout-id')).toBe('c')
+    // going back introduces no newcomers
+    key('ArrowRight')
+    key('ArrowLeft')
+    expect(motion('a').initial).toBe(false)
+    expect(motion('c').initial).toBe(false)
+  })
+
+  it('gives no previous payload to a scene that was just mounted for a new group', () => {
+    const seen: Array<unknown> = []
+    function Spy({ payload, previous }: SceneProps<Payload>) {
+      seen.push([payload.n, previous?.n])
+      return <i />
+    }
+    const steps = makeSteps(3, Spy).map((s, i) => ({ ...s, groupKey: i < 2 ? 'a' : 'b' }))
+    render(<Presentation steps={steps} title="T" />)
+    key('ArrowRight')
+    key('ArrowRight')
+    const last = (n: number) => [...seen].reverse().find((x) => (x as number[])[0] === n)
+    expect(last(1)).toEqual([1, undefined])
+    expect(last(2)).toEqual([2, 1])
+    expect(last(3)).toEqual([3, undefined])
   })
 
   it('keeps presence-managed children under SceneLayer', () => {

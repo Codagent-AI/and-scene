@@ -46,5 +46,5 @@ export async function startPreview(root, { readyTimeoutMs = 20000 } = {}) {
     await stop()
     throw error
   }
-  return { port, url: (pathname) => previewUrl(port, pathname), stop }
+  return { port, pid: child.pid, url: (pathname) => previewUrl(port, pathname), stop }
 }

@@ -1,5 +1,5 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
-import type { ComponentType } from 'react'
+import { useState, type ComponentType } from 'react'
 import { sceneKey } from './sceneKey.ts'
 import { DESIGN_H, DESIGN_W, ENTER_T, STAGE_LAYOUT } from './constants.ts'
 import { reservedSide, useFitScale, useViewport } from './useFitScale.ts'
@@ -20,6 +20,13 @@ export function Stage<P>({ step, meta, mode, design = DEFAULT_DESIGN }: StagePro
   const { width: viewportWidth } = useViewport()
   const { top, bottom } = STAGE_LAYOUT[mode]
   const Scene = step.Scene as ComponentType<SceneProps<P>>
+  const key = sceneKey(step)
+  // Remember the step shown before this one while the same scene instance continues.
+  const [track, setTrack] = useState({ id: step.id, key, payload: step.payload, previous: undefined as P | undefined })
+  if (track.id !== step.id) {
+    setTrack({ id: step.id, key, payload: step.payload, previous: track.key === key ? track.payload : undefined })
+  }
+  const previous = track.id === step.id ? track.previous : track.key === key ? track.payload : undefined
   return (
     <div
       data-presentation-stage=""
@@ -49,7 +56,7 @@ export function Stage<P>({ step, meta, mode, design = DEFAULT_DESIGN }: StagePro
         <LayoutGroup>
           <AnimatePresence initial={false}>
             <motion.div
-              key={sceneKey(step)}
+              key={key}
               data-presentation-scene=""
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -57,7 +64,7 @@ export function Stage<P>({ step, meta, mode, design = DEFAULT_DESIGN }: StagePro
               transition={{ duration: ENTER_T }}
               style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }}
             >
-              <Scene payload={step.payload} step={meta} />
+              <Scene payload={step.payload} previous={previous} step={meta} />
             </motion.div>
           </AnimatePresence>
         </LayoutGroup>

@@ -30,6 +30,9 @@ const ANCHOR_FILES = {
   ],
   kit: ['src/presentation-kit/'],
 }
+// Verification and inspection tooling is needed whenever anything is scaffolded,
+// because the npm scripts it backs are added to the host's package.json.
+const TOOLING_FILES = ['scripts/', 'presentation.config.json']
 // everything else in the bootstrap template belongs to the build anchor
 const MONOREPO_DIRS = ['packages', 'apps']
 const SAVED_AS = { _gitignore: '.gitignore' }
@@ -76,18 +79,25 @@ export function detectAnchors(dir) {
   const hasVite = fs.existsSync(dir) && fs.readdirSync(dir).some((n) => /^vite\.config\./.test(n))
   const build = Boolean(pkg?.scripts?.build) && hasVite && exists(dir, 'tsconfig.json')
 
-  const srcDirs = exists(dir, 'src')
-    ? fs.readdirSync(path.join(dir, 'src'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => path.join(dir, 'src', e.name))
-    : []
-  const kit = srcDirs.some((d) => {
-    const text = sourceFiles(d).map((f) => fs.readFileSync(f, 'utf8')).join('\n')
-    return /export[^;]*\bPresentation\b|function Presentation\b/.test(text) && /\bStage\b/.test(text) && /\bStep\b/.test(text) && /\bScene(Props)?\b/.test(text)
+  const srcFiles = sourceFiles(path.join(dir, 'src'))
+  const textOf = (files) => files.map((f) => fs.readFileSync(f, 'utf8')).join('\n')
+  // Kit: one directory that provides the whole engine contract, by capability.
+  const kit = [...new Set(srcFiles.map((f) => path.dirname(f)))].some((d) => {
+    const text = textOf(srcFiles.filter((f) => path.dirname(f).startsWith(d)))
+    return (
+      /\b(interface|type)\s+Step\b/.test(text) && // step contract
+      /\b(interface|type)\s+Scene\w*\b/.test(text) &&
+      /function\s+Stage\b|const\s+Stage\b/.test(text) && /AnimatePresence/.test(text) && // stage host + morphs
+      /function\s+Presentation\b|const\s+Presentation\b/.test(text) &&
+      /keydown/.test(text) && // present/browse navigation
+      /scale/i.test(text) // fit-scale canvas
+    )
   })
-
-  const registry = ['index.ts', 'index.tsx', 'index.js', 'index.mjs']
-    .map((n) => path.join(dir, 'src', 'presentations', n))
-    .find((f) => fs.existsSync(f))
-  const index = Boolean(registry) && /\bslug\b/.test(fs.readFileSync(registry, 'utf8')) && /\bload\b|import\(/.test(fs.readFileSync(registry, 'utf8'))
+  // Index: any module mapping slugs to lazy loaders, wherever it lives.
+  const index = srcFiles.some((f) => {
+    const text = fs.readFileSync(f, 'utf8')
+    return /\bslug\s*:/.test(text) && /\bload\s*:/.test(text) && /import\(/.test(text)
+  })
   return { build, kit, index }
 }
 
@@ -115,6 +125,7 @@ export function resolveTarget(dir) {
 }
 
 function anchorOf(rel) {
+  if (TOOLING_FILES.some((p) => (p.endsWith('/') ? rel.startsWith(p) : rel === p))) return 'tooling'
   for (const [anchor, prefixes] of Object.entries(ANCHOR_FILES)) {
     if (prefixes.some((p) => (p.endsWith('/') ? rel.startsWith(p) : rel === p))) return anchor
   }
@@ -135,7 +146,7 @@ export function planScaffold(dir) {
   const bootstrap = templatePath('bootstrap')
   const files = listFiles(bootstrap)
     .map((rel) => ({ rel: destName(rel), from: path.join(bootstrap, rel), anchor: anchorOf(rel) }))
-    .filter((f) => missing.includes(f.anchor))
+    .filter((f) => f.anchor === 'tooling' ? missing.length > 0 : missing.includes(f.anchor))
     .map((f) => ({ ...f, to: path.join(target, f.rel), action: exists(target, f.rel) ? 'skip-existing' : 'create' }))
   const pkg = readJson(path.join(target, 'package.json'))
   const template = readJson(path.join(bootstrap, 'package.json'))
@@ -195,6 +206,9 @@ const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
 export function registerPresentation(appDir, { slug, title, dir = slug }) {
   if (!SLUG.test(slug)) throw new Error(`invalid slug "${slug}": use lowercase words joined by hyphens`)
   const file = path.join(appDir, 'src', 'presentations', 'index.ts')
+  if (!fs.existsSync(file)) {
+    throw new Error('the registry is not at src/presentations/index.ts; add the { slug, title, load } entry to your registry by hand')
+  }
   const source = fs.readFileSync(file, 'utf8')
   if (new RegExp(`slug:\\s*['"]${slug}['"]`).test(source)) throw new Error(`slug "${slug}" is already registered`)
   const close = source.lastIndexOf('\n]')

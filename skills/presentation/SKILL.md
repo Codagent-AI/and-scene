@@ -127,6 +127,9 @@ Guidelines:
 - Entities accumulate and keep their identity. Move or re-label them rather
   than redrawing; give each entity one stable `layoutId`. Steps that share a
   `groupKey` and `Scene` update one mounted scene in place.
+- Wrap each entity in `Appear`, but pass `enter` only for entities new at this
+  step (`enter={e.stage > (previous?.stage ?? 0)}`, using the scene's `previous`
+  prop); continuing entities must carry no entrance fade.
 - **Styling belongs to the presentation or host**: plain CSS in
   `talk.css` (or the host's CSS) targeting the kit's stable
   `data-presentation-*` hooks. Never add colors, fonts, borders or buttons to

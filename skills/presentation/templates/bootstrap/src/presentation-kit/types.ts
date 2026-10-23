@@ -14,6 +14,8 @@ export interface StepMeta {
 
 export interface SceneProps<P = unknown> {
   payload: P
+  /** Payload of the step shown just before, when the same scene instance continues; else undefined. */
+  previous?: P
   step: StepMeta
 }
 

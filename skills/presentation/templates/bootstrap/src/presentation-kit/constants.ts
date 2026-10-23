@@ -13,6 +13,8 @@ export const EASE = [0.22, 1, 0.36, 1] as const
 export const LAYOUT_T = 0.6
 /** Seconds a newcomer takes to fade in. */
 export const ENTER_T = 0.4
+/** Transition applied to entity layout moves; its duration is `LAYOUT_T`. */
+export const LAYOUT_TRANSITION = { layout: { duration: LAYOUT_T, ease: EASE } } as const
 /** Newcomers wait this long so persisting entities settle first. */
 export const ENTER_DELAY = 0.65
 

@@ -1,4 +1,5 @@
 // Pure helpers behind the screenshot helper's advisory warnings.
+import path from 'node:path'
 
 export const MIN_OVERLAP_AREA = 4 // px², intersections at or below this are ignored
 export const MIN_ATTRIBUTION_FONT_PX = 11
@@ -12,9 +13,10 @@ export function intersectionArea(a, b) {
 }
 
 /**
- * `items`: visible text/chrome elements as `{ id, rect, allowed, nested }`.
- * `allowed` is true inside a `data-presentation-allow-overlap` subtree;
- * `nested` lists ids of ancestors/descendants, which never count as collisions.
+ * `items`: visible text/chrome elements as `{ id, rect, allowed }`.
+ * `allowed` is true inside a `data-presentation-allow-overlap` subtree. Only the
+ * explicit marker exempts a pair: nested elements are measured by their own text
+ * ranges, so a nested collision is as suspicious as any other.
  */
 export function overlapWarnings(items, step) {
   const warnings = []
@@ -23,7 +25,6 @@ export function overlapWarnings(items, step) {
       const a = items[i]
       const b = items[j]
       if (a.allowed || b.allowed) continue
-      if (a.nested?.includes(b.id) || b.nested?.includes(a.id)) continue
       const area = intersectionArea(a.rect, b.rect)
       if (area > MIN_OVERLAP_AREA) {
         warnings.push({ step, kind: 'overlap', message: `${a.id} overlaps ${b.id} (${Math.round(area)}px²); fix it or mark an intentional overlap with data-presentation-allow-overlap` })
@@ -64,6 +65,17 @@ export function attributionWarnings(attribution, step) {
     warnings.push({ step, kind: 'attribution', message: `attribution still has the browser-default link look; style [${hook}]` })
   }
   return warnings
+}
+
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
+
+/** Output directory for a slug; refuses anything that could leave `<root>/inspection`. */
+export function inspectionDir(root, slug, narrow = false) {
+  if (!SLUG.test(slug)) throw new Error(`invalid presentation slug "${slug}": use lowercase words joined by hyphens`)
+  const base = path.resolve(root, 'inspection')
+  const dir = path.resolve(base, slug + (narrow ? '-narrow' : ''))
+  if (!dir.startsWith(base + path.sep)) throw new Error(`refusing to write outside ${base}`)
+  return dir
 }
 
 export function stepFileName(index) {

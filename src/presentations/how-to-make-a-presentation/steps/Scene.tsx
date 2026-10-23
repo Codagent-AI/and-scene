@@ -61,11 +61,12 @@ function renderBox(e: BoxEntity, common: object) {
 }
 
 /** The one evolving scene: every step renders the same tree with more of it visible. */
-export function Scene({ payload }: SceneProps<ScenePayload>) {
+export function Scene({ payload, previous }: SceneProps<ScenePayload>) {
+  const seen = previous?.stage ?? 0
   return (
     <SceneLayer>
       {stageEntities(payload.stage).map((e) => (
-        <Appear key={e.id}>{renderEntity(e)}</Appear>
+        <Appear key={e.id} enter={e.stage > seen}>{renderEntity(e)}</Appear>
       ))}
     </SceneLayer>
   )

@@ -73,12 +73,28 @@ describe('anchor detection by contract (L-31)', () => {
     expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
   })
 
+  const KIT_STUBS = `
+export interface Step { id: string }
+export interface SceneProps { payload: unknown }
+export function Stage() { return <AnimatePresence /> }
+export function Presentation() { window.addEventListener('keydown', () => {}); return <Stage /> }
+export const fitScale = () => scale
+`
+
   it('does not depend on file naming, formatting or extra dependencies', () => {
     const dir = tmp()
     buildOnly(dir, { devDependencies: { tailwindcss: '^4' }, name: 'other' })
-    put(dir, 'src/engine/index.tsx', 'export function Presentation() {}\nexport function Stage() {}\ntype Step = {}\ntype SceneProps = {}')
-    put(dir, 'src/presentations/index.js', "export const presentations = [{ slug: 'a', load: () => import('./a.js') }]")
+    put(dir, 'src/engine/core/everything.tsx', KIT_STUBS)
+    put(dir, 'src/routes/registry.js', "export const talks = [{\n  slug: 'a',\n  load: () => import('./a.js') }]")
     expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('does not accept empty stubs or name-only matches as the engine contract', () => {
+    const dir = tmp()
+    put(dir, 'src/kit/index.tsx', 'export function Presentation() {}\nexport function Stage() {}\ntype Step = {}\ntype SceneProps = {}')
+    expect(detectAnchors(dir).kit).toBe(false)
+    put(dir, 'src/routes.ts', "export const x = { slug: 'a' }")
+    expect(detectAnchors(dir).index).toBe(false)
   })
 
   it('does not count a build script without Vite, or a half kit', () => {
@@ -187,7 +203,7 @@ describe('scaffold plans (L-32..L-36)', () => {
     const snapshot = Object.fromEntries(present.map((f) => [f, readFileSync(path.join(dir, f), 'utf8')]))
     const plan = planScaffold(dir)
     expect(plan.missingAnchors.sort()).toEqual([...missing].sort())
-    expect(plan.files.every((f: { anchor: string }) => missing.includes(f.anchor))).toBe(true)
+    expect(plan.files.every((f: { anchor: string }) => missing.includes(f.anchor) || f.anchor === 'tooling')).toBe(true)
     applyScaffold(plan)
     for (const [f, text] of Object.entries(snapshot)) {
       if (f === 'package.json') continue
@@ -214,6 +230,27 @@ describe('scaffold plans (L-32..L-36)', () => {
     expect(pkg.scripts.build).toBe('vite build')
     expect(Object.keys(pkg.dependencies)).toEqual(expect.arrayContaining(['motion', 'lucide-react', 'react-dom']))
     expect(Object.keys(pkg.devDependencies)).toEqual(expect.arrayContaining(['playwright', 'vite', 'typescript']))
+  })
+
+  it('ships verification tooling with a partial scaffold so every added npm script has its target', () => {
+    const dir = tmp()
+    buildOnly(dir)
+    applyScaffold(planScaffold(dir))
+    const scripts = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8')).scripts as Record<string, string>
+    expect(scripts.verify).toBeDefined()
+    for (const command of Object.values(scripts)) {
+      for (const target of command.match(/scripts\/[\w./-]+/g) ?? []) expect(existsSync(path.join(dir, target)), target).toBe(true)
+    }
+    for (const rel of ['scripts/lib/render.mjs', 'scripts/lib/page-snapshot.mjs', 'scripts/lib/verify-core.mjs', 'presentation.config.json']) {
+      expect(existsSync(path.join(dir, rel)), rel).toBe(true)
+    }
+  })
+
+  it('does not add tooling when nothing is scaffolded', () => {
+    const dir = tmp()
+    full(dir)
+    rmSync(path.join(dir, 'scripts'), { recursive: true })
+    expect(planScaffold(dir).files).toEqual([])
   })
 
   it('never overwrites a file that already exists, reporting it as skipped', () => {

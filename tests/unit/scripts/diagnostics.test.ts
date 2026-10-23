@@ -7,6 +7,7 @@ import {
   DEFAULT_SETTLE_MS,
   formatWarning,
   inspectExitCode,
+  inspectionDir,
   intersectionArea,
   MIN_ATTRIBUTION_FONT_PX,
   overlapWarnings,
@@ -29,11 +30,16 @@ describe('overlap warnings (L-71, L-72)', () => {
     expect(formatWarning(w)).toMatch(/^WARN step 04 overlap:/)
   })
 
-  it('ignores touching, tiny and nested boxes', () => {
+  it('ignores touching and tiny overlaps', () => {
     expect(overlapWarnings([item('a', 0, 0, 10, 10), item('b', 10, 0, 10, 10)], 0)).toEqual([])
     expect(overlapWarnings([item('a', 0, 0, 10, 10), item('b', 8, 8, 2, 2)], 0)).toEqual([]) // 4px²
     expect(overlapWarnings([item('a', 0, 0, 10, 10), item('b', 7, 7, 3, 3)], 0)).toHaveLength(1) // 9px²
-    expect(overlapWarnings([item('a', 0, 0, 100, 100, { nested: ['b'] }), item('b', 5, 5, 20, 20, { nested: ['a'] })], 0)).toEqual([])
+  })
+
+  it('reports nested elements whose own text collides: only the marker exempts', () => {
+    // `rect` is each element's own-text range, so ancestor/descendant pairs are measured like any other
+    expect(overlapWarnings([item('<div> "Outer"', 0, 0, 100, 20), item('<span> "Inner"', 5, 2, 40, 16)], 1)).toHaveLength(1)
+    expect(overlapWarnings([item('<div> "Outer"', 0, 0, 100, 20), item('<span> "Inner"', 5, 2, 40, 16, { allowed: true })], 1)).toEqual([])
   })
 
   it('exempts allowed subtrees but still reports unrelated collisions', () => {
@@ -129,7 +135,18 @@ describe('artifacts and exit status (I-44, L-69, L-70)', () => {
 
   it('writes screenshots below the project root, one directory per slug', () => {
     const code = readFileSync('scripts/inspect-presentation.mjs', 'utf8')
-    expect(code).toMatch(/path\.join\(root, 'inspection', args\.slug/)
+    expect(code).toMatch(/inspectionDir\(root, args\.slug/)
     expect(code).toMatch(/1280, height: 720/)
+  })
+})
+
+describe('inspection output directory (L-69)', () => {
+  it('stays inside <root>/inspection for valid slugs', () => {
+    expect(inspectionDir('/proj', 'my-talk')).toBe('/proj/inspection/my-talk')
+    expect(inspectionDir('/proj', 'my-talk', true)).toBe('/proj/inspection/my-talk-narrow')
+  })
+
+  it.each(['../src', '..', '.', 'a/b', '/etc', 'a/../../src', '', 'UPPER', 'x y', '-lead'])('refuses %j', (slug) => {
+    expect(() => inspectionDir('/proj', slug)).toThrow(/invalid presentation slug/)
   })
 })

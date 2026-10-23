@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { copyProject, isListening, previewPort, remove, run, write } from '../helpers/project.ts'
+import { copyProject, isAlive, isListening, previewPid, previewPort, remove, run, write } from '../helpers/project.ts'
 
 // E2E-002: `npm run verify` against disposable copies with one fault each.
 // The baseline case mirrors E2E-001's assertions on an unmodified copy.
@@ -33,6 +33,9 @@ async function expectPreviewStopped(output: string) {
   const port = previewPort(output)
   expect(port, 'a preview was started').not.toBeNull()
   expect(await isListening(port!)).toBe(false)
+  const pid = previewPid(output)
+  expect(pid, 'the preview pid is logged').not.toBeNull()
+  expect(isAlive(pid!), 'the preview process exited').toBe(false)
 }
 
 describe('baseline copy (E2E-001 assertions)', () => {
@@ -104,7 +107,7 @@ describe('render phase', () => {
       edit(dir, `${SAMPLE}/steps/Scene.tsx`, (t) =>
         t
           .replace("import { Check,", "import { useEffect } from 'react'\nimport { Check,")
-          .replace('export function Scene({ payload }: SceneProps<ScenePayload>) {', "export function Scene({ payload }: SceneProps<ScenePayload>) {\n  useEffect(() => {\n    if (payload.stage === 5) console.error('boom at stage five')\n  }, [payload.stage])"),
+          .replace('export function Scene({ payload, previous }: SceneProps<ScenePayload>) {', "export function Scene({ payload, previous }: SceneProps<ScenePayload>) {\n  useEffect(() => {\n    if (payload.stage === 5) console.error('boom at stage five')\n  }, [payload.stage])"),
       ),
     )
     expectFailure(r, 'render (step index 4, step 5)')
@@ -112,12 +115,36 @@ describe('render phase', () => {
     await expectPreviewStopped(r.output)
   })
 
+  it('attributes an error thrown during a step\'s entrance animation to that step', async () => {
+    const r = await verifyWith((dir) =>
+      edit(dir, `${SAMPLE}/steps/Scene.tsx`, (t) =>
+        t
+          .replace("import { Check,", "import { useEffect } from 'react'\nimport { Check,")
+          .replace('export function Scene({ payload, previous }: SceneProps<ScenePayload>) {', "export function Scene({ payload, previous }: SceneProps<ScenePayload>) {\n  useEffect(() => {\n    if (payload.stage === 3) setTimeout(() => console.error('during entrance'), 900)\n  }, [payload.stage])"),
+      ),
+    )
+    expectFailure(r, 'render (step index 2, step 3)')
+    expect(r.output).toContain('during entrance')
+  })
+
+  it('catches an error thrown during the entrance of the final step', async () => {
+    const r = await verifyWith((dir) =>
+      edit(dir, `${SAMPLE}/steps/Scene.tsx`, (t) =>
+        t
+          .replace("import { Check,", "import { useEffect } from 'react'\nimport { Check,")
+          .replace('export function Scene({ payload, previous }: SceneProps<ScenePayload>) {', "export function Scene({ payload, previous }: SceneProps<ScenePayload>) {\n  useEffect(() => {\n    if (payload.stage === 9) setTimeout(() => console.error('final entrance'), 900)\n  }, [payload.stage])"),
+      ),
+    )
+    expectFailure(r, 'render (step index 8, step 9)')
+    expect(r.output).toContain('final entrance')
+  })
+
   it('fails with the offending step on an uncaught page error', async () => {
     const r = await verifyWith((dir) =>
       edit(dir, `${SAMPLE}/steps/Scene.tsx`, (t) =>
         t
           .replace("import { Check,", "import { useEffect } from 'react'\nimport { Check,")
-          .replace('export function Scene({ payload }: SceneProps<ScenePayload>) {', "export function Scene({ payload }: SceneProps<ScenePayload>) {\n  useEffect(() => {\n    if (payload.stage === 3) setTimeout(() => { throw new Error('late failure') }, 0)\n  }, [payload.stage])"),
+          .replace('export function Scene({ payload, previous }: SceneProps<ScenePayload>) {', "export function Scene({ payload, previous }: SceneProps<ScenePayload>) {\n  useEffect(() => {\n    if (payload.stage === 3) setTimeout(() => { throw new Error('late failure') }, 0)\n  }, [payload.stage])"),
       ),
     )
     expectFailure(r, 'render (step index 2, step 3)')
@@ -130,7 +157,7 @@ describe('render phase', () => {
       edit(dir, `${SAMPLE}/steps/Scene.tsx`, (t) =>
         t
           .replace("import { Check,", "import { useEffect } from 'react'\nimport { Check,")
-          .replace('export function Scene({ payload }: SceneProps<ScenePayload>) {', "export function Scene({ payload }: SceneProps<ScenePayload>) {\n  useEffect(() => {\n    if (payload.stage !== 4) return\n    const block = (e: KeyboardEvent) => e.stopImmediatePropagation()\n    window.addEventListener('keydown', block, true)\n    return () => window.removeEventListener('keydown', block, true)\n  }, [payload.stage])"),
+          .replace('export function Scene({ payload, previous }: SceneProps<ScenePayload>) {', "export function Scene({ payload, previous }: SceneProps<ScenePayload>) {\n  useEffect(() => {\n    if (payload.stage !== 4) return\n    const block = (e: KeyboardEvent) => e.stopImmediatePropagation()\n    window.addEventListener('keydown', block, true)\n    return () => window.removeEventListener('keydown', block, true)\n  }, [payload.stage])"),
       ),
     )
     expectFailure(r, 'render (step index 4, step 5)')

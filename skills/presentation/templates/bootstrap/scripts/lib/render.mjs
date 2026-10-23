@@ -1,6 +1,7 @@
 import { VerifyError, normalize } from './verify-core.mjs'
 
-const SETTLE_MS = 300
+// Longer than an entrance: ENTER_DELAY (0.65s) + ENTER_T (0.4s) in the scene kit.
+const SETTLE_MS = 1300
 
 /** Records console errors and uncaught page errors; install before navigating. */
 export function collectBrowserErrors(page) {

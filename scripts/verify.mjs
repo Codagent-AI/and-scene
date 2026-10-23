@@ -45,7 +45,7 @@ async function checkOutline(config, registry) {
 async function render({ config, registry, reference, args }) {
   const routes = selectRoutes({ registry, sampleSlug: config.referenceSample?.slug, only: args.slug })
   const preview = await startPreview(root)
-  log(`[render] preview ${preview.url('/')}`)
+  log(`[render] preview ${preview.url('/')} pid=${preview.pid}`)
   let browser
   try {
     browser = await chromium.launch()

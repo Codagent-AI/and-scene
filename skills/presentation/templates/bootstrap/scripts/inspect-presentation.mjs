@@ -14,6 +14,7 @@ import {
   attributionWarnings,
   DEFAULT_SETTLE_MS,
   formatWarning,
+  inspectionDir,
   inspectExitCode,
   overlapWarnings,
   stepFileName,
@@ -39,6 +40,7 @@ function parse(argv) {
 
 async function main() {
   const args = parse(process.argv.slice(2))
+  const outDir = inspectionDir(root, args.slug, args.narrow)
   if (args.build) {
     const built = spawnSync('npm', ['run', 'build'], { cwd: root, encoding: 'utf8' })
     if (built.status !== 0) {
@@ -46,7 +48,6 @@ async function main() {
       throw new Error('npm run build failed')
     }
   }
-  const outDir = path.join(root, 'inspection', args.slug + (args.narrow ? '-narrow' : ''))
   fs.rmSync(outDir, { recursive: true, force: true })
   fs.mkdirSync(outDir, { recursive: true })
   const preview = await startPreview(root)

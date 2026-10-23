@@ -77,6 +77,23 @@ describe('one grouped evolving scene (L-58)', () => {
   })
 })
 
+describe('entrances in the sample (L-8)', () => {
+  const motionOfRole = (c: HTMLElement, role: string) =>
+    JSON.parse(c.querySelector(`[data-role="${role}"]`)!.closest('[data-presentation-appear]')!.getAttribute('data-motion')!)
+
+  it('fades only the entities introduced by the step; continuing ones carry no entrance', () => {
+    const { container } = render(<Scene payload={{ stage: 4 }} previous={{ stage: 3 }} step={meta} />)
+    const cards = [...container.querySelectorAll('[data-role="card"]')].map((c) => JSON.parse(c.closest('[data-presentation-appear]')!.getAttribute('data-motion')!).initial)
+    expect(cards).toEqual([false, { opacity: 0 }, { opacity: 0 }, { opacity: 0 }])
+    expect(motionOfRole(container, 'you').initial).toBe(false)
+  })
+
+  it('introduces nothing when going back', () => {
+    const { container } = render(<Scene payload={{ stage: 3 }} previous={{ stage: 4 }} step={meta} />)
+    for (const role of ['you', 'card', 'tray']) expect(motionOfRole(container, role).initial).toBe(false)
+  })
+})
+
 describe('step intent (L-59..L-62)', () => {
   it('step 1: you and a prompt bubble', () => {
     expect(ids(1)).toEqual([ID.you, ID.prompt])

@@ -77,3 +77,18 @@ export function previewPort(output: string): number | null {
   const m = output.match(/\[render\] preview http:\/\/127\.0\.0\.1:(\d+)\//)
   return m ? Number(m[1]) : null
 }
+
+/** True while a process with this pid exists. */
+export function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function previewPid(output: string): number | null {
+  const m = output.match(/\[render\] preview http:\/\/127\.0\.0\.1:\d+\/ pid=(\d+)/)
+  return m ? Number(m[1]) : null
+}

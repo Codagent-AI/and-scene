@@ -14,6 +14,8 @@ export interface PresentationProps<TPayload> {
   brand?: ReactNode
   /** Overrides the default design canvas; omitted fields keep the per-mode default. */
   design?: Partial<CanvasSize>
+  /** Omits the default bottom-right attribution link. */
+  hideAttribution?: boolean
 }
 
 const WIDE_QUERY = `(min-width: ${WIDE_BREAKPOINT}px)`
@@ -39,10 +41,25 @@ function useIsWide(): boolean {
 }
 
 /** A complete presentation: the active step on the scene stage with present/browse chrome. */
-export function Presentation<TPayload>({ title, steps, initialMode, brand, design }: PresentationProps<TPayload>) {
+export function Presentation<TPayload>({
+  title,
+  steps,
+  initialMode,
+  brand,
+  design,
+  hideAttribution,
+}: PresentationProps<TPayload>) {
   const nav = usePresentationNav(steps.length, initialMode)
   const wide = useIsWide()
   const step = steps[nav.index]
+  // The index before the most recent change. Updated during render, so no effect is needed.
+  const [history, setHistory] = useState({ current: nav.index, previous: nav.index })
+  let previousIndex = history.previous
+  if (history.current !== nav.index) {
+    previousIndex = history.current
+    setHistory({ current: nav.index, previous: previousIndex })
+  }
+  const previous = steps[Math.min(previousIndex, steps.length - 1)]
   const eras = erasOf(steps)
   const marker = `${String(nav.index + 1).padStart(2, '0')} · ${step.era}`
 
@@ -55,7 +72,7 @@ export function Presentation<TPayload>({ title, steps, initialMode, brand, desig
       style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}
     >
       <Header mode={nav.mode} deckTitle={title} marker={marker} brand={brand} />
-      <Stage step={step} mode={nav.mode} design={design} />
+      <Stage step={step} previous={previous} mode={nav.mode} design={design} />
       <Footer
         mode={nav.mode}
         steps={steps}
@@ -65,6 +82,7 @@ export function Presentation<TPayload>({ title, steps, initialMode, brand, desig
         onGoTo={nav.goTo}
         onPrev={nav.prev}
         onNext={nav.next}
+        showAttribution={!hideAttribution}
       />
     </div>
   )

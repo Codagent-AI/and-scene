@@ -4,6 +4,8 @@ export type Mode = 'browse' | 'present'
 
 export interface SceneProps<TPayload> {
   payload: TPayload
+  /** Payload of the step shown before this one, so a scene can tell newcomers from continuing entities. */
+  previous?: TPayload
 }
 
 export interface Step<TPayload = unknown> {

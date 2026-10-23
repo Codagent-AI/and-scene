@@ -12,9 +12,20 @@ export interface FooterProps<TPayload> {
   onGoTo: (index: number) => void
   onPrev: () => void
   onNext: () => void
+  showAttribution: boolean
 }
 
-export function Footer<TPayload>({ mode, steps, index, eras, wide, onGoTo, onPrev, onNext }: FooterProps<TPayload>) {
+export function Footer<TPayload>({
+  mode,
+  steps,
+  index,
+  eras,
+  wide,
+  onGoTo,
+  onPrev,
+  onNext,
+  showAttribution,
+}: FooterProps<TPayload>) {
   const step = steps[index]
   const attribution = (
     <div data-presentation-attribution-slot="bottom-right" style={{ position: 'absolute', right: 8, bottom: 4 }}>
@@ -24,11 +35,13 @@ export function Footer<TPayload>({ mode, steps, index, eras, wide, onGoTo, onPre
     </div>
   )
 
+  const footerAttribution = showAttribution ? attribution : null
+
   if (mode === 'present') {
     return (
       <footer data-presentation-footer="" style={{ position: 'relative' }}>
         <p data-presentation-title="">{step.title}</p>
-        {attribution}
+        {footerAttribution}
       </footer>
     )
   }
@@ -62,7 +75,7 @@ export function Footer<TPayload>({ mode, steps, index, eras, wide, onGoTo, onPre
           Next
         </button>
       </div>
-      {attribution}
+      {footerAttribution}
     </footer>
   )
 }

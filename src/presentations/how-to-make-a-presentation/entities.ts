@@ -55,7 +55,7 @@ export const ENTITIES: Record<EntityId, Entity> = {
   ghost: { kind: 'box', variant: 'ghost', text: 'not yet specified', geometry: card(538) },
   'depth-control': { kind: 'chip', variant: 'control', text: 'partial ↔ full', geometry: { x: 40, y: 130, w: 120, h: 26 } },
   socket: { kind: 'box', variant: 'socket', text: 'scene kit', icon: 'Blocks', geometry: { x: 300, y: 320, w: 280, h: 32 } },
-  verify: { kind: 'box', variant: 'verify', text: 'verify', geometry: card(704) },
+  verify: { kind: 'box', variant: 'verify', text: 'build ✓ · render ✓', geometry: card(704) },
   'chain-link': { kind: 'arrow', variant: 'chain', x: 688, y: 255, length: 16 },
   'pass-check': { kind: 'chip', variant: 'pass', text: 'pass', icon: 'CircleCheck', geometry: { x: 790, y: 300, w: 50, h: 24 } },
   'modify-arc': { kind: 'arrow', variant: 'modify', x: 120, y: 124, length: 173, angle: 22 },
@@ -65,15 +65,14 @@ export const ENTITIES: Record<EntityId, Entity> = {
 }
 
 /**
- * What one step shows: the entities on screen, which of them are newcomers this step
- * (only newcomers get the Appear fade), and which entities are emphasized.
+ * What one step shows: the entities on screen and which entities are emphasized. Newcomers
+ * are not listed here; the scene derives them from the previous step, in either direction.
  */
 export interface DiagramState {
   visible: EntityId[]
-  added: EntityId[]
   emphasized: EntityId[]
 }
 
-export function diagramState(visible: EntityId[], added: EntityId[], emphasized: EntityId[] = []): DiagramState {
-  return { visible, added, emphasized }
+export function diagramState(visible: EntityId[], emphasized: EntityId[] = []): DiagramState {
+  return { visible, emphasized }
 }

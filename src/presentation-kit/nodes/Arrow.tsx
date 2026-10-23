@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { motion } from 'motion/react'
-import { LAYOUT_TRANSITION } from '../constants'
+import { EXIT, LAYOUT_TRANSITION } from '../constants'
 import { type DataProps } from './shared'
 
 export interface ArrowProps extends DataProps {
@@ -23,6 +23,7 @@ export function Arrow({ id, x, y, length, angle = 0, twoWay, className, style, .
       {...data}
       layout
       transition={{ layout: LAYOUT_TRANSITION }}
+      exit={EXIT}
       layoutId={id}
       className={className}
       style={{

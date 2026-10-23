@@ -8,7 +8,7 @@ import { AnimatePresence } from 'motion/react'
 export function SceneLayer({ children }: { children?: ReactNode }) {
   return (
     <div data-presentation-layer="" style={{ position: 'absolute', inset: 0 }}>
-      <AnimatePresence initial={false}>{children}</AnimatePresence>
+      <AnimatePresence>{children}</AnimatePresence>
     </div>
   )
 }

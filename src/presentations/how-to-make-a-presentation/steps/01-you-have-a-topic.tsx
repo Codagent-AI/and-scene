@@ -8,7 +8,7 @@ export const step: Step<DiagramState> = {
   title: 'You have a topic',
   caption: 'It starts with you, a topic, and mild overconfidence.',
   Scene: Diagram,
-  payload: diagramState(['you', 'prompt'], ['you', 'prompt']),
+  payload: diagramState(['you', 'prompt']),
 }
 
 export default step

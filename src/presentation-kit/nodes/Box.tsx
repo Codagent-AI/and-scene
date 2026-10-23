@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { LAYOUT_TRANSITION } from '../constants'
+import { EXIT, LAYOUT_TRANSITION } from '../constants'
 import type { LucideIcon } from 'lucide-react'
 import { geometryStyle, type DataProps, type Geometry } from './shared'
 
@@ -20,6 +20,7 @@ export function Box({ id, geometry, className, style, icon: Icon, emphasized, ch
       {...data}
       layout
       transition={{ layout: LAYOUT_TRANSITION }}
+      exit={EXIT}
       layoutId={id}
       className={className}
       style={{ ...geometryStyle(geometry), ...style }}

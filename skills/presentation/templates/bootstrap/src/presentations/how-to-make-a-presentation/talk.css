@@ -178,10 +178,36 @@
 .talk-modify {
   height: 0;
   border-top: 2px solid #1d1f24;
+  color: #1d1f24;
 }
 
 .talk-modify {
   border-top: 2px dashed #2f6fed;
+  color: #2f6fed;
+}
+
+/* Arrowheads at the tip; two-way arrows also get one at the tail. */
+.talk-link::after,
+.talk-morph::after,
+.talk-chain::after,
+.talk-modify::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: -5px;
+  border-left: 8px solid currentColor;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+.talk-link[data-presentation-two-way='true']::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: -5px;
+  border-right: 8px solid currentColor;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
 }
 
 .talk-edited {

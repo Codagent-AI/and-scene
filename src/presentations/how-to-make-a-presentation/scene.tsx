@@ -51,19 +51,21 @@ function renderEntity(id: EntityId, entity: Entity, emphasized: boolean) {
 }
 
 /**
- * The one scene component every step renders. Continuing entities mount unwrapped
- * and morph through their shared layoutIds; newcomers wrap in Appear so they enter
- * after the persisting entities have moved.
+ * The one scene component every step renders. An entity visible in the previous step is
+ * continuing: it mounts unwrapped and morphs through its shared layoutId. An entity that is
+ * new relative to the previous step wraps in Appear, so it enters after the persisting
+ * entities have moved. This holds for forward and backward transitions alike.
  */
-export function Diagram({ payload }: SceneProps<DiagramState>) {
+export function Diagram({ payload, previous }: SceneProps<DiagramState>) {
+  const before = new Set(previous?.visible ?? [])
   return (
     <SceneLayer>
       {payload.visible.map((id) => {
         const node = renderEntity(id, ENTITIES[id], payload.emphasized.includes(id))
-        return payload.added.includes(id) ? (
-          <Appear key={id}>{node}</Appear>
-        ) : (
+        return before.has(id) ? (
           <Fragment key={id}>{node}</Fragment>
+        ) : (
+          <Appear key={id}>{node}</Appear>
         )
       })}
     </SceneLayer>

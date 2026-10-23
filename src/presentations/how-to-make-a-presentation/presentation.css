@@ -12,6 +12,13 @@
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
 
+.hmp [data-presentation-header] {
+  gap: 16px;
+}
+.hmp [data-presentation-header],
+.hmp [data-presentation-footer] {
+  padding-inline: 16px;
+}
 .hmp [data-presentation-header],
 .hmp [data-presentation-footer] {
   align-items: center;
@@ -51,6 +58,10 @@
 }
 .hmp [data-presentation-controls] {
   flex-wrap: wrap;
+  gap: 12px;
+}
+.hmp [data-presentation-progress-list] {
+  gap: 6px;
 }
 .hmp button {
   font: inherit;

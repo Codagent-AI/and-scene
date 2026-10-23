@@ -23,8 +23,6 @@ export function Header({ step, index, mode, brand }: HeaderProps) {
         height: STAGE_LAYOUT[mode].top,
         display: 'flex',
         alignItems: 'center',
-        gap: 16,
-        paddingInline: STAGE_LAYOUT[mode].side,
         boxSizing: 'border-box',
       }}
     >

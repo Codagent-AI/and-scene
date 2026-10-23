@@ -1,0 +1,46 @@
+/* This presentation owns its look: palette, type, spacing, borders. The kit ships none. */
+.deck-starter {
+  background: #fdfdfb;
+  color: #1c2230;
+  font-family: system-ui, sans-serif;
+}
+.deck-starter [data-presentation-box] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #3b4a6b;
+  border-radius: 10px;
+  background: #fff;
+}
+.deck-starter [data-presentation-progress] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid #3b4a6b;
+  border-radius: 50%;
+  background: transparent;
+}
+.deck-starter [data-presentation-progress][data-presentation-active='true'],
+.deck-starter [data-presentation-toc-entry][data-presentation-active='true'] {
+  background: #2557d6;
+  color: #fff;
+  font-weight: 700;
+}
+.deck-starter [data-presentation-attribution] {
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #5b6577;
+  text-decoration: none;
+}
+.deck-starter .link {
+  color: #3b4a6b;
+}
+
+.deck-starter [data-presentation-header],
+.deck-starter [data-presentation-footer] {
+  padding-inline: 16px;
+}
+.deck-starter [data-presentation-controls],
+.deck-starter [data-presentation-progress-list] {
+  gap: 8px;
+}

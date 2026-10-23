@@ -19,7 +19,6 @@ export function Footer({ steps, index, mode, onGoTo, onPrev, onNext }: FooterPro
     bottom: 0,
     height: STAGE_LAYOUT[mode].bottom,
     boxSizing: 'border-box',
-    paddingInline: STAGE_LAYOUT[mode].side,
     overflow: 'hidden',
   } as const
   if (mode === 'present') {
@@ -32,11 +31,11 @@ export function Footer({ steps, index, mode, onGoTo, onPrev, onNext }: FooterPro
   return (
     <footer data-presentation-footer="" style={box}>
       <p data-presentation-caption="">{step?.caption}</p>
-      <div data-presentation-controls="" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div data-presentation-controls="" style={{ display: 'flex', alignItems: 'center' }}>
         <button type="button" data-presentation-prev="" onClick={onPrev} disabled={index === 0} aria-label="Previous step">
           Prev
         </button>
-        <nav data-presentation-progress-list="" aria-label="Progress" style={{ display: 'flex', gap: 6 }}>
+        <nav data-presentation-progress-list="" aria-label="Progress" style={{ display: 'flex' }}>
           {steps.map((s, i) => (
             <button
               key={s.id}

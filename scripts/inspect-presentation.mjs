@@ -10,7 +10,8 @@ import { freePort, previewUrl, registeredSlugs, run, startPreview } from './veri
 
 export const DESKTOP_VIEWPORT = { width: 1280, height: 720 }
 export const NARROW_VIEWPORT = { width: 390, height: 844 }
-export const DEFAULT_SETTLE_MS = 900
+// Longer than the kit's newcomer entry (600 ms delay + 400 ms fade) plus a margin.
+export const DEFAULT_SETTLE_MS = 1600
 export const MIN_ATTRIBUTION_PX = 11
 const DEFAULT_LINK_COLORS = ['rgb(0, 0, 238)', 'rgb(85, 26, 139)', 'rgb(238, 238, 238)']
 
@@ -32,9 +33,9 @@ function intersection(a, b) {
 }
 
 /**
- * items: { id, label, rect:{x,y,w,h}, allowed, contains:number[] } for visible
- * text/chrome elements. Pairs touching an allow-overlap subtree are exempt, as
- * are ancestor/descendant pairs; any other overlapping pair is reported.
+ * items: { id, label, rect:{x,y,w,h}, allowed } for visible text ranges and
+ * chrome controls. Pairs touching an allow-overlap subtree are exempt; every
+ * other overlapping pair is reported, whatever the element nesting.
  */
 export function findOverlaps(items) {
   const out = []
@@ -43,7 +44,6 @@ export function findOverlaps(items) {
       const a = items[i]
       const b = items[j]
       if (a.allowed || b.allowed) continue
-      if (a.contains?.includes(b.id) || b.contains?.includes(a.id)) continue
       const { w, h } = intersection(a.rect, b.rect)
       if (w <= 1 || h <= 1) continue
       if (w * h < 0.1 * Math.min(area(a.rect), area(b.rect))) continue
@@ -70,11 +70,11 @@ const PAINT_KEYS = [
 ]
 const SIZE_KEYS = ['width', 'height']
 
-/** True when the active control's computed style matches every inactive one. */
+/** True when the active control's computed style matches any inactive one. */
 export function isIndistinctActive(active, inactive) {
   if (!active || inactive.length === 0) return false
   const same = (a, b) => Object.keys(active).every((k) => a[k] === b[k])
-  return inactive.every((s) => same(active, s))
+  return inactive.some((s) => same(active, s))
 }
 
 /** Returns a reason string when the attribution looks unpolished, else null. */
@@ -135,11 +135,18 @@ export function collectAnalysis([paintKeys, sizeKeys]) {
   const add = (el, rect, text) => {
     if (!elements.has(el)) elements.set(el, { el, rect, text })
   }
+  const CONTROLS = '[data-presentation-progress-item],[data-presentation-prev],[data-presentation-next],[data-presentation-toc-item],[data-presentation-attribution]'
+  // Controls count with their full box (padding included); their text is not collected separately.
+  for (const el of root.querySelectorAll(CONTROLS)) {
+    if (!visible(el)) continue
+    const r = el.getBoundingClientRect()
+    add(el, { x: r.x, y: r.y, w: r.width, h: r.height }, el.textContent.trim())
+  }
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     const text = n.textContent.trim()
     const el = n.parentElement
-    if (!text || !visible(el)) continue
+    if (!text || !visible(el) || el.closest(CONTROLS)) continue
     const range = document.createRange()
     range.selectNodeContents(n)
     const r = range.getBoundingClientRect()
@@ -152,19 +159,12 @@ export function collectAnalysis([paintKeys, sizeKeys]) {
       prev.text += ` ${text}`
     } else add(el, { x: r.x, y: r.y, w: r.width, h: r.height }, text)
   }
-  for (const el of root.querySelectorAll('[data-presentation-progress-item],[data-presentation-prev],[data-presentation-next],[data-presentation-toc-item]')) {
-    if (!elements.has(el) && visible(el)) {
-      const r = el.getBoundingClientRect()
-      add(el, { x: r.x, y: r.y, w: r.width, h: r.height }, '')
-    }
-  }
   const list = [...elements.values()].map((e, id) => ({ ...e, id }))
   const items = list.map((e) => ({
     id: e.id,
     label: `${e.el.closest(CHROME) ? 'chrome ' : 'text '}${label(e.el, e.text)}`,
     rect: e.rect,
     allowed: e.el.closest('[data-presentation-allow-overlap]') !== null,
-    contains: list.filter((o) => o !== e && e.el.contains(o.el)).map((o) => o.id),
   }))
   const sig = (el, keys) => {
     const cs = getComputedStyle(el)

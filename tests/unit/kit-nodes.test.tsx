@@ -112,6 +112,20 @@ describe('generic node primitives', () => {
   })
 })
 
+describe('Arrow continuity across scene instances', () => {
+  it('starts a continuing arrow from its previous shape when its scene instance is replaced', () => {
+    const first = render(<Arrow id="carry" from={{ x: 0, y: 0 }} to={{ x: 100, y: 0 }} />)
+    const was = shaftPath({ x: 0, y: 0 }, { x: 100, y: 0 }, 0)
+    expect(json(q('[data-presentation-arrow-shaft]'), 'mInitial')).toBe(false) // first sight: no morph
+    first.unmount()
+    render(<Arrow id="carry" from={{ x: 0, y: 0 }} to={{ x: 100, y: 80 }} bend={10} />)
+    const shaft = q('[data-presentation-arrow-shaft]')
+    expect(json(shaft, 'mInitial')).toEqual({ d: was })
+    expect(json(shaft, 'mAnimate').d).toBe(shaftPath({ x: 0, y: 0 }, { x: 100, y: 80 }, 10))
+    expect(json(q('[data-presentation-arrow-head="end"]'), 'mInitial').d).toBe(headPath({ x: 100, y: 0 }, { x: 0, y: 0 }, 10))
+  })
+})
+
 describe('Arrow, Appear and SceneLayer passthrough', () => {
   it('apply class, style and data-* to their rendered node', () => {
     render(

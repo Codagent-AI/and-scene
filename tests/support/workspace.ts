@@ -62,6 +62,12 @@ export function previewProcessAlive(port: number): boolean {
   return r.status === 0 && r.stdout.trim().length > 0
 }
 
+/** True when a Playwright-launched Chromium (its profile dir marks the process) is still alive. */
+export function browserProcessAlive(): boolean {
+  const r = spawnSync('pgrep', ['-f', 'playwright_chromiumdev_profile'], { encoding: 'utf8' })
+  return r.status === 0 && r.stdout.trim().length > 0
+}
+
 const COPY_EXCLUDE = new Set(['node_modules', 'dist', '.git', 'inspection', '.agent-runner', '.validator'])
 
 /** Disposable copy of the repository that shares the original node_modules. */

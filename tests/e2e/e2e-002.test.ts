@@ -1,7 +1,7 @@
 import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
-import { cleanupTempDirs, copyRepo, freePort, isListening, previewProcessAlive, run } from '../support/workspace.ts'
+import { browserProcessAlive, cleanupTempDirs, copyRepo, freePort, isListening, previewProcessAlive, run } from '../support/workspace.ts'
 
 // E2E-002: verification failures are actionable. One representative fault per
 // phase, each in its own disposable copy of the repository.
@@ -31,6 +31,7 @@ async function expectCleanFailure(r: { code: number | null; out: string; port: n
   expect(r.out).not.toMatch(/verify: PASS/)
   expect(await isListening(r.port)).toBe(false)
   expect(previewProcessAlive(r.port)).toBe(false)
+  expect(browserProcessAlive()).toBe(false)
 }
 
 describe('E2E-002 verification failures are actionable', () => {

@@ -235,8 +235,8 @@ export async function verify({ root = process.cwd(), port, slug, log = () => {} 
   const build = await run('npm', ['run', 'build'], root)
   if (build.code !== 0) return fail('build', `npm run build failed:\n${build.out.trim()}`)
 
-  const registryPath = path.join(root, 'src', 'presentations', 'index.ts')
-  if (!existsSync(registryPath)) return fail('sample', 'src/presentations/index.ts is missing')
+  const registryPath = ['index.ts', 'index.tsx'].map((n) => path.join(root, 'src', 'presentations', n)).find(existsSync)
+  if (!registryPath) return fail('sample', 'src/presentations/index.ts is missing')
   const slugs = registeredSlugs(readFileSync(registryPath, 'utf8'))
   let expectedOutline = null
   if (cfg.reference) {

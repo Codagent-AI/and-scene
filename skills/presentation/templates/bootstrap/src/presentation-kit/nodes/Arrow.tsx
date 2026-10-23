@@ -1,4 +1,5 @@
 import { motion } from 'motion/react'
+import { useEffect } from 'react'
 import { EASE, LAYOUT_T, DESIGN_H, DESIGN_W } from '../constants.ts'
 import { headPath, shaftPath, type Point } from './arrowPaths.ts'
 import type { DataAttrs, NodeProps } from './shared.ts'
@@ -12,6 +13,19 @@ export interface ArrowProps extends NodeProps, DataAttrs {
   bend?: number
   headSize?: number
 }
+
+interface Shapes {
+  shaft: string
+  end: string
+  start: string
+}
+
+/**
+ * Last drawn shape per entity id. A continuing arrow whose scene instance was
+ * replaced (a group or Scene change) starts from this shape and morphs to its
+ * new one instead of appearing at the destination.
+ */
+const lastShapes = new Map<string, Shapes>()
 
 /**
  * Shaft and heads are plain paths with hook attributes; stroke and fill are
@@ -29,6 +43,16 @@ export function Arrow({
   ...rest
 }: ArrowProps) {
   const t = { duration: LAYOUT_T, ease: EASE }
+  const shapes: Shapes = {
+    shaft: shaftPath(from, to, bend),
+    end: headPath(to, from, headSize),
+    start: headPath(from, to, headSize),
+  }
+  const prev = lastShapes.get(id) ?? false
+  const { shaft, end, start } = shapes
+  useEffect(() => {
+    lastShapes.set(id, { shaft, end, start })
+  }, [id, shaft, end, start])
   return (
     <motion.svg
       {...rest}
@@ -43,21 +67,21 @@ export function Arrow({
     >
       <motion.path
         data-presentation-arrow-shaft=""
-        initial={false}
-        animate={{ d: shaftPath(from, to, bend) }}
+        initial={prev && { d: prev.shaft }}
+        animate={{ d: shaft }}
         transition={t}
       />
       <motion.path
         data-presentation-arrow-head="end"
-        initial={false}
-        animate={{ d: headPath(to, from, headSize) }}
+        initial={prev && { d: prev.end }}
+        animate={{ d: end }}
         transition={t}
       />
       {bidirectional && (
         <motion.path
           data-presentation-arrow-head="start"
-          initial={false}
-          animate={{ d: headPath(from, to, headSize) }}
+          initial={prev && { d: prev.start }}
+          animate={{ d: start }}
           transition={t}
         />
       )}

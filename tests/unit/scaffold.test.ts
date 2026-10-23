@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import ts from 'typescript'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
   BOOTSTRAP_DIR,
@@ -63,10 +64,26 @@ describe('anchor detection', () => {
     writeFileSync(path.join(d, 'package.json'), JSON.stringify(pkg))
     cpSync(path.join(d, 'vite.config.ts'), path.join(d, 'vite.config.mts'))
     rmSync(path.join(d, 'vite.config.ts'))
-    rmSync(path.join(d, 'src/presentation-kit/Presentation.tsx'))
-    writeFileSync(path.join(d, 'src/presentation-kit/index.tsx'), '// custom kit entry\n')
-    writeFileSync(path.join(d, 'src/presentations/index.ts'), 'export const presentations = []\n')
+    // the host and step contract live under other file names
+    const kit = path.join(d, 'src/presentation-kit')
+    cpSync(path.join(kit, 'Presentation.tsx'), path.join(kit, 'engine.tsx'))
+    rmSync(path.join(kit, 'Presentation.tsx'))
+    cpSync(path.join(kit, 'types.ts'), path.join(kit, 'contract.ts'))
+    rmSync(path.join(kit, 'types.ts'))
+    // a registry in index.tsx with different formatting
+    rmSync(path.join(d, 'src/presentations/index.ts'))
+    writeFileSync(
+      path.join(d, 'src/presentations/index.tsx'),
+      "export const presentations = [{ slug: 'x', title: 'X', load: () => import('./x/Talk.tsx') }]\n",
+    )
     expect(detectAnchors(d)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('rejects look-alikes: an empty kit entry or a registry with no entries contract', () => {
+    const d = full()
+    for (const f of walk(path.join(d, 'src/presentation-kit'))) writeFileSync(path.join(d, 'src/presentation-kit', f), '// empty\n')
+    writeFileSync(path.join(d, 'src/presentations/index.ts'), 'export const presentations = []\n')
+    expect(detectAnchors(d)).toEqual({ build: true, kit: false, index: false })
   })
 
   it('does not count a package without a working build script, vite, or tsconfig', () => {
@@ -273,7 +290,7 @@ describe('creating presentations', () => {
     const dir = path.join(d, 'src/presentations/my-talk')
     for (const f of ['entities.ts', 'scene.tsx', 'steps/steps.ts', 'Talk.tsx', 'talk.css']) expect(existsSync(path.join(dir, f)), f).toBe(true)
     const talk = readFileSync(path.join(dir, 'Talk.tsx'), 'utf8')
-    expect(talk).toContain('title="My \\"Talk\\""')
+    expect(talk).toContain('title={"My \\"Talk\\""}')
     expect(readFileSync(path.join(dir, 'entities.ts'), 'utf8')).toContain('my-talk-')
     expect(readdirSync(dir).join()).not.toMatch(/__/)
     const reg = readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8')
@@ -316,8 +333,115 @@ describe('creating presentations', () => {
     }
     expect(readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8')).toBe(reg)
     expect(() => createPresentation(tmp(), { slug: 'ok', title: 'x' })).toThrow(/incomplete/)
-    writeFileSync(path.join(d, 'src/presentations/index.ts'), 'export const presentations = []\n')
+    writeFileSync(path.join(d, 'src/presentations/index.ts'), "export const presentations = [{ slug: 'x', title: 'x', load: () => import('./x/Talk.tsx') }]\n")
     expect(() => createPresentation(d, { slug: 'fresh', title: 'x' })).toThrow(/registry has no/)
     expect(existsSync(path.join(d, 'src/presentations/fresh'))).toBe(false)
+  })
+})
+
+describe('audit regressions', () => {
+  it('puts a monorepo with only a Vite build into presentations/, leaving the root alone', () => {
+    const d = full()
+    rmSync(path.join(d, 'src/presentation-kit'), { recursive: true })
+    rmSync(path.join(d, 'src/presentations'), { recursive: true })
+    mkdirSync(path.join(d, 'packages'))
+    expect(detectAnchors(d).build).toBe(true)
+    expect(resolveTarget(d).target).toBe(path.join(d, 'presentations'))
+    const before = snapshot(d)
+    expect(bootstrap(d).status).toBe('needs-confirmation')
+    expect(bootstrap(d, { confirmed: true }).target).toBe(path.join(d, 'presentations'))
+    const after = snapshot(d)
+    for (const [f, text] of Object.entries(before)) expect(after[f], f).toBe(text)
+    expect(Object.keys(after).filter((f) => !(f in before)).every((f) => f.startsWith('presentations/'))).toBe(true)
+  })
+
+  it('confirms before writing into a non-empty monorepo even when presentations/ does not exist yet', () => {
+    const d = tmp()
+    mkdirSync(path.join(d, 'apps'))
+    writeFileSync(path.join(d, 'README.md'), 'root')
+    const r = bootstrap(d)
+    expect(r.status).toBe('needs-confirmation')
+    expect(r.target).toBe(path.join(d, 'presentations'))
+    expect(existsSync(path.join(d, 'presentations'))).toBe(false)
+  })
+
+  function ordinaryViteApp(withMain: boolean) {
+    const d = tmp()
+    writeFileSync(
+      path.join(d, 'package.json'),
+      JSON.stringify({ name: 'plain', scripts: { build: 'tsc -b && vite build' }, dependencies: { react: '^19.0.0' }, devDependencies: { vite: '^8.0.0', typescript: '~6.0.0' } }),
+    )
+    writeFileSync(path.join(d, 'vite.config.ts'), 'export default {}')
+    writeFileSync(path.join(d, 'tsconfig.json'), '{}')
+    mkdirSync(path.join(d, 'src'))
+    if (withMain) writeFileSync(path.join(d, 'src/main.tsx'), "import App from './App.tsx'\nconsole.log(App)\n")
+    return d
+  }
+
+  it('connects an ordinary Vite app: copies the verification scripts, never references absent ones, and flags the entry wiring', () => {
+    const d = ordinaryViteApp(true)
+    expect(detectAnchors(d)).toEqual({ build: true, kit: false, index: false })
+    const r = bootstrap(d, { confirmed: true })
+    expect(r.status).toBe('scaffolded')
+    expect(detect(d).missing).toEqual([])
+    expect(r.kept).toContain('src/main.tsx')
+    expect(readFileSync(path.join(d, 'src/main.tsx'), 'utf8')).toContain('./App.tsx') // untouched
+    expect(r.notes.join(' ')).toMatch(/src\/main\.tsx was kept.*Router/)
+    for (const f of ['scripts/verify.mjs', 'scripts/inspect-presentation.mjs', 'src/Router.tsx', 'src/route.ts', 'src/Landing.tsx']) {
+      expect(existsSync(path.join(d, f)), f).toBe(true)
+    }
+    const pkg = JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8'))
+    for (const cmd of Object.values<string>(pkg.scripts)) {
+      const file = /(scripts\/[\w.-]+\.mjs)/.exec(cmd)?.[1]
+      if (file) expect(existsSync(path.join(d, file)), cmd).toBe(true)
+    }
+    expect(pkg.scripts.verify).toBeTruthy()
+  })
+
+  it('installs the router entry point when the app has none, and reports no wiring note', () => {
+    const d = ordinaryViteApp(false)
+    const r = bootstrap(d, { confirmed: true })
+    expect(readFileSync(path.join(d, 'src/main.tsx'), 'utf8')).toContain('<Router')
+    expect(r.notes).toEqual([])
+  })
+
+  it('does not add npm scripts for scripts it did not copy', () => {
+    const d = full()
+    rmSync(path.join(d, 'src/presentations'), { recursive: true }) // only the index anchor is missing
+    rmSync(path.join(d, 'scripts'), { recursive: true })
+    const pkg = JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8'))
+    delete pkg.scripts.verify
+    delete pkg.scripts.inspect
+    writeFileSync(path.join(d, 'package.json'), JSON.stringify(pkg))
+    bootstrap(d, { confirmed: true })
+    const after = JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8'))
+    expect(existsSync(path.join(d, 'scripts/verify.mjs'))).toBe(true)
+    expect(after.scripts.verify).toBeTruthy()
+  })
+
+  it('writes titles with quotes, backslashes and braces as valid JSX', () => {
+    const d = full()
+    const title = 'The "Big" \\ {Idea} </b>'
+    createPresentation(d, { slug: 'quoted', title })
+    const talkFile = path.join(d, 'src/presentations/quoted/Talk.tsx')
+    const out = ts.transpileModule(readFileSync(talkFile, 'utf8'), {
+      reportDiagnostics: true,
+      compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext },
+      fileName: talkFile,
+    })
+    expect(out.diagnostics).toEqual([])
+    expect(out.outputText).toContain(JSON.stringify(title))
+    const registry = readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8')
+    expect(registry).toContain(`title: ${JSON.stringify(title)}`)
+  })
+
+  it('registers, lists and creates against an index.tsx registry', () => {
+    const d = full()
+    const reg = path.join(d, 'src/presentations')
+    writeFileSync(path.join(reg, 'index.tsx'), readFileSync(path.join(reg, 'index.ts'), 'utf8'))
+    rmSync(path.join(reg, 'index.ts'))
+    createPresentation(d, { slug: 'tsx-reg', title: 'T' })
+    expect(readFileSync(path.join(reg, 'index.tsx'), 'utf8')).toContain("slug: 'tsx-reg'")
+    expect(listPresentations(d)).toEqual(['tsx-reg'])
   })
 })

@@ -1,7 +1,7 @@
 import { readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { REPO, freePort, isListening, previewProcessAlive, run, type RunResult } from '../support/workspace.ts'
+import { REPO, browserProcessAlive, freePort, isListening, previewProcessAlive, run, type RunResult } from '../support/workspace.ts'
 
 // E2E-001: the reference presentation passes production verification (`npm run verify`).
 const outline: { era: string; title: string; caption: string }[] = JSON.parse(
@@ -46,5 +46,6 @@ describe('E2E-001 reference presentation passes production verification', () => 
   it('cleans up the preview server and browser after success', async () => {
     expect(await isListening(port)).toBe(false)
     expect(previewProcessAlive(port)).toBe(false)
+    expect(browserProcessAlive()).toBe(false)
   })
 })

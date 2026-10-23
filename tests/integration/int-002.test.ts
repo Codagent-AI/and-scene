@@ -2,6 +2,9 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
+  DEFAULT_SETTLE_MS,
+} from '../../scripts/inspect-presentation.mjs'
+import {
   cleanupTempDirs,
   createPresentation,
   ensureDir,
@@ -14,7 +17,8 @@ import {
 // INT-002: the screenshot helper emits faithful artifacts and advisory warnings,
 // driven against a controlled app with a defective and a polished presentation.
 
-const SCENE = (heading: string) => `import { Appear, Label, SceneLayer, type SceneProps } from '../../presentation-kit/index.ts'
+const SCENE = (heading: string, opts: { lateClash: boolean; probe: boolean }) => `import { createPortal } from 'react-dom'
+import { Appear, Label, SceneLayer, type SceneProps } from '../../presentation-kit/index.ts'
 
 export interface ScenePayload {
   index: number
@@ -34,6 +38,8 @@ export function Scene({ payload }: SceneProps<ScenePayload>) {
           </div>
         </Appear>
       )}
+      {${opts.probe} && payload.index === 1 &&
+        createPortal(<span data-probe="">.</span>, document.querySelector('[data-presentation-root]')!)}
       {payload.index === 1 && (
         <Appear key="allowed">
           <div className="fade" data-presentation-allow-overlap="">
@@ -42,7 +48,13 @@ export function Scene({ payload }: SceneProps<ScenePayload>) {
           </div>
         </Appear>
       )}
-      {payload.index === 2 && (
+      {${opts.lateClash} && payload.index === 2 && (
+        <Appear key="late">
+          <Label id="${heading}-six" x={100} y={100} w={200} h={20}>late clash a</Label>
+          <Label id="${heading}-seven" x={110} y={105} w={200} h={20}>late clash b</Label>
+        </Appear>
+      )}
+      {!${opts.lateClash} && payload.index === 2 && (
         <Appear key="clean">
           <Label id="${heading}-five" x={100} y={100} w={200} h={20}>clean step</Label>
         </Appear>
@@ -57,7 +69,8 @@ const POLISHED_CSS = `
 .polished [data-presentation-progress-item][data-presentation-active] { width: 28px; background: gold; }
 .polished [data-presentation-toc-item][data-presentation-active] { font-weight: 700; background: gold; }
 .polished { font-family: sans-serif; }
-.polished [data-presentation-attribution] { font-size: 13px; color: gray; text-decoration: none; margin: 0 12px 8px 0; }
+.polished [data-presentation-attribution] { font-size: 13px; color: gray; text-decoration: none; margin: 0 12px 8px 0; padding: 24px; }
+.polished [data-probe] { position: fixed; right: 20px; bottom: 14px; font-size: 12px; }
 .polished [data-presentation-footer] { padding-bottom: 36px; padding-left: 16px; }
 .polished [data-presentation-header] { padding: 0 16px; }
 .polished [data-presentation-toc] { padding-left: 16px; }
@@ -66,9 +79,9 @@ const POLISHED_CSS = `
 `
 const FADE_CSS = '.fade { position: absolute; inset: 0; animation: fadein 100ms linear 1000ms both; } @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }\n'
 
-function writeFixture(app: string, slug: string, css: string, className: string) {
+function writeFixture(app: string, slug: string, css: string, className: string, opts: { lateClash: boolean; probe: boolean }) {
   const dir = path.join(app, 'src/presentations', slug)
-  writeFileSync(path.join(dir, 'scene.tsx'), SCENE(slug))
+  writeFileSync(path.join(dir, 'scene.tsx'), SCENE(slug, opts))
   writeFileSync(
     path.join(dir, 'steps/steps.ts'),
     `import type { Step } from '../../../presentation-kit/index.ts'
@@ -112,19 +125,27 @@ describe('INT-002 screenshot helper', () => {
   const reportOf = (slug: string): Report => JSON.parse(readFileSync(path.join(app, 'inspection', slug, 'report.json'), 'utf8'))
   const warnings = (r: Report, step: number) => r.passes[0].steps[step].warnings
 
+  let shots: { size: ReturnType<typeof pngSize>; data: string; exists: boolean }[] = []
+
   beforeAll(async () => {
     app = await materializeBootstrap(true)
     await createPresentation(app, 'defects', 'Defective Fixture')
     await createPresentation(app, 'polished', 'Polished Fixture')
-    writeFixture(app, 'defects', '', 'defects')
-    writeFixture(app, 'polished', POLISHED_CSS, 'polished')
+    writeFixture(app, 'defects', '', 'defects', { lateClash: true, probe: false })
+    writeFixture(app, 'polished', POLISHED_CSS, 'polished', { lateClash: false, probe: true })
     ensureDir(path.join(app, 'inspection'))
     const build = await run('npm', ['run', 'build'], app)
     if (build.code !== 0) throw new Error(build.out)
     const base = ['scripts/inspect-presentation.mjs']
-    defects = await run(process.execPath, [...base, 'defects', '--no-build', '--settle', '1500', '--port', String(await freePort())], app)
+    // the shipped default settle interval, no override
+    defects = await run(process.execPath, [...base, 'defects', '--no-build', '--port', String(await freePort())], app)
     defectReport = reportOf('defects')
-    polished = await run(process.execPath, [...base, 'polished', '--no-build', '--settle', '1500', '--port', String(await freePort())], app)
+    // read the settled screenshots before any later run overwrites them
+    shots = [1, 2, 3].map((n) => {
+      const f = path.join(app, 'inspection/defects', `step-0${n}.png`)
+      return existsSync(f) ? { exists: true, size: pngSize(f), data: readFileSync(f).toString('base64') } : { exists: false, size: { w: 0, h: 0, signature: '' }, data: '' }
+    })
+    polished = await run(process.execPath, [...base, 'polished', '--no-build', '--port', String(await freePort())], app)
     polishedReport = reportOf('polished')
     unsettled = await run(process.execPath, [...base, 'defects', '--no-build', '--settle', '0', '--port', String(await freePort())], app)
     unsettledReport = reportOf('defects')
@@ -133,23 +154,21 @@ describe('INT-002 screenshot helper', () => {
 
   it('writes one predictable, non-empty desktop screenshot per step under the project-local artifact directory', () => {
     expect(defects.code, defects.out).toBe(0)
-    const files = [1, 2, 3].map((n) => path.join(app, 'inspection/defects', `step-0${n}.png`))
-    for (const f of files) {
-      expect(existsSync(f), f).toBe(true)
-      expect(pngSize(f)).toEqual({ w: 1280, h: 720, signature: 'PNG' })
-    }
-    const contents = files.map((f) => readFileSync(f).toString('base64'))
-    expect(new Set(contents).size).toBe(3) // each image reflects its own step
+    shots.forEach((shot, i) => {
+      expect(shot.exists, `step-0${i + 1}.png`).toBe(true)
+      expect(shot.size).toEqual({ w: 1280, h: 720, signature: 'PNG' })
+    })
+    expect(new Set(shots.map((x) => x.data)).size).toBe(3) // each image reflects its own step
     expect(defects.out).toContain('inspection/defects/step-01.png')
-    expect(defectReport.passes[0].steps.map((s) => s.file)).toEqual(files)
+    expect(defectReport.passes[0].steps.map((x) => path.basename(x.file))).toEqual(['step-01.png', 'step-02.png', 'step-03.png'])
   })
 
   it('waits for the settle interval before every capture', () => {
-    expect(defectReport.settleMs).toBe(1500)
-    for (const s of defectReport.passes[0].steps) expect(s.waitedMs).toBeGreaterThanOrEqual(1490)
+    expect(defectReport.settleMs).toBe(DEFAULT_SETTLE_MS)
+    for (const s of defectReport.passes[0].steps) expect(s.waitedMs).toBeGreaterThanOrEqual(DEFAULT_SETTLE_MS - 10)
   })
 
-  it('captures after transitions settle: an unsettled run sees the still-fading text, a settled run sees it', () => {
+  it('captures after transitions settle with the default interval: an unsettled run misses the still-entering text, the default run sees it', () => {
     expect(warnings(defectReport, 0).some((w) => w.includes('[overlap]'))).toBe(true)
     expect(unsettled.code, unsettled.out).toBe(0)
     expect(unsettledReport.settleMs).toBe(0)
@@ -163,7 +182,16 @@ describe('INT-002 screenshot helper', () => {
     expect(w[0]).toContain('first clashing text')
     expect(w[0]).toContain('second clashing text')
     expect(w[0]).toContain('data-presentation-allow-overlap')
-    for (const step of [1, 2]) expect(warnings(defectReport, step).some((x) => x.includes('[overlap]'))).toBe(false)
+    expect(warnings(defectReport, 1).some((x) => x.includes('[overlap]'))).toBe(false)
+  })
+
+  it('reports a collision between newcomers that enter through the kit only after the default settle', () => {
+    const w = warnings(defectReport, 2).filter((x) => x.includes('[overlap]'))
+    expect(w).toHaveLength(1)
+    expect(w[0]).toContain('step 3 (index 2)')
+    expect(w[0]).toContain('late clash a')
+    expect(w[0]).toContain('late clash b')
+    expect(warnings(unsettledReport, 2).some((x) => x.includes('[overlap]'))).toBe(false) // captured while still entering
   })
 
   it('does not warn about the explicitly allowed readable overlap', () => {
@@ -191,11 +219,19 @@ describe('INT-002 screenshot helper', () => {
   it('produces no active-state, attribution or overlap warnings for correctly styled chrome and a clean layout', () => {
     expect(polished.code, polished.out).toBe(0)
     for (let step = 0; step < 3; step++) {
-      const w = warnings(polishedReport, step).filter((x) => !x.includes('[overlap]') || step === 0)
+      const w = warnings(polishedReport, step)
       expect(w.filter((x) => x.includes('[active') || x.includes('[attribution]')), `step ${step}`).toEqual([])
     }
     expect(warnings(polishedReport, 2)).toEqual([])
-    expect(warnings(polishedReport, 1)).toEqual([])
+  })
+
+  it('counts a control’s padding: scene text over a text-bearing button box is reported even when it misses the button text', () => {
+    const w = warnings(polishedReport, 1)
+    expect(w).toHaveLength(1)
+    expect(w[0]).toContain('[overlap]')
+    expect(w[0]).toContain('"."')
+    expect(w[0]).toContain('made by and-scene')
+    expect(w[0]).toContain('step 2 (index 1)')
   })
 
   it('also reports the polished fixture’s own unmarked collision, proving detection is not defect-specific', () => {

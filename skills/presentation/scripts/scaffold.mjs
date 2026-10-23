@@ -29,7 +29,27 @@ export function isEmptyDir(dir) {
   return !existsSync(dir) || readdirSync(dir).filter((n) => n !== '.git').length === 0
 }
 
-/** Contract-level detection of the three anchors in an app directory. */
+function sourceFiles(dir) {
+  if (!existsSync(dir)) return []
+  return listFiles(dir).filter((f) => /\.(ts|tsx)$/.test(f)).map((f) => path.join(dir, f))
+}
+
+const EXPORTS_PRESENTATION =
+  /export\s+(?:default\s+)?(?:function|const|class)\s+Presentation\b|export\s*(?:type\s*)?\{[^}]*\bPresentation\b/
+const EXPORTS_STEP_CONTRACT =
+  /export\s+(?:default\s+)?(?:interface|type)\s+(?:Step|Scene)\b|export\s*(?:type\s*)?\{[^}]*\b(?:Step|Scene)\b/
+
+/** The registry source file, `index.ts` or `index.tsx`, if present. */
+export function registryFile(app) {
+  return ['index.ts', 'index.tsx'].map((n) => path.join(app, 'src', 'presentations', n)).find(existsSync)
+}
+
+/**
+ * Contract-level detection of the three anchors in an app directory: a working
+ * Vite/React/TypeScript build, a kit whose sources export the `Presentation`
+ * host and the `Step`/`Scene` contract (whatever the files are called), and a
+ * registry that maps slugs to loaders.
+ */
 export function detectAnchors(dir) {
   let build = false
   if (exists(dir, 'package.json')) {
@@ -38,11 +58,10 @@ export function detectAnchors(dir) {
     const hasVite = readdirSync(dir).some((n) => /^vite\.config\./.test(n))
     build = Boolean(pkg.scripts?.build && deps.vite && deps.react && deps.typescript && hasVite && exists(dir, 'tsconfig.json'))
   }
-  const kitDir = path.join(dir, 'src', 'presentation-kit')
-  const kit =
-    existsSync(kitDir) &&
-    readdirSync(kitDir).some((n) => /^Presentation\.tsx?$/.test(n) || /^index\.tsx?$/.test(n))
-  const index = exists(dir, 'src', 'presentations', 'index.ts') || exists(dir, 'src', 'presentations', 'index.tsx')
+  const kitSources = sourceFiles(path.join(dir, 'src', 'presentation-kit')).map((f) => readFileSync(f, 'utf8'))
+  const kit = kitSources.some((t) => EXPORTS_PRESENTATION.test(t)) && kitSources.some((t) => EXPORTS_STEP_CONTRACT.test(t))
+  const registry = registryFile(dir)
+  const index = Boolean(registry) && /\bslug\b/.test(readFileSync(registry, 'utf8')) && /\bload\b/.test(readFileSync(registry, 'utf8'))
   return { build, kit, index }
 }
 
@@ -55,17 +74,23 @@ export function isMonorepo(dir) {
 const anyAnchor = (a) => a.build || a.kit || a.index
 
 /**
- * Where the presentation app lives: an existing app (root or presentations/),
- * else presentations/ inside a monorepo, else the root.
+ * Where the presentation app lives. In a monorepo the root only counts as the
+ * app when it already holds presentation infrastructure (kit or index); a
+ * build setup alone is the monorepo's own, so the app goes in presentations/.
+ * Outside a monorepo any anchor at the root means we are inside the app.
  */
 export function resolveTarget(dir) {
   const root = path.resolve(dir)
-  if (anyAnchor(detectAnchors(root))) return { target: root, reason: 'existing presentation app at the root' }
   const nested = path.join(root, 'presentations')
+  const rootAnchors = detectAnchors(root)
+  if (isMonorepo(root)) {
+    if (rootAnchors.kit || rootAnchors.index) return { target: root, reason: 'existing presentation app at the monorepo root' }
+    return { target: nested, reason: 'monorepo: self-contained app in presentations/' }
+  }
+  if (anyAnchor(rootAnchors)) return { target: root, reason: 'existing presentation app at the root' }
   if (exists(nested) && anyAnchor(detectAnchors(nested))) {
     return { target: nested, reason: 'existing presentation app in presentations/' }
   }
-  if (isMonorepo(root)) return { target: nested, reason: 'monorepo: self-contained app in presentations/' }
   return { target: root, reason: isEmptyDir(root) ? 'empty directory: scaffold at the root' : 'standalone project: scaffold at the root' }
 }
 
@@ -82,6 +107,9 @@ export function detect(dir) {
   }
 }
 
+/** Entry wiring and verification scripts serve both the build and the index anchors. */
+export const SHARED_FILES = new Set(['scripts/verify.mjs', 'scripts/inspect-presentation.mjs', 'src/main.tsx'])
+
 /** Which anchor a bootstrap template file belongs to. */
 export function anchorOf(rel) {
   const r = rel.split(path.sep).join('/')
@@ -91,6 +119,7 @@ export function anchorOf(rel) {
 }
 
 function mergePackageJson(targetFile, templateFile) {
+  const targetRoot = path.dirname(targetFile)
   const tpl = readJson(templateFile)
   if (!existsSync(targetFile)) {
     writeFileSync(targetFile, JSON.stringify(tpl, null, 2) + '\n')
@@ -110,6 +139,8 @@ function mergePackageJson(targetFile, templateFile) {
   }
   pkg.scripts ??= {}
   for (const [name, cmd] of Object.entries(tpl.scripts)) {
+    const file = /(scripts\/[\w.-]+\.mjs)/.exec(cmd)?.[1]
+    if (file && !existsSync(path.join(targetRoot, file))) continue // never reference an absent script
     if (!pkg.scripts[name]) {
       pkg.scripts[name] = cmd
       added.push(`script:${name}`)
@@ -126,13 +157,18 @@ function mergePackageJson(targetFile, templateFile) {
  */
 export function bootstrap(dir, { confirmed = false } = {}) {
   const info = detect(dir)
-  if (info.missing.length === 0) return { ...info, status: 'complete', written: [], kept: [] }
-  if (!info.targetIsEmpty && !confirmed) return { ...info, status: 'needs-confirmation', written: [], kept: [] }
+  if (info.missing.length === 0) return { ...info, status: 'complete', written: [], kept: [], notes: [] }
+  if (!(isEmptyDir(info.root) && info.targetIsEmpty) && !confirmed) {
+    return { ...info, status: 'needs-confirmation', written: [], kept: [], notes: [] }
+  }
   mkdirSync(info.target, { recursive: true })
   const written = []
   const kept = []
   for (const rel of listFiles(BOOTSTRAP_DIR)) {
-    if (!info.missing.includes(anchorOf(rel))) continue
+    const wanted = SHARED_FILES.has(rel)
+      ? info.missing.includes('build') || info.missing.includes('index')
+      : info.missing.includes(anchorOf(rel))
+    if (!wanted) continue
     const src = path.join(BOOTSTRAP_DIR, rel)
     const dest = path.join(info.target, rel)
     if (rel === 'package.json') continue
@@ -154,7 +190,14 @@ export function bootstrap(dir, { confirmed = false } = {}) {
   const merged = mergePackageJson(path.join(info.target, 'package.json'), path.join(BOOTSTRAP_DIR, 'package.json'))
   written.push(...merged.added.map((a) => `package.json:${a}`))
   if (merged.created) written.push('package.json')
-  return { ...info, status: 'scaffolded', written, kept }
+  const notes = []
+  const entry = path.join(info.target, 'src', 'main.tsx')
+  if (info.missing.includes('index') && kept.includes('src/main.tsx') && !/Router/.test(readFileSync(entry, 'utf8'))) {
+    notes.push(
+      'src/main.tsx was kept: render <Router pathname={window.location.pathname} entries={presentations} /> from src/Router.tsx with the registry from src/presentations/index.ts so each presentation is reachable at /<slug>',
+    )
+  }
+  return { ...info, status: 'scaffolded', written, kept, notes }
 }
 
 export function validSlug(slug) {
@@ -163,7 +206,7 @@ export function validSlug(slug) {
 
 export function listPresentations(dir) {
   const { target } = resolveTarget(dir)
-  const file = ['index.ts', 'index.tsx'].map((n) => path.join(target, 'src', 'presentations', n)).find(existsSync)
+  const file = registryFile(target)
   if (!file) return []
   return [...readFileSync(file, 'utf8').matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
 }
@@ -174,7 +217,7 @@ export function createPresentation(dir, { slug, title }) {
   const { target } = resolveTarget(dir)
   const info = detectAnchors(target)
   if (!info.kit || !info.index) throw new Error('scaffold is incomplete: run bootstrap first')
-  const registry = path.join(target, 'src', 'presentations', 'index.ts')
+  const registry = registryFile(target)
   const source = readFileSync(registry, 'utf8')
   if (!source.includes(REGISTRY_MARKER)) {
     throw new Error(`registry has no "${REGISTRY_MARKER}" line; add the entry by hand`)

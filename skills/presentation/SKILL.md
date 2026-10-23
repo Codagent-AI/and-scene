@@ -39,8 +39,10 @@ When a step's layout is key or complex, you may draw an ASCII mockup of that
 step to confirm the layout before building. Do this at your discretion for the
 few steps where it helps, not for every step.
 
-If the user wants to **modify** an existing presentation, go to
-[Modify](#modify-an-existing-presentation) instead; ask only about the changes.
+If the user wants to **modify** an existing presentation, do step 2 first (a
+modification also needs the build setup, scene kit and presentation index in
+place; scaffold anything missing before editing), then go to
+[Modify](#modify-an-existing-presentation); ask only about the changes.
 
 ### 2. Resolve the target and scaffold what is missing
 
@@ -72,12 +74,17 @@ Then:
   must not assume any of it is installed: `react`, `react-dom`, `motion`,
   `lucide-react`, `vite`, `@vitejs/plugin-react`, `typescript`, `@types/react`,
   `@types/react-dom`, `@types/node`, the ESLint stack, and `playwright`.
-- **Non-empty target missing any anchor** (including when only the build setup
-  is missing): before writing anything, tell the user the resolved target
-  directory and the reason, then wait for them to confirm. Only after
-  confirmation run `node <skill-dir>/scripts/scaffold.mjs bootstrap <project-dir> --confirm`.
-  For an empty target, run it without `--confirm`. The helper refuses to write
-  into a non-empty target without `--confirm`.
+- **Non-empty project missing any anchor** (the project directory or the resolved
+  target already holds files, including a monorepo whose `presentations/` does not
+  exist yet, and including when only the build setup is missing): before writing
+  anything, tell the user the resolved target directory and the reason, then wait
+  for them to confirm. Only after confirmation run
+  `node <skill-dir>/scripts/scaffold.mjs bootstrap <project-dir> --confirm`.
+  For an empty project, run it without `--confirm`. The helper refuses to write
+  into a non-empty project without `--confirm`.
+- When the helper reports `notes` (for example that your existing `src/main.tsx`
+  was kept), act on them: wire the registry and `src/Router.tsx` into the existing
+  entry point so every presentation is reachable at `/<slug>`.
 - After scaffolding, run `npm install` in the target (it merges only missing
   dependencies into an existing `package.json`, and never overwrites existing
   files), then `npx playwright install chromium` if the browser is not available.
@@ -100,8 +107,9 @@ Then edit the new folder:
 - `entities.ts`: the presentation's own `layoutId` namespace (stable entity ids).
 - `scene.tsx` and `steps/*`: compose the kit primitives (`Box`, `Label`, `Arrow`,
   `Frame`, `Emphasis`, `SymbolChip`, `Appear`, `SceneLayer`). Persisting entities
-  keep their id and are not wrapped in `Appear`; newcomers are wrapped in
-  `Appear` with a stable `key`; departing entities leave through `SceneLayer`.
+  keep their id; wrap a newcomer in `Appear` with a stable `key` and keep that
+  same key for as long as the entity stays, so its entry does not replay;
+  departing entities leave through `SceneLayer`.
   Steps that share a `groupKey` and a `Scene` keep one mounted scene and change
   only `payload`. Every step needs a stable id, an era label, a one-line title,
   and a paragraph caption. Step numbers come from array position.

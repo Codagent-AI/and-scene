@@ -1,6 +1,7 @@
 // @vitest-environment node
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { ENTER_DELAY, ENTER_T } from '../../src/presentation-kit/constants.ts'
 import {
   DEFAULT_SETTLE_MS,
   DESKTOP_VIEWPORT,
@@ -39,7 +40,8 @@ describe('artifact paths and viewport', () => {
   })
   it('captures at a standard desktop viewport', () => {
     expect(DESKTOP_VIEWPORT).toEqual({ width: 1280, height: 720 })
-    expect(DEFAULT_SETTLE_MS).toBeGreaterThan(0)
+    // must outlast the kit's newcomer entry: delay + fade
+    expect(DEFAULT_SETTLE_MS).toBeGreaterThan((ENTER_DELAY + ENTER_T) * 1000)
   })
 })
 
@@ -58,8 +60,12 @@ describe('findOverlaps', () => {
     expect(findOverlaps([item(0, 'a', 0, 0), item(1, 'b', 99.5, 0)])).toEqual([])
     expect(findOverlaps([item(0, 'a', 0, 0, 100, 100), item(1, 'b', 99, 99, 100, 100)])).toEqual([])
   })
-  it('ignores ancestor/descendant pairs', () => {
-    expect(findOverlaps([item(0, 'outer', 0, 0, 200, 100, { contains: [1] }), item(1, 'inner', 10, 10)])).toEqual([])
+  it('reports distinct text ranges stacked on each other even when their elements are nested', () => {
+    const pairs = findOverlaps([
+      item(0, 'outer text "A"', 0, 0, 200, 100, { contains: [1] }),
+      item(1, 'inner text "B"', 10, 10),
+    ])
+    expect(pairs).toEqual([['outer text "A"', 'inner text "B"']])
   })
   it('exempts pairs touching an allow-overlap subtree but still reports unrelated collisions', () => {
     const pairs = findOverlaps([
@@ -76,6 +82,10 @@ describe('active chrome and attribution classification', () => {
   const style = { backgroundColor: 'red', color: 'white', width: '10px', opacity: '1' }
   it('flags an active control identical to every inactive one', () => {
     expect(isIndistinctActive(style, [{ ...style }, { ...style }])).toBe(true)
+  })
+  it('flags the active control when it matches any single inactive sibling', () => {
+    expect(isIndistinctActive(style, [{ ...style, color: 'other' }, { ...style }])).toBe(true)
+    expect(isIndistinctActive(style, [{ ...style }, { ...style, color: 'other' }])).toBe(true)
   })
   it('accepts an active control that differs in any signature property', () => {
     for (const key of ['backgroundColor', 'color', 'width', 'opacity']) {

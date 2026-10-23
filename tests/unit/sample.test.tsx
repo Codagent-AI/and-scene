@@ -124,6 +124,20 @@ describe('reference sample rendering', () => {
     }
   })
 
+  it('keeps each entity under the same Appear wrapper node, so its entry never replays', () => {
+    render(<Talk />)
+    const wrappers = new Map<string, Element | null>()
+    const names = ['you', 'prompt']
+    for (const n of names) wrappers.set(n, ent(n).closest('[data-presentation-appear]'))
+    for (let i = 0; i < 8; i++) {
+      next()
+      for (const n of names) {
+        expect(wrappers.get(n)).not.toBeNull()
+        expect(ent(n).closest('[data-presentation-appear]'), `${n} at step ${i + 2}`).toBe(wrappers.get(n))
+      }
+    }
+  })
+
   it('draws each scene beat as specified', () => {
     render(<Talk />)
     // 1 - you + prompt

@@ -80,9 +80,18 @@ export async function startPreview(cwd, { timeoutMs = 30_000 } = {}) {
           // already gone
         }
       }, 5000)
-      // Never hang a verify/inspect run on a child that will not report its exit.
-      await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 8000))])
-      clearTimeout(timer)
+      // Never hang a verify/inspect run on a child that will not report its exit, and never keep the process alive afterwards.
+      let giveUp
+      const bound = new Promise((resolve) => {
+        giveUp = setTimeout(resolve, 8000)
+        giveUp.unref?.()
+      })
+      try {
+        await Promise.race([exited, bound])
+      } finally {
+        clearTimeout(giveUp)
+        clearTimeout(timer)
+      }
     }
   }
   try {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
 
 /** Mounted entity instances per id, counting scenes that are still animating out. */
 const mounted = new Map<string, number>()
@@ -9,8 +9,7 @@ const mounted = new Map<string, number>()
  * should morph out of the old geometry, not wait hidden for persisting entities to settle.
  */
 export function useContinuesFromPrevious(id: string): boolean {
-  const continues = useRef<boolean | null>(null)
-  if (continues.current === null) continues.current = (mounted.get(id) ?? 0) > 0
+  const [continues] = useState(() => (mounted.get(id) ?? 0) > 0)
   useEffect(() => {
     mounted.set(id, (mounted.get(id) ?? 0) + 1)
     return () => {
@@ -19,5 +18,5 @@ export function useContinuesFromPrevious(id: string): boolean {
       else mounted.delete(id)
     }
   }, [id])
-  return continues.current
+  return continues
 }

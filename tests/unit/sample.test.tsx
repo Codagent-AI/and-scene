@@ -68,7 +68,7 @@ describe('reference sample scene', () => {
     expect(css).toMatch(/\[data-presentation-attribution\]\s*\{[^}]*font-size:\s*1[1-9]px/)
   })
 
-  it('uses raw motion-compatible coordinates from its own entity namespace (I-13)', () => {
+  it('keeps its entity ids and literal canvas coordinates in its own entities.ts (I-13)', () => {
     const entities = readFileSync('src/presentations/how-to-make-a-presentation/entities.ts', 'utf8')
     expect(entities).toMatch(/export const E = /)
     expect(entities).toMatch(/export const AT = /)

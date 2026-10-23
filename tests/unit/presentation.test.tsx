@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { Presentation } from '../../src/presentation-kit'
+import { motion } from 'motion/react'
+import { Presentation, SceneLayer, type Step } from '../../src/presentation-kit'
 import { makeSteps, mounts, touch } from './helpers'
 
 const q = (sel: string) => document.querySelector(sel)
@@ -174,5 +175,21 @@ describe('scene hosting', () => {
     render(<Presentation steps={makeSteps()} title="Deck" designWidth={600} designHeight={300} />)
     const custom = q('[data-presentation-canvas]') as HTMLElement
     expect([custom.style.width, custom.style.height]).toEqual(['600px', '300px'])
+  })
+
+  it('lets authors use raw motion elements with stable layoutIds in a scene (I-13)', () => {
+    const RawScene = () => (
+      <SceneLayer>
+        <motion.div key="raw" layoutId="raw" data-testid="raw" style={{ position: 'absolute', left: 12, top: 34 }}>
+          raw
+        </motion.div>
+      </SceneLayer>
+    )
+    const steps: Step<undefined>[] = [
+      { id: 'r', era: 'e', title: 'T', caption: 'C', Scene: RawScene, payload: undefined },
+    ]
+    render(<Presentation steps={steps} title="Deck" />)
+    const raw = screen.getByTestId('raw')
+    expect([raw.style.left, raw.style.top]).toEqual(['12px', '34px'])
   })
 })

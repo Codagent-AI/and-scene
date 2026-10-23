@@ -1,0 +1,5 @@
+/* Host layout only: no colors, fonts, or spacing. Presentations own their look. */
+html,
+body {
+  min-height: 100%;
+}

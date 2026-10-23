@@ -1,25 +1,34 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useEffect, useState, type RefObject } from 'react'
+import { MIN_SCALE } from './constants'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+export interface FitGeometry {
+  width: number
+  height: number
+  padding: number
+}
 
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
-  const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
+/** Uniform scale that fits the design canvas inside the available box, never below MIN_SCALE. */
+export function computeFitScale(available: { width: number; height: number }, geometry: FitGeometry): number {
+  const usableW = available.width - geometry.padding * 2
+  const usableH = available.height - geometry.padding * 2
+  const fit = Math.min(usableW / geometry.width, usableH / geometry.height)
+  return Math.max(MIN_SCALE, fit)
+}
+
+export function useFitScale(ref: RefObject<HTMLElement | null>, geometry: FitGeometry): number {
+  const [scale, setScale] = useState(MIN_SCALE)
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+    const update = () => {
+      const rect = element.getBoundingClientRect()
+      setScale(computeFitScale({ width: rect.width, height: rect.height }, geometry))
     }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [ref, geometry])
+
   return scale
 }

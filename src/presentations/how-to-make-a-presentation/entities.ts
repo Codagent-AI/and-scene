@@ -1,21 +1,78 @@
-/** Stable layoutId namespace — entities morph across steps when ids match. */
-export const ENTITIES = {
-  you: 'you',
-  prompt: 'prompt',
-  questionChip: 'question-chip',
-  convoArrow: 'convo-arrow',
-  skill: 'skill',
-  stepCard1: 'step-card-1',
-  stepCard2: 'step-card-2',
-  stepCard3: 'step-card-3',
-  ghostCard: 'ghost-card',
-  depthChip: 'depth-chip',
-  tray: 'tray',
-  kitSocket: 'kit-socket',
-  verifyArrow: 'verify-arrow',
-  verifyNode: 'verify-node',
-  greenCheck: 'green-check',
-  editBadge: 'edit-badge',
-} as const
+import type { Geometry } from '../../presentation-kit/nodes/shared'
 
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]
+/**
+ * Stable entity catalog for this presentation. Each id is also the layoutId, so an
+ * entity that persists between steps morphs from its old geometry to its new one.
+ * Coordinates are on the 880 × 380 design canvas.
+ */
+export type EntityId =
+  | 'you'
+  | 'prompt'
+  | 'skill'
+  | 'question'
+  | 'talk-link'
+  | 'tray'
+  | 'card-1'
+  | 'card-2'
+  | 'card-3'
+  | 'morph-note'
+  | 'morph-link'
+  | 'ghost'
+  | 'depth-control'
+  | 'socket'
+  | 'verify'
+  | 'chain-link'
+  | 'pass-check'
+  | 'modify-arc'
+  | 'edited-flag'
+  | 'reveal-frame'
+  | 'reveal-label'
+
+export type Entity =
+  | { kind: 'box'; variant: string; text: string; geometry: Geometry; icon?: IconName }
+  | { kind: 'label'; variant: string; text: string; geometry: Geometry }
+  | { kind: 'chip'; variant: string; text: string; geometry: Geometry; icon?: IconName }
+  | { kind: 'arrow'; variant: string; x: number; y: number; length: number; angle?: number; twoWay?: boolean }
+  | { kind: 'frame'; variant: string; text: string; geometry: Geometry }
+  | { kind: 'emphasis'; variant: string; geometry: Geometry }
+
+export type IconName = 'User' | 'Bot' | 'Blocks' | 'CircleCheck'
+
+const card = (x: number): Geometry => ({ x, y: 190, w: 150, h: 130 })
+
+export const ENTITIES: Record<EntityId, Entity> = {
+  you: { kind: 'box', variant: 'person', text: 'you', icon: 'User', geometry: { x: 40, y: 60, w: 120, h: 64 } },
+  prompt: { kind: 'label', variant: 'bubble', text: 'a topic', geometry: { x: 200, y: 10, w: 220, h: 40 } },
+  skill: { kind: 'box', variant: 'person', text: 'skill', icon: 'Bot', geometry: { x: 700, y: 60, w: 140, h: 64 } },
+  question: { kind: 'chip', variant: 'question', text: 'the topic?', geometry: { x: 700, y: 14, w: 140, h: 38 } },
+  'talk-link': { kind: 'arrow', variant: 'link', x: 160, y: 92, length: 540, twoWay: true },
+  tray: { kind: 'box', variant: 'tray', text: '', geometry: { x: 40, y: 170, w: 800, h: 150 } },
+  'card-1': { kind: 'box', variant: 'card', text: 'title · caption · visual', geometry: card(40) },
+  'card-2': { kind: 'box', variant: 'card', text: 'title · caption · visual', geometry: card(206) },
+  'card-3': { kind: 'box', variant: 'card', text: 'title · caption · visual', geometry: card(372) },
+  'morph-note': { kind: 'label', variant: 'note', text: 'what morphs', geometry: { x: 262, y: 134, w: 160, h: 32 } },
+  'morph-link': { kind: 'arrow', variant: 'morph', x: 190, y: 255, length: 16 },
+  ghost: { kind: 'box', variant: 'ghost', text: 'not yet specified', geometry: card(538) },
+  'depth-control': { kind: 'chip', variant: 'control', text: 'partial ↔ full', geometry: { x: 40, y: 128, w: 180, h: 38 } },
+  socket: { kind: 'box', variant: 'socket', text: 'scene kit', icon: 'Blocks', geometry: { x: 300, y: 320, w: 280, h: 40 } },
+  verify: { kind: 'box', variant: 'verify', text: 'build ✓ · render ✓', geometry: card(704) },
+  'chain-link': { kind: 'arrow', variant: 'chain', x: 688, y: 255, length: 16 },
+  'pass-check': { kind: 'chip', variant: 'pass', text: 'pass', icon: 'CircleCheck', geometry: { x: 760, y: 274, w: 88, h: 38 } },
+  'modify-arc': { kind: 'arrow', variant: 'modify', x: 241, y: 92, length: 98, angle: 90 },
+  'edited-flag': { kind: 'emphasis', variant: 'edited', geometry: { x: 202, y: 186, w: 158, h: 138 } },
+  'reveal-frame': { kind: 'frame', variant: 'reveal', text: 'built this way', geometry: { x: 6, y: 4, w: 868, h: 370 } },
+  'reveal-label': { kind: 'label', variant: 'reveal-label', text: 'this presentation', geometry: { x: 20, y: 344, w: 230, h: 28 } },
+}
+
+/**
+ * What one step shows: the entities on screen and which entities are emphasized. Newcomers
+ * are not listed here; the scene derives them from the previous step, in either direction.
+ */
+export interface DiagramState {
+  visible: EntityId[]
+  emphasized: EntityId[]
+}
+
+export function diagramState(visible: EntityId[], emphasized: EntityId[] = []): DiagramState {
+  return { visible, emphasized }
+}

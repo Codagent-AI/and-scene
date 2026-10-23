@@ -51,7 +51,65 @@ describe('persisting entities', () => {
   })
 })
 
+describe('arrows across ungrouped scene changes', () => {
+  it('start a remounted arrow from where the previous instance of the same id was drawn', () => {
+    const scene = (to: [number, number]) =>
+      function ArrowScene() {
+        return <SceneLayer><Arrow key="a" id="shared" from={[0, 0]} to={to} /></SceneLayer>
+      }
+    const steps = [
+      { ...makeSteps(['a'])[0], id: 'one', Scene: scene([100, 0]) },
+      { ...makeSteps(['a'])[0], id: 'two', Scene: scene([0, 100]) },
+    ]
+    const { rerender } = render(<Stage step={steps[0]} mode="browse" />)
+    const first = document.querySelector('[data-presentation-entity="shared"] path[data-mock-animate]')!
+    expect(parse(first, 'data-mock-initial').d).toBe(parse(first, 'data-mock-animate').d) // newcomer: no history
+    const drawnBefore = parse(first, 'data-mock-animate').d
+    rerender(<Stage step={steps[1]} mode="browse" />)
+    const second = document.querySelector('[data-presentation-entity="shared"] path[data-mock-animate]')!
+    expect(parse(second, 'data-mock-initial').d).toBe(drawnBefore)
+    expect(parse(second, 'data-mock-animate').d).not.toBe(drawnBefore)
+  })
+
+  it('forgets an arrow once it is gone, so a later newcomer does not morph from stale geometry', () => {
+    const { unmount } = render(<SceneLayer><Arrow key="g" id="ghost" from={[0, 0]} to={[5, 5]} /></SceneLayer>)
+    unmount()
+    render(<SceneLayer><Arrow key="g" id="ghost" from={[9, 9]} to={[50, 50]} /></SceneLayer>)
+    const path = document.querySelector('[data-presentation-entity="ghost"] path[data-mock-animate]')!
+    expect(parse(path, 'data-mock-initial').d).toBe(parse(path, 'data-mock-animate').d)
+  })
+})
+
 describe('entering entities', () => {
+  it('persisting entities use the layout transition that newcomers are ordered against', () => {
+    render(
+      <>
+        <Box id="persist" />
+        <Box id="newcomer" appear />
+      </>,
+    )
+    const layout = parse(byEntity('persist'), 'data-mock-transition')
+    expect(layout).toEqual(LAYOUT_T)
+    const enter = parse(byEntity('newcomer'), 'data-mock-animate').transition
+    expect(enter.delay).toBeGreaterThanOrEqual(layout.delay + layout.duration)
+    expect(parse(byEntity('newcomer'), 'data-mock-initial')).toEqual({ opacity: 0 })
+  })
+
+  it('the appear prop applies only when set, with no wrapper element', () => {
+    render(
+      <>
+        <Box id="plain" />
+        <Label id="lbl" appear />
+        <Frame id="frm" appear={false} />
+      </>,
+    )
+    expect(byEntity('plain')?.getAttribute('data-mock-initial')).toBeNull()
+    expect(parse(byEntity('lbl'), 'data-mock-initial')).toEqual({ opacity: 0 })
+    expect(byEntity('frm')?.getAttribute('data-mock-initial')).toBeNull()
+    expect(byEntity('lbl')?.closest('[data-presentation-appear]')).toBeNull()
+    expect(byEntity('lbl')?.hasAttribute('appear')).toBe(false) // never leaks to the DOM
+  })
+
   it('Appear starts hidden and enters only after the layout transition has finished', () => {
     render(<Appear data-testid="enter" />)
     const el = document.querySelector('[data-testid="enter"]')
@@ -173,22 +231,36 @@ describe('intentional composition', () => {
 })
 
 describe('sample continuity (structural)', () => {
-  it('keeps continuing entity nodes and fades in only newcomers', () => {
+  const nodes = () =>
+    new Map([...document.querySelectorAll('[data-presentation-entity]')].map((n) => [n.getAttribute('data-presentation-entity')!, n]))
+
+  it('keeps continuing entity nodes unwrapped and unfaded; only the introducing step fades newcomers', () => {
     const { rerender } = render(<SampleScene payload={{ n: 3 }} />)
-    const before = new Map(
-      [...document.querySelectorAll('[data-presentation-entity]')].map((n) => [n.getAttribute('data-presentation-entity'), n]),
-    )
+    const before = nodes()
     expect(before.has('step-card-2')).toBe(false)
     rerender(<SampleScene payload={{ n: 4 }} />)
-    for (const [id, node] of before) expect(byEntity(id!)).toBe(node)
+    for (const [id, node] of before) {
+      expect(byEntity(id!)).toBe(node) // same element: layoutId morph, no remount
+      expect(node.closest('[data-presentation-appear]')).toBeNull() // no newcomer-fade ancestor
+      expect(node.getAttribute('data-mock-initial')).toBeNull() // no newcomer fade on the element
+    }
     const card = byEntity('step-card-2')!
-    expect(card.closest('[data-presentation-appear]')).not.toBeNull()
-    expect(parse(card.closest('[data-presentation-appear]'), 'data-mock-initial')).toEqual({ opacity: 0 })
+    expect(card.closest('[data-presentation-appear]')).toBeNull()
+    expect(parse(card, 'data-mock-initial')).toEqual({ opacity: 0 })
+    expect(parse(card, 'data-mock-animate').transition.delay).toBeGreaterThanOrEqual(LAYOUT_T.delay + LAYOUT_T.duration)
     expect(byEntity('you')?.getAttribute('data-mock-layout-id')).toBe('you')
-    expect(byEntity('you')?.getAttribute('data-mock-initial')).toBeNull()
-    // going back removes the newcomer only
+  })
+
+  it('keeps newcomer marking stable across re-renders of the same step, and never marks on the way back', () => {
+    const { rerender } = render(<SampleScene payload={{ n: 3 }} />)
+    rerender(<SampleScene payload={{ n: 4 }} />)
+    const marked = () => [...nodes()].filter(([, n]) => n.hasAttribute('data-mock-initial')).map(([id]) => id).sort()
+    const expected = ['link-1-2', 'link-2-3', 'morph-label-1-2', 'morph-label-2-3', 'step-card-2', 'step-card-3']
+    expect(marked()).toEqual(expected)
+    rerender(<SampleScene payload={{ n: 4 }} />)
+    expect(marked()).toEqual(expected)
     rerender(<SampleScene payload={{ n: 3 }} />)
+    expect(marked()).toEqual([]) // stepping back introduces nothing
     expect(byEntity('step-card-2')).toBeNull()
-    expect(byEntity('step-card-1')).toBe(before.get('step-card-1'))
   })
 })

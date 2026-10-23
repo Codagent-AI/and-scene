@@ -37,10 +37,23 @@ const bad: Step<Payload> = {
   payload: { phase: 'c' },
 }
 
-// @ts-expect-error steps must carry every required narration field (no `caption`)
-const missing: Step<Payload> = { id: '4', era: 'e', title: 't', Scene: TypedScene, payload: { phase: 'a' } }
+const complete = { id: '4', era: 'e', title: 't', caption: 'c', Scene: TypedScene, payload: { phase: 'a' } } satisfies Step<Payload>
+
+// Every required step field is enforced: omitting any one is a type error.
+// @ts-expect-error missing `id`
+const noId: Step<Payload> = { era: 'e', title: 't', caption: 'c', Scene: TypedScene, payload: complete.payload }
+// @ts-expect-error missing `era`
+const noEra: Step<Payload> = { id: '4', title: 't', caption: 'c', Scene: TypedScene, payload: complete.payload }
+// @ts-expect-error missing `title`
+const noTitle: Step<Payload> = { id: '4', era: 'e', caption: 'c', Scene: TypedScene, payload: complete.payload }
+// @ts-expect-error missing `caption`
+const noCaption: Step<Payload> = { id: '4', era: 'e', title: 't', Scene: TypedScene, payload: complete.payload }
+// @ts-expect-error missing `Scene`
+const noScene: Step<Payload> = { id: '4', era: 'e', title: 't', caption: 'c', payload: complete.payload }
+// @ts-expect-error missing `payload`
+const noPayload: Step<Payload> = { id: '4', era: 'e', title: 't', caption: 'c', Scene: TypedScene }
 
 // @ts-expect-error Icon must be a component, not an element
 export const notComponent = <Box id="z" Icon={<Check />} />
 
-export const unused = [bad, missing, Appear, Arrow, Frame, Label]
+export const unused = [bad, noId, noEra, noTitle, noCaption, noScene, noPayload, Appear, Arrow, Frame, Label]

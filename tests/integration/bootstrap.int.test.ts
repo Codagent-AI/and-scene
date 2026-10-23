@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { detectAnchors } from '../../skills/presentation/scripts/detect-target.mjs'
-import { REPO, hasLeakedProcess, run, type RunResult } from '../helpers/project-copy'
+import { REPO, announcedPort, hasLeakedProcess, isPortClosed, run, type RunResult } from '../helpers/project-copy'
 
 // INT-001: the distributable bootstrap template, materialized outside this repository.
 const SKILL_DIR = join(REPO, 'skills', 'presentation')
@@ -67,7 +67,7 @@ describe('INT-001 materialized bootstrap', () => {
     }
   })
 
-  it('lints and builds the instantiated presentation, then renders its registered route', () => {
+  it('lints and builds the instantiated presentation, then renders its registered route', async () => {
     expect(lint.status, lint.stdout + lint.stderr).toBe(0)
     expect(verify.status, verify.stdout + verify.stderr).toBe(0)
     expect(verify.stdout).toContain('ok build')
@@ -75,6 +75,9 @@ describe('INT-001 materialized bootstrap', () => {
     expect(verify.stdout).toContain('PASS verify')
     expect(existsSync(join(app, 'dist', 'index.html'))).toBe(true)
     expect(hasLeakedProcess(app)).toBe(false)
+    const port = announcedPort(verify.stdout)
+    expect(port).not.toBeNull()
+    expect(await isPortClosed(port!)).toBe(true)
   })
 
   it('stays style-neutral: no Tailwind and no visual defaults owned by the kit or scaffold', () => {

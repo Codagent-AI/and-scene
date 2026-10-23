@@ -15,17 +15,67 @@ const readJson = (file) => {
 
 const hasAny = (dir, names) => names.some((n) => existsSync(join(dir, n)))
 
-/** Contract-level anchor detection: keyed on presence, not on a byte-identical scaffold. */
+const SOURCE = /\.(tsx?|jsx?|mjs)$/
+const SKIP = new Set(['node_modules', 'dist', '.git', '.inspection'])
+
+function sourceFiles(dir) {
+  if (!existsSync(dir)) return []
+  return readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+    if (SKIP.has(d.name)) return []
+    const path = join(dir, d.name)
+    return d.isDirectory() ? sourceFiles(path) : SOURCE.test(d.name) ? [path] : []
+  })
+}
+
+const read = (file) => readFileSync(file, 'utf8')
+const allDirs = (root) => [root, ...readdirSync(root, { withFileTypes: true }).filter((d) => d.isDirectory() && !SKIP.has(d.name)).flatMap((d) => allDirs(join(root, d.name)))]
+
+/** What the reusable scene kit must contain, whatever its files are called or where they live. */
+const KIT_CONTRACT = [
+  /\bexport\s+(default\s+)?(function|const|class)\s+Presentation\b|\bexport\s*\{[^}]*\bPresentation\b/, // host component
+  /\b(interface|type)\s+(Step|Scene)\w*\b/, // step/scene contract
+  /\b(AnimatePresence|LayoutGroup)\b/, // stage that mounts the active step and runs morphs
+  /['"]keydown['"]/, // keyboard navigation
+]
+
+/** The registry maps presentation entries (slug/route/path) to lazy loaders. */
+const INDEX_CONTRACT = [/\b(slug|route|path)\b/, /\bload\b|\bimport\s*\(/]
+
+/** Directory under `src` whose combined sources satisfy the kit contract, or null. */
+function findKitDir(appDir) {
+  const src = join(appDir, 'src')
+  if (!existsSync(src)) return null
+  for (const dir of allDirs(src).sort((a, b) => b.length - a.length)) {
+    const text = sourceFiles(dir).map(read).join('\n')
+    if (text.trim() && KIT_CONTRACT.every((re) => re.test(text))) return dir
+  }
+  return null
+}
+
+/** A source file under `src` that declares the presentation registry, or null. */
+function findIndexFile(appDir) {
+  for (const file of sourceFiles(join(appDir, 'src'))) {
+    const text = read(file)
+    if (INDEX_CONTRACT.every((re) => re.test(text)) && /\b(export|default)\b[^;\n]*(presentations|registry|routes|talks)/i.test(text)) return file
+  }
+  return null
+}
+
+/** Contract-level anchor detection: keyed on what the files do, not on how they are named. */
 export function detectAnchors(appDir) {
   const pkg = readJson(join(appDir, 'package.json'))
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies }
   const build = Boolean(
-    pkg?.scripts?.build && deps.react && (deps.vite || hasAny(appDir, ['vite.config.ts', 'vite.config.js', 'vite.config.mjs'])),
+    pkg?.scripts?.build &&
+      deps.react &&
+      (deps.vite || hasAny(appDir, ['vite.config.ts', 'vite.config.js', 'vite.config.mjs'])) &&
+      (deps.typescript || hasAny(appDir, ['tsconfig.json'])),
   )
-  const kitDir = join(appDir, 'src', 'presentation-kit')
-  const kit = hasAny(kitDir, ['index.ts', 'index.tsx']) && hasAny(kitDir, ['Presentation.tsx', 'Presentation.jsx'])
-  const index = hasAny(join(appDir, 'src', 'presentations'), ['index.ts', 'index.tsx'])
-  return { build, kit, index }
+  return { build, kit: findKitDir(appDir) !== null, index: findIndexFile(appDir) !== null }
+}
+
+export function locateAnchors(appDir) {
+  return { kitDir: findKitDir(appDir), indexFile: findIndexFile(appDir) }
 }
 
 export function isMonorepo(dir) {
@@ -65,6 +115,7 @@ export function detectTarget(projectDir) {
     reason,
     monorepo: isMonorepo(dir),
     anchors,
+    locations: locateAnchors(target),
     missing,
     nonEmpty,
     needsConfirmation: nonEmpty && missing.length > 0,

@@ -25,8 +25,11 @@ directory first (call it `$SKILL`), then use `$SKILL/templates/bootstrap/`,
   has a stable `id`, an `era` (section) label, a one-line presenter `title`, a paragraph browse
   `caption`, and a diagram state (`payload`).
 - Entities keep a **stable id** (used as the motion `layoutId`) across steps, so persisting
-  entities morph in place. Wrap only **newcomers** in `<Appear>`; entities present in two
-  adjacent steps are never faded in again. Entities that leave exit with the `SceneLayer`.
+  entities morph in place. Mark only **newcomers** with the primitive's `appear` prop (or wrap
+  custom content in `<Appear>`) on the step that introduces them; entities present in two
+  adjacent steps stay the same, unwrapped element and are never faded in again. Use
+  `usePrevious` to tell which entities the current transition introduced. Entities that leave
+  exit with the `SceneLayer`.
 - Adjacent steps that are successive states of one diagram share a `groupKey` and the same
   `Scene` component, so the scene instance persists and only `payload` changes.
 - Preserve intentional overlaps or stacking in the composition; do not spread entities out
@@ -62,12 +65,16 @@ Detect the three **contract anchors** (presence, not a byte-identical scaffold, 
 formatting and extra dependencies never trigger re-scaffolding):
 
 1. **Build setup** — a Vite + React + TypeScript app with a working `npm run build`.
-2. **Scene kit** — `src/presentation-kit/` (step contract, stage, nav, chrome, fit-scale canvas).
-3. **Presentation index** — `src/presentations/index.ts`, the registry mapping each
-   presentation to its own route.
+2. **Scene kit** — the engine: a `Presentation` host component, the `Step`/`Scene` contract, a
+   stage that mounts the active step and runs morphs, keyboard/touch navigation, and chrome.
+   The template calls it `src/presentation-kit/`, but a renamed or relocated functional
+   implementation counts; empty or stub files do not.
+3. **Presentation index** — the registry mapping each presentation (slug/route) to a lazy
+   loader. The template calls it `src/presentations/index.ts`; a renamed registry counts.
 
 Run `node "$SKILL/scripts/detect-target.mjs" <project-dir>`; it prints the anchors, the target
-directory and whether confirmation is needed. Resolution order:
+directory, where it found the kit directory and registry file (`locations`; use these rather
+than assuming the template paths), and whether confirmation is needed. Resolution order:
 
 1. Anchors already present in an existing presentation app (the directory itself, or its
    `presentations/` app) → **use that app**.

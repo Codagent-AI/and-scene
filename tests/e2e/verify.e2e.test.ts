@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
-import { copyProject, hasLeakedProcess, run } from '../helpers/project-copy'
+import { announcedPort, copyProject, hasLeakedProcess, isPortClosed, run } from '../helpers/project-copy'
 
 // E2E-001 / E2E-002: `npm run verify` against isolated copies; the source checkout is never touched.
 const copies: string[] = []
@@ -24,12 +24,20 @@ function edit(dir: string, file: string, from: string | RegExp, to: string) {
 
 const verify = (dir: string) => run('npm', ['run', 'verify'], dir)
 
+/** No process still runs from the copy, and the announced preview port no longer accepts connections. */
+async function expectCleanedUp(dir: string, stdout: string) {
+  expect(hasLeakedProcess(dir)).toBe(false)
+  const port = announcedPort(stdout)
+  if (port !== null) expect(await isPortClosed(port), `preview port ${port} still open`).toBe(true)
+  return port
+}
+
 afterAll(() => {
   for (const dir of copies) rmSync(dir, { recursive: true, force: true })
 })
 
 describe('E2E-001 reference presentation passes production verification', () => {
-  it('builds, registers, renders all nine steps over 127.0.0.1 and reports a clear pass', () => {
+  it('builds, registers, renders all nine steps over 127.0.0.1 and reports a clear pass', async () => {
     const dir = freshCopy()
     const r = verify(dir)
     expect(r.status, r.stdout + r.stderr).toBe(0)
@@ -40,9 +48,21 @@ describe('E2E-001 reference presentation passes production verification', () => 
     expect(r.stderr).not.toMatch(/FAIL/)
     // host, readiness probe and browser URL are all IPv4 loopback
     for (const [url] of (r.stdout + r.stderr).matchAll(/https?:\/\/[^\s/]+/g)) expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/)
-    expect(hasLeakedProcess(dir)).toBe(false)
+    expect(await expectCleanedUp(dir, r.stdout)).not.toBeNull() // the preview really ran, and is gone
   })
 })
+
+/** Emits a console error 800ms into the entrance of step `n` (after the old fixed dwell would have moved on). */
+function lateError(dir: string, n: number, message: string) {
+  const file = 'src/presentations/how-to-make-a-presentation/steps/scene.tsx'
+  edit(dir, file, "import { Check } from 'lucide-react'", "import { useEffect } from 'react'\nimport { Check } from 'lucide-react'")
+  edit(
+    dir,
+    file,
+    'const previous = usePrevious(n, 0)\n',
+    `const previous = usePrevious(n, 0)\n  useEffect(() => {\n    if (n !== ${n}) return\n    const t = setTimeout(() => console.error('${message}'), 800)\n    return () => clearTimeout(t)\n  }, [n])\n`,
+  )
+}
 
 const FAULTS: {
   name: string
@@ -82,6 +102,16 @@ const FAULTS: {
     expected: /^FAIL render \(step index 5\): /m,
   },
   {
+    name: 'a step emits a console error only after its entrance has begun',
+    inject: (d) => lateError(d, 4, 'late console error'),
+    expected: /^FAIL render \(step index 3\): console\.error: late console error/m,
+  },
+  {
+    name: 'the final step emits an error late in its entrance',
+    inject: (d) => lateError(d, 9, 'late final error'),
+    expected: /^FAIL render \(step index 8\): console\.error: late final error/m,
+  },
+  {
     name: 'a transition does not advance the public step index',
     inject: (d) => edit(d, 'src/presentation-kit/usePresentationNav.ts', 'Math.min(last, i + 1)', 'Math.min(Math.min(last, 2), i + 1)'),
     expected: /^FAIL render \(step index 3\): step index stayed 2 for \d+ms, expected 3/m,
@@ -89,13 +119,13 @@ const FAULTS: {
 ]
 
 describe('E2E-002 verification failures are actionable', () => {
-  it.each(FAULTS)('exits non-zero, names the phase and step, and cleans up when $name', ({ inject, expected }) => {
+  it.each(FAULTS)('exits non-zero, names the phase and step, and cleans up when $name', async ({ inject, expected }) => {
     const dir = freshCopy()
     inject(dir)
     const r = verify(dir)
     expect(r.status, r.stdout).not.toBe(0)
     expect(r.stderr).toMatch(expected)
     expect(r.stdout + r.stderr).not.toContain('PASS')
-    expect(hasLeakedProcess(dir)).toBe(false)
+    await expectCleanedUp(dir, r.stdout)
   })
 })

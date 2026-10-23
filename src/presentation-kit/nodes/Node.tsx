@@ -1,6 +1,6 @@
 import { motion, type HTMLMotionProps } from 'motion/react'
 import type { ReactNode } from 'react'
-import { EXIT_ANIMATE } from '../constants'
+import { ENTER_ANIMATE, EXIT_ANIMATE, LAYOUT_T } from '../constants'
 import { geometryStyle, type GeometryProps } from './geometry'
 
 export interface NodeProps
@@ -9,6 +9,11 @@ export interface NodeProps
   /** Stable entity identity; used as the `layoutId` so the entity morphs across steps. */
   id: string
   children?: ReactNode
+  /**
+   * Fade this entity in after persisting entities settle. Set it only on the step that
+   * introduces the entity: continuing entities stay the same element, unwrapped and unfaded.
+   */
+  appear?: boolean
 }
 
 /** Shared base of the generic primitives: identity, geometry and style hooks, no visuals. */
@@ -21,11 +26,14 @@ export function Node({
   height,
   style,
   children,
+  appear,
   ...rest
 }: NodeProps & { kind: string }) {
   return (
     <motion.div
+      transition={LAYOUT_T}
       exit={EXIT_ANIMATE}
+      {...(appear ? { initial: { opacity: 0 }, animate: ENTER_ANIMATE } : {})}
       {...rest}
       layoutId={id}
       data-presentation-entity={id}

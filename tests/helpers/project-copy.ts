@@ -1,4 +1,5 @@
-import { cpSync, mkdirSync, readdirSync, symlinkSync } from 'node:fs'
+import { cpSync, mkdirSync, readdirSync, readlinkSync, realpathSync, symlinkSync } from 'node:fs'
+import net from 'node:net'
 import { join } from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
 
@@ -35,9 +36,37 @@ export function run(cmd: string, args: string[], cwd: string, timeoutMs = 300_00
   return { status: r.status, stdout: r.stdout ?? '', stderr: r.stderr ?? '' }
 }
 
-/** True when any process still references `dir` on its command line (a leaked preview server). */
+/**
+ * True when any live process has `dir` (or a subdirectory) as its working directory. The preview
+ * server runs with the project as cwd, so this finds a leaked one even when its executable and
+ * arguments resolve into another checkout through symlinked dependencies.
+ */
 export function hasLeakedProcess(dir: string): boolean {
-  return spawnSync('pgrep', ['-f', dir]).status === 0
+  const root = realpathSync(dir)
+  for (const pid of readdirSync('/proc').filter((n) => /^\d+$/.test(n))) {
+    try {
+      const cwd = readlinkSync(`/proc/${pid}/cwd`)
+      if (cwd === root || cwd.startsWith(root + '/')) return true
+    } catch {
+      // process ended or is not inspectable
+    }
+  }
+  return false
+}
+
+/** The preview port a verify run announced (`ok preview http://127.0.0.1:PORT`), if it got that far. */
+export const announcedPort = (stdout: string): number | null => {
+  const m = /ok preview http:\/\/127\.0\.0\.1:(\d+)/.exec(stdout)
+  return m ? Number(m[1]) : null
+}
+
+/** True when nothing accepts connections on the loopback port. */
+export function isPortClosed(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: '127.0.0.1', port })
+    socket.once('connect', () => (socket.destroy(), resolve(false)))
+    socket.once('error', () => resolve(true))
+  })
 }
 
 export { spawn }

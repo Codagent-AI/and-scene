@@ -13,6 +13,9 @@ import { loaderExists, readRegistry } from './lib/registry.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+// Entrances (layout delay + fade) take about 0.9s; errors raised while a step is still settling
+// must be seen, and attributed to that step, before the next transition starts.
+const SETTLE_MS = 1100
 
 function readConfig() {
   const file = join(ROOT, 'verify.config.json')
@@ -57,7 +60,7 @@ async function renderSteps(page, baseUrl, slug, outline) {
     current = i
     await waitForIndex(read, i, options(i === 0 ? 0 : i - 1))
     visited.push(i)
-    await sleep(150)
+    await sleep(SETTLE_MS)
     collector.check()
     if (outline) {
       const rendered = { title: await readText(page, '[data-presentation-title]'), caption: await readText(page, '[data-presentation-caption]') }
@@ -72,7 +75,7 @@ async function renderSteps(page, baseUrl, slug, outline) {
       await waitForIndex(read, i + 1, options(i))
     }
   }
-  await sleep(150)
+  await sleep(SETTLE_MS)
   collector.check()
   return { count, visited, url }
 }

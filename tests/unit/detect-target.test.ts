@@ -12,19 +12,30 @@ const write = (file: string, content = '') => {
 }
 
 interface AppOpts { build?: boolean; kit?: boolean; index?: boolean; viteConfig?: string; extraDeps?: boolean }
+
+const KIT_SOURCE = `import { AnimatePresence, LayoutGroup } from 'motion/react'
+export interface Step { id: string }
+export function Presentation() {
+  window.addEventListener('keydown', () => {})
+  return <LayoutGroup><AnimatePresence /></LayoutGroup>
+}
+`
+const INDEX_SOURCE = `export const presentations = [
+  { slug: 'a', title: 'A', load: () => import('./a/Talk') },
+]
+`
+
 function makeApp(dir: string, { build = false, kit = false, index = false, viteConfig = 'vite.config.mjs', extraDeps = false }: AppOpts) {
   if (build) {
     write(join(dir, 'package.json'), JSON.stringify({
       scripts: { build: 'tsc -b && vite build' },
       dependencies: { react: '^19', ...(extraDeps ? { lodash: '1' } : {}) },
+      devDependencies: { typescript: '^6' },
     }))
     write(join(dir, viteConfig), 'export default {}')
   }
-  if (kit) {
-    write(join(dir, 'src/presentation-kit/index.tsx'), '')
-    write(join(dir, 'src/presentation-kit/Presentation.tsx'), '')
-  }
-  if (index) write(join(dir, 'src/presentations/index.ts'), '')
+  if (kit) write(join(dir, 'src/presentation-kit/Presentation.tsx'), KIT_SOURCE)
+  if (index) write(join(dir, 'src/presentations/index.ts'), INDEX_SOURCE)
 }
 
 describe('anchor detection', () => {
@@ -34,14 +45,40 @@ describe('anchor detection', () => {
     expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
   })
 
-  it('requires a working build contract: a build script, react and vite', () => {
+  it('requires a working build contract: a build script, react, vite and TypeScript', () => {
     const dir = tmp()
-    write(join(dir, 'package.json'), JSON.stringify({ scripts: {}, dependencies: { react: '1' } }))
+    const pkg = (p: object) => write(join(dir, 'package.json'), JSON.stringify(p))
+    pkg({ scripts: {}, dependencies: { react: '1' } })
     expect(detectAnchors(dir).build).toBe(false)
-    write(join(dir, 'package.json'), JSON.stringify({ scripts: { build: 'x' }, dependencies: { react: '1' } }))
+    pkg({ scripts: { build: 'x' }, dependencies: { react: '1' } })
     expect(detectAnchors(dir).build).toBe(false)
-    write(join(dir, 'package.json'), JSON.stringify({ scripts: { build: 'x' }, devDependencies: { react: '1', vite: '1' } }))
+    pkg({ scripts: { build: 'x' }, devDependencies: { react: '1', vite: '1' } }) // plain JavaScript app
+    expect(detectAnchors(dir).build).toBe(false)
+    pkg({ scripts: { build: 'x' }, devDependencies: { react: '1', vite: '1', typescript: '1' } })
     expect(detectAnchors(dir).build).toBe(true)
+    pkg({ scripts: { build: 'x' }, devDependencies: { react: '1' } })
+    write(join(dir, 'vite.config.js'), '')
+    write(join(dir, 'tsconfig.json'), '{}')
+    expect(detectAnchors(dir).build).toBe(true) // contract met through config files instead of dependencies
+  })
+
+  it('recognizes a functional kit and registry that are renamed and relocated', () => {
+    const dir = tmp()
+    write(join(dir, 'src/lib/engine/Host.tsx'), KIT_SOURCE.replace('export function Presentation()', 'function Presentation()') + '\nexport { Presentation }\n')
+    write(join(dir, 'src/talks/registry.ts'), 'export const talkRegistry = [{ route: "/a", load: () => import("./a") }]\n')
+    expect(detectAnchors(dir)).toMatchObject({ kit: true, index: true })
+    expect(detectTarget(dir).locations).toEqual({ kitDir: join(dir, 'src/lib/engine'), indexFile: join(dir, 'src/talks/registry.ts') })
+  })
+
+  it('does not accept empty or non-functional files as anchors', () => {
+    const dir = tmp()
+    write(join(dir, 'src/presentation-kit/index.ts'), '')
+    write(join(dir, 'src/presentation-kit/Presentation.tsx'), '')
+    write(join(dir, 'src/presentations/index.ts'), '')
+    expect(detectAnchors(dir)).toMatchObject({ kit: false, index: false })
+    write(join(dir, 'src/presentation-kit/Presentation.tsx'), 'export function Presentation() { return null }\n')
+    write(join(dir, 'src/presentations/index.ts'), 'export const presentations = []\n')
+    expect(detectAnchors(dir)).toMatchObject({ kit: false, index: false }) // missing step contract, stage, nav / entries
   })
 
   it('detects each anchor independently', () => {

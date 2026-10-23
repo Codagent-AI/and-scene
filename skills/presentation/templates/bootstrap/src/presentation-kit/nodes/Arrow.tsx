@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
-import type { CSSProperties, SVGProps } from 'react'
-import { EXIT_ANIMATE, LAYOUT_T } from '../constants'
+import { useEffect, useState, type CSSProperties, type SVGProps } from 'react'
+import { ENTER_ANIMATE, EXIT_ANIMATE, LAYOUT_T } from '../constants'
 import { arrowPath, type Point } from './arrowPath'
 
 export interface ArrowProps
@@ -13,6 +13,8 @@ export interface ArrowProps
   /** Arrowheads at both ends. */
   bidirectional?: boolean
   style?: CSSProperties
+  /** Fade in after persisting entities settle; set only on the introducing step. */
+  appear?: boolean
 }
 
 const LAYER: CSSProperties = {
@@ -25,12 +27,27 @@ const LAYER: CSSProperties = {
   pointerEvents: 'none',
 }
 
-export function Arrow({ id, from, to, bend, bidirectional, style, ...rest }: ArrowProps) {
+/**
+ * Last drawn path per arrow id. A path has no layoutId, so an arrow that remounts under an
+ * ungrouped scene change starts from where the previous instance of the same id was drawn.
+ */
+const drawn = new Map<string, { owner: object; d: string }>()
+
+export function Arrow({ id, from, to, bend, bidirectional, style, appear, ...rest }: ArrowProps) {
   const head = `${id}-head`
   const d = arrowPath(from, to, bend)
+  const [owner] = useState(() => ({}))
+  const [start] = useState(() => drawn.get(id)?.d ?? d)
+  useEffect(() => {
+    drawn.set(id, { owner, d })
+    return () => {
+      if (drawn.get(id)?.owner === owner) drawn.delete(id)
+    }
+  }, [id, owner, d])
   return (
     <motion.svg
       exit={EXIT_ANIMATE}
+      {...(appear ? { initial: { opacity: 0 }, animate: ENTER_ANIMATE } : {})}
       {...(rest as object)}
       data-presentation-entity={id}
       data-presentation-node="arrow"
@@ -52,7 +69,7 @@ export function Arrow({ id, from, to, bend, bidirectional, style, ...rest }: Arr
       <motion.path
         fill="none"
         stroke="currentColor"
-        initial={{ d }}
+        initial={{ d: start }}
         animate={{ d }}
         transition={LAYOUT_T}
         markerEnd={`url(#${head})`}

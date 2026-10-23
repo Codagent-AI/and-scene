@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, render } from '@testing-library/react'
+import { act, fireEvent, render } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -94,6 +94,30 @@ describe('sample rendering', () => {
       act(() => void key('ArrowLeft'))
       at(i)
     }
+  })
+
+  it('traverses all nine steps with the on-screen next and previous controls, clamping at both ends', () => {
+    render(<Presentation steps={STEPS} title="x" />)
+    const at = (i: number) => {
+      expect(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe(String(i))
+      expect(document.querySelector('[data-presentation-title]')?.textContent).toBe(EXPECTED[i][1])
+      expect(document.querySelector('[data-presentation-caption]')?.textContent).toBe(EXPECTED[i][2])
+    }
+    const click = (selector: string) => fireEvent.click(document.querySelector(selector)!)
+    click('[data-presentation-prev]')
+    at(0)
+    for (let i = 1; i < 9; i++) {
+      click('[data-presentation-next]')
+      at(i)
+    }
+    click('[data-presentation-next]')
+    at(8)
+    for (let i = 7; i >= 0; i--) {
+      click('[data-presentation-prev]')
+      at(i)
+    }
+    click('[data-presentation-prev]')
+    at(0)
   })
 
   it('Talk opens in browse mode', () => {

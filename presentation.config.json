@@ -1,0 +1,7 @@
+{
+  "referenceSample": {
+    "slug": "how-to-make-a-presentation",
+    "outline": "scripts/reference-outline.json",
+    "stepsModule": "src/presentations/how-to-make-a-presentation/outline.ts"
+  }
+}

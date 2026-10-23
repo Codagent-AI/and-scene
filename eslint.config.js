@@ -20,6 +20,10 @@ export default defineConfig([
     },
   },
   {
+    files: ['tests/**/*.{ts,tsx}'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
+  {
     files: ['**/*.mjs'],
     extends: [js.configs.recommended],
     languageOptions: {

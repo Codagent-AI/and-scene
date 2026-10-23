@@ -9,12 +9,22 @@ collapse, connect, and re-label as the talk arc develops.
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev
-npm run build
+npm test                  # fast unit and contract tests (Vitest)
+npm run lint              # ESLint
+npm run build             # TypeScript and production build
+npm run verify            # build plus browser-render verification (Playwright)
+npm run inspect -- how-to-make-a-presentation   # settled screenshots + advisory warnings
+npm run test:integration  # slower integration and end-to-end tests (production builds, Chromium)
 ```
 
-## Current State
+## Layout
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+- `skills/presentation/`: the distributable agent skill (`SKILL.md`), its helper script, and the
+  scaffold templates (`templates/bootstrap/`, `templates/presentation/`).
+- `src/presentation-kit/`: the style-neutral scene kit. `npm run sync:template` copies it, the app
+  shell, and the verification scripts into the bootstrap template; keep them byte-aligned.
+- `src/presentations/`: the explicit presentation registry and the committed reference sample,
+  "How to Use This Skill to Make a Presentation" (`/how-to-make-a-presentation`).
+- `scripts/verify.mjs`, `scripts/inspect-presentation.mjs`: verification and visual inspection.

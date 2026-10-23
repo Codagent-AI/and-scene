@@ -115,7 +115,7 @@ function diagnose() {
     probe.textContent = link.textContent
     frame.contentDocument.body.append(probe)
     const base = frame.contentWindow.getComputedStyle(probe)
-    const same = ['color', 'fontFamily', 'fontSize', 'textDecorationLine', 'backgroundColor'].every(
+    const same = ['color', 'textDecorationLine', 'backgroundColor'].every(
       (p) => style[p] === base[p],
     )
     frame.remove()

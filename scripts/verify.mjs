@@ -102,10 +102,10 @@ async function main() {
 
   const registry = readRegistry(root)
   const outline = readOutline(root)
-  if (registry.length === 0) throw new Fail('registry', 'no presentations are registered in src/presentations/index.ts')
   if (outline && !registry.some((entry) => entry.slug === outline.slug)) {
     throw new Fail('sample', `reference sample "${outline.slug}" is not registered`)
   }
+  if (registry.length === 0) throw new Fail('registry', 'no presentations are registered in src/presentations/index.ts')
 
   const preview = await startPreview(root)
   console.log(`verify: preview at ${preview.url}`)

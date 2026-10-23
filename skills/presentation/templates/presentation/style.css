@@ -1,0 +1,73 @@
+/* Presentation-owned look for "__TITLE__". Plain CSS, scoped to .__NAME__. */
+.__NAME__ {
+  font-family: system-ui, sans-serif;
+  color: #1d1d1f;
+  background: #fbfaf7;
+}
+.__NAME__ [data-presentation-header],
+.__NAME__ [data-presentation-footer] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  padding: 12px 28px;
+}
+.__NAME__ [data-presentation-header] [data-presentation-title],
+.__NAME__ [data-presentation-footer] [data-presentation-title] {
+  margin: 0;
+  font-size: 24px;
+}
+.__NAME__ [data-presentation-caption] {
+  flex: 1 1 320px;
+  margin: 0;
+  max-width: 62ch;
+}
+.__NAME__ [data-presentation-toc] {
+  padding: 24px 12px 0 28px;
+}
+.__NAME__ [data-presentation-toc] ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.__NAME__ [data-presentation-toc-item][data-presentation-active] {
+  color: #fff;
+  background: #1d1d1f;
+  font-weight: 700;
+}
+.__NAME__ [data-presentation-progress] {
+  display: flex;
+  gap: 8px;
+}
+.__NAME__ [data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #1d1d1f;
+  background: transparent;
+}
+.__NAME__ [data-presentation-progress-item][data-presentation-active] {
+  width: 28px;
+  border-radius: 6px;
+  background: #1d1d1f;
+}
+.__NAME__ [data-presentation-attribution] {
+  right: 16px !important;
+  bottom: 14px !important;
+  font-size: 13px;
+  color: #1d1d1f;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+}
+.__NAME__ [data-presentation-kind='box'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #1d1d1f;
+  border-radius: 10px;
+  background: #fff;
+}
+.__NAME__ [data-presentation-kind='arrow'] {
+  color: #1d1d1f;
+}

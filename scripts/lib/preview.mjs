@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
 
-/** Always IPv4 loopback so results do not depend on how `localhost` resolves. */
+/** Always the IPv4 loopback address, so results never depend on name resolution. */
 export const HOST = '127.0.0.1'
 
 export class Fail extends Error {

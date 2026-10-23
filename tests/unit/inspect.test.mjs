@@ -7,7 +7,8 @@ describe('inspection options', () => {
   it('defaults to the desktop viewport and a settle interval longer than any entry', () => {
     const options = parseArguments(['sample'])
     expect(options).toEqual({ slug: 'sample', viewport: 'desktop', settleMs: DEFAULT_SETTLE_MS })
-    expect(DEFAULT_SETTLE_MS).toBeGreaterThanOrEqual(LAYOUT_T + ENTER_DELAY + ENTER_T)
+    // The constants are in seconds; the settle interval is in milliseconds.
+    expect(DEFAULT_SETTLE_MS).toBeGreaterThanOrEqual((LAYOUT_T + ENTER_DELAY + ENTER_T) * 1000)
     expect(VIEWPORTS.desktop).toEqual({ width: 1440, height: 900 })
   })
 

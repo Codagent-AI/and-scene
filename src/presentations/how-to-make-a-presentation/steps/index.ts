@@ -19,14 +19,13 @@ export function buildSteps(beats: readonly Beat[] = BEATS): Step<SampleState>[] 
   const visible: EntityId[] = []
   const states: Partial<Record<EntityId, string>> = {}
   return beats.map((beat) => {
-    const introduced = new Set<EntityId>(beat.enter)
     for (const id of beat.enter) {
       if (!visible.includes(id)) visible.push(id)
     }
     Object.assign(states, beat.states)
+    // Entry is decided by the scene from the previous step on screen, not stored here.
     const entities: SampleEntity[] = visible.map((id) => ({
       id,
-      entering: introduced.has(id),
       ...(states[id] === undefined ? {} : { state: states[id] }),
     }))
     return {

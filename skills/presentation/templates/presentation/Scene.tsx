@@ -1,10 +1,31 @@
+import { useState } from 'react'
 import { Appear, Arrow, Box, Label, SceneLayer, type SceneProps } from '../../presentation-kit'
 import { ARROWS, layoutIdFor, rectStyle, type ArrowId, type BoxId, type EntityId } from './entities'
 import type { SceneState } from './payload'
 
-/** The one scene every step shares. Only its payload changes between steps. */
+/**
+ * The one scene every step shares. Only its payload changes between steps. An entity enters when
+ * it was not on screen in the previous step, whichever direction the viewer moved.
+ */
 export function Scene({ payload }: SceneProps<SceneState>) {
-  return <SceneLayer name="diagram">{payload.entities.map((entity) => renderEntity(entity.id, entity.entering))}</SceneLayer>
+  const ids = payload.entities.map((entity) => entity.id)
+  const [shown, setShown] = useState<{ ids: readonly EntityId[]; entering: ReadonlySet<EntityId> }>({
+    ids: [],
+    entering: new Set(),
+  })
+  let entering = shown.entering
+  if (!sameIds(ids, shown.ids)) {
+    const previous = new Set(shown.ids)
+    entering = new Set(ids.filter((id) => !previous.has(id)))
+    setShown({ ids, entering })
+  }
+  return (
+    <SceneLayer name="diagram">{payload.entities.map((entity) => renderEntity(entity.id, entering.has(entity.id)))}</SceneLayer>
+  )
+}
+
+function sameIds(a: readonly EntityId[], b: readonly EntityId[]): boolean {
+  return a.length === b.length && a.every((id, index) => id === b[index])
 }
 
 function isArrow(id: EntityId): id is ArrowId {

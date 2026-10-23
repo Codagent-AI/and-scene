@@ -103,9 +103,20 @@ describe('bootstrap scaffold contract', () => {
     }
   })
 
-  it('ships CSS with no visual defaults in host or kit files', () => {
-    const host = readFileSync(join(TEMPLATE, 'src/index.css'), 'utf8')
-    expect(host).not.toMatch(/\b(color|background|font-family|border|box-shadow)\s*:/)
+  it('ships no visual defaults in any bootstrap stylesheet, including the starter presentation', () => {
+    const stylesheets = []
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir)) {
+        const path = join(dir, entry)
+        if (statSync(path).isDirectory()) walk(path)
+        else if (entry.endsWith('.css')) stylesheets.push(path)
+      }
+    }
+    walk(join(TEMPLATE, 'src'))
+    expect(stylesheets.map((path) => relative(TEMPLATE, path))).toEqual(['src/index.css'])
+    for (const path of stylesheets) {
+      expect(readFileSync(path, 'utf8'), relative(TEMPLATE, path)).not.toMatch(/\b(color|background|font|border|box-shadow|outline)\w*\s*:/)
+    }
   })
 })
 

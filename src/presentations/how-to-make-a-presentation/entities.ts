@@ -29,10 +29,12 @@ export const BOXES = {
   card1: { x: 30, y: 150, w: 110, h: 120 },
   card2: { x: 164, y: 150, w: 110, h: 120 },
   card3: { x: 298, y: 150, w: 110, h: 120 },
-  ghost: { x: 432, y: 150, w: 110, h: 120 },
+  verify: { x: 432, y: 150, w: 110, h: 120 },
+  ghost: { x: 566, y: 150, w: 110, h: 120 },
   partial: { x: 40, y: 118, w: 110, h: 24 },
   socket: { x: 300, y: 270, w: 260, h: 40 },
-  verify: { x: 566, y: 150, w: 110, h: 120 },
+  tray: { x: 24, y: 144, w: 760, h: 132 },
+  morphLabel: { x: 100, y: 276, w: 110, h: 18 },
   flag: { x: 164, y: 126, w: 110, h: 20 },
   modifyLabel: { x: 780, y: 200, w: 80, h: 22 },
   route: { x: 30, y: 338, w: 790, h: 34 },
@@ -43,6 +45,7 @@ export const ARROWS = {
   chat: { from: { x: 180, y: 84 }, to: { x: 700, y: 84 }, bidirectional: true },
   link12: { from: { x: 140, y: 210 }, to: { x: 164, y: 210 }, bidirectional: false },
   link23: { from: { x: 274, y: 210 }, to: { x: 298, y: 210 }, bidirectional: false },
+  link3v: { from: { x: 408, y: 210 }, to: { x: 432, y: 210 }, bidirectional: false },
   modify: { from: { x: 770, y: 112 }, to: { x: 770, y: 336 }, bidirectional: false },
 } satisfies Record<string, { from: Point; to: Point; bidirectional: boolean }>
 
@@ -50,8 +53,11 @@ export type BoxId = keyof typeof BOXES
 export type ArrowId = keyof typeof ARROWS
 export type EntityId = BoxId | ArrowId
 
-/** Boxes allowed to overlap other content (the enclosing self-reference frame). */
-export const OVERLAP_EXEMPT: ReadonlySet<BoxId> = new Set<BoxId>(['frame'])
+/**
+ * Boxes allowed to overlap other content: the enclosing self-reference frame, and the tray,
+ * an unframed region the step cards sit in.
+ */
+export const OVERLAP_EXEMPT: ReadonlySet<BoxId> = new Set<BoxId>(['frame', 'tray'])
 
 export function layoutIdFor(id: EntityId): string {
   return `${LAYOUT_NAMESPACE}:${id}`

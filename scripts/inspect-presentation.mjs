@@ -17,8 +17,8 @@ export const VIEWPORTS = {
   desktop: { width: 1440, height: 900 },
   narrow: { width: 390, height: 844 },
 }
-/** Longest layout morph plus entry delay and duration, with margin. */
-export const DEFAULT_SETTLE_MS = 1500
+/** Longest layout morph plus entry delay and entry duration (seconds in constants.ts), with margin. */
+export const DEFAULT_SETTLE_MS = 1800
 
 export function parseArguments(argv) {
   const options = { slug: undefined, viewport: 'desktop', settleMs: DEFAULT_SETTLE_MS }
@@ -65,6 +65,8 @@ export async function inspect(argv, { root = ROOT, log = console.log } = {}) {
       await page.waitForTimeout(options.settleMs)
       const diagnostics = await page.evaluate(collectPageDiagnostics)
       await page.screenshot({ path: join(outDir, stepFileName(index)), fullPage: false })
+      // Timestamped so a check can confirm each capture waited for the settle interval.
+      log(`captured ${stepFileName(index)} at ${Date.now()} ms`)
       warnings.push(...stepWarnings(index + 1, diagnostics))
     }
   } finally {

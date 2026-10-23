@@ -38,7 +38,8 @@ import { Scene } from './Scene'
 const payloads = [1, 2, 3]
 export const STEPS: readonly Step<{ step: number }>[] = payloads.map((step) => ({
   id: \`step-\${step}\`,
-  era: 'only',
+  // Two eras, so the table of contents has an inactive entry to compare with the active one.
+  era: step < 3 ? 'one' : 'two',
   title: \`Fixture step \${step}\`,
   caption: \`Caption for fixture step \${step}.\`,
   Scene,
@@ -58,7 +59,8 @@ export default function Talk() {
 const POLISHED_CSS = `[data-presentation-progress][data-presentation-active="true"] { background: #c7a755; transform: scale(1.5); }
 [data-presentation-progress] { width: 10px; height: 10px; border: 1px solid #666; background: transparent; }
 [data-presentation-attribution] { font-size: 14px; color: #c7a755; }
-[data-presentation-label] { font-size: 14px; }`
+[data-presentation-label] { font-size: 14px; }
+[data-presentation-toc-entry][aria-current="step"] { color: #c7a755; font-weight: 700; }`
 
 const register = (slugs: string[]) => `import type { PresentationEntry } from '../registry'
 

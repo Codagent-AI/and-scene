@@ -56,6 +56,17 @@ describe('step rendering', () => {
     press('ArrowRight')
     expect(marker()).toBe('02')
     expect(view.container.querySelector('[data-presentation-title]')!.textContent).toBe('First title')
+    // Insertion: a new step before the active one shifts the displayed number, with no stored number.
+    const inserted = [steps[0]!, { ...steps[1]!, id: 'x', title: 'Inserted title' }, steps[1]!, steps[2]!, steps[3]!]
+    view.rerender(<Presentation steps={inserted} title="Deck" />)
+    expect(dots(view)).toHaveLength(5)
+    // The active index stays 1, so the newly inserted step is the one now on screen.
+    expect(view.container.querySelector('[data-presentation-title]')!.textContent).toBe('Inserted title')
+    // Removal: the active position stays 2, so it now shows the third original step, numbered 02.
+    view.rerender(<Presentation steps={steps.slice(1)} title="Deck" />)
+    expect(dots(view)).toHaveLength(3)
+    expect(marker()).toBe('02')
+    expect(view.container.querySelector('[data-presentation-title]')!.textContent).toBe('Third title')
   })
 
   it('exposes a numbering helper that is pure of stored numbers', () => {
@@ -200,21 +211,33 @@ describe('navigation controls', () => {
     expect(root(view).getAttribute('data-step-index')).toBe('2')
   })
 
-  it('marks the active progress dot and era entry with semantic current state and hooks', () => {
+  it('marks exactly one active dot and era entry at every step, and none on inactive items', () => {
     setViewportWidth(1440)
     const view = render(deck())
-    press('ArrowRight')
-    press('ArrowRight')
-    const activeDots = dots(view).filter((dot) => dot.getAttribute('aria-current') === 'step')
-    expect(activeDots).toHaveLength(1)
-    expect(dots(view)[2]!.getAttribute('data-presentation-active')).toBe('true')
-    expect(dots(view)[0]!.hasAttribute('aria-current')).toBe(false)
-    expect(dots(view)[0]!.hasAttribute('data-presentation-active')).toBe(false)
-    const activeEntries = tocEntries(view).filter((entry) => entry.getAttribute('aria-current') === 'step')
-    expect(activeEntries).toHaveLength(1)
-    expect(activeEntries[0]!.getAttribute('data-era')).toBe('two')
-    expect(activeEntries[0]!.getAttribute('data-presentation-active')).toBe('true')
-    expect(tocEntries(view)[0]!.hasAttribute('data-presentation-active')).toBe(false)
+    const eraOf = ['one', 'one', 'two', 'two']
+    for (let step = 0; step < 4; step++) {
+      if (step > 0) press('ArrowRight')
+      const active = dots(view).filter((dot) => dot.getAttribute('aria-current') === 'step')
+      expect(active, `step ${step + 1} dots`).toHaveLength(1)
+      expect(active[0]).toBe(dots(view)[step])
+      dots(view).forEach((dot, index) => {
+        if (index === step) {
+          expect(dot.getAttribute('data-presentation-active')).toBe('true')
+        } else {
+          expect(dot.hasAttribute('aria-current'), `dot ${index + 1} at step ${step + 1}`).toBe(false)
+          expect(dot.hasAttribute('data-presentation-active')).toBe(false)
+        }
+      })
+      const entries = tocEntries(view)
+      const activeEntries = entries.filter((entry) => entry.getAttribute('aria-current') === 'step')
+      expect(activeEntries.map((entry) => entry.getAttribute('data-era')), `step ${step + 1} era`).toEqual([eraOf[step]])
+      entries.forEach((entry) => {
+        if (entry.getAttribute('data-era') !== eraOf[step]) {
+          expect(entry.hasAttribute('aria-current')).toBe(false)
+          expect(entry.hasAttribute('data-presentation-active')).toBe(false)
+        }
+      })
+    }
   })
 
   it('disables previous at the first step and next at the last step', () => {

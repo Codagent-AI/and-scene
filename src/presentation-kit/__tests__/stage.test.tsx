@@ -147,6 +147,32 @@ describe('grouped scenes', () => {
 })
 
 describe('departing entities', () => {
+  it('keeps a dropped entity in the outgoing scene until its exit completes, when the scene changes', async () => {
+    const Outgoing = ({ payload }: SceneProps<Entities>) => (
+      <div data-testid="outgoing">
+        <SceneLayer name="diagram">
+          {payload.entities.map((id) => (
+            <Box key={id} data-presentation-entity={id} style={{ left: 0, top: 0, width: 10, height: 10 }}>
+              {id}
+            </Box>
+          ))}
+        </SceneLayer>
+      </div>
+    )
+    const steps = [
+      step('s1', { groupKey: 'g', Scene: Outgoing, payload: { entities: ['keep', 'gone'] } }),
+      step('s2', { groupKey: 'h', Scene: LayerScene, payload: { entities: ['keep'] } }),
+    ]
+    MotionGlobalConfig.skipAnimations = false
+    const view = render(<Presentation steps={steps} title="Deck" />)
+    fireEvent.click(nextButton(view.container))
+    // The scene changed, so the old scene stays until its exit finishes and still holds the entity.
+    expect(view.container.querySelector('[data-presentation-entity="gone"]')).not.toBeNull()
+    MotionGlobalConfig.skipAnimations = true
+    await waitFor(() => expect(view.container.querySelector('[data-presentation-entity="gone"]')).toBeNull())
+    expect(view.container.querySelectorAll('[data-testid="outgoing"]')).toHaveLength(0)
+  })
+
   it('keeps the same scale for different steps in one mode and changes it when the mode changes', () => {
     class ResizeObserverStub {
       callback: () => void
@@ -161,7 +187,7 @@ describe('departing entities', () => {
     const view = render(<Presentation steps={steps} title="Deck" />)
     const stage = view.container.querySelector<HTMLElement>('[data-presentation-stage]')!
     Object.defineProperty(stage, 'clientWidth', { configurable: true, value: 1000 })
-    Object.defineProperty(stage, 'clientHeight', { configurable: true, value: 400 })
+    vi.stubGlobal('innerHeight', 400)
     const transform = () => view.container.querySelector<HTMLElement>('[data-presentation-canvas-inner]')!.style.transform
     const resize = () =>
       act(() => {
@@ -170,6 +196,10 @@ describe('departing entities', () => {
     resize()
     const browse = transform()
     fireEvent.click(nextButton(view.container))
+    resize()
+    expect(transform()).toBe(browse)
+    // A caption that wraps onto more lines makes the stage shorter; the scale must not follow it.
+    Object.defineProperty(stage, 'clientHeight', { configurable: true, value: 180 })
     resize()
     expect(transform()).toBe(browse)
     fireEvent.keyDown(window, { key: 'p' })
@@ -280,7 +310,7 @@ describe('fit scaling', () => {
     const view = render(<Stage step={steps[0]!} mode="browse" />)
     const stage = view.container.querySelector<HTMLElement>('[data-presentation-stage]')!
     Object.defineProperty(stage, 'clientWidth', { configurable: true, value: 1200 })
-    Object.defineProperty(stage, 'clientHeight', { configurable: true, value: 600 })
+    vi.stubGlobal('innerHeight', 600)
     act(() => FakeResizeObserver.last!.callback())
     const inner = view.container.querySelector<HTMLElement>('[data-presentation-canvas-inner]')!
     expect(inner.style.transform).toBe(`scale(${fitScale({ width: 1200, height: 600 }, 'browse')})`)

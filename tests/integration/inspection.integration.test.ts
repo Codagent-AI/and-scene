@@ -48,6 +48,13 @@ describe('inspection helper on the fixture presentations', () => {
     for (const step of [1, 2, 3]) {
       expect(warnings.some((line) => line.includes(`step ${step}:`) && line.includes('attribution'))).toBe(true)
       expect(warnings.some((line) => line.includes(`step ${step}:`) && line.includes('progress indicator'))).toBe(true)
+      expect(warnings.some((line) => line.includes(`step ${step}:`) && line.includes('table-of-contents entry'))).toBe(true)
+    }
+    // Each capture waits for the settle interval after the previous one (default 1800 ms).
+    const captures = text.split('\n').filter((line) => line.startsWith('captured step-')).map((line) => Number(/at (\d+) ms/.exec(line)![1]))
+    expect(captures).toHaveLength(3)
+    for (let index = 1; index < captures.length; index += 1) {
+      expect(captures[index]! - captures[index - 1]!).toBeGreaterThanOrEqual(1800)
     }
   }, 280_000)
 
@@ -58,6 +65,7 @@ describe('inspection helper on the fixture presentations', () => {
     const warnings = warningsFor(text)
     expect(warnings.some((line) => line.includes('attribution'))).toBe(false)
     expect(warnings.some((line) => line.includes('indistinct'))).toBe(false)
+    expect(warnings.some((line) => line.includes('table-of-contents entry'))).toBe(false)
     expect(warnings.some((line) => line.includes('step 2') && line.includes('overlaps'))).toBe(false)
     expect(warnings.some((line) => line.includes('step 1') && line.includes('"collide-a" overlaps "collide-b"'))).toBe(true)
   }, 280_000)

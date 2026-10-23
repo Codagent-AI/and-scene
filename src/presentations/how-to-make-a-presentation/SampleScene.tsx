@@ -1,7 +1,7 @@
 import { CircleCheck, CircleHelp, Image as ImageIcon, Bot, User } from 'lucide-react'
-import type { ReactElement } from 'react'
+import { useState, type ReactElement } from 'react'
 import { Appear, Arrow, Box, Frame, Label, SceneLayer, SymbolChip, type SceneProps } from '../../presentation-kit'
-import { ARROWS, FRAME_STACK_ORDER, layoutIdFor, rectStyle, type ArrowId } from './entities'
+import { ARROWS, FRAME_STACK_ORDER, layoutIdFor, rectStyle, type ArrowId, type EntityId } from './entities'
 import type { SampleEntity, SampleState } from './payload'
 
 /** Positions a child inside a parent box, in the parent's own coordinates. */
@@ -74,6 +74,14 @@ function renderEntity(entity: SampleEntity): ReactElement {
           edited
         </Label>
       )
+    case 'tray':
+      return <Box {...shared} style={rectStyle('tray')} data-presentation-tray="" />
+    case 'morphLabel':
+      return (
+        <Label {...shared} style={rectStyle('morphLabel')}>
+          what morphs
+        </Label>
+      )
     case 'modifyLabel':
       return (
         <Label key={id} {...shared} style={rectStyle('modifyLabel')}>
@@ -117,10 +125,11 @@ function renderArrow(id: ArrowId): ReactElement {
 }
 
 /** Entering entities fade in after persisting ones settle; continuing ones are never wrapped. */
-function renderSceneEntity(entity: SampleEntity): ReactElement {
+function renderSceneEntity(entity: SampleEntity, entering: ReadonlySet<EntityId>): ReactElement {
   const node = renderEntity(entity)
-  return entity.entering ? (
-    <Appear key={entity.id} data-presentation-entering={entity.id}>
+  return entering.has(entity.id) ? (
+    // A distinct key keeps the wrapped and unwrapped forms of one entity from sharing a key.
+    <Appear key={`enter-${entity.id}`} data-presentation-entering={entity.id}>
       {node}
     </Appear>
   ) : (
@@ -128,8 +137,27 @@ function renderSceneEntity(entity: SampleEntity): ReactElement {
   )
 }
 
+interface Shown {
+  ids: readonly EntityId[]
+  entering: ReadonlySet<EntityId>
+}
 
-/** The one scene every sample step shares; only its payload changes between steps. */
+function sameIds(a: readonly EntityId[], b: readonly EntityId[]): boolean {
+  return a.length === b.length && a.every((id, index) => id === b[index])
+}
+
+/**
+ * The one scene every sample step shares; only its payload changes between steps. An entity
+ * enters when it was not on screen in the previous step, whichever direction the viewer moved.
+ */
 export function SampleScene({ payload }: SceneProps<SampleState>) {
-  return <SceneLayer name="diagram">{payload.entities.map(renderSceneEntity)}</SceneLayer>
+  const ids = payload.entities.map((entity) => entity.id)
+  const [shown, setShown] = useState<Shown>({ ids: [], entering: new Set() })
+  let entering = shown.entering
+  if (!sameIds(ids, shown.ids)) {
+    const previous = new Set(shown.ids)
+    entering = new Set(ids.filter((id) => !previous.has(id)))
+    setShown({ ids, entering })
+  }
+  return <SceneLayer name="diagram">{payload.entities.map((entity) => renderSceneEntity(entity, entering))}</SceneLayer>
 }

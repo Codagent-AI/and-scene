@@ -1,4 +1,5 @@
 import { motion } from 'motion/react'
+import type { CSSProperties } from 'react'
 import { EASE, LAYOUT_T } from '../constants'
 import { arrowPath, HEAD_LENGTH, type Point } from './arrowPath'
 
@@ -9,12 +10,13 @@ export interface ArrowProps {
   /** Draw an arrowhead at both ends. */
   bidirectional?: boolean
   className?: string
+  style?: CSSProperties
   [dataAttribute: `data-${string}`]: string | undefined
 }
 
 
 /** Straight arrow between two canvas points, drawn in canvas coordinates. */
-export function Arrow({ layoutId, from, to, bidirectional = false, ...rest }: ArrowProps) {
+export function Arrow({ layoutId, from, to, bidirectional = false, style, ...rest }: ArrowProps) {
   const left = Math.min(from.x, to.x) - HEAD_LENGTH
   const top = Math.min(from.y, to.y) - HEAD_LENGTH
   const width = Math.abs(to.x - from.x) + 2 * HEAD_LENGTH
@@ -27,7 +29,7 @@ export function Arrow({ layoutId, from, to, bidirectional = false, ...rest }: Ar
       exit={{ opacity: 0 }}
       transition={{ duration: LAYOUT_T, ease: EASE }}
       viewBox={`${left} ${top} ${width} ${height}`}
-      style={{ position: 'absolute', left, top, width, height, overflow: 'visible' }}
+      style={{ position: 'absolute', left, top, width, height, overflow: 'visible', ...style }}
       {...rest}
     >
       <path d={arrowPath(from, to, bidirectional)} />

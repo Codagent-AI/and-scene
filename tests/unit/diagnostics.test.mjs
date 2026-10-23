@@ -100,3 +100,25 @@ describe('stepWarnings entry point', () => {
   })
 })
 
+describe('table-of-contents diagnostics', () => {
+  const same = { color: 'rgb(1, 1, 1)', backgroundColor: 'rgba(0, 0, 0, 0)', borderColor: 'rgb(9, 9, 9)', borderWidth: '1px', fontWeight: '400', transform: 'none', textDecorationLine: 'none', boxShadow: 'none' }
+  const attribution = { present: true, fontSizePx: 14, color: 'rgb(199, 167, 85)' }
+
+  it('warns about an indistinct active table-of-contents entry, naming the step and the entry', () => {
+    const warnings = stepWarnings(2, { items: [], progress: null, toc: { active: { ...same }, inactive: { ...same } }, attribution })
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0].message).toContain('step 2')
+    expect(warnings[0].message).toContain('table-of-contents entry')
+  })
+
+  it('stays silent when the active table-of-contents entry is visibly distinct', () => {
+    const warnings = stepWarnings(2, {
+      items: [],
+      progress: null,
+      toc: { active: { ...same, color: 'rgb(199, 167, 85)' }, inactive: { ...same } },
+      attribution,
+    })
+    expect(warnings).toEqual([])
+  })
+})
+

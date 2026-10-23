@@ -28,12 +28,14 @@ export function collectPageDiagnostics() {
   const ownText = (el) =>
     Array.from(el.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '')
 
+  // Chrome controls count even without text (an empty progress dot is still a target).
+  const chrome = '[data-presentation-progress], [data-presentation-control], [data-presentation-toc-entry], [data-presentation-attribution], [data-presentation-marker]'
   const elements = Array.from(root.querySelectorAll('*')).filter(
-    (el) => ownText(el) && isVisible(el) && el.closest('[data-presentation-allow-overlap]') === null,
+    (el) => (ownText(el) || el.matches(chrome)) && isVisible(el) && el.closest('[data-presentation-allow-overlap]') === null,
   )
   const items = elements.map((el, idx) => {
     const rect = el.getBoundingClientRect()
-    const text = el.textContent.trim().replace(/\s+/g, ' ').slice(0, 24)
+    const text = (el.textContent.trim() || el.getAttribute('aria-label') || '').replace(/\s+/g, ' ').slice(0, 24)
     return {
       idx,
       label: el.getAttribute('data-presentation-entity') || `${el.tagName.toLowerCase()} "${text}"`,

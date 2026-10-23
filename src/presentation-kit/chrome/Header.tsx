@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react'
+import type { HTMLAttributes, ReactNode } from 'react'
 import type { Mode } from '../types'
 
-export interface HeaderProps {
+export interface HeaderProps extends HTMLAttributes<HTMLElement> {
   mode: Mode
   deckTitle: string
   /** Host-supplied branding. The kit renders no brand by default. */
@@ -9,9 +9,13 @@ export interface HeaderProps {
 }
 
 /** Top row: host branding, plus the deck title in browse mode. */
-export function Header({ mode, deckTitle, brand }: HeaderProps) {
+export function Header({ mode, deckTitle, brand, style, ...rest }: HeaderProps) {
   return (
-    <header data-presentation-header="" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: '0 0 auto' }}>
+    <header
+      data-presentation-header=""
+      {...rest}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: '0 0 auto', ...style }}
+    >
       <div data-presentation-brand="" style={{ display: 'flex', alignItems: 'center' }}>
         {brand}
       </div>

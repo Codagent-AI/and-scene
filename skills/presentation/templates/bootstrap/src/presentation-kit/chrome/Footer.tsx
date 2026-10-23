@@ -1,7 +1,8 @@
+import type { HTMLAttributes } from 'react'
 import type { Mode, Step } from '../types'
 import { stepNumber } from './stepNumber'
 
-export interface FooterProps<TPayload> {
+export interface FooterProps<TPayload> extends Omit<HTMLAttributes<HTMLElement>, 'onSelect'> {
   mode: Mode
   steps: readonly Step<TPayload>[]
   index: number
@@ -15,11 +16,11 @@ export interface FooterProps<TPayload> {
  * Caption and title for the active step, progress indicators, and controls.
  * Present mode keeps only the marker and one-line title.
  */
-export function Footer<TPayload>({ mode, steps, index, last, onJump, onPrev, onNext }: FooterProps<TPayload>) {
+export function Footer<TPayload>({ mode, steps, index, last, onJump, onPrev, onNext, style, ...rest }: FooterProps<TPayload>) {
   const step = steps[index]
   if (!step) return null
   return (
-    <footer data-presentation-footer="" style={{ display: 'flex', flexDirection: 'column', flex: '0 0 auto' }}>
+    <footer data-presentation-footer="" {...rest} style={{ display: 'flex', flexDirection: 'column', flex: '0 0 auto', ...style }}>
       <div data-presentation-heading="" style={{ display: 'flex', alignItems: 'baseline', minWidth: 0 }}>
         <span data-presentation-marker="">{stepNumber(index)}</span>
         <h2

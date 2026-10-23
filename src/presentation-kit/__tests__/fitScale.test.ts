@@ -3,12 +3,16 @@ import { DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT } from '../constants'
 import { fitScale } from '../useFitScale'
 
 describe('fitScale', () => {
-  it('uses the smaller of the width and height ratios', () => {
-    const { padX, padY } = STAGE_LAYOUT.browse
-    const wide = fitScale({ width: 1440, height: 400 }, 'browse')
-    expect(wide).toBeCloseTo((400 - 2 * padY) / DESIGN_H)
-    const tall = fitScale({ width: 900, height: 900 }, 'browse')
+  it('uses the smaller of the width and height ratios, with the chrome budget off the viewport height', () => {
+    const { padX, padY, reservedHeight } = STAGE_LAYOUT.browse
+    const wide = fitScale({ width: 1440, height: 900 }, 'browse')
+    expect(wide).toBeCloseTo((900 - reservedHeight - 2 * padY) / DESIGN_H)
+    const tall = fitScale({ width: 900, height: 2000 }, 'browse')
     expect(tall).toBeCloseTo((900 - 2 * padX) / DESIGN_W)
+  })
+
+  it('does not depend on the stage height, so caption wrapping cannot change it', () => {
+    expect(fitScale({ width: 1440, height: 900 }, 'browse')).toBe(fitScale({ width: 1440, height: 900 }, 'browse'))
   })
 
   it('applies each mode geometry separately', () => {

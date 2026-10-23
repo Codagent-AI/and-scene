@@ -4,6 +4,17 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { MotionGlobalConfig } from 'motion/react'
+
+// The wrapper checks below ask which entities are wrapped, not how exits run. A passthrough
+// AnimatePresence removes departing wrappers at once, because jsdom cannot finish layout exits.
+vi.mock('motion/react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('motion/react')>()
+  const { Fragment, createElement } = await import('react')
+  return {
+    ...actual,
+    AnimatePresence: ({ children }: { children?: unknown }) => createElement(Fragment, null, children as never),
+  }
+})
 import { ARROWS, BOXES, OVERLAP_EXEMPT, rectStyle, type BoxId } from './entities'
 import { FRAME_STACK_ORDER } from './entities'
 import { BEATS } from './beats'
@@ -80,8 +91,8 @@ describe('sample content', () => {
     }
   })
 
-  it('introduces each entity exactly once', () => {
-    const introduced = STEPS.flatMap((step) => step.payload.entities.filter((e) => e.entering).map((e) => e.id))
+  it('introduces each entity in exactly one beat', () => {
+    const introduced = BEATS.flatMap((beat) => [...beat.enter])
     expect(new Set(introduced).size).toBe(introduced.length)
     expect(introduced.length).toBe(new Set(visibleIds(STEPS.at(-1)!)).size)
   })
@@ -94,7 +105,8 @@ describe('sample content', () => {
       await waitFor(() => expect(view.container.querySelector('[data-presentation-root]')!.getAttribute('data-step-index')).toBe(String(i)))
       for (const el of Array.from(view.container.querySelectorAll<HTMLElement>('[data-presentation-scene] [data-presentation-entity]'))) {
         const id = el.getAttribute('data-presentation-entity')!
-        const geometry = el.style.cssText || el.getAttribute('viewBox') || ''
+        // Position and size only: opacity is animation state and changes while entries run.
+        const geometry = ['left', 'top', 'width', 'height'].map((prop) => el.style.getPropertyValue(prop)).join(' ') || el.getAttribute('viewBox') || ''
         if (seen.has(id)) expect(geometry).toBe(seen.get(id))
         else seen.set(id, geometry)
       }
@@ -114,15 +126,15 @@ describe('sample content', () => {
     next()
     await expectAt(1, ['skill', 'chat', 'question'], ['card1'])
     next()
-    await expectAt(2, ['card1'], ['card2', 'link12'])
+    await expectAt(2, ['tray', 'card1'], ['card2', 'link12', 'morphLabel'])
     next()
-    await expectAt(3, ['card2', 'card3', 'link12', 'link23'], ['ghost', 'partial'])
+    await expectAt(3, ['card2', 'card3', 'link12', 'link23', 'morphLabel'], ['ghost', 'partial', 'link3v'])
     next()
     await expectAt(4, ['ghost', 'partial'], ['socket', 'verify'])
     next()
     await expectAt(5, ['socket'], ['verify', 'frame'])
     next()
-    await expectAt(6, ['verify'], ['modify', 'frame'])
+    await expectAt(6, ['verify', 'link3v'], ['modify', 'frame'])
     expect(view.container.querySelector('[data-presentation-entity="verify"] [data-presentation-state="pass"]')).not.toBeNull()
     next()
     await expectAt(7, ['modify', 'route', 'flag', 'modifyLabel'], ['frame'])
@@ -184,31 +196,54 @@ describe('sample rendered state', () => {
 })
 
 describe('sample entry wrappers', () => {
-  it('wraps only the newcomers of each step, forward and backward, and never a continuing entity', async () => {
-    const { view, next } = renderSample()
-    const expectedEntering = (index: number) => new Set(STEPS[index]!.payload.entities.filter((e) => e.entering).map((e) => e.id))
-    const wrapped = () =>
-      new Set(
-        Array.from(view.container.querySelectorAll<HTMLElement>('[data-presentation-entering]')).map((el) =>
-          el.getAttribute('data-presentation-entering'),
-        ),
-      )
-    const goTo = async (index: number) => {
-      await waitFor(() => expect(view.container.querySelector('[data-presentation-root]')!.getAttribute('data-step-index')).toBe(String(index)))
-    }
-    for (let i = 0; i < STEPS.length; i++) {
-      if (i > 0) next()
-      await goTo(i)
-      expect(wrapped()).toEqual(expectedEntering(i))
-    }
-    // Departing wrappers stay mounted until their exit finishes, so compare once they have left.
+  const wrappedIds = (view: ReturnType<typeof renderSample>['view']) =>
+    new Set(
+      Array.from(view.container.querySelectorAll<HTMLElement>('[data-presentation-entering]')).map((el) =>
+        el.getAttribute('data-presentation-entering'),
+      ),
+    )
+  const goTo = async (view: ReturnType<typeof renderSample>['view'], index: number) => {
+    await waitFor(() => expect(view.container.querySelector('[data-presentation-root]')!.getAttribute('data-step-index')).toBe(String(index)))
+  }
+  // Newcomers are whatever was not on screen in the previous step, in either direction.
+  const newcomers = (from: number, to: number) => {
+    const before = new Set(visibleIds(STEPS[from]!))
+    return new Set(visibleIds(STEPS[to]!).filter((id) => !before.has(id)))
+  }
+
+  it('wraps exactly the newcomers of each forward step, and nothing when moving back', async () => {
+    // Departing wrappers stay mounted until their exit finishes; jsdom cannot finish layout exits,
+    // so completion is driven by the global flag. The flag does not change which entities are wrapped.
     MotionGlobalConfig.skipAnimations = true
     try {
+      const { view, next } = renderSample()
+      await goTo(view, 0)
+      await waitFor(() => expect(wrappedIds(view)).toEqual(new Set(visibleIds(STEPS[0]!))))
+      for (let i = 1; i < STEPS.length; i++) {
+        next()
+        await goTo(view, i)
+        await waitFor(() => expect(wrappedIds(view), `forward to step ${i + 1}`).toEqual(newcomers(i - 1, i)))
+      }
+      // Moving back removes entities; nothing is newly on screen, so nothing is wrapped.
       for (let i = STEPS.length - 2; i >= 0; i--) {
         fireEvent.click(view.container.querySelector('[data-presentation-control="prev"]') as HTMLElement)
-        await goTo(i)
-        await waitFor(() => expect(wrapped()).toEqual(expectedEntering(i)))
+        await goTo(view, i)
+        await waitFor(() => expect(wrappedIds(view)).toEqual(new Set()))
       }
+    } finally {
+      MotionGlobalConfig.skipAnimations = false
+    }
+  })
+
+  it('wraps every entity that a jump brings on screen, and never a continuing one', async () => {
+    MotionGlobalConfig.skipAnimations = true
+    try {
+      const { view } = renderSample()
+      await goTo(view, 0)
+      const dots = view.container.querySelectorAll<HTMLElement>('[data-presentation-progress]')
+      fireEvent.click(dots[8]!)
+      await goTo(view, 8)
+      await waitFor(() => expect(wrappedIds(view)).toEqual(newcomers(0, 8)))
     } finally {
       MotionGlobalConfig.skipAnimations = false
     }
@@ -257,11 +292,15 @@ describe('sample geometry', () => {
     [390, 844],
   ])('fits the canvas inside a %i by %i viewport in both modes at or above MIN_SCALE', async (width, height) => {
     const { fitScale } = await import('../../presentation-kit/useFitScale')
-    const { MIN_SCALE } = await import('../../presentation-kit/constants')
+    const { MIN_SCALE, STAGE_LAYOUT } = await import('../../presentation-kit/constants')
     for (const mode of ['browse', 'present'] as const) {
+      const { padX, padY, reservedHeight } = STAGE_LAYOUT[mode]
       const scale = fitScale({ width, height }, mode)
       expect(scale).toBeGreaterThanOrEqual(MIN_SCALE)
-      expect(CANVAS.width * scale).toBeLessThanOrEqual(width)
+      // Budget check only: the scene must fit the viewport less the fixed chrome budget. It does not
+      // measure the chrome's real rectangles, which needs layout (see I-28 in the checklist).
+      expect(CANVAS.width * scale).toBeLessThanOrEqual(width - 2 * padX)
+      expect(CANVAS.height * scale).toBeLessThanOrEqual(height - reservedHeight - 2 * padY)
     }
   })
 })
@@ -298,8 +337,13 @@ describe('sample rendering', () => {
         if (i < STEPS.length - 1) next()
       }
       expect(forward).toEqual(STEPS.map((step) => step.caption))
-      fireEvent.click(view.container.querySelector('[data-presentation-control="prev"]') as HTMLElement)
-      await waitFor(() => expect(root().getAttribute('data-step-index')).toBe('7'))
+      const backward: string[] = []
+      for (let i = STEPS.length - 1; i >= 0; i--) {
+        await waitFor(() => expect(root().getAttribute('data-step-index')).toBe(String(i)))
+        backward.push(view.container.querySelector('[data-presentation-caption]')!.textContent!)
+        if (i > 0) fireEvent.click(view.container.querySelector('[data-presentation-control="prev"]') as HTMLElement)
+      }
+      expect(backward).toEqual(STEPS.map((step) => step.caption).reverse())
     } finally {
       window.removeEventListener('error', onError)
       consoleError.mockRestore()

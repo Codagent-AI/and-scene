@@ -12,7 +12,9 @@ import { startPreview } from './lib/preview.mjs'
 import { REFERENCE } from './reference.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const SETTLE_MS = 400
+// Worst case for one step: a 600 ms layout morph, then a 700 ms entry delay and a 450 ms fade. Each
+// step is observed only after this settle, so no entry or late error is missed between steps.
+const SETTLE_MS = 1800
 const TRANSITION_TIMEOUT_MS = 5000
 
 export class VerifyFailure extends Error {
@@ -66,6 +68,9 @@ async function renderEveryStep(url, reference) {
       await page.goto(`${url}/${reference.slug}`)
       await page.waitForSelector('[data-step-count]', { timeout: 15_000 })
     } catch (error) {
+      // An exception raised before the chrome mounts is reported with its step, not as a timeout.
+      const fault = errors.find((candidate) => candidate.step === 0)
+      if (fault) throw new VerifyFailure('render', `step 1 raised a runtime error: ${fault.text}`, 0)
       throw new VerifyFailure('render', `the presentation chrome did not appear at /${reference.slug}: ${error.message}`)
     }
     const count = Number(await page.getAttribute('[data-presentation-root]', 'data-step-count'))

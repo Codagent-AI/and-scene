@@ -72,12 +72,17 @@ differences (file naming, formatting, extra dependencies) do not count as missin
 - Write `entities.ts` first: stable entity ids, one rectangle (or arrow endpoints) per id on the
   880 by 380 canvas, and the presentation's own `LAYOUT_NAMESPACE`.
 - Write `beats.ts`: one era, title (one line), and caption (one paragraph) per step, plus the
-  entities each step introduces. Entities accumulate. Nothing introduced earlier leaves, and no
-  existing entity moves.
+  entities each step introduces. Entities persist by stable id. A later step may move a persisting
+  entity (it morphs in place), and may let an entity leave (it exits). Do not impose one rule on
+  every presentation; choose the layout that the topic's narrative needs.
+- Entry is decided by the scene, not stored per step: an entity enters when it was not on screen in
+  the previous step, whichever way the viewer moved. Wrap only those entities in `Appear`.
 - Compose the scene from kit primitives: `Box`, `Label`, `Arrow`, `Frame`, `Emphasis`,
   `SymbolChip`, `Appear`, and `SceneLayer`. For a diagram these do not fit, raw Motion elements
   with stable `layoutId`s are allowed, with literal coordinates.
-- Keep every step in one shared group (`groupKey`) with one `Scene`, so the scene updates in place.
+- Group adjacent steps that show the same scene (the same `groupKey` and `Scene`), so that scene
+  updates in place. Steps that change scene use a different group or no group, and the scene cross-
+  fades between them.
 - Register the presentation with one new line in `src/presentations/index.ts`. Keep every other
   entry and folder exactly as they are.
 
@@ -141,7 +146,8 @@ Every generated presentation must:
 - render its first step with no runtime or console errors;
 - show a caption for each step and let the viewer move to the next and previous step;
 - pass the visual composition review in step 4;
-- conform to the scene model: one scene, stable entity ids, accumulating entities, one shared group.
+- conform to the scene model: stable entity ids, persisting entities that morph or exit, and steps
+  grouped only where they show the same scene.
 
 ## Keyboard and touch
 

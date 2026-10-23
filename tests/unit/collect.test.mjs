@@ -71,4 +71,18 @@ describe('collectPageDiagnostics', () => {
     mount('<p data-rect="0,0,1,1">text</p>')
     expect(collectPageDiagnostics().attribution).toEqual({ present: false, fontSizePx: 0, color: '' })
   })
+
+  it('includes textless chrome controls so a collision with an empty progress dot is reported', async () => {
+    mount(`
+      <button data-presentation-progress="" data-rect="0,0,10,10"></button>
+      <p data-rect="4,2,60,20">caption text</p>
+    `)
+    const { items } = collectPageDiagnostics()
+    const dot = items.find((entry) => entry.label.startsWith('button'))
+    expect(dot).toBeDefined()
+    const { overlapWarnings } = await import('../../scripts/lib/diagnostics.mjs')
+    const warnings = overlapWarnings(3, items)
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0].message).toContain('step 3')
+  })
 })

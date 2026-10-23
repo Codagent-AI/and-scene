@@ -2,8 +2,6 @@ import type { EntityId } from './entities'
 
 export interface SampleEntity {
   id: EntityId
-  /** True only in the step that introduces this entity. */
-  entering: boolean
   /** Appearance state, such as `pass` or `edited`. */
   state?: string
 }

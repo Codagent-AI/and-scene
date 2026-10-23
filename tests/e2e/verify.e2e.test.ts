@@ -75,6 +75,37 @@ export const STEPS: readonly Step<SampleState>[] = buildSteps().map((step, index
   index === 3 ? { ...step, Scene: FaultScene } : step,
 )`
 
+const FIRST_STEP_FAULT = `import { createElement } from 'react'
+import type { SceneProps } from '../../../presentation-kit'
+
+function FaultScene(props: SceneProps<SampleState>) {
+  // Step 1 is the only step with two entities, so this throws before the chrome mounts.
+  if (props.payload.entities.length === 2) throw new Error('injected first-render fault')
+  return createElement(SampleScene, props)
+}
+
+export const STEPS: readonly Step<SampleState>[] = buildSteps().map((step, index) =>
+  index === 0 ? { ...step, Scene: FaultScene } : step,
+)`
+
+// Fires a second after the last step appears, after the old 400 ms observation window had ended.
+const LATE_FAULT = `import { createElement, useEffect } from 'react'
+import type { SceneProps } from '../../../presentation-kit'
+
+function FaultScene(props: SceneProps<SampleState>) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      throw new Error('injected late fault')
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [])
+  return createElement(SampleScene, props)
+}
+
+export const STEPS: readonly Step<SampleState>[] = buildSteps().map((step, index) =>
+  index === 8 ? { ...step, Scene: FaultScene } : step,
+)`
+
 const faults: Array<{ name: string; phase: string; step?: number; seed: Seed }> = [
   {
     name: 'a type error in the sample fails the build phase',
@@ -120,6 +151,18 @@ const faults: Array<{ name: string; phase: string; step?: number; seed: Seed }> 
     phase: 'render',
     step: 4,
     seed: seedStepsFault(PAGE_FAULT),
+  },
+  {
+    name: 'an exception on the first render fails the render phase and names step 1',
+    phase: 'render',
+    step: 1,
+    seed: seedStepsFault(FIRST_STEP_FAULT),
+  },
+  {
+    name: 'an error that fires a second after the last step appears still names that step',
+    phase: 'render',
+    step: 9,
+    seed: seedStepsFault(LATE_FAULT),
   },
   {
     name: 'a transition that stalls after step 5 fails the transition phase',

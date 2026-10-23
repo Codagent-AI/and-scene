@@ -17,11 +17,11 @@ function slugify(text: string): string {
 export function buildSteps(): Step<SceneState>[] {
   const visible: EntityId[] = []
   return BEATS.map((beat) => {
-    const introduced = new Set<EntityId>(beat.enter)
     for (const id of beat.enter) {
       if (!visible.includes(id)) visible.push(id)
     }
-    const entities: SceneEntity[] = visible.map((id) => ({ id, entering: introduced.has(id) }))
+    // Entry is decided by the scene from the previous step on screen, not stored here.
+    const entities: SceneEntity[] = visible.map((id) => ({ id }))
     return {
       id: slugify(beat.title),
       era: beat.era,

@@ -23,8 +23,12 @@ export const SWIPE_DOMINANCE = 1.5
 export const ATTRIBUTION_TEXT = 'made by and-scene'
 export const ATTRIBUTION_URL = 'https://github.com/Codagent-AI/and-scene'
 
-/** Fit padding inside the stage for each mode. Layout geometry only. */
-export const STAGE_LAYOUT: Record<Mode, { padX: number; padY: number }> = {
-  browse: { padX: 24, padY: 16 },
-  present: { padX: 16, padY: 8 },
+/**
+ * Fit geometry for each mode. `reservedHeight` is the fixed vertical budget for chrome (header,
+ * footer, and captions). The scale depends only on the viewport and the mode, never on the
+ * active step's caption length, so it stays constant within a mode. Layout geometry only.
+ */
+export const STAGE_LAYOUT: Record<Mode, { padX: number; padY: number; reservedHeight: number }> = {
+  browse: { padX: 24, padY: 16, reservedHeight: 360 },
+  present: { padX: 16, padY: 8, reservedHeight: 120 },
 }

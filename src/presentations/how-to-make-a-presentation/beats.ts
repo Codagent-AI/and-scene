@@ -28,13 +28,13 @@ export const BEATS: readonly Beat[] = [
     title: 'Answers become steps',
     caption:
       'Each answer lands as a step card — title, caption, visual — plus what morphs from one step into the next.',
-    enter: ['card1'],
+    enter: ['tray', 'card1'],
   },
   {
     era: 'the gathering',
     title: 'The deck grows',
     caption: 'Same shapes, new beats. Every answer extends the story without redrawing it.',
-    enter: ['card2', 'card3', 'link12', 'link23'],
+    enter: ['card2', 'card3', 'link12', 'link23', 'morphLabel'],
   },
   {
     era: 'the gathering',
@@ -53,7 +53,7 @@ export const BEATS: readonly Beat[] = [
     era: 'the build',
     title: 'It checks its own work',
     caption: 'Before saying done, it builds and renders every step — and fixes what breaks.',
-    enter: ['verify'],
+    enter: ['verify', 'link3v'],
     states: { verify: 'pass' },
   },
   {

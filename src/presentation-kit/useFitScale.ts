@@ -7,16 +7,19 @@ export interface Size {
   height: number
 }
 
-/** Uniform scale that fits a canvas inside the available size for a mode. */
+/**
+ * Uniform scale that fits a canvas for a mode. `available.width` is the stage's width;
+ * `available.height` is the viewport height, less the mode's fixed chrome budget.
+ */
 export function fitScale(
   available: Size,
   mode: Mode,
   canvasWidth: number = DESIGN_W,
   canvasHeight: number = DESIGN_H,
 ): number {
-  const { padX, padY } = STAGE_LAYOUT[mode]
+  const { padX, padY, reservedHeight } = STAGE_LAYOUT[mode]
   const byWidth = (available.width - 2 * padX) / canvasWidth
-  const byHeight = (available.height - 2 * padY) / canvasHeight
+  const byHeight = (available.height - reservedHeight - 2 * padY) / canvasHeight
   return Math.max(MIN_SCALE, Math.min(byWidth, byHeight))
 }
 
@@ -32,10 +35,10 @@ export function useFitScale(
   useLayoutEffect(() => {
     const element = ref.current
     if (!element) return
+    // Width comes from the stage; height comes from the viewport. The stage's height would change
+    // with caption wrapping, which would change the scale between steps.
     const measure = () =>
-      setScale(
-        fitScale({ width: element.clientWidth, height: element.clientHeight }, mode, canvasWidth, canvasHeight),
-      )
+      setScale(fitScale({ width: element.clientWidth, height: window.innerHeight }, mode, canvasWidth, canvasHeight))
     measure()
     if (typeof ResizeObserver === 'undefined') {
       window.addEventListener('resize', measure)

@@ -1,9 +1,9 @@
 import { motion } from 'motion/react'
 import { EASE, LAYOUT_T, DESIGN_H, DESIGN_W } from '../constants.ts'
 import { headPath, shaftPath, type Point } from './arrowPaths.ts'
-import type { NodeProps } from './shared.ts'
+import type { DataAttrs, NodeProps } from './shared.ts'
 
-export interface ArrowProps extends NodeProps {
+export interface ArrowProps extends NodeProps, DataAttrs {
   from: Point
   to: Point
   /** Draw a head at both ends. */
@@ -26,10 +26,12 @@ export function Arrow({
   headSize = 10,
   className,
   style,
+  ...rest
 }: ArrowProps) {
   const t = { duration: LAYOUT_T, ease: EASE }
   return (
     <motion.svg
+      {...rest}
       className={className}
       width={DESIGN_W}
       height={DESIGN_H}

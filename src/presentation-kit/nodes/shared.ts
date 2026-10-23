@@ -31,3 +31,6 @@ export function placementStyle(p: Placement, style?: CSSProperties): CSSProperti
     ...style,
   }
 }
+
+/** Any `data-*` attribute, so authors can add their own styling/test hooks. */
+export type DataAttrs = { [K in `data-${string}`]?: string | number | boolean }

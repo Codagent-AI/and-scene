@@ -112,6 +112,24 @@ describe('generic node primitives', () => {
   })
 })
 
+describe('Arrow, Appear and SceneLayer passthrough', () => {
+  it('apply class, style and data-* to their rendered node', () => {
+    render(
+      <SceneLayer className="layer" style={{ zIndex: 2 }} data-layer="1">
+        <Appear key="a" className="appear" style={{ zIndex: 5 }} data-appear="1">
+          <Arrow id="ar" from={{ x: 0, y: 0 }} to={{ x: 5, y: 5 }} className="arrow" style={{ zIndex: 7 }} data-arrow="1" />
+        </Appear>
+      </SceneLayer>,
+    )
+    const layer = q('[data-presentation-scene-layer]')
+    expect([layer.className, layer.style.zIndex, layer.dataset.layer]).toEqual(['layer', '2', '1'])
+    const appear = q('[data-presentation-appear]')
+    expect([appear.className, appear.style.zIndex, appear.dataset.appear, appear.style.position]).toEqual(['appear', '5', '1', 'absolute'])
+    const arrow = q('[data-presentation-node="arrow"]')
+    expect([arrow.getAttribute('class'), arrow.style.zIndex, arrow.dataset.arrow]).toEqual(['arrow', '7', '1'])
+  })
+})
+
 describe('newcomer sequencing and scene layers', () => {
   it('Appear fades newcomers in after the persisting layout morph and fades them out on exit', () => {
     render(<Appear>child</Appear>)

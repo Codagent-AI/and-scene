@@ -43,6 +43,11 @@ describe('sample outline assertion (L-52, I-26)', () => {
     expect(checkRegistration(ok.replace('How to Use', 'Why to Use'), CANONICAL_SAMPLE)[0]).toMatch(/title/)
     expect(checkRegistration(ok.replace(/load:.*\n/, ''), CANONICAL_SAMPLE)[0]).toMatch(/lazy load/)
     expect(checkRegistration(ok, { slug: 'starter' })[0]).toMatch(/not registered/)
+    const awkward = `export const presentations = [\n  {\n    slug: "odd",\n    title: "It's {x} } { \\"q\\"",\n    load: () => import('./odd/Talk'),\n  },\n  {\n    slug: "later",\n    title: "Later",\n    load: () => import('./later/Talk'),\n  },\n]`
+    expect(checkRegistration(awkward, { slug: 'odd' })).toEqual([])
+    expect(checkRegistration(awkward, { slug: 'later', title: 'Later' })).toEqual([])
+    expect(checkRegistration(awkward.replace("import('./odd/Talk')", 'null'), { slug: 'odd' })[0]).toMatch(/no lazy load/)
+    expect(checkRegistration(awkward.replace("import('./odd/Talk')", 'null'), { slug: 'later' })).toEqual([])
   })
   it('runs against the same data the built presentation derives its steps from', () => {
     expect(readFileSync('scripts/verify.mjs', 'utf8')).toMatch(/checkOutline\(mod\.OUTLINE\)/)

@@ -65,12 +65,16 @@ export function parseArgs(argv) {
  */
 export function checkRegistration(indexSource, { slug, title }) {
   const problems = []
-  const entry = new RegExp(`\\{[^{}]*slug:\\s*(['"])${slug}\\1[^{}]*\\}`, 's').exec(indexSource)
-  if (!entry) return [`presentation "${slug}" is not registered in presentations/index.ts`]
-  if (title !== undefined && !entry[0].includes(JSON.stringify(title).slice(1, -1)) && !entry[0].includes(title)) {
+  const at = new RegExp(`slug:\\s*(['"])${slug}\\1`).exec(indexSource)
+  if (!at) return [`presentation "${slug}" is not registered in presentations/index.ts`]
+  // The entry runs from its opening brace to the next entry's slug (titles may themselves contain braces).
+  const start = Math.max(indexSource.lastIndexOf('{', at.index), 0)
+  const next = indexSource.indexOf('slug:', at.index + at[0].length)
+  const entry = indexSource.slice(start, next < 0 ? undefined : indexSource.lastIndexOf('{', next))
+  if (title !== undefined && !entry.includes(JSON.stringify(title).slice(1, -1)) && !entry.includes(title)) {
     problems.push(`registered title for "${slug}" does not match "${title}"`)
   }
-  if (!/load:\s*\(\)\s*=>\s*import\(/.test(entry[0])) problems.push(`registry entry "${slug}" has no lazy load()`)
+  if (!/load:\s*\(\)\s*=>\s*import\(/.test(entry)) problems.push(`registry entry "${slug}" has no lazy load()`)
   return problems
 }
 

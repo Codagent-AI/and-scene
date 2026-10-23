@@ -2,6 +2,16 @@ import { VerifyError, normalize } from './verify-core.mjs'
 
 const SETTLE_MS = 300
 
+/** Records console errors and uncaught page errors; install before navigating. */
+export function collectBrowserErrors(page) {
+  const errors = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(`console error: ${msg.text()}`)
+  })
+  page.on('pageerror', (error) => errors.push(`uncaught page error: ${error.message}`))
+  return errors
+}
+
 async function readState(page) {
   return page.evaluate(() => {
     const root = document.querySelector('[data-step-count]')

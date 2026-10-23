@@ -48,6 +48,7 @@ export function compareOutline(actual, expected) {
  * Which routes to render. The sample runs through every step; any other
  * registered presentation renders its first step. A slug limits the run to it.
  */
+/** @param {{ registry: { slug: string }[], sampleSlug?: string, only?: string }} options */
 export function selectRoutes({ registry, sampleSlug, only }) {
   const entries = only ? registry.filter((e) => e.slug === only) : registry
   if (only && entries.length === 0) {

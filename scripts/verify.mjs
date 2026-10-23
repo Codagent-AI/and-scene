@@ -12,7 +12,7 @@ import {
   loadRegistry,
 } from './lib/config.mjs'
 import { startPreview } from './lib/preview.mjs'
-import { renderRoute } from './lib/render.mjs'
+import { collectBrowserErrors, renderRoute } from './lib/render.mjs'
 import { compareOutline, formatFailure, parseArgs, selectRoutes, VerifyError } from './lib/verify-core.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -50,11 +50,7 @@ async function render({ config, registry, reference, args }) {
   try {
     browser = await chromium.launch()
     const page = await browser.newPage()
-    const errors = []
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(`console error: ${msg.text()}`)
-    })
-    page.on('pageerror', (error) => errors.push(`uncaught page error: ${error.message}`))
+    const errors = collectBrowserErrors(page)
     for (const route of routes) {
       log(`[render] /${route.slug} (${route.allSteps ? 'all steps' : 'first step'})`)
       await renderRoute({

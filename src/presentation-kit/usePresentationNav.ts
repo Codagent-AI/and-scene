@@ -4,11 +4,13 @@ import type { Mode } from './types.ts'
 
 /** Step index and mode state plus keyboard and touch navigation. */
 export function usePresentationNav(count: number, initialMode: Mode = 'browse', initialIndex = 0) {
-  const [index, setIndex] = useState(() => clampIndex(initialIndex, count))
+  const [rawIndex, setIndex] = useState(() => clampIndex(initialIndex, count))
   const [mode, setMode] = useState<Mode>(initialMode)
+  // Steps may shrink while mounted; never point past the end.
+  const index = clampIndex(rawIndex, count)
 
-  const next = useCallback(() => setIndex((i) => clampIndex(i + 1, count)), [count])
-  const prev = useCallback(() => setIndex((i) => clampIndex(i - 1, count)), [count])
+  const next = useCallback(() => setIndex((i) => clampIndex(clampIndex(i, count) + 1, count)), [count])
+  const prev = useCallback(() => setIndex((i) => clampIndex(clampIndex(i, count) - 1, count)), [count])
   const goTo = useCallback((i: number) => setIndex(clampIndex(i, count)), [count])
   const toggleMode = useCallback(() => setMode((m) => (m === 'browse' ? 'present' : 'browse')), [])
 

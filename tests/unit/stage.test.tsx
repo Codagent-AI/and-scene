@@ -31,26 +31,15 @@ function step(id: string, groupKey: string, scene: typeof SceneA, label: string)
 const canvas = () => document.querySelector('[data-presentation-canvas]') as HTMLElement
 const stage = () => document.querySelector('[data-presentation-stage]') as HTMLElement
 
-function stubStageSize(width: number, height: number) {
-  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
-    const isStage = this.hasAttribute('data-presentation-stage')
-    return {
-      width: isStage ? width : 0,
-      height: isStage ? height : 0,
-      top: 0,
-      left: 0,
-      right: width,
-      bottom: height,
-      x: 0,
-      y: 0,
-      toJSON() {},
-    } as DOMRect
-  })
+function stubViewport(width: number, height: number) {
+  vi.stubGlobal('innerWidth', width)
+  vi.stubGlobal('innerHeight', height)
 }
 
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
   mounts.count = 0
 })
 
@@ -108,42 +97,65 @@ describe('fixed-canvas fit scaling', () => {
   const steps = [step('one', 'g', SceneA, 'first')]
 
   it('uses the default 880 x 380 canvas and one uniform scale', () => {
-    stubStageSize(1000, 600)
+    stubViewport(1000, 800)
     render(<Stage steps={steps} index={0} mode="browse" />)
     expect(canvas().style.width).toBe('880px')
     expect(canvas().style.height).toBe('380px')
-    const scale = fitScale({ width: 1000, height: 600 }, 'browse')
+    const scale = fitScale({ width: 1000, height: 800 }, 'browse')
     expect(canvas().style.transform).toBe(`scale(${scale})`)
     expect(canvas().style.transformOrigin).toBe('0 0')
   })
 
   it('rescales on resize without changing canvas dimensions or entity coordinates', () => {
-    stubStageSize(1000, 600)
+    stubViewport(1000, 800)
     render(<Stage steps={steps} index={0} mode="browse" />)
     const before = canvas().style.transform
-    stubStageSize(500, 400)
+    stubViewport(500, 600)
     act(() => {
       window.dispatchEvent(new Event('resize'))
     })
     expect(canvas().style.transform).not.toBe(before)
-    expect(canvas().style.transform).toBe(`scale(${fitScale({ width: 500, height: 400 }, 'browse')})`)
+    expect(canvas().style.transform).toBe(`scale(${fitScale({ width: 500, height: 600 }, 'browse')})`)
     expect(canvas().style.width).toBe('880px')
     expect(canvas().style.height).toBe('380px')
   })
 
   it('applies mode-specific fit geometry', () => {
-    stubStageSize(1000, 600)
+    stubViewport(1000, 800)
     const { rerender } = render(<Stage steps={steps} index={0} mode="browse" />)
     const browse = canvas().style.transform
     rerender(<Stage steps={steps} index={0} mode="present" />)
     expect(canvas().style.transform).not.toBe(browse)
-    expect(canvas().style.transform).toBe(`scale(${fitScale({ width: 1000, height: 600 }, 'present')})`)
+    expect(canvas().style.transform).toBe(`scale(${fitScale({ width: 1000, height: 800 }, 'present')})`)
+  })
+
+  it('keeps the same scale when a step has a longer caption, because the fit ignores step content', () => {
+    stubViewport(1000, 800)
+    const short = [step('one', 'g', SceneA, 'first')]
+    const long = [{ ...step('one', 'g', SceneA, 'first'), caption: 'A much longer caption '.repeat(40) }]
+    const { container: a, unmount } = render(<Stage steps={short} index={0} mode="browse" />)
+    const shortTransform = (a.querySelector('[data-presentation-canvas]') as HTMLElement).style.transform
+    unmount()
+    const { container: b } = render(<Stage steps={long} index={0} mode="browse" />)
+    expect((b.querySelector('[data-presentation-canvas]') as HTMLElement).style.transform).toBe(shortTransform)
   })
 
   it('places the canvas centered inside the stage', () => {
+    stubViewport(1000, 800)
     render(<Stage steps={steps} index={0} mode="browse" />)
     expect(stage().style.display).toBe('flex')
     expect(stage().style.alignItems).toBe('center')
     expect(stage().style.justifyContent).toBe('center')
+  })
+})
+
+describe('scene component changes', () => {
+  it('remounts a new scene component under the same group, keeping the old scene through its exit', () => {
+    const steps = [step('one', 'g', SceneA, 'first'), step('two', 'g', SceneB, 'second')]
+    const { rerender } = render(<Stage steps={steps} index={0} mode="browse" />)
+    expect(mounts.count).toBe(1)
+    rerender(<Stage steps={steps} index={1} mode="browse" />)
+    expect(mounts.count).toBe(2)
+    expect(document.querySelector('[data-testid="b"]')?.textContent).toBe('second')
   })
 })

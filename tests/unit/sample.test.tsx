@@ -86,7 +86,9 @@ describe('scene intent per step', () => {
     for (let index = 0; index < SAMPLE_STEPS.length; index += 1) {
       const previous = index === 0 ? [] : visibleEntities(payloadAt(index - 1).state)
       const arriving = visibleEntities(payloadAt(index).state).filter((id) => !previous.includes(id))
-      expect([...payloadAt(index).entering].sort()).toEqual([...arriving].sort())
+      expect(arriving.length).toBeGreaterThan(0)
+      expect(payloadAt(index)).not.toHaveProperty('entering')
+      expect(arriving.every((id) => !previous.includes(id))).toBe(true)
     }
   })
 
@@ -111,19 +113,44 @@ describe('rendering the sample scene', () => {
   })
 
   it('wraps only the entities that arrive on a step in an entering Appear', () => {
+    const { container, rerender } = renderAt(0)
     for (let index = 0; index < SAMPLE_STEPS.length; index += 1) {
-      const { container, unmount } = renderAt(index)
+      if (index > 0) rerender(<SampleScene payload={payloadAt(index)} />)
+      const previous = index === 0 ? [] : visibleEntities(payloadAt(index - 1).state)
+      const arriving = visibleEntities(payloadAt(index).state).filter((id) => !previous.includes(id))
       const entering = [...container.querySelectorAll('[data-presentation-appear="entering"]')]
-        .map((node) => node.querySelector('[data-presentation-entity]')?.getAttribute('data-presentation-entity'))
+        .map((node) => node.getAttribute('data-presentation-appear-id'))
         .sort()
-      const expected = payloadAt(index).entering.map((id) => layoutIdFor(id)).sort()
-      expect(entering).toEqual(expected)
-      unmount()
+      expect(entering).toEqual(arriving.map((id) => layoutIdFor(id)).sort())
     }
   })
 
+  it('after a forward jump, every entity not yet shown enters, not only the outline predecessor', () => {
+    const { container, rerender } = renderAt(0)
+    rerender(<SampleScene payload={payloadAt(8)} />)
+    const entering = [...container.querySelectorAll('[data-presentation-appear="entering"]')]
+      .map((node) => node.getAttribute('data-presentation-appear-id'))
+      .sort()
+    const shownAtFirst = new Set(visibleEntities(payloadAt(0).state))
+    const expected = visibleEntities(payloadAt(8).state)
+      .filter((id) => !shownAtFirst.has(id))
+      .map((id) => layoutIdFor(id))
+      .sort()
+    expect(entering).toEqual(expected)
+    expect(entering.length).toBeGreaterThan(visibleEntities(payloadAt(8).state).length / 2)
+  })
+
+  it('after a backward jump, entities already on screen keep their elements and do not re-enter', () => {
+    const { container, rerender } = renderAt(4)
+    const you = container.querySelector(`[data-layout-id="${layoutIdFor('you')}"]`)
+    rerender(<SampleScene payload={payloadAt(1)} />)
+    expect(container.querySelector(`[data-layout-id="${layoutIdFor('you')}"]`)).toBe(you)
+    expect(container.querySelectorAll('[data-presentation-appear="entering"]').length).toBe(0)
+  })
+
   it('renders continuing entities without an entry animation (initial=false, no reset to opacity 0)', () => {
-    const { container } = renderAt(4)
+    const { container, rerender } = renderAt(3)
+    rerender(<SampleScene payload={payloadAt(4)} />)
     const continuing = container.querySelectorAll('[data-presentation-appear="continuing"]')
     expect(continuing.length).toBeGreaterThan(0)
     for (const wrapper of continuing) {
@@ -144,6 +171,14 @@ describe('rendering the sample scene', () => {
       .map((node) => node.getAttribute('data-presentation-entity'))
       .sort()
     expect(allowed).toEqual([layoutIdFor('control'), layoutIdFor('flag'), layoutIdFor('reveal')].sort())
+  })
+
+  it('shows the build and render checks on the verify node at step 7', () => {
+    const { container } = renderAt(6)
+    const verify = container.querySelector(`[data-presentation-entity="${layoutIdFor('verify')}"]`)
+    expect(verify?.textContent).toContain('build')
+    expect(verify?.textContent).toContain('render')
+    expect(renderAt(5).container.querySelector(`[data-presentation-entity="${layoutIdFor('verify')}"]`)).toBeNull()
   })
 
   it('renders every entity type named in the scene intent', () => {

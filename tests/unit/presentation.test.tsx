@@ -174,11 +174,15 @@ describe('direct jumps and active state', () => {
     fireEvent.click(entries[1])
     expect(stepIndex()).toBe(2)
     expect(entries[1].getAttribute('aria-current')).toBe('step')
+    expect(entries[1].getAttribute('data-presentation-active')).toBe('true')
     expect(entries[0].hasAttribute('aria-current')).toBe(false)
+    expect(entries[0].hasAttribute('data-presentation-active')).toBe(false)
     fireEvent.click(entries[0])
     expect(stepIndex()).toBe(0)
     expect(entries[0].getAttribute('aria-current')).toBe('step')
+    expect(entries[0].getAttribute('data-presentation-active')).toBe('true')
     expect(entries[1].hasAttribute('aria-current')).toBe(false)
+    expect(entries[1].hasAttribute('data-presentation-active')).toBe(false)
   })
 
   it('jumps to every era entry of the sample, including backward', () => {
@@ -257,5 +261,19 @@ describe('host branding and attribution', () => {
   it('omits the attribution only when the presentation opts out', () => {
     render(<Presentation steps={makeSteps(['a'])} title="Deck" attribution={false} />)
     expect(document.querySelector('[data-presentation-attribution]')).toBeNull()
+  })
+})
+
+describe('fit independence from step content', () => {
+  it('gives the same canvas transform for short and long captions in the same viewport and mode', () => {
+    vi.stubGlobal('innerWidth', 1280)
+    vi.stubGlobal('innerHeight', 720)
+    const short = makeSteps(['a', 'b'])
+    const long = makeSteps(['a', 'b']).map((step) => ({ ...step, caption: 'word '.repeat(300) }))
+    const first = render(<Presentation steps={short} title="Deck" initialMode="browse" />)
+    const shortTransform = (document.querySelector('[data-presentation-canvas]') as HTMLElement).style.transform
+    first.unmount()
+    render(<Presentation steps={long} title="Deck" initialMode="browse" />)
+    expect((document.querySelector('[data-presentation-canvas]') as HTMLElement).style.transform).toBe(shortTransform)
   })
 })

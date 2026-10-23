@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CHROME_HEIGHT,
   DESIGN_H,
   DESIGN_W,
   ENTER_DELAY,
@@ -31,28 +32,26 @@ describe('fitScale', () => {
   const cases = [
     { name: 'wide', size: { width: 1600, height: 900 }, mode: 'browse' as const },
     { name: 'narrow', size: { width: 390, height: 700 }, mode: 'browse' as const },
-    { name: 'short', size: { width: 1200, height: 300 }, mode: 'present' as const },
+    { name: 'short', size: { width: 1200, height: 420 }, mode: 'present' as const },
     { name: 'wide present', size: { width: 1600, height: 900 }, mode: 'present' as const },
   ]
 
   for (const { name, size, mode } of cases) {
-    it(`returns one uniform factor that keeps the canvas inside the stage (${name})`, () => {
+    it(`keeps the canvas inside the viewport after the mode's chrome and padding (${name})`, () => {
       const scale = fitScale(size, mode)
       expect(scale).toBeGreaterThanOrEqual(MIN_SCALE)
       expect(scale).toBeLessThanOrEqual(MAX_SCALE)
-      const scaledW = DESIGN_W * scale
-      const scaledH = DESIGN_H * scale
       const pad = mode === 'browse' ? { x: 24, y: 12 } : { x: 32, y: 24 }
-      expect(scaledW).toBeLessThanOrEqual(size.width - pad.x * 2 + 1e-9)
-      expect(scaledH).toBeLessThanOrEqual(size.height - pad.y * 2 + 1e-9)
+      expect(DESIGN_W * scale).toBeLessThanOrEqual(size.width - pad.x * 2 + 1e-9)
+      expect(DESIGN_H * scale).toBeLessThanOrEqual(size.height - CHROME_HEIGHT[mode] - pad.y * 2 + 1e-9)
     })
   }
 
-  it('is limited by the tighter axis', () => {
+  it('is limited by the tighter axis after the reserved chrome height', () => {
     const wideOnly = fitScale({ width: 1000, height: 10000 }, 'browse')
     const shortOnly = fitScale({ width: 10000, height: 500 }, 'browse')
     expect(wideOnly).toBeCloseTo((1000 - 48) / DESIGN_W)
-    expect(shortOnly).toBeCloseTo((500 - 24) / DESIGN_H)
+    expect(shortOnly).toBeCloseTo((500 - CHROME_HEIGHT.browse - 24) / DESIGN_H)
   })
 
   it('uses per-mode geometry for the same viewport', () => {

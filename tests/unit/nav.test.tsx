@@ -201,7 +201,8 @@ describe('boundaries', () => {
 })
 
 describe('StrictMode', () => {
-  it('moves one step per key press and removes its key listener on unmount', () => {
+  it('moves one step per key press and removes the active key listener on final unmount', () => {
+    const addSpy = vi.spyOn(window, 'addEventListener')
     const removeSpy = vi.spyOn(window, 'removeEventListener')
     const { unmount } = render(
       <StrictMode>
@@ -212,8 +213,79 @@ describe('StrictMode', () => {
       press(document.body, 'ArrowRight')
     })
     expect(index()).toBe(1)
+
+    // Pair add and remove calls in call order. StrictMode replays the effect once,
+    // so exactly one key listener must still be registered before unmount, and none after.
+    const events = [
+      ...addSpy.mock.calls.map(([type, handler], i) => ({ kind: 'add', type, handler, order: addSpy.mock.invocationCallOrder[i] })),
+      ...removeSpy.mock.calls.map(([type, handler], i) => ({ kind: 'remove', type, handler, order: removeSpy.mock.invocationCallOrder[i] })),
+    ].sort((a, b) => a.order - b.order)
+    const live = new Set<unknown>()
+    for (const event of events) {
+      if (event.type !== 'keydown') continue
+      if (event.kind === 'add') live.add(event.handler)
+      else live.delete(event.handler)
+    }
+    expect(live.size).toBe(1)
+
     unmount()
-    const keyRemoved = removeSpy.mock.calls.some(([type]) => type === 'keydown')
-    expect(keyRemoved).toBe(true)
+    const afterUnmount = [...removeSpy.mock.calls].filter(([type]) => type === 'keydown').map(([, handler]) => handler)
+    for (const handler of live) expect(afterUnmount).toContain(handler)
+  })
+})
+
+describe('ARIA widget roles keep their keys', () => {
+  const roles = [
+    'button', 'checkbox', 'combobox', 'grid', 'gridcell', 'link', 'listbox', 'menu', 'menubar', 'menuitem',
+    'menuitemcheckbox', 'menuitemradio', 'option', 'radio', 'radiogroup', 'scrollbar', 'searchbox', 'slider',
+    'spinbutton', 'switch', 'tab', 'tablist', 'textbox', 'toolbar', 'tree', 'treeitem',
+  ]
+  for (const role of roles) {
+    it(`does not navigate when a focused element has role ${role}`, () => {
+      function RoleHarness() {
+        const nav = usePresentationNav(5, 'browse')
+        return (
+          <div>
+            <span data-testid="index">{nav.index}</span>
+            <span data-testid="mode">{nav.mode}</span>
+            <div data-testid="target" role={role} tabIndex={0}>
+              {role}
+            </div>
+          </div>
+        )
+      }
+      render(<RoleHarness />)
+      press(screen.getByTestId('target'), 'ArrowRight')
+      press(screen.getByTestId('target'), 'p')
+      expect(index()).toBe(0)
+      expect(mode()).toBe('browse')
+    })
+  }
+})
+
+describe('boundary inputs', () => {
+  it('ignores a right swipe at the first step and a left swipe at the last step', () => {
+    render(<Harness count={3} />)
+    act(() => swipe(SWIPE_MIN_PX * 2, 0))
+    expect(index()).toBe(0)
+    act(() => {
+      for (let i = 0; i < 4; i += 1) press(document.body, 'ArrowRight')
+    })
+    expect(index()).toBe(2)
+    act(() => swipe(-SWIPE_MIN_PX * 2, 0))
+    expect(index()).toBe(2)
+  })
+
+  it('keeps Space and PageDown on the last step', () => {
+    render(<Harness count={3} />)
+    act(() => {
+      press(document.body, 'ArrowRight')
+      press(document.body, 'ArrowRight')
+    })
+    act(() => {
+      press(document.body, ' ')
+      press(document.body, 'PageDown')
+    })
+    expect(index()).toBe(2)
   })
 })

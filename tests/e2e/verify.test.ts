@@ -2,6 +2,7 @@
 // copy must pass; each copy with one injected fault must fail in the named phase and
 // leave no preview server running.
 import { readFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { copyRepo, isClosed, removeDir, replaceInFile, run } from '../integration/support'
@@ -15,8 +16,8 @@ interface Verdict {
   previewUrl: string | null
 }
 
-async function verify(dir: string): Promise<Verdict> {
-  const result = await run(process.execPath, ['scripts/verify.mjs'], dir, 600_000)
+async function verify(dir: string, env?: NodeJS.ProcessEnv): Promise<Verdict> {
+  const result = await run(process.execPath, ['scripts/verify.mjs'], dir, 600_000, env ?? process.env)
   const previewUrl = result.output.match(PORT_LINE)?.[1] ?? null
   return { ...result, previewUrl }
 }
@@ -91,8 +92,8 @@ describe('E2E-002: verification failures are actionable', () => {
         await replaceInFile(file, "import { AnimatePresence } from 'motion/react'", "import { useEffect } from 'react'\nimport { AnimatePresence } from 'motion/react'")
         await replaceInFile(
           file,
-          '  const fresh = new Set<EntityId>(entering)',
-          "  const fresh = new Set<EntityId>(entering)\n  useEffect(() => {\n    if (state.ghost) console.error('injected console fault')\n  }, [state.ghost])",
+          '  const fresh = new Set<EntityId>(current.entering)',
+          "  const fresh = new Set<EntityId>(current.entering)\n  useEffect(() => {\n    if (payload.state.ghost) console.error('injected console fault')\n  }, [payload.state.ghost])",
         )
       },
       phase: 'render',
@@ -105,8 +106,8 @@ describe('E2E-002: verification failures are actionable', () => {
         await replaceInFile(file, "import { AnimatePresence } from 'motion/react'", "import { useEffect } from 'react'\nimport { AnimatePresence } from 'motion/react'")
         await replaceInFile(
           file,
-          '  const fresh = new Set<EntityId>(entering)',
-          "  const fresh = new Set<EntityId>(entering)\n  useEffect(() => {\n    if (state.ghost) setTimeout(() => { throw new Error('injected page fault') })\n  }, [state.ghost])",
+          '  const fresh = new Set<EntityId>(current.entering)',
+          "  const fresh = new Set<EntityId>(current.entering)\n  useEffect(() => {\n    if (payload.state.ghost) setTimeout(() => { throw new Error('injected page fault') })\n  }, [payload.state.ghost])",
         )
       },
       phase: 'render',
@@ -122,6 +123,38 @@ describe('E2E-002: verification failures are actionable', () => {
         ),
       phase: 'transition',
       step: 4,
+    },
+    {
+      name: 'crash while rendering a later step',
+      inject: async (dir) => {
+        const file = join(dir, SAMPLE, 'SampleScene.tsx')
+        await replaceInFile(file, '  const fresh = new Set<EntityId>(current.entering)', "  const fresh = new Set<EntityId>(current.entering)\n  if (payload.state.ghost) throw new Error('injected render crash')")
+      },
+      phase: 'render',
+      step: 4,
+    },
+    {
+      name: 'crash while rendering the first step',
+      inject: async (dir) => {
+        const file = join(dir, SAMPLE, 'SampleScene.tsx')
+        await replaceInFile(file, '  const fresh = new Set<EntityId>(current.entering)', "  const fresh = new Set<EntityId>(current.entering)\n  if (!payload.state.skill) throw new Error('injected first-step crash')")
+      },
+      phase: 'render',
+      step: 0,
+    },
+    {
+      name: 'error raised while the final step is still entering',
+      inject: async (dir) => {
+        const file = join(dir, SAMPLE, 'SampleScene.tsx')
+        await replaceInFile(file, "import { AnimatePresence } from 'motion/react'", "import { useEffect } from 'react'\nimport { AnimatePresence } from 'motion/react'")
+        await replaceInFile(
+          file,
+          '  const fresh = new Set<EntityId>(current.entering)',
+          "  const fresh = new Set<EntityId>(current.entering)\n  useEffect(() => {\n    if (payload.state.reveal) setTimeout(() => console.error('late entry fault'), 1200)\n  }, [payload.state.reveal])",
+        )
+      },
+      phase: 'render',
+      step: 8,
     },
   ]
 
@@ -154,6 +187,25 @@ describe('E2E-002: verification failures are actionable', () => {
 })
 
 // Confirms the fault cases above really exercised the runtime path (not a silent no-op).
+describe('browser launch failure', () => {
+  let verdict: Verdict
+
+  beforeAll(async () => {
+    const dir = await faultyCopy('e2e002-launch', async () => {})
+    verdict = await verify(dir, { ...process.env, PLAYWRIGHT_BROWSERS_PATH: join(tmpdir(), 'no-such-browsers') })
+  }, 900_000)
+
+  it('exits non-zero in the render phase', () => {
+    expect(verdict.code).not.toBe(0)
+    expect(verdict.output).toContain('FAIL render')
+  })
+
+  it('still stops the preview server it started before the launch failed', async () => {
+    expect(verdict.previewUrl).not.toBeNull()
+    expect(await isClosed(verdict.previewUrl as string)).toBe(true)
+  })
+})
+
 describe('fault injection points exist in the committed sample', () => {
   it('has the scene and navigation text that the injections replace', async () => {
     const scene = await readFile(join(process.cwd(), SAMPLE, 'SampleScene.tsx'), 'utf8')

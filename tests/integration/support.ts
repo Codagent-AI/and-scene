@@ -14,9 +14,15 @@ export interface RunResult {
 }
 
 /** Runs a command, capturing combined output. Never throws on a non-zero exit. */
-export function run(command: string, args: string[], cwd: string, timeoutMs = 600_000): Promise<RunResult> {
+export function run(
+  command: string,
+  args: string[],
+  cwd: string,
+  timeoutMs = 600_000,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<RunResult> {
   return new Promise((resolve) => {
-    const child = spawn(command, args, { cwd, env: process.env })
+    const child = spawn(command, args, { cwd, env })
     let output = ''
     child.stdout.on('data', (chunk) => (output += chunk))
     child.stderr.on('data', (chunk) => (output += chunk))

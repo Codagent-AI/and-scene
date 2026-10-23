@@ -62,3 +62,18 @@ describe('departing entities', () => {
     expect(screen.queryByText('keep')).not.toBeNull()
   })
 })
+
+describe('scene component changes within one group', () => {
+  it('keeps an entity of the old scene component mounted through its exit', async () => {
+    const steps: Step<{ keep: boolean }>[] = [
+      { id: 'a', era: 'e', title: 'a', caption: 'a', groupKey: 'same', scene: Dropping, payload: { keep: false } },
+      { id: 'b', era: 'e', title: 'b', caption: 'b', groupKey: 'same', scene: Sibling, payload: { keep: true } },
+    ]
+    const { rerender } = render(<Stage steps={steps} index={0} mode="browse" />)
+    expect(screen.queryByText('gone-entity')).not.toBeNull()
+    rerender(<Stage steps={steps} index={1} mode="browse" />)
+    expect(screen.queryByText('gone-entity')).not.toBeNull()
+    expect(screen.queryByText('other-scene')).not.toBeNull()
+    await waitFor(() => expect(screen.queryByText('gone-entity')).toBeNull(), { timeout: 4000 })
+  })
+})

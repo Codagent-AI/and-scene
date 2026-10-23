@@ -16,6 +16,12 @@ const FIXTURE_CSS = `
 .fx-chrome [data-presentation-attribution] { font-size: 12px; color: #6b6558; text-decoration: none; }
 .fx-chrome [data-presentation-footer] { padding-bottom: 34px; }
 .fx-small [data-presentation-attribution] { font-size: 9px; }
+.fx-progress [data-presentation-step-title] { position: fixed; top: 4px; left: 0; margin: 0; }
+.fx-progress [data-presentation-progress-list] { position: fixed; top: 0; left: 0; }
+.fx-progress [data-presentation-attribution] { font-size: 12px; color: #6b6558; text-decoration: none; }
+.fx-progress [data-presentation-toc-entry][data-presentation-active='true'] { font-weight: 700; color: #2f6fd6; }
+.fx-progress [data-presentation-progress][data-presentation-active='true'] { background: #2f6fd6; }
+.fx-progress [data-presentation-footer] { padding-bottom: 34px; }
 .fx-small [data-presentation-progress][data-presentation-active='true'] { background: #2f6fd6; }
 .fx-small [data-presentation-toc-entry][data-presentation-active='true'] { font-weight: 700; }
 `
@@ -27,6 +33,7 @@ const VARIANTS = [
   { slug: 'fx-allowed', component: 'Allowed', expect: ['overlap'] },
   { slug: 'fx-indistinct', component: 'Indistinct', expect: ['active-chrome'] },
   { slug: 'fx-small', component: 'Small', expect: ['attribution'] },
+  { slug: 'fx-progress', component: 'Progress', expect: ['overlap'] },
   { slug: 'fx-default', component: 'Default', expect: ['attribution', 'active-chrome'] },
   { slug: 'fx-missing', component: 'Missing', expect: ['attribution'] },
 ]
@@ -65,7 +72,7 @@ function Scene({ payload }: SceneProps<Payload>) {
 function steps(mode: Payload['mode']): Step<Payload>[] {
   return ['one', 'two', 'three'].map((id, index) => ({
     id,
-    era: 'era',
+    era: index < 2 ? 'first era' : 'second era',
     title: \`Step \${index + 1}\`,
     caption: \`Caption \${index + 1}\`,
     groupKey: 'fixture',
@@ -92,6 +99,7 @@ export const Indistinct = variant('plain', 'fx-indistinct', true)
 export const Small = variant('plain', 'fx-small', true)
 export const Default = variant('plain', 'fx-default', true)
 export const Missing = variant('plain', 'fx-missing', false)
+export const Progress = variant('plain', 'fx-progress', true)
 `
 
 let repo: string
@@ -134,7 +142,11 @@ describe('screenshot artifacts', () => {
         expect(bytes.subarray(1, 4).toString('ascii')).toBe('PNG')
         expect(bytes.length).toBeGreaterThan(1000)
       }
-      expect(result?.output).toMatch(/step 01 captured after 2000 ms settle/)
+      // Each capture must come no sooner than the settle interval after its step change.
+      const captures = [...(result?.output ?? '').matchAll(/step (\d\d) captured (\d+) ms after its step change \(settle (\d+) ms\)/g)]
+      expect(captures.map((match) => match[1])).toEqual(['01', '02', '03'])
+      for (const [, , elapsed, settle] of captures) expect(Number(elapsed)).toBeGreaterThanOrEqual(Number(settle))
+      expect(Number(captures[0][3])).toBe(2000)
     }, 300_000)
   }
 })
@@ -145,6 +157,13 @@ describe('advisory warnings', () => {
       const lines = warningsFor(variant.slug)
       for (const kind of variant.expect) {
         expect(lines.some((line) => line.includes(` ${kind}:`)), lines.join('\n')).toBe(true)
+      }
+      if (variant.slug === 'fx-indistinct') {
+        expect(lines.some((line) => line.includes('progress indicator is visually indistinct')), lines.join('\n')).toBe(true)
+        expect(lines.some((line) => line.includes('table-of-contents entry is visually indistinct')), lines.join('\n')).toBe(true)
+      }
+      if (variant.slug === 'fx-progress') {
+        expect(lines.some((line) => line.includes('overlap') && line.includes('Step 1:')), lines.join('\n')).toBe(true)
       }
       if (variant.expect.length === 0) expect(lines).toEqual([])
       for (const line of lines) expect(line).toMatch(/^WARN step \d\d /)

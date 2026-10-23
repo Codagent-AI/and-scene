@@ -174,3 +174,50 @@ describe('arrows', () => {
     expect(line.getAttribute('markerStart') ?? line.getAttribute('marker-start')).not.toBeNull()
   })
 })
+
+describe('consumer data hooks and layer props', () => {
+  it('forwards consumer data-* attributes on every positioned primitive, without overriding kit hooks', () => {
+    const { container } = render(
+      <div>
+        <Box id="b" x={0} y={0} width={1} height={1} data-scene-hook="box" data-presentation-node="spoofed" />
+        <Label id="l" x={0} y={0} width={1} height={1} data-scene-hook="label" />
+        <Frame id="f" x={0} y={0} width={1} height={1} data-scene-hook="frame" />
+        <Emphasis id="e" x={0} y={0} width={1} height={1} data-scene-hook="emphasis" />
+        <SymbolChip id="s" x={0} y={0} width={1} height={1} data-scene-hook="chip" />
+        <Arrow id="a" from={{ x: 0, y: 0 }} to={{ x: 9, y: 0 }} data-scene-hook="arrow" />
+      </div>,
+    )
+    for (const [id, hook] of [
+      ['b', 'box'],
+      ['l', 'label'],
+      ['f', 'frame'],
+      ['e', 'emphasis'],
+      ['s', 'chip'],
+      ['a', 'arrow'],
+    ] as const) {
+      expect(byEntity(container, id)?.getAttribute('data-scene-hook')).toBe(hook)
+    }
+    expect(byEntity(container, 'b')?.getAttribute('data-presentation-node')).toBe('box')
+  })
+
+  it('Appear and SceneLayer accept identity, class, style, and data props', () => {
+    const { container } = render(
+      <SceneLayer name="layer" id="layer-id" className="layer-hook" style={{ zIndex: 3 }} data-scene-hook="layer">
+        <Appear id="wrap-id" className="wrap-hook" style={{ zIndex: 5 }} entering={false}>
+          <span>inner</span>
+        </Appear>
+      </SceneLayer>,
+    )
+    const layer = container.querySelector('[data-presentation-layer="layer"]') as HTMLElement
+    expect(layer.getAttribute('data-presentation-layer-id')).toBe('layer-id')
+    expect(layer.classList.contains('layer-hook')).toBe(true)
+    expect(layer.style.zIndex).toBe('3')
+    expect(layer.style.position).toBe('absolute')
+    expect(layer.getAttribute('data-scene-hook')).toBe('layer')
+    const wrapper = container.querySelector('[data-presentation-appear]') as HTMLElement
+    expect(wrapper.getAttribute('data-presentation-appear-id')).toBe('wrap-id')
+    expect(wrapper.classList.contains('wrap-hook')).toBe(true)
+    expect(wrapper.style.zIndex).toBe('5')
+    expect(wrapper.style.position).toBe('absolute')
+  })
+})

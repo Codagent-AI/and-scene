@@ -17,25 +17,31 @@ const BUILD_PKG = {
   dependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' },
   devDependencies: { vite: '^8.0.0', typescript: '~6.0.0' },
 }
+// Kit fixtures carry real behaviour: the detector checks what the code does, not what it is called.
 const KIT_CANONICAL = [
-  'export type Step<P = unknown> = { id: string; payload: P }',
-  'export function Presentation() { return null }',
-  'export function usePresentationNav() { return 0 }',
-  'export function useFitScale() { return 1 }',
+  'export interface Step<P = unknown> { id: string; era: string; title: string; caption: string; scene: unknown; payload: P }',
+  'export function Presentation({ steps }: { steps: readonly Step<unknown>[] }) {',
+  '  window.addEventListener("keydown", (event) => { if (event.key === "ArrowRight") next() })',
+  '  window.addEventListener("touchend", (event) => { swipe(event) })',
+  '  const size = window.innerWidth',
+  '  const factor = Math.min(size / 880, 1)',
+  '  return <div style={{ transform: `scale(${factor})` }}>{steps.map((step) => <p key={step.id}>{step.title}</p>)}</div>',
+  '}',
   '',
 ].join('\n')
-// Same contract as KIT_CANONICAL with renamed internals, reformatting and an export list.
+// Same behaviour with renamed internals, reformatting, and an export list.
 const KIT_RENAMED = [
-  'type Deck = { id: string }',
-  'const Stage = () => null',
-  'function useNav() { return 0 }',
-  'function useScale() { return 1 }',
-  'export {',
-  '  Stage as Presentation,',
-  '  useNav as usePresentationNav,',
-  '  useScale as useFitScale,',
+  'type Frame = { id: string; era: string; title: string; caption: string; scene: unknown; payload: unknown }',
+  'function Deck({ steps }: { steps: readonly Frame[] }) {',
+  '  window.addEventListener("keydown", (event) => { if (event.key === "ArrowRight") advance() })',
+  '  window.addEventListener("touchend", (event) => { swipe(event) })',
+  '  const ratio = Math.min(window.innerWidth / 880, window.innerHeight / 380)',
+  '  return <div style={{ transform: `scale(${ratio})` }}>{steps.map((frame) => frame.title)}</div>',
   '}',
-  'export type { Deck as Step }',
+  'export {',
+  '  Deck as Presentation,',
+  '}',
+  'export type { Frame as Step }',
   '',
 ].join('\n')
 const REGISTRY_OK = "export const PRESENTATIONS = [\n  { slug: 'demo', title: 'Demo', load: () => import('./demo/Talk') },\n]\n"
@@ -68,7 +74,7 @@ const writeIndex = (app: string, content = REGISTRY_OK) =>
 async function makeTemplate(): Promise<string> {
   const root = await tmp()
   const tpl = path.join(root, 'template')
-  await writeBuild(tpl)
+  await writeBuild(tpl, { ...BUILD_PKG, dependencies: { ...BUILD_PKG.dependencies, motion: '^12.40.0', 'lucide-react': '^1.17.0' } })
   await Promise.all([
     write(tpl, 'package-lock.json', '{}\n'),
     write(tpl, 'tsconfig.json', '{}\n'),
@@ -127,7 +133,7 @@ describe('detectAnchors', () => {
     expect((await detectAnchors(app)).kit).toBe(true)
   })
 
-  it('does not count a kit that exports Presentation but not useFitScale', async () => {
+  it('does not count stub exports that have the right names but no behaviour', async () => {
     const app = await tmp()
     await writeKit(app, 'export function Presentation() { return null }\nexport function usePresentationNav() {}\nexport type Step = {}\n')
     expect((await detectAnchors(app)).kit).toBe(false)
@@ -135,8 +141,15 @@ describe('detectAnchors', () => {
 
   it('does not count a kit whose Step type is only a lookalike name', async () => {
     const app = await tmp()
-    await writeKit(app, KIT_CANONICAL.replace('export type Step<P = unknown>', 'export type StepMeta<P = unknown>'))
+    await writeKit(app, KIT_CANONICAL.replace('export interface Step<P = unknown>', 'export interface StepMeta<P = unknown>'))
     expect((await detectAnchors(app)).kit).toBe(false)
+  })
+
+  it('does not count a registry whose load is not a dynamic import', async () => {
+    const app = await tmp()
+    await writeBuild(app)
+    await writeIndex(app, "export const PRESENTATIONS = [\n  { slug: 'demo', title: 'Demo', load: () => demo },\n]\n")
+    expect((await detectAnchors(app)).index).toBe(false)
   })
 
   it('does not count a registry without a load field', async () => {
@@ -145,7 +158,7 @@ describe('detectAnchors', () => {
     expect((await detectAnchors(app)).index).toBe(false)
   })
 
-  it('does not count a registry without a slug field', async () => {
+  it('does not count a registry without a slug field (legacy case)', async () => {
     const app = await tmp()
     await writeIndex(app, "export const PRESENTATIONS = [{ title: 'Demo', load: () => import('./x') }]\n")
     expect((await detectAnchors(app)).index).toBe(false)
@@ -334,7 +347,7 @@ describe('planScaffold and applyScaffold', () => {
     expect(merged.dependencies.react).toBe('18.0.0')
     expect(merged.dependencies['left-pad']).toBe('1.0.0')
     expect(merged.dependencies['react-dom']).toBe('^19.0.0')
-    expect(merged.dependencies.motion).toBeUndefined()
+    expect(merged.dependencies.motion).toBe('^12.40.0')
     expect(merged.scripts.build).toBe('custom build')
     expect(merged.devDependencies.vite).toBe('^8.0.0')
   })
@@ -364,6 +377,23 @@ describe('planScaffold and applyScaffold', () => {
     await applyScaffold(app, { templateRoot: tpl })
     expect(await fs.readFile(path.join(app, 'src/presentation-kit/index.ts'), 'utf8')).toBe(KIT_RENAMED)
     expect(await fs.access(path.join(app, 'src/Router.tsx')).then(() => true, () => false)).toBe(false)
+  })
+})
+
+describe('partial scaffold dependencies', () => {
+  it('merges missing runtime dependencies into an existing build setup', async () => {
+    const tpl = await makeTemplate()
+    const app = await tmp()
+    await writeBuild(app)
+    await writeKit(app, KIT_CANONICAL)
+    await writeIndex(app)
+    const plan = await planScaffold(app, { templateRoot: tpl })
+    expect(plan.files).toContainEqual({ rel: 'package.json', action: 'merge-package-json' })
+    await applyScaffold(app, { templateRoot: tpl })
+    const pkg = JSON.parse(await fs.readFile(path.join(app, 'package.json'), 'utf8'))
+    expect(pkg.dependencies.motion).toBeDefined()
+    expect(pkg.dependencies['lucide-react']).toBeDefined()
+    expect(pkg.dependencies.react).toBe(BUILD_PKG.dependencies.react)
   })
 })
 

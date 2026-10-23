@@ -1,4 +1,10 @@
 /* Presentation-owned look. The scene kit ships no visual defaults. */
+
+/* Use the full phone width: the default 8px body margin would shrink the scaled canvas. */
+body:has([data-presentation-root]) {
+  margin: 0;
+}
+
 [data-presentation-root] {
   background: #f7f5ef;
   color: #1d1f24;
@@ -128,9 +134,20 @@
   justify-content: center;
   gap: 6px;
   text-align: center;
-  font-size: 13px;
+  /* The 880 x 380 canvas scales to about 0.4 on a phone, so scene text is large on the canvas. */
+  font-size: 22px;
+  line-height: 1.15;
   padding: 6px;
   border-radius: 10px;
+}
+
+.talk-control {
+  white-space: nowrap;
+}
+
+.talk-verify {
+  /* Leave room for the pass chip that sits on the bottom of the node. */
+  padding-bottom: 46px;
 }
 
 .talk-person,
@@ -223,15 +240,15 @@
 
 .talk-reveal > span {
   position: absolute;
-  top: -10px;
+  top: -14px;
   left: 14px;
   background: #f7f5ef;
   padding: 0 6px;
-  font-size: 12px;
+  font-size: 20px;
 }
 
 .talk-reveal-label {
   justify-content: flex-start;
-  font-size: 12px;
+  font-size: 20px;
   color: #5b5f69;
 }

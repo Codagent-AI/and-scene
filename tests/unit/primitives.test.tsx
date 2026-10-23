@@ -50,11 +50,24 @@ describe('node primitives', () => {
   it('positions an arrow as an entity box around its geometry so it can morph like other entities', () => {
     expect(arrowBox({ x: 100, y: 50 }, { x: 300, y: 50 })).toEqual({ x: 88, y: 38, width: 224, height: 24 })
     const { container } = render(<Arrow id="m" from={{ x: 100, y: 50 }} to={{ x: 300, y: 50 }} />)
-    const svg = container.querySelector('[data-presentation-entity="m"]') as SVGElement
-    expect([svg.style.position, svg.style.left, svg.style.top]).toEqual(['absolute', '88px', '38px'])
-    expect(svg.getAttribute('width')).toBe('224')
+    const entity = container.querySelector('[data-presentation-entity="m"]') as HTMLElement
+    expect([entity.style.position, entity.style.left, entity.style.top, entity.style.width, entity.style.height]).toEqual([
+      'absolute',
+      '88px',
+      '38px',
+      '224px',
+      '24px',
+    ])
     // Local path coordinates: the line starts at the pad offset inside its own box.
-    expect(svg.querySelector(':scope > path')?.getAttribute('d')).toBe('M 12 12 Q 112 12 212 12')
+    expect(entity.querySelector(':scope > svg > path')?.getAttribute('d')).toBe('M 12 12 Q 112 12 212 12')
+  })
+
+  it('carries the arrow entity on an HTML wrapper, because Motion does not project layout onto a bare svg', () => {
+    const { container } = render(<Arrow id="p" from={{ x: 0, y: 0 }} to={{ x: 80, y: 0 }} />)
+    const entity = container.querySelector('[data-presentation-entity="p"]') as Element
+    expect(entity.namespaceURI).toBe('http://www.w3.org/1999/xhtml')
+    expect(entity.tagName.toLowerCase()).toBe('div')
+    expect(entity.querySelector(':scope > svg')).not.toBeNull()
   })
 
   it('supports raw motion elements with stable layoutIds next to primitives, and stacked entities', () => {

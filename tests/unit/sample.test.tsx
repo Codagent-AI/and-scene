@@ -60,4 +60,28 @@ describe('committed reference sample', () => {
     expect(per[7]).toMatch(/edited-flag/)
     expect(per[8]).toMatch(/reveal-frame/)
   })
+
+  it('keeps the "morphs" label clear of every card, node and flag around the link it names', () => {
+    const rect = (e: Element) => {
+      const st = (e as HTMLElement).style
+      const [x, y, w, h] = [st.left, st.top, st.width, st.height].map((v) => parseFloat(v))
+      return { x, y, r: x + w, b: y + h }
+    }
+    for (let step = 2; step < STEP_META.length; step++) {
+      const { container, unmount } = render(<SampleScene payload={{ step }} />)
+      const entities = [...container.querySelectorAll('[data-presentation-entity]')]
+      const morphs = entities.find((e) => e.getAttribute('data-presentation-entity') === 'how-to/morphs-label')!
+      expect(morphs, `step ${step + 1} shows the morphs label`).toBeDefined()
+      const m = rect(morphs)
+      for (const e of entities) {
+        const id = e.getAttribute('data-presentation-entity')!
+        if (e === morphs || e.getAttribute('data-presentation-kind') === 'arrow') continue
+        if (id.endsWith('reveal-frame') || id.endsWith('reveal-label')) continue // the reveal frame encloses everything by design
+        const o = rect(e)
+        const apart = m.r <= o.x || o.r <= m.x || m.b <= o.y || o.b <= m.y
+        expect(apart, `step ${step + 1}: morphs label overlaps ${id}`).toBe(true)
+      }
+      unmount()
+    }
+  })
 })

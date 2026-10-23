@@ -17,8 +17,10 @@ export interface ArrowProps {
 }
 
 /**
- * An arrow is a positioned entity like any other: its svg box carries the layoutId, so an arrow with
- * the same id morphs to its new geometry across steps, whether or not the scene instance persists.
+ * An arrow is a positioned entity like any other: an HTML wrapper carries the layoutId and the box
+ * geometry (Motion does not project layout onto a bare `svg`), so an arrow with the same id morphs
+ * to its new geometry across steps, whether or not the scene instance persists. The svg inside is
+ * drawn in the wrapper's local coordinates.
  */
 export function Arrow({ id, from, to, curve = 0, bidirectional = false, className, style }: ArrowProps) {
   const box = arrowBox(from, to, curve)
@@ -26,7 +28,7 @@ export function Arrow({ id, from, to, curve = 0, bidirectional = false, classNam
   const end = `${id}-end`
   const start = `${id}-start`
   return (
-    <motion.svg
+    <motion.div
       layout
       layoutId={id}
       data-presentation-entity={id}
@@ -36,25 +38,25 @@ export function Arrow({ id, from, to, curve = 0, bidirectional = false, classNam
       animate={{ opacity: 1, transition: { duration: ENTER_T, delay: ENTER_DELAY, ease: EASE } }}
       exit={{ opacity: 0, transition: { duration: ENTER_T / 2 } }}
       transition={{ layout: { duration: LAYOUT_T, ease: EASE } }}
-      width={box.width}
-      height={box.height}
-      style={{ position: 'absolute', left: box.x, top: box.y, overflow: 'visible', pointerEvents: 'none', ...style }}
+      style={{ position: 'absolute', left: box.x, top: box.y, width: box.width, height: box.height, pointerEvents: 'none', ...style }}
     >
-      <defs>
-        <marker id={end} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
-          <path d="M0,0 L8,4 L0,8 z" fill="currentColor" />
-        </marker>
-        <marker id={start} markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
-          <path d="M0,0 L8,4 L0,8 z" fill="currentColor" />
-        </marker>
-      </defs>
-      <path
-        d={arrowPath(local(from), local(to), curve)}
-        fill="none"
-        stroke="currentColor"
-        markerEnd={`url(#${end})`}
-        markerStart={bidirectional ? `url(#${start})` : undefined}
-      />
-    </motion.svg>
+      <svg width={box.width} height={box.height} style={{ display: 'block', overflow: 'visible' }}>
+        <defs>
+          <marker id={end} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M0,0 L8,4 L0,8 z" fill="currentColor" />
+          </marker>
+          <marker id={start} markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+            <path d="M0,0 L8,4 L0,8 z" fill="currentColor" />
+          </marker>
+        </defs>
+        <path
+          d={arrowPath(local(from), local(to), curve)}
+          fill="none"
+          stroke="currentColor"
+          markerEnd={`url(#${end})`}
+          markerStart={bidirectional ? `url(#${start})` : undefined}
+        />
+      </svg>
+    </motion.div>
   )
 }

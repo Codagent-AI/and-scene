@@ -9,6 +9,10 @@ export interface ScenePayload {
 }
 
 const cardMid = TRAY.y + TRAY.cardH / 2
+// The gap between cards is narrower than the label, so "morphs" is centred under the first link
+// instead of sitting on top of either card.
+const MORPHS_W = 60
+const morphsX = slotX(0) + TRAY.cardW + (TRAY.pitch - TRAY.cardW) / 2 - MORPHS_W / 2
 
 /** One scene for every step: entities are added, never rearranged or redrawn. */
 export function SampleScene({ payload }: SceneProps<ScenePayload>) {
@@ -79,7 +83,7 @@ export function SampleScene({ payload }: SceneProps<ScenePayload>) {
           />
         ))}
       {s >= 2 && (
-        <Label key={E.morphs} id={E.morphs} x={slotX(0) + TRAY.cardW - 20} y={cardMid + 24} width={60} height={18}>
+        <Label key={E.morphs} id={E.morphs} x={morphsX} y={TRAY.y + TRAY.cardH + 10} width={MORPHS_W} height={18}>
           morphs
         </Label>
       )}

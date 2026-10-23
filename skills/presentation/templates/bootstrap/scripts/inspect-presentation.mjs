@@ -53,14 +53,14 @@ export function findOverlaps(items) {
   return out
 }
 
-const SIGNATURE_KEYS = [
+// Paint-related properties compared between active and inactive controls.
+// Size is added for progress items only: ToC entry widths follow their text.
+const PAINT_KEYS = [
   'backgroundColor',
   'color',
   'borderColor',
   'borderWidth',
   'opacity',
-  'width',
-  'height',
   'boxShadow',
   'outlineStyle',
   'outlineColor',
@@ -68,11 +68,12 @@ const SIGNATURE_KEYS = [
   'textDecorationLine',
   'transform',
 ]
+const SIZE_KEYS = ['width', 'height']
 
 /** True when the active control's computed style matches every inactive one. */
 export function isIndistinctActive(active, inactive) {
   if (!active || inactive.length === 0) return false
-  const same = (a, b) => SIGNATURE_KEYS.every((k) => a[k] === b[k])
+  const same = (a, b) => Object.keys(active).every((k) => a[k] === b[k])
   return inactive.every((s) => same(active, s))
 }
 
@@ -112,7 +113,7 @@ export function describeWarnings(stepIndex, analysis) {
 }
 
 /** Runs inside the page: gathers visible text/chrome geometry and chrome styles. */
-export function collectAnalysis() {
+export function collectAnalysis([paintKeys, sizeKeys]) {
   const CHROME = '[data-presentation-header],[data-presentation-footer],[data-presentation-toc],[data-presentation-attribution]'
   const root = document.querySelector('[data-presentation-root]')
   const effectiveOpacity = (el) => {
@@ -165,25 +166,24 @@ export function collectAnalysis() {
     allowed: e.el.closest('[data-presentation-allow-overlap]') !== null,
     contains: list.filter((o) => o !== e && e.el.contains(o.el)).map((o) => o.id),
   }))
-  const KEYS = ['backgroundColor', 'color', 'borderColor', 'borderWidth', 'opacity', 'width', 'height', 'boxShadow', 'outlineStyle', 'outlineColor', 'fontWeight', 'textDecorationLine', 'transform']
-  const sig = (el) => {
+  const sig = (el, keys) => {
     const cs = getComputedStyle(el)
-    return Object.fromEntries(KEYS.map((k) => [k, cs[k]]))
+    return Object.fromEntries(keys.map((k) => [k, cs[k]]))
   }
-  const group = (sel) => {
+  const group = (sel, keys) => {
     const all = [...root.querySelectorAll(sel)].filter(visible)
     const active = all.find((e) => e.hasAttribute('data-presentation-active'))
     return {
-      active: active ? sig(active) : null,
-      inactive: all.filter((e) => e !== active).map(sig),
+      active: active ? sig(active, keys) : null,
+      inactive: all.filter((e) => e !== active).map((e) => sig(e, keys)),
     }
   }
   const attr = root.querySelector('[data-presentation-attribution]')
   const acs = attr && getComputedStyle(attr)
   return {
     items,
-    progress: group('[data-presentation-progress-item]'),
-    toc: group('[data-presentation-toc-item]'),
+    progress: group('[data-presentation-progress-item]', [...paintKeys, ...sizeKeys]),
+    toc: group('[data-presentation-toc-item]', paintKeys),
     attribution: attr
       ? { fontSize: parseFloat(acs.fontSize), color: acs.color, fontFamily: acs.fontFamily, textDecorationLine: acs.textDecorationLine }
       : null,
@@ -258,7 +258,7 @@ export async function inspect({ root = process.cwd(), slug, settle = DEFAULT_SET
           count,
           settleMs: settle,
           shotPath: (i) => screenshotPath(root, slug, i, p.variant),
-          analyze: (pg) => pg.evaluate(collectAnalysis),
+          analyze: (pg) => pg.evaluate(collectAnalysis, [PAINT_KEYS, SIZE_KEYS]),
         })
         report.passes.push({ name: p.name, viewport: p.viewport, steps })
       } finally {

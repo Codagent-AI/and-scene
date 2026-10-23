@@ -1,24 +1,7 @@
-import { motion } from 'motion/react'
-import type { ReactNode } from 'react'
-import { LAYOUT_T, EASE } from '../constants.ts'
-import { placementStyle, type DomPassthrough, type NodeProps, type Placement } from './shared.ts'
+import { BaseNode, type BaseNodeProps } from './BaseNode.tsx'
 
-export interface LabelProps extends NodeProps, Placement, DomPassthrough {
-  children?: ReactNode
-}
+export type LabelProps = BaseNodeProps
 
-export function Label({ id, x, y, w, h, className, style, children, ...rest }: LabelProps) {
-  return (
-    <motion.span
-      {...rest}
-      layoutId={id}
-      transition={{ layout: { duration: LAYOUT_T, ease: EASE } }}
-      className={className}
-      style={placementStyle({ x, y, w, h }, style)}
-      data-presentation-node="label"
-      data-presentation-entity={id}
-    >
-      {children}
-    </motion.span>
-  )
+export function Label(props: LabelProps) {
+  return <BaseNode as="span" kind="label" {...props} />
 }

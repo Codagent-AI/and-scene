@@ -100,16 +100,16 @@ export function freePort() {
   })
 }
 
-export async function startPreview(root, port) {
+export async function startPreview(root, port, log = () => {}) {
   const vite = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')
   const child = spawn(process.execPath, [vite, 'preview', '--host', HOST, '--port', String(port), '--strictPort'], {
     cwd: root,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
-  let log = ''
-  child.stdout.on('data', (d) => (log += d))
-  child.stderr.on('data', (d) => (log += d))
+  let output = ''
+  child.stdout.on('data', (d) => (output += d))
+  child.stderr.on('data', (d) => (output += d))
   const exited = new Promise((resolve) => child.once('exit', resolve))
   let dead = false
   exited.then(() => (dead = true))
@@ -134,14 +134,17 @@ export async function startPreview(root, port) {
     if (dead) break
     try {
       const res = await fetch(previewUrl(port))
-      if (res.ok) return { stop, log: () => log }
+      if (res.ok) {
+        log(`verify: preview ready at ${previewUrl(port)} (readiness probe)`)
+        return { stop }
+      }
     } catch {
       /* not ready */
     }
     await new Promise((r) => setTimeout(r, 200))
   }
   await stop()
-  throw new Error(`preview did not become ready on ${previewUrl(port)}\n${log}`)
+  throw new Error(`preview did not become ready on ${previewUrl(port)}\n${output}`)
 }
 
 async function readStep(page) {
@@ -157,13 +160,14 @@ async function readStep(page) {
 }
 
 /** Steps through one route; returns a failure result or the rendered outline. */
-export async function renderRoute(browser, port, slug) {
+export async function renderRoute(browser, port, slug, log = () => {}) {
   const page = await browser.newPage()
   let current = 0
   const collector = createErrorCollector(() => current)
   page.on('console', collector.onConsole)
   page.on('pageerror', collector.onPageError)
   try {
+    log(`verify: opening ${previewUrl(port, `/${slug}`)}`)
     await page.goto(previewUrl(port, `/${slug}`), { waitUntil: 'load' })
     try {
       await page.waitForSelector('[data-step-count]', { timeout: 10000 })
@@ -177,11 +181,14 @@ export async function renderRoute(browser, port, slug) {
       current = i
       const idx = Number(await page.getAttribute('[data-step-count]', 'data-step-index'))
       if (idx !== i) return fail('transition', `expected step index ${i} but the page reports ${idx} (/${slug})`, i)
-      outline.push(await readStep(page))
+      const shown = await readStep(page)
+      outline.push(shown)
+      log(`verify: /${slug} step ${i + 1}/${count} (index ${i}) "${shown.title}"`)
       await page.waitForTimeout(SETTLE_MS)
       const err = collector.errors.find((e) => e.step === i)
       if (err) return fail('render', `${err.message} (/${slug})`, i)
       if (i < count - 1) {
+        current = i + 1 // errors raised while moving to the next step belong to it
         await page.keyboard.press('ArrowRight')
         try {
           await page.waitForFunction(
@@ -192,6 +199,7 @@ export async function renderRoute(browser, port, slug) {
         } catch {
           const err2 = collector.errors[0]
           if (err2) return fail('render', `${err2.message} (/${slug})`, err2.step)
+          current = i
           return fail('transition', `step index did not advance from ${i} to ${i + 1} (/${slug})`, i)
         }
       }
@@ -205,7 +213,7 @@ export async function renderRoute(browser, port, slug) {
   }
 }
 
-export async function verify({ root = process.cwd(), port } = {}) {
+export async function verify({ root = process.cwd(), port, log = () => {} } = {}) {
   const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'))
   const cfg = pkg.andScene ?? {}
 
@@ -235,14 +243,14 @@ export async function verify({ root = process.cwd(), port } = {}) {
 
   const { chromium } = await import('playwright')
   const previewPort = port ?? (await freePort())
-  const preview = await startPreview(root, previewPort)
+  const preview = await startPreview(root, previewPort, log)
   let browser
   try {
     browser = await chromium.launch()
     const targets = cfg.reference ? [cfg.reference] : slugs
     let steps = 0
     for (const slug of targets) {
-      const r = await renderRoute(browser, previewPort, slug)
+      const r = await renderRoute(browser, previewPort, slug, log)
       if (!r.ok) return r
       steps += r.count
       if (slug === cfg.reference) {
@@ -266,7 +274,7 @@ function parseArgs(argv) {
 
 async function main() {
   const { port } = parseArgs(process.argv.slice(2))
-  const result = await verify({ port }).catch((e) => fail('verify', String(e?.stack ?? e)))
+  const result = await verify({ port, log: console.log }).catch((e) => fail('verify', String(e?.stack ?? e)))
   const line = formatResult(result)
   if (result.ok) console.log(line)
   else console.error(line)

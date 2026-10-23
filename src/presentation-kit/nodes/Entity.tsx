@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { motion } from 'motion/react'
 import { ENTER_DELAY, ENTER_T, EASE, LAYOUT_T } from '../constants'
+import { useContinuesFromPrevious } from './useContinuesFromPrevious'
 
 export interface EntityProps {
   /** Stable identity; also the motion layoutId, so it must be unique per presentation. */
@@ -33,6 +34,7 @@ export function Entity({
   Icon,
   children,
 }: EntityProps & { kind: string }) {
+  const continues = useContinuesFromPrevious(id)
   return (
     <motion.div
       layout
@@ -41,7 +43,7 @@ export function Entity({
       data-presentation-entity={id}
       data-presentation-kind={kind}
       className={className}
-      initial={{ opacity: 0 }}
+      initial={continues ? false : { opacity: 0 }}
       animate={{ opacity: 1, transition: { duration: ENTER_T, delay: ENTER_DELAY, ease: EASE } }}
       exit={{ opacity: 0, transition: { duration: ENTER_T / 2 } }}
       transition={{ layout: { duration: LAYOUT_T, ease: EASE } }}

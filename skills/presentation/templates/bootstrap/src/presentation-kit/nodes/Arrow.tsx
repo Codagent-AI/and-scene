@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { motion } from 'motion/react'
 import { ENTER_DELAY, ENTER_T, EASE, LAYOUT_T } from '../constants'
+import { useContinuesFromPrevious } from './useContinuesFromPrevious'
 import { arrowBox, arrowPath } from './arrowPath'
 import type { Point } from './arrowPath'
 
@@ -27,6 +28,7 @@ export function Arrow({ id, from, to, curve = 0, bidirectional = false, classNam
   const local = (p: Point) => ({ x: p.x - box.x, y: p.y - box.y })
   const end = `${id}-end`
   const start = `${id}-start`
+  const continues = useContinuesFromPrevious(id)
   return (
     <motion.div
       layout
@@ -34,7 +36,7 @@ export function Arrow({ id, from, to, curve = 0, bidirectional = false, classNam
       data-presentation-entity={id}
       data-presentation-kind="arrow"
       className={className}
-      initial={{ opacity: 0 }}
+      initial={continues ? false : { opacity: 0 }}
       animate={{ opacity: 1, transition: { duration: ENTER_T, delay: ENTER_DELAY, ease: EASE } }}
       exit={{ opacity: 0, transition: { duration: ENTER_T / 2 } }}
       transition={{ layout: { duration: LAYOUT_T, ease: EASE } }}

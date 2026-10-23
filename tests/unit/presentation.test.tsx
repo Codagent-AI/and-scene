@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useEffect } from 'react'
 import { describe, expect, it } from 'vitest'
-import { Box, LAYOUT_T, Presentation, SceneLayer, defineStep } from '../../src/presentation-kit'
+import { Arrow, Box, LAYOUT_T, Presentation, SceneLayer, defineStep } from '../../src/presentation-kit'
 import type { PresentationStep, SceneProps } from '../../src/presentation-kit'
 
 interface Payload {
@@ -246,5 +246,43 @@ describe('entity motion', () => {
     } finally {
       HTMLElement.prototype.getBoundingClientRect = original
     }
+  })
+
+  describe('entities shared across separate scenes', () => {
+    function Left() {
+      return (
+        <SceneLayer>
+          <Box key="shared" id="shared" x={10} y={10} width={100} height={40} />
+          <Arrow key="shared-arrow" id="shared-arrow" from={{ x: 10, y: 80 }} to={{ x: 110, y: 80 }} />
+        </SceneLayer>
+      )
+    }
+    function Right() {
+      return (
+        <SceneLayer>
+          <Box key="shared" id="shared" x={410} y={10} width={100} height={40} />
+          <Arrow key="shared-arrow" id="shared-arrow" from={{ x: 10, y: 80 }} to={{ x: 310, y: 80 }} />
+          <Box key="fresh" id="fresh" x={10} y={120} width={100} height={40} />
+        </SceneLayer>
+      )
+    }
+    const crossScene = [
+      defineStep({ ...meta(1, 'e'), groupKey: 'left', Scene: Left, payload: {} }),
+      defineStep({ ...meta(2, 'e'), groupKey: 'right', Scene: Right, payload: {} }),
+    ]
+
+    it('lets a shared id continue from the previous scene instead of re-entering hidden', async () => {
+      const { container } = render(<Presentation steps={crossScene} title="Deck" />)
+      const inScene = (scene: string, id: string) =>
+        container.querySelector(`[data-presentation-scene="${scene}"] [data-presentation-entity="${id}"]`) as HTMLElement | null
+      await waitFor(() => expect(opacity(inScene('left', 'shared'))).toBeGreaterThan(0.99))
+      press('ArrowRight')
+      await waitFor(() => expect(inScene('right', 'shared')).not.toBeNull())
+      // Boxes and arrows that carry an id from the exiting scene are visible at once, so they can morph out of it.
+      expect(opacity(inScene('right', 'shared'))).toBeGreaterThan(0.99)
+      expect(opacity(inScene('right', 'shared-arrow'))).toBeGreaterThan(0.99)
+      // An entity the previous scene did not have still enters hidden.
+      expect(inScene('right', 'fresh')?.style.opacity).toBe('0')
+    })
   })
 })

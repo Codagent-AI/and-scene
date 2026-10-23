@@ -1,5 +1,9 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import {
   CANONICAL_SAMPLE, VerifyError, checkOutline, checkRegistration, exitCodeFor, formatFailure, indexProblem, parseArgs as parseVerifyArgs,
@@ -8,7 +12,7 @@ import {
   DEFAULT_SETTLE_MS, DISTINCT_PROPS, SLUG_PATTERN, inspect, MIN_ATTRIBUTION_FONT_PX, UA_LINK_COLOR, analyzeSnapshot, attributionIssues, captureSteps, findOverlaps,
   isIndistinct, parseArgs as parseInspectArgs, resolveSettle, screenshotName,
 } from '../../scripts/inspect-presentation.mjs'
-import { HOST, previewUrl } from '../../scripts/lib/preview.mjs'
+import { HOST, isMainModule, previewUrl } from '../../scripts/lib/preview.mjs'
 
 const canonical = CANONICAL_SAMPLE.steps
 const clone = () => canonical.map((s) => ({ ...s }))
@@ -116,7 +120,14 @@ describe('inspect settle interval (L-60)', () => {
     expect(resolveSettle([], {})).toBe(DEFAULT_SETTLE_MS)
     expect(resolveSettle([], { INSPECT_SETTLE_MS: '250' })).toBe(250)
     expect(resolveSettle(['--settle', '90'], { INSPECT_SETTLE_MS: '250' })).toBe(90)
-    expect(resolveSettle(['--settle', 'x'], { INSPECT_SETTLE_MS: 'y' })).toBe(DEFAULT_SETTLE_MS)
+    expect(resolveSettle([], { INSPECT_SETTLE_MS: 'y' })).toBe(DEFAULT_SETTLE_MS)
+  })
+  it('rejects an invalid --settle value instead of silently using the default', () => {
+    for (const bad of ['abc', '-1', '', 'NaN', 'Infinity']) {
+      expect(() => resolveSettle(['--settle', bad], {})).toThrow(/--settle requires a non-negative number/)
+    }
+    expect(() => parseInspectArgs(['demo', '--settle'], {})).toThrow(/--settle requires/)
+    expect(resolveSettle(['--settle', '0'], {})).toBe(0)
   })
   it('parses slug, flags and output directory', () => {
     expect(parseInspectArgs(['demo', '--narrow', '--settle', '5', '--no-build'], {})).toMatchObject({ slug: 'demo', narrow: true, noBuild: true, settleMs: 5, outDir: 'inspection' })
@@ -220,5 +231,33 @@ describe('active-chrome and attribution diagnostics (L-63, L-64, C-1, I-34)', ()
     expect(attributionIssues(null)).toEqual(['attribution link is missing'])
     const w = analyzeSnapshot(1, { items: [], activeChrome: [], attribution: null })
     expect(w[0]).toMatch(/step 1: attribution link is missing; style \[data-presentation-attribution\]/)
+  })
+})
+
+describe('script entry guard survives symlinked paths', () => {
+  it('treats a symlinked argv[1] as the main module and an unrelated path as not', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'guard-'))
+    try {
+      const real = path.resolve('scripts/verify.mjs')
+      symlinkSync(path.resolve('scripts'), path.join(dir, 'linked'))
+      expect(isMainModule(pathToFileURL(real).href, real)).toBe(true)
+      expect(isMainModule(pathToFileURL(real).href, path.join(dir, 'linked/verify.mjs'))).toBe(true)
+      expect(isMainModule(pathToFileURL(real).href, path.resolve('scripts/inspect-presentation.mjs'))).toBe(false)
+      expect(isMainModule(pathToFileURL(real).href, undefined)).toBe(false)
+      expect(isMainModule(pathToFileURL(real).href, path.join(dir, 'missing.mjs'))).toBe(false)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+  it('runs the inspect CLI through a symlinked path and fails loudly without arguments', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'guard-'))
+    try {
+      symlinkSync(path.resolve('scripts'), path.join(dir, 'linked'))
+      const run = spawnSync(process.execPath, [path.join(dir, 'linked/inspect-presentation.mjs')], { cwd: dir, encoding: 'utf8' })
+      expect(run.status).toBe(1)
+      expect(run.stderr).toMatch(/usage/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

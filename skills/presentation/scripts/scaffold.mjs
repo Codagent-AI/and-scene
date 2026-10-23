@@ -5,9 +5,9 @@
 //   node scaffold.mjs apply <dir> [--confirmed] [--install]
 //   node scaffold.mjs new <dir> --slug <slug> --title <title>
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 export const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 export const TEMPLATES = {
@@ -125,7 +125,8 @@ export function resolveTarget(dir) {
 function groupOf(rel) {
   if (rel.startsWith(`src${path.sep}presentation-kit${path.sep}`)) return 'kit'
   if (rel.startsWith(`scripts${path.sep}`)) return 'tooling'
-  const indexFiles = ['src/main.tsx', 'src/Router.tsx', 'src/routes.ts', 'src/Landing.tsx'].map((f) => f.split('/').join(path.sep))
+  // index.css and vite-env.d.ts belong with the router entry: it imports the CSS, and the CSS side-effect imports need the Vite client types.
+  const indexFiles = ['src/main.tsx', 'src/Router.tsx', 'src/routes.ts', 'src/Landing.tsx', 'src/index.css', 'src/vite-env.d.ts'].map((f) => f.split('/').join(path.sep))
   if (indexFiles.includes(rel) || rel.startsWith(`src${path.sep}presentations${path.sep}`)) return 'index'
   return 'build'
 }
@@ -326,4 +327,12 @@ function main(argv) {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main(process.argv.slice(2))
+// A symlinked argv[1] (a linked skill directory, /tmp on macOS) must still run the CLI instead of exiting silently.
+const isMain = () => {
+  try {
+    return Boolean(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+if (isMain()) main(process.argv.slice(2))

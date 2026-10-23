@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { spawnSync } from 'node:child_process'
 import ts from 'typescript'
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -250,6 +250,17 @@ describe('skill-relative template resolution (L-41, I-39)', () => {
     expect(run.status).toBe(0)
     expect(existsSync(path.join(target, 'src/presentation-kit/Presentation.tsx'))).toBe(true)
   })
+  it('runs the CLI when started through a symlinked path instead of exiting silently', () => {
+    const link = path.join(tmp(), 'linked-skill')
+    symlinkSync(path.resolve('skills/presentation'), link)
+    const target = tmp()
+    const planned = spawnSync(process.execPath, [path.join(link, 'scripts/scaffold.mjs'), 'plan', target], { cwd: tmp(), encoding: 'utf8' })
+    expect(planned.status).toBe(0)
+    expect(JSON.parse(planned.stdout).missing).toEqual(['build', 'kit', 'index'])
+    const run = spawnSync(process.execPath, [path.join(link, 'scripts/scaffold.mjs'), 'apply', target], { cwd: tmp(), encoding: 'utf8' })
+    expect(run.status).toBe(0)
+    expect(existsSync(path.join(target, 'src/presentation-kit/Presentation.tsx'))).toBe(true)
+  })
   it('exits with code 2 and writes nothing when confirmation is missing', () => {
     const d = tmp()
     write(d, 'a.txt', 'x')
@@ -323,6 +334,40 @@ describe('creating a presentation preserves the others (L-44, I-43)', () => {
   })
   it('refuses to create without a registry or kit entry', () => {
     expect(() => createPresentation(tmp(), { slug: 'x', title: 'x' })).toThrow(/no presentation registry/)
+  })
+})
+
+describe('scaffolding into an existing build setup leaves what the router entry imports in place', () => {
+  const buildOnly = () => {
+    const d = tmp()
+    write(d, 'package.json', pkg())
+    write(d, 'index.html', '<html><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>')
+    write(d, 'tsconfig.json', '{ "compilerOptions": { "jsx": "react-jsx" }, "include": ["src"] }')
+    write(d, 'src/main.tsx', "import { createRoot } from 'react-dom/client'\n")
+    return d
+  }
+  it('writes the stylesheet and Vite client types that the router entry and presentations import', () => {
+    const d = buildOnly()
+    const p = plan(d)
+    expect(p.missing).toEqual(['kit', 'index'])
+    expect(p.files.map((f: { rel: string }) => f.rel)).toEqual(expect.arrayContaining(['src/index.css', 'src/vite-env.d.ts']))
+    apply(d, { confirmed: true })
+    expect(readFileSync(path.join(d, 'src/vite-env.d.ts'), 'utf8')).toContain('vite/client')
+    expect(existsSync(path.join(d, 'src/index.css'))).toBe(true)
+    expect(existsSync(path.join(d, 'tsconfig.app.json'))).toBe(false)
+  })
+  it('keeps the project’s own stylesheet and type declarations', () => {
+    const d = buildOnly()
+    write(d, 'src/index.css', '/* mine */')
+    write(d, 'src/vite-env.d.ts', '// mine')
+    apply(d, { confirmed: true })
+    expect(readFileSync(path.join(d, 'src/index.css'), 'utf8')).toBe('/* mine */')
+    expect(readFileSync(path.join(d, 'src/vite-env.d.ts'), 'utf8')).toBe('// mine')
+  })
+  it('imports modules without .ts/.tsx specifiers so the host tsconfig needs no allowImportingTsExtensions', () => {
+    for (const f of ['src/main.tsx', 'src/Router.tsx', 'src/Landing.tsx', 'src/routes.ts', 'src/presentations/index.ts']) {
+      expect(readFileSync(path.join(TEMPLATES.bootstrap, f), 'utf8')).not.toMatch(/from\s+['"][^'"]+\.tsx?['"]/)
+    }
   })
 })
 

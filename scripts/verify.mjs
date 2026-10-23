@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
-import { HOST, previewUrl, runBuild, startPreview } from './lib/preview.mjs'
+import { HOST, isMainModule, previewUrl, runBuild, startPreview } from './lib/preview.mjs'
 
 const SAMPLE_SLUG = 'how-to-make-a-presentation'
 const STEP_TIMEOUT_MS = 4000
@@ -211,7 +211,7 @@ export async function verify({ root = process.cwd(), route = null } = {}) {
   console.log(`VERIFY PASS: build, sample, render (${count} steps) on 127.0.0.1`)
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url)) {
   const { route } = parseArgs(process.argv.slice(2))
   try {
     await verify({ route })

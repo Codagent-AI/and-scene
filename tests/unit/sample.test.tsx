@@ -245,3 +245,19 @@ describe('sample-wide continuity (L-8, L-49, I-6, I-25)', () => {
     expect(after.w).toBeGreaterThan(before.w)
   })
 })
+
+describe('reference sample narrow-screen chrome (L-61)', () => {
+  const css = readFileSync('src/presentations/how-to-make-a-presentation/presentation.css', 'utf8')
+  const narrow = /@media\s*\(max-width:\s*(\d+)px\)\s*\{([\s\S]*?)\n\}/.exec(css)
+
+  it('lifts the footer controls above the attribution strip on phone-width screens', () => {
+    expect(narrow).not.toBeNull()
+    expect(Number(narrow![1])).toBeGreaterThanOrEqual(390)
+    const footer = /\[data-presentation-footer\]\s*\{([^}]*)\}/.exec(narrow![2]!)![1]!
+    const clearance = Number(/padding-bottom:\s*(\d+)px/.exec(footer)![1])
+    const attribution = /\[data-presentation-attribution\]\s*\{([^}]*)\}/.exec(css)![1]!
+    const font = Number(/font-size:\s*(\d+)px/.exec(attribution)![1])
+    const padY = Number(/padding:\s*(\d+)px/.exec(attribution)![1])
+    expect(clearance).toBeGreaterThanOrEqual(Math.ceil(font * 1.25) + 2 * padY)
+  })
+})

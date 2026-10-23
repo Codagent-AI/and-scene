@@ -3,8 +3,20 @@ import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import net from 'node:net'
 import path from 'node:path'
+import { realpathSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
 export const HOST = '127.0.0.1'
+
+/** True when `moduleUrl` is the script node was started with; a symlinked argv[1] still counts. */
+export function isMainModule(moduleUrl, argv1 = process.argv[1]) {
+  if (!argv1) return false
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl))
+  } catch {
+    return false
+  }
+}
 
 export function previewUrl(port, route = '/') {
   return `http://${HOST}:${port}${route}`

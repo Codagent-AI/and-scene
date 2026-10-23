@@ -4,9 +4,8 @@
 // Settle interval precedence: --settle flag, then INSPECT_SETTLE_MS, then DEFAULT_SETTLE_MS.
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
-import { previewUrl, runBuild, startPreview } from './lib/preview.mjs'
+import { isMainModule, previewUrl, runBuild, startPreview } from './lib/preview.mjs'
 
 export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 export const DEFAULT_SETTLE_MS = 1500
@@ -23,8 +22,12 @@ export const DISTINCT_PROPS = [
 /** CLI flag beats environment, which beats the default. */
 export function resolveSettle(argv, env) {
   const i = argv.indexOf('--settle')
-  const fromFlag = i >= 0 ? Number(argv[i + 1]) : NaN
-  if (Number.isFinite(fromFlag) && fromFlag >= 0) return fromFlag
+  if (i >= 0) {
+    const raw = argv[i + 1]
+    const fromFlag = raw === undefined || raw.trim() === '' ? NaN : Number(raw)
+    if (!Number.isFinite(fromFlag) || fromFlag < 0) throw new Error('--settle requires a non-negative number of milliseconds')
+    return fromFlag
+  }
   const fromEnv = Number(env.INSPECT_SETTLE_MS)
   if (env.INSPECT_SETTLE_MS !== undefined && Number.isFinite(fromEnv) && fromEnv >= 0) return fromEnv
   return DEFAULT_SETTLE_MS
@@ -206,7 +209,7 @@ export async function inspect({ root = process.cwd(), slug, narrow = false, noBu
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url)) {
   try {
     await inspect(parseArgs(process.argv.slice(2)))
   } catch (err) {

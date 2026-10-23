@@ -126,6 +126,16 @@
   color: var(--accent);
 }
 
+/* Narrow screens: the caption wraps to more lines, so lift the controls clear of the bottom-right attribution strip. */
+@media (max-width: 600px) {
+  .hmp [data-presentation-footer] {
+    padding-bottom: 32px;
+  }
+  .hmp [data-presentation-caption] {
+    font-size: 14px;
+  }
+}
+
 /* Scene entities */
 .hmp [data-presentation-box] {
   display: flex;

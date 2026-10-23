@@ -158,6 +158,23 @@ async function waitForIndex(page, expected, timeoutMs = 4000) {
   return false
 }
 
+/**
+ * Walks every step: advance, confirm the public step index, wait out the settle interval, then capture.
+ * `page` needs keyboard.press, getAttribute, waitForTimeout, screenshot and evaluate.
+ */
+export async function captureSteps(page, { count, settleMs, dir, onWarning, log, now = Date.now, stepTimeoutMs = 4000 }) {
+  for (let i = 0; i < count; i++) {
+    if (i > 0) await page.keyboard.press('ArrowRight')
+    const navigatedAt = now()
+    if (!(await waitForIndex(page, i, stepTimeoutMs))) throw new Error(`step ${i + 1} did not become active`)
+    await page.waitForTimeout(settleMs)
+    const capturedAt = now()
+    await page.screenshot({ path: path.join(dir, screenshotName(i)) })
+    log.push({ step: i + 1, navigatedAt, capturedAt })
+    for (const w of analyzeSnapshot(i + 1, await page.evaluate(collectSnapshot))) onWarning(w)
+  }
+}
+
 export async function inspect({ root = process.cwd(), slug, narrow = false, noBuild = false, settleMs = DEFAULT_SETTLE_MS, outDir = 'inspection' }) {
   if (!slug) throw new Error('usage: npm run inspect -- <slug> [--narrow] [--settle ms] [--no-build]')
   if (!noBuild) {
@@ -176,19 +193,7 @@ export async function inspect({ root = process.cwd(), slug, narrow = false, noBu
     await page.goto(previewUrl(preview.port, `/${slug}`))
     await page.waitForSelector('[data-step-count]', { timeout: 10_000 })
     const count = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
-    for (let i = 0; i < count; i++) {
-      if (i > 0) await page.keyboard.press('ArrowRight')
-      const navigatedAt = Date.now()
-      if (!(await waitForIndex(page, i))) throw new Error(`step ${i + 1} did not become active`)
-      await page.waitForTimeout(settleMs)
-      const capturedAt = Date.now()
-      await page.screenshot({ path: path.join(dir, screenshotName(i)) })
-      log.push({ step: i + 1, navigatedAt, capturedAt })
-      for (const w of analyzeSnapshot(i + 1, await page.evaluate(collectSnapshot))) {
-        warnings.push(w)
-        console.log(w)
-      }
-    }
+    await captureSteps(page, { count, settleMs, dir, onWarning: (w) => (warnings.push(w), console.log(w)), log })
     await writeFile(path.join(dir, 'capture-log.json'), JSON.stringify({ settleMs, viewport: page.viewportSize(), log }, null, 2))
     console.log(`INSPECT: ${count} screenshots in ${path.relative(root, dir)}, ${warnings.length} advisory warning(s)`)
     return { dir, count, warnings, log }

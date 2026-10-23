@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
-import { previewUrl, runBuild, startPreview } from './lib/preview.mjs'
+import { HOST, previewUrl, runBuild, startPreview } from './lib/preview.mjs'
 
 const SAMPLE_SLUG = 'how-to-make-a-presentation'
 const STEP_TIMEOUT_MS = 4000
@@ -37,7 +37,8 @@ export class VerifyError extends Error {
 
 export function formatFailure(err) {
   const phase = err instanceof VerifyError ? err.phase : 'verify'
-  const step = err instanceof VerifyError && err.step !== undefined ? ` step=${err.step}` : ''
+  // Step numbers are 1-based, like the "render step N/M" progress lines.
+  const step = err instanceof VerifyError && err.step !== undefined ? ` step=${err.step + 1}` : ''
   return `VERIFY FAIL phase=${phase}${step}: ${err.message}`
 }
 
@@ -131,6 +132,7 @@ async function waitForIndex(page, expected) {
 
 async function renderSample(root, slug, canonical) {
   const preview = await startPreview(root)
+  console.log(`[verify] preview pid=${preview.pid} host=${HOST} probe=${previewUrl(preview.port)} browser=${previewUrl(preview.port, `/${slug}`)}`)
   let browser
   try {
     browser = await chromium.launch()
@@ -157,7 +159,6 @@ async function renderSample(root, slug, canonical) {
     }
 
     for (let i = 0; i < count; i++) {
-      current = i
       const problem = await waitForIndex(page, i)
       if (problem) {
         check()
@@ -174,7 +175,10 @@ async function renderSample(root, slug, canonical) {
       await page.waitForTimeout(SETTLE_MS)
       check()
       console.log(`[verify] render step ${i + 1}/${count} ok`)
-      if (i < count - 1) await page.keyboard.press('ArrowRight')
+      if (i < count - 1) {
+        current = i + 1 // errors raised by the transition belong to the step being entered
+        await page.keyboard.press('ArrowRight')
+      }
     }
     return count
   } finally {

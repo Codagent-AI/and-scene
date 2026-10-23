@@ -102,6 +102,16 @@ describe('Appear timing wiring', () => {
     expect(delays[2]).toBeGreaterThanOrEqual(constants.LAYOUT_T) // offsets cannot start a newcomer early
     expect(seen[0].initial).toEqual({ opacity: 0 })
     expect((seen[0].exit as { opacity: number }).opacity).toBe(0)
+    // kit primitives take the same newcomer timing through `appear`
+    seen.length = 0
+    const { Box: MockedBox } = await import('../../src/presentation-kit/nodes/Box')
+    render(<><MockedBox id="a" appear /><MockedBox id="b" appear={0.3} /><MockedBox id="c" /></>)
+    const [a, b, c] = seen
+    expect((a.animate as { transition: { delay: number } }).transition.delay).toBeGreaterThanOrEqual(constants.LAYOUT_T)
+    expect((b.animate as { transition: { delay: number } }).transition.delay).toBeCloseTo(constants.ENTER_DELAY + 0.3, 10)
+    expect(c.initial).toBeUndefined() // continuing entities get no enter behavior
+    expect(c.animate).toBeUndefined()
+    expect((c.exit as { opacity: number }).opacity).toBe(0) // but can still exit
     vi.doUnmock('motion/react')
     vi.resetModules()
   })

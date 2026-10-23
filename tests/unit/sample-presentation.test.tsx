@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react'
+import { fireEvent, render, waitFor } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -188,6 +188,22 @@ describe('reference sample renders as one accumulating scene', () => {
     }
     expect(get(after, E.reveal).el.textContent).toContain('skill')
   })
+
+  it('fades in only the entities a step introduces, never wrapping or re-fading continuing ones', async () => {
+    const { container } = render(<Talk />)
+    const opacity = (id: string) => (container.querySelector(`[data-presentation-entity="${id}"]`) as HTMLElement).style.opacity
+    expect(container.querySelector('[data-presentation-appear]')).toBeNull()
+    expect(opacity(E.you)).toBe('0') // step 1 newcomers start hidden
+    for (let i = 0; i < 3; i++) {
+      // let this step's newcomers finish fading in, then advance
+      for (const id of expectedNew[i]) await waitFor(() => expect(opacity(id)).toBe('1'), { timeout: 10000 })
+      const previous = [...entities().keys()]
+      next()
+      for (const id of previous) expect(opacity(id), `${id} continues without a fade`).toBe('1')
+      for (const id of expectedNew[i + 1]) expect(opacity(id), `${id} enters hidden`).toBe('0')
+    }
+    expect(container.querySelector('[data-presentation-appear]')).toBeNull()
+  }, 30000)
 
   it('flags the edited card only from the loop step on', () => {
     render(<Talk />)

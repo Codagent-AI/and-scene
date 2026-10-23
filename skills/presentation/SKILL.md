@@ -124,8 +124,10 @@ Then replace the template content with the user's story:
 Modeling rules:
 
 - Continuing entities keep their id and morph (position, size, label,
-  emphasis); do not wrap them in `Appear`. Wrap only newcomers in `Appear`
-  inside a `SceneLayer`, with a stable `key`.
+  emphasis); never fade them in. Pass `appear` only to the entities a step
+  introduces (kit primitives take it directly; `Appear` wraps raw elements).
+  Render entities inside a `SceneLayer` and give each direct child a stable
+  `key`, so removed entities can animate out.
 - Keep intentional overlaps and stacking as designed. Do not flatten them to
   satisfy a pattern.
 - Use kit primitives (`Box`, `Label`, `Arrow`, `Frame`, `Emphasis`,

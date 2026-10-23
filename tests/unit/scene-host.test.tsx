@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { motion } from 'motion/react'
-import { StrictMode, useEffect, useRef, useState } from 'react'
+import { StrictMode, useEffect, useState } from 'react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { Appear, Box, hostKey, Presentation, SceneLayer, type SceneProps, type Step } from '../../src/presentation-kit'
+import { Box, hostKey, Presentation, SceneLayer, type SceneProps, type Step } from '../../src/presentation-kit'
 import { setViewport } from '../helpers/fixtures'
 
 beforeEach(() => setViewport(1440))
@@ -100,50 +100,55 @@ describe('grouped scenes', () => {
 
 interface Visible {
   ids: string[]
+  entering: string[]
 }
 
 function EntityScene({ payload }: SceneProps<Visible>) {
-  const opacityLog = useRef<string[]>([])
-  void opacityLog
   return (
     <SceneLayer>
       {payload.ids.map((id) => (
-        <Appear key={id}>
-          <Box id={`e-${id}`} x={payload.ids.indexOf(id) * 10} y={0} width={5} height={5} data-testid={`e-${id}`} />
-        </Appear>
+        <Box
+          key={id}
+          id={`e-${id}`}
+          appear={payload.entering.includes(id)}
+          x={payload.ids.indexOf(id) * 10}
+          y={0}
+          width={5}
+          height={5}
+          data-testid={`e-${id}`}
+        />
       ))}
     </SceneLayer>
   )
 }
 
-const ent = (id: string, ids: string[], groupKey?: string): Step<Visible> => ({
-  id, era: 'e', title: id, caption: id, Scene: EntityScene, payload: { ids }, groupKey,
+const ent = (id: string, ids: string[], entering: string[], groupKey?: string): Step<Visible> => ({
+  id, era: 'e', title: id, caption: id, Scene: EntityScene, payload: { ids, entering }, groupKey,
 })
 
 describe('entities across steps', () => {
-  it('keeps a continuing entity as the same node, not re-wrapped or re-faded as a newcomer', async () => {
-    render(<Presentation steps={[ent('a', ['x'], 'g'), ent('b', ['x', 'y'], 'g'), ent('c', ['x', 'y', 'z'], 'g')]} title="t" />)
+  it('keeps a continuing entity as the same, unwrapped node that is never faded as a newcomer', async () => {
+    render(<Presentation steps={[ent('a', ['x'], ['x'], 'g'), ent('b', ['x', 'y'], ['y'], 'g'), ent('c', ['x', 'y', 'z'], ['z'], 'g')]} title="t" />)
     const x = screen.getByTestId('e-x')
-    const wrapper = x.closest('[data-presentation-appear]')!
-    await waitFor(() => expect(wrapper.getAttribute('style')).toContain('opacity: 1'))
+    expect(x.style.opacity).toBe('0') // first mount: x is a newcomer
+    await waitFor(() => expect(x.style.opacity).toBe('1'), { timeout: 10000 })
     next()
     expect(screen.getByTestId('e-x')).toBe(x)
-    expect(x.closest('[data-presentation-appear]')).toBe(wrapper)
-    // the continuing entity's wrapper never dips back to a newcomer's initial opacity
-    expect(wrapper.getAttribute('style')).toContain('opacity: 1')
-    const y = screen.getByTestId('e-y')
-    expect(y.closest('[data-presentation-appear]')!.getAttribute('style')).toContain('opacity: 0')
+    expect(x.closest('[data-presentation-appear]')).toBeNull() // not wrapped in newcomer behavior
+    expect(x.style.opacity).toBe('1') // no replay of the fade
+    expect(screen.getByTestId('e-y').style.opacity).toBe('0') // the newcomer does start hidden
     next()
-    expect(wrapper.getAttribute('style')).toContain('opacity: 1')
+    expect(x.style.opacity).toBe('1')
+    expect(screen.getByTestId('e-y').closest('[data-presentation-appear]')).toBeNull()
     fireEvent.keyDown(window, { key: 'ArrowLeft' }) // reverse navigation
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
     expect(screen.getByTestId('e-x')).toBe(x)
-    expect(wrapper.getAttribute('style')).toContain('opacity: 1')
+    expect(x.style.opacity).toBe('1')
     expect(x.getAttribute('data-presentation-entity')).toBe('e-x')
   })
 
   it('animates a departing entity out before removing it (grouped)', async () => {
-    render(<Presentation steps={[ent('a', ['x', 'y'], 'g'), ent('b', ['x'], 'g')]} title="t" />)
+    render(<Presentation steps={[ent('a', ['x', 'y'], ['x', 'y'], 'g'), ent('b', ['x'], [], 'g')]} title="t" />)
     const y = screen.getByTestId('e-y')
     next()
     expect(document.body.contains(y)).toBe(true) // still present while it exits
@@ -152,7 +157,7 @@ describe('entities across steps', () => {
   })
 
   it('keeps the exiting scene mounted under AnimatePresence, then removes it (ungrouped)', async () => {
-    render(<Presentation steps={[ent('a', ['x']), ent('b', ['y'])]} title="t" />)
+    render(<Presentation steps={[ent('a', ['x'], ['x']), ent('b', ['y'], ['y'])]} title="t" />)
     const scenes = () => document.querySelectorAll('[data-presentation-scene]')
     expect(scenes()).toHaveLength(1)
     const old = scenes()[0]
@@ -164,10 +169,12 @@ describe('entities across steps', () => {
   })
 
   it('shares a layoutId between adjacent ungrouped steps for the continuing entity', () => {
-    render(<Presentation steps={[ent('a', ['x']), ent('b', ['x', 'y'])]} title="t" />)
+    render(<Presentation steps={[ent('a', ['x'], ['x']), ent('b', ['x', 'y'], ['y'])]} title="t" />)
+    expect(document.querySelectorAll('[data-presentation-entity="e-x"]')).toHaveLength(1)
     next()
-    const ids = [...document.querySelectorAll('[data-presentation-entity="e-x"]')]
-    expect(ids.length).toBeGreaterThanOrEqual(1)
+    // both the exiting and the entering scene carry the same entity id, so Motion can project one onto the other
+    expect(document.querySelectorAll('[data-presentation-entity="e-x"]')).toHaveLength(2)
+    expect(document.querySelectorAll('[data-presentation-scene]')).toHaveLength(2)
   })
 
   it('preserves supplied coordinates and stacking exactly (no normalisation)', () => {

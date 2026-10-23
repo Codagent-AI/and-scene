@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { LAYOUT_TRANSITION } from '../motion'
+import { LAYOUT_TRANSITION, presenceProps } from '../motion'
 import { arrowHead, arrowShaft, control, type Point } from './arrowGeometry'
 
 export interface ArrowProps {
@@ -10,17 +10,20 @@ export interface ArrowProps {
   bend?: number
   bidirectional?: boolean
   headSize?: number
+  /** Newcomer: fade in after persisting entities settle (a number adds extra delay). */
+  appear?: boolean | number
   className?: string
   style?: React.CSSProperties
 }
 
 /** An SVG arrow whose endpoints animate in place when its coordinates change. */
-export function Arrow({ id, from, to, bend = 0, bidirectional = false, headSize = 8, className, style }: ArrowProps) {
+export function Arrow({ id, from, to, bend = 0, bidirectional = false, headSize = 8, appear, className, style }: ArrowProps) {
   const c = control(from, to, bend)
   const endHead = arrowHead(to, c, headSize)
   const startHead = bidirectional ? arrowHead(from, c, headSize) : arrowHead(from, from, 0)
   return (
-    <svg
+    <motion.svg
+      {...presenceProps(appear)}
       data-presentation-entity={id}
       data-presentation-kind="arrow"
       className={className}
@@ -31,6 +34,6 @@ export function Arrow({ id, from, to, bend = 0, bidirectional = false, headSize 
       {bidirectional && (
         <motion.path data-presentation-arrow-head="start" fill="currentColor" stroke="none" initial={false} animate={{ d: startHead }} transition={LAYOUT_TRANSITION.layout} />
       )}
-    </svg>
+    </motion.svg>
   )
 }

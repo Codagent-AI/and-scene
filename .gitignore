@@ -23,3 +23,7 @@ validator_logs
 *.njsproj
 *.sln
 *.sw?
+
+# Generated inspection screenshots and Playwright output
+.inspection
+test-results

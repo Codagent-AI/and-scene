@@ -12,7 +12,8 @@ import { NORMATIVE_OUTLINE, SAMPLE_SLUG } from './lib/sample-outline.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const STEP_TIMEOUT_MS = 5_000
-const SETTLE_MS = 150
+/** Longer than the morph (0.6 s) + newcomer delay (0.7 s) + fade (0.45 s), so entry has finished. */
+const SETTLE_MS = 2000
 
 class PhaseFailure extends Error {
   constructor(phase, detail, step) {
@@ -70,21 +71,34 @@ async function readChrome(page) {
   })
 }
 
-/** Steps through the sample in a real browser, failing on the first problem. */
+/**
+ * Steps through the sample in a real browser. Each step is observed only after
+ * SETTLE_MS, long enough for the morph and newcomer entry to finish, so an error
+ * raised during entry is still attributed to its step.
+ */
 async function renderSample() {
-  const preview = await startPreview(ROOT)
-  console.log(`preview ${preview.url}`)
-  const browser = await chromium.launch({ headless: true })
+  let preview = null
+  let browser = null
   try {
+    preview = await startPreview(ROOT)
+    console.log(`preview ${preview.url}`)
+    browser = await chromium.launch({ headless: true })
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
     const errors = []
     page.on('console', (message) => {
       if (message.type() === 'error') errors.push(message.text())
     })
     page.on('pageerror', (error) => errors.push(`uncaught: ${error.message}`))
+    const failRender = (step, detail) => {
+      throw new PhaseFailure('render', [...errors, detail].filter(Boolean).join('\n'), step)
+    }
 
     await page.goto(`${preview.url}/${SAMPLE_SLUG}`, { waitUntil: 'load' })
-    await page.waitForSelector('[data-step-count]', { timeout: STEP_TIMEOUT_MS * 3 })
+    try {
+      await page.waitForSelector('[data-step-count]', { timeout: STEP_TIMEOUT_MS * 3 })
+    } catch {
+      failRender(0, 'the presentation did not render its first step')
+    }
     const first = await readChrome(page)
     if (first.count !== NORMATIVE_OUTLINE.length) {
       throw new PhaseFailure('sample', `rendered ${first.count} steps, expected ${NORMATIVE_OUTLINE.length}`)
@@ -92,23 +106,19 @@ async function renderSample() {
 
     for (let index = 0; index < first.count; index += 1) {
       await page.waitForTimeout(SETTLE_MS)
+      if (errors.length > 0) failRender(index, '')
       const shown = await readChrome(page)
       const expected = NORMATIVE_OUTLINE[index]
       if (shown.index !== index) {
         throw new PhaseFailure('transition', `expected step index ${index}, page shows ${shown.index}`, index)
       }
       if (shown.title !== expected.title) {
-        throw new PhaseFailure('render', `title ${JSON.stringify(shown.title)} != ${JSON.stringify(expected.title)}`, index)
+        failRender(index, `title ${JSON.stringify(shown.title)} != ${JSON.stringify(expected.title)}`)
       }
       if (shown.caption !== expected.caption) {
-        throw new PhaseFailure('render', `caption ${JSON.stringify(shown.caption)} != ${JSON.stringify(expected.caption)}`, index)
+        failRender(index, `caption ${JSON.stringify(shown.caption)} != ${JSON.stringify(expected.caption)}`)
       }
-      if (shown.entities === 0) {
-        throw new PhaseFailure('render', 'scene rendered no entities', index)
-      }
-      if (errors.length > 0) {
-        throw new PhaseFailure('render', errors.join('\n'), index)
-      }
+      if (shown.entities === 0) failRender(index, 'scene rendered no entities')
       if (index < first.count - 1) {
         await page.keyboard.press('ArrowRight')
         try {
@@ -118,18 +128,18 @@ async function renderSample() {
             { timeout: STEP_TIMEOUT_MS },
           )
         } catch {
+          // A crash while rendering the destination unmounts the chrome; blame the step being shown.
+          if (errors.length > 0) failRender(index + 1, '')
           throw new PhaseFailure('transition', `ArrowRight did not advance past step ${index}`, index)
         }
       }
     }
     await page.waitForTimeout(SETTLE_MS)
-    if (errors.length > 0) {
-      throw new PhaseFailure('render', errors.join('\n'), first.count - 1)
-    }
+    if (errors.length > 0) failRender(first.count - 1, '')
     return { steps: first.count, preview: preview.url }
   } finally {
-    await browser.close()
-    await preview.stop()
+    if (browser) await browser.close()
+    if (preview) await preview.stop()
   }
 }
 

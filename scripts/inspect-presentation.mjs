@@ -53,13 +53,19 @@ function collectWarnings() {
   const ownText = (el) => [...el.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '')
   const describe = (el) => {
     const entity = el.closest('[data-presentation-entity]')?.getAttribute('data-presentation-entity')
-    const text = el.textContent.trim().replace(/\s+/g, ' ').slice(0, 28)
+    const text = el.textContent.trim().replace(/\s+/g, ' ').slice(0, 28) || el.getAttribute('aria-label') || el.tagName.toLowerCase()
     return `${entity ? `${entity} ` : ''}"${text}"`
   }
 
   // Overlap between visible text/chrome that is not nested and not explicitly allowed.
+  // Chrome dots and controls have no text of their own, but still collide with text.
+  const chrome = '[data-presentation-progress], [data-presentation-prev], [data-presentation-next], [data-presentation-mode-toggle]'
   const texts = [...root.querySelectorAll('*')].filter(
-    (el) => el.namespaceURI === 'http://www.w3.org/1999/xhtml' && ownText(el) && visible(el) && !exempt(el),
+    (el) =>
+      el.namespaceURI === 'http://www.w3.org/1999/xhtml' &&
+      (ownText(el) || el.matches(chrome)) &&
+      visible(el) &&
+      !exempt(el),
   )
   for (let i = 0; i < texts.length; i += 1) {
     for (let j = i + 1; j < texts.length; j += 1) {
@@ -137,11 +143,13 @@ async function main() {
   rmSync(outDir, { recursive: true, force: true })
   mkdirSync(outDir, { recursive: true })
 
-  const preview = await startPreview(ROOT)
-  const browser = await chromium.launch({ headless: true })
   const warningLines = []
   let count = 0
+  let preview = null
+  let browser = null
   try {
+    preview = await startPreview(ROOT)
+    browser = await chromium.launch({ headless: true })
     const page = await browser.newPage({ viewport: { width: options.width, height: VIEWPORT.height } })
     const errors = []
     page.on('console', (message) => {
@@ -154,6 +162,7 @@ async function main() {
       throw new Error(`"${options.slug}" did not render a presentation`)
     })
     count = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
+    let pressedAt = Date.now()
     for (let index = 0; index < count; index += 1) {
       await page.waitForTimeout(options.settle)
       const number = String(index + 1).padStart(2, '0')
@@ -162,14 +171,19 @@ async function main() {
       for (const warning of await page.evaluate(collectWarnings)) {
         warningLines.push(`WARN step ${number} ${warning.kind}: ${warning.message}`)
       }
+      const elapsed = Date.now() - pressedAt
+      if (elapsed < options.settle) throw new Error(`step ${number} captured before the settle interval elapsed`)
       await page.screenshot({ path: join(outDir, `step-${number}.png`) })
-      console.log(`step ${number} captured after ${options.settle} ms settle`)
-      if (index < count - 1) await page.keyboard.press('ArrowRight')
+      console.log(`step ${number} captured ${elapsed} ms after its step change (settle ${options.settle} ms)`)
+      if (index < count - 1) {
+        await page.keyboard.press('ArrowRight')
+        pressedAt = Date.now()
+      }
     }
     if (errors.length > 0) return fail(`runtime errors while inspecting:\n${errors.join('\n')}`)
   } finally {
-    await browser.close()
-    await preview.stop()
+    if (browser) await browser.close()
+    if (preview) await preview.stop()
   }
   writeFileSync(join(outDir, 'warnings.txt'), warningLines.map((line) => `${line}\n`).join(''))
   for (const line of warningLines) console.log(line)

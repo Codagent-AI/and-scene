@@ -14,6 +14,15 @@ export interface NodeBase {
   children?: ReactNode
   /** Marks this node as an intentional, readable overlap so inspection skips it. */
   allowOverlap?: boolean
+  /** Consumer data attributes are forwarded; kit hooks are applied after them and win. */
+  [hook: `data-${string}`]: string | undefined
+}
+
+/** Picks the consumer's data-* attributes out of rest props. */
+export function dataProps(rest: Record<string, unknown>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(rest).filter(([key, value]) => key.startsWith('data-') && typeof value === 'string'),
+  ) as Record<string, string>
 }
 
 /** Identity, morph, and exit attributes common to every primitive. */

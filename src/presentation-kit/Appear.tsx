@@ -1,17 +1,28 @@
 import { motion } from 'motion/react'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { EASE, ENTER_DELAY, ENTER_T } from './constants'
 
-/**
- * Wraps an entity so newcomers fade in after persisting entities have finished
- * morphing. `entering` is false for continuing entities: they keep the same
- * wrapper and skip the entry animation, so they morph instead of fading.
- */
-export function Appear({ entering = true, children }: { entering?: boolean; children: ReactNode }) {
+export interface AppearProps {
+  /** Identity of the wrapped entity, exposed as data-presentation-appear-id. */
+  id?: string
+  className?: string
+  style?: CSSProperties
+  /**
+   * False for continuing entities: they keep the same wrapper and skip the entry
+   * animation, so they morph instead of fading.
+   */
+  entering?: boolean
+  children: ReactNode
+}
+
+/** Wraps an entity so newcomers fade in after persisting entities have finished morphing. */
+export function Appear({ id, className, style, entering = true, children }: AppearProps) {
   return (
     <motion.div
       data-presentation-appear={entering ? 'entering' : 'continuing'}
-      style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+      data-presentation-appear-id={id}
+      className={className}
+      style={{ position: 'absolute', inset: 0, pointerEvents: 'none', ...style }}
       initial={entering ? { opacity: 0 } : false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

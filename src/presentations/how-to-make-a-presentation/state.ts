@@ -83,8 +83,7 @@ export function visibleEntities(state: SampleState): EntityId[] {
   return present.filter(([, on]) => on).map(([id]) => id)
 }
 
-/** Payload of every sample step: the diagram state plus which entities arrive on it. */
+/** Payload of every sample step: the diagram state the scene should show. */
 export interface SamplePayload {
   state: SampleState
-  entering: readonly EntityId[]
 }

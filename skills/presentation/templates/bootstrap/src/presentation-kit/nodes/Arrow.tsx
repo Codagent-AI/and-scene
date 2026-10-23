@@ -1,7 +1,7 @@
 import { useId, type CSSProperties } from 'react'
 import { motion } from 'motion/react'
 import { place } from '../layout'
-import { entityProps } from './shared'
+import { dataProps, entityProps } from './shared'
 
 export interface ArrowProps {
   id: string
@@ -12,6 +12,7 @@ export interface ArrowProps {
   allowOverlap?: boolean
   className?: string
   style?: CSSProperties
+  [hook: `data-${string}`]: string | undefined
 }
 
 const PAD = 6
@@ -20,7 +21,7 @@ const PAD = 6
  * Straight connector between two canvas points. The SVG box is sized to the
  * endpoints, so moving an endpoint morphs the box by layout projection.
  */
-export function Arrow({ id, from, to, bidirectional = false, allowOverlap, className, style }: ArrowProps) {
+export function Arrow({ id, from, to, bidirectional = false, allowOverlap, className, style, ...rest }: ArrowProps) {
   const markerId = `arrowhead-${useId().replace(/:/g, '')}`
   const left = Math.min(from.x, to.x) - PAD
   const top = Math.min(from.y, to.y) - PAD
@@ -28,6 +29,7 @@ export function Arrow({ id, from, to, bidirectional = false, allowOverlap, class
   const height = Math.abs(to.y - from.y) + PAD * 2
   return (
     <motion.div
+      {...dataProps(rest)}
       {...entityProps(id, allowOverlap)}
       data-presentation-node="arrow"
       className={className}

@@ -105,6 +105,10 @@
   margin-top: 4px;
 }
 
+[data-presentation-progress-list] {
+  gap: 8px;
+}
+
 [data-presentation-progress] {
   width: 10px;
   height: 10px;
@@ -262,10 +266,14 @@
   border-color: var(--pass);
 }
 
+.sample-pass .sample-text {
+  font-size: 11px;
+}
+
 .sample-pass {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   border-radius: 999px;
   background: var(--pass);
   color: #ffffff;

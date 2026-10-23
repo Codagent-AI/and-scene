@@ -1,3 +1,33 @@
+/** ARIA widget roles whose focused element handles its own keys. */
+const INTERACTIVE_ROLES = [
+  'button',
+  'checkbox',
+  'combobox',
+  'grid',
+  'gridcell',
+  'link',
+  'listbox',
+  'menu',
+  'menubar',
+  'menuitem',
+  'menuitemcheckbox',
+  'menuitemradio',
+  'option',
+  'radio',
+  'radiogroup',
+  'scrollbar',
+  'searchbox',
+  'slider',
+  'spinbutton',
+  'switch',
+  'tab',
+  'tablist',
+  'textbox',
+  'toolbar',
+  'tree',
+  'treeitem',
+]
+
 /** Elements whose own keys must reach them instead of advancing the deck. */
 const INTERACTIVE = [
   'button',
@@ -6,19 +36,7 @@ const INTERACTIVE = [
   'select',
   'textarea',
   '[contenteditable]:not([contenteditable="false"])',
-  '[role="button"]',
-  '[role="link"]',
-  '[role="checkbox"]',
-  '[role="radio"]',
-  '[role="switch"]',
-  '[role="tab"]',
-  '[role="menuitem"]',
-  '[role="option"]',
-  '[role="slider"]',
-  '[role="textbox"]',
-  '[role="combobox"]',
-  '[role="spinbutton"]',
-  '[role="searchbox"]',
+  ...INTERACTIVE_ROLES.map((role) => `[role="${role}"]`),
 ].join(', ')
 
 /** True when the event target is, or sits inside, an interactive control. */

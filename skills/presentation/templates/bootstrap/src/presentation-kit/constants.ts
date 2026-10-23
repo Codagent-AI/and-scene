@@ -24,6 +24,16 @@ export const SWIPE_MIN_PX = 50
 export const ATTRIBUTION_HREF = 'https://github.com/Codagent-AI/and-scene'
 export const ATTRIBUTION_TEXT = 'made by and-scene'
 
+/**
+ * Vertical space reserved for header and footer chrome, per mode. The fit uses this
+ * fixed reservation rather than measuring the footer, so the scale never changes
+ * with a step's caption length.
+ */
+export const CHROME_HEIGHT = {
+  browse: 240,
+  present: 110,
+} as const
+
 /** Padding kept free around the canvas when fitting it into the stage, per mode. */
 export const STAGE_LAYOUT = {
   browse: { padX: 24, padY: 12 },

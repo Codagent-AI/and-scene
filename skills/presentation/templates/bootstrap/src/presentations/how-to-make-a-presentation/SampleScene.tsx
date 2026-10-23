@@ -1,4 +1,5 @@
 import { AnimatePresence } from 'motion/react'
+import { useState } from 'react'
 import { Check, Plug, ShieldCheck, Sparkles, User } from 'lucide-react'
 import type { ReactElement } from 'react'
 import { Appear, Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip, type SceneProps } from '../../presentation-kit'
@@ -81,10 +82,16 @@ function entity(id: EntityId, state: SampleState): ReactElement {
         <Box key={id} id={lid} {...RECT.verify} icon={ShieldCheck} className="sample-node sample-verify">
           <span className="sample-text">verify</span>
           {state.verifyPassed ? (
-            <span className="sample-pass" style={{ position: 'absolute', left: 36, top: 84, width: 80, height: 24 }}>
-              <Check aria-hidden="true" />
-              <span className="sample-text">pass</span>
-            </span>
+            <>
+              <span className="sample-pass" style={{ position: 'absolute', left: 8, top: 56, width: 60, height: 22 }}>
+                <Check aria-hidden="true" />
+                <span className="sample-text">build</span>
+              </span>
+              <span className="sample-pass" style={{ position: 'absolute', left: 74, top: 56, width: 62, height: 22 }}>
+                <Check aria-hidden="true" />
+                <span className="sample-text">render</span>
+              </span>
+            </>
           ) : null}
         </Box>
       )
@@ -109,24 +116,32 @@ function entity(id: EntityId, state: SampleState): ReactElement {
   }
 }
 
+function sameIds(a: readonly EntityId[], b: readonly EntityId[]): boolean {
+  return a.length === b.length && a.every((id, index) => id === b[index])
+}
+
 /**
  * The reference sample's one evolving scene. Entities accumulate on the canvas:
- * continuing entities keep their layoutIds and morph; only `entering` ones fade in.
+ * continuing entities keep their layoutIds and morph; newcomers are those this scene
+ * was actually showing before, so a forward jump still fades newcomers in after the morph.
  */
 export function SampleScene({ payload }: SceneProps<SamplePayload>) {
-  const { state, entering } = payload
-  const fresh = new Set<EntityId>(entering)
+  const ids = visibleEntities(payload.state)
+  const [shown, setShown] = useState<{ ids: EntityId[]; entering: EntityId[] }>({ ids: [], entering: [] })
+  let current = shown
+  if (!sameIds(shown.ids, ids)) {
+    current = { ids, entering: ids.filter((id) => !shown.ids.includes(id)) }
+    setShown(current)
+  }
+  const fresh = new Set<EntityId>(current.entering)
   return (
     <SceneLayer name="sample">
       <AnimatePresence>
-        {visibleEntities(state).map((id) => {
-          const node = entity(id, state)
-          return (
-            <Appear key={id} entering={fresh.has(id)}>
-              {node}
-            </Appear>
-          )
-        })}
+        {ids.map((id) => (
+          <Appear key={id} id={layoutIdFor(id)} entering={fresh.has(id)}>
+            {entity(id, payload.state)}
+          </Appear>
+        ))}
       </AnimatePresence>
     </SceneLayer>
   )

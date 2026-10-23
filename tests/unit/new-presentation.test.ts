@@ -50,6 +50,13 @@ describe('createPresentation', () => {
     expect(parseRegistry(registry(dir)).map((e) => e.slug)).toEqual(['starter', 'one', 'two'])
   })
 
+  it('registers into a renamed registry file', () => {
+    const dir = scaffolded()
+    fs.renameSync(path.join(dir, 'src/presentations/index.ts'), path.join(dir, 'src/presentations/registry.ts'))
+    createPresentation(dir, 'renamed', 'Renamed')
+    expect(parseRegistry(fs.readFileSync(path.join(dir, 'src/presentations/registry.ts'), 'utf8')).map((e) => e.slug)).toEqual(['starter', 'renamed'])
+  })
+
   it('refuses an existing presentation, an invalid slug and a missing index, writing nothing', () => {
     const dir = scaffolded()
     createPresentation(dir, 'dup', 'Dup')

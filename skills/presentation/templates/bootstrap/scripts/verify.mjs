@@ -6,7 +6,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { chromium } from 'playwright'
 import { previewUrl, startPreview } from './lib/preview.mjs'
-import { checkAdvance, compareSample, describeErrors, formatFailure, isBottomRight, parseRegistry, VerifyError } from './lib/verify-core.mjs'
+import { checkAdvance, compareSample, describeErrors, findRegistryFile, formatFailure, isBottomRight, parseRegistry, VerifyError } from './lib/verify-core.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
 const log = (line) => console.log(`[verify] ${line}`)
@@ -33,9 +33,11 @@ function readReference() {
 }
 
 function readRegistry() {
-  const file = path.join(root, 'src', 'presentations', 'index.ts')
-  if (!fs.existsSync(file)) throw new VerifyError('sample', `presentation index ${file} is missing`)
-  return parseRegistry(fs.readFileSync(file, 'utf8'))
+  const folder = path.join(root, 'src', 'presentations')
+  const names = fs.existsSync(folder) ? fs.readdirSync(folder) : []
+  const name = findRegistryFile(names, (f) => fs.readFileSync(path.join(folder, f), 'utf8'))
+  if (!name) throw new VerifyError('sample', `no presentation index found in ${folder}`)
+  return parseRegistry(fs.readFileSync(path.join(folder, name), 'utf8'))
 }
 
 function samplePhase(reference, registry) {
@@ -95,12 +97,14 @@ async function renderPresentation(browser, port, slug, reference) {
     }
     const count = Number(await root.getAttribute('data-step-count'))
     if (!(count > 0)) fail(`step count is ${count}`)
-    const readIndex = async () => Number(await root.getAttribute('data-step-index'))
+    // read without waiting: a scene that throws removes the hook, and the recorded error must win
+    const readIndex = () => page.evaluate(() => Number(document.querySelector('[data-step-count]')?.getAttribute('data-step-index') ?? NaN))
     const steps = []
 
     for (let i = 0; i < count; i++) {
       currentStep = i
       const index = await readIndex()
+      failOnErrors()
       if (index !== i) fail(`expected step index ${i}, observed ${index}`)
       await sleep(SETTLE_MS)
       failOnErrors()
@@ -113,7 +117,10 @@ async function renderPresentation(browser, port, slug, reference) {
         currentStep = i + 1
         await page.keyboard.press('ArrowRight')
         await page.waitForFunction((want) => document.querySelector('[data-step-count]')?.getAttribute('data-step-index') === String(want), i + 1, { timeout: 3000 }).catch(() => {})
-        const problem = checkAdvance(i, await readIndex())
+        failOnErrors()
+        const observed = await readIndex()
+        if (Number.isNaN(observed)) fail('the step hook disappeared after advancing (the scene stopped rendering)', i + 1)
+        const problem = checkAdvance(i, observed)
         if (problem) fail(`transition did not advance: ${problem}`, i + 1)
       }
     }

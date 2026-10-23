@@ -81,6 +81,13 @@ describe('E2E-002: verification failures are actionable', () => {
       previewStarted: true,
     },
     {
+      name: 'a scene that throws while rendering',
+      apply: (dir) => edit(path.join(dir, sample, 'SampleScene.tsx'), (s) => s.replace('export function SampleScene({ payload }: SceneProps<SamplePayload>) {', "export function SampleScene({ payload }: SceneProps<SamplePayload>) {\n  if (payload.step === 4) throw new Error('injected render exception')")),
+      phase: 'render',
+      mention: /at step 4 \(index 3\).*injected render exception/,
+      previewStarted: true,
+    },
+    {
       name: 'a transition that does not advance the step index',
       apply: (dir) => edit(path.join(dir, 'src/presentation-kit/usePresentationNav.ts'), (s) => s.replace('setIndex((i) => clamp(i + 1, countRef.current))', 'setIndex((i) => (i === 4 ? i : clamp(i + 1, countRef.current)))')),
       phase: 'render',

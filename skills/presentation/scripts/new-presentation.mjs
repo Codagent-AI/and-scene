@@ -6,6 +6,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { findRegistry } from './scaffold.mjs'
 
 const templateDir = path.resolve(import.meta.dirname, '..', 'templates', 'presentation')
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -24,8 +25,8 @@ export function registryLine(slug, title) {
 export function createPresentation(target, slug, title) {
   if (!SLUG.test(slug)) throw new Error(`invalid slug "${slug}": use lowercase letters, digits and single hyphens`)
   const presentations = path.join(target, 'src', 'presentations')
-  const indexFile = path.join(presentations, 'index.ts')
-  if (!fs.existsSync(indexFile)) throw new Error(`no presentation index at ${indexFile}: scaffold first`)
+  const indexFile = findRegistry(target)
+  if (!indexFile) throw new Error(`no presentation index under ${presentations}: scaffold first`)
   const index = fs.readFileSync(indexFile, 'utf8')
   const destDir = path.join(presentations, slug)
   if (fs.existsSync(destDir) || index.includes(`slug: '${slug}'`)) throw new Error(`presentation "${slug}" already exists; refusing to overwrite it`)

@@ -222,6 +222,31 @@ describe('planning and applying', () => {
   })
 })
 
+describe('registry naming and tooling', () => {
+  it('recognizes a registry with any file name, not only index.ts', () => {
+    const dir = tmp()
+    copyBootstrap(dir)
+    fs.renameSync(path.join(dir, 'src/presentations/index.ts'), path.join(dir, 'src/presentations/registry.ts'))
+    expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+    expect(planScaffold(dir).missing).toEqual([])
+    fs.writeFileSync(path.join(dir, 'src/presentations/registry.ts'), 'export const x = 1\n')
+    expect(detectAnchors(dir).index).toBe(false)
+  })
+
+  it('copies the verification scripts that the merged npm scripts point at, even for a build-only app', () => {
+    const dir = tmp()
+    write(dir, 'package.json', JSON.stringify({ scripts: { build: 'tsc -b' }, dependencies: { react: '^19.0.0' }, devDependencies: { vite: '^8.0.0', typescript: '~6.0.0' } }))
+    const result = applyScaffold(dir, { confirmed: true, install: false })
+    const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))
+    expect(manifest.scripts.verify).toBe('node scripts/verify.mjs')
+    expect(manifest.scripts.inspect).toBe('node scripts/inspect-presentation.mjs')
+    for (const rel of ['scripts/verify.mjs', 'scripts/inspect-presentation.mjs', 'scripts/lib/preview.mjs', 'scripts/lib/diagnostics.mjs', 'scripts/lib/verify-core.mjs']) {
+      expect(fs.existsSync(path.join(dir, rel)), rel).toBe(true)
+    }
+    expect(result.notes.join(' ')).toMatch(/playwright install chromium/)
+  })
+})
+
 describe('template lookup', () => {
   it('resolves templates from the skill directory regardless of the working directory', () => {
     const dir = tmp()

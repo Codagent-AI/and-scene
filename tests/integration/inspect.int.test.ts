@@ -160,6 +160,43 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
 })
 
 describe('scene transitions in a real browser', () => {
+  it('keeps one fit scale on every step even when captions wrap differently', async () => {
+    const dirCopy = copyRepo('fitscale')
+    fs.mkdirSync(path.join(dirCopy, 'src/presentations/fx-scale'))
+    fs.writeFileSync(
+      path.join(dirCopy, 'src/presentations/fx-scale/Talk.tsx'),
+      `import { Presentation, type Step } from '../../presentation-kit/index.ts'
+const Scene = () => null
+const captions = ['short', 'a much longer caption '.repeat(40), 'medium length caption '.repeat(6), 'x']
+const steps: Step[] = captions.map((caption, i) => ({ id: 's' + i, era: 'e' + (i % 2), title: 'T'.repeat(1 + i * 30), caption, Scene }))
+export default function Talk() { return <Presentation steps={steps} title="scale" /> }
+`,
+    )
+    edit(path.join(dirCopy, 'src/presentations/index.ts'), (s) => s.replace(/\n\]/, `\n  { slug: 'fx-scale', title: 'scale', load: () => import('./fx-scale/Talk.tsx') },\n]`))
+    const build = run('npm', ['run', 'build'], { cwd: dirCopy })
+    expect(build.status, build.output).toBe(0)
+    const preview = await startPreview(dirCopy, () => {})
+    const browser = await chromium.launch()
+    try {
+      const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+      await page.goto(`http://127.0.0.1:${preview.port}/fx-scale`)
+      await page.waitForSelector('[data-step-count]')
+      const scales: string[] = []
+      const heights: number[] = []
+      for (let i = 0; i < 4; i++) {
+        if (i > 0) await page.keyboard.press('ArrowRight')
+        await page.waitForTimeout(300)
+        scales.push((await page.locator('[data-presentation-canvas]').getAttribute('data-presentation-scale')) ?? '')
+        heights.push((await page.locator('[data-presentation-stage]').boundingBox())!.height)
+      }
+      expect(new Set(heights).size).toBeGreaterThan(1) // the chrome really did change height between steps
+      expect(new Set(scales).size).toBe(1)
+    } finally {
+      await browser.close()
+      await preview.stop()
+    }
+  })
+
   it('retires the outgoing scene after a cross-group transition that shares an entity id', async () => {
     const dirCopy = copyRepo('crossgroup')
     // two groups whose scenes both render the entity "shared": a shared-layout cross-fade

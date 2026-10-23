@@ -15,7 +15,8 @@ interface ArrowProps extends NodeProps {
 /** Arrow entity drawn over the whole canvas; endpoints are design-canvas coordinates. */
 export function Arrow({ id, className, style, from, to, bidirectional, bend, ...rest }: ArrowProps) {
   return (
-    <svg
+    <motion.svg
+      layoutId={id}
       width={DESIGN_W}
       height={DESIGN_H}
       viewBox={`0 0 ${DESIGN_W} ${DESIGN_H}`}
@@ -32,6 +33,6 @@ export function Arrow({ id, className, style, from, to, bidirectional, bend, ...
         animate={{ d: arrowPath({ from, to, bidirectional, bend }) }}
         transition={{ duration: LAYOUT_T, ease: EASE }}
       />
-    </svg>
+    </motion.svg>
   )
 }

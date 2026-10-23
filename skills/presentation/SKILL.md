@@ -24,7 +24,21 @@ presentation), `src/presentations/index.ts` is the explicit registry, and each p
 own folder `src/presentations/<slug>/` with `entities.ts`, `Scene.tsx`, `steps/*`, `Talk.tsx` and
 its own CSS file.
 
-## 1. Gather
+## 0. Create or modify?
+
+Decide first. If the request is to change an existing presentation, take the **modify path**: do
+not run the gathering interview, and do not write anything before the target is identified.
+
+1. Run the read-only plan from section 2 (it writes nothing) to find the app, then list the
+   presentations in its registry. If the user did not name one, or the name is ambiguous, list them
+   and ask which one **before changing anything**.
+2. If the plan reports a missing anchor, handle it exactly as section 2 says (state the target,
+   confirm, then scaffold) before editing.
+3. Then follow "Modify" in section 3 and self-verify in section 4.
+
+Everything else is the **create path**, starting with section 1.
+
+## 1. Gather (create path)
 
 Ask the user **one question at a time**. Cover, in this order, only what is still missing:
 
@@ -45,7 +59,7 @@ Rules:
 - For a step whose layout is key or complex, you **may** draw an ASCII mockup and ask the user to
   confirm it before building. Do not mock up every step.
 
-## 2. Check the infrastructure (before creating *and* before modifying)
+## 2. Check the infrastructure (before creating *and* before modifying; the plan itself writes nothing)
 
 Every create or modify request starts here, even when you expect everything to exist. A generated
 presentation depends on three **contract anchors**:
@@ -142,6 +156,9 @@ table-of-contents entries visibly distinct, and make `[data-presentation-attribu
 
 Do not report success until all of this holds; fix failures yourself and re-check.
 
+0. Make sure a browser exists for the render checks: run `npx playwright install chromium` in the
+   app once (it is a no-op when Chromium is already installed). Installing the npm packages does
+   not download it.
 1. `npm run build` completes with no type errors.
 2. The route renders its first step with no runtime or console errors. Before completion, run the
    full `npm run verify` (build, then every step of every registered presentation in Chromium).

@@ -67,3 +67,9 @@ export function formatFailure(error) {
 export function isBottomRight(rect, viewport) {
   return rect.x + rect.width / 2 > viewport.width / 2 && rect.y + rect.height / 2 > viewport.height / 2
 }
+
+/** Source of the presentation index: the file in src/presentations declaring `slug` and `load` entries. */
+export function findRegistryFile(names, read) {
+  const ordered = [...names].filter((f) => /\.(ts|tsx|js|mjs)$/.test(f)).sort((a, b) => (a.startsWith('index.') ? -1 : b.startsWith('index.') ? 1 : 0))
+  return ordered.find((f) => /\bslug\b/.test(read(f)) && /\bload\b/.test(read(f))) ?? null
+}

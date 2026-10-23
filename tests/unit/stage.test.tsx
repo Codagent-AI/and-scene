@@ -53,19 +53,8 @@ describe('canvas and fit scaling', () => {
     expect(computeFitScale({ width: 880, height: 380 }, 'browse', { width: 440, height: 190 })).toBeGreaterThan(1)
   })
 
-  it('changes the transform on resize and mode change, never on step navigation or inner geometry', () => {
+  it('changes the transform on window resize and mode change, never on step navigation, chrome re-wrapping or inner geometry', () => {
     const size = { width: 1000, height: 600 }
-    const observers: Array<() => void> = []
-    globalThis.ResizeObserver = class {
-      constructor(cb: () => void) {
-        observers.push(cb)
-      }
-      observe() {
-        observers.forEach((cb) => cb())
-      }
-      unobserve() {}
-      disconnect() {}
-    } as unknown as typeof ResizeObserver
     const original = HTMLElement.prototype.getBoundingClientRect
     HTMLElement.prototype.getBoundingClientRect = function () {
       return this.hasAttribute('data-presentation-stage') ? ({ ...size, x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0 } as DOMRect) : original.call(this)
@@ -81,9 +70,13 @@ describe('canvas and fit scaling', () => {
         expect(transform()).toBe(t0)
         expect([canvas().style.width, canvas().style.height]).toEqual(['880px', '380px'])
       }
+      act(() => void (size.height = 300)) // the stage area shrinks without a window resize (e.g. a caption wraps)
+      next()
+      expect(transform()).toBe(t0)
       act(() => {
+        size.height = 600
         size.width = 500
-        observers.forEach((cb) => cb())
+        window.dispatchEvent(new Event('resize'))
       })
       const t1 = transform()
       expect(t1).not.toBe(t0)

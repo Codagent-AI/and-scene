@@ -49,6 +49,21 @@ export function exportedNames(source) {
 /** The scene kit contract: step contract, host, navigation, fit scaling and chrome. */
 export const KIT_CONTRACT = ['Step', 'SceneProps', 'Presentation', 'Stage', 'usePresentationNav', 'useFitScale', 'Header', 'Footer', 'Toc']
 
+/**
+ * The presentation index, whatever it is called: a source file directly inside
+ * src/presentations/ that declares entries with a `slug` and a `load` function.
+ */
+export function findRegistry(dir) {
+  const folder = path.join(dir, 'src', 'presentations')
+  if (!fs.existsSync(folder)) return null
+  const names = fs.readdirSync(folder).filter((f) => /\.(ts|tsx|js|mjs)$/.test(f)).sort((a, b) => (a.startsWith('index.') ? -1 : b.startsWith('index.') ? 1 : 0))
+  const match = names.find((f) => {
+    const source = fs.readFileSync(path.join(folder, f), 'utf8')
+    return /\bslug\b/.test(source) && /\bload\b/.test(source)
+  })
+  return match ? path.join(folder, match) : null
+}
+
 /** Contract-level anchor detection: keyed on what exists, not on byte-identical files. */
 export function detectAnchors(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
@@ -62,9 +77,7 @@ export function detectAnchors(dir) {
   }
   const kit = KIT_CONTRACT.every((name) => exported.has(name))
 
-  const indexFile = ['index.ts', 'index.tsx', 'index.js'].map((f) => path.join(dir, 'src', 'presentations', f)).find((f) => fs.existsSync(f))
-  const index = Boolean(indexFile) && /\bslug\b/.test(fs.readFileSync(indexFile, 'utf8'))
-  return { build, kit, index }
+  return { build, kit, index: findRegistry(dir) !== null }
 }
 
 export function isMonorepo(dir) {
@@ -98,7 +111,9 @@ export function templateGroups() {
   const under = (prefix) => files.filter((f) => f.startsWith(prefix))
   const index = [...under(path.join('src', 'presentations')), 'src/router.tsx', 'src/resolveRoute.ts', 'src/Landing.tsx', 'src/main.tsx', 'src/index.css']
   return {
-    build: [...BUILD_FILES.filter((f) => files.includes(f)), ...under('scripts')],
+    build: BUILD_FILES.filter((f) => files.includes(f)),
+    // the npm scripts added by the manifest merge point at these files, so they travel with any scaffold
+    tooling: under('scripts'),
     kit: under(path.join('src', 'presentation-kit')),
     index: index.filter((f) => files.includes(f)),
   }
@@ -139,7 +154,7 @@ export function planScaffold(dir) {
   const groups = templateGroups()
   const copy = []
   const skip = []
-  for (const anchor of missing) {
+  for (const anchor of missing.length > 0 ? [...missing, 'tooling'] : []) {
     for (const rel of groups[anchor]) {
       if (rel === 'package.json') continue
       const dest = path.join(target, rel)
@@ -199,6 +214,7 @@ export function applyScaffold(dir, { confirmed = false, install = true } = {}) {
   if (plan.missing.includes('index') && !written.includes('src/main.tsx')) {
     notes.push('src/main.tsx already exists: render <Router pathname={window.location.pathname} registry={PRESENTATIONS} /> from it')
   }
+  notes.push('render checks need a Chromium build: run `npx playwright install chromium` in the app before `npm run verify`')
   let installed = false
   if (install && (added.length > 0 || !fs.existsSync(path.join(plan.target, 'node_modules')))) {
     const result = spawnSync('npm', ['install'], { cwd: plan.target, stdio: 'inherit', shell: process.platform === 'win32' })

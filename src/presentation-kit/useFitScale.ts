@@ -17,8 +17,9 @@ export function computeFitScale(
 }
 
 /**
- * Measures the stage area and returns the fit scale. The scale depends only on the
- * area size, the mode and the canvas, never on the active step.
+ * Measures the stage area and returns the fit scale. It is re-measured only when the
+ * window is resized or the mode or canvas changes, never because navigation made a
+ * caption or title wrap differently, so every step of a viewport and mode shares one scale.
  */
 export function useFitScale(
   ref: RefObject<HTMLElement | null>,
@@ -36,13 +37,8 @@ export function useFitScale(
       setScale(computeFitScale({ width: rect.width, height: rect.height }, mode, { width, height }))
     }
     measure()
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', measure)
-      return () => window.removeEventListener('resize', measure)
-    }
-    const observer = new ResizeObserver(measure)
-    observer.observe(el)
-    return () => observer.disconnect()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
   }, [ref, mode, width, height])
 
   return scale

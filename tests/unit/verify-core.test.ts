@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { HOST, previewUrl } from '../../scripts/lib/preview.mjs'
-import { checkAdvance, compareSample, describeErrors, formatFailure, isBottomRight, parseRegistry, VerifyError } from '../../scripts/lib/verify-core.mjs'
+import { checkAdvance, compareSample, describeErrors, findRegistryFile, formatFailure, isBottomRight, parseRegistry, VerifyError } from '../../scripts/lib/verify-core.mjs'
 import reference from '../fixtures/reference-sample.json'
 
 const root = path.resolve(import.meta.dirname, '../..')
@@ -16,6 +16,18 @@ describe('parseRegistry', () => {
   })
   it('finds nothing in an empty registry', () => {
     expect(parseRegistry('export const PRESENTATIONS = []')).toEqual([])
+  })
+})
+
+describe('findRegistryFile', () => {
+  const files: Record<string, string> = { 'helpers.ts': 'export const x = 1', 'registry.ts': "{ slug: 'a', title: 'A', load: () => import('./a') }", 'notes.md': 'slug load' }
+  it('finds the registry by content, whatever its name', () => {
+    expect(findRegistryFile(Object.keys(files), (f: string) => files[f])).toBe('registry.ts')
+    expect(findRegistryFile(['helpers.ts'], (f: string) => files[f])).toBeNull()
+  })
+  it('prefers index.* when several qualify', () => {
+    const both: Record<string, string> = { ...files, 'index.ts': files['registry.ts'] }
+    expect(findRegistryFile(Object.keys(both), (f: string) => both[f])).toBe('index.ts')
   })
 })
 

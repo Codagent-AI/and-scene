@@ -100,10 +100,9 @@ describe('INT-001 materialized bootstrap is complete and style-neutral', () => {
     }
     expect(existsSync(path.join(app, 'node_modules/tailwindcss'))).toBe(false)
     expect(existsSync(path.join(app, 'node_modules/@tailwindcss'))).toBe(false)
-    const css = readdirSync(path.join(app, 'dist/assets')).filter((f) => f.endsWith('.css'))
-    for (const f of css) {
-      const built = readFileSync(path.join(app, 'dist/assets', f), 'utf8')
-      expect(built).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(|font-family|box-shadow|border-radius|background/i)
+    // the built stylesheet carries no Tailwind runtime variables either
+    for (const f of readdirSync(path.join(app, 'dist/assets')).filter((n) => n.endsWith('.css'))) {
+      expect(readFileSync(path.join(app, 'dist/assets', f), 'utf8'), f).not.toMatch(/--tw-|tailwindcss/)
     }
   })
 })

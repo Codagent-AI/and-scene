@@ -14,6 +14,7 @@ import {
   registeredSlugs,
   registryHasSlug,
   renderRoute,
+  selectTargets,
 } from '../../scripts/verify.mjs'
 
 const OUTLINE = [
@@ -45,6 +46,19 @@ describe('reference sample checks', () => {
     expect(registryHasSlug(src, 'two-b')).toBe(true)
     expect(registryHasSlug(src, 'three')).toBe(false)
     expect(registryHasSlug('', 'one')).toBe(false)
+  })
+})
+
+describe('target selection', () => {
+  const slugs = ['a', 'b', 'c']
+  it('renders the reference by default, every registered presentation without one, or the requested slug', () => {
+    expect(selectTargets({ slugs, reference: 'b' })).toEqual({ targets: ['b'] })
+    expect(selectTargets({ slugs })).toEqual({ targets: slugs })
+    expect(selectTargets({ slugs, reference: 'b', requested: 'c' })).toEqual({ targets: ['c'] })
+  })
+  it('rejects an unregistered requested slug, listing what is registered', () => {
+    expect(selectTargets({ slugs, requested: 'zzz' }).error).toMatch(/"zzz" is not registered.*a, b, c/)
+    expect(selectTargets({ slugs: [], requested: 'zzz' }).error).toMatch(/registered: none/)
   })
 })
 

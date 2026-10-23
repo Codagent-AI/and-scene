@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Build + browser-render verification. Run with `npm run verify`.
 //
+// Usage: npm run verify [-- --slug <slug>] [-- --port <n>]
 // Phases: build -> sample -> preview -> render. The reference sample (if
 // `package.json#andScene.reference` is set) must be registered and match the
 // outline file named by `package.json#andScene.outline`; every registered
@@ -44,6 +45,20 @@ export function compareOutline(expected, actual) {
     }
   }
   return problems
+}
+
+/**
+ * Which registered presentations to render: an explicit slug, else the reference, else all.
+ * @param {{ slugs: string[], reference?: string, requested?: string }} opts
+ * @returns {{ targets?: string[], error?: string }}
+ */
+export function selectTargets({ slugs, reference, requested }) {
+  if (requested) {
+    return slugs.includes(requested)
+      ? { targets: [requested] }
+      : { error: `"${requested}" is not registered in src/presentations/index.ts (registered: ${slugs.join(', ') || 'none'})` }
+  }
+  return { targets: reference ? [reference] : slugs }
 }
 
 export function pass(detail) {
@@ -213,7 +228,7 @@ export async function renderRoute(browser, port, slug, log = () => {}) {
   }
 }
 
-export async function verify({ root = process.cwd(), port, log = () => {} } = {}) {
+export async function verify({ root = process.cwd(), port, slug, log = () => {} } = {}) {
   const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'))
   const cfg = pkg.andScene ?? {}
 
@@ -241,13 +256,16 @@ export async function verify({ root = process.cwd(), port, log = () => {} } = {}
     return fail('sample', 'no presentations are registered in src/presentations/index.ts')
   }
 
+  const selected = selectTargets({ slugs, reference: cfg.reference, requested: slug })
+  if (selected.error) return fail('sample', selected.error)
+
   const { chromium } = await import('playwright')
   const previewPort = port ?? (await freePort())
   const preview = await startPreview(root, previewPort, log)
   let browser
   try {
     browser = await chromium.launch()
-    const targets = cfg.reference ? [cfg.reference] : slugs
+    const { targets } = selected
     let steps = 0
     for (const slug of targets) {
       const r = await renderRoute(browser, previewPort, slug, log)
@@ -268,13 +286,17 @@ export async function verify({ root = process.cwd(), port, log = () => {} } = {}
 }
 
 function parseArgs(argv) {
-  const i = argv.indexOf('--port')
-  return { port: i >= 0 ? Number(argv[i + 1]) : undefined }
+  const value = (flag) => {
+    const i = argv.indexOf(flag)
+    return i >= 0 ? argv[i + 1] : undefined
+  }
+  const port = value('--port')
+  return { port: port === undefined ? undefined : Number(port), slug: value('--slug') }
 }
 
 async function main() {
-  const { port } = parseArgs(process.argv.slice(2))
-  const result = await verify({ port, log: console.log }).catch((e) => fail('verify', String(e?.stack ?? e)))
+  const { port, slug } = parseArgs(process.argv.slice(2))
+  const result = await verify({ port, slug, log: console.log }).catch((e) => fail('verify', String(e?.stack ?? e)))
   const line = formatResult(result)
   if (result.ok) console.log(line)
   else console.error(line)

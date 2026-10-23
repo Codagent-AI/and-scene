@@ -120,9 +120,12 @@ Then edit the new folder:
 Never report success while any check fails. Fix the cause and re-run.
 
 1. `npm run build` must finish with no type errors.
-2. Render the presentation's route and confirm the first step renders with no
-   runtime or console errors. A lighter single-route render may run first while
-   iterating; finish with the full `npm run verify`.
+2. Render the presentation's route and confirm it renders with no runtime or
+   console errors: `npm run verify -- --slug <slug>` builds the app, opens that
+   route in Chromium on `127.0.0.1`, steps through every step, and fails on any
+   console error, uncaught exception, or stalled step. A lighter single-route
+   render may run first while iterating; finish with `npm run verify -- --slug <slug>`
+   (and plain `npm run verify` where the project declares a reference sample).
 3. Visual composition: run the project-local helper
    `npm run inspect -- <slug>` (add `--narrow` when the presentation is
    responsive-sensitive). Prefer it over ad hoc scripts; if it is unavailable,

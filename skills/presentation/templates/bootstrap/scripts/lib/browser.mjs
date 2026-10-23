@@ -60,10 +60,12 @@ async function waitForReady(url, child, output) {
 
 /** Stops a child process and waits for it to exit; escalates to SIGKILL if needed. */
 export async function stopChild(child) {
-  if (child.exitCode !== null || child.signalCode !== null) return
+  // Listen before checking, so an exit between the check and the kill is not missed.
   const exited = new Promise((resolve) => child.once('exit', resolve))
+  if (child.exitCode !== null || child.signalCode !== null) return
   child.kill('SIGTERM')
   const killer = setTimeout(() => child.kill('SIGKILL'), 5_000)
-  await exited
+  // Bound the wait so a child that ignores SIGKILL cannot hang the run.
+  await Promise.race([exited, sleep(10_000)])
   clearTimeout(killer)
 }

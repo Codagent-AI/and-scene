@@ -167,7 +167,9 @@ async function main() {
       await page.waitForTimeout(options.settle)
       const number = String(index + 1).padStart(2, '0')
       const shown = Number(await page.getAttribute('[data-step-index]', 'data-step-index'))
-      if (shown !== index) throw new Error(`expected step ${index} before capture, page shows ${shown}`)
+      if (shown !== index) {
+        throw new Error(`expected step ${index} before capture, page shows ${shown}\n${errors.join('\n')}`.trimEnd())
+      }
       for (const warning of await page.evaluate(collectWarnings)) {
         warningLines.push(`WARN step ${number} ${warning.kind}: ${warning.message}`)
       }

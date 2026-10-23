@@ -187,6 +187,15 @@ function groupOf(rel) {
 }
 
 export async function planScaffold(appDir, { templateRoot = TEMPLATE_ROOT } = {}) {
+  // Fail before any write if the host manifest cannot be read as JSON.
+  const hostManifest = path.join(appDir, 'package.json')
+  if (await exists(hostManifest)) {
+    try {
+      JSON.parse(await fs.readFile(hostManifest, 'utf8'))
+    } catch (error) {
+      throw new Error(`cannot scaffold: ${hostManifest} is not valid JSON (${error.message}); nothing was written`)
+    }
+  }
   const anchors = await detectAnchors(appDir)
   const missingAnchors = ANCHORS.filter((a) => !anchors[a])
   const rels = await templateFiles(templateRoot)
@@ -210,6 +219,7 @@ export async function planScaffold(appDir, { templateRoot = TEMPLATE_ROOT } = {}
 async function mergePackageJson(destFile, templateFile) {
   const target = JSON.parse(await fs.readFile(destFile, 'utf8'))
   const source = JSON.parse(await fs.readFile(templateFile, 'utf8'))
+  const indent = (await fs.readFile(destFile, 'utf8')).match(/^([ \t]+)"/m)?.[1] ?? 2
   let changed = false
   for (const section of ['dependencies', 'devDependencies', 'scripts']) {
     const wanted = source[section] ?? {}
@@ -221,7 +231,7 @@ async function mergePackageJson(destFile, templateFile) {
       }
     }
   }
-  if (changed) await fs.writeFile(destFile, `${JSON.stringify(target, null, 2)}\n`)
+  if (changed) await fs.writeFile(destFile, `${JSON.stringify(target, null, indent)}\n`)
   return changed
 }
 

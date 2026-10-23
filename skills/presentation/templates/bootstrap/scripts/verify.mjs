@@ -93,11 +93,17 @@ async function renderSample() {
       throw new PhaseFailure('render', [...errors, detail].filter(Boolean).join('\n'), step)
     }
 
-    await page.goto(`${preview.url}/${SAMPLE_SLUG}`, { waitUntil: 'load' })
+    let response = null
+    try {
+      response = await page.goto(`${preview.url}/${SAMPLE_SLUG}`, { waitUntil: 'load' })
+    } catch (error) {
+      failRender(0, `could not load /${SAMPLE_SLUG}: ${error.message}`)
+    }
+    if (!response?.ok()) failRender(0, `/${SAMPLE_SLUG} returned HTTP ${response?.status() ?? 'no response'}`)
     try {
       await page.waitForSelector('[data-step-count]', { timeout: STEP_TIMEOUT_MS * 3 })
     } catch {
-      failRender(0, 'the presentation did not render its first step')
+      failRender(0, `/${SAMPLE_SLUG} did not render a presentation; is the route registered?`)
     }
     const first = await readChrome(page)
     if (first.count !== NORMATIVE_OUTLINE.length) {

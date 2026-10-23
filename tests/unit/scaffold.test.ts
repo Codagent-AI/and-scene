@@ -380,6 +380,25 @@ describe('planScaffold and applyScaffold', () => {
   })
 })
 
+describe('malformed host manifest', () => {
+  it('fails before writing anything when the host package.json is not valid JSON', async () => {
+    const tpl = await makeTemplate()
+    const app = await tmp()
+    await write(app, 'package.json', '{ "name": "host", // comment\n}\n')
+    await expect(applyScaffold(app, { templateRoot: tpl })).rejects.toThrow(/is not valid JSON \(.*\); nothing was written/)
+    expect(await fs.access(path.join(app, 'scripts/verify.mjs')).then(() => true, () => false)).toBe(false)
+  })
+
+  it('keeps the host indentation when merging package.json', async () => {
+    const tpl = await makeTemplate()
+    const app = await tmp()
+    await write(app, 'package.json', '{\n    "name": "host",\n    "dependencies": {}\n}\n')
+    await applyScaffold(app, { templateRoot: tpl })
+    const text = await fs.readFile(path.join(app, 'package.json'), 'utf8')
+    expect(text.split('\n')[1]).toBe('    "name": "host",')
+  })
+})
+
 describe('partial scaffold dependencies', () => {
   it('merges missing runtime dependencies into an existing build setup', async () => {
     const tpl = await makeTemplate()

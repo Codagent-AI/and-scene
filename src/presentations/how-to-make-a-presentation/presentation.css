@@ -1,0 +1,211 @@
+/* Presentation-owned styling for the reference sample. The scene kit stays unstyled. */
+[data-presentation-root] {
+  --ink: #f8f3e6;
+  --muted: #b9b09a;
+  --gold: #c7a755;
+  --line: #5a523f;
+  --panel: #1d1a16;
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  padding: 16px 24px 28px;
+  box-sizing: border-box;
+}
+
+[data-presentation-deck-title] {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+[data-presentation-title] {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+[data-presentation-marker] {
+  margin-right: 10px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-presentation-caption] {
+  margin: 8px 0 12px;
+  max-width: 62ch;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+[data-presentation-progress-list] {
+  gap: 8px;
+  margin-top: 10px;
+}
+
+[data-presentation-progress] {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+[data-presentation-progress][data-presentation-active="true"] {
+  background: var(--gold);
+  border-color: var(--gold);
+  transform: scale(1.4);
+}
+
+[data-presentation-controls] {
+  gap: 12px;
+  margin-top: 12px;
+}
+
+[data-presentation-controls] button,
+[data-presentation-toc-entry] {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+[data-presentation-controls] button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+[data-presentation-toc] {
+  gap: 6px;
+  width: 170px;
+  margin-right: 16px;
+}
+
+[data-presentation-toc-entry] {
+  text-align: left;
+}
+
+[data-presentation-toc-entry][aria-current="step"] {
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 700;
+}
+
+[data-presentation-stage] {
+  min-height: 0;
+}
+
+[data-presentation-canvas] {
+  background: var(--panel);
+  border-radius: 10px;
+}
+
+[data-presentation-box],
+[data-presentation-chip] {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #26221c;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+[data-presentation-entity="you"],
+[data-presentation-entity="skill"] {
+  border-color: var(--gold);
+  justify-content: center;
+  font-weight: 600;
+}
+
+[data-presentation-label] {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+[data-presentation-entity="prompt"] {
+  color: var(--ink);
+}
+
+[data-presentation-entity="card1"],
+[data-presentation-entity="card2"],
+[data-presentation-entity="card3"],
+[data-presentation-entity="verify"] {
+  display: block;
+}
+
+[data-presentation-part] {
+  display: block;
+}
+
+[data-presentation-state="edited"] {
+  border-color: var(--gold);
+}
+
+[data-presentation-flag] {
+  color: var(--gold);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+[data-presentation-entity="ghost"] {
+  border: 1px dashed var(--muted);
+  background: transparent;
+  color: var(--muted);
+  justify-content: center;
+  text-align: center;
+}
+
+[data-presentation-socket] {
+  justify-content: center;
+  border-style: dashed;
+}
+
+[data-presentation-chip][data-presentation-state="pass"] {
+  border-color: #6fbf73;
+  color: #6fbf73;
+}
+
+[data-presentation-entity="route"] {
+  justify-content: center;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+[data-presentation-arrow] path {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 1.5;
+}
+
+[data-presentation-entity="modify"] path {
+  stroke-dasharray: 4 3;
+}
+
+[data-presentation-frame] {
+  border: 1px solid var(--gold);
+  border-radius: 14px;
+}
+
+[data-presentation-attribution] {
+  font-size: 13px;
+  color: var(--gold);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  padding: 2px 4px;
+}
+
+[data-presentation-attribution]:hover {
+  text-decoration: underline;
+}

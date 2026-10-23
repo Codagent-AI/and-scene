@@ -50,7 +50,8 @@ export function snapshotPage() {
     n: ids.get(el),
   }))
 
-  const style = (el) => {
+  // Text entries size to their label, so their box size says nothing about styling.
+  const style = (el, includeSize) => {
     const s = getComputedStyle(el)
     return {
       color: s.color,
@@ -58,20 +59,20 @@ export function snapshotPage() {
       borderColor: s.borderTopColor,
       borderWidth: s.borderTopWidth,
       opacity: s.opacity,
-      width: s.width,
-      height: s.height,
+      width: includeSize ? s.width : '',
+      height: includeSize ? s.height : '',
       fontWeight: s.fontWeight,
     }
   }
   const chromeKinds = [
-    ['progress indicator', '[data-presentation-dot]'],
-    ['table-of-contents entry', '[data-presentation-toc-entry]'],
+    ['progress indicator', '[data-presentation-dot]', true],
+    ['table-of-contents entry', '[data-presentation-toc-entry]', false],
   ]
-  const chrome = chromeKinds.map(([name, selector]) => {
+  const chrome = chromeKinds.map(([name, selector, includeSize]) => {
     const all = [...document.querySelectorAll(selector)]
     const active = all.find((e) => e.getAttribute('data-presentation-active') === 'true')
     const inactive = all.find((e) => e !== active)
-    return { name, active: active ? style(active) : null, inactive: inactive ? style(inactive) : null }
+    return { name, active: active ? style(active, includeSize) : null, inactive: inactive ? style(inactive, includeSize) : null }
   })
   const a = document.querySelector('[data-presentation-attribution]')
   const attribution = a

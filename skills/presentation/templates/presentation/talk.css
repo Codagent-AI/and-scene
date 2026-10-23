@@ -1,0 +1,8 @@
+/*
+ * __SLUG__ owns its look: palette, type, spacing, borders and chrome treatment.
+ * Style the scene kit through its data-presentation-* hooks, for example:
+ *
+ *   .__SLUG__ [data-presentation-progress-item][data-presentation-active] { ... }
+ *   .__SLUG__ [data-presentation-toc-item][data-presentation-active] { ... }
+ *   .__SLUG__ [data-presentation-attribution] { ... }
+ */

@@ -5,13 +5,15 @@ import { Header } from './chrome/Header'
 import { erasOf } from './chrome/eras'
 import { Stage } from './Stage'
 import { usePresentationNav } from './usePresentationNav'
-import type { Mode, Step } from './types'
+import type { CanvasSize, Mode, Step } from './types'
 
 export interface PresentationProps<TPayload> {
   title: string
   steps: Step<TPayload>[]
   initialMode?: Mode
   brand?: ReactNode
+  /** Overrides the default design canvas; omitted fields keep the per-mode default. */
+  design?: Partial<CanvasSize>
 }
 
 const WIDE_QUERY = `(min-width: ${WIDE_BREAKPOINT}px)`
@@ -37,7 +39,7 @@ function useIsWide(): boolean {
 }
 
 /** A complete presentation: the active step on the scene stage with present/browse chrome. */
-export function Presentation<TPayload>({ title, steps, initialMode, brand }: PresentationProps<TPayload>) {
+export function Presentation<TPayload>({ title, steps, initialMode, brand, design }: PresentationProps<TPayload>) {
   const nav = usePresentationNav(steps.length, initialMode)
   const wide = useIsWide()
   const step = steps[nav.index]
@@ -53,7 +55,7 @@ export function Presentation<TPayload>({ title, steps, initialMode, brand }: Pre
       style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}
     >
       <Header mode={nav.mode} deckTitle={title} marker={marker} brand={brand} />
-      <Stage step={step} mode={nav.mode} />
+      <Stage step={step} mode={nav.mode} design={design} />
       <Footer
         mode={nav.mode}
         steps={steps}

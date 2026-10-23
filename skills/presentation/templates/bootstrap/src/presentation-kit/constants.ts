@@ -4,6 +4,8 @@ export const EASE = [0.22, 1, 0.36, 1] as const
 
 /** Duration of the shared-layout morph for persisting entities, in seconds. */
 export const LAYOUT_T = 0.6
+/** Transition for layout projection; newcomers wait at least this long before they fade in. */
+export const LAYOUT_TRANSITION = { duration: LAYOUT_T, ease: [0.22, 1, 0.36, 1] as const }
 /** Duration of a newcomer's fade-in, in seconds. */
 export const ENTER_T = 0.5
 /** Newcomers start after persisting entities settle, so this is at least LAYOUT_T. */

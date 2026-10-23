@@ -1,12 +1,13 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { EASE, LAYOUT_T, STAGE_LAYOUT } from './constants'
 import { useFitScale } from './useFitScale'
-import type { Mode, Step } from './types'
+import type { CanvasSize, Mode, Step } from './types'
 
 export interface StageProps<TPayload> {
   step: Step<TPayload>
   mode: Mode
+  design?: Partial<CanvasSize>
 }
 
 /**
@@ -15,9 +16,12 @@ export interface StageProps<TPayload> {
  * its payload changes. Ungrouped steps get their own key, so AnimatePresence
  * cross-fades them while shared layoutIds morph.
  */
-export function Stage<TPayload>({ step, mode }: StageProps<TPayload>) {
+export function Stage<TPayload>({ step, mode, design }: StageProps<TPayload>) {
   const ref = useRef<HTMLDivElement>(null)
-  const geometry = STAGE_LAYOUT[mode]
+  const preset = STAGE_LAYOUT[mode]
+  const width = design?.width ?? preset.width
+  const height = design?.height ?? preset.height
+  const geometry = useMemo(() => ({ ...preset, width, height }), [preset, width, height])
   const scale = useFitScale(ref, geometry)
   const sceneKey = step.groupKey ? `group:${step.groupKey}` : `step:${step.id}`
   const { Scene } = step

@@ -16,3 +16,9 @@ export interface Step<TPayload = unknown> {
   Scene: ComponentType<SceneProps<TPayload>>
   payload: TPayload
 }
+
+/** Design canvas size in pixels; omitted fields keep the per-mode default. */
+export interface CanvasSize {
+  width: number
+  height: number
+}

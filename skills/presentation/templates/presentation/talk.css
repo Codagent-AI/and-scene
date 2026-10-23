@@ -1,0 +1,128 @@
+/* Presentation-owned look. The scene kit ships no styles, so everything visible is set here. */
+.pres-{{SLUG}} {
+  --accent: #2b6cb0;
+  --ink: #1a202c;
+  --muted: #4a5568;
+  --paper: #f7fafc;
+  --line: #a0aec0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, sans-serif;
+}
+
+.pres-{{SLUG}} [data-presentation-header],
+.pres-{{SLUG}} [data-presentation-footer],
+.pres-{{SLUG}} [data-presentation-toc] {
+  padding: 0 24px;
+}
+
+.pres-{{SLUG}} [data-presentation-header] {
+  gap: 16px;
+}
+
+.pres-{{SLUG}} [data-presentation-title] {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.pres-{{SLUG}}[data-presentation-mode='present'] [data-presentation-title] {
+  font-size: 28px;
+}
+
+.pres-{{SLUG}} [data-presentation-marker] {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pres-{{SLUG}} [data-presentation-caption] {
+  margin: 0;
+  max-width: 70ch;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.pres-{{SLUG}} [data-presentation-controls] {
+  gap: 12px;
+}
+
+.pres-{{SLUG}} [data-presentation-prev],
+.pres-{{SLUG}} [data-presentation-next],
+.pres-{{SLUG}} [data-presentation-toc-entry] {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pres-{{SLUG}} [data-presentation-toc] {
+  gap: 8px;
+}
+
+/* Active chrome must be visibly distinct from inactive chrome. */
+.pres-{{SLUG}} [data-presentation-toc-entry][data-presentation-active='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+.pres-{{SLUG}} [data-presentation-progress] {
+  gap: 6px;
+}
+
+.pres-{{SLUG}} [data-presentation-progress-item] {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--line);
+  cursor: pointer;
+}
+
+.pres-{{SLUG}} [data-presentation-progress-item][data-presentation-active='true'] {
+  width: 24px;
+  background: var(--accent);
+}
+
+/* Attribution must be legible, not a browser-default link. */
+.pres-{{SLUG}} [data-presentation-attribution] {
+  padding: 0 24px;
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.pres-{{SLUG}} .entity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 16px;
+}
+
+.pres-{{SLUG}} .edge {
+  color: var(--accent);
+}
+
+.pres-{{SLUG}} .edge path {
+  stroke-width: 2;
+}
+
+@media (max-width: 600px) {
+  .pres-{{SLUG}} [data-presentation-caption] {
+    font-size: 13px;
+  }
+
+  .pres-{{SLUG}} [data-presentation-title] {
+    font-size: 15px;
+  }
+}

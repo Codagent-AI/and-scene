@@ -1,0 +1,279 @@
+/* Presentation-owned look for the sample; the reusable kit ships no styles. */
+.talk-sample {
+  --gold: #c7a755;
+  --ink: #f8f3e6;
+  --muted: #b9b09c;
+  --panel: #1f1b16;
+  --line: #4a443a;
+  --green: #2e7d32;
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.talk-sample [data-presentation-header],
+.talk-sample [data-presentation-footer],
+.talk-sample [data-presentation-toc] {
+  padding: 0 24px;
+}
+
+.talk-sample [data-presentation-header] {
+  gap: 16px;
+}
+
+.talk-sample [data-presentation-title] {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.talk-sample[data-presentation-mode='present'] [data-presentation-title] {
+  font-size: 28px;
+}
+
+.talk-sample [data-presentation-marker] {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.talk-sample [data-presentation-step-number] {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.talk-sample [data-presentation-step-total]::before {
+  content: '/ ';
+}
+
+.talk-sample [data-presentation-toc] {
+  gap: 8px;
+}
+
+.talk-sample [data-presentation-toc-entry] {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.talk-sample [data-presentation-toc-entry][data-presentation-active='true'] {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #0d0c0b;
+  font-weight: 700;
+}
+
+.talk-sample [data-presentation-caption] {
+  margin: 0;
+  max-width: 70ch;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.talk-sample [data-presentation-controls] {
+  gap: 12px;
+}
+
+.talk-sample [data-presentation-prev],
+.talk-sample [data-presentation-next] {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.talk-sample [aria-disabled='true'] {
+  opacity: 0.4;
+}
+
+.talk-sample [data-presentation-progress] {
+  gap: 6px;
+}
+
+.talk-sample [data-presentation-progress-item] {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--line);
+  cursor: pointer;
+}
+
+.talk-sample [data-presentation-progress-item][data-presentation-active='true'] {
+  width: 24px;
+  background: var(--gold);
+}
+
+.talk-sample [data-presentation-attribution] {
+  padding: 0 24px;
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.talk-sample [data-presentation-attribution]:hover {
+  color: var(--gold);
+  text-decoration: underline;
+}
+
+/* Scene entities */
+.talk-sample [data-presentation-node] {
+  font-size: 11px;
+}
+
+.talk-sample .actor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  background: #2a251e;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.talk-sample .bubble {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.talk-sample .chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.talk-sample .chip svg {
+  width: 14px;
+  height: 14px;
+}
+
+.talk-sample .chip.pass {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
+}
+
+.talk-sample .chip.flag {
+  background: var(--gold);
+  color: #0d0c0b;
+}
+
+.talk-sample .chip.route {
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.talk-sample .tray {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.talk-sample .card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.talk-sample .card-title {
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.talk-sample .card.ghost {
+  border-style: dashed;
+  color: var(--muted);
+  justify-content: center;
+  text-align: center;
+}
+
+.talk-sample .card.verify {
+  border-color: var(--green);
+}
+
+.talk-sample .socket {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gold);
+  border-radius: 0 0 10px 10px;
+  background: #2a251e;
+  font-size: 12px;
+}
+
+.talk-sample .morph-label {
+  text-align: center;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.talk-sample .edge path {
+  stroke: var(--gold);
+  stroke-width: 2;
+}
+
+.talk-sample .edge {
+  color: var(--gold);
+}
+
+.talk-sample .reveal-frame {
+  border: 2px solid var(--gold);
+  border-radius: 18px;
+}
+
+.talk-sample .reveal-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .talk-sample [data-presentation-caption] {
+    font-size: 13px;
+  }
+
+  .talk-sample [data-presentation-title] {
+    font-size: 15px;
+  }
+
+  .talk-sample [data-presentation-marker] {
+    font-size: 10px;
+  }
+}

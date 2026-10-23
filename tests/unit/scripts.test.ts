@@ -120,13 +120,17 @@ describe('inspect settle interval (L-60)', () => {
     expect(resolveSettle([], {})).toBe(DEFAULT_SETTLE_MS)
     expect(resolveSettle([], { INSPECT_SETTLE_MS: '250' })).toBe(250)
     expect(resolveSettle(['--settle', '90'], { INSPECT_SETTLE_MS: '250' })).toBe(90)
-    expect(resolveSettle([], { INSPECT_SETTLE_MS: 'y' })).toBe(DEFAULT_SETTLE_MS)
+    expect(resolveSettle([], { INSPECT_SETTLE_MS: '0' })).toBe(0)
+    expect(resolveSettle(['--settle', '7'], { INSPECT_SETTLE_MS: 'y' })).toBe(7)
   })
   it('rejects an invalid --settle value instead of silently using the default', () => {
     for (const bad of ['abc', '-1', '', 'NaN', 'Infinity']) {
       expect(() => resolveSettle(['--settle', bad], {})).toThrow(/--settle requires a non-negative number/)
     }
     expect(() => parseInspectArgs(['demo', '--settle'], {})).toThrow(/--settle requires/)
+    for (const bad of ['abc', '-1', '', '  ', 'NaN', 'Infinity']) {
+      expect(() => resolveSettle([], { INSPECT_SETTLE_MS: bad }), bad).toThrow(/INSPECT_SETTLE_MS must be a non-negative number/)
+    }
     expect(resolveSettle(['--settle', '0'], {})).toBe(0)
   })
   it('parses slug, flags and output directory', () => {

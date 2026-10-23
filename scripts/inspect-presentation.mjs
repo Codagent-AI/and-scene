@@ -28,9 +28,10 @@ export function resolveSettle(argv, env) {
     if (!Number.isFinite(fromFlag) || fromFlag < 0) throw new Error('--settle requires a non-negative number of milliseconds')
     return fromFlag
   }
-  const fromEnv = Number(env.INSPECT_SETTLE_MS)
-  if (env.INSPECT_SETTLE_MS !== undefined && Number.isFinite(fromEnv) && fromEnv >= 0) return fromEnv
-  return DEFAULT_SETTLE_MS
+  if (env.INSPECT_SETTLE_MS === undefined) return DEFAULT_SETTLE_MS
+  const fromEnv = env.INSPECT_SETTLE_MS.trim() === '' ? NaN : Number(env.INSPECT_SETTLE_MS)
+  if (!Number.isFinite(fromEnv) || fromEnv < 0) throw new Error('INSPECT_SETTLE_MS must be a non-negative number of milliseconds')
+  return fromEnv
 }
 
 export function parseArgs(argv, env = process.env) {

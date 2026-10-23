@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
-  attributionIssues, captureSteps, diagnose, findOverlaps, isDistinct, parseInspectArgs, stepFileName,
+  attributionIssues, captureSteps, diagnose, findOverlaps, isDistinct, MIN_TEXT_PX, parseInspectArgs, smallText, stepFileName,
 } from '../../scripts/lib/inspect-checks.mjs'
 
 const item = (label: string, x: number, y: number, w: number, h: number, extra: Record<string, unknown> = {}) => ({
@@ -82,6 +82,30 @@ describe('diagnose', () => {
   it('does not warn for distinct chrome', () => {
     const pair = { active: style, inactive: { ...style, width: '2px' } }
     expect(diagnose({ ...clean, progress: pair, toc: pair }, 1)).toEqual([])
+  })
+})
+
+describe('small text', () => {
+  const clean = { overlapItems: [], progress: null, toc: null, attribution: { fontSize: 12, color: 'rgb(9, 9, 9)', textDecorationLine: 'none' } }
+
+  it('lists only text drawn below the minimum, smallest first, and skips items without a size', () => {
+    const items = [
+      item('big', 0, 0, 10, 10, { fontPx: MIN_TEXT_PX }),
+      item('tiny', 0, 20, 10, 10, { fontPx: 4.5 }),
+      item('small', 0, 40, 10, 10, { fontPx: 6.5 }),
+      item('unsized', 0, 60, 10, 10),
+    ]
+    expect(smallText(items)).toEqual([{ label: 'tiny', px: 4.5 }, { label: 'small', px: 6.5 }])
+  })
+
+  it('warns once per step with the count and the smallest examples, and is silent when all text is readable', () => {
+    const tiny = [1, 2, 3, 4].map((n) => item(`<span> "t${n}"`, 0, n * 30, 10, 10, { fontPx: 4 + n * 0.1 }))
+    const out = diagnose({ ...clean, overlapItems: tiny }, 7)
+    expect(out).toHaveLength(1)
+    expect(out[0]).toMatch(/^WARN step 7: 4 text element\(s\) render below 7px/)
+    expect(out[0]).toContain('t1')
+    expect(out[0]).not.toContain('t4')
+    expect(diagnose({ ...clean, overlapItems: [item('ok', 0, 0, 10, 10, { fontPx: 18 })] }, 7)).toEqual([])
   })
 })
 

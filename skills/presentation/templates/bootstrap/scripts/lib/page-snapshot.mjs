@@ -27,6 +27,12 @@ export function snapshotPage() {
     }
     return union && { x: union.l, y: union.t, w: union.r - union.l, h: union.b - union.t }
   }
+  // Font size as drawn: the fixed canvas is scaled by a transform, which computed style ignores.
+  const renderedFontPx = (el) => {
+    const size = parseFloat(getComputedStyle(el).fontSize)
+    const drawn = el instanceof HTMLElement && el.offsetWidth > 0 ? el.getBoundingClientRect().width / el.offsetWidth : 1
+    return size * drawn
+  }
   const describe = (el) => {
     const owner = el.closest('[data-presentation-entity]')
     const hook = [...el.attributes].find((a) => a.name.startsWith('data-presentation-') && a.name !== 'data-presentation-active')
@@ -49,7 +55,7 @@ export function snapshotPage() {
   const overlapItems = items.map(({ el, rect, chrome }) => {
     const ancestors = []
     for (let p = el.parentElement; p; p = p.parentElement) if (index.has(p)) ancestors.push(index.get(p))
-    return { label: describe(el), rect, chrome, allowed: el.closest('[data-presentation-allow-overlap]') !== null, ancestors }
+    return { label: describe(el), rect, chrome, fontPx: renderedFontPx(el), allowed: el.closest('[data-presentation-allow-overlap]') !== null, ancestors }
   })
 
   const pair = (container) => {

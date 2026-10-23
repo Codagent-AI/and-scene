@@ -164,7 +164,9 @@ Never report success until all of these pass; if one fails, fix the cause and re
    nothing collides with chrome (captions, progress indicators, table of contents, navigation).
 4. **Review every warning** the helper prints. For each referenced step: fix accidental text or
    chrome collisions, fix indistinct current-step chrome and unpolished attribution (via
-   presentation CSS), then rerun. Mark an overlap as allowed
+   presentation CSS), and enlarge diagram text the helper reports as too small (the fixed
+   canvas is scaled down to fit narrow viewports, so size diagram text in canvas units and keep
+   steps few-word), then rerun. Mark an overlap as allowed
    (`data-presentation-allow-overlap` on the smallest subtree) **only** when it is intentional
    *and* readable; never use the marker to hide an accidental collision. Do not declare success
    while any defect remains, and report the final check results and remaining advisory status

@@ -10,18 +10,12 @@ export interface SamplePayload {
 
 const geometry = (e: EntityDef) => ({ x: e.x, y: e.y, width: e.width, height: e.height })
 
-const CARD_COPY: Record<string, string> = {
-  'step-card-1': 'You',
-  'step-card-2': 'Skill',
-  'step-card-3': 'Scene',
-}
-
 function Card({ id, appear }: { id: string; appear: boolean }) {
   return (
     <Box id={id} {...geometry(entity(id))} appear={appear} className="card">
       <span className="card-title">title</span>
       <span className="card-caption">caption</span>
-      <span className="card-visual">visual · {CARD_COPY[id]}</span>
+      <span className="card-visual">visual</span>
     </Box>
   )
 }
@@ -41,7 +35,7 @@ function EntityView({ e, appear }: { e: EntityDef; appear: boolean }) {
     case 'tray':
       return <Frame id={e.id} {...g} className="tray" />
     case 'ghost-card':
-      return <Box id={e.id} {...g} className="card ghost">unspecified step</Box>
+      return <Box id={e.id} {...g} className="card ghost">open step</Box>
     case 'depth-control':
       return <SymbolChip id={e.id} {...g} className="chip depth" symbol="partial ↔ full" />
     case 'scene-kit':

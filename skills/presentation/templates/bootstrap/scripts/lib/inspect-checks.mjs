@@ -42,6 +42,17 @@ export function attributionIssues(attribution) {
   return issues
 }
 
+/** Text drawn smaller than this is not readable; the fixed canvas shrinks it on narrow viewports. */
+export const MIN_TEXT_PX = 7
+
+/** Labels of visible text drawn below `MIN_TEXT_PX`, smallest first. Items without a size are skipped. */
+export function smallText(items) {
+  return items
+    .filter((i) => typeof i.fontPx === 'number' && i.fontPx < MIN_TEXT_PX)
+    .sort((a, b) => a.fontPx - b.fontPx)
+    .map((i) => ({ label: i.label, px: i.fontPx }))
+}
+
 /** Advisory warnings for one captured step (`stepNumber` is one-based). */
 export function diagnose(snapshot, stepNumber) {
   const warnings = []
@@ -53,6 +64,14 @@ export function diagnose(snapshot, stepNumber) {
     if (pair && !isDistinct(pair.active, pair.inactive)) {
       warn(`active ${name} is visually indistinct from inactive ones; style [data-presentation-active="true"] in presentation CSS`)
     }
+  }
+  const small = smallText(snapshot.overlapItems)
+  if (small.length) {
+    const sample = small.slice(0, 3).map((t) => `${t.label} (${t.px.toFixed(1)}px)`).join(', ')
+    warn(
+      `${small.length} text element(s) render below ${MIN_TEXT_PX}px and are hard to read, e.g. ${sample}; ` +
+        'size diagram text in canvas units in presentation CSS, since the canvas is scaled to fit the viewport',
+    )
   }
   const issues = attributionIssues(snapshot.attribution)
   if (issues.length) warn(`attribution ${issues.join(' and ')}; style [data-presentation-attribution] in presentation CSS`)

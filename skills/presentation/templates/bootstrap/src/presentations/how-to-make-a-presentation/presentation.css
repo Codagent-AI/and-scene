@@ -24,6 +24,7 @@
 
 [data-presentation-marker] {
   margin: 0;
+  white-space: nowrap;
   font-size: 13px;
   color: var(--muted);
 }
@@ -35,6 +36,11 @@
 
 [data-presentation-deck-title] {
   margin: 0 0 0 auto;
+  min-width: 0;
+  padding-left: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 14px;
   font-weight: 600;
 }

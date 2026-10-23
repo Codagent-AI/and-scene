@@ -140,6 +140,20 @@ describe('fixed-canvas fit scaling', () => {
     expect((b.querySelector('[data-presentation-canvas]') as HTMLElement).style.transform).toBe(shortTransform)
   })
 
+  it('fits the stage width, not the window width, when a side column narrows the stage', () => {
+    stubViewport(1440, 900)
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+    rect.mockImplementation(function (this: HTMLElement) {
+      const width = this.hasAttribute('data-presentation-stage') ? 1206 : 0
+      return { width, height: 0, x: 0, y: 0, top: 0, left: 0, right: width, bottom: 0, toJSON: () => ({}) }
+    })
+    render(<Stage steps={steps} index={0} mode="browse" />)
+    const scale = fitScale({ width: 1206, height: 900 }, 'browse')
+    expect(scale).toBeLessThan(fitScale({ width: 1440, height: 900 }, 'browse'))
+    expect(canvas().style.transform).toBe(`scale(${scale})`)
+    expect(880 * scale).toBeLessThanOrEqual(1206 - 48)
+  })
+
   it('places the canvas centered inside the stage', () => {
     stubViewport(1000, 800)
     render(<Stage steps={steps} index={0} mode="browse" />)

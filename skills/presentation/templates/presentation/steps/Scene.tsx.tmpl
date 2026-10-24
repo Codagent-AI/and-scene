@@ -9,14 +9,15 @@ export interface ScenePayload {
 
 /**
  * One persistent scene for every step. An entity mounts at the beat that introduces it
- * (wrapped in <Appear>) and then keeps its id, so continuing entities morph in place.
+ * (wrapped in <Appear>) and then keeps its id, so continuing entities morph in place. Every
+ * direct child of <SceneLayer> needs a key; an <Appear> that a later step drops fades out.
  */
 export function Scene({ payload: { beat } }: SceneProps<ScenePayload>) {
   return (
     <SceneLayer>
-      <Box id={ID.start} Icon={Star} label="Start here" {...POS.start} />
+      <Box key="start" id={ID.start} Icon={Star} label="Start here" {...POS.start} />
       {beat >= 2 && (
-        <Appear>
+        <Appear key="next">
           <Box id={ID.next} Icon={Sparkles} label="Then this" {...POS.next} />
           <Arrow id={ID.link} {...LINK} />
         </Appear>

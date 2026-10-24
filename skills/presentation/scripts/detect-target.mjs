@@ -23,7 +23,27 @@ function listing(dir) {
   return existsSync(dir) ? readdirSync(dir) : []
 }
 
-/** Which of the three contract anchors exist directly under `dir`. */
+/** Source files under `dir` (recursive, skipping dependency and output directories). */
+function sourceFiles(dir) {
+  if (!existsSync(dir)) return []
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) return IGNORED.has(entry.name) || entry.name === 'dist' ? [] : sourceFiles(full)
+    return /\.[cm]?[jt]sx?$/.test(entry.name) ? [full] : []
+  })
+}
+
+const stripComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+const exportsName = (text, pattern) =>
+  new RegExp(
+    `export\\s+(?:default\\s+)?(?:declare\\s+)?(?:async\\s+)?(?:function|const|class|interface|type)\\s+(?:${pattern})\\b|export\\s+(?:type\\s+)?\\{[^}]*\\b(?:${pattern})\\b`,
+  ).test(text)
+
+/**
+ * Which of the three contract anchors exist under `dir`. Detection reads what the files
+ * export, not what they are called, so renamed or reorganised equivalents still count and
+ * empty files with canonical names do not.
+ */
 export function detectAnchors(dir) {
   const pkg = readJson(join(dir, 'package.json'))
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies }
@@ -32,9 +52,11 @@ export function detectAnchors(dir) {
     Boolean(deps.vite && deps.react && deps.typescript) &&
     listing(dir).some((f) => /^vite\.config\.[cm]?[jt]s$/.test(f)) &&
     listing(dir).some((f) => /^tsconfig.*\.json$/.test(f))
-  const kitFiles = listing(join(dir, 'src', 'presentation-kit'))
-  const kit = ['Presentation', 'Stage', 'types'].every((name) => kitFiles.some((f) => f.startsWith(`${name}.`)))
-  const index = listing(join(dir, 'src', 'presentations')).some((f) => /^index\.[jt]sx?$/.test(f))
+  const sources = sourceFiles(join(dir, 'src')).map((f) => stripComments(readFileSync(f, 'utf8')))
+  // Scene kit: the presentation host, the stage that mounts the active step, and the step contract.
+  const kit = [/Presentation/, /Stage/, /Step|SceneProps/].every((name) => sources.some((text) => exportsName(text, name.source)))
+  // Presentation index: a registry of presentations that maps each one to a loadable route.
+  const index = sources.some((text) => exportsName(text, '\\w*(?:[Pp]resentations|[Rr]egistry)\\w*'))
   return { build, kit, index }
 }
 

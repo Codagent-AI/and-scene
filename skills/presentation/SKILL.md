@@ -26,6 +26,7 @@ relative to the current working directory:
   `steps/steps.ts`, `Talk.tsx`, `styles.css`). Placeholders: `__SLUG__` (kebab-case route slug) and
   `__TITLE__` (deck title, escaped for a TypeScript string literal).
 - `scripts/detect-target.mjs` – reports which scaffold anchors exist and where to scaffold.
+- `scripts/scaffold.mjs` – copies the missing anchors from `templates/bootstrap/` and merges `package.json`.
 
 ## Procedure
 
@@ -44,7 +45,7 @@ user can still provide.
 - For a key or complex step you may draw an ASCII mockup of the layout and ask the user to confirm
   it before building. Do not do this for every step.
 
-When asked to **modify** an existing presentation, skip to [Modify](#modify-an-existing-presentation).
+When asked to **modify** an existing presentation, go to [Modify](#modify-an-existing-presentation); it still starts with the infrastructure check in step 2.
 
 ### 2. Resolve the target and scaffold what is missing
 
@@ -66,19 +67,23 @@ trigger re-scaffolding. Targets:
 `scaffold` in the result says what to do:
 
 - `none` – all anchors exist; go straight to step 3.
-- `full` – copy all of `templates/bootstrap/` into `target`.
-- `partial` – copy only the missing anchors and leave existing files untouched: build setup =
-  `package.json`, `package-lock.json`, `tsconfig*.json`, `vite.config.ts`, `eslint.config.js`,
-  `index.html`, `public/`, `src/main.tsx`, `src/index.css`, `scripts/`, `verify.config.json`; scene kit =
-  `src/presentation-kit/`; index = `src/presentations/index.ts`, `src/router.ts`, `src/Landing.tsx`.
+- `full` or `partial` – run `node <skill-dir>/scripts/scaffold.mjs <project-dir>` (after the
+  confirmation below). It copies only what is missing from `templates/bootstrap/`, never
+  overwrites an existing file (they are listed under `skipped`), and merges the dependencies and
+  scripts the infrastructure needs into an existing `package.json` without changing existing
+  entries (`addedDependencies`, `addedScripts`).
+- If the result has `wiring` entries, the host already has its own entry point (for example
+  `src/main.tsx`) that does not use the route registry. Make a scoped edit so `"/<slug>"` renders
+  the lazy presentation from `src/presentations/index.ts` and `"/"` renders `src/Landing.tsx`, following
+  `templates/bootstrap/src/main.tsx`, and keep the rest of the host file intact.
 
 If `confirmRequired` is true (the project is non-empty), **state the target directory and what you
 will add, and wait for the user to confirm before writing anything.** Preserve all existing
 content.
 
 Then install dependencies: never assume they are present. In `target`, run `npm ci` after a full
-scaffold (the template ships a lock file), or `npm install` after a partial one so the full set is
-present: `react`, `react-dom`, `motion`, `lucide-react`, `vite`, `@vitejs/plugin-react`,
+scaffold into an empty directory (the template ships a lock file), otherwise `npm install` so the
+dependencies added to `package.json` are installed. The full set is: `react`, `react-dom`, `motion`, `lucide-react`, `vite`, `@vitejs/plugin-react`,
 `typescript`, `@types/react`, `@types/react-dom`, `@types/node`, the ESLint stack, and
 `playwright` (then `npx playwright install chromium` if no browser is available).
 
@@ -92,7 +97,8 @@ Create the presentation in `src/presentations/<slug>/` from `templates/presentat
 
 - `entities.ts` – the presentation's `layoutId` namespace and canvas geometry (880 × 380).
 - `steps/Scene.tsx` – the persistent scene. Entities that continue between steps keep one id and
-  must **not** be wrapped in `<Appear>`; only entities new to a step are. Put entities that
+  must **not** be re-wrapped in `<Appear>`; only entities new to a step are, and every direct child
+  of `<SceneLayer>` needs a `key` so a dropped `<Appear>` can fade out. Put entities that
   persist in the same component so they morph in place.
 - `steps/steps.ts` – the ordered `Step` list: stable `id`, `era` (ToC section), one-line `title`,
   `caption` paragraph, shared `Scene` + `groupKey`, and the `payload` for the step.
@@ -135,6 +141,9 @@ Do not commit `dist/`, `node_modules/`, or `.presentation-artifacts/`.
 
 ## Modify an existing presentation
 
+0. Before touching anything, run `detect-target.mjs` and scaffold whatever anchor is missing,
+   exactly as in step 2 (including the confirmation for a non-empty project). Modification
+   depends on the same build setup, scene kit, and presentation index as creation.
 1. If the target is not clearly named, **list the registered presentations** (read
    `src/presentations/index.ts`) and ask which one to modify before changing anything.
 2. Ask **only** about the requested change (steps, entities, or style). Do not re-walk the create

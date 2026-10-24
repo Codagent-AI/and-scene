@@ -25,8 +25,12 @@ const BUILD = {
   'vite.config.ts': '',
   'tsconfig.json': '{}',
 }
-const KIT = { 'src/presentation-kit/Presentation.tsx': '', 'src/presentation-kit/Stage.tsx': '', 'src/presentation-kit/types.ts': '' }
-const INDEX = { 'src/presentations/index.ts': '' }
+const KIT = {
+  'src/presentation-kit/Presentation.tsx': 'export function Presentation() { return null }',
+  'src/presentation-kit/Stage.tsx': 'export function Stage() { return null }',
+  'src/presentation-kit/types.ts': 'export interface Step { id: string }',
+}
+const INDEX = { 'src/presentations/index.ts': "export const presentations = [{ slug: 'a', load: () => import('./a') }]" }
 
 describe('detectTarget', () => {
   it('scaffolds everything at the root of an empty directory without confirmation', () => {
@@ -93,17 +97,28 @@ describe('detectTarget', () => {
     expect(detectTarget(dir)).toMatchObject({ target: dir, scaffold: 'none' })
   })
 
-  it('detects anchors by contract, not by an exact scaffold', () => {
+  it('detects anchors by contract: renamed and reorganised equivalents count', () => {
     const dir = project({
       ...BUILD,
       'vite.config.mjs': '',
-      'src/presentation-kit/Presentation.jsx': '',
-      'src/presentation-kit/Stage.jsx': '',
-      'src/presentation-kit/types.js': '',
-      'src/presentations/index.js': '',
+      'src/engine/ScenePresenter.jsx': 'export const Presentation = () => null',
+      'src/engine/host.js': 'export function Stage() {}',
+      'src/engine/contract.d.ts': 'export type { SceneProps, Step } from "./x"',
+      'src/routes/registry.js': "export const presentationRegistry = [{ slug: 'a', load: () => import('./a') }]",
       'extra.txt': 'cosmetic',
     })
-    expect(detectTarget(dir).scaffold).toBe('none')
+    expect(detectTarget(dir).anchors).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('does not accept empty or unrelated files that merely have the canonical names', () => {
+    const dir = project({
+      ...BUILD,
+      'src/presentation-kit/Presentation.tsx': '',
+      'src/presentation-kit/Stage.tsx': '// export function Stage() {}',
+      'src/presentation-kit/types.ts': 'const Step = 1',
+      'src/presentations/index.ts': '',
+    })
+    expect(detectTarget(dir).anchors).toEqual({ build: true, kit: false, index: false })
   })
 
   it('requires the build anchor to have a build script and core dependencies', () => {

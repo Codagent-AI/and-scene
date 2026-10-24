@@ -115,3 +115,54 @@ describe('INT-001 materialized bootstrap', () => {
     expect(kitFiles.filter((f) => /\.css$/.test(f))).toEqual([])
   })
 })
+
+describe('INT-001 partial scaffold of a host that only has a build setup', () => {
+  let app: string
+  let report: { missing: string[]; wiring: string[]; addedDependencies: string[]; copied: string[] }
+  let verify: RunResult
+
+  beforeAll(async () => {
+    app = mkdtempSync(join(tmpdir(), 'and-scene-partial-'))
+    const outside = mkdtempSync(join(tmpdir(), 'and-scene-cwd-'))
+    cpSync(BOOTSTRAP, app, { recursive: true })
+    for (const gone of ['src/presentation-kit', 'src/presentations', 'src/router.ts', 'src/Landing.tsx', 'scripts', 'verify.config.json']) {
+      rmSync(join(app, gone), { recursive: true, force: true })
+    }
+    const pkgFile = join(app, 'package.json')
+    const pkg = JSON.parse(readFileSync(pkgFile, 'utf8'))
+    for (const dep of ['motion', 'lucide-react', 'playwright']) {
+      delete pkg.dependencies?.[dep]
+      delete pkg.devDependencies?.[dep]
+    }
+    delete pkg.scripts.verify
+    delete pkg.scripts.inspect
+    writeFileSync(pkgFile, JSON.stringify(pkg, null, 2))
+    rmSync(join(app, 'package-lock.json'))
+    writeFileSync(join(app, 'src', 'main.tsx'), "import { createRoot } from 'react-dom/client'\ncreateRoot(document.getElementById('root')!).render(<p>host app</p>)\n")
+
+    const scaffolded = await run('node', [join(SKILL, 'scripts', 'scaffold.mjs'), app], outside)
+    expect(scaffolded.code, scaffolded.stderr).toBe(0)
+    report = JSON.parse(scaffolded.stdout)
+    // The documented scoped edit for `wiring`: route the host entry point through the registry.
+    cpSync(join(BOOTSTRAP, 'src', 'main.tsx'), join(app, 'src', 'main.tsx'))
+    const install = await run('npm', ['install', '--prefer-offline', '--no-audit', '--no-fund'], app)
+    expect(install.code, install.stderr).toBe(0)
+    instantiate(app, 'partial-demo', 'Partial Demo')
+    verify = await run('npm', ['run', 'verify'], app)
+  })
+  afterAll(() => rmSync(app, { recursive: true, force: true }))
+
+  it('scaffolds only the missing anchors and reports the entry point to wire', () => {
+    expect(report.missing).toEqual(['kit', 'index'])
+    expect(report.wiring).toEqual([expect.stringContaining('src/main.tsx')])
+    expect(report.addedDependencies).toEqual(expect.arrayContaining(['motion', 'lucide-react', 'playwright']))
+    expect(report.copied).not.toContain('vite.config.ts')
+    expect(report.copied).toEqual(expect.arrayContaining(['src/presentation-kit', 'src/presentations/index.ts']))
+  })
+
+  it('yields a working app: dependencies installed, routed, built, and rendered', () => {
+    expect(verify.code, verify.stdout + verify.stderr).toBe(0)
+    expect(verify.stdout).toContain('verify: partial-demo rendered 2 steps')
+    expect(detectTarget(app).scaffold).toBe('none')
+  })
+})

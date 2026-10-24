@@ -6,6 +6,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { collides } from './lib/overlap.mjs'
 import { launchChromium, run, startPreview } from './lib/preview.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -31,7 +32,8 @@ function parseArgs(argv) {
 }
 
 /** Runs inside the page: returns advisory warnings for the settled step. */
-function diagnose() {
+function diagnose(collidesSrc) {
+  const collides = new Function(`return ${collidesSrc}`)()
   const warnings = []
   const rootEl = document.querySelector('[data-presentation-root]')
   const describe = (el) => {
@@ -61,15 +63,16 @@ function diagnose() {
     const isChrome = chrome.has(el)
     if (!own.length && !isChrome) continue
     if (hidden(el)) continue
-    let rect
-    if (isChrome) rect = el.getBoundingClientRect()
+    let rects
+    if (isChrome) rects = el.getClientRects()
     else {
       const range = document.createRange()
       range.setStartBefore(own[0])
       range.setEndAfter(own[own.length - 1])
-      rect = range.getBoundingClientRect()
+      rects = range.getClientRects()
     }
-    if (rect.width > 0 && rect.height > 0) boxes.push({ el, rect })
+    rects = [...rects].filter((r) => r.width > 0 && r.height > 0)
+    if (rects.length) boxes.push({ el, rects })
   }
   for (let i = 0; i < boxes.length; i++) {
     for (let j = i + 1; j < boxes.length; j++) {
@@ -77,9 +80,7 @@ function diagnose() {
       const b = boxes[j]
       if (a.el.contains(b.el) || b.el.contains(a.el)) continue
       if (allowed(a.el) || allowed(b.el)) continue
-      const w = Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left)
-      const h = Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top)
-      if (w > 2 && h > 2) warnings.push(`overlap: ${describe(a.el)} overlaps ${describe(b.el)}`)
+      if (collides(a.rects, b.rects)) warnings.push(`overlap: ${describe(a.el)} overlaps ${describe(b.el)}`)
     }
   }
 
@@ -145,7 +146,7 @@ async function main() {
       const n = String(i + 1).padStart(2, '0')
       const file = `step-${n}.png`
       await page.screenshot({ path: path.join(opts.out, file) })
-      const warnings = await page.evaluate(diagnose)
+      const warnings = await page.evaluate(diagnose, collides.toString())
       for (const w of warnings) console.log(`WARN step ${i + 1}: ${w}`)
       manifest.steps.push({ step: i + 1, file, navigatedAt, capturedAt, warnings })
       if (i < count - 1) {

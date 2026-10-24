@@ -19,6 +19,8 @@ interface Fixture {
   css: string
   /** JSX rendered by the scene on step 2 only. */
   extra: string
+  /** Era label for steps 2 and 3; defaults to a short one. */
+  era?: string
 }
 
 const FIXTURES: Fixture[] = [
@@ -36,6 +38,13 @@ const FIXTURES: Fixture[] = [
               <Label id="ok-a" at={{ x: 300, y: 150, w: 140, h: 30 }}>Alpha words</Label>
               <Label id="ok-b" at={{ x: 310, y: 154, w: 140, h: 30 }}>Beta words</Label>
             </div>`,
+  },
+  {
+    // The era label wraps at a narrow viewport; its line boxes are clear of the step number.
+    slug: 'fx-wrap',
+    css: GOOD_CSS('fx-wrap'),
+    extra: '',
+    era: 'an exceptionally long era label that has to wrap onto several lines',
   },
   { slug: 'fx-chrome', css: '', extra: '' },
   { slug: 'fx-toc', css: GOOD_CSS('fx-toc', { toc: false }), extra: '' },
@@ -55,7 +64,7 @@ function writeFixture(root: string, f: Fixture) {
   const base = path.join(root, 'src/presentations', f.slug)
   mkdirSync(base, { recursive: true })
   writeFileSync(path.join(base, 'style.css'), f.css)
-  const steps = [1, 2, 3].map((n) => `  { id: 's${n}', era: 'e${n > 1 ? 2 : 1}', title: 'Step ${n}', caption: 'Caption ${n}' }`)
+  const steps = [1, 2, 3].map((n) => `  { id: 's${n}', era: '${n > 1 ? (f.era ?? 'e2') : 'e1'}', title: 'Step ${n}', caption: 'Caption ${n}' }`)
   writeFileSync(
     path.join(base, 'Talk.tsx'),
     `import { Box, Label, Presentation, SceneLayer } from '../../presentation-kit/index.ts'
@@ -139,6 +148,12 @@ describe('inspect-presentation helper', () => {
     expect(r.warnings).toHaveLength(1)
     expect(r.warnings[0]).toMatch(/^WARN step 2: overlap: .*#coll-a.*#coll-b/)
     expect(r.manifest.steps.map((s: { warnings: string[] }) => s.warnings.length)).toEqual([0, 1, 0])
+  })
+
+  it('does not report a wrapped marker label as overlapping the step number at a narrow viewport', async () => {
+    const r = await inspect('fx-wrap', ['--viewport', '390x844'])
+    expect(r.code, r.output).toBe(0)
+    expect(r.warnings.filter((w) => w.includes('overlap'))).toEqual([])
   })
 
   it('does not report overlap inside an explicit allow-overlap subtree', async () => {

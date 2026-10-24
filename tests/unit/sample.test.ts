@@ -1,7 +1,9 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { presentations } from '../../src/presentations'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'
-import { ENTITY_IDS, GEOMETRY, INTRO } from '../../src/presentations/how-to-make-a-presentation/entities'
+import { CARD_SLOTS, ENTITY_IDS, GEOMETRY, INTRO, slotX } from '../../src/presentations/how-to-make-a-presentation/entities'
 import { CANONICAL_STEPS } from '../helpers/canonical-sample'
 
 describe('reference sample', () => {
@@ -57,5 +59,36 @@ describe('reference sample', () => {
     expect([INTRO.verify, INTRO.check]).toEqual([7, 7])
     expect([INTRO['modify-arc'], INTRO['edited-ring']]).toEqual([8, 8])
     expect(INTRO['reveal-frame']).toBe(9)
+  })
+
+  it('keeps the composition inside the 880 × 380 canvas, with the cards inside the tray', () => {
+    const { tray, cardY, cardW, cardH } = GEOMETRY
+    for (const [name, r] of Object.entries(GEOMETRY)) {
+      if (typeof r === 'number') continue
+      expect(r.x, name).toBeGreaterThanOrEqual(0)
+      expect(r.y, name).toBeGreaterThanOrEqual(0)
+      expect(r.x + r.w, name).toBeLessThanOrEqual(880)
+      expect(r.y + r.h, name).toBeLessThanOrEqual(380)
+    }
+    expect(slotX(0)).toBeGreaterThanOrEqual(tray.x)
+    expect(slotX(CARD_SLOTS - 1) + cardW).toBeLessThanOrEqual(tray.x + tray.w)
+    expect(cardY).toBeGreaterThanOrEqual(tray.y)
+    expect(cardY + cardH).toBeLessThanOrEqual(tray.y + tray.h)
+  })
+
+  it('plugs the scene-kit socket into the tray bottom edge', () => {
+    const { tray, socket } = GEOMETRY
+    expect(socket.y).toBe(tray.y + tray.h)
+    expect(socket.x).toBeGreaterThanOrEqual(tray.x)
+    expect(socket.x + socket.w).toBeLessThanOrEqual(tray.x + tray.w)
+  })
+
+  it('sizes diagram type so scene text stays legible when the canvas scales to a phone width', () => {
+    // 390px viewport => canvas scale ~0.41, so 22px of canvas type renders at ~9px.
+    const css = readFileSync(path.join(import.meta.dirname, '../../src/presentations/how-to-make-a-presentation/talk.css'), 'utf8')
+    const diagram = css.slice(css.indexOf('/* diagram */'))
+    const sizes = [...diagram.matchAll(/font-size:\s*([\d.]+)px/g)].map((m) => Number(m[1]))
+    expect(sizes.length).toBeGreaterThan(0)
+    for (const size of sizes) expect(size).toBeGreaterThanOrEqual(22)
   })
 })

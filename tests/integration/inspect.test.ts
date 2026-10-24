@@ -24,6 +24,7 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
   let collide: Report
   let small: Report
   let narrow: Report
+  let sampleNarrow: Report
   let plainRun: Awaited<ReturnType<typeof run>>
 
   const inspect = async (slug: string, extra: string[] = []) => {
@@ -60,6 +61,8 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     small = await report('small')
     await inspect('polished', ['--skip-build', '--viewport', '390x844'])
     narrow = await report('polished')
+    await inspect('how-to-make-a-presentation', ['--skip-build', '--viewport', '390x844'])
+    sampleNarrow = await report('how-to-make-a-presentation')
   })
   afterAll(async () => {
     await remove(dir)
@@ -123,6 +126,11 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     expect(tiny.length).toBeGreaterThan(0)
     expect(tiny[0].message).toMatch(/scene text renders as small as/)
     expect(polished.warnings.filter((w) => w.kind === 'small-text')).toEqual([])
+  })
+
+  it('keeps the reference sample legible at a phone-width viewport', () => {
+    expect(sampleNarrow.steps).toHaveLength(9)
+    expect(sampleNarrow.warnings.filter((w) => w.kind === 'small-text')).toEqual([])
   })
 
   it('stays quiet about polished active chrome and attribution while inactive controls exist', () => {

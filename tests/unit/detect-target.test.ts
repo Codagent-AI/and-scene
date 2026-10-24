@@ -138,6 +138,16 @@ describe('detectTarget', () => {
     expect(detectTarget(project({ ...BUILD, 'package.json': pkg })).anchors.build).toBe(true)
   })
 
+  // Acceptance F-004: delegation depth must not matter.
+  it('follows a nested npm script chain to vite and tolerates script cycles', () => {
+    const chain = { build: 'npm run compile', compile: 'npm run bundle', bundle: 'pnpm run emit', emit: 'vite build' }
+    const nested = { ...BUILD['package.json'], scripts: chain }
+    expect(detectTarget(project({ ...BUILD, 'package.json': nested })).anchors.build).toBe(true)
+
+    const cyclic = { ...BUILD['package.json'], scripts: { build: 'npm run a', a: 'npm run build' } }
+    expect(detectTarget(project({ ...BUILD, 'package.json': cyclic })).anchors.build).toBe(false)
+  })
+
   // Acceptance F-001: placeholder files must not read as a complete presentation app.
   it('does not accept placeholder build files or contract stubs as anchors', () => {
     const dir = project({

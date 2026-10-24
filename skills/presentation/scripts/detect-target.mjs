@@ -41,12 +41,19 @@ const exportsName = (text, pattern) =>
 
 const commentless = (text) => stripComments(text).trim()
 
-/** The one-level chain of npm scripts a `build` script runs, so `npm run compile` -> `vite build` counts. */
+/** Every command a `build` script runs, following `npm run <script>` delegation to any depth. */
 function buildCommand(scripts) {
-  const build = scripts?.build
-  if (typeof build !== 'string') return ''
-  const chained = [...build.matchAll(/(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?([\w:-]+)/g)].map((m) => scripts[m[1]])
-  return [build, ...chained.filter((c) => typeof c === 'string')].join(' && ')
+  const seen = new Set()
+  const commands = []
+  const visit = (name) => {
+    const command = scripts?.[name]
+    if (typeof command !== 'string' || seen.has(name)) return
+    seen.add(name)
+    commands.push(command)
+    for (const [, next] of command.matchAll(/(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?([\w:-]+)/g)) visit(next)
+  }
+  visit('build')
+  return commands.join(' && ')
 }
 
 /** A tsconfig that actually configures TypeScript (options, references, or an extended base). */

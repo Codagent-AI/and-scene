@@ -52,6 +52,11 @@ describe('active chrome distinction', () => {
     expect(isIndistinct({ ...base }, { ...base })).toBe(true)
   })
 
+  it('ignores size differences between text-labelled controls but not between unlabelled ones', () => {
+    expect(isIndistinct({ ...base, width: '40px', _hasText: true }, { ...base, width: '60px', _hasText: true })).toBe(true)
+    expect(isIndistinct({ ...base, width: '10px' }, { ...base, width: '26px' })).toBe(false)
+  })
+
   it.each(DISTINCTION_PROPS)('treats a difference in %s as distinct', (prop) => {
     expect(isIndistinct({ ...base, [prop]: 'other' }, { ...base })).toBe(false)
   })

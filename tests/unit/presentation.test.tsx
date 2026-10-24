@@ -177,8 +177,7 @@ describe('direct jumps and active state', () => {
 describe('attribution', () => {
   it('shows the default link bottom-right in both modes with a styling hook', () => {
     render(<Presentation steps={makeSteps(['a'])} title="Deck" initialMode="browse" />)
-    for (const _ of [0, 1]) {
-      void _
+    for (let pass = 0; pass < 2; pass++) {
       const link = q('[data-presentation-attribution]') as HTMLAnchorElement
       expect(link.textContent).toBe('made by and-scene')
       expect(link.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene')

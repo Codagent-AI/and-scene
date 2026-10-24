@@ -39,6 +39,7 @@ async function inspect({ slug, settleMs, build }) {
     await page.waitForSelector('[data-step-count]', { timeout: 10000 })
     const total = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
     for (let index = 0; index < total; index++) {
+      const began = Date.now()
       if (index > 0) {
         await page.keyboard.press('ArrowRight')
         await page.waitForFunction((want) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === want, index, { timeout: 5000 })
@@ -49,6 +50,7 @@ async function inspect({ slug, settleMs, build }) {
       await page.waitForTimeout(settleMs)
       const file = path.join(outDir, `step-${String(index + 1).padStart(2, '0')}.png`)
       await page.screenshot({ path: file })
+      console.log(`captured ${path.basename(file)} ${Date.now() - began}ms after navigation (settle ${settleMs}ms)`)
       const warnings = warningsForStep(index + 1, await page.evaluate(collectSnapshot, DISTINCTION_PROPS))
       warningCount += warnings.length
       for (const warning of warnings) console.log(warning)

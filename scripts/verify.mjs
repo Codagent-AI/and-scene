@@ -46,6 +46,7 @@ function checkSample(config) {
 
 async function render({ slugs, required, outline }) {
   const preview = await startPreview(root)
+  console.log(`verify: preview ${preview.url}`)
   exitOnSignals(() => preview.stop())
   let browser
   try {

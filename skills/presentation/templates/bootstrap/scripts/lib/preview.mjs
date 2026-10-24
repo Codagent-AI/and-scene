@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import http from 'node:http'
 import net from 'node:net'
 import path from 'node:path'
@@ -42,8 +42,12 @@ function killTree(child, signal) {
 
 /** Serves `dist/` with `vite preview` on 127.0.0.1 and resolves once it answers. */
 export async function startPreview(root, { timeoutMs = 30000 } = {}) {
-  const viteBin = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')
-  if (!existsSync(viteBin)) throw new Error(`vite is not installed in ${root}`)
+  let viteBin
+  try {
+    viteBin = path.join(path.dirname(createRequire(path.join(root, 'package.json')).resolve('vite/package.json')), 'bin', 'vite.js')
+  } catch {
+    throw new Error(`vite is not installed for ${root}`)
+  }
   const port = await freePort()
   const child = spawn(process.execPath, [viteBin, 'preview', '--host', HOST, '--port', String(port), '--strictPort'], {
     cwd: root,

@@ -39,9 +39,13 @@ export function findOverlaps(items) {
   return pairs
 }
 
-/** True when every compared style property of the active control equals the inactive one. */
+/**
+ * True when every compared style property of the active control equals the inactive one.
+ * Size only counts for controls without a text label, since label widths differ regardless of styling.
+ */
 export function isIndistinct(active, inactive) {
-  return DISTINCTION_PROPS.every((prop) => active[prop] === inactive[prop])
+  const labelled = active._hasText || inactive._hasText
+  return DISTINCTION_PROPS.filter((prop) => !(labelled && (prop === 'width' || prop === 'height'))).every((prop) => active[prop] === inactive[prop])
 }
 
 export function attributionIssues(snapshot) {
@@ -114,7 +118,7 @@ export function collectSnapshot(props) {
     allowed: el.closest('[data-presentation-allow-overlap]') !== null,
     ancestors: elements.flatMap((other, j) => (j !== i && other.el.contains(el) ? [j] : [])),
   }))
-  const style = (el) => Object.fromEntries(props.map((p) => [p, getComputedStyle(el)[p]]))
+  const style = (el) => ({ ...Object.fromEntries(props.map((p) => [p, getComputedStyle(el)[p]])), _hasText: el.textContent.trim().length > 0 })
   const group = (name, selector) => {
     const all = [...document.querySelectorAll(selector)].filter(visible)
     const active = all.find((el) => el.getAttribute('data-presentation-active') === 'true')

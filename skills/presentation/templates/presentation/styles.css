@@ -1,0 +1,89 @@
+/* Presentation-owned look. Replace the palette and type to match the requested style. */
+[data-presentation-root] {
+  background: #f6f1e7;
+  color: #1d1b16;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.4;
+}
+
+[data-presentation-root] h1,
+[data-presentation-root] h2,
+[data-presentation-root] p {
+  margin: 0;
+}
+
+[data-presentation-step-title] {
+  font-size: 22px;
+}
+
+[data-presentation-step-caption] {
+  font-size: 15px;
+  max-width: 62ch;
+}
+
+[data-presentation-mode-toggle],
+[data-presentation-nav-button] {
+  padding: 4px 12px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+[data-presentation-progress-item] {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+[data-presentation-progress-item][data-active='true'] {
+  width: 26px;
+  border-radius: 6px;
+  background: #c8501e;
+  border-color: #c8501e;
+}
+
+[data-presentation-toc-item] {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  color: #6d665a;
+  background: transparent;
+  border: 0;
+  border-left: 3px solid #cfc5b0;
+  cursor: pointer;
+}
+
+[data-presentation-toc-item][data-active='true'] {
+  color: #1d1b16;
+  font-weight: 700;
+  border-left-color: #c8501e;
+}
+
+[data-presentation-attribution] {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c8501e;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+}
+
+[data-presentation-node='box'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #fffdf8;
+  border: 1.5px solid #1d1b16;
+  border-radius: 10px;
+}
+
+[data-presentation-node='arrow'] {
+  color: #1d1b16;
+}

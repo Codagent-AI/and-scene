@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { checkRenderedStep, checkSampleRegistration, findRegistryEntry } from '../../scripts/lib/outline.mjs'
 import { readJson } from '../support/files.ts'
 
-const config = readJson('verify.config.json')
+const config = readJson('verify.config.json').presentations[0]
 const REGISTRY = `
 export const presentations = [
   { slug: 'other', title: 'Other', load: () => import('./other/Talk.tsx') },

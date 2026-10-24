@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { fireEvent, render } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { Presentation } from '../../src/presentation-kit/index.ts'
 import { ENTITIES, entitiesAt, type ArrowEntity, type Entity, type RectEntity } from '../../src/presentations/how-to-make-a-presentation/entities.ts'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps.ts'

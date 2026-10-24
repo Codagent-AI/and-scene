@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'skills/presentation/templates/bootstrap', '.inspection']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -18,5 +18,10 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+  },
+  {
+    // Test fixtures export helpers next to components; fast refresh does not apply to them.
+    files: ['tests/**'],
+    rules: { 'react-refresh/only-export-components': 'off' },
   },
 ])

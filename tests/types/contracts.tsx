@@ -4,8 +4,8 @@ import { Heart, type LucideIcon } from 'lucide-react'
 import { Box, Presentation, SymbolChip, type SceneProps, type Step } from '../../src/presentation-kit/index.ts'
 
 // M-01: a valid Step compiles; omitting any required field does not.
-function Plain(_props: SceneProps) {
-  return null
+export function Plain({ index }: SceneProps) {
+  return <i data-index={index} />
 }
 export const valid: Step = { id: 'a', era: 'e', title: 't', caption: 'c', Scene: Plain, payload: undefined }
 // @ts-expect-error id is required

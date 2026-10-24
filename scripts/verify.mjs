@@ -34,7 +34,7 @@ function runBuild() {
   })
 }
 
-async function renderEveryStep(config) {
+async function renderEveryStep(config, settleMs) {
   const port = await freePort()
   let preview
   let browser
@@ -66,7 +66,7 @@ async function renderEveryStep(config) {
       if (!(await waitForStep(page, i))) {
         throw new PhaseError('render', `step ${i}: the step index did not advance to ${i}`)
       }
-      await page.waitForTimeout(config.settleMs ?? 700)
+      await page.waitForTimeout(settleMs)
       const rendered = await page.evaluate(() => ({
         era: document.querySelector('[data-presentation-marker]')?.getAttribute('data-presentation-era'),
         title: document.querySelector('[data-presentation-title]')?.textContent,
@@ -86,19 +86,24 @@ async function renderEveryStep(config) {
 async function main() {
   const configPath = path.join(root, 'verify.config.json')
   if (!existsSync(configPath)) throw new PhaseError('config', `${configPath} is missing`)
-  const config = JSON.parse(readFileSync(configPath, 'utf8'))
+  const { presentations = [], settleMs = 700 } = JSON.parse(readFileSync(configPath, 'utf8'))
+  if (!presentations.length) throw new PhaseError('config', 'verify.config.json lists no presentations')
   console.log(`verify: root ${root}`)
 
   console.log('verify: [build] npm run build')
   await runBuild()
 
-  console.log(`verify: [sample] ${config.slug}`)
-  const problems = checkSampleRegistration(root, config)
-  if (problems.length) throw new PhaseError('sample', problems.join('; '))
+  const rendered = []
+  for (const config of presentations) {
+    console.log(`verify: [sample] ${config.slug}`)
+    const problems = checkSampleRegistration(root, config)
+    if (problems.length) throw new PhaseError('sample', problems.join('; '))
 
-  console.log(`verify: [render] stepping through ${config.steps.length} steps on http://${HOST}`)
-  const { count, url } = await renderEveryStep(config)
-  console.log(`PASS verify: build, sample, render (${count} steps, no console or page errors) at ${url}`)
+    console.log(`verify: [render] ${config.slug}: stepping through ${config.steps.length} steps on http://${HOST}`)
+    const { count, url } = await renderEveryStep(config, settleMs)
+    rendered.push(`${count} steps at ${url}`)
+  }
+  console.log(`PASS verify: build, sample, render (${rendered.join('; ')}; no console or page errors)`)
 }
 
 main().catch((error) => {

@@ -32,9 +32,9 @@ describe('settled capture sequencing (M-69)', () => {
     await captureSequence({
       count: 3,
       settleMs: 1234,
-      advance: async (i) => void events.push(`advance:${i}`),
-      sleep: async (ms) => void events.push(`sleep:${ms}`),
-      capture: async (i) => void events.push(`capture:${i}`),
+      advance: async (i: number) => void events.push(`advance:${i}`),
+      sleep: async (ms: number) => void events.push(`sleep:${ms}`),
+      capture: async (i: number) => void events.push(`capture:${i}`),
     })
     expect(events).toEqual([
       'advance:0', 'sleep:1234', 'capture:0',
@@ -50,7 +50,7 @@ describe('settled capture sequencing (M-69)', () => {
       count: 2,
       settleMs: 500,
       advance: async () => void (now += 10), // a navigation takes 10ms
-      sleep: async (ms) => void (now += ms),
+      sleep: async (ms: number) => void (now += ms),
       capture: async () => void captured.push(now),
     })
     expect(captured).toEqual([510, 1020])

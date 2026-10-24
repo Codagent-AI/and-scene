@@ -1,0 +1,7 @@
+/* Host CSS for the presentation app. Intentionally unstyled: each presentation owns its look. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

@@ -1,0 +1,21 @@
+{
+  "settleMs": 700,
+  "presentations": [
+    {
+      "slug": "starter",
+      "title": "Starter presentation",
+      "steps": [
+        {
+          "era": "start",
+          "title": "Start with one idea",
+          "caption": "The scene begins with a single entity."
+        },
+        {
+          "era": "start",
+          "title": "Then grow it",
+          "caption": "The next beat adds an entity; the first one stays exactly where it is."
+        }
+      ]
+    }
+  ]
+}

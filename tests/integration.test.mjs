@@ -9,15 +9,15 @@ import { scaffold } from '../skills/presentation/scaffold.mjs'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const temporary = await mkdtemp(join(tmpdir(), 'and-scene-tests-'))
 after(async () => { await rm(temporary, { recursive: true, force: true }) })
-function command(args, cwd, limit = 120000) {
+function command(args, cwd, limit = 120000, executable = 'npm') {
   return new Promise((done, reject) => {
-    const child = spawn('npm', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
+    const child = spawn(executable, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
     let output = ''
     child.stdout.on('data', chunk => { output += chunk })
     child.stderr.on('data', chunk => { output += chunk })
     const timeout = setTimeout(() => { child.kill('SIGTERM'); reject(new Error(`Timed out ${args.join(' ')}: ${output}`)) }, limit)
     child.once('error', error => { clearTimeout(timeout); reject(error) })
-    child.once('exit', code => { clearTimeout(timeout); console.log(`COMMAND npm ${args.join(' ')} in ${cwd} => ${code}\n${output}`); done({ code, output }) })
+    child.once('exit', code => { clearTimeout(timeout); console.log(`COMMAND ${executable} ${args.join(' ')} in ${cwd} => ${code}\n${output}`); done({ code, output }) })
   })
 }
 async function assertCleanup(output) {
@@ -43,7 +43,8 @@ async function listFiles(dir, prefix = '') {
 
 test('INT-001 materialized bootstrap builds and verifies outside repository with full neutral aligned contracts', { timeout: 180000 }, async () => {
   const target = join(temporary, 'materialized')
-  await scaffold(target)
+  const materialized = await command([resolve(root, 'skills/presentation/scaffold.mjs'), '--target', target], temporary, 120000, process.execPath)
+  assert.equal(materialized.code, 0, materialized.output)
   const installed = await command(['ci', '--ignore-scripts', '--no-audit', '--no-fund'], target)
   assert.equal(installed.code, 0, installed.output)
   const pkg = JSON.parse(await readFile(resolve(target, 'package.json')))
@@ -96,7 +97,7 @@ import type { SceneProps, Step } from '../../presentation-kit'
 function Fixture({ payload }: SceneProps<number>) {
  const [settled, setSettled] = useState(false)
  useEffect(() => { const timer = setTimeout(() => setSettled(true), 100); return () => clearTimeout(timer) }, [payload])
- return <SceneLayer><div style={{position:'absolute',left:100,top:100}}><span style={{position:'absolute'}}>collision-a</span><span style={{position:'absolute',opacity:settled?1:0}}>collision-b</span></div><div data-presentation-allow-overlap="" style={{position:'absolute',left:400,top:100}}><span style={{position:'absolute'}}>allowed-a</span><span style={{position:'absolute'}}>allowed-b</span></div><span data-settled={settled} style={{position:'absolute',top:200}}>settled {String(settled)}</span></SceneLayer>
+ return <SceneLayer><div style={{position:'absolute',left:100,top:100}}><span style={{position:'absolute'}}>collision-a</span><span style={{position:'absolute',opacity:settled?1:0}}>collision-b</span></div><div data-presentation-allow-overlap="" style={{position:'absolute',left:400,top:100}}><span style={{position:'absolute'}}>allowed-a</span><span style={{position:'absolute'}}>allowed-b</span></div><div style={{opacity:0,position:'absolute',left:600,top:100}}><span style={{position:'absolute'}}>hidden-a</span><span style={{position:'absolute'}}>hidden-b</span></div><span data-settled={settled} style={{position:'absolute',top:200}}>settled {String(settled)}</span></SceneLayer>
 }
 const steps: Step<number>[] = [0,1].map(i=>({id:'x'+i,era:'era'+i,title:'Title '+i,caption:'Caption '+i,Scene:Fixture,payload:i,groupKey:'shared'}))
 export default function Talk(){return <Presentation steps={steps} title="Diagnostics" />}`
@@ -111,7 +112,7 @@ export default function Talk(){return <Presentation steps={steps} title="Diagnos
     assert.match(entry.filename, /^step-0[12]\.png$/)
     const png = await readFile(resolve(directory, entry.filename)); assert.equal(png.subarray(1, 4).toString(), 'PNG')
     assert.ok(entry.warnings.some(w => /overlap/.test(w) && /collision/.test(w)), JSON.stringify(entry.warnings))
-    assert.ok(!entry.warnings.some(w => /allowed/.test(w)), JSON.stringify(entry.warnings))
+    assert.ok(!entry.warnings.some(w => /allowed|hidden/.test(w)), JSON.stringify(entry.warnings))
     assert.ok(entry.warnings.some(w => /indistinct active chrome: data-presentation-progress-item/.test(w)))
     assert.ok(entry.warnings.some(w => /indistinct active chrome: data-presentation-toc-item/.test(w)))
     assert.ok(entry.warnings.some(w => /unpolished attribution/.test(w)))

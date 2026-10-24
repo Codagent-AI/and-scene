@@ -1,8 +1,13 @@
 // Only this function executes in Chromium; all decisions below use plain data.
 export function readVisualSnapshot() {
   const visible = element => {
-    const rect = element.getBoundingClientRect(), css = getComputedStyle(element)
-    return rect.width > 0 && rect.height > 0 && css.visibility !== 'hidden' && css.display !== 'none' && Number(css.opacity) !== 0
+    const rect = element.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) return false
+    for (let current = element; current; current = current.parentElement) {
+      const css = getComputedStyle(current)
+      if (css.visibility === 'hidden' || css.display === 'none' || Number(css.opacity) === 0) return false
+    }
+    return true
   }
   const describe = element => element.closest('[data-entity-id]')?.getAttribute('data-entity-id') || element.getAttribute('aria-label') || element.getAttributeNames().filter(name => name.startsWith('data-presentation-')).join(',') || element.textContent.trim().slice(0, 60) || element.tagName
   const texts = []

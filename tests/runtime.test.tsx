@@ -101,7 +101,8 @@ describe('runtime contracts', () => {
     }
   })
   it('I-9 literal coordinates and raw motion layoutIds are accepted', () => {
-    render(<SceneLayer><Box id="literal" className="mine" style={{ position: 'absolute', left: 27, top: 42 }} /><motion.div layoutId="raw" data-testid="raw" style={{ left: 50 }} /></SceneLayer>)
+    function RawScene() { return <SceneLayer><Box id="literal" className="mine" style={{ position: 'absolute', left: 27, top: 42 }} /><motion.div layoutId="raw" data-testid="raw" style={{ left: 50 }} /></SceneLayer> }
+    render(<Stage step={{ ...steps[0], Scene: RawScene }} mode="browse" />)
     expect(document.querySelector('[data-entity-id="literal"]')?.getAttribute('style')).toContain('left: 27px')
     expect(screen.getByTestId('raw').getAttribute('style')).toContain('left: 50px')
   })

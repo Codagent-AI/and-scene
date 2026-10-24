@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ENTER_DELAY, ENTER_T, LAYOUT_T } from '../../src/presentation-kit/constants'
 import {
-  attributionIssues, DEFAULT_SETTLE_MS, DISTINCTION_PROPS, findOverlaps, isIndistinct, rectsOverlap, VIEWPORT, warningsForStep,
+  attributionIssues, DEFAULT_SETTLE_MS, DISTINCTION_PROPS, findOverlaps, isIndistinct, rectsOverlap, unsettledEntities, VIEWPORT, warningsForStep,
 } from '../../scripts/lib/inspect-diagnostics.mjs'
 
 const rect = (x: number, y: number, width = 100, height = 20) => ({ x, y, width, height })
@@ -102,5 +102,31 @@ describe('warningsForStep', () => {
     expect(lines[0]).toContain('caption "B"')
     expect(lines[1]).toContain('progress indicator')
     expect(lines[2]).toContain('data-presentation-attribution')
+  })
+})
+
+describe('settled-scene detection', () => {
+  const entity = (id: string, extra: object = {}) => ({ id, hasContent: true, opacity: 1, visible: true, rect: rect(10, 10, 80, 30), ...extra })
+
+  it('is settled when every entity is still, opaque and painted across two samples', () => {
+    expect(unsettledEntities([entity('a'), entity('b')], [entity('a'), entity('b')])).toEqual([])
+  })
+
+  it('does not call a scene settled while an entity with content is transparent or hidden', () => {
+    expect(unsettledEntities([entity('a')], [entity('a', { opacity: 0.4 })])).toEqual(['a (content not yet visible)'])
+    expect(unsettledEntities([entity('a')], [entity('a', { visible: false })])).toEqual(['a (content not yet visible)'])
+    expect(unsettledEntities([entity('a')], [entity('a', { rect: rect(10, 10, 0, 0) })])).toEqual(expect.arrayContaining(['a (still moving)']))
+  })
+
+  it('is not settled while an entity moves, appears or disappears between samples', () => {
+    expect(unsettledEntities([entity('a')], [entity('a', { rect: rect(14, 10, 80, 30) })])).toEqual(['a (still moving)'])
+    expect(unsettledEntities([entity('a')], [entity('a', { rect: rect(10.3, 10, 80, 30) })])).toEqual([])
+    expect(unsettledEntities([entity('a')], [entity('a'), entity('b')])).toEqual(['b (mounted since the previous sample)'])
+    expect(unsettledEntities([entity('a'), entity('b')], [entity('a')])).toEqual(['b (unmounted since the previous sample)'])
+  })
+
+  it('does not require content of entities that draw none', () => {
+    const arrow = { id: 'x', hasContent: false, opacity: 0.5, visible: true, rect: rect(0, 0, 10, 10) }
+    expect(unsettledEntities([arrow], [arrow])).toEqual([])
   })
 })

@@ -75,6 +75,52 @@ export function warningsForStep(step, snapshot) {
   return warnings
 }
 
+/** Largest per-axis drift (px) between two samples that still counts as "not moving". */
+export const SETTLE_DRIFT_PX = 0.5
+
+/**
+ * Entities whose content is not yet reliably on screen, from two samples taken a few frames apart.
+ * sample: [{ id, hasContent, opacity, visible, rect: { x, y, width, height } }]
+ * An entity is unsettled while it is moving, partly transparent, hidden, empty-sized, or newly mounted.
+ */
+export function unsettledEntities(before, after) {
+  const earlier = new Map(before.map((entity) => [entity.id, entity]))
+  const pending = []
+  for (const entity of after) {
+    const prior = earlier.get(entity.id)
+    if (!prior) {
+      pending.push(`${entity.id} (mounted since the previous sample)`)
+      continue
+    }
+    const drift = ['x', 'y', 'width', 'height'].some((axis) => Math.abs(entity.rect[axis] - prior.rect[axis]) > SETTLE_DRIFT_PX)
+    if (drift) pending.push(`${entity.id} (still moving)`)
+    else if (entity.hasContent && (!entity.visible || entity.opacity < 0.999)) pending.push(`${entity.id} (content not yet visible)`)
+    else if (entity.hasContent && (entity.rect.width <= 0 || entity.rect.height <= 0)) pending.push(`${entity.id} (no rendered size)`)
+  }
+  for (const id of earlier.keys()) if (!after.some((entity) => entity.id === id)) pending.push(`${id} (unmounted since the previous sample)`)
+  return pending
+}
+
+/** Runs inside the page; must stay self-contained (it is serialised into the browser). */
+export function collectSceneContent() {
+  const opacityOf = (el) => {
+    let opacity = 1
+    for (let node = el; node && node !== document.documentElement; node = node.parentElement) opacity *= Number(getComputedStyle(node).opacity)
+    return opacity
+  }
+  return [...document.querySelectorAll('[data-presentation-entity]')].map((el) => {
+    const rect = el.getBoundingClientRect()
+    const style = getComputedStyle(el)
+    return {
+      id: el.getAttribute('data-presentation-entity'),
+      hasContent: (el.textContent ?? '').trim() !== '' || el.querySelector('svg') !== null,
+      opacity: opacityOf(el),
+      visible: style.visibility !== 'hidden' && style.display !== 'none',
+      rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+    }
+  })
+}
+
 /** Runs inside the page; must stay self-contained (it is serialised into the browser). */
 export function collectSnapshot(props) {
   const root = document.querySelector('[data-presentation-root]')

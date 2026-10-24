@@ -30,3 +30,19 @@ textarea,
 select {
   font: inherit;
 }
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+[data-landing] {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+[data-landing] a {
+  color: #e6c76a;
+}

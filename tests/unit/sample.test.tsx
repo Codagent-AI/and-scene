@@ -1,4 +1,4 @@
-import { act, fireEvent, render } from '@testing-library/react'
+import { act, fireEvent, render, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { Presentation } from '../../src/presentation-kit'
 import { CARD_COUNT, ID } from '../../src/presentations/how-to-make-a-presentation/entities'
@@ -90,5 +90,18 @@ describe('reference sample scene content', () => {
     const card = container.querySelector(`[data-presentation-id="${ID.card(0)}"]`)
     rerender(<Scene payload={{ beat: 4 }} stepIndex={3} />)
     expect(container.querySelector(`[data-presentation-id="${ID.card(0)}"]`)).toBe(card)
+  })
+})
+
+describe('departing entities exit', () => {
+  it('keeps a dropped entity mounted while it animates out, then removes it', async () => {
+    const { container, rerender } = render(<Scene payload={{ beat: 4 }} stepIndex={3} />)
+    const card = () => container.querySelector(`[data-presentation-id="${ID.card(3)}"]`)
+    expect(card()).not.toBeNull()
+    rerender(<Scene payload={{ beat: 3 }} stepIndex={2} />)
+    // Not removed synchronously: AnimatePresence holds it until its exit animation completes.
+    expect(card()).not.toBeNull()
+    await waitFor(() => expect(card()).toBeNull())
+    expect(container.querySelector(`[data-presentation-id="${ID.card(0)}"]`)).not.toBeNull()
   })
 })

@@ -15,15 +15,15 @@ export function Scene({ payload: { beat } }: SceneProps<ScenePayload>) {
   const cards = beat >= 4 ? CARD_COUNT : beat >= 3 ? 1 : 0
   return (
     <SceneLayer>
-      <Box id={ID.you} Icon={User} label="you" {...POS.you} />
-      <Appear>
+      <Box key="you" id={ID.you} Icon={User} label="you" {...POS.you} />
+      <Appear key="prompt">
         <Label id={ID.prompt} {...POS.prompt}>
           your topic
         </Label>
       </Appear>
 
       {beat >= 2 && (
-        <Appear>
+        <Appear key="interview">
           <Box id={ID.skill} Icon={Bot} label="skill" {...POS.skill} />
           <Arrow id={ID.convo} both {...CONVO} />
           <SymbolChip id={ID.question} Icon={CircleHelp} {...POS.question}>
@@ -33,7 +33,7 @@ export function Scene({ payload: { beat } }: SceneProps<ScenePayload>) {
       )}
 
       {Array.from({ length: cards }, (_, i) => (
-        <Appear key={i}>
+        <Appear key={`card-${i}`}>
           <Box id={ID.card(i)} className="step-card" x={cardX(i)} y={CARD_Y} w={CARD_W} h={CARD_H}>
             <span data-part="title">title</span>
             <span data-part="caption">caption</span>
@@ -55,7 +55,7 @@ export function Scene({ payload: { beat } }: SceneProps<ScenePayload>) {
       ))}
 
       {beat >= 5 && (
-        <Appear>
+        <Appear key="ghost">
           <Box id={ID.ghost} className="ghost-card" {...POS.ghost}>
             <span data-part="title">?</span>
           </Box>
@@ -66,14 +66,14 @@ export function Scene({ payload: { beat } }: SceneProps<ScenePayload>) {
       )}
 
       {beat >= 6 && (
-        <Appear>
+        <Appear key="socket">
           <Arrow id={ID.socketLink} {...SOCKET_LINK} />
           <Box id={ID.socket} Icon={Layers} label="scene kit · boxes, arrows, motion" {...POS.socket} />
         </Appear>
       )}
 
       {beat >= 7 && (
-        <Appear>
+        <Appear key="verify">
           <Arrow id={ID.verifyLink} {...VERIFY_LINK} />
           <SymbolChip id={ID.build} {...POS.build}>
             build
@@ -86,7 +86,7 @@ export function Scene({ payload: { beat } }: SceneProps<ScenePayload>) {
       )}
 
       {beat >= 8 && (
-        <Appear>
+        <Appear key="modify">
           <Arrow id={ID.modify} bend={26} {...MODIFY_ARC} />
           <Label id={ID.modifyLabel} className="link-label" {...POS.modifyLabel}>
             <MessageSquareText aria-hidden="true" data-presentation-glyph="" /> modify
@@ -99,7 +99,7 @@ export function Scene({ payload: { beat } }: SceneProps<ScenePayload>) {
       )}
 
       {beat >= 9 && (
-        <Appear>
+        <Appear key="reveal">
           <Frame id={ID.frame} label="you're looking at one" {...POS.frame} />
         </Appear>
       )}

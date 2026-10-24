@@ -3,6 +3,7 @@
 .workshop [data-presentation-header] { padding: 22px 32px; }
 .workshop [data-presentation-marker] { font: 11px monospace; text-transform: uppercase; letter-spacing: .15em; color: #536862; }
 .workshop [data-presentation-title] { font-size: clamp(24px, 3vw, 36px); letter-spacing: -.04em; line-height: 1.12; margin: 10px 0 0; font-weight: 600; }
+.workshop [data-presentation-header] [data-presentation-title] { width: fit-content; }
 .workshop [data-presentation-footer] { text-align: center; padding: 0 24px; }
 .workshop [data-presentation-caption] { font-size: 17px; line-height: 1.65; max-width: 640px; margin: 0 auto 22px; text-wrap: pretty; }
 .workshop [data-presentation-navigation], .workshop [data-presentation-progress] { display: flex; align-items: center; justify-content: center; gap: 7px; }

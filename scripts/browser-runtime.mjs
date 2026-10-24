@@ -27,6 +27,7 @@ export async function withPreview(cwd, action) {
   preview.stdout.on('data', data => { output += data })
   preview.stderr.on('data', data => { output += data })
   let browser
+  let browserServer
   let spawnError
   preview.on('error', error => { spawnError = error })
   try {
@@ -39,18 +40,30 @@ export async function withPreview(cwd, action) {
       await delay(100)
     }
     if (!ready) throw new Error(`Preview readiness timeout at ${url}: ${output}`)
-    browser = await chromium.launch({ headless: true })
+    browserServer = await chromium.launchServer({ headless: true, host: HOST })
+    console.log(`BROWSER ${browserServer.process().pid}`)
+    browser = await chromium.connect(browserServer.wsEndpoint())
     return await action(browser, url)
   } finally {
-    if (browser) await browser.close()
-    if (preview.exitCode === null) {
-      const exited = new Promise(done => preview.once('exit', done))
-      preview.kill('SIGTERM')
-      const killTimer = setTimeout(() => preview.kill('SIGKILL'), 2000)
-      await exited
-      clearTimeout(killTimer)
+    try {
+      if (browser) await browser.close()
+    } finally {
+      try {
+        if (browserServer) {
+          await browserServer.close()
+          console.log(`CLEANUP browser ${browserServer.process().pid}`)
+        }
+      } finally {
+        if (preview.exitCode === null) {
+          const exited = new Promise(done => preview.once('exit', done))
+          preview.kill('SIGTERM')
+          const killTimer = setTimeout(() => preview.kill('SIGKILL'), 2000)
+          await exited
+          clearTimeout(killTimer)
+        }
+        console.log(`CLEANUP preview ${port}`)
+      }
     }
-    console.log(`CLEANUP preview ${port}`)
   }
 }
 export function watchErrors(page) {

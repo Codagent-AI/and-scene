@@ -8,8 +8,9 @@ import { eraEntries } from '../src/presentation-kit/chrome/Toc'
 import { findPresentation } from '../src/presentations'
 import Landing from '../src/Landing'
 import { STEPS } from '../src/presentations/how-to-make-a-presentation/steps'
-import { entities, entityId, visibleEntities } from '../src/presentations/how-to-make-a-presentation/entities'
+import { readFileSync } from 'node:fs'
 import canonical from '../scripts/reference-outline.json'
+const sampleCss = readFileSync('src/presentations/how-to-make-a-presentation/presentation.css', 'utf8')
 function Diagram({ payload }: SceneProps<number>) { return <Box id="entity" style={{ position: 'absolute', left: payload * 10, width: 100 + payload }} data-emphasis={payload > 1 ? 'strong' : 'normal'}>state {payload}</Box> }
 const steps: Step<number>[] = [0, 1, 2].map((i) => ({ id: `s${i}`, era: i < 2 ? 'first' : 'second', title: `Title ${i}`, caption: `Caption ${i}`, Scene: Diagram, payload: i, groupKey: 'same' }))
 const setup = () => render(<Presentation steps={steps} title="Fixture" />)
@@ -84,13 +85,28 @@ describe('runtime contracts', () => {
     expect(unmounted).toHaveBeenCalledTimes(1)
   })
   it('I-7 grouped authored stacking coordinates remain independent layers', () => {
-    const layer = SceneLayer({ style: { zIndex: 3 }, children: 'layer' })
-    expect(layer.props.style).toEqual({ position: 'absolute', inset: 0, zIndex: 3 })
-    const view = render(<Stage step={steps[0]} mode="browse" />)
-    const node = document.querySelector('[data-presentation-scene]')!
-    view.rerender(<Stage step={steps[1]} mode="browse" />)
-    expect(document.querySelector('[data-presentation-scene]')).toBe(node)
-    expect(node.getAttribute('style')).toContain('position: absolute')
+    function Stacked({ payload }: SceneProps<number>) {
+      return <><SceneLayer data-testid="back" style={{ zIndex: 3 }}><Box id="back-box" style={{ position: 'absolute', left: 10 + payload * 20, top: 20, width: 120, height: 80 }}>back</Box></SceneLayer><SceneLayer data-testid="front" style={{ zIndex: 7 }}><Box id="front-box" style={{ position: 'absolute', left: 60 + payload * 20, top: 40, width: 100, height: 90 }}>front</Box></SceneLayer></>
+    }
+    const grouped = steps.map(step => ({ ...step, Scene: Stacked }))
+    const view = render(<Stage step={grouped[0]} mode="browse" />)
+    const back = screen.getByTestId('back'), front = screen.getByTestId('front')
+    const boxes = ['back-box', 'front-box'].map(id => document.querySelector(`[data-entity-id="${id}"]`) as HTMLElement)
+    for (const [i, step] of grouped.entries()) {
+      view.rerender(<Stage step={step} mode="browse" />)
+      expect(screen.getByTestId('back')).toBe(back); expect(screen.getByTestId('front')).toBe(front)
+      expect(back.style.zIndex).toBe('3'); expect(front.style.zIndex).toBe('7')
+      for (const layer of [back, front]) { expect(layer.style.position).toBe('absolute'); expect(layer.style.inset).toBe('0px') }
+      const current = ['back-box', 'front-box'].map(id => document.querySelector(`[data-entity-id="${id}"]`) as HTMLElement)
+      expect(current).toEqual(boxes)
+      expect(current[0].style.left).toBe(`${10 + i * 20}px`); expect(current[1].style.left).toBe(`${60 + i * 20}px`)
+      // Explicit overlapping rectangles, preserved through every grouped update.
+      const left = Math.max(...current.map(box => parseFloat(box.style.left)))
+      const right = Math.min(...current.map(box => parseFloat(box.style.left) + parseFloat(box.style.width)))
+      const top = Math.max(...current.map(box => parseFloat(box.style.top)))
+      const bottom = Math.min(...current.map(box => parseFloat(box.style.top) + parseFloat(box.style.height)))
+      expect(right - left).toBe(70); expect(bottom - top).toBe(60)
+    }
   })
   it('I-8 style-neutral primitive hooks forward authored class style and data', () => {
     for (const Primitive of [Box, Label, Arrow, Frame, Emphasis, SymbolChip]) {
@@ -215,19 +231,74 @@ describe('runtime contracts', () => {
     expect(STEPS.map(({ id, era, title, caption }) => ({ id, era, title, caption }))).toEqual(canonical)
     expect(findPresentation('/how-to-make-a-presentation')?.title).toBe('How to Use This Skill to Make a Presentation')
   })
+  // Independent narrative expectations: do not import production entity tables
+  // or their visibility selector, so deleting an entity cannot delete its oracle.
+  const additions = [
+    ['you', 'prompt'], ['skill', 'conversation', 'question'], ['tray', 'card1'],
+    ['link1', 'card2', 'link2', 'card3'], ['ghost', 'depth'], ['socket'],
+    ['pipeline', 'verify'], ['modify'], ['reveal'],
+  ]
   for (const [row, beats] of [[34, [1, 2]], [35, [3, 4]], [36, [5, 6]], [37, [7, 8]], [38, [9]]] as const) {
     it(`I-${row} sample scene intents and stable accumulating coordinates`, () => {
       for (const beat of beats) {
-        const step = STEPS[beat - 1]; const view = render(<step.Scene payload={step.payload} />)
-        const expected = visibleEntities(beat)
-        expect(document.querySelectorAll('[data-entity-id]')).toHaveLength(expected.length)
-        for (const key of expected) {
-          const node = document.querySelector(`[data-entity-id="${entityId(key)}"]`) as HTMLElement
-          expect(node).toBeTruthy(); expect(node.style.left).toBe(`${entities[key].x}px`); expect(node.style.top).toBe(`${entities[key].y}px`)
+        const step = STEPS[beat - 1]
+        const view = render(<><style>{sampleCss}</style><step.Scene payload={step.payload} /></>)
+        const expected = additions.slice(0, beat).flat().map(key => `how-to-make-a-presentation:${key}`)
+        expect([...document.querySelectorAll('[data-entity-id]')].map(node => node.getAttribute('data-entity-id')).sort()).toEqual([...expected].sort())
+        const node = (key: string) => document.querySelector(`[data-entity-id="how-to-make-a-presentation:${key}"]`) as HTMLElement
+        const rect = (key: string) => {
+          const style = node(key).style
+          const left = parseFloat(style.left), top = parseFloat(style.top)
+          return { left, top, right: left + parseFloat(style.width), bottom: top + parseFloat(style.height) }
         }
-        if (beat >= 3) expect(screen.getAllByText('title · caption · visual').length).toBeGreaterThanOrEqual(1)
-        if (beat >= 7) expect(document.querySelector('[data-check-status="pass"]')).toBeTruthy()
-        if (beat >= 8) expect(screen.getByText('edited')).toBeTruthy()
+        const inside = (child: string, parent: string) => {
+          const a = rect(child), b = rect(parent)
+          expect(a.left).toBeGreaterThanOrEqual(b.left); expect(a.right).toBeLessThanOrEqual(b.right)
+          expect(a.top).toBeGreaterThanOrEqual(b.top); expect(a.bottom).toBeLessThanOrEqual(b.bottom)
+        }
+        expect(node('you').textContent).toBe('you')
+        expect(node('prompt').textContent).toContain('a topic worth explaining')
+        if (beat >= 2) {
+          expect(node('skill').textContent).toBe('the skill')
+          expect(node('conversation').textContent).toMatch(/←.*→/)
+          expect(rect('conversation').left).toBeGreaterThan(rect('you').right)
+          expect(rect('conversation').right).toBeLessThan(rect('skill').left)
+          expect(rect('question').bottom).toBeLessThan(rect('conversation').top)
+          expect(node('question').textContent).toBe('one question at a time')
+        }
+        if (beat >= 3) {
+          inside('card1', 'tray')
+          expect(rect('tray').top).toBeGreaterThan(rect('prompt').bottom)
+          expect(node('card1').textContent).toContain('title · caption · visual')
+          expect(node('card1').textContent).not.toContain('morph')
+        }
+        if (beat >= 4) {
+          for (const card of ['card2', 'card3']) { inside(card, 'tray'); expect(node(card).textContent).toContain('title · caption · visual'); expect(node(card).textContent).not.toContain('morph') }
+          for (const [link, before, after] of [['link1', 'card1', 'card2'], ['link2', 'card2', 'card3']]) {
+            expect(node(link).textContent).toContain('morph')
+            expect(rect(link).left).toBeGreaterThan(rect(before).right)
+            expect(rect(link).right).toBeLessThan(rect(after).left)
+          }
+        }
+        if (beat >= 5) {
+          expect(getComputedStyle(node('ghost')).borderTopStyle).toBe('dashed')
+          expect(node('depth').textContent).toBe('partial ↔ full')
+          const depth = rect('depth'), you = rect('you')
+          expect((depth.left + depth.right) / 2).toBeGreaterThan(you.left)
+          expect((depth.left + depth.right) / 2).toBeLessThan(you.right)
+          expect(you.top - depth.bottom).toBeGreaterThanOrEqual(0)
+          expect(you.top - depth.bottom).toBeLessThanOrEqual(24)
+        }
+        if (beat >= 6) {
+          expect(node('socket').textContent).toMatch(/scene-kit.*shapes.*motion/)
+          expect(rect('socket').top).toBe(rect('tray').bottom)
+          expect(rect('socket').left).toBeGreaterThan(rect('tray').left)
+          expect(rect('socket').right).toBeLessThan(rect('tray').right)
+          for (const side of ['Top', 'Left', 'Right']) expect(getComputedStyle(node('tray')).getPropertyValue(`border-${side.toLowerCase()}-style`)).not.toBe('solid')
+        }
+        if (beat >= 7) { expect(node('verify').getAttribute('data-check-status')).toBe('pass'); expect(node('verify').textContent).toMatch(/build ✓.*render ✓/s); expect(rect('verify').top).toBe(rect('card1').top) }
+        if (beat >= 8) expect(node('card2').querySelector('[data-edited="true"]')).toBeTruthy()
+        if (beat >= 9) for (const key of additions.slice(0, 8).flat()) inside(key, 'reveal')
         view.unmount()
       }
     })

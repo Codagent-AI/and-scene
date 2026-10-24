@@ -32,6 +32,17 @@ describe('script contracts', () => {
     expect(check([a, { ...b, element: 1 }])).toEqual([])
     expect(check([a, { ...b, rect: { left: 20, top: 0, right: 40, bottom: 20 } }])).toEqual([])
   })
+  it('I-46 chrome boxes detect disjoint-glyph collisions and exempt own labels and allowed subtrees', () => {
+    const text = { element: 1, label: 'scene text', rect: { left: 30, top: 10, right: 50, bottom: 20 } }
+    const glyph = { element: 3, ancestors: [2], label: 'own label', rect: { left: 1, top: 1, right: 5, bottom: 5 } }
+    const box = { element: 2, label: 'icon-only chrome', rect: { left: 0, top: 0, right: 60, bottom: 40 } }
+    const check = (texts: object[], chromeBoxes: object[]) => diagnoseVisualSnapshot({ texts, chromeBoxes, chrome: [], attribution: { visible: true, fontSize: 12 } })
+    expect(check([text, glyph], [box])).toEqual(['overlap: scene text <> icon-only chrome'])
+    expect(check([text, glyph], [{ ...box, allowOverlap: true }])).toEqual([])
+    expect(check([glyph], [box])).toEqual([])
+    expect(check([], [box, { ...box, element: 4, label: 'second chrome' }])).toEqual(['overlap: icon-only chrome <> second chrome'])
+    expect(check([], [box, { ...box, element: 4, ancestors: [2] }])).toEqual([])
+  })
   it('I-47 active chrome and attribution defect decisions', () => {
     const good = { visible: true, fontSize: 12, browserDefault: false }
     const diagnose = (attribution: object | null, same = false) => diagnoseVisualSnapshot({ texts: [], chrome: ['progress-item', 'toc-item'].map(hook => ({ hook, controls: [{ active: true, signature: 'a' }, { active: false, signature: same ? 'a' : 'b' }] })), attribution })

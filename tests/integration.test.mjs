@@ -22,6 +22,13 @@ function command(args, cwd, limit = 120000, executable = 'npm') {
 }
 async function assertCleanup(output) {
   const urls = [...output.matchAll(/PREVIEW (http:\/\/127\.0\.0\.1:\d+)/g)].map(match => match[1])
+  const pids = [...output.matchAll(/^BROWSER (\d+)$/gm)].map(match => Number(match[1]))
+  assert.equal(pids.length, urls.length, 'Every launched preview in these journeys owns one browser')
+  for (const pid of pids) {
+    assert.match(output, new RegExp(`CLEANUP browser ${pid}`))
+    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' }, `Browser process ${pid} must terminate`)
+    console.log(`ASSERT browser ${pid} terminated (ESRCH)`)
+  }
   for (const url of urls) {
     assert.match(output, new RegExp(`CLEANUP preview ${new URL(url).port}`))
     await assert.rejects(fetch(url), /fetch failed/)
@@ -91,33 +98,67 @@ test('E2E-001 canonical npm verification builds production and visits all nine c
 
 test('INT-002 local helper writes settled artifacts and faithful advisory diagnostics', { timeout: 120000 }, async () => {
   const target = await copyApp('diagnostics')
-  const fixture = `import { useEffect, useState } from 'react'
+  const fixture = `import { useLayoutEffect, useState } from 'react'
 import { Presentation, SceneLayer } from '../../presentation-kit'
 import type { SceneProps, Step } from '../../presentation-kit'
 function Fixture({ payload }: SceneProps<number>) {
- const [settled, setSettled] = useState(false)
- useEffect(() => { const timer = setTimeout(() => setSettled(true), 100); return () => clearTimeout(timer) }, [payload])
- return <SceneLayer><div style={{position:'absolute',left:100,top:100}}><span style={{position:'absolute'}}>collision-a</span><span style={{position:'absolute',opacity:settled?1:0}}>collision-b</span></div><div data-presentation-allow-overlap="" style={{position:'absolute',left:400,top:100}}><span style={{position:'absolute'}}>allowed-a</span><span style={{position:'absolute'}}>allowed-b</span></div><div style={{opacity:0,position:'absolute',left:600,top:100}}><span style={{position:'absolute'}}>hidden-a</span><span style={{position:'absolute'}}>hidden-b</span></div><span data-settled={settled} style={{position:'absolute',top:200}}>settled {String(settled)}</span></SceneLayer>
+ const [settledPayload, setSettledPayload] = useState(-1)
+ const settled = settledPayload === payload
+ useLayoutEffect(() => {
+   const probe = { payload, navigationAt: performance.now(), settled: false }
+   Object.assign(window, { captureProbe: probe })
+   const timer = setTimeout(() => { probe.settled = true; setSettledPayload(payload) }, 100)
+   return () => clearTimeout(timer)
+ }, [payload])
+ return <SceneLayer><div style={{position:'absolute',left:100,top:100}}><span style={{position:'absolute'}}>collision-a</span><span style={{position:'absolute',opacity:settled?1:0}}>collision-b</span></div><div data-presentation-allow-overlap="" style={{position:'absolute',left:400,top:100}}><span style={{position:'absolute'}}>allowed-a</span><span style={{position:'absolute'}}>allowed-b</span></div><div style={{opacity:0,position:'absolute',left:600,top:100}}><span style={{position:'absolute'}}>hidden-a</span><span style={{position:'absolute'}}>hidden-b</span></div><button data-presentation-next="" aria-label="icon-only chrome" style={{position:'absolute',left:100,top:300,width:140,height:40}}><svg width="10" height="10" /></button><span style={{position:'absolute',left:110,top:310}}>chrome-collision</span><div data-presentation-allow-overlap="" style={{position:'absolute',left:400,top:300}}><button data-presentation-prev="" aria-label="allowed chrome" style={{width:140,height:40}} /><span style={{position:'absolute',left:10,top:10}}>allowed-chrome</span></div><span data-settled={settled} style={{position:'absolute',top:200}}>settled {String(settled)}</span></SceneLayer>
 }
 const steps: Step<number>[] = [0,1].map(i=>({id:'x'+i,era:'era'+i,title:'Title '+i,caption:'Caption '+i,Scene:Fixture,payload:i,groupKey:'shared'}))
 export default function Talk(){return <Presentation steps={steps} title="Diagnostics" />}`
   await writeFile(resolve(target, 'src/presentations/how-to-make-a-presentation/Talk.tsx'), fixture)
-  const result = await command(['run', 'inspect', '--', 'how-to-make-a-presentation', '--settle-ms', '250'], target)
+  // Observe the actual screenshot boundary without adding test-only probes to
+  // the production helper or trusting its report's declared settle interval.
+  const observer = resolve(target, 'capture-observer.mjs')
+  await writeFile(observer, `import { chromium } from 'playwright'
+import { appendFile } from 'node:fs/promises'
+const connect = chromium.connect.bind(chromium)
+chromium.connect = async (...args) => {
+  const browser = await connect(...args)
+  const newPage = browser.newPage.bind(browser)
+  browser.newPage = async (...pageArgs) => {
+    const page = await newPage(...pageArgs)
+    const screenshot = page.screenshot.bind(page)
+    page.screenshot = async (...captureArgs) => {
+      const probe = await page.evaluate(() => ({ ...window.captureProbe, captureAt: performance.now(), index: Number(document.querySelector('[data-presentation]').getAttribute('data-step-index')), domSettled: document.querySelector('[data-settled]').getAttribute('data-settled') }))
+      await appendFile('capture-observations.jsonl', JSON.stringify(probe) + '\\n')
+      return screenshot(...captureArgs)
+    }
+    return page
+  }
+  return browser
+}
+`)
+  const result = await command(['--import', observer, 'scripts/inspect-presentation.mjs', 'how-to-make-a-presentation', '--settle-ms', '250'], target, 120000, process.execPath)
   assert.equal(result.code, 0, result.output)
   const directory = resolve(target, '.artifacts/inspections/how-to-make-a-presentation/1440x900')
   const report = JSON.parse(await readFile(resolve(directory, 'report.json')))
   assert.equal(report.length, 2)
+  const captures = (await readFile(resolve(target, 'capture-observations.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line))
+  assert.equal(captures.length, 2)
   for (const [i, entry] of report.entries()) {
     assert.equal(entry.index, i); assert.equal(entry.settleMs, 250)
+    assert.equal(captures[i].index, i); assert.equal(captures[i].payload, i)
+    assert.equal(captures[i].settled, true); assert.equal(captures[i].domSettled, 'true')
+    assert.ok(captures[i].captureAt - captures[i].navigationAt >= 250, JSON.stringify(captures[i]))
+    console.log(`SETTLED step ${i}: ${JSON.stringify(captures[i])}`)
     assert.match(entry.filename, /^step-0[12]\.png$/)
     const png = await readFile(resolve(directory, entry.filename)); assert.equal(png.subarray(1, 4).toString(), 'PNG')
     assert.ok(entry.warnings.some(w => /overlap/.test(w) && /collision/.test(w)), JSON.stringify(entry.warnings))
     assert.ok(!entry.warnings.some(w => /allowed|hidden/.test(w)), JSON.stringify(entry.warnings))
+    assert.ok(entry.warnings.some(w => w.includes('icon-only chrome') && w.includes('chrome-collision')), JSON.stringify(entry.warnings))
     assert.ok(entry.warnings.some(w => /indistinct active chrome: data-presentation-progress-item/.test(w)))
     assert.ok(entry.warnings.some(w => /indistinct active chrome: data-presentation-toc-item/.test(w)))
     assert.ok(entry.warnings.some(w => /unpolished attribution/.test(w)))
   }
-  assert.ok(report[1].capturedAt - report[0].capturedAt >= 250)
   assert.match(result.output, /ADVISORY step 0/); assert.match(result.output, /ADVISORY step 1/)
   await assertCleanup(result.output)
 })

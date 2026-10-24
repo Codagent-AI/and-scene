@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { ATTRIBUTION_HINT, findAttributionIssues, findIndistinctActive, findOverlaps } from './lib/diagnostics.mjs'
-import { launchBrowser, sleep, startPreview } from './lib/preview.mjs'
+import { launchBrowser, sleep, startPreview, waitForStepIndex } from './lib/preview.mjs'
 import { settleThenCapture } from './lib/settle.mjs'
 import { collectSnapshot } from './lib/snapshot.mjs'
 
@@ -62,10 +62,7 @@ async function main() {
       const navigatedAt = Date.now()
       if (i > 0) {
         await page.keyboard.press('ArrowRight')
-        await page.waitForFunction(
-          (n) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(n),
-          i,
-        )
+        await waitForStepIndex(page, i, 10000)
       }
       const file = path.join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
       let capturedAfterMs = 0

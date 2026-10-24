@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { readRegisteredSlugs } from './lib/registry.mjs'
-import { launchBrowser, sleep, startPreview } from './lib/preview.mjs'
+import { launchBrowser, sleep, startPreview, waitForStepIndex } from './lib/preview.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
 const SETTLE_MS = Number(process.env.VERIFY_SETTLE_MS ?? 400)
@@ -70,11 +70,7 @@ async function stepThrough(page, url, slug, outline) {
       current = i
       await page.keyboard.press('ArrowRight')
       try {
-        await page.waitForFunction(
-          (n) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(n),
-          i,
-          { timeout: STEP_TIMEOUT_MS },
-        )
+        await waitForStepIndex(page, i, STEP_TIMEOUT_MS)
       } catch {
         throw new VerifyError('render', `step ${i + 1} transition did not advance the step index`, i)
       }

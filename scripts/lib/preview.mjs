@@ -53,3 +53,12 @@ export function launchBrowser() {
 }
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+/** Resolves once the presentation chrome reports `index` as the active step. */
+export function waitForStepIndex(page, index, timeout) {
+  return page.waitForFunction(
+    (n) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(n),
+    index,
+    { timeout },
+  )
+}

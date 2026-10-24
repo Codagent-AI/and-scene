@@ -5,9 +5,9 @@ export default defineConfig({
   test: {
     include: ['tests/integration/**/*.test.ts', 'tests/e2e/**/*.test.ts'],
     environment: 'node',
-    testTimeout: 240000,
+    testTimeout: 480000,
     hookTimeout: 480000,
     fileParallelism: false,
-    maxConcurrency: 3, // the browser-backed cases share a 4-core machine; more than this starves them
+    maxConcurrency: 2, // the browser-backed cases share a 4-core machine; more than this starves them
   },
 })

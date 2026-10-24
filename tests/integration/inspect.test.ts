@@ -75,6 +75,7 @@ export default function Talk() {
   // Text that overlaps only inside an invisible (opacity 0) subtree must not be reported.
   add('insp-hidden', {
     scene: `<>
+      <i data-n={payload.n} />
       <p style={{ position: 'absolute', left: 100, top: 100, margin: 0 }}>visible line</p>
       <div style={{ opacity: 0 }}><p style={{ position: 'absolute', left: 104, top: 104, margin: 0 }}>invisible line</p></div>
     </>`,

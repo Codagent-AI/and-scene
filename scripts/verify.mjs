@@ -62,6 +62,7 @@ async function renderPresentation(browser, baseUrl, slug, reference) {
       await page.waitForTimeout(SETTLE_MS)
       assertClean()
       if (i < count - 1) {
+        currentStep = String(i + 1) // errors raised by the transition belong to the step being entered
         await page.keyboard.press('ArrowRight')
         try {
           await page.waitForFunction(

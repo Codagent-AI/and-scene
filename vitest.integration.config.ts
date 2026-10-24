@@ -8,5 +8,6 @@ export default defineConfig({
     testTimeout: 240000,
     hookTimeout: 480000,
     fileParallelism: false,
+    maxConcurrency: 3, // the browser-backed cases share a 4-core machine; more than this starves them
   },
 })

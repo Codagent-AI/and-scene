@@ -29,6 +29,12 @@
 }
 
 /* chrome: footer */
+.htmp [data-presentation-dots],
+.htmp [data-presentation-toc] ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 .htmp [data-presentation-footer] {
   padding: 8px 24px 36px;
 }

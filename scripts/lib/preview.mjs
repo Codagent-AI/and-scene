@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import path from 'node:path'
 
-/** Deterministic IPv4 loopback; `localhost` may resolve to ::1 depending on the runtime. */
+/** Deterministic IPv4 loopback; a loopback hostname may resolve to IPv6 depending on the runtime. */
 export const HOST = '127.0.0.1'
 
 export function freePort() {

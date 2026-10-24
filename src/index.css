@@ -1,17 +1,7 @@
-/* Host app styles only; presentations own their look in presentation-local CSS. */
+/* Host app reset only; presentations own their look in presentation-local CSS. */
 html,
 body,
 #root {
   margin: 0;
   height: 100%;
-}
-
-body {
-  font-family: system-ui, sans-serif;
-}
-
-.landing {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 3rem 1.5rem;
 }

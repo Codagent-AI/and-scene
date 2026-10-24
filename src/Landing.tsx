@@ -2,7 +2,7 @@ import type { RegistryEntry } from './router.ts'
 
 export default function Landing({ registry }: { registry: readonly RegistryEntry[] }) {
   return (
-    <main className="landing">
+    <main>
       <h1>and-scene</h1>
       <p>Presentations built as one evolving scene.</p>
       <ul>

@@ -15,7 +15,7 @@ export function Header({ step, index, mode, title, brand }: HeaderProps) {
   return (
     <header
       data-presentation-header=""
-      style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '0 0 auto' }}
+      style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}
     >
       <div data-presentation-brand-slot="">{brand}</div>
       <span data-presentation-marker="">

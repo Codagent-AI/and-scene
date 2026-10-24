@@ -30,7 +30,7 @@ export function Footer({ steps, index, mode, onGoTo, onPrev, onNext, attribution
             <button type="button" data-presentation-prev="" onClick={onPrev} aria-label="Previous step">
               Prev
             </button>
-            <ol data-presentation-dots="" style={{ display: 'inline-flex', listStyle: 'none', margin: 0, padding: 0 }}>
+            <ol data-presentation-dots="" style={{ display: 'inline-flex' }}>
               {steps.map((s, i) => (
                 <li key={s.id}>
                   <button

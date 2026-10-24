@@ -15,7 +15,7 @@ export function Toc({ steps, index, onGoTo }: TocProps) {
       aria-label="Table of contents"
       style={{ flex: '0 0 auto', overflowY: 'auto' }}
     >
-      <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      <ol>
         {groupByEra(steps).map((group) => {
           const active = group.indices.includes(index)
           return (

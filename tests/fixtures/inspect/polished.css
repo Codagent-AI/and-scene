@@ -1,0 +1,10 @@
+.fx [data-presentation-progress-item] { width: 12px; height: 12px; padding: 0; border: 1px solid #888; border-radius: 50%; background: transparent; }
+.fx [data-presentation-progress-item][data-presentation-active='true'] { width: 26px; background: #e0b94f; border-color: #e0b94f; }
+.fx [data-presentation-toc-item] { display: block; background: transparent; border: 0; color: #999; }
+.fx [data-presentation-toc-item][data-presentation-active='true'] { color: #fff; font-weight: 700; background: #333; }
+.fx [data-presentation-header] { padding: 0 24px; gap: 24px; }
+.fx [data-presentation-footer] { padding: 0 24px 40px; }
+.fx ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; }
+.fx [data-presentation-toc] ol { display: block; }
+.fx [data-presentation-node='label'] { font-size: 14px; white-space: nowrap; }
+.slide { transition: transform 400ms linear; }

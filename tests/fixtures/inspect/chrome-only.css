@@ -1,0 +1,7 @@
+/* attribution is polished, but active chrome gets no distinguishing style */
+.fxc [data-presentation-attribution] { margin: 0 12px 8px 0; font-size: 12px; color: #aaa; text-decoration: none; }
+.fxc [data-presentation-header] { padding: 0 24px; gap: 24px; }
+.fxc [data-presentation-footer] { padding: 0 24px 40px; }
+.fxc ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; }
+.fxc [data-presentation-toc] ol { display: block; }
+.fxc [data-presentation-node='label'] { font-size: 14px; white-space: nowrap; }

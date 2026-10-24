@@ -1,0 +1,19 @@
+/*
+ * Styling for "{{TITLE}}". The scene kit ships no visual defaults, so every look
+ * below is yours to design. Plain CSS is the default; add a styling framework
+ * only if the host already uses one or the user asks for it.
+ *
+ * Hooks to style (all stable):
+ *   [data-presentation-root]            the whole presentation (class: .p-{{SLUG}})
+ *   [data-presentation-header|footer]   chrome rows; [data-presentation-marker]
+ *   [data-presentation-title|caption]   per-step narration
+ *   [data-presentation-progress-item]   progress dots
+ *   [data-presentation-toc-item]        table-of-contents entries
+ *   [data-presentation-prev|next|mode-toggle]  controls
+ *   [data-presentation-active="true"]   the current progress item / ToC entry:
+ *                                       make it visibly different from the rest
+ *   [data-presentation-attribution]     "made by and-scene" link: size and colour it
+ *   [data-presentation-node="box|label|frame|emphasis|symbol-chip|arrow"], .your-class
+ */
+.p-{{SLUG}} {
+}

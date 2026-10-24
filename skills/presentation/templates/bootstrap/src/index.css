@@ -1,0 +1,5 @@
+/* Host app styles. The scaffold ships no colours, fonts, spacing, or themes:
+   presentations and the host own their look. */
+* {
+  box-sizing: border-box;
+}

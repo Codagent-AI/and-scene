@@ -1,20 +1,38 @@
 # and-scene
 
-And Scene is a project for building a presentation-generation agent skill.
+And Scene builds browser presentations that work as one evolving diagram: a single
+scene whose entities appear, move, connect, and re-label as named steps advance,
+rather than a stack of unrelated slides.
 
-The intended presentation model is not a stack of unrelated slides. It is one
-diagrammatic scene that evolves through named steps: elements appear, move,
-collapse, connect, and re-label as the talk arc develops.
+## What is here
+
+- `skills/presentation/` – the distributable agent skill (`SKILL.md`), its
+  `scripts/scaffold.mjs` helper, and the `templates/` used to bootstrap a fresh project.
+- `src/presentation-kit/` – the canonical, style-neutral scene kit (engine, chrome,
+  generic node primitives). It ships no colours, fonts, or themes; presentations own their look.
+- `src/presentations/` – the registry (`index.ts`) and the committed sample,
+  `how-to-make-a-presentation`, served at `/how-to-make-a-presentation`.
+- `scripts/verify.mjs` – build plus real-browser render verification.
+- `scripts/inspect-presentation.mjs` – settled per-step screenshots and advisory visual diagnostics.
 
 ## Development
 
 ```bash
-npm install
-npm run dev
-npm run build
+npm ci
+npm test                 # fast Vitest unit, component, and contract tests
+npm run lint
+npm run build            # tsc -b && vite build
+npm run verify           # build + sample outline + Chromium render of every step on 127.0.0.1
+npm run inspect -- how-to-make-a-presentation   # screenshots in inspection/<slug>/ (git-ignored)
+npm run test:integration # INT-001 (bootstrap) and INT-002 (screenshot helper)
+npm run test:e2e         # E2E-001 and E2E-002 (verify passes / fails loudly)
 ```
 
-## Current State
+The slow suites need Playwright's Chromium (`npx playwright install chromium`).
+`npm run verify -- <slug>` checks one registered presentation instead of the sample.
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+## Keeping the template in sync
+
+`skills/presentation/templates/bootstrap/` carries byte-identical copies of the kit and
+the verification scripts. After changing them run `npm run sync:template`; a unit test
+and INT-001 fail on drift.

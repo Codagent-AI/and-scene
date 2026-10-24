@@ -1,0 +1,278 @@
+/* Presentation-owned styling: the scene kit supplies hooks and geometry only. */
+.how-to {
+  --ink: #f8f3e6;
+  --muted: #b9b1a0;
+  --gold: #e0b94f;
+  --panel: #1b1916;
+  --line: #4a4437;
+  --pass: #5fc77a;
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: #100f0d;
+}
+
+.how-to button {
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Chrome */
+.how-to [data-presentation-header] {
+  padding: 0 24px;
+  gap: 16px;
+}
+.how-to [data-presentation-brand-slot] {
+  flex: 1;
+}
+.how-to [data-presentation-marker] {
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+.how-to [data-presentation-header] [data-presentation-title] {
+  flex: 3;
+  margin: 0 0 0 24px;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.how-to [data-presentation-mode-toggle] {
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  text-transform: capitalize;
+}
+.how-to [data-presentation-mode-toggle]:hover,
+.how-to [data-presentation-mode-toggle]:focus-visible {
+  border-color: var(--gold);
+}
+
+.how-to [data-presentation-footer] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 24px 40px;
+  text-align: center;
+}
+.how-to [data-presentation-footer] > [data-presentation-title] {
+  margin: auto 0;
+  font-size: clamp(1.4rem, 3vw, 2.2rem);
+  font-weight: 700;
+}
+.how-to [data-presentation-caption] {
+  max-width: 62ch;
+  min-height: 3.6em;
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.how-to [data-presentation-progress] ol,
+.how-to [data-presentation-toc] ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.how-to [data-presentation-progress] ol {
+  display: flex;
+  gap: 8px;
+}
+.how-to [data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+}
+.how-to [data-presentation-progress-item][data-presentation-active='true'] {
+  width: 26px;
+  border-radius: 6px;
+  border-color: var(--gold);
+  background: var(--gold);
+}
+.how-to [data-presentation-controls] {
+  display: flex;
+  gap: 12px;
+}
+.how-to [data-presentation-prev],
+.how-to [data-presentation-next] {
+  padding: 4px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+.how-to [data-presentation-prev]:hover,
+.how-to [data-presentation-next]:hover {
+  border-color: var(--gold);
+}
+
+.how-to [data-presentation-toc] {
+  padding: 0 16px 0 24px;
+}
+.how-to [data-presentation-toc-item] {
+  display: block;
+  width: 100%;
+  margin: 2px 0;
+  padding: 6px 10px;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  text-transform: capitalize;
+}
+.how-to [data-presentation-toc-item][data-presentation-active='true'] {
+  border-left-color: var(--gold);
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.how-to [data-presentation-attribution] {
+  margin: 0 14px 10px 0;
+  padding: 2px 6px;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+.how-to [data-presentation-attribution]:hover,
+.how-to [data-presentation-attribution]:focus-visible {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+/* Diagram entities */
+.how-to [data-presentation-node='box'],
+.how-to [data-presentation-node='symbol-chip'] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 13px;
+  line-height: 1.2;
+}
+.how-to [data-presentation-icon] {
+  width: 18px;
+  height: 18px;
+  color: var(--gold);
+}
+.how-to [data-presentation-node='label'] {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.how-to .prompt {
+  padding: 4px 10px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  box-sizing: border-box;
+  text-align: center;
+}
+.how-to .actor {
+  flex-direction: row;
+  font-size: 16px;
+  font-weight: 600;
+}
+.how-to .card {
+  justify-content: space-between;
+  padding: 8px 6px;
+  font-size: 11px;
+}
+.how-to .card [data-part='number'] {
+  color: var(--gold);
+  font-weight: 700;
+}
+.how-to .card [data-part='visual'] {
+  width: 70%;
+  padding: 6px 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.how-to .ghost {
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+  justify-content: center;
+}
+.how-to .question-chip,
+.how-to .depth-control,
+.how-to .morph-chip {
+  flex-direction: row;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.how-to .morph-chip {
+  padding: 0;
+}
+.how-to .socket,
+.how-to .route,
+.how-to .verify {
+  flex-direction: row;
+  font-weight: 600;
+}
+.how-to .verify {
+  flex-direction: column;
+}
+.how-to .pass-chip {
+  border-color: var(--pass);
+  background: var(--pass);
+  border-radius: 50%;
+}
+.how-to .pass-chip [data-presentation-icon] {
+  width: 14px;
+  height: 14px;
+  color: #10240f;
+}
+.how-to [data-presentation-node='arrow'] {
+  color: var(--muted);
+  stroke-width: 1.5;
+}
+.how-to .modify-arc {
+  color: var(--gold);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+.how-to [data-presentation-node='emphasis'] {
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+.how-to [data-presentation-node='frame'] {
+  border: 2px solid var(--gold);
+  border-radius: 18px;
+  box-sizing: border-box;
+}
+.how-to [data-presentation-frame-label] {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Narrow viewports: tighten chrome so the scaled canvas keeps its room. */
+@media (max-width: 600px) {
+  .how-to [data-presentation-header] {
+    padding: 0 12px;
+  }
+  .how-to [data-presentation-header] [data-presentation-title] {
+    margin-left: 8px;
+    font-size: 0.95rem;
+  }
+  .how-to [data-presentation-caption] {
+    font-size: 0.9rem;
+  }
+}

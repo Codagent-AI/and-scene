@@ -1,0 +1,6 @@
+/*
+ * Presentation-owned styling for "__TITLE__".
+ * The scene kit ships no visual defaults: palette, typography, spacing, borders and control
+ * treatments (including the active progress/ToC state and the attribution link) are defined here.
+ * Target the stable hooks, e.g. .__SLUG__ [data-presentation-progress-item][data-presentation-active="true"].
+ */

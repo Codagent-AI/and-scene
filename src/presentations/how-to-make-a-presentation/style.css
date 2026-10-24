@@ -1,0 +1,288 @@
+/* Look and feel owned by this presentation; the scene kit ships no visual defaults. */
+.htmp {
+  --ink: #f8f3e6;
+  --muted: #b9b09a;
+  --gold: #c7a755;
+  --bg: #0d0c0b;
+  --panel: #1b1916;
+  --line: #4a4338;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 20% 10%, rgba(199, 167, 85, 0.16), transparent 28rem),
+    linear-gradient(135deg, #0d0c0b 0%, #161412 58%, #0d0c0b 100%);
+  line-height: 1.45;
+}
+
+.htmp button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* chrome */
+.htmp [data-presentation-header] {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+}
+.htmp [data-presentation-brand-slot] {
+  flex: 1;
+}
+.htmp [data-presentation-marker] {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.htmp [data-presentation-marker-number] {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 18px;
+}
+.htmp [data-presentation-mode-toggle] {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 14px;
+}
+.htmp [data-presentation-mode-toggle]:hover {
+  border-color: var(--gold);
+}
+
+.htmp [data-presentation-footer] {
+  padding: 8px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+.htmp [data-presentation-title] {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 650;
+}
+.htmp [data-presentation-root][data-presentation-mode="present"] [data-presentation-title] {
+  font-size: 36px;
+}
+.htmp [data-presentation-caption] {
+  margin: 0;
+  max-width: 62ch;
+  min-height: 3em;
+  color: var(--muted);
+}
+.htmp [data-presentation-controls] {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.htmp [data-presentation-nav] {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.htmp [data-presentation-nav]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.htmp [data-presentation-nav] svg {
+  width: 18px;
+  height: 18px;
+}
+.htmp [data-presentation-progress] {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.htmp [data-presentation-progress-item] {
+  display: block;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+}
+.htmp [data-presentation-progress-item][data-presentation-active="true"] {
+  width: 26px;
+  border-radius: 999px;
+  border-color: var(--gold);
+  background: var(--gold);
+}
+
+.htmp [data-presentation-toc] {
+  width: 200px;
+  padding: 8px 8px 8px 20px;
+  display: flex;
+  align-items: center;
+}
+.htmp [data-presentation-toc] ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+.htmp [data-presentation-toc-item] {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-left: 2px solid var(--line);
+  padding: 6px 12px;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+.htmp [data-presentation-toc-item][data-presentation-active="true"] {
+  color: var(--ink);
+  font-weight: 700;
+  border-left-color: var(--gold);
+  background: rgba(199, 167, 85, 0.14);
+}
+
+.htmp [data-presentation-attribution] {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+}
+.htmp [data-presentation-attribution]:hover {
+  color: var(--gold);
+  text-decoration: underline;
+}
+
+/* scene entities */
+.htmp [data-presentation-node] {
+  color: var(--ink);
+  font-size: 14px;
+}
+.htmp .htmp-actor,
+.htmp .htmp-card,
+.htmp .htmp-socket,
+.htmp .htmp-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.htmp .htmp-actor {
+  font-size: 18px;
+  font-weight: 600;
+}
+.htmp [data-presentation-icon] {
+  width: 18px;
+  height: 18px;
+  color: var(--gold);
+}
+.htmp .htmp-bubble {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 16px 16px 16px 4px;
+  background: rgba(199, 167, 85, 0.18);
+  border: 1px solid var(--gold);
+}
+.htmp .htmp-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--bg);
+}
+.htmp .htmp-arrow {
+  color: var(--gold);
+}
+.htmp .htmp-arrow-modify {
+  color: #e38a6d;
+}
+.htmp .htmp-tray {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.htmp .htmp-tray-label,
+.htmp .htmp-flag {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.htmp .htmp-flag {
+  color: #e38a6d;
+  font-weight: 700;
+}
+.htmp .htmp-card {
+  flex-direction: column;
+  padding: 8px;
+  font-size: 11px;
+}
+.htmp .htmp-card [data-htmp-part] {
+  display: block;
+  width: 100%;
+  padding: 4px 6px;
+  margin: 2px 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: center;
+}
+.htmp .htmp-ghost {
+  border-style: dashed;
+  color: var(--muted);
+  background: transparent;
+}
+.htmp .htmp-socket {
+  border-radius: 0 0 12px 12px;
+  border-color: var(--gold);
+}
+.htmp .htmp-verify {
+  border-color: #6fbf8e;
+}
+.htmp .htmp-verify [data-presentation-icon] {
+  color: #6fbf8e;
+}
+.htmp .htmp-pass {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #6fbf8e;
+  color: #0d0c0b;
+}
+.htmp .htmp-ring {
+  border: 2px solid #e38a6d;
+  border-radius: 14px;
+}
+.htmp .htmp-frame {
+  border: 2px solid var(--gold);
+  border-radius: 20px;
+}
+.htmp .htmp-frame-label {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}

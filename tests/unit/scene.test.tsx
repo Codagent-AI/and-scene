@@ -117,6 +117,29 @@ describe('entering, continuing and departing entities', () => {
     expect(x.closest('[data-presentation-appear]')).toBeNull()
   })
 
+  it('a persisting entity keeps its node and id while its geometry and content change in place', () => {
+    const Moving: ComponentType<SceneProps<{ x: number; text: string }>> = ({ payload }) => (
+      <SceneLayer>
+        <Box key="m" id="mv/box" at={{ x: payload.x, y: 10, w: 50, h: 20 }}>{payload.text}</Box>
+        <Box key="o" id="mv/over" at={{ x: 5, y: 10, w: 80, h: 20 }}>over</Box>
+      </SceneLayer>
+    )
+    const steps: Step<{ x: number; text: string }>[] = [
+      { id: '1', era: 'e', title: 't', caption: 'c', Scene: Moving, groupKey: 'g', payload: { x: 5, text: 'before' } },
+      { id: '2', era: 'e', title: 't', caption: 'c', Scene: Moving, groupKey: 'g', payload: { x: 300, text: 'after' } },
+    ]
+    render(<Presentation steps={steps} title="T" />)
+    const box = q('[data-presentation-entity="mv/box"]')!
+    const over = q('[data-presentation-entity="mv/over"]')!
+    expect([box.style.left, over.style.left]).toEqual(['5px', '5px']) // intentionally stacked at the same coordinates
+    next()
+    expect(q('[data-presentation-entity="mv/box"]')).toBe(box)
+    expect(box.getAttribute('data-presentation-entity')).toBe('mv/box')
+    expect([box.style.left, box.textContent]).toEqual(['300px', 'after'])
+    expect(over.style.left).toBe('5px') // the stacked layer keeps its declared coordinates
+    expect(over.style.position).toBe('absolute')
+  })
+
   it('Appear accepts a custom delay', () => {
     render(<Appear delay={0}><span /></Appear>)
     expect(q('[data-presentation-appear]')!.getAttribute('data-presentation-appear-delay')).toBe('0')

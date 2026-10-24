@@ -1,0 +1,2 @@
+/* The attribution's label stays in the corner, but its padded box sweeps across the footer controls. */
+.fxo [data-presentation-attribution] { margin: 0; padding: 70px 24px 24px 1200px; font-size: 12px; color: #aaa; text-decoration: none; }

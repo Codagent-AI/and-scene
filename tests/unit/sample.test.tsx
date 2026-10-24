@@ -8,6 +8,7 @@ import type { EntityId } from '../../src/presentations/how-to-make-a-presentatio
 import { SampleScene } from '../../src/presentations/how-to-make-a-presentation/SampleScene.tsx'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps/index.ts'
 import { presentations } from '../../src/presentations/index.ts'
+import { DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT, WIDE_VIEWPORT, computeFitScale } from '../../src/presentation-kit/index.ts'
 import config from '../../scripts/verify.config.mjs'
 import { key, setViewport, stepIndex } from './helpers.tsx'
 
@@ -162,25 +163,84 @@ describe('reference sample composition (geometry contract)', () => {
     }
   })
 
-  it('keeps text within its entity (estimated text extents at the CSS font sizes)', () => {
+  const css = readFileSync(path.join(SAMPLE_DIR, 'talk.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  /** font-size declared by the first matching rule for a selector fragment. */
+  const sizeFor = (fragment: string) => {
+    const rule = [...css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].find(([, sel, body]) => sel.includes(fragment) && /font-size:/.test(body))
+    return rule ? parseFloat(/font-size:\s*([\d.]+)px/.exec(rule[2])?.[1] ?? '13') : undefined
+  }
+  const fontSize = (el: Element) => {
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      for (const cls of ['ghost', 'actor', 'question-chip', 'depth-control', 'morph-chip', 'card']) {
+        if (n.classList.contains(cls)) return sizeFor(`.${cls}`) ?? 13
+      }
+      if (n.hasAttribute('data-presentation-frame-label')) return sizeFor('frame-label') ?? 13
+    }
+    return sizeFor("[data-presentation-node='label']") ?? 13
+  }
+  const AVERAGE_GLYPH_EM = 0.62 // conservative average advance for proportional sans text
+  const CHROME_PADDING = 14 // border + padding allowance inside an entity
+
+  it('keeps every text run, including nested card text and the frame label, inside its entity at the CSS font sizes', () => {
     render(<Presentation steps={[{ ...STEPS[8] }]} title="x" />)
-    for (const el of document.querySelectorAll<HTMLElement>('[data-presentation-node="box"], [data-presentation-node="label"]')) {
-      const id = el.getAttribute('data-presentation-id') as EntityId
-      const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent ?? '').join('')
-      expect(own.length * 7.4, `${id} text "${own}" within ${GEOMETRY[id].w || 'auto'}px`).toBeLessThanOrEqual(GEOMETRY[id].w || 400)
+    let checked = 0
+    for (const el of document.querySelectorAll<HTMLElement>('[data-presentation-scene] *')) {
+      const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent ?? '').join('').trim()
+      if (!own) continue
+      const entity = el.closest('[data-presentation-id]') as HTMLElement
+      const id = entity.getAttribute('data-presentation-id') as EntityId
+      const hasIcon = entity.querySelector(':scope > svg') !== null
+      const room = GEOMETRY[id].w - CHROME_PADDING - (hasIcon && el === entity ? 22 : 0)
+      const need = own.length * fontSize(el) * AVERAGE_GLYPH_EM
+      expect(need, `${id} "${own}" needs ~${Math.round(need)}px of ${room}px`).toBeLessThanOrEqual(room)
+      checked++
+    }
+    expect(checked).toBeGreaterThan(20) // labels, chips, nested card parts, the frame label
+  })
+
+  it('fits the stacked lines of every step card inside the card', () => {
+    const lines = 4 // number, title, caption, visual
+    const size = sizeFor('.card') ?? 11
+    const need = lines * size * 1.2 + 16 + 12 // line boxes + card padding + visual-part padding
+    for (const n of [1, 2, 3, 4]) expect(need, `card-${n}`).toBeLessThanOrEqual(GEOMETRY[`card-${n}` as EntityId].h)
+  })
+
+  const VIEWPORTS: [number, number][] = [[1920, 1080], [1440, 900], [1280, 720], [1024, 768], [768, 1024], [390, 844], [320, 568]]
+  const intersects = (a: Rect, b: Rect) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+  type Rect = { x: number; y: number; w: number; h: number }
+
+  it.each(['browse', 'present'] as const)('keeps the scaled canvas clear of every chrome region at desktop and narrow viewports (%s)', (mode) => {
+    const layout = STAGE_LAYOUT[mode]
+    for (const [vw, vh] of VIEWPORTS) {
+      const scale = computeFitScale(vw, vh, mode)
+      const toc = mode === 'browse' && vw >= WIDE_VIEWPORT ? layout.toc : 0
+      const w = DESIGN_W * scale
+      const h = DESIGN_H * scale
+      // the stage is centred in the row between header and footer, right of the ToC
+      const canvas: Rect = { x: toc + (vw - toc - w) / 2, y: layout.top + (vh - layout.top - layout.bottom - h) / 2, w, h }
+      const chrome: Record<string, Rect> = {
+        header: { x: 0, y: 0, w: vw, h: layout.top },
+        footer: { x: 0, y: vh - layout.bottom, w: vw, h: layout.bottom },
+        toc: { x: 0, y: layout.top, w: toc, h: vh - layout.top - layout.bottom },
+        attribution: { x: vw - 200, y: vh - 40, w: 200, h: 40 },
+      }
+      for (const [name, rect] of Object.entries(chrome)) {
+        if (rect.w > 0) expect(intersects(canvas, rect), `${mode} ${vw}x${vh}: canvas vs ${name}`).toBe(false)
+      }
+      if (scale > MIN_SCALE) {
+        expect(canvas.x, `${vw}x${vh}`).toBeGreaterThanOrEqual(toc)
+        expect(canvas.x + canvas.w, `${vw}x${vh}`).toBeLessThanOrEqual(vw)
+      }
     }
   })
 
-  it('keeps the canvas clear of chrome: chrome lives outside the scaled canvas element', () => {
-    render(<Presentation steps={STEPS} title="x" />)
-    const canvas = q('[data-presentation-canvas]')!
-    for (const hook of ['header', 'footer', 'toc', 'attribution']) {
-      const el = q(`[data-presentation-${hook}]`)!
-      expect(canvas.contains(el), hook).toBe(false)
-    }
+  it('stays legible on a phone: the narrow-viewport scale keeps the smallest text near its authored size ratio', () => {
+    const scale = computeFitScale(390, 844, 'browse')
+    expect(scale).toBeGreaterThan(0.38)
+    expect((sizeFor('.card') ?? 11) * scale).toBeGreaterThan(4) // cards are summaries there, titles carry the meaning
+    expect((sizeFor("[data-presentation-node='label']") ?? 13) * scale).toBeGreaterThan(5)
   })
 })
-
 
 describe('presentation-owned styling', () => {
   const css = readFileSync(path.join(SAMPLE_DIR, 'talk.css'), 'utf8')

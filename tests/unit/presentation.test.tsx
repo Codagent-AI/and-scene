@@ -222,10 +222,11 @@ describe('keyboard, touch, controls, and boundaries', () => {
           <textarea id="t" />
           <select id="s"><option>o</option></select>
           <div id="ce" contentEditable="true" />
+          <div id="pt" contentEditable="plaintext-only" />
         </div>
       ),
     })
-    for (const id of ['b', 'child', 'l', 'i', 't', 's', 'ce']) {
+    for (const id of ['b', 'child', 'l', 'i', 't', 's', 'ce', 'pt']) {
       for (const k of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) {
         const target = document.getElementById(id)!
         const event = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })
@@ -274,6 +275,34 @@ describe('keyboard, touch, controls, and boundaries', () => {
     expect(mode()).toBe('present')
     unmount()
     expect(counters.mounts).toBe(counters.unmounts)
+  })
+})
+
+describe('order-derived numbering (rendered)', () => {
+  const view = (ids: string[]) => (
+    <Presentation
+      steps={ids.map((id) => ({ ...makeSteps(1)[0], id, title: `T-${id}`, caption: `C-${id}` }))}
+      title="N"
+    />
+  )
+  const marker = () => q('[data-presentation-marker]')?.textContent
+  const dotLabels = () => qa('[data-presentation-progress-item]').map((d) => d.getAttribute('aria-label'))
+
+  it('renumbers the marker and progress labels after insertion, removal, and reordering, with unrelated ids', () => {
+    const { rerender } = render(view(['zeta', 'alpha', 'mid']))
+    key('ArrowRight')
+    expect(marker()).toBe('2 / 3')
+    expect(dotLabels()).toEqual(['Step 1: T-zeta', 'Step 2: T-alpha', 'Step 3: T-mid'])
+    rerender(view(['zeta', 'new', 'alpha', 'mid']))
+    expect(marker()).toBe('2 / 4')
+    expect(dotLabels()).toEqual(['Step 1: T-zeta', 'Step 2: T-new', 'Step 3: T-alpha', 'Step 4: T-mid'])
+    rerender(view(['mid', 'zeta', 'alpha']))
+    expect(marker()).toBe('2 / 3')
+    expect(dotLabels()).toEqual(['Step 1: T-mid', 'Step 2: T-zeta', 'Step 3: T-alpha'])
+    rerender(view(['alpha']))
+    expect(marker()).toBe('1 / 1')
+    expect(dotLabels()).toEqual(['Step 1: T-alpha'])
+    expect(qa('[data-presentation-progress-item]')).toHaveLength(1)
   })
 })
 

@@ -1,6 +1,6 @@
 // Deterministic verification gate: build, sample outline, real-browser render.
 // Usage: npm run verify [-- <slug>]   (a slug checks that presentation instead of the reference one)
-import { readFile } from 'node:fs/promises'
+import { access, readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { PhaseError, runNpm, startPreview } from './lib/preview.mjs'
@@ -45,8 +45,8 @@ export function checkOutline(outline, steps) {
 export function checkRegistry(source, { slug, title }) {
   const problems = []
   const quoted = (value) => `['"\`]${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"\`]`
-  if (!new RegExp(`slug:\\s*${quoted(slug)}`).test(source)) problems.push(`registry has no entry with slug "${slug}"`)
-  if (title && !new RegExp(`title:\\s*${quoted(title)}`).test(source)) problems.push(`registry entry "${slug}" lacks title "${title}"`)
+  if (!new RegExp(`['"]?slug['"]?\\s*:\\s*${quoted(slug)}`).test(source)) problems.push(`registry has no entry with slug "${slug}"`)
+  if (title && !new RegExp(`['"]?title['"]?\\s*:\\s*${quoted(title)}`).test(source)) problems.push(`registry entry "${slug}" lacks title "${title}"`)
   return problems
 }
 
@@ -78,14 +78,30 @@ async function loadSteps(cwd, config) {
   }
 }
 
+async function listSources(dir) {
+  const out = []
+  for (const entry of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) out.push(...(await listSources(full)))
+    else if (/\.(tsx?|jsx?)$/.test(entry.name)) out.push(full)
+  }
+  return out
+}
+
+/** The registry is `src/presentations/index.*`, or any source mapping slugs to loaders. */
+async function readRegistrySource(cwd) {
+  const files = (await listSources(path.join(cwd, 'src'))).sort((a, b) => Number(/presentations[\\/]index\./.test(b)) - Number(/presentations[\\/]index\./.test(a)))
+  for (const file of files) {
+    const text = await readFile(file, 'utf8')
+    if (/['"]?\bslug\b['"]?\s*:/.test(text) && /['"]?\bload\b['"]?\s*:/.test(text)) return text
+  }
+  return undefined
+}
+
 async function samplePhase(cwd, config, log) {
   const registryOnly = !config.stepsModule
-  let source
-  try {
-    source = await readFile(path.join(cwd, 'src/presentations/index.ts'), 'utf8')
-  } catch {
-    throw new PhaseError('sample', 'src/presentations/index.ts is missing')
-  }
+  const source = await readRegistrySource(cwd)
+  if (source === undefined) throw new PhaseError('sample', 'no presentation registry (a file mapping slug to load) found under src/')
   const problems = checkRegistry(source, config)
   if (problems.length === 0 && !registryOnly) problems.push(...checkOutline(config.outline, await loadSteps(cwd, config)))
   if (problems.length > 0) throw new PhaseError('sample', problems.join('; '))
@@ -196,8 +212,15 @@ async function renderPhase(cwd, config, log) {
  * every step renders) instead of the reference one, without outline matching.
  */
 export async function runVerify({ cwd = process.cwd(), log = console.log, slug } = {}) {
-  let config = (await import(pathToFileURL(path.join(cwd, 'scripts/verify.config.mjs')).href)).default
+  const configFile = path.join(cwd, 'scripts/verify.config.mjs')
+  let config = await access(configFile).then(
+    async () => (await import(pathToFileURL(configFile).href)).default,
+    () => ({ slug: undefined, outline: null }),
+  )
   if (slug && slug !== config.slug) config = { slug, outline: null }
+  if (!config.slug) {
+    throw new PhaseError('sample', 'no reference presentation is configured: run `npm run verify -- <slug>` for a registered presentation')
+  }
   log('[verify] phase build: npm run build')
   await runNpm(['run', 'build'], { cwd, phase: 'build' })
   log('[verify] phase build: ok')

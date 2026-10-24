@@ -100,6 +100,13 @@ you pass only after the user has agreed to the target you stated:
 node "$SKILL_DIR/scripts/scaffold.mjs" apply <project-dir> [--confirm] --install
 ```
 
+If `apply` prints a `NOTE:` (for example that your existing `src/main.tsx` was kept
+and must render `<AppRouter>`), make that edit yourself; the scaffold never rewrites
+files that already exist. `create` (below) works with whatever registry and scene kit
+the project already has, wherever they live, and points the new files' kit imports at
+them; if it reports that no index or kit was found, scaffold first. If a project's own
+kit barrel lacks the primitives `Scene.tsx` imports, adapt that file by hand.
+
 The scaffold needs React, React DOM, Motion, Lucide icons, Vite, the React Vite
 plugin, TypeScript with `@types/react`, `@types/react-dom`, `@types/node`, ESLint,
 and Playwright (render verification). `apply` adds whichever are missing to an

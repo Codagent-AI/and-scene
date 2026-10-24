@@ -1,7 +1,8 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import {
   ANCHORS, BOOTSTRAP_DIR, PRESENTATION_TEMPLATE_DIR, SKILL_DIR, anchorOf, createPresentation, detectAnchors, detectMonorepo,
@@ -34,11 +35,15 @@ const withBuild = (dir: string, extra: object = {}) => {
 }
 // Cosmetically different names/formatting from the shipped scaffold, same contract.
 const withKit = (dir: string, folder = 'src/deck-engine') => {
-  put(dir, `${folder}/Presentation.tsx`, 'export const Presentation = () => null\n')
-  put(dir, `${folder}/Host.tsx`, "import { AnimatePresence } from 'motion/react'\nexport const Host = AnimatePresence\n")
+  put(dir, `${folder}/Presentation.tsx`, "export const Presentation = () => null // modes: 'present' | 'browse'; caption; toc; scale\n")
+  put(dir, `${folder}/types.ts`, 'export interface Step { Scene: unknown }\n')
+  put(dir, `${folder}/Host.tsx`, "import { AnimatePresence } from 'motion/react'\nwindow.addEventListener('keydown', () => {})\nexport const Host = AnimatePresence\n")
+  put(dir, `${folder}/index.ts`, "export * from './Presentation.tsx'\n")
 }
-const withIndex = (dir: string, file = 'src/talks/registry.ts') =>
+const withIndex = (dir: string, file = 'src/talks/registry.ts') => {
   put(dir, file, "export const all = [{ slug: 'a', title: 'A', load: () => import('./a') }]\n")
+  put(dir, 'src/talks/route.ts', 'export const pick = (list: { slug: string }[]) => list.find((e) => `/${e.slug}` === window.location.pathname)\n')
+}
 
 describe('anchor detection (contract-level)', () => {
   it('classifies all eight combinations of build, kit, and index', async () => {
@@ -75,17 +80,37 @@ describe('anchor detection (contract-level)', () => {
   it('ignores cosmetic differences: names, formatting, extra dependencies', async () => {
     const dir = tmp()
     withBuild(dir, { dependencies: { react: '^19', 'left-pad': '1', tailwindcss: '4' } })
-    put(dir, 'src/zzz/Presentation.tsx', 'export default function Presentation() { return null }')
-    put(dir, 'src/zzz/stage.tsx', "import {AnimatePresence} from 'motion/react'; export const S = AnimatePresence")
-    put(dir, 'src/whatever/talks.ts', "export const x=[{slug:'a',load:()=>import('./a')}]")
+    put(dir, 'src/zzz/Presentation.tsx', "export default function Presentation() { return null } /* 'present' 'browse' caption Toc scale */")
+    put(dir, 'src/zzz/stage.tsx', "import {AnimatePresence} from 'motion/react'; type Step={Scene:1}; addEventListener('keydown',()=>{}); export const S = AnimatePresence")
+    put(dir, 'src/whatever/talks.ts', `export const x=[{"slug":"a","load":()=>import('./a')}]; export const r = (l:{slug:string}[]) => l.find(e => e.slug === location.pathname)`)
     expect(await detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
     expect((await resolveTarget(dir)).missing).toEqual([])
   })
 
-  it('does not take a presentation component without a stage host for a scene kit', async () => {
-    const dir = tmp()
-    put(dir, 'src/a/Presentation.tsx', 'export const Presentation = () => null')
-    expect((await detectAnchors(dir)).kit).toBe(false)
+  it('does not take a placeholder Presentation or a partial engine for the scene kit', async () => {
+    const stub = tmp()
+    put(stub, 'src/a/Presentation.tsx', 'export const Presentation = () => null')
+    put(stub, 'src/a/Stage.tsx', "import { AnimatePresence } from 'motion/react'\nexport const S = AnimatePresence")
+    expect((await detectAnchors(stub)).kit).toBe(false)
+    // every part of the contract is needed: drop each in turn from a complete kit
+    for (const missing of ['types.ts', 'Host.tsx']) {
+      const dir = tmp()
+      withKit(dir)
+      rmSync(path.join(dir, 'src/deck-engine', missing))
+      expect((await detectAnchors(dir)).kit, missing).toBe(false)
+    }
+    const complete = tmp()
+    withKit(complete)
+    expect((await detectAnchors(complete)).kit).toBe(true)
+  })
+
+  it('needs a routed registry for the presentation index', async () => {
+    const unrouted = tmp()
+    put(unrouted, 'src/reg.ts', "export const all = [{ slug: 'a', load: () => import('./a') }]")
+    expect((await detectAnchors(unrouted)).index).toBe(false)
+    const routed = tmp()
+    withIndex(routed)
+    expect((await detectAnchors(routed)).index).toBe(true)
   })
 
   it('requires a working build script, vite, react, typescript, and a vite config', async () => {
@@ -231,8 +256,8 @@ describe('non-destructive scaffolding', () => {
     put(dir, 'src/presentations/index.ts', 'SENTINEL index')
     const before = Object.fromEntries(walk(dir).map((f) => [f, readFileSync(path.join(dir, f), 'utf8')]))
     const { written, skipped } = await scaffold(dir, ['kit'])
-    expect(written.every((f) => f.startsWith('src/presentation-kit/'))).toBe(true)
-    expect(written.length).toBeGreaterThan(5)
+    expect(written.every((f) => f.startsWith('src/presentation-kit/') || f.startsWith('scripts/'))).toBe(true)
+    expect(written.filter((f) => f.startsWith('src/')).length).toBeGreaterThan(5)
     expect(skipped).toEqual([])
     for (const [f, text] of Object.entries(before)) {
       if (f === 'package.json') continue
@@ -291,6 +316,73 @@ describe('non-destructive scaffolding', () => {
   })
 })
 
+describe('scaffolding into an existing project', () => {
+  const importsOf = (file: string, text: string) =>
+    [...text.matchAll(/from\s+['"](\.[^'"]+)['"]|import\(\s*['"](\.[^'"]+)['"]/g)].map((m) => path.resolve(path.dirname(file), m[1] ?? m[2]))
+  const resolves = (target: string) => ['', '.ts', '.tsx', '.js', '/index.ts', '/index.tsx'].some((ext) => existsSync(target + ext))
+
+  it('adds a self-sufficient router, working npm scripts, and a note for the kept entry point to a Vite app with no kit or index', async () => {
+    const dir = tmp()
+    withBuild(dir)
+    put(dir, 'src/main.tsx', 'SENTINEL entry')
+    const before = await resolveTarget(dir)
+    expect(before.missing).toEqual(['kit', 'index'])
+    const result = await scaffold(dir, before.missing)
+    expect(readFileSync(path.join(dir, 'src/main.tsx'), 'utf8')).toBe('SENTINEL entry')
+    expect(result.written).toContain('src/lazyPresentation.ts')
+    expect(result.manual.join()).toContain('src/main.tsx')
+    expect(result.manual.join()).toContain('AppRouter')
+    // every relative import in the scaffolded sources resolves inside the project
+    for (const rel of result.written.filter((f) => /^src\/.*\.tsx?$/.test(f))) {
+      const file = path.join(dir, rel)
+      for (const target of importsOf(file, readFileSync(file, 'utf8'))) expect(resolves(target), `${rel} -> ${target}`).toBe(true)
+    }
+    // every npm script points at a file that now exists
+    const scripts = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8')).scripts
+    for (const name of ['verify', 'inspect']) {
+      const file = scripts[name].replace('node ', '')
+      expect(existsSync(path.join(dir, file)), `${name}: ${file}`).toBe(true)
+    }
+    expect(existsSync(path.join(dir, 'scripts/lib/preview.mjs'))).toBe(true)
+    expect(existsSync(path.join(dir, 'scripts/verify.config.mjs'))).toBe(true)
+    expect(await detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('does not ship a reference config for a project whose registry is its own, yet verify scripts still arrive', async () => {
+    const dir = tmp()
+    withBuild(dir)
+    withKit(dir)
+    withIndex(dir)
+    const { written } = await scaffold(dir, [])
+    expect(written).toContain('scripts/verify.mjs')
+    expect(written).toContain('scripts/inspect-presentation.mjs')
+    expect(written).not.toContain('scripts/verify.config.mjs')
+  })
+
+  it('gives a manifest without a build script a working build setup', async () => {
+    const dir = tmp()
+    put(dir, 'package.json', JSON.stringify({ name: 'legacy', dependencies: { left: '1' } }))
+    const report = await resolveTarget(dir)
+    expect(report.missing).toEqual(ANCHORS)
+    await scaffold(dir, report.missing)
+    const out = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8'))
+    expect(out.scripts.build).toBe('tsc -b && vite build')
+    expect(out.dependencies.left).toBe('1')
+    expect(out.type).toBe('module')
+    expect(existsSync(path.join(dir, 'vite.config.ts'))).toBe(true)
+    expect(existsSync(path.join(dir, 'tsconfig.app.json'))).toBe(true)
+    expect((await detectAnchors(dir)).build).toBe(true)
+  })
+
+  it('keeps an existing module type and existing scripts', async () => {
+    const dir = tmp()
+    put(dir, 'package.json', JSON.stringify({ type: 'commonjs', scripts: { build: 'mine', lint: 'mine' } }))
+    await scaffold(dir, ['build'])
+    const out = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8'))
+    expect([out.type, out.scripts.build, out.scripts.lint]).toEqual(['commonjs', 'mine', 'mine'])
+  })
+})
+
 describe('create a presentation', () => {
   it('writes a self-contained folder with its own CSS and appends one registry entry', async () => {
     const dir = tmp()
@@ -326,6 +418,34 @@ describe('create a presentation', () => {
       ['one', 'One', './one/Talk.tsx'],
       ['two', 'Two', './two/Talk.tsx'],
     ])
+  })
+
+  const syntaxErrors = (file: string) =>
+    ts.transpileModule(readFileSync(file, 'utf8'), { reportDiagnostics: true, fileName: file, compilerOptions: { jsx: ts.JsxEmit.ReactJSX } }).diagnostics ?? []
+
+  it.each([
+    ['a compact array without a trailing comma', "export const all = [{ slug: 'a', title: 'A', load: () => import('./a') }]\n"],
+    ['a multi-line array with a trailing comma', "export const all = [\n  { slug: 'a', title: 'A', load: () => import('./a') },\n]\n"],
+    ['quoted property names', `export const all = [\n  { "slug": "a", "title": "A", "load": () => import("./a") }\n]\n`],
+  ])('registers in an existing index at another path (%s) and keeps the kit imports resolvable', async (_name, registrySource) => {
+    const dir = tmp()
+    withKit(dir, 'src/engine')
+    put(dir, 'src/talks/registry.ts', registrySource)
+    put(dir, 'src/talks/route.ts', 'export const pick = (l: { slug: string }[]) => l.find((e) => e.slug === location.pathname)\n')
+    const result = await createPresentation(dir, 'new-one', 'New One')
+    expect(result.registry).toBe(path.join(dir, 'src/talks/registry.ts'))
+    const registry = path.join(dir, 'src/talks/registry.ts')
+    expect(syntaxErrors(registry)).toEqual([])
+    const text = readFileSync(registry, 'utf8')
+    expect(text).toContain("slug: 'a'".replace("'a'", text.includes('"slug"') ? '"a"' : "'a'").replace('slug', text.includes('"slug"') ? '"slug"' : 'slug'))
+    expect(text).toMatch(/slug: 'new-one'/)
+    expect(text).toContain("import('./new-one/Talk.tsx')")
+    expect(existsSync(path.join(dir, 'src/talks/new-one/Talk.tsx'))).toBe(true)
+    // the template's kit imports now point at the project's own kit
+    const scene = readFileSync(path.join(dir, 'src/talks/new-one/Scene.tsx'), 'utf8')
+    expect(scene).toContain("from '../../engine/index.ts'")
+    expect(readFileSync(path.join(dir, 'src/talks/new-one/steps/step-1.tsx'), 'utf8')).toContain("from '../../../engine/index.ts'")
+    expect(scene).not.toContain('presentation-kit')
   })
 
   it('refuses invalid or duplicate slugs without changing anything', async () => {

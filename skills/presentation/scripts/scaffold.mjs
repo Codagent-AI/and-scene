@@ -49,9 +49,17 @@ async function walk(dir, { maxDepth = 6, skip = ['node_modules', 'dist', '.git']
 export function anchorOf(relPath) {
   const p = relPath.split(path.sep).join('/')
   if (p.startsWith('src/presentation-kit/')) return 'kit'
-  if (p.startsWith('src/presentations/') || ['src/router.ts', 'src/AppRouter.tsx', 'src/Landing.tsx'].includes(p)) return 'index'
+  if (
+    p.startsWith('src/presentations/') ||
+    ['src/router.ts', 'src/AppRouter.tsx', 'src/lazyPresentation.ts', 'src/Landing.tsx', 'scripts/verify.config.mjs'].includes(p)
+  ) {
+    return 'index'
+  }
   return 'build'
 }
+
+/** The verification and inspection scripts are wanted by every scaffold, whichever anchors it adds. */
+const isSharedScript = (relPath) => relPath.startsWith('scripts/') && anchorOf(relPath) === 'build'
 
 /**
  * Contract-level detection: each anchor is recognised by what it provides, not
@@ -65,17 +73,52 @@ export async function detectAnchors(dir) {
     const hasConfig = (await readdir(dir)).some((name) => /^vite\.config\.(ts|js|mjs|mts|cjs)$/.test(name))
     result.build = Boolean(pkg.scripts?.build && deps.vite && deps.react && deps.typescript && hasConfig)
   }
-  const sources = (await walk(path.join(dir, 'src'))).filter((f) => /\.(tsx?|jsx?)$/.test(f))
-  const texts = new Map(await Promise.all(sources.map(async (f) => [f, await readFile(f, 'utf8')])))
-  const hosts = [...texts].filter(([, t]) => /export\s+(?:default\s+)?(?:function|const)\s+Presentation\b/.test(t))
-  for (const [file] of hosts) {
-    const kitDir = path.dirname(file)
-    const stageInKit = [...texts].some(([f, t]) => f.startsWith(kitDir) && /AnimatePresence/.test(t))
-    if (stageInKit) result.kit = true
-  }
-  result.index = [...texts].some(([, t]) => /\bslug\s*:/.test(t) && /\bload\s*:/.test(t) && /import\s*\(/.test(t))
+  const sources = await readSources(dir)
+  result.kit = findKit(sources) !== undefined
+  result.index = findRegistry(sources) !== undefined && isRouted(sources)
   return result
 }
+
+async function readSources(dir) {
+  const files = (await walk(path.join(dir, 'src'))).filter((f) => /\.(tsx?|jsx?)$/.test(f))
+  return new Map(await Promise.all(files.map(async (f) => [f, await readFile(f, 'utf8')])))
+}
+
+const KIT_CONTRACT = {
+  'a Step/Scene step contract': [/\bStep\b/, /\bScene\b/],
+  'a stage that mounts the active step and runs morphs': [/AnimatePresence|LayoutGroup/],
+  'keyboard navigation': [/keydown|ArrowRight/],
+  'present and browse modes': [/['"]present['"]/, /['"]browse['"]/],
+  'captions and a table of contents': [/caption/i, /toc|contents/i],
+  'a fit-scaled canvas': [/scale/i],
+}
+
+/**
+ * The scene kit is the directory that exports a `Presentation` host and, together,
+ * provides every part of the kit contract. Names and formatting do not matter.
+ */
+export function findKit(sources) {
+  for (const [file, text] of sources) {
+    if (!/export\s+(?:default\s+)?(?:function|const)\s+Presentation\b/.test(text)) continue
+    const dir = path.dirname(file)
+    const all = [...sources].filter(([f]) => f.startsWith(dir + path.sep)).map(([, t]) => t).join('\n')
+    if (Object.values(KIT_CONTRACT).every((res) => res.every((re) => re.test(all)))) return { dir, host: file }
+  }
+  return undefined
+}
+
+/** A file mapping slugs to loaders (quoted or unquoted property names). */
+export function findRegistry(sources) {
+  const hits = [...sources].filter(
+    ([, t]) => /['"]?\bslug\b['"]?\s*:/.test(t) && /['"]?\bload\b['"]?\s*:/.test(t) && /import\s*\(/.test(t),
+  )
+  hits.sort(([a], [b]) => Number(/presentations[\\/]index\./.test(b)) - Number(/presentations[\\/]index\./.test(a)))
+  return hits[0]?.[0]
+}
+
+/** The registry is only an index if something routes by its slugs. */
+const isRouted = (sources) =>
+  [...sources.values()].some((t) => /pathname|useLocation|createBrowserRouter|<Route\b|location\.hash/.test(t) && /\bslug\b/.test(t))
 
 export async function detectMonorepo(dir) {
   const signals = []
@@ -147,9 +190,11 @@ export async function ensureDependencies(target) {
     }
   }
   pkg.scripts = { ...pkg.scripts }
-  for (const name of ['verify', 'inspect']) {
-    if (!pkg.scripts[name]) pkg.scripts[name] = template.scripts[name]
+  for (const [name, command] of Object.entries(template.scripts)) {
+    if (!pkg.scripts[name]) pkg.scripts[name] = command
   }
+  // The scripts and config files ship as ES modules.
+  if (pkg.type === undefined) pkg.type = 'module'
   await writeFile(file, `${JSON.stringify(pkg, null, 2)}\n`)
   return added
 }
@@ -158,10 +203,12 @@ export async function ensureDependencies(target) {
 export async function scaffold(target, anchors = ANCHORS) {
   const written = []
   const skipped = []
+  const manual = []
   const targetHadPackage = await exists(path.join(target, 'package.json'))
   for (const file of await walk(BOOTSTRAP_DIR)) {
     const rel = path.relative(BOOTSTRAP_DIR, file)
-    if (!anchors.includes(anchorOf(rel))) continue
+    const posix = rel.split(path.sep).join('/')
+    if (!anchors.includes(anchorOf(rel)) && !isSharedScript(posix)) continue
     if (targetHadPackage && rel === 'package-lock.json') continue
     const dest = path.join(target, rel)
     if (await exists(dest)) {
@@ -173,30 +220,53 @@ export async function scaffold(target, anchors = ANCHORS) {
     written.push(rel)
   }
   const dependenciesAdded = await ensureDependencies(target)
-  return { written, skipped, dependenciesAdded }
+  if (written.includes('src/AppRouter.tsx')) {
+    const entry = (await Promise.all(['src/main.tsx', 'src/main.jsx', 'src/main.ts'].map(async (f) => ((await exists(path.join(target, f))) ? f : undefined)))).find(Boolean)
+    if (entry && !written.includes(entry) && !/AppRouter/.test(await readFile(path.join(target, entry), 'utf8'))) {
+      manual.push(`${entry} already existed and was kept: render <AppRouter pathname={window.location.pathname} registry={presentations} /> from it to route to each presentation`)
+    }
+  }
+  return { written, skipped, dependenciesAdded, manual }
 }
 
 const render = (text, vars) => text.replace(/\{\{(SLUG|TITLE)\}\}/g, (_, key) => vars[key])
 
-/** Writes a new presentation folder from the template and registers it. */
+const toImport = (from, to) => {
+  const rel = path.relative(from, to).split(path.sep).join('/')
+  return rel.startsWith('.') ? rel : `./${rel}`
+}
+
+/**
+ * Writes a new presentation folder next to the project's detected registry, wires
+ * its imports to the detected scene kit, and appends one registry entry.
+ */
 export async function createPresentation(target, slug, title) {
   if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) throw new Error(`slug must be lowercase letters, digits, and dashes: ${slug}`)
-  const destDir = path.join(target, 'src/presentations', slug)
+  const sources = await readSources(target)
+  const registryFile = findRegistry(sources)
+  if (!registryFile) throw new Error('no presentation index found: scaffold one first')
+  const kit = findKit(sources)
+  if (!kit) throw new Error('no scene kit found: scaffold one first')
+  const kitBarrel = (await readdir(kit.dir)).find((n) => /^index\.(tsx?|jsx?)$/.test(n)) ?? path.basename(kit.host)
+  const registry = sources.get(registryFile)
+  const destDir = path.join(path.dirname(registryFile), slug)
   if (await exists(destDir)) throw new Error(`presentation folder already exists: ${destDir}`)
-  const registryFile = path.join(target, 'src/presentations/index.ts')
-  const registry = await readFile(registryFile, 'utf8')
-  if (new RegExp(`slug:\\s*['"]${slug}['"]`).test(registry)) throw new Error(`slug already registered: ${slug}`)
+  if (new RegExp(`['"]?slug['"]?\\s*:\\s*['"]${slug}['"]`).test(registry)) throw new Error(`slug already registered: ${slug}`)
+  const close = [...registry.matchAll(/\}(\s*,)?(\s*)\]/g)].pop()
+  if (!close) throw new Error(`could not find the end of the presentations array in ${registryFile}`)
   const vars = { SLUG: slug, TITLE: title.replace(/["\\]/g, '') }
   for (const file of await walk(PRESENTATION_TEMPLATE_DIR)) {
     const dest = path.join(destDir, path.relative(PRESENTATION_TEMPLATE_DIR, file))
     await mkdir(path.dirname(dest), { recursive: true })
-    await writeFile(dest, render(await readFile(file, 'utf8'), vars))
+    const kitImport = toImport(path.dirname(dest), path.join(kit.dir, kitBarrel))
+    const text = render(await readFile(file, 'utf8'), vars).replace(/(?:\.\.\/)+presentation-kit\/index\.ts/g, kitImport)
+    await writeFile(dest, text)
   }
-  const entry = `  {\n    slug: '${slug}',\n    title: '${vars.TITLE.replace(/'/g, "\\'")}',\n    load: () => import('./${slug}/Talk.tsx'),\n  },\n`
-  const close = registry.lastIndexOf('\n]')
-  if (close === -1) throw new Error('could not find the end of the presentations array in src/presentations/index.ts')
-  await writeFile(registryFile, `${registry.slice(0, close + 1)}${entry}${registry.slice(close + 1)}`)
-  return { dir: destDir, registered: slug }
+  const loader = toImport(path.dirname(registryFile), path.join(destDir, 'Talk.tsx'))
+  const entry = `{\n    slug: '${slug}',\n    title: '${vars.TITLE.replace(/'/g, "\\'")}',\n    load: () => import('${loader}'),\n  }`
+  const at = close.index
+  await writeFile(registryFile, `${registry.slice(0, at + 1)},\n  ${entry}${close[1] ? ',' : ''}${close[2]}]${registry.slice(at + close[0].length)}`)
+  return { dir: destDir, registry: registryFile, registered: slug }
 }
 
 async function main([command, ...args]) {
@@ -216,6 +286,7 @@ async function main([command, ...args]) {
     await mkdir(report.target, { recursive: true })
     const result = await scaffold(report.target, report.missing)
     console.log(JSON.stringify({ target: report.target, ...result }, null, 2))
+    for (const note of result.manual) console.error(`NOTE: ${note}`)
     if (args.includes('--install')) {
       const run = spawnSync('npm', ['install'], { cwd: report.target, stdio: 'inherit' })
       if (run.status !== 0) process.exitCode = run.status ?? 1

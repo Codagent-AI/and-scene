@@ -96,14 +96,15 @@ describe('navigation inputs', () => {
 
   it('treats buttons, links, form fields, editables, and their children as controls', () => {
     const html = `<button><span id="in-button"></span></button><a href="/x">l</a><input><textarea></textarea><select></select>
-      <div contenteditable="true" id="ce"></div><div role="button" id="rb"></div><div role="checkbox" id="cb"></div><div role="tab" id="tb"></div><div role="menuitem" id="mi"></div><p id="plain"></p>`
+      <div contenteditable="true" id="ce"></div><div contenteditable="plaintext-only" id="pt"></div><div contenteditable="false" id="ro"></div><div role="button" id="rb"></div><div role="checkbox" id="cb"></div><div role="tab" id="tb"></div><div role="menuitem" id="mi"></div><p id="plain"></p>`
     const host = document.createElement('div')
     host.innerHTML = html
     document.body.append(host)
-    for (const sel of ['button', '#in-button', 'a', 'input', 'textarea', 'select', '#ce', '#rb', '#cb', '#tb', '#mi']) {
+    for (const sel of ['button', '#in-button', 'a', 'input', 'textarea', 'select', '#ce', '#pt', '#rb', '#cb', '#tb', '#mi']) {
       expect(isInteractiveTarget(host.querySelector(sel)), sel).toBe(true)
     }
     expect(isInteractiveTarget(host.querySelector('#plain'))).toBe(false)
+    expect(isInteractiveTarget(host.querySelector('#ro'))).toBe(false)
     expect(isInteractiveTarget(document.body)).toBe(false)
     expect(isInteractiveTarget(window)).toBe(false)
     host.remove()

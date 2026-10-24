@@ -28,7 +28,7 @@ const INTERACTIVE_ROLES = [
 ]
 
 const INTERACTIVE = [
-  'button', 'a', 'input', 'textarea', 'select', 'summary', '[contenteditable=""]', '[contenteditable="true"]',
+  'button', 'a', 'input', 'textarea', 'select', 'summary', '[contenteditable]:not([contenteditable="false"])',
   ...INTERACTIVE_ROLES.map((role) => `[role="${role}"]`),
 ].join(', ')
 

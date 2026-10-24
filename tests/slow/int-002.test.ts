@@ -24,7 +24,7 @@ describe('INT-002 screenshot helper emits faithful artifacts and advisory warnin
     cpSync(FIXTURES, fx, { recursive: true })
     // The fixtures import the kit from tests/fixtures/inspect/; in the copy it sits two levels up.
     edit(path.join(fx, 'common.tsx'), /'\.\.\/\.\.\/\.\.\/src\/presentation-kit\//g, "'../../presentation-kit/")
-    const slugs = ['collision', 'allowed', 'chrome', 'attribution', 'missing', 'settle']
+    const slugs = ['collision', 'allowed', 'chrome', 'attribution', 'missing', 'settle', 'control-overlap']
     const entries = slugs.map((s) => `  { slug: 'fx-${s}', title: 'Fixture ${s}', load: () => import('./fx/${s}.tsx') },\n`).join('')
     edit(path.join(dir, 'src/presentations/index.ts'), '\n]', `\n${entries}]`)
     const build = run('npm', ['run', 'build'], { cwd: dir })
@@ -82,6 +82,14 @@ describe('INT-002 screenshot helper emits faithful artifacts and advisory warnin
     expect(hit.length).toBeGreaterThanOrEqual(1)
     expect(hit.some((w) => w.includes('alpha') && w.includes('beta'))).toBe(true)
     expect(forStep('fx-collision', 2).filter((w) => w.includes('overlap'))).toEqual([])
+  })
+
+  it('warns when padded chrome controls collide even though their label text stays apart', () => {
+    for (const i of [0, 1, 2]) {
+      const hits = forStep('fx-control-overlap', i).filter((w) => w.includes('overlap:'))
+      expect(hits.some((w) => w.includes('attribution') && /prev|next|mode-toggle|progress-item/.test(w)), hits.join('\n')).toBe(true)
+    }
+    expect(warnings('fx-collision').some((w) => w.includes('overlap:') && w.includes('attribution'))).toBe(false)
   })
 
   it('exempts an explicitly allowed overlap but still reports an unrelated collision', () => {

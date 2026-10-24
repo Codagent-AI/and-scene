@@ -30,6 +30,8 @@ export function collectDiagnostics(styleProps) {
   const CHROME = [
     'title', 'caption', 'marker', 'progress-item', 'toc-item', 'prev', 'next', 'mode-toggle', 'attribution',
   ].map((name) => `[data-presentation-${name}]`).join(',')
+  const CONTROLS = ['progress-item', 'toc-item', 'prev', 'next', 'mode-toggle', 'attribution']
+    .map((name) => `[data-presentation-${name}]`).join(',')
   const root = document.querySelector('[data-presentation-root]')
   const visible = (el) => {
     const cs = getComputedStyle(el)
@@ -60,7 +62,8 @@ export function collectDiagnostics(styleProps) {
     if (!visible(el)) continue
     const own = textRect(el)
     const chrome = el.matches(CHROME)
-    let rect = own
+    // A control occupies its whole padded box, not just its label.
+    let rect = el.matches(CONTROLS) ? null : own
     if (!rect && chrome) {
       const r = el.getBoundingClientRect()
       rect = { x: r.left, y: r.top, w: r.width, h: r.height }

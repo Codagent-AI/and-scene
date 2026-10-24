@@ -62,6 +62,11 @@ describe('checkRegistry', () => {
     expect(checkRegistry(source, config)).toEqual([])
   })
 
+  it('accepts quoted property names and compact formatting', () => {
+    const compact = `export const p=[{"slug":"${config.slug}","title":"${config.title}","load":()=>import("./x")}]`
+    expect(checkRegistry(compact, config)).toEqual([])
+  })
+
   it('fails when the sample is missing or retitled', () => {
     expect(checkRegistry(source.replace(config.slug, 'other'), config)[0]).toContain(`no entry with slug "${config.slug}"`)
     expect(checkRegistry(source.replace('How to Use', 'How To Use'), config)[0]).toContain('lacks title')

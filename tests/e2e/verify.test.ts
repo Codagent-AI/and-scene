@@ -107,15 +107,15 @@ describe('E2E-002: verification failures are actionable', () => {
         ),
     },
     {
-      name: 'an error that fires only after the step has settled for a moment',
+      name: 'an error that fires 1.2s after the last step arrives (after its newcomers finish animating)',
       phase: 'render',
       rendered: true,
-      expectIn: /step 7: console\.error: delayed-failure/,
+      expectIn: /step 8: console\.error: delayed-failure/,
       mutate: (dir) =>
         edit(dir, SCENE, (t) =>
           t.replace("import { Bot,", "import { useEffect } from 'react'\nimport { Bot,").replace(
             'export function SampleScene({ payload }: SceneProps<SampleState>) {',
-            "export function SampleScene({ payload }: SceneProps<SampleState>) {\n  useEffect(() => {\n    if (payload.stage !== 8) return\n    const id = setTimeout(() => console.error('delayed-failure'), 400)\n    return () => clearTimeout(id)\n  }, [payload.stage])",
+            "export function SampleScene({ payload }: SceneProps<SampleState>) {\n  useEffect(() => {\n    if (payload.stage !== 9) return\n    const id = setTimeout(() => console.error('delayed-failure'), 1200)\n    return () => clearTimeout(id)\n  }, [payload.stage])",
           ),
         ),
     },
@@ -131,6 +131,13 @@ describe('E2E-002: verification failures are actionable', () => {
             "export function SampleScene({ payload }: SceneProps<SampleState>) {\n  if (payload.stage === 6) throw new Error('render-failure')",
           ),
         ),
+    },
+    {
+      name: 'a sample with the wrong number of steps',
+      phase: 'outline',
+      rendered: false,
+      expectIn: /sample has 8 steps, expected 9/,
+      mutate: (dir) => edit(dir, STEPS, (t) => t.replace(/\s{2}\{\n\s+id: 'step-9'[\s\S]*?payload: \{ stage: 9 \},\n  \},\n/, '')),
     },
     {
       name: 'a route that renders only placeholder content (no presentation chrome)',

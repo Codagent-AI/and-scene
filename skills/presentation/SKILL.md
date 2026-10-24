@@ -87,6 +87,9 @@ Procedure:
      overwritten; `package.json` only gains missing dependencies and scripts; an existing lockfile,
      Vite config or registry is kept as it is. If an existing anchor lives at different paths
      than the starter files assume, adapt the new files' imports instead of replacing the anchor.
+   - If the app already has a `src/main.tsx`, the helper keeps it and mounts its `<App />` as the
+     router's `fallback`; if it reports `manual`, mount `<Router />` from `src/Router.tsx` yourself
+     so `/<slug>` routes load.
    - Do not assume any dependency is installed. The scaffold declares React, Vite, TypeScript,
      the `@types/*` packages, Motion, Lucide icons, ESLint and Playwright; `--install` runs
      `npm ci` (new lockfile) or `npm install`. If Chromium is missing, run
@@ -99,8 +102,9 @@ Procedure:
 
 1. Pick a slug (lowercase words joined by hyphens) and a title.
 2. `node "$SKILL_DIR/scripts/presentation-tool.mjs" new <target> <slug> --title "<title>"` writes
-   `src/presentations/<slug>/` from the template (its own folder, route `/<slug>`) and appends one
-   entry to `src/presentations/index.ts`. It refuses to overwrite an existing folder or slug, and
+   a `<slug>/` folder from the template next to the presentation registry (its own folder, route
+   `/<slug>`, kit imports resolved relative to the detected scene kit) and appends one entry to that
+   registry. It refuses to overwrite an existing folder or slug, and
    it leaves every other presentation and registry entry as they are.
 3. Replace the template content with the real presentation:
    - `entities.ts`: this presentation's entity namespace: stable ids, the step each first appears in,
@@ -165,8 +169,11 @@ while any of them fails.
    CSS). Mark a subtree with `data-presentation-allow-overlap` **only** when the overlap is
    intentional and readable, and mark only that subtree, never a whole scene. Rerun the helper
    and re-inspect. A warning count of zero is not visual approval.
-5. **Final gate:** `npm run verify` (builds the whole app and renders every configured
-   presentation, failing on any console or page error).
+5. **Final gate:** where the scaffolded scripts exist (`npm run verify` in the project's
+   `package.json`), run `npm run verify` (it builds the whole app and renders every presentation
+   listed in `verify.config.json`, failing on any console or page error). A host app that has no
+   such script is not required to gain one: its completion gate is steps 1-4 (build, error-free
+   first-step render of the target route, visual check) using equivalent commands.
 6. If any check fails, fix the cause and repeat the checks that could be affected, including the
    visual ones. Rerunning only the build after a visual fault is not enough.
 

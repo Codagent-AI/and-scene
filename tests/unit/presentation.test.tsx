@@ -24,11 +24,13 @@ describe('step numbering (M-02)', () => {
     view.rerender(<Presentation steps={[a, c, b]} />) // reorder: position 1 is now "c"
     expect([marker(), index(), root().getAttribute('data-step-id')]).toEqual(['2', '1', 'c'])
 
-    view.rerender(<Presentation steps={[c, a, b]} />) // insert in front, shifting everything
+    view.rerender(<Presentation steps={[FIVE[3], a, b, c]} />) // insert a new step in front, shifting everything
     expect([marker(), index(), root().getAttribute('data-step-id')]).toEqual(['2', '1', 'a'])
+    expect(qa('[data-presentation-progress-item]')).toHaveLength(4)
 
-    view.rerender(<Presentation steps={[a, b]} />) // remove: position stays 1, new occupant
+    view.rerender(<Presentation steps={[FIVE[3], b, c]} />) // remove one: position stays 1, new occupant
     expect([marker(), index(), root().getAttribute('data-step-id')]).toEqual(['2', '1', 'b'])
+    expect(root().getAttribute('data-step-count')).toBe('3')
   })
 })
 

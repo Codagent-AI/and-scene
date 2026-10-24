@@ -82,6 +82,16 @@ describe('Router (M-75, M-43)', () => {
     expect(spy).not.toHaveBeenCalled()
   })
 
+  it('shows a host fallback instead of the landing page for unmatched paths, but still loads presentations', async () => {
+    const registry = [entry('alpha')]
+    const view = render(<Router pathname="/" registry={registry} fallback={<p>host app</p>} />)
+    expect(screen.getByText('host app')).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Title alpha' })).toBeNull()
+    view.unmount()
+    await renderAsync(<Router pathname="/alpha" registry={registry} fallback={<p>host app</p>} />)
+    expect(await screen.findByText('deck:alpha')).toBeTruthy()
+  })
+
   it('keeps earlier routes reachable and unchanged when an entry is appended', async () => {
     const before = [entry('alpha'), entry('beta')]
     const after = [...before, entry('gamma')]

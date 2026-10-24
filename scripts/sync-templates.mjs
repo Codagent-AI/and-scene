@@ -62,7 +62,7 @@ for (const [from, to] of COPIES) {
 
 const templateDir = path.join(skill, 'templates', 'presentation')
 for (const file of files(templateDir)) {
-  const text = readFileSync(file, 'utf8').replace(/__SLUG__/g, STARTER.slug).replace(/__TITLE__/g, STARTER.title)
+  const text = readFileSync(file, 'utf8').replace(/__SLUG__/g, STARTER.slug).replace(/__TITLE_JSON__/g, JSON.stringify(STARTER.title)).replace(/__KIT__/g, '../../presentation-kit/index.ts')
   write(path.join(bootstrap, 'src', 'presentations', STARTER.slug, path.relative(templateDir, file)), text)
 }
 

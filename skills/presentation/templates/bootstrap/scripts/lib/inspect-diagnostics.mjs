@@ -103,9 +103,14 @@ export function collectSnapshot() {
   if (!root) return { elements: [], active: {}, attribution: null }
   const CONTROLS =
     '[data-presentation-progress-item],[data-presentation-prev],[data-presentation-next],[data-presentation-mode-toggle],[data-presentation-toc-item],[data-presentation-attribution]'
+  // Visible means not hidden itself and not inside an invisible ancestor (display, opacity 0).
   const visible = (el) => {
-    const s = getComputedStyle(el)
-    return s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity) > 0
+    if (getComputedStyle(el).visibility === 'hidden') return false
+    for (let node = el; node && node !== document.documentElement; node = node.parentElement) {
+      const s = getComputedStyle(node)
+      if (s.display === 'none' || Number(s.opacity) === 0) return false
+    }
+    return true
   }
   const describe = (el) => {
     const hook = el.getAttributeNames().find((n) => n.startsWith('data-presentation-') || n === 'data-role' || n === 'data-card-part')
@@ -132,7 +137,7 @@ export function collectSnapshot() {
     const isControl = el.matches(CONTROLS)
     const rect = isControl ? (({ left, top, width, height }) => ({ x: left, y: top, w: width, h: height }))(el.getBoundingClientRect()) : textRect(el)
     if (!rect || !rect.w || !rect.h) continue
-    picked.push({ el, rect: isControl && el.textContent.trim() ? (textRect(el) ?? rect) : rect })
+    picked.push({ el, rect })
   }
   const uids = new Map(picked.map((p, i) => [p.el, i]))
   const elements = picked.map(({ el, rect }, uid) => {

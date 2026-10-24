@@ -1,4 +1,4 @@
-import { Suspense, use, useMemo, type ComponentType } from 'react'
+import { Suspense, use, useMemo, type ComponentType, type ReactNode } from 'react'
 import Landing from './Landing.tsx'
 import { presentations as defaultRegistry, type PresentationEntry } from './presentations/index.ts'
 import { resolveRoute } from './route.ts'
@@ -24,12 +24,15 @@ function PresentationRoute({ entry }: { entry: PresentationEntry }) {
 export default function Router({
   pathname = window.location.pathname,
   registry = defaultRegistry,
+  fallback,
 }: {
   pathname?: string
   registry?: readonly PresentationEntry[]
+  /** Shown instead of the landing page for paths that match no presentation (e.g. a host app). */
+  fallback?: ReactNode
 }) {
   const route = useMemo(() => resolveRoute(pathname, registry), [pathname, registry])
-  if (route.kind === 'landing') return <Landing presentations={registry} />
+  if (route.kind === 'landing') return fallback ?? <Landing presentations={registry} />
   return (
     <Suspense fallback={null}>
       <PresentationRoute entry={route.entry} />

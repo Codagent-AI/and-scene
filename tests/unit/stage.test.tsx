@@ -75,6 +75,16 @@ describe('persistent grouped scenes (M-07)', () => {
     expect(lastScene().getAttribute('data-step')).toBe('e')
   })
 
+  it('never confuses a group key with an ungrouped step id', () => {
+    mockViewport(1280, 800)
+    const steps = [step('first', CounterScene, 'b', 1), step('b', CounterScene, undefined, 2)]
+    render(<Presentation steps={steps} />)
+    const first = lastScene().getAttribute('data-instance')
+    next()
+    expect(lastScene().getAttribute('data-step')).toBe('b')
+    expect(lastScene().getAttribute('data-instance')).not.toBe(first)
+  })
+
   it('keeps ungrouped steps as separate instances', () => {
     mockViewport(1280, 800)
     render(<Presentation steps={[step('a', CounterScene), step('b', CounterScene)]} />)

@@ -1,5 +1,5 @@
 {
-  "settleMs": 700,
+  "settleMs": 1500,
   "presentations": [
     {
       "slug": "starter",

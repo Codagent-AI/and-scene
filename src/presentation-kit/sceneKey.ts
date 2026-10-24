@@ -11,5 +11,7 @@ function sceneId(Scene: object) {
 
 /** Steps with the same group and Scene share one instance; anything else swaps scenes. */
 export function sceneKey(step: { id: string; groupKey?: string; Scene: object }) {
-  return `${step.groupKey ?? step.id}:${sceneId(step.Scene)}`
+  // Group keys and step ids live in separate namespaces so an id can never collide with a group.
+  const identity = step.groupKey === undefined ? `step:${step.id}` : `group:${step.groupKey}`
+  return `${identity}:${sceneId(step.Scene)}`
 }

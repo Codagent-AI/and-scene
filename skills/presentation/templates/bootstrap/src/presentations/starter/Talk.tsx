@@ -3,5 +3,5 @@ import './style.css'
 import { STEPS } from './steps.ts'
 
 export default function Talk() {
-  return <Presentation steps={STEPS} title="Starter presentation" initialMode="browse" />
+  return <Presentation steps={STEPS} title={"Starter presentation"} initialMode="browse" />
 }

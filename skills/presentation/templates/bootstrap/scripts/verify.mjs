@@ -89,7 +89,7 @@ async function renderEveryStep(config, settleMs) {
 async function main() {
   const configPath = path.join(root, 'verify.config.json')
   if (!existsSync(configPath)) throw new PhaseError('config', `${configPath} is missing`)
-  const { presentations = [], settleMs = 700 } = JSON.parse(readFileSync(configPath, 'utf8'))
+  const { presentations = [], settleMs = 1500 } = JSON.parse(readFileSync(configPath, 'utf8'))
   if (!presentations.length) throw new PhaseError('config', 'verify.config.json lists no presentations')
   console.log(`verify: root ${root}`)
 

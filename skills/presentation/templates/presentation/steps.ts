@@ -1,4 +1,4 @@
-import type { Step } from '../../presentation-kit/index.ts'
+import type { Step } from '__KIT__'
 import { Scene, type SceneState } from './Scene.tsx'
 
 const GROUP = 'scene'

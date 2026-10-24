@@ -7,6 +7,7 @@ import {
   BOOTSTRAP_DIR,
   PRESENTATION_TEMPLATE_DIR,
   SKILL_DIR,
+  addRegistryEntry,
   createPresentation,
   detectAnchors,
   resolveTarget,
@@ -122,6 +123,9 @@ describe('anchor detection is contract-level (M-32)', () => {
     rmSync(path.join(dir, 'src/presentation-kit'), { recursive: true })
     cpSync(path.join(dir, 'src/Router.tsx'), path.join(dir, 'src/AppShell.tsx'))
     rmSync(path.join(dir, 'src/Router.tsx'))
+    mkdirSync(path.join(dir, 'src/decks'), { recursive: true })
+    cpSync(path.join(dir, 'src/presentations/index.ts'), path.join(dir, 'src/decks/registry.ts'))
+    rmSync(path.join(dir, 'src/presentations/index.ts'))
     expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
   })
 
@@ -242,6 +246,45 @@ describe('scaffold writes only what is missing (M-33, M-35, M-39)', () => {
     expect(readFileSync(path.join(dir, 'package-lock.json'), 'utf8')).toBe('{"lockfileVersion":3}') // not replaced by a mismatched lock
   })
 
+  it('adds the missing dependencies even when only the kit and index anchors are scaffolded', () => {
+    const dir = tmp()
+    put(dir, 'package.json', JSON.stringify({ name: 'host', scripts: { build: 'vite build' }, dependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' }, devDependencies: { vite: '^8.0.0', typescript: '~6.0.0' } }))
+    put(dir, 'vite.config.ts', 'export default {}')
+    put(dir, 'tsconfig.json', '{}')
+    expect(detectAnchors(dir)).toEqual({ build: true, kit: false, index: false })
+    const result = scaffold(dir, ['kit', 'index'])
+    const merged = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8'))
+    expect(result.merged).toContain('package.json')
+    for (const dep of ['motion', 'lucide-react']) expect(merged.dependencies, dep).toHaveProperty(dep)
+    expect(merged.devDependencies).toHaveProperty('playwright')
+    expect(merged.dependencies.react).toBe('^19.0.0')
+    expect(merged.scripts.build).toBe('vite build')
+  })
+
+  it('connects a pre-existing app entry to the router so new presentations are reachable', () => {
+    const dir = tmp()
+    put(dir, 'package.json', JSON.stringify({ name: 'host', scripts: { build: 'vite build' }, dependencies: { react: '^19', 'react-dom': '^19' }, devDependencies: { vite: '^8', typescript: '~6' } }))
+    put(dir, 'vite.config.ts', 'export default {}')
+    put(dir, 'tsconfig.json', '{}')
+    put(dir, 'src/main.tsx', "import { createRoot } from 'react-dom/client'\nimport App from './App.tsx'\n\ncreateRoot(document.body).render(<App />)\n")
+    const result = scaffold(dir, ['kit', 'index'])
+    const main = readFileSync(path.join(dir, 'src/main.tsx'), 'utf8')
+    expect(result.merged).toContain('src/main.tsx')
+    expect(main).toContain("import Router from './Router.tsx'")
+    expect(main).toContain('<Router fallback={<App />} />')
+    expect(main).not.toMatch(/render\(<App \/>\)/)
+    expect(detectAnchors(dir).index).toBe(true)
+  })
+
+  it('reports a manual step when the existing entry cannot be wired automatically', () => {
+    const dir = tmp()
+    put(dir, 'package.json', JSON.stringify({ name: 'host' }))
+    put(dir, 'src/main.tsx', "import './legacy.js'\n")
+    const result = scaffold(dir, ['index'])
+    expect(result.manual[0]).toMatch(/mount <Router \/>/)
+    expect(readFileSync(path.join(dir, 'src/main.tsx'), 'utf8')).toBe("import './legacy.js'\n")
+  })
+
   it('is a no-op when everything is present', () => {
     const dir = full()
     const result = scaffold(dir)
@@ -264,13 +307,31 @@ describe('scaffold writes only what is missing (M-33, M-35, M-39)', () => {
   })
 })
 
+describe('addRegistryEntry handles equivalent registry layouts (M-42, M-43)', () => {
+  const entry = (s: string) => /import\('\.\/new-one\/Talk\.tsx'\)/.test(s)
+
+  it.each([
+    ['inferred type, multi-line', "export const presentations = [\n  {\n    slug: 'a',\n    title: 'A',\n    load: () => import('./a/Talk.tsx'),\n  },\n]\n"],
+    ['single line', "export const presentations: Entry[] = [{ slug: 'a', title: 'A', load: () => import('./a/Talk.tsx') }]\n"],
+    ['no trailing comma', "export const presentations = [\n  { slug: 'a', title: 'A', load: () => import('./a/Talk.tsx') }\n]\n"],
+    ['empty array', 'export const presentations: PresentationEntry[] = []\n'],
+    ['empty multi-line array', 'export const presentations: PresentationEntry[] = [\n]\n'],
+  ])('%s', (_name, source) => {
+    const out = addRegistryEntry(source, 'new-one', 'New One')
+    expect(entry(out)).toBe(true)
+    if (source.includes("slug: 'a'")) expect(out).toContain("import('./a/Talk.tsx')")
+    expect(() => new Function(out.replace(/export const (\w+)(: [\w[\]]+)?/, 'const $1').replace(/: Entry\[\]|: PresentationEntry\[\]/, ''))).not.toThrow()
+    expect(() => addRegistryEntry(out, 'new-one', 'again')).toThrow(/already registered/)
+  })
+})
+
 describe('creating a presentation (M-37, M-42, M-43)', () => {
   it('writes a self-contained folder from the skill templates and registers it', () => {
     const dir = full()
     const result = createPresentation(dir, 'my-talk', 'My Talk')
     expect(result.route).toBe('/my-talk')
     expect(result.created.sort()).toEqual(['entities.ts', 'Scene.tsx', 'steps.ts', 'Talk.tsx', 'style.css'].map((f) => `src/presentations/my-talk/${f}`).sort())
-    expect(readFileSync(path.join(dir, 'src/presentations/my-talk/Talk.tsx'), 'utf8')).toContain('title="My Talk"')
+    expect(readFileSync(path.join(dir, 'src/presentations/my-talk/Talk.tsx'), 'utf8')).toContain('title={"My Talk"}')
     expect(readFileSync(path.join(dir, 'src/presentations/my-talk/Talk.tsx'), 'utf8')).toContain('<Presentation')
     expect(readFileSync(path.join(dir, 'src/presentations/my-talk/entities.ts'), 'utf8')).toContain('export const ENTITIES')
     const registry = readFileSync(path.join(dir, 'src/presentations/index.ts'), 'utf8')
@@ -301,6 +362,40 @@ describe('creating a presentation (M-37, M-42, M-43)', () => {
     const bare = tmp()
     expect(() => createPresentation(bare, 'x', 'x')).toThrow(/registry/)
     expect(existsSync(path.join(bare, 'src/presentations/x'))).toBe(false)
+  })
+
+  it('registers into a registry with a different name, location and shape, and imports the kit from where it is', () => {
+    const dir = tmp()
+    cpSync(BOOTSTRAP_DIR, dir, { recursive: true })
+    mkdirSync(path.join(dir, 'src/decks'), { recursive: true })
+    cpSync(path.join(dir, 'src/presentations/starter'), path.join(dir, 'src/decks/starter'), { recursive: true })
+    rmSync(path.join(dir, 'src/presentations'), { recursive: true })
+    cpSync(path.join(dir, 'src/presentation-kit'), path.join(dir, 'src/engine'), { recursive: true })
+    rmSync(path.join(dir, 'src/presentation-kit'), { recursive: true })
+    put(dir, 'src/decks/registry.ts', "export const decks = [{ slug: 'starter', title: 'S', load: () => import('./starter/Talk.tsx') }]\n")
+    const result = createPresentation(dir, 'moved', 'Moved')
+    expect(result.registry).toBe('src/decks/registry.ts')
+    expect(readFileSync(path.join(dir, 'src/decks/registry.ts'), 'utf8')).toBe(
+      "export const decks = [{ slug: 'starter', title: 'S', load: () => import('./starter/Talk.tsx') }, { slug: 'moved', title: \"Moved\", load: () => import('./moved/Talk.tsx') }]\n",
+    )
+    expect(readFileSync(path.join(dir, 'src/decks/moved/Talk.tsx'), 'utf8')).toContain("from '../../engine/index.ts'")
+  })
+
+  it('escapes titles so quotes and comment terminators cannot break the generated files', () => {
+    const dir = full()
+    const title = 'A "quoted" title */ with `ticks` and \\ slashes'
+    createPresentation(dir, 'tricky', title)
+    const talk = readFileSync(path.join(dir, 'src/presentations/tricky/Talk.tsx'), 'utf8')
+    expect(talk).toContain(`title={${JSON.stringify(title)}}`)
+    expect(readFileSync(path.join(dir, 'src/presentations/tricky/style.css'), 'utf8')).not.toContain('*/ with')
+    expect(readFileSync(path.join(dir, 'src/presentations/index.ts'), 'utf8')).toContain(`title: ${JSON.stringify(title)}`)
+  })
+
+  it('writes nothing when the registry shape cannot be understood', () => {
+    const dir = full()
+    put(dir, 'src/presentations/index.ts', "export const byName = { a: { slug: 'a', title: 'A', load: () => import('./a/Talk.tsx') } }\n")
+    expect(() => createPresentation(dir, 'nope', 'Nope')).toThrow(/array/)
+    expect(existsSync(path.join(dir, 'src/presentations/nope'))).toBe(false)
   })
 
   it('resolves the template from the skill directory regardless of the caller cwd', () => {

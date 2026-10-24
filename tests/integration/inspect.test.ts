@@ -65,6 +65,20 @@ export default function Talk() {
   add('insp-attr-default', { scene: `<p>step {payload.n}</p>`, css: ACTIVE_CSS })
   add('insp-attr-small', { scene: `<p>step {payload.n}</p>`, css: ACTIVE_CSS + '[data-presentation-attribution]{font-size:9px;color:#ccc}' })
   add('insp-attr-missing', { scene: `<p>step {payload.n}</p>`, css: ACTIVE_CSS, attribution: 'attribution={false}' })
+  // A chrome-hooked control whose box (not its label) is hit by unrelated text.
+  add('insp-control-box', {
+    scene: `<>
+      <button data-presentation-next="" style={{ position: 'absolute', left: 100, top: 200, width: 240, height: 80 }}>ok</button>
+      {payload.n === 2 ? <p style={{ position: 'absolute', left: 104, top: 204, margin: 0 }}>edge text</p> : null}
+    </>`,
+  })
+  // Text that overlaps only inside an invisible (opacity 0) subtree must not be reported.
+  add('insp-hidden', {
+    scene: `<>
+      <p style={{ position: 'absolute', left: 100, top: 100, margin: 0 }}>visible line</p>
+      <div style={{ opacity: 0 }}><p style={{ position: 'absolute', left: 104, top: 104, margin: 0 }}>invisible line</p></div>
+    </>`,
+  })
   add('insp-settling', { scene: settling, css: CLEAN_CSS })
   add('insp-error', { scene: `<p>step {payload.n}</p>{payload.n === 2 ? <Boom /> : null}` })
 
@@ -167,6 +181,20 @@ describe('advisory warnings (M-70..M-74, C-02)', () => {
     const lines = warnings(result.output)
     expect(lines).toHaveLength(1)
     expect(lines[0]).toMatch(/^WARN step 2 \[overlap\] .*First line of text.* overlaps .*Second line on top/)
+  })
+
+  it.concurrent('reports text that collides with the box of a control, not only with its label', async () => {
+    const result = await inspect('insp-control-box')
+    expect(result.code, result.output).toBe(0)
+    const lines = warnings(result.output).filter((l) => l.includes('[overlap]'))
+    expect(lines).toHaveLength(1)
+    expect(lines[0]).toMatch(/^WARN step 2 \[overlap\] .*edge text/)
+  })
+
+  it.concurrent('ignores text inside an invisible (opacity 0) subtree', async () => {
+    const result = await inspect('insp-hidden')
+    expect(result.code, result.output).toBe(0)
+    expect(warnings(result.output)).toEqual([])
   })
 
   it.concurrent('does not warn for an overlap inside an explicit allow-overlap subtree', async () => {

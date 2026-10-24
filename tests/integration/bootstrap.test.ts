@@ -88,7 +88,8 @@ describe('materialized standalone bootstrap', () => {
   })
 
   it('compiles and registers a presentation created from the skill template, from any working directory', async () => {
-    const created = await tool('new', standalone, 'created-from-template', '--title', 'Created From Template')
+    const title = 'Created "From" Template */ with `ticks`'
+    const created = await tool('new', standalone, 'created-from-template', '--title', title)
     expect(created.code, created.output).toBe(0)
     expect(json(created.output).route).toBe('/created-from-template')
     expect(readFileSync(path.join(standalone, 'src/presentations/index.ts'), 'utf8')).toContain("import('./created-from-template/Talk.tsx')")

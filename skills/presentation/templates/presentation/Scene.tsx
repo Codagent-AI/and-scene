@@ -1,4 +1,4 @@
-import { Appear, Box, SceneLayer, type SceneProps } from '../../presentation-kit/index.ts'
+import { Appear, Box, SceneLayer, type SceneProps } from '__KIT__'
 import { entitiesAt } from './entities.ts'
 
 export interface SceneState {

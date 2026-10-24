@@ -4,6 +4,8 @@
 /** Longer than a newcomer's layout wait plus fade-in (see presentation-kit constants). */
 export const DEFAULT_SETTLE_MS = 1500
 export const MIN_ATTRIBUTION_PX = 11
+/** Scene text that the fit scale shrinks below this many rendered pixels is hard to read. */
+export const MIN_LEGIBLE_PX = 8
 export const BROWSER_DEFAULT_LINK_COLORS = ['rgb(0, 0, 238)', 'rgb(85, 26, 139)']
 
 /** `<out>/<slug>[/<variant>]/step-NN.png`, one-based and zero-padded. */
@@ -80,6 +82,17 @@ export function attributionIssues(attr) {
   return issues
 }
 
+/**
+ * legibility: null (no scaled scene text) or { scale, smallest: { name, px }, count } where
+ * `px` is the smallest rendered font size and `count` the elements under MIN_LEGIBLE_PX.
+ * Returns an issue string, or null when every scene text is large enough to read.
+ */
+export function legibilityIssue(legibility) {
+  if (!legibility || !legibility.smallest || legibility.smallest.px >= MIN_LEGIBLE_PX) return null
+  const { scale, smallest, count } = legibility
+  return `scene text is too small to read: ${count} element(s) render under ${MIN_LEGIBLE_PX}px (smallest ${smallest.px.toFixed(1)}px in ${smallest.name}) at canvas scale ${scale.toFixed(2)}`
+}
+
 /** Turn one step's snapshot into advisory warning lines. */
 export function stepWarnings(step, snapshot) {
   const warnings = []
@@ -91,6 +104,10 @@ export function stepWarnings(step, snapshot) {
       warnings.push(`WARN step ${step} [active-${kind}] active ${kind} entry looks the same as inactive ones; style [data-presentation-active]`)
     }
   }
+  const small = legibilityIssue(snapshot.legibility)
+  if (small) {
+    warnings.push(`WARN step ${step} [legibility] ${small}; enlarge the type, simplify the step, or give the presentation a canvas that suits this viewport`)
+  }
   for (const issue of attributionIssues(snapshot.attribution)) {
     warnings.push(`WARN step ${step} [attribution] attribution link ${issue}; style [data-presentation-attribution]`)
   }
@@ -100,7 +117,7 @@ export function stepWarnings(step, snapshot) {
 /** Runs inside the page (serialized by Playwright): must not reference anything outside itself. */
 export function collectSnapshot() {
   const root = document.querySelector('[data-presentation-root]')
-  if (!root) return { elements: [], active: {}, attribution: null }
+  if (!root) return { elements: [], active: {}, attribution: null, legibility: null }
   const CONTROLS =
     '[data-presentation-progress-item],[data-presentation-prev],[data-presentation-next],[data-presentation-mode-toggle],[data-presentation-toc-item],[data-presentation-attribution]'
   // Visible means not hidden itself and not inside an invisible ancestor (display, opacity 0).
@@ -157,11 +174,25 @@ export function collectSnapshot() {
     const inactive = items.find((el) => !el.hasAttribute('data-presentation-active'))
     return active && inactive ? { active: styleOf(active), inactive: styleOf(inactive) } : null
   }
+  // Text inside the fixed canvas is drawn at font-size x the fit scale; report how small it gets.
+  const canvas = root.querySelector('[data-presentation-canvas]')
+  const scale = canvas ? Number(canvas.getAttribute('data-presentation-scale')) || 1 : 1
+  let legibility = null
+  if (canvas) {
+    const sizes = picked
+      .filter(({ el }) => canvas.contains(el) && !el.matches(CONTROLS) && textRect(el))
+      .map(({ el }) => ({ name: describe(el), px: parseFloat(getComputedStyle(el).fontSize) * scale }))
+    if (sizes.length) {
+      const smallest = sizes.reduce((a, b) => (b.px < a.px ? b : a))
+      legibility = { scale, smallest, count: sizes.filter((s) => s.px < 8).length }
+    }
+  }
   const attr = root.querySelector('[data-presentation-attribution]')
   const attrStyle = attr && getComputedStyle(attr)
   return {
     elements,
     active: { progress: pairFor('[data-presentation-progress-item]'), toc: pairFor('[data-presentation-toc-item]') },
     attribution: attr ? { fontSize: parseFloat(attrStyle.fontSize), color: attrStyle.color } : null,
+    legibility,
   }
 }

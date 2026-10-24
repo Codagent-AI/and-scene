@@ -6,6 +6,7 @@ import {
   captureSequence,
   findOverlaps,
   isIndistinct,
+  legibilityIssue,
   rectsOverlap,
   screenshotPath,
   stepWarnings,
@@ -147,5 +148,32 @@ describe('step warnings combine all categories (M-70)', () => {
   it('names the step and both elements for an overlap', () => {
     const warnings = stepWarnings(3, { elements: [el(0, 'p "a"', 0, 0, 50, 50), el(1, 'h1 "b"', 10, 10, 50, 50)], active: {}, attribution: { fontSize: 13, color: 'rgb(9, 9, 9)' } })
     expect(warnings).toEqual(['WARN step 3 [overlap] p "a" overlaps h1 "b"'])
+  })
+})
+
+describe('legibility diagnostics (F-001)', () => {
+  const small = { scale: 0.39, smallest: { name: 'span "caption"', px: 4.3 }, count: 12 }
+
+  it('flags scene text that the fit scale renders under 8px, naming the smallest element and scale', () => {
+    const issue = legibilityIssue(small)!
+    expect(issue).toContain('12 element(s)')
+    expect(issue).toContain('span "caption"')
+    expect(issue).toContain('4.3px')
+    expect(issue).toContain('0.39')
+  })
+
+  it('accepts readable text, a missing snapshot field, and the 8px boundary', () => {
+    expect(legibilityIssue({ scale: 1.1, smallest: { name: 'x', px: 11 }, count: 0 })).toBeNull()
+    expect(legibilityIssue({ scale: 0.8, smallest: { name: 'x', px: 8 }, count: 0 })).toBeNull()
+    expect(legibilityIssue(null)).toBeNull()
+    expect(legibilityIssue(undefined)).toBeNull()
+  })
+
+  it('adds an advisory [legibility] warning with the step number, and nothing when text is readable', () => {
+    const base = { elements: [], active: {}, attribution: { fontSize: 13, color: 'rgb(9, 9, 9)' } }
+    const warnings = stepWarnings(9, { ...base, legibility: small })
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0]).toMatch(/^WARN step 9 \[legibility\] scene text is too small to read/)
+    expect(stepWarnings(9, { ...base, legibility: { scale: 1, smallest: { name: 'x', px: 12 }, count: 0 } })).toEqual([])
   })
 })

@@ -22,7 +22,8 @@ const HELP = `Usage: npm run inspect -- <slug> [options]
 
 Builds the app (unless --no-build), serves it on 127.0.0.1, and writes one settled screenshot
 per step to <out>/<slug>/step-NN.png (<out>/<slug>/narrow/ with --narrow).
-Advisory warnings (text/chrome overlap, indistinct active chrome, unpolished attribution) are
+Advisory warnings (text/chrome overlap, indistinct active chrome, unpolished attribution, scene text
+scaled too small to read) are
 printed for review and never change the exit code. Mark an intentional, readable overlap with
 data-presentation-allow-overlap. A warning count of zero is not visual approval.
 

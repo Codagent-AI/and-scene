@@ -166,7 +166,10 @@ while any of them fails.
 4. **Warnings:** read every `WARN` line the helper prints. Open the step it names, then fix
    accidental collisions, indistinct active progress/ToC styling and unpolished attribution
    (style `[data-presentation-active]` / `[data-presentation-attribution]` in the presentation's
-   CSS). Mark a subtree with `data-presentation-allow-overlap` **only** when the overlap is
+   CSS). A `[legibility]` warning means the fit scale shrinks scene text below readable size at
+   that viewport (typically `--narrow`): enlarge the type, simplify the step, or give the
+   presentation a canvas that suits that width; do not report a narrow layout as fine while it
+   is unreadable. Mark a subtree with `data-presentation-allow-overlap` **only** when the overlap is
    intentional and readable, and mark only that subtree, never a whole scene. Rerun the helper
    and re-inspect. A warning count of zero is not visual approval.
 5. **Final gate:** where the scaffolded scripts exist (`npm run verify` in the project's

@@ -8,7 +8,7 @@
 //
 // Templates are resolved relative to this file (the skill directory), never the cwd.
 import { spawnSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -320,7 +320,18 @@ function main(argv) {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// Node resolves symlinks for `import.meta.url` but not for `process.argv[1]`, so compare real paths:
+// invoking the helper through a symlinked skill directory must still run the command.
+const isCli = (entry) => {
+  if (!entry) return false
+  try {
+    return realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return path.resolve(entry) === fileURLToPath(import.meta.url)
+  }
+}
+
+if (isCli(process.argv[1])) {
   try {
     main(process.argv.slice(2))
   } catch (error) {

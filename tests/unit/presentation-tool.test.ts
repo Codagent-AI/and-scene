@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -404,5 +404,15 @@ describe('creating a presentation (M-37, M-42, M-43)', () => {
     const out = execFileSync('node', [path.join(SKILL_DIR, 'scripts/presentation-tool.mjs'), 'new', dir, 'from-elsewhere', '--title', 'From Elsewhere'], { cwd: elsewhere, encoding: 'utf8' })
     expect(JSON.parse(out).route).toBe('/from-elsewhere')
     expect(existsSync(path.join(dir, 'src/presentations/from-elsewhere/Scene.tsx'))).toBe(true)
+  })
+
+  it('runs the command when invoked through a symlinked skill directory (F-002)', () => {
+    const project = full()
+    const alias = path.join(tmp(), 'skill-alias')
+    symlinkSync(SKILL_DIR, alias, 'dir')
+    const viaAlias = execFileSync('node', [path.join(alias, 'scripts/presentation-tool.mjs'), 'detect', project], { cwd: tmp(), encoding: 'utf8' })
+    const direct = execFileSync('node', [path.join(SKILL_DIR, 'scripts/presentation-tool.mjs'), 'detect', project], { cwd: tmp(), encoding: 'utf8' })
+    expect(viaAlias.length).toBeGreaterThan(0)
+    expect(JSON.parse(viaAlias)).toEqual(JSON.parse(direct))
   })
 })

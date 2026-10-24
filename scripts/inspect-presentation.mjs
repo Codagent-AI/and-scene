@@ -78,7 +78,7 @@ function diagnose() {
   }
 
   // active navigation must look different from inactive navigation
-  const props = ['color', 'backgroundColor', 'borderTopColor', 'borderTopWidth', 'borderTopStyle', 'opacity', 'fontWeight', 'fontStyle', 'textDecorationLine', 'boxShadow', 'outlineStyle', 'transform', 'width', 'height']
+  const props = ['color', 'backgroundColor', 'borderTopColor', 'borderTopWidth', 'borderTopStyle', 'opacity', 'fontWeight', 'fontStyle', 'textDecorationLine', 'boxShadow', 'outlineStyle']
   for (const [name, selector] of [['progress indicator', '[data-presentation-dot]'], ['table-of-contents entry', '[data-presentation-toc-entry]']]) {
     const active = document.querySelector(`${selector}[data-presentation-active="true"]`)
     const inactive = document.querySelector(`${selector}:not([data-presentation-active="true"])`)

@@ -21,6 +21,8 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
   let out: string
   let plain: Report
   let polished: Report
+  let collide: Report
+  let small: Report
   let plainRun: Awaited<ReturnType<typeof run>>
 
   const inspect = async (slug: string, extra: string[] = []) => {
@@ -42,7 +44,7 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     await edit(path.join(dir, 'src/presentations/index.ts'), (t) =>
       t.replace(
         '= [',
-        "= [\n  { slug: 'plain', title: 'Plain', load: () => import('./inspect-fixture/Plain') },\n  { slug: 'polished', title: 'Polished', load: () => import('./inspect-fixture/Polished') },",
+        "= [\n  { slug: 'plain', title: 'Plain', load: () => import('./inspect-fixture/Plain') },\n  { slug: 'polished', title: 'Polished', load: () => import('./inspect-fixture/Polished') },\n  { slug: 'collide', title: 'Collide', load: () => import('./inspect-fixture/Collide') },\n  { slug: 'small', title: 'Small', load: () => import('./inspect-fixture/Small') },",
       ),
     )
     plainRun = await inspect('plain')
@@ -51,6 +53,10 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
       return report('polished')
     })()
     plain = await report('plain')
+    await inspect('collide', ['--skip-build'])
+    collide = await report('collide')
+    await inspect('small', ['--skip-build'])
+    small = await report('small')
   })
   afterAll(async () => {
     await remove(dir)
@@ -83,10 +89,17 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     expect(plain.warnings.some((w) => w.kind === 'overlap' && w.steps.includes(3))).toBe(false)
   })
 
-  it('warns about indistinct active chrome', () => {
+  it('warns about indistinct active progress indicators and table-of-contents entries', () => {
     const active = plain.warnings.filter((w) => w.kind === 'active-chrome')
-    expect(active.map((w) => w.message).join('\n')).toMatch(/progress indicator/)
-    expect(active.some((w) => w.steps.length === 3)).toBe(true)
+    expect(active.find((w) => /progress indicator/.test(w.message))?.steps).toEqual([1, 2, 3])
+    expect(active.find((w) => /table-of-contents entry/.test(w.message))?.steps).toEqual([1, 2, 3])
+  })
+
+  it('warns when visible text collides with presentation chrome and names both', () => {
+    const overlaps = collide.warnings.filter((w) => w.kind === 'overlap')
+    expect(overlaps.length).toBeGreaterThan(0)
+    expect(overlaps.every((w) => w.steps.includes(1))).toBe(true)
+    expect(overlaps.some((w) => /host text over chrome/.test(w.message) && /data-presentation-(header|marker)/.test(w.message))).toBe(true)
   })
 
   it('warns about unpolished attribution and points to the styling hook', () => {
@@ -95,9 +108,16 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
     expect(attribution?.message).toContain('[data-presentation-attribution]')
   })
 
-  it('stays quiet about polished active chrome and attribution', () => {
-    expect(polished.warnings.filter((w) => w.kind === 'active-chrome' && /progress/.test(w.message))).toEqual([])
+  it('warns about undersized attribution even when it is styled', () => {
+    const attribution = small.warnings.filter((w) => w.kind === 'attribution')
+    expect(attribution).toHaveLength(1)
+    expect(attribution[0].message).toMatch(/too small \(8px\)/)
+    expect(attribution[0].message).toContain('[data-presentation-attribution]')
+  })
+
+  it('stays quiet about polished active chrome and attribution while inactive controls exist', () => {
+    expect(polished.steps).toHaveLength(3)
+    expect(polished.warnings.filter((w) => w.kind === 'active-chrome')).toEqual([])
     expect(polished.warnings.filter((w) => w.kind === 'attribution')).toEqual([])
-    expect(polished.steps).toHaveLength(1)
   })
 })

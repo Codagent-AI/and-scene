@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { presentations } from '../../src/presentations'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'
-import { ENTITY_IDS, INTRO } from '../../src/presentations/how-to-make-a-presentation/entities'
+import { ENTITY_IDS, GEOMETRY, INTRO } from '../../src/presentations/how-to-make-a-presentation/entities'
 import { CANONICAL_STEPS } from '../helpers/canonical-sample'
 
 describe('reference sample', () => {
@@ -37,6 +37,13 @@ describe('reference sample', () => {
       expect(ENTITY_IDS.some((id) => INTRO[id] === step)).toBe(true)
     }
     for (const id of ENTITY_IDS) expect(INTRO[id]).toBeLessThanOrEqual(9)
+  })
+
+  it('docks the depth control on the you node (flush under it, within its width)', () => {
+    const { you, control } = GEOMETRY
+    expect(control.y).toBe(you.y + you.h)
+    expect(control.x).toBeGreaterThanOrEqual(you.x)
+    expect(control.x + control.w).toBeLessThanOrEqual(you.x + you.w)
   })
 
   it('introduces the entities the spec names at the steps it names', () => {

@@ -1,8 +1,10 @@
 import { motion } from 'motion/react'
+import type { CSSProperties } from 'react'
 import { arrowPath, type Point } from './geometry'
+import type { DataProps } from './Node'
 import { EASE, ENTER_DELAY, ENTER_T, LAYOUT_T } from '../constants'
 
-export interface ArrowProps {
+export interface ArrowProps extends DataProps {
   id: string
   from: Point
   to: Point
@@ -12,19 +14,21 @@ export interface ArrowProps {
   bidirectional?: boolean
   dashed?: boolean
   className?: string
+  style?: CSSProperties
 }
 
 /** Line or arc between two canvas points. Colors and stroke width come from presentation CSS. */
-export function Arrow({ id, from, to, bend, bidirectional, dashed, className }: ArrowProps) {
+export function Arrow({ id, from, to, bend, bidirectional, dashed, className, style, ...hooks }: ArrowProps) {
   const d = arrowPath(from, to, bend)
   const head = `${id}-head`
   return (
     <motion.svg
+      {...hooks}
       data-presentation-node="arrow"
       data-presentation-entity={id}
       className={className}
       aria-hidden="true"
-      style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }}
+      style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', ...style }}
       exit={{ opacity: 0 }}
       transition={{ duration: ENTER_T }}
     >

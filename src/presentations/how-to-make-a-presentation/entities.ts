@@ -37,9 +37,10 @@ export const ENTITY_IDS = Object.keys(INTRO) as EntityId[]
 export const GEOMETRY = {
   you: { x: 30, y: 24, w: 150, h: 64 },
   skill: { x: 700, y: 24, w: 150, h: 64 },
-  prompt: { x: 30, y: 100, w: 190, h: 40 },
+  prompt: { x: 30, y: 124, w: 190, h: 40 },
   question: { x: 380, y: 16, w: 120, h: 26 },
-  control: { x: 240, y: 104, w: 150, h: 32 },
+  /** Docked flush under the `you` node (same x span, touching its bottom edge). */
+  control: { x: 30, y: 88, w: 150, h: 28 },
   tray: { x: 20, y: 170, w: 840, h: 156 },
   trayLabel: { x: 40, y: 176, w: 300, h: 20 },
   linkLabel: { x: 110, y: 302, w: 120, h: 16 },

@@ -14,7 +14,7 @@ export interface HeaderProps {
 
 export function Header({ title, mode, index, count, era, brand, onToggleMode }: HeaderProps) {
   return (
-    <header data-presentation-header="" data-presentation-chrome="" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+    <header data-presentation-header="" data-presentation-chrome="" style={{ display: 'flex' }}>
       {brand !== undefined && brand !== null && <div data-presentation-brand="">{brand}</div>}
       <span data-presentation-marker="" data-presentation-era={era}>
         {stepNumber(index)} / {count}
@@ -25,7 +25,6 @@ export function Header({ title, mode, index, count, era, brand, onToggleMode }: 
         data-presentation-mode-toggle=""
         aria-label={mode === 'present' ? 'Switch to browse mode' : 'Switch to present mode'}
         onClick={onToggleMode}
-        style={{ marginLeft: 'auto' }}
       >
         {mode === 'present' ? 'browse' : 'present'}
       </button>

@@ -14,17 +14,17 @@ export function Footer({ steps, index, mode, onPrev, onNext, onJump }: FooterPro
   if (!step) return null
   return (
     <footer data-presentation-footer="" data-presentation-chrome="">
-      <h2 data-presentation-step-title="" style={{ margin: 0 }}>
+      <h2 data-presentation-step-title="">
         {step.title}
       </h2>
       {mode === 'browse' && (
         <>
           <p data-presentation-step-caption="">{step.caption}</p>
-          <div data-presentation-controls="" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div data-presentation-controls="" style={{ display: 'flex' }}>
             <button type="button" data-presentation-prev="" onClick={onPrev} disabled={index === 0}>
               Previous
             </button>
-            <ol data-presentation-progress="" style={{ display: 'flex', gap: 6, margin: 0, padding: 0, listStyle: 'none' }}>
+            <ol data-presentation-progress="" style={{ display: 'flex' }}>
               {steps.map((s, i) => (
                 <li key={s.id}>
                   <button

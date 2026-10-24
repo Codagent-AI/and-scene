@@ -5,7 +5,10 @@ import { EASE, ENTER_T, LAYOUT_T } from '../constants'
 
 export type NodeKind = 'box' | 'label' | 'frame' | 'emphasis' | 'chip'
 
-export interface NodeProps extends Placement {
+/** Stable hooks authors can attach, e.g. `data-presentation-allow-overlap`. */
+export type DataProps = { [K in `data-${string}`]?: string | number | boolean }
+
+export interface NodeProps extends Placement, DataProps {
   /** Stable entity id; doubles as the shared `layoutId` that makes the entity morph. */
   id: string
   className?: string
@@ -14,9 +17,10 @@ export interface NodeProps extends Placement {
 }
 
 /** Shared base for the node primitives: stable identity, style hooks, no visual defaults. */
-export function Node({ kind, id, x, y, w, h, className, style, children }: NodeProps & { kind: NodeKind }) {
+export function Node({ kind, id, x, y, w, h, className, style, children, ...hooks }: NodeProps & { kind: NodeKind }) {
   return (
     <motion.div
+      {...hooks}
       layoutId={id}
       data-presentation-node={kind}
       data-presentation-entity={id}

@@ -24,6 +24,28 @@
 }
 
 /* chrome */
+.talk-sample [data-presentation-header],
+.talk-sample [data-presentation-controls] {
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.talk-sample [data-presentation-mode-toggle] {
+  margin-left: auto;
+}
+
+.talk-sample [data-presentation-progress],
+.talk-sample [data-presentation-toc] ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.talk-sample [data-presentation-progress] {
+  gap: 6px;
+}
+
 .talk-sample [data-presentation-header] {
   padding: 0.75rem 1.25rem;
   color: var(--muted);
@@ -43,6 +65,7 @@
 }
 
 .talk-sample [data-presentation-step-title] {
+  margin: 0;
   font-size: 1.5rem;
   font-weight: 650;
 }

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render } from '@testing-library/react'
 import { Presentation } from '../../src/presentation-kit'
 import { makeSteps, setViewport } from '../helpers/fixtures'
@@ -164,5 +164,30 @@ describe('canvas', () => {
     const { container } = render(<Presentation steps={makeSteps()} title="Deck" />)
     const canvas = q(container, '[data-presentation-canvas]') as HTMLElement
     expect(canvas.style.transform).toMatch(/^translate\(-50%, -50%\) scale\([\d.]+\)$/)
+  })
+})
+
+describe('resizing', () => {
+  it('recomputes one uniform scale when the stage area changes size', () => {
+    let size = { width: 1000, height: 500 }
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      () => ({ ...size, x: 0, y: 0, top: 0, left: 0, right: size.width, bottom: size.height, toJSON: () => ({}) }),
+    )
+    const { container } = render(<Presentation steps={makeSteps()} title="Deck" />)
+    const canvas = q(container, '[data-presentation-canvas]') as HTMLElement
+    const transformScale = () => Number(/scale\(([\d.]+)\)/.exec(canvas.style.transform)![1])
+    const scaleOf = () => Number(canvas.getAttribute('data-presentation-scale'))
+    // browse inset 16: min((1000-32)/880, (500-32)/380) = 1.1
+    expect(scaleOf()).toBeCloseTo(1.1, 3)
+    expect(transformScale()).toBeCloseTo(scaleOf(), 3)
+    size = { width: 500, height: 600 }
+    act(() => {
+      window.dispatchEvent(new Event('resize'))
+    })
+    // min((500-32)/880, (600-32)/380) = 0.5318
+    expect(scaleOf()).toBeCloseTo(0.5318, 3)
+    expect(transformScale()).toBeCloseTo(scaleOf(), 3)
+    expect([canvas.style.width, canvas.style.height]).toEqual(['880px', '380px'])
+    spy.mockRestore()
   })
 })

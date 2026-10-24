@@ -23,9 +23,11 @@ absolute paths when copying.
   mounted; only `payload` changes. Entities that continue keep their `layoutId` and morph;
   newcomers go inside `<Appear>` (they fade in after the morph settles); departing entities
   are simply no longer rendered (the `SceneLayer` animates them out).
-- Keep entities at fixed canvas coordinates (880 × 380 design canvas). Accumulate rather than
-  rearrange. If a composition intentionally overlaps or stacks entities, keep it, and mark that
-  subtree with `data-presentation-allow-overlap` only when the overlap is readable.
+- Compose on the 880 × 380 design canvas. A persisting entity keeps its id and may move, resize,
+  re-label, or change emphasis between steps (that is the morph); it need not stay put. Whether a
+  scene accumulates or rearranges is the author's choice for the story being told. If a
+  composition intentionally overlaps or stacks entities, keep it, and mark that subtree with
+  `data-presentation-allow-overlap` only when the overlap is readable.
 - Step numbers come from position; never number steps by hand.
 
 ## Styling ownership
@@ -80,7 +82,10 @@ Then act on what is missing:
   disturbing the others. Build setup files come from the bootstrap root (`package.json` scripts and
   dependencies are merged, not overwritten); the kit is `templates/bootstrap/src/presentation-kit/`;
   the index is `templates/bootstrap/src/presentations/{index.ts,registry.ts}` with
-  `src/main.tsx`, `src/Landing.tsx`, and `src/routing.ts`. Also copy `scripts/verify.mjs`,
+  `src/main.tsx`, `src/Landing.tsx`, and `src/routing.ts`. The bootstrap `index.ts` registers the
+  template's `starter` presentation: when copying only the index, empty that array (do not copy a
+  registry entry whose folder you are not also copying), or copy `src/presentations/starter/` along
+  with it. Also copy `scripts/verify.mjs`,
   `scripts/inspect-presentation.mjs`, and `scripts/lib/` and add their npm scripts if absent.
 
 **Confirm before writing in a non-empty project.** If the project is non-empty and lacks the scene

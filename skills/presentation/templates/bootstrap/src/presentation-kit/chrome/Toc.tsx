@@ -11,7 +11,7 @@ export function Toc({ steps, index, onJump }: TocProps) {
   const groups = groupByEra(steps)
   return (
     <nav data-presentation-toc="" data-presentation-chrome="" aria-label="Table of contents">
-      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+      <ul>
         {groups.map((g) => {
           const active = g.indices.includes(index)
           return (

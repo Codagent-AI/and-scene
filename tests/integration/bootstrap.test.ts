@@ -94,11 +94,15 @@ describe('INT-001: materialized bootstrap is complete and style-neutral', () => 
     const lockText = await readFile(path.join(dir, 'package-lock.json'), 'utf8')
     expect(lockText).not.toMatch(/tailwind/i)
     const visual = /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|font-family|box-shadow|border-radius/i
+    const spacing = /\bgap\s*:|\bpadding\w*\s*:|\bmargin\w*\s*:|list-style|flexWrap|alignItems/i
     for (const file of all) {
       const text = await readFile(path.join(dir, file), 'utf8')
       expect(text, file).not.toMatch(/tailwind/i)
       if (/\.css$/.test(file) || file.startsWith('src/presentation-kit/')) {
         expect(text.replace(/\/\*[\s\S]*?\*\//g, ''), file).not.toMatch(visual)
+      }
+      if (file.startsWith('src/presentation-kit/')) {
+        expect(text.replace(/\/\*[\s\S]*?\*\//g, ''), file).not.toMatch(spacing)
       }
     }
     expect(all.filter((p) => p.startsWith('src/presentation-kit/') && p.endsWith('.css'))).toEqual([])

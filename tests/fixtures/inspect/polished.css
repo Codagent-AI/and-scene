@@ -1,4 +1,5 @@
-.polished [data-presentation-dot][data-presentation-active='true'] {
+.polished [data-presentation-dot][data-presentation-active='true'],
+.polished [data-presentation-toc-entry][data-presentation-active='true'] {
   font-weight: 700;
   background: #e2c46f;
 }

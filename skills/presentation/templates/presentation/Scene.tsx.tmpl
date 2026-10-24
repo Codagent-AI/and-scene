@@ -7,7 +7,7 @@ export interface ScenePayload {
   step: number
 }
 
-// One node per entity id. Keep every entity at fixed coordinates so it morphs in place.
+// One node per entity id. Reusing an id across steps morphs that entity; change its x/y/w/h/label per step as the story needs.
 const NODES: Record<EntityId, ReactNode> = {
   // 'entity-id': <Box id="entity-id" className="{{slug}}-box" x={40} y={40} w={160} h={64}>label</Box>,
 }

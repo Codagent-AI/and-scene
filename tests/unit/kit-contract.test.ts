@@ -26,7 +26,7 @@ describe('style-neutral kit contract', () => {
   })
 
   it('declares no color, font, border, shadow, or theme values', () => {
-    const visual = /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|font(Family|Size|Weight)|border(Color|Width|Style|Radius)?\s*:|boxShadow|textShadow|background(Color)?\s*:|--[a-z-]+\s*:/i
+    const visual = /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|font(Family|Size|Weight)|border(Color|Width|Style|Radius)?\s*:|boxShadow|textShadow|background(Color)?\s*:|--[a-z-]+\s*:|\b(gap|padding\w*|margin\w*|listStyle\w*|flexWrap|alignItems)\s*:/i
     for (const f of files) {
       const text = read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
       expect(text, f).not.toMatch(visual)

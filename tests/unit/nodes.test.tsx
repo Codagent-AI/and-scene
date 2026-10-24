@@ -33,6 +33,23 @@ describe('kit primitives expose style hooks', () => {
     expect(entity(container, 'a')?.querySelector('path[fill="none"]')?.getAttribute('d')).toBe('M 0 0 Q 5 5 10 10')
   })
 
+  it('pass arbitrary data hooks and arrow style through to the markup', () => {
+    const { container } = render(
+      <div>
+        <Box id="b" data-presentation-allow-overlap="" data-custom="yes">x</Box>
+        <SymbolChip id="c" data-presentation-allow-overlap="" symbol="*" />
+        <Arrow id="a" from={[0, 0]} to={[5, 5]} data-presentation-allow-overlap="" style={{ opacity: 0.4 }} />
+      </div>,
+    )
+    expect(entity(container, 'b')?.hasAttribute('data-presentation-allow-overlap')).toBe(true)
+    expect(entity(container, 'b')?.getAttribute('data-custom')).toBe('yes')
+    expect(entity(container, 'c')?.hasAttribute('data-presentation-allow-overlap')).toBe(true)
+    const arrow = entity(container, 'a')!
+    expect(arrow.hasAttribute('data-presentation-allow-overlap')).toBe(true)
+    expect(arrow.style.opacity).toBe('0.4')
+    expect(arrow.style.position).toBe('absolute')
+  })
+
   it('supply no visual defaults beyond geometry', () => {
     const { container } = render(
       <div>
@@ -64,6 +81,9 @@ describe('Appear', () => {
       </Appear>,
     )
     const wrapper = container.querySelector('[data-presentation-appear]') as HTMLElement
+    expect(wrapper.style.opacity).toBe('0')
+    // still hidden while persisting entities would be mid-morph
+    await new Promise((r) => setTimeout(r, LAYOUT_T * 1000 * 0.4))
     expect(wrapper.style.opacity).toBe('0')
     await waitFor(() => expect(wrapper.style.opacity).toBe('1'), { timeout: 3000 })
   })

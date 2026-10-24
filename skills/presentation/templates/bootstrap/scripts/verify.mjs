@@ -9,7 +9,8 @@ import { run, sleep, startPreview, tail } from './lib/preview.mjs'
 const root = path.resolve(import.meta.dirname, '..')
 const SAMPLE_SLUG = 'how-to-make-a-presentation'
 const STEP_TIMEOUT_MS = 4000
-const SETTLE_MS = 250
+// Newcomers start 600ms after a step change and finish by ~950ms; wait past that so late errors are attributed.
+const SETTLE_MS = 1300
 
 /** Normative steps of the reference sample: [era, presenter title, browse caption]. */
 const CANONICAL_STEPS = [

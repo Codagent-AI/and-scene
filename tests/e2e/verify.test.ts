@@ -86,6 +86,15 @@ const faults: Fault[] = [
       ),
   },
   {
+    name: 'an error that fires while the final reveal animates in',
+    expectPhase: 'render',
+    expectStep: 8,
+    apply: (dir) =>
+      edit(path.join(dir, SAMPLE, 'SampleScene.tsx'), (t) =>
+        t.replace('export function SampleScene({ payload }: SceneProps<SamplePayload>) {\n', "export function SampleScene({ payload }: SceneProps<SamplePayload>) {\n  if (payload.step === 9) setTimeout(() => console.error('late animation failure'), 900)\n"),
+      ),
+  },
+  {
     name: 'a transition that does not advance the step index',
     expectPhase: 'render',
     expectStep: 3,

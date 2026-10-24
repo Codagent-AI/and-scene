@@ -64,11 +64,9 @@ export function collectSnapshot() {
   const all = [...document.querySelectorAll('body *')]
   const ids = new Map(all.map((el, i) => [el, i]))
   const elements = []
-  const seen = new Set()
 
   function add(el, rect) {
-    if (!rect || seen.has(el) || !visible(el)) return
-    seen.add(el)
+    if (!rect || !visible(el)) return
     const ancestors = []
     for (let p = el.parentElement; p; p = p.parentElement) {
       if (ids.has(p)) ancestors.push(ids.get(p))

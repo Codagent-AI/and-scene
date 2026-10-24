@@ -8,18 +8,24 @@ const SETTLE_MS = 1300
 // A tiny presentation used as an inspection fixture. `collide` places two
 // labels on top of each other from step 2; `allow` wraps them in an
 // allow-overlap marker; `polish` styles active chrome and attribution.
-function fixture(slug: string, opts: { collide?: boolean; allow?: boolean; polish?: boolean }) {
+function fixture(slug: string, opts: { collide?: boolean; allow?: boolean; polish?: boolean; intrude?: boolean }) {
   const stack = `
           <Label id="${slug}/a" x={100} y={100} w={160} h={30}>alpha text</Label>
           <Label id="${slug}/b" x={120} y={108} w={160} h={30}>beta text</Label>`
   const body = opts.allow ? `<div data-presentation-allow-overlap="">${stack}</div>` : stack
+  const intrusion = opts.intrude
+    ? `
+.fx [data-presentation-mode-toggle] { padding: 20px 60px; }
+.fx .intruder { position: fixed; top: 14px; right: 4px; margin: 0; font-size: 10px; }
+`
+    : ''
   const css = `
 .fx [data-presentation-progress-item][aria-current='step'] { width: 30px; background: #c7a755; }
 .fx [data-presentation-progress-item] { width: 12px; height: 12px; padding: 0; }
 .fx [data-presentation-toc-item][aria-current='step'] { font-weight: 700; background: #333; }
 .fx [data-presentation-footer] { padding: 0 200px 0 24px; }
 .fx [data-presentation-attribution] { font-size: 14px; color: #bbb; padding: 4px 8px; right: 16px !important; bottom: 12px !important; }
-`
+${intrusion}`
   return {
     'Talk.tsx': `import { Appear, Box, Label, Presentation, SceneLayer, type SceneProps, type Step } from '../../presentation-kit'
 export const unusedLabel = Label
@@ -53,6 +59,7 @@ const STEPS: Step<{ n: number }>[] = [1, 2, 3].map((n) => ({
 export default function Talk() {
   return (
     <div className="fx">
+      ${opts.intrude ? '<p className="intruder">x</p>' : ''}
       <Presentation steps={STEPS} initialMode="browse" />
     </div>
   )
@@ -65,6 +72,7 @@ export default function Talk() {
 const FIXTURES = {
   'fx-collision': fixture('fx-collision', { collide: true, polish: true }),
   'fx-allowed': fixture('fx-allowed', { allow: true, polish: true }),
+  'fx-chrome': fixture('fx-chrome', { polish: true, intrude: true }),
   'fx-plain': fixture('fx-plain', { polish: false }),
   'fx-clean': fixture('fx-clean', { polish: true }),
 }
@@ -131,6 +139,11 @@ describe('INT-002: screenshot helper', () => {
     expect(w.every((x) => x.step >= 2)).toBe(true)
     expect(w.some((x) => x.step === 2 && x.text.includes('alpha text') && x.text.includes('beta text'))).toBe(true)
     expect(results['fx-collision'].output).toMatch(/WARN step 2: overlap between .*alpha text.*beta text/)
+  })
+
+  it('reports text colliding with a control\'s padding, outside its own text', () => {
+    const w = results['fx-chrome'].report.warnings.filter((x) => x.text.startsWith('overlap'))
+    expect(w.some((x) => x.text.includes('data-presentation-mode-toggle') && x.text.includes('"x"'))).toBe(true)
   })
 
   it('does not report overlap inside an allow-overlap subtree', () => {

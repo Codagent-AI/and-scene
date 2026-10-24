@@ -56,6 +56,16 @@ function writeBuildAnchor(dir: string, extra: object = {}) {
   write(path.join(dir, 'index.html'), '<div id="root"></div>\n')
 }
 
+/** Copies the template kit and registry wiring into `dir` (a complete scaffold minus the build). */
+function writeKitAndIndex(dir: string) {
+  const t = path.resolve(SCRIPTS, '../templates/bootstrap/src')
+  fs.cpSync(path.join(t, 'presentation-kit'), path.join(dir, 'src/presentation-kit'), { recursive: true })
+  for (const f of ['presentations/index.ts', 'main.tsx', 'Landing.tsx']) {
+    fs.mkdirSync(path.dirname(path.join(dir, 'src', f)), { recursive: true })
+    fs.copyFileSync(path.join(t, f), path.join(dir, 'src', f))
+  }
+}
+
 describe('detect', () => {
   it('treats an empty directory as a standalone root target needing no confirmation', () => {
     const plan = detect(tmp())
@@ -93,24 +103,43 @@ describe('detect', () => {
     expect(plan.needsConfirmation).toBe(true)
   })
 
-  it('uses an existing presentation app and detects anchors by contract', () => {
+  it('detects anchors by contract, not by byte-identical files', () => {
     const d = tmp()
     writeBuildAnchor(d)
-    // Cosmetically different from the template: other file names, extra code.
-    write(path.join(d, 'src/presentation-kit/engine.tsx'), 'export function Presentation() { return null }\n')
-    write(path.join(d, 'src/presentation-kit/contract.ts'), 'export interface Step { id: string }\n')
-    write(path.join(d, 'src/presentations/index.ts'), 'export const PRESENTATIONS = []\n')
+    writeKitAndIndex(d)
+    // Cosmetic differences: renamed file, extra code, reformatted entry point.
+    fs.renameSync(path.join(d, 'src/presentation-kit/Stage.tsx'), path.join(d, 'src/presentation-kit/MyStage.tsx'))
+    fs.appendFileSync(path.join(d, 'src/presentation-kit/types.ts'), '\nexport const extra = 1\n')
+    fs.writeFileSync(path.join(d, 'src/main.tsx'), "import { PRESENTATIONS } from './presentations'\nconsole.log(PRESENTATIONS)\n")
     const plan = detect(d)
     expect(plan.anchors).toEqual({ build: true, kit: true, index: true })
     expect(plan.missing).toEqual([])
     expect(plan.needsConfirmation).toBe(false)
   })
 
+  it('does not accept a stub kit or a registry nothing routes through', () => {
+    const d = tmp()
+    writeBuildAnchor(d)
+    write(path.join(d, 'src/presentation-kit/engine.tsx'), 'export function Presentation() { return null }\n')
+    write(path.join(d, 'src/presentation-kit/contract.ts'), 'export interface Step { id: string }\n')
+    write(path.join(d, 'src/presentations/index.ts'), 'export const PRESENTATIONS = []\n')
+    write(path.join(d, 'src/main.tsx'), "console.log('no router')\n")
+    expect(detect(d).anchors).toEqual({ build: true, kit: false, index: false })
+  })
+
+  it('treats a kit missing its navigation or stage as incomplete', () => {
+    const d = tmp()
+    writeBuildAnchor(d)
+    writeKitAndIndex(d)
+    fs.rmSync(path.join(d, 'src/presentation-kit/usePresentationNav.ts'))
+    expect(detect(d).anchors.kit).toBe(false)
+  })
+
   it('finds an existing presentations/ app inside a monorepo', () => {
     const d = tmp()
     fs.mkdirSync(path.join(d, 'packages'))
     writeBuildAnchor(path.join(d, 'presentations'))
-    write(path.join(d, 'presentations/src/presentation-kit/Presentation.tsx'), 'export const Presentation = () => null\nexport type Step = {}\n')
+    writeKitAndIndex(path.join(d, 'presentations'))
     const plan = detect(d)
     expect(plan.target).toBe('presentations')
     expect(plan.anchors.kit).toBe(true)
@@ -160,7 +189,9 @@ describe('scaffold', () => {
       expect(after[file], `${file} untouched`).toBe(hash)
     }
     expect(report.notes.join()).toMatch(/main\.tsx already exists/)
-    expect(detect(d).anchors).toEqual({ build: true, kit: true, index: true })
+    // The kept entry point is not routed through the registry yet, so the
+    // index anchor stays open until it is wired by hand.
+    expect(detect(d).anchors).toEqual({ build: true, kit: true, index: false })
     // Existing build files were not re-scaffolded.
     expect(fs.existsSync(path.join(d, 'vite.config.ts'))).toBe(false)
     const pkg = JSON.parse(fs.readFileSync(path.join(d, 'package.json'), 'utf8'))
@@ -168,6 +199,20 @@ describe('scaffold', () => {
     expect(pkg.scripts.build).toBe('tsc -b && vite build')
     expect(pkg.dependencies.motion).toBeDefined()
     expect(pkg.devDependencies.playwright).toBeDefined()
+  })
+
+  it('gives a build-only app working verify and inspect commands', () => {
+    const d = tmp()
+    writeBuildAnchor(d)
+    scaffold(d, { install: false })
+    const pkg = JSON.parse(fs.readFileSync(path.join(d, 'package.json'), 'utf8'))
+    for (const name of ['verify', 'inspect']) {
+      const file = pkg.scripts[name].split(' ').find((w: string) => w.endsWith('.mjs'))
+      expect(fs.existsSync(path.join(d, file)), `${name}: ${file}`).toBe(true)
+    }
+    for (const f of ['scripts/lib/preview.mjs', 'scripts/lib/snapshot.mjs', 'scripts/lib/diagnostics.mjs', 'scripts/lib/registry.mjs']) {
+      expect(fs.existsSync(path.join(d, f)), f).toBe(true)
+    }
   })
 
   it('does nothing when every anchor is already present', () => {

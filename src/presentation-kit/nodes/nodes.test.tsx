@@ -37,12 +37,22 @@ describe('node primitives', () => {
 
   it('arrow exposes hooks and strokes with currentColor only', () => {
     const { container } = render(
-      <Arrow id="a" from={[0, 0]} to={[10, 10]} width={100} height={50} className="mine" />,
+      <Arrow id="a" from={[0, 0]} to={[10, 10]} className="mine" />,
     )
     const svg = container.querySelector('[data-presentation-node="arrow"]')!
     expect(svg.getAttribute('data-presentation-id')).toBe('a')
     expect(svg.classList.contains('mine')).toBe(true)
     expect(container.querySelector('[data-presentation-arrow-path]')!.getAttribute('stroke')).toBe('currentColor')
+  })
+
+  it('a persisting arrow keeps its element while its bounds change', () => {
+    const { container, rerender } = render(<Arrow id="a" from={[0, 0]} to={[100, 0]} />)
+    const before = container.querySelector('[data-presentation-id="a"]') as HTMLElement
+    const viewBoxBefore = before.getAttribute('viewBox')
+    rerender(<Arrow id="a" from={[200, 50]} to={[300, 90]} />)
+    const after = container.querySelector('[data-presentation-id="a"]') as HTMLElement
+    expect(after).toBe(before)
+    expect(after.getAttribute('viewBox')).not.toBe(viewBoxBefore)
   })
 
   it('box renders an optional icon glyph and variant hook', () => {
@@ -64,6 +74,43 @@ describe('node primitives', () => {
 describe('Appear and SceneLayer', () => {
   it('delays newcomers until persisting entities have moved', () => {
     expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
+  })
+
+  it('keeps a newcomer transparent through the settling interval, then fades it in', async () => {
+    const tree = (show: boolean) => (
+      <SceneLayer>
+        {show && (
+          <Appear key="n">
+            <Box id="n" x={0} y={0} />
+          </Appear>
+        )}
+      </SceneLayer>
+    )
+    const { container, rerender } = render(tree(false))
+    rerender(tree(true))
+    const wrapper = () => container.querySelector('[data-presentation-appear]') as HTMLElement
+    // Well inside the layout interval: still fully transparent.
+    await new Promise((r) => setTimeout(r, LAYOUT_T * 1000 * 0.5))
+    expect(Number(wrapper().style.opacity)).toBe(0)
+    // After the delay and fade it is fully opaque.
+    await waitFor(() => expect(Number(wrapper().style.opacity)).toBe(1), { timeout: 3000 })
+  })
+
+  it('passes class and style through Appear and SceneLayer', () => {
+    const { container } = render(
+      <SceneLayer className="layer" style={{ opacity: 0.5 }}>
+        <Appear key="n" className="enter" style={{ zIndex: 3 }}>
+          <Box id="n" x={0} y={0} />
+        </Appear>
+      </SceneLayer>,
+    )
+    const layer = container.querySelector('[data-presentation-layer]') as HTMLElement
+    expect(layer.classList.contains('layer')).toBe(true)
+    expect(layer.style.opacity).toBe('0.5')
+    const appear = container.querySelector('[data-presentation-appear]') as HTMLElement
+    expect(appear.classList.contains('enter')).toBe(true)
+    expect(appear.style.zIndex).toBe('3')
+    expect(appear.style.position).toBe('absolute')
   })
 
   it('fades a newcomer in from transparent', () => {

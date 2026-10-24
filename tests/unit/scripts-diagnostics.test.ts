@@ -30,6 +30,18 @@ describe('findOverlaps', () => {
     expect(w).toEqual([])
   })
 
+  it('reports text colliding with a control\'s box even outside its own text', () => {
+    // A button\'s full rect (padding included) is its own entry besides its text.
+    const button = el(1, 'button', 0, 0, 200, 60)
+    const buttonText = el(1, 'button text', 80, 20, 40, 18)
+    const intruder = el(2, 'intruder', 185, 8, 10, 14)
+    expect(findOverlaps([button, buttonText, intruder])).toEqual([{ a: 'button', b: 'intruder' }])
+  })
+
+  it('never reports an element\'s text against its own box', () => {
+    expect(findOverlaps([el(1, 'button', 0, 0, 200, 60), el(1, 'button text', 80, 20, 40, 18)])).toEqual([])
+  })
+
   it('ignores ancestor/descendant pairs', () => {
     expect(findOverlaps([el(1, 'outer', 0, 0), el(2, 'inner', 5, 5, 20, 10, { ancestors: [1] })])).toEqual([])
   })

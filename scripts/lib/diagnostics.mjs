@@ -22,6 +22,8 @@ export function findOverlaps(elements) {
       const a = elements[i]
       const b = elements[j]
       if (a.allowed || b.allowed) continue
+      // An element's own text and its box never collide with each other.
+      if (a.id === b.id) continue
       if (a.ancestors.includes(b.id) || b.ancestors.includes(a.id)) continue
       if (intersects(a.rect, b.rect)) warnings.push({ a: a.label, b: b.label })
     }

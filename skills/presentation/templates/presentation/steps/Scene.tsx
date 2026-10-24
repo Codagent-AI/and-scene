@@ -2,8 +2,6 @@ import {
   Appear,
   Arrow,
   Box,
-  DESIGN_H,
-  DESIGN_W,
   Label,
   SceneLayer,
   type SceneProps,
@@ -32,7 +30,7 @@ export function Scene({ payload: { n } }: SceneProps<ScenePayload>) {
       )}
       {n >= 2 && (
         <Appear key="detail">
-          <Arrow id={E.link} from={[284, 190]} to={[596, 190]} width={DESIGN_W} height={DESIGN_H} className="link" />
+          <Arrow id={E.link} from={[284, 190]} to={[596, 190]} className="link" />
           <Box id={E.detail} x={600} y={150} w={200} h={80} className="entity detail">
             detail
           </Box>

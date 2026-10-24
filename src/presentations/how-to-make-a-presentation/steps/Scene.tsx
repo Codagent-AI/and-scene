@@ -3,8 +3,6 @@ import {
   Appear,
   Arrow,
   Box,
-  DESIGN_H,
-  DESIGN_W,
   Emphasis,
   Frame,
   Label,
@@ -40,8 +38,6 @@ function CardLink({ from }: { from: number }) {
         id={E.link(from)}
         from={[x1, LINK_Y]}
         to={[x2, LINK_Y]}
-        width={DESIGN_W}
-        height={DESIGN_H}
         className="link"
       />
       <SymbolChip
@@ -93,8 +89,6 @@ export function SampleScene({ payload: { n } }: SceneProps<SamplePayload>) {
             from={[184, 76]}
             to={[686, 76]}
             both
-            width={DESIGN_W}
-            height={DESIGN_H}
             className="conversation"
           />
           <SymbolChip id={E.question} x={440} y={32} w={150} h={30} className="question">
@@ -130,8 +124,6 @@ export function SampleScene({ payload: { n } }: SceneProps<SamplePayload>) {
             id={E.kitPlug}
             from={[cardX(2) + CARD.w / 2, CARD.y + CARD.h]}
             to={[cardX(2) + CARD.w / 2, 276]}
-            width={DESIGN_W}
-            height={DESIGN_H}
             className="plug"
           />
           <Box id={E.kit} x={cardX(1)} y={278} w={cardX(3) + CARD.w - cardX(1)} h={44} Icon={Plug} className="kit">
@@ -145,8 +137,6 @@ export function SampleScene({ payload: { n } }: SceneProps<SamplePayload>) {
             id={E.chain}
             from={[cardX(4) + CARD.w, LINK_Y]}
             to={[690, LINK_Y]}
-            width={DESIGN_W}
-            height={DESIGN_H}
             className="link"
           />
           <Box id={E.verify} x={690} y={CARD.y} w={150} h={CARD.h} className="verify">
@@ -163,8 +153,6 @@ export function SampleScene({ payload: { n } }: SceneProps<SamplePayload>) {
             from={[765, 112]}
             to={[cardX(1) + CARD.w / 2, CARD.y - 4]}
             bend={[460, 90]}
-            width={DESIGN_W}
-            height={DESIGN_H}
             className="modify"
           />
           <Label id={E.modifyTag} x={540} y={116} w={80} h={22} className="modify-tag">

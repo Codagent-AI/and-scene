@@ -28,6 +28,15 @@ function hasFile(dir, pattern) {
 
 // ---------------------------------------------------------------- detection
 
+const KIT_CONTRACT = [
+  /export\s+(function|const|class)\s+Presentation\b/,
+  /export\s+(interface|type)\s+Step\b/,
+  /export\s+(interface|type)\s+SceneProps\b/,
+  /export\s+(function|const)\s+Stage\b/,
+  /export\s+(function|const)\s+usePresentationNav\b/,
+  /data-presentation-root/,
+]
+
 /** Contract-level anchor detection for an app directory. */
 export function detectAnchors(appDir) {
   const pkgPath = path.join(appDir, 'package.json')
@@ -51,15 +60,23 @@ export function detectAnchors(appDir) {
     .filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f))
     .map((f) => fs.readFileSync(f, 'utf8'))
     .join('\n')
-  const kit =
-    /export\s+(function|const|class)\s+Presentation\b/.test(kitSources) &&
-    /export\s+(interface|type)\s+Step\b/.test(kitSources)
+  // The kit contract: step types, a stage that mounts the active step, the
+  // navigation hook, the chrome, and the presentation host composing them.
+  const kit = KIT_CONTRACT.every((re) => re.test(kitSources))
 
   const presentationsDir = path.join(appDir, 'src', 'presentations')
   const indexFile = ['index.ts', 'index.tsx', 'index.js', 'index.jsx']
     .map((f) => path.join(presentationsDir, f))
     .find(exists)
-  const index = Boolean(indexFile) && /\bPRESENTATIONS\b|\bslug\b/.test(fs.readFileSync(indexFile, 'utf8'))
+  // The registry plus an entry point that routes each slug through it.
+  const entry = ['main.tsx', 'main.ts', 'main.jsx', 'main.js']
+    .map((f) => path.join(appDir, 'src', f))
+    .find(exists)
+  const index =
+    Boolean(indexFile) &&
+    /\bPRESENTATIONS\b|\bslug\b/.test(fs.readFileSync(indexFile, 'utf8')) &&
+    Boolean(entry) &&
+    /['"]\.\/presentations(\/index)?(\.[jt]sx?)?['"]/.test(fs.readFileSync(entry, 'utf8'))
 
   return { build, kit, index }
 }
@@ -205,7 +222,6 @@ function scaffoldBuild(appDir, report) {
   appendMissingLines(t('.gitignore'), d('.gitignore'), report)
   copyIfAbsent(t('public', 'favicon.svg'), d('public', 'favicon.svg'), report)
   copyIfAbsent(t('src', 'index.css'), d('src', 'index.css'), report)
-  copyTree(t('scripts'), d('scripts'), report)
 }
 
 const rel = (...p) => path.join(...p)
@@ -240,6 +256,10 @@ export function scaffold(appDir, { install = true, starter = true } = {}) {
   // Every anchor depends on the full dependency set, so always ensure it.
   if (!(anchors.build && anchors.kit && anchors.index)) mergePackageJson(appDir, report)
   if (!anchors.build) scaffoldBuild(appDir, report)
+  // The merged npm scripts (verify, inspect) point at these files.
+  if (!(anchors.build && anchors.kit && anchors.index)) {
+    copyTree(rel(BOOTSTRAP_DIR, 'scripts'), rel(appDir, 'scripts'), report)
+  }
   if (!anchors.kit) scaffoldKit(appDir, report)
   if (!anchors.index) {
     const hadMain = exists(rel(appDir, 'src', 'main.tsx'))

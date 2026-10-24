@@ -164,7 +164,7 @@ describe('attribution and branding', () => {
     mount('browse')
     const a = q('[data-presentation-attribution]') as HTMLAnchorElement
     expect(a.textContent).toBe('made by and-scene')
-    expect(a.href).toBe('https://github.com/and-scene/and-scene')
+    expect(a.href).toBe('https://github.com/Codagent-AI/and-scene')
     expect(a.style.right).toBe('0px')
     expect(a.style.bottom).toBe('0px')
   })

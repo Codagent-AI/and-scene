@@ -45,3 +45,9 @@ export const INTRODUCED_AT: Record<EntityName, number> = {
   modify: 8, flag: 8, ring: 8,
   frame: 9, frameLabel: 9,
 }
+
+/**
+ * The sample overrides the default canvas with a narrower, taller one. The fit scale is
+ * width-limited on phones, so a smaller design width keeps the diagram text readable there.
+ */
+export const SAMPLE_CANVAS = { width: 560, height: 370 } as const

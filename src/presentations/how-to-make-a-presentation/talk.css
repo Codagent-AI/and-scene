@@ -111,7 +111,7 @@
 }
 
 /* scene */
-.howto [data-presentation-node] { box-sizing: border-box; color: var(--ink); font-size: 14px; }
+.howto [data-presentation-node] { box-sizing: border-box; color: var(--ink); font-size: 17px; }
 .howto [data-presentation-node='box'],
 .howto [data-presentation-node='symbol-chip'] {
   display: flex;
@@ -122,16 +122,16 @@
   background: var(--card);
 }
 .howto [data-presentation-node='box'] { border-radius: 10px; font-weight: 600; }
-.howto [data-presentation-node='symbol-chip'] { border-radius: 999px; font-size: 12px; color: var(--muted); }
-.howto [data-presentation-node='label'] { font-size: 12px; color: var(--muted); }
-.howto [data-presentation-glyph] { width: 16px; height: 16px; flex: none; }
+.howto [data-presentation-node='symbol-chip'] { border-radius: 999px; font-size: 14px; color: var(--muted); }
+.howto [data-presentation-node='label'] { font-size: 13px; color: var(--muted); }
+.howto [data-presentation-glyph] { width: 18px; height: 18px; flex: none; }
 .howto [data-presentation-node='arrow'] { color: var(--gold); }
 .howto [data-presentation-node='arrow'] path { stroke-width: 2; }
 .howto [data-presentation-node='frame'] { border: 2px solid var(--gold); border-radius: 16px; }
 .howto [data-presentation-node='emphasis'] { border: 2px solid var(--gold); border-radius: 14px; }
-.howto [data-presentation-node='label'][data-link-label] { text-align: center; font-size: 10px; }
-.howto [data-presentation-entity='howto/reveal-label'] { text-align: right; color: var(--gold); font-size: 13px; }
-.howto [data-presentation-entity='howto/tray-label'] { font-size: 11px; }
+.howto [data-presentation-node='label'][data-link-label] { text-align: center; font-size: 11px; }
+.howto [data-presentation-entity='howto/reveal-label'] { text-align: right; color: var(--gold); font-size: 15px; }
+.howto [data-presentation-entity='howto/tray-label'] { font-size: 13px; text-align: right; }
 
 .howto [data-tray] {
   border: 0;
@@ -141,9 +141,9 @@
 }
 .howto [data-card],
 .howto [data-ghost],
-.howto [data-verify] { flex-direction: column; gap: 6px; padding: 8px; text-align: center; }
-.howto [data-card-part='title'] { font-weight: 700; }
-.howto [data-card-part='caption'] { font-size: 11px; font-weight: 400; color: var(--muted); }
+.howto [data-verify] { flex-direction: column; gap: 5px; padding: 6px; text-align: center; }
+.howto [data-card-part='title'] { font-weight: 700; font-size: 17px; }
+.howto [data-card-part='caption'] { font-size: 13px; line-height: 1.15; font-weight: 400; color: var(--muted); }
 .howto [data-card-part='visual'] svg { width: 22px; height: 22px; color: var(--gold); }
 .howto [data-ghost] { border-style: dashed; background: transparent; color: var(--muted); }
 .howto [data-socket] { border-color: var(--gold); }

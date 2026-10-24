@@ -2,7 +2,8 @@
 import { fireEvent, render, waitFor } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { E, INTRODUCED_AT, type EntityName } from '../../src/presentations/how-to-make-a-presentation/entities'
+import { E, INTRODUCED_AT, SAMPLE_CANVAS, type EntityName } from '../../src/presentations/how-to-make-a-presentation/entities'
+import { computeFitScale, stageBox } from '../../src/presentation-kit/useFitScale'
 import { SampleScene } from '../../src/presentations/how-to-make-a-presentation/SampleScene'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'
 import Talk from '../../src/presentations/how-to-make-a-presentation/Talk'
@@ -131,7 +132,7 @@ describe('reference sample scene', () => {
     expect(arrow.querySelector('[marker-start]')).not.toBeNull()
     expect(arrow.querySelector('[marker-end]')).not.toBeNull()
     const chipBottom = parseFloat(byId(c, E.question)!.style.top) + parseFloat(byId(c, E.question)!.style.height)
-    expect(chipBottom).toBeLessThanOrEqual(80) // arrow runs along y=80
+    expect(chipBottom).toBeLessThanOrEqual(74) // arrow runs along y=74
   })
 
   it('tray sits under the conversation and is never framed', () => {
@@ -159,7 +160,11 @@ describe('reference sample scene', () => {
     expect(socket.textContent).toBe('shared scene kit')
     expect(parseFloat(socket.style.top)).toBeGreaterThan(bottom)
     const plug = byId(c, E.plug)!.querySelector('path[d]:not([d^="M 0 0 L"])')!.getAttribute('d')!
-    expect(plug).toBe(`M 395 ${parseFloat(socket.style.top)} Q 395 ${(parseFloat(socket.style.top) + bottom) / 2} 395 ${bottom}`)
+    const left = parseFloat(socket.style.left)
+    const [px] = plug.replace(/[MQ]/g, '').trim().split(/\s+/).map(Number)
+    expect(px).toBeGreaterThanOrEqual(Math.max(left, parseFloat(tray.style.left)))
+    expect(px).toBeLessThanOrEqual(Math.min(left + parseFloat(socket.style.width), parseFloat(tray.style.left) + parseFloat(tray.style.width)))
+    expect(plug).toBe(`M ${px} ${parseFloat(socket.style.top)} Q ${px} ${(parseFloat(socket.style.top) + bottom) / 2} ${px} ${bottom}`)
   })
 
   it('step 7: verify node is chained after the cards in the same row, with a pass check', () => {
@@ -178,9 +183,11 @@ describe('reference sample scene', () => {
     const c = sceneAt(8)
     const d = byId(c, E.modify)!.querySelector('path[d]:not([d^="M 0 0 L"])')!.getAttribute('d')!
     const [x1, y1, , , x2, y2] = d.replace(/[MQ]/g, '').trim().split(/\s+/).map(Number)
-    expect(y1).toBe(80)
-    expect(x1).toBeGreaterThan(190)
-    expect(x1).toBeLessThan(690)
+    const youEl = byId(c, E.you)!
+    const skillEl = byId(c, E.skill)!
+    expect(y1).toBe(74)
+    expect(x1).toBeGreaterThan(parseFloat(youEl.style.left) + parseFloat(youEl.style.width))
+    expect(x1).toBeLessThan(parseFloat(skillEl.style.left))
     const card = byId(c, E.card2)!
     expect(y2).toBe(parseFloat(card.style.top))
     expect(x2).toBeGreaterThan(parseFloat(card.style.left))
@@ -206,7 +213,8 @@ describe('reference sample scene', () => {
     }
   })
 
-  it('every entity fits inside the 880 x 380 design canvas', () => {
+  it('every entity fits inside the sample design canvas, which is narrower than the default so it reads on phones', () => {
+    expect(SAMPLE_CANVAS.width).toBeLessThan(880)
     for (let n = 1; n <= 9; n++) {
       const c = sceneAt(n)
       for (const id of ids(c)) {
@@ -214,8 +222,8 @@ describe('reference sample scene', () => {
         if (el.getAttribute('data-presentation-node') === 'arrow') continue
         expect(parseFloat(el.style.left)).toBeGreaterThanOrEqual(0)
         expect(parseFloat(el.style.top)).toBeGreaterThanOrEqual(0)
-        expect(parseFloat(el.style.left) + parseFloat(el.style.width)).toBeLessThanOrEqual(880)
-        expect(parseFloat(el.style.top) + parseFloat(el.style.height)).toBeLessThanOrEqual(380)
+        expect(parseFloat(el.style.left) + parseFloat(el.style.width)).toBeLessThanOrEqual(SAMPLE_CANVAS.width)
+        expect(parseFloat(el.style.top) + parseFloat(el.style.height)).toBeLessThanOrEqual(SAMPLE_CANVAS.height)
       }
       document.body.innerHTML = ''
     }
@@ -284,5 +292,21 @@ describe('continuity while navigating the nine-step scene', () => {
       previous = now
     }
     expect(document.querySelector('[data-presentation-root]')!.getAttribute('data-step-index')).toBe('6')
+  })
+})
+
+describe('narrow viewport legibility', () => {
+  it('scales the sample diagram so its primary text stays readable on a phone', () => {
+    const css = readFileSync('src/presentations/how-to-make-a-presentation/talk.css', 'utf8')
+    const px = (selector: string) => Number(new RegExp(`${selector.replace(/[[\]().]/g, '\\$&')}[^}]*?font-size:\\s*(\\d+)px`).exec(css)?.[1])
+    const phone = { width: 390, height: 844 }
+    for (const mode of ['browse', 'present'] as const) {
+      const scale = computeFitScale(stageBox(mode, phone), SAMPLE_CANVAS)
+      expect(scale, `${mode} scale`).toBeGreaterThanOrEqual(0.6)
+      // the entity text that carries the story (boxes, card titles, chips) renders at 9px or more
+      expect(px(".howto [data-presentation-node]") * scale).toBeGreaterThanOrEqual(9)
+      expect(px(".howto [data-card-part='title']") * scale).toBeGreaterThanOrEqual(9)
+      expect(px(".howto [data-presentation-node='symbol-chip']") * scale).toBeGreaterThanOrEqual(8)
+    }
   })
 })

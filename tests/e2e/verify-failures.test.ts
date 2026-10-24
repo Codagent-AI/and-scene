@@ -61,6 +61,30 @@ describe('E2E-002 verification failures are actionable', () => {
     await expectCleanFailure(result, /FAIL \[render\] how-to-make-a-presentation step 4: console\.error: injected failure/)
   })
 
+  it('fails and names the step when a step throws an uncaught page error', async () => {
+    const result = await verifyWithFault((dir) =>
+      edit(
+        dir,
+        'src/presentation-kit/Presentation.tsx',
+        'const wide = useIsWide()',
+        "const wide = useIsWide()\n  useEffect(() => {\n    if (index === 3) setTimeout(() => { throw new Error('injected uncaught') }, 0)\n  }, [index])",
+      ),
+    )
+    await expectCleanFailure(result, /FAIL \[render\] how-to-make-a-presentation step 4: uncaught exception: injected uncaught/)
+  })
+
+  it('fails and names the step when a step crashes while rendering', async () => {
+    const result = await verifyWithFault((dir) =>
+      edit(
+        dir,
+        'src/presentations/how-to-make-a-presentation/steps/Scene.tsx',
+        '  const cards =',
+        "  if (beat === 5) throw new Error('injected render crash')\n  const cards =",
+      ),
+    )
+    await expectCleanFailure(result, /FAIL \[render\] how-to-make-a-presentation step 5: .*injected render crash/)
+  })
+
   it('fails and names the step when a transition does not advance the step index', async () => {
     const result = await verifyWithFault((dir) =>
       edit(dir, 'src/presentation-kit/usePresentationNav.ts', 'Math.min(count - 1, Math.max(0, index))', 'Math.min(Math.min(count - 1, 2), Math.max(0, index))'),

@@ -44,10 +44,12 @@ export default function Talk() {
 }
 
 const OVERLAP = `<Label id="beta" x={42} y={42}>Beta</Label>`
-const FIXTURES: Record<string, { body: string; css: boolean }> = {
+const TINY_ATTRIBUTION_CSS = `${POLISHED_CSS}\n[data-presentation-attribution] { font-size: 8px; }\n`
+const FIXTURES: Record<string, { body: string; css: boolean; stylesheet?: string }> = {
   'fx-polished': { body: `{payload.n >= 2 && <Label id="gamma" x={40} y={160}>Gamma</Label>}`, css: true },
   'fx-overlap': { body: `{payload.n === 2 && ${OVERLAP}}`, css: true },
   'fx-allowed': { body: `{payload.n === 2 && <div data-presentation-allow-overlap="">${OVERLAP}</div>}`, css: true },
+  'fx-tiny': { body: `{payload.n >= 2 && <Label id="gamma" x={40} y={160}>Gamma</Label>}`, css: true, stylesheet: TINY_ATTRIBUTION_CSS },
   'fx-bare': { body: `{payload.n >= 2 && <Label id="gamma" x={40} y={160}>Gamma</Label>}`, css: false },
 }
 
@@ -63,11 +65,11 @@ describe('INT-002 screenshot helper', () => {
   beforeAll(async () => {
     dir = copyProject()
     let lines = ''
-    for (const [slug, { body, css }] of Object.entries(FIXTURES)) {
+    for (const [slug, { body, css, stylesheet }] of Object.entries(FIXTURES)) {
       const folder = join(dir, 'src/presentations', slug)
       mkdirSync(folder, { recursive: true })
       writeFileSync(join(folder, 'Talk.tsx'), talk(body, css))
-      if (css) writeFileSync(join(folder, 'styles.css'), POLISHED_CSS)
+      if (css) writeFileSync(join(folder, 'styles.css'), stylesheet ?? POLISHED_CSS)
       lines += `  { slug: '${slug}', title: '${slug}', load: () => import('./${slug}/Talk') },\n`
     }
     edit(dir, 'src/presentations/index.ts', /\n\]/, `\n${lines}]`)
@@ -126,6 +128,13 @@ describe('INT-002 screenshot helper', () => {
     expect(stdout).toMatch(/WARN \[active-chrome\] steps 1, 2, 3: active progress entry looks identical/)
     expect(stdout).toMatch(/WARN \[active-chrome\] steps 1, 2, 3: active table-of-contents entry looks identical/)
     expect(stdout).toMatch(/WARN \[attribution\] steps 1, 2, 3: uses the browser-default link color; style \[data-presentation-attribution\]/)
+  })
+
+  it('warns about undersized attribution text', () => {
+    const { stdout, code } = outputs['fx-tiny']
+    expect(code).toBe(0)
+    expect(stdout).toMatch(/WARN \[attribution\] steps 1, 2, 3: font-size 8px is undersized; style \[data-presentation-attribution\]/)
+    expect(stdout).not.toMatch(/\[active-chrome\]|\[overlap\]/)
   })
 
   it('fails for an unregistered presentation', async () => {

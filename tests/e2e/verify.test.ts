@@ -133,6 +133,16 @@ describe('E2E-002: verification failures are actionable', () => {
         ),
     },
     {
+      name: 'a route that renders only placeholder content (no presentation chrome)',
+      phase: 'render',
+      expectIn: /step 0: .*did not render a presentation/,
+      rendered: true,
+      mutate: (dir) =>
+        edit(dir, 'src/presentations/how-to-make-a-presentation/Talk.tsx', (t) =>
+          t.replace(/export default function Talk\(\) \{[\s\S]*\}\s*$/, 'export default function Talk() {\n  return <p>coming soon</p>\n}\n').replace("import { Presentation } from '../../presentation-kit/index.ts'\n", '').replace("import { STEPS } from './steps.ts'\n", ''),
+        ),
+    },
+    {
       name: 'a transition that never advances the step index',
       phase: 'render',
       rendered: true,

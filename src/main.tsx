@@ -1,10 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import App from './App.tsx'
+import { AppRoot } from './AppRoot'
+import { presentations } from './presentations'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AppRoot pathname={window.location.pathname} entries={presentations} />
   </StrictMode>,
 )

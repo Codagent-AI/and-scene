@@ -1,0 +1,7 @@
+/*
+ * Styling for "Getting Started" lives here, in this presentation. The scene kit supplies
+ * only stable hooks (data-presentation-*); choose colors, fonts, spacing and borders
+ * for them below. Make the active progress / table-of-contents entry visibly distinct
+ * ([data-presentation-active='true']) and style the attribution link
+ * ([data-presentation-attribution]) so it is legible.
+ */

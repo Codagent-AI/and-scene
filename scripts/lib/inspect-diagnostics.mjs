@@ -77,11 +77,14 @@ export function warningsForStep(step, snapshot) {
 
 /** Largest per-axis drift (px) between two samples that still counts as "not moving". */
 export const SETTLE_DRIFT_PX = 0.5
+/** Largest opacity change between two samples that still counts as "not fading". */
+export const SETTLE_OPACITY_DRIFT = 0.001
 
 /**
- * Entities whose content is not yet reliably on screen, from two samples taken a few frames apart.
- * sample: [{ id, hasContent, opacity, visible, rect: { x, y, width, height } }]
- * An entity is unsettled while it is moving, partly transparent, hidden, empty-sized, or newly mounted.
+ * Entities that are still changing between two samples taken a few frames apart.
+ * sample: [{ id, opacity, rect: { x, y, width, height } }] (ids are unique within a sample)
+ * An entity is unsettled while it moves, resizes, fades, or has just mounted or unmounted.
+ * Entities that are steady but deliberately dimmed or hidden are settled.
  */
 export function unsettledEntities(before, after) {
   const earlier = new Map(before.map((entity) => [entity.id, entity]))
@@ -92,10 +95,8 @@ export function unsettledEntities(before, after) {
       pending.push(`${entity.id} (mounted since the previous sample)`)
       continue
     }
-    const drift = ['x', 'y', 'width', 'height'].some((axis) => Math.abs(entity.rect[axis] - prior.rect[axis]) > SETTLE_DRIFT_PX)
-    if (drift) pending.push(`${entity.id} (still moving)`)
-    else if (entity.hasContent && (!entity.visible || entity.opacity < 0.999)) pending.push(`${entity.id} (content not yet visible)`)
-    else if (entity.hasContent && (entity.rect.width <= 0 || entity.rect.height <= 0)) pending.push(`${entity.id} (no rendered size)`)
+    if (['x', 'y', 'width', 'height'].some((axis) => Math.abs(entity.rect[axis] - prior.rect[axis]) > SETTLE_DRIFT_PX)) pending.push(`${entity.id} (still moving)`)
+    else if (Math.abs(entity.opacity - prior.opacity) > SETTLE_OPACITY_DRIFT) pending.push(`${entity.id} (still fading)`)
   }
   for (const id of earlier.keys()) if (!after.some((entity) => entity.id === id)) pending.push(`${id} (unmounted since the previous sample)`)
   return pending
@@ -108,14 +109,15 @@ export function collectSceneContent() {
     for (let node = el; node && node !== document.documentElement; node = node.parentElement) opacity *= Number(getComputedStyle(node).opacity)
     return opacity
   }
+  const seen = {}
   return [...document.querySelectorAll('[data-presentation-entity]')].map((el) => {
     const rect = el.getBoundingClientRect()
-    const style = getComputedStyle(el)
+    const name = el.getAttribute('data-presentation-entity')
+    // duplicate ids are keyed by DOM order so each element is compared with itself
+    seen[name] = (seen[name] ?? -1) + 1
     return {
-      id: el.getAttribute('data-presentation-entity'),
-      hasContent: (el.textContent ?? '').trim() !== '' || el.querySelector('svg') !== null,
+      id: seen[name] === 0 ? name : `${name}#${seen[name]}`,
       opacity: opacityOf(el),
-      visible: style.visibility !== 'hidden' && style.display !== 'none',
       rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
     }
   })

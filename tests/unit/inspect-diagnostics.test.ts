@@ -106,27 +106,27 @@ describe('warningsForStep', () => {
 })
 
 describe('settled-scene detection', () => {
-  const entity = (id: string, extra: object = {}) => ({ id, hasContent: true, opacity: 1, visible: true, rect: rect(10, 10, 80, 30), ...extra })
+  const entity = (id: string, extra: object = {}) => ({ id, opacity: 1, rect: rect(10, 10, 80, 30), ...extra })
 
-  it('is settled when every entity is still, opaque and painted across two samples', () => {
+  it('is settled when every entity is still and steady across two samples', () => {
     expect(unsettledEntities([entity('a'), entity('b')], [entity('a'), entity('b')])).toEqual([])
   })
 
-  it('does not call a scene settled while an entity with content is transparent or hidden', () => {
-    expect(unsettledEntities([entity('a')], [entity('a', { opacity: 0.4 })])).toEqual(['a (content not yet visible)'])
-    expect(unsettledEntities([entity('a')], [entity('a', { visible: false })])).toEqual(['a (content not yet visible)'])
-    expect(unsettledEntities([entity('a')], [entity('a', { rect: rect(10, 10, 0, 0) })])).toEqual(expect.arrayContaining(['a (still moving)']))
+  it('is not settled while an entity moves, resizes or fades between samples', () => {
+    expect(unsettledEntities([entity('a')], [entity('a', { rect: rect(14, 10, 80, 30) })])).toEqual(['a (still moving)'])
+    expect(unsettledEntities([entity('a')], [entity('a', { rect: rect(10, 10, 90, 30) })])).toEqual(['a (still moving)'])
+    expect(unsettledEntities([entity('a', { opacity: 0.2 })], [entity('a', { opacity: 0.6 })])).toEqual(['a (still fading)'])
+    expect(unsettledEntities([entity('a')], [entity('a', { rect: rect(10.3, 10, 80, 30) })])).toEqual([])
   })
 
-  it('is not settled while an entity moves, appears or disappears between samples', () => {
-    expect(unsettledEntities([entity('a')], [entity('a', { rect: rect(14, 10, 80, 30) })])).toEqual(['a (still moving)'])
-    expect(unsettledEntities([entity('a')], [entity('a', { rect: rect(10.3, 10, 80, 30) })])).toEqual([])
+  it('is not settled while entities appear or disappear between samples', () => {
     expect(unsettledEntities([entity('a')], [entity('a'), entity('b')])).toEqual(['b (mounted since the previous sample)'])
     expect(unsettledEntities([entity('a'), entity('b')], [entity('a')])).toEqual(['b (unmounted since the previous sample)'])
   })
 
-  it('does not require content of entities that draw none', () => {
-    const arrow = { id: 'x', hasContent: false, opacity: 0.5, visible: true, rect: rect(0, 0, 10, 10) }
-    expect(unsettledEntities([arrow], [arrow])).toEqual([])
+  it('treats deliberately dimmed or hidden entities that are steady as settled', () => {
+    const dimmed = entity('dim', { opacity: 0.3 })
+    const hidden = entity('hid', { opacity: 0, rect: rect(0, 0, 0, 0) })
+    expect(unsettledEntities([dimmed, hidden], [dimmed, hidden])).toEqual([])
   })
 })

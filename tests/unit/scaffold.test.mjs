@@ -155,6 +155,22 @@ describe('createPresentation and registry', () => {
     expect(() => registerInSource(read(dir, 'src/presentations/index.ts'), { slug: 'one', title: 'x' })).toThrow(/already registered/)
   })
 
+  it('registers in a differently named registry and writes nothing when there is none', () => {
+    const named = write(tmpDir(), { 'src/presentations/registry.ts': "export const all = [\n  // presentations:end\n]\nexport const shape = { slug: '', load: () => null }\n" })
+    createPresentation(named, { slug: 'a-talk', title: 'A' })
+    expect(read(named, 'src/presentations/registry.ts')).toContain("slug: 'a-talk'")
+
+    const blogOnly = write(tmpDir(), { 'src/blog/routes.ts': "export const routes = [{ slug: 'posts', load: () => import('./posts') }]\n" })
+    expect(() => createPresentation(blogOnly, { slug: 'new-one', title: 'New One' })).toThrow(/No presentation registry/)
+    expect(fs.existsSync(path.join(blogOnly, 'src/presentations/new-one'))).toBe(false)
+  })
+
+  it('leaves no half-created presentation when the registry cannot take the entry', () => {
+    const dir = write(tmpDir(), { 'src/presentations/index.ts': "export const all = [{ slug: 'a', load: () => import('./a') }]\n" })
+    expect(() => createPresentation(dir, { slug: 'b-talk', title: 'B' })).toThrow(/marker/)
+    expect(fs.existsSync(path.join(dir, 'src/presentations/b-talk'))).toBe(false)
+  })
+
   it.each([['no indentation', ''], ['four spaces', '    '], ['a tab', '\t']])('registers when the marker uses %s', (_name, indent) => {
     const source = `export const presentations = [\n${indent}// presentations:end\n]\n`
     const updated = registerInSource(source, { slug: 'a-talk', title: 'A' })

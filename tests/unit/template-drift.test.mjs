@@ -39,13 +39,3 @@ describe('verification scripts', () => {
     expect(fs.readFileSync(path.join(ROOT, 'scripts/lib/preview.mjs'), 'utf8')).toContain("HOST = '127.0.0.1'")
   })
 })
-
-describe('browser launch', () => {
-  it('turns a missing Chromium into an instruction to install it', async () => {
-    const { explainLaunchError } = await import('../../scripts/lib/preview.mjs')
-    const err = explainLaunchError(new Error("browserType.launch: Executable doesn't exist at /x/chrome"))
-    expect(err.message).toContain('npx playwright install chromium')
-    const other = new Error('boom')
-    expect(explainLaunchError(other)).toBe(other)
-  })
-})

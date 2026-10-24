@@ -64,14 +64,27 @@ function diagnose() {
       add(el, range.getBoundingClientRect())
     } else add(el, el.getBoundingClientRect())
   }
+  // The canvas is scaled to fit, so its text shrinks with the viewport; flag what lands unreadably small.
+  const MIN_TEXT_PX = 8
+  const canvas = document.querySelector('[data-presentation-canvas]')
+  const scale = canvas && canvas.offsetWidth ? canvas.getBoundingClientRect().width / canvas.offsetWidth : 1
+  const findings = []
   for (const el of document.querySelectorAll('[data-presentation-canvas] *')) {
     const text = [...el.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim())
     if (!text) continue
     const range = document.createRange()
     range.selectNodeContents(text)
-    add(el, range.getBoundingClientRect())
+    const rect = range.getBoundingClientRect()
+    add(el, rect)
+    const size = parseFloat(getComputedStyle(el).fontSize) * scale
+    if (rect.width > 0 && visible(el) && size < MIN_TEXT_PX) {
+      findings.push({
+        kind: 'small-text',
+        key: describe(el),
+        message: `${describe(el)} renders at ${size.toFixed(1)}px (under ${MIN_TEXT_PX}px) at this viewport; raise its font size or the canvas scale`,
+      })
+    }
   }
-  const findings = []
   const allowed = (el) => el.closest('[data-presentation-allow-overlap]') !== null
   for (let i = 0; i < items.length; i++) {
     for (let j = i + 1; j < items.length; j++) {
@@ -139,7 +152,7 @@ async function main() {
   const captured = []
   const warnings = new Map()
   try {
-    browser = await launchChromium()
+    browser = await launchChromium({ root: args.root })
     const page = await browser.newPage({ viewport: args.viewport })
     await page.goto(`${preview.url}/${args.slug}`, { waitUntil: 'load' })
     const root = page.locator('[data-presentation-root]')

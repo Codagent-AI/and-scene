@@ -137,6 +137,15 @@ describe('inspect-presentation helper', () => {
     expect(warnings('styled', 'overlap').map((w) => w.steps)).toEqual([[2]])
   })
 
+  it('warns about canvas text that scales below a readable size on a narrow viewport only', async () => {
+    expect(warnings('styled', 'small-text')).toEqual([])
+    const narrow = await run('npm', ['run', 'inspect', '--', 'styled', '--no-build', '--settle', '300', '--viewport', '300x700'], { cwd: dir })
+    expect(narrow.code, narrow.output).toBe(0)
+    const [small] = warnings('styled', 'small-text')
+    expect(small.message).toMatch(/renders at [\d.]+px/)
+    expect(narrow.stdout).toMatch(/WARN \[small-text\] steps? /)
+  })
+
   it('warns when the attribution is undersized', async () => {
     edit(path.join(dir, 'src/presentations/styled/style.css'), (css) => css.replace('font-size: 13px', 'font-size: 8px'))
     const rebuilt = await run('npm', ['run', 'build'], { cwd: dir })

@@ -1,6 +1,6 @@
-// Adds a presentation to the explicit registry in src/presentations/index.ts.
+// Adds a presentation to the explicit registry module in src/presentations/.
 import fs from 'node:fs'
-import path from 'node:path'
+import { findRegistry } from './anchors.mjs'
 
 export const REGISTRY_MARKER = '// presentations:end'
 
@@ -32,7 +32,14 @@ export function registerInSource(source, presentation) {
   return updated
 }
 
+/** Reads the registry and computes the registered source without writing, so callers can fail first. */
+export function prepareRegistration(appRoot, presentation) {
+  const file = findRegistry(appRoot)
+  if (!file) throw new Error(`No presentation registry found in src/presentations/ of ${appRoot}`)
+  return { file, source: registerInSource(fs.readFileSync(file, 'utf8'), presentation) }
+}
+
 export function registerPresentation(appRoot, presentation) {
-  const file = path.join(appRoot, 'src', 'presentations', 'index.ts')
-  fs.writeFileSync(file, registerInSource(fs.readFileSync(file, 'utf8'), presentation))
+  const { file, source } = prepareRegistration(appRoot, presentation)
+  fs.writeFileSync(file, source)
 }

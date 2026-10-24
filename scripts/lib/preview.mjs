@@ -77,20 +77,38 @@ export async function startPreview(root, port = 0) {
   }
 }
 
-/** Turns Playwright's missing-browser failure into an actionable instruction. */
-export function explainLaunchError(err) {
-  if (/Executable doesn't exist|npx playwright install/i.test(String(err?.message))) {
-    return new Error('Chromium is not installed for Playwright; run "npx playwright install chromium" and retry')
-  }
-  return err
+const MISSING_BROWSER = /Executable doesn't exist|npx playwright install/i
+
+/** Downloads the Chromium build that the project's Playwright drives. */
+export function installChromium(root) {
+  return new Promise((resolve) => {
+    console.error('[browser] Chromium is missing; running "npx playwright install chromium"')
+    const child = spawn('npx', ['playwright', 'install', 'chromium'], { cwd: root, stdio: ['ignore', 2, 2] })
+    child.on('error', () => resolve(false))
+    child.on('close', (code) => resolve(code === 0))
+  })
 }
 
-export async function launchChromium() {
+/**
+ * Launches Chromium. When Playwright is installed but its browser is not, installs it once and
+ * retries, so a fresh checkout verifies without a manual setup step. A failed download is reported
+ * with the command to run by hand.
+ */
+export async function launchChromium({ root = process.cwd(), load = () => import('playwright'), install = installChromium } = {}) {
+  const launch = async () => (await load()).chromium.launch()
   try {
-    const { chromium } = await import('playwright')
-    return await chromium.launch()
+    return await launch()
   } catch (err) {
-    throw explainLaunchError(err)
+    if (!MISSING_BROWSER.test(String(err?.message))) throw err
+    if (!(await install(root))) {
+      throw new Error('Chromium is not installed for Playwright and the automatic install failed; run "npx playwright install chromium" and retry')
+    }
+    try {
+      return await launch()
+    } catch (retryErr) {
+      if (!MISSING_BROWSER.test(String(retryErr?.message))) throw retryErr
+      throw new Error('Chromium is still unavailable after "npx playwright install chromium"; check the Playwright browser path and retry')
+    }
   }
 }
 

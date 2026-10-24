@@ -3,20 +3,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { HOST, launchChromium, runBuild, sleep, startPreview } from './lib/preview.mjs'
-
-const STEP_TIMEOUT = 5000
-// Longer than the kit's default entrance (delay plus duration, 0.95 s), so errors raised late in a
-// transition are seen while the step that caused them is still current.
-const SETTLE_MS = 1100
-
-class VerifyError extends Error {
-  constructor(phase, message, step) {
-    super(message)
-    this.phase = phase
-    this.step = step
-  }
-}
+import { HOST, launchChromium, runBuild, startPreview } from './lib/preview.mjs'
+import { VerifyError, renderPresentation } from './lib/render.mjs'
 
 function parseArgs(argv) {
   const args = { root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), build: true }
@@ -37,65 +25,6 @@ function registeredSlugs(root) {
 function readReference(root) {
   const file = path.join(root, 'scripts', 'reference-sample.json')
   return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null
-}
-
-async function renderPresentation(browser, baseUrl, slug, reference) {
-  const page = await browser.newPage()
-  let current = 0
-  const errors = []
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') errors.push({ step: current, text: msg.text() })
-  })
-  page.on('pageerror', (err) => errors.push({ step: current, text: String(err) }))
-  const fail = (message, step = current) => new VerifyError('render', `${slug}: ${message}`, step + 1)
-  const firstError = () => errors[0]
-  try {
-    await page.goto(`${baseUrl}/${slug}`, { waitUntil: 'load' })
-    const root = page.locator('[data-presentation-root]')
-    try {
-      await root.waitFor({ timeout: STEP_TIMEOUT })
-    } catch {
-      throw fail(firstError() ? `did not render: ${firstError().text}` : 'presentation root never rendered')
-    }
-    const count = Number(await root.getAttribute('data-step-count'))
-    if (!Number.isInteger(count) || count < 1) throw fail('data-step-count hook missing or invalid')
-    if (reference && count !== reference.steps.length) {
-      throw new VerifyError('reference-sample', `${slug}: expected ${reference.steps.length} steps, found ${count}`, 1)
-    }
-    if ((await root.getAttribute('data-presentation-mode')) !== 'browse') await page.keyboard.press('p')
-    for (let i = 0; i < count; i++) {
-      current = i
-      if (i > 0) {
-        await page.keyboard.press('ArrowRight')
-        try {
-          await page.waitForFunction(
-            (n) => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(n),
-            i,
-            { timeout: STEP_TIMEOUT },
-          )
-        } catch {
-          throw fail(`step index did not advance to ${i}`)
-        }
-      }
-      await sleep(SETTLE_MS)
-      if (errors.length) throw fail(`browser error: ${errors[0].text}`, errors[0].step)
-      if (reference) {
-        const title = (await page.locator('[data-presentation-title]').textContent())?.trim()
-        const caption = (await page.locator('[data-presentation-caption]').textContent())?.trim()
-        const want = reference.steps[i]
-        if (title !== want.title || caption !== want.caption) {
-          throw new VerifyError(
-            'reference-sample',
-            `${slug}: step ${i + 1} should be "${want.title}" but shows "${title}"${caption === want.caption ? '' : ' (caption differs)'}`,
-            i + 1,
-          )
-        }
-      }
-    }
-    console.log(`[verify] render ${slug}: ${count} steps ok`)
-  } finally {
-    await page.close()
-  }
 }
 
 async function main() {
@@ -119,7 +48,7 @@ async function main() {
   let browser
   try {
     try {
-      browser = await launchChromium()
+      browser = await launchChromium({ root })
     } catch (err) {
       throw new VerifyError('browser', err.message)
     }

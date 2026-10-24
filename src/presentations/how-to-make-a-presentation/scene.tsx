@@ -52,13 +52,13 @@ const render: Record<EntityKey, () => React.ReactNode> = {
     <Arrow id={ENTITIES.dialogue.id} from={{ x: 160, y: 48 }} to={{ x: 720, y: 48 }} bidirectional className="htmp-arrow" />
   ),
   question: () => (
-    <SymbolChip id={ENTITIES.question.id} x={395} y={18} width={90} height={22} className="htmp-chip">
+    <SymbolChip id={ENTITIES.question.id} x={395} y={16} width={90} height={24} className="htmp-chip">
       question?
     </SymbolChip>
   ),
   tray: () => <Box id={ENTITIES.tray.id} x={30} y={140} width={820} height={160} className="htmp-tray" />,
   trayLabel: () => (
-    <Label id={ENTITIES.trayLabel.id} x={44} y={146} width={120} height={16} className="htmp-tray-label">
+    <Label id={ENTITIES.trayLabel.id} x={44} y={144} width={170} height={20} className="htmp-tray-label">
       route · steps
     </Label>
   ),
@@ -67,7 +67,7 @@ const render: Record<EntityKey, () => React.ReactNode> = {
     <Arrow id={ENTITIES.morphLink.id} from={{ x: 148, y: MID }} to={{ x: 180, y: MID }} className="htmp-arrow" />
   ),
   morphChip: () => (
-    <SymbolChip id={ENTITIES.morphChip.id} x={104} y={274} width={100} height={18} className="htmp-chip">
+    <SymbolChip id={ENTITIES.morphChip.id} x={104} y={272} width={110} height={20} className="htmp-chip">
       what morphs
     </SymbolChip>
   ),
@@ -82,7 +82,7 @@ const render: Record<EntityKey, () => React.ReactNode> = {
   ),
   ghost: () => (
     <Box id={ENTITIES.ghost.id} x={GHOST_X} y={CARD_Y} width={CARD_W} height={CARD_H} className="htmp-card htmp-ghost">
-      <span data-htmp-part="title">unspecified</span>
+      <span data-htmp-part="title">open</span>
     </Box>
   ),
   link4Ghost: () => (
@@ -122,7 +122,7 @@ const render: Record<EntityKey, () => React.ReactNode> = {
   ),
   edited: () => <Emphasis id={ENTITIES.edited.id} x={314} y={162} width={108} height={112} className="htmp-ring" />,
   editedFlag: () => (
-    <Label id={ENTITIES.editedFlag.id} x={330} y={144} width={76} height={16} className="htmp-flag">
+    <Label id={ENTITIES.editedFlag.id} x={330} y={142} width={80} height={20} className="htmp-flag">
       edited
     </Label>
   ),

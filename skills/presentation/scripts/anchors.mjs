@@ -31,16 +31,30 @@ function sourceFiles(dir, depth = 0) {
 const HOST = /export\s+(default\s+)?(async\s+)?(function|const|class)\s+Presentation\b|export\s*\{[^}]*\bPresentation\b/
 const STEP_CONTRACT = /\b(interface|type)\s+Step\b/
 const SCENE_CONTRACT = /\b(interface|type)\s+Scene(Props)?\b/
-const REGISTRY = (text) => /\bexport\b/.test(text) && /\bslug\b/.test(text) && /\bload\b/.test(text)
+const isRegistry = (text) => /\bexport\b/.test(text) && /\bslug\b/.test(text) && /\bload\b/.test(text)
 
-/** Kit: a Presentation host plus the Step/Scene contract; index: a slug -> loader registry. */
-function detectKitAndIndex(dir) {
-  const texts = sourceFiles(path.join(dir, 'src')).map((f) => fs.readFileSync(f, 'utf8'))
-  const some = (test) => texts.some((t) => (typeof test === 'function' ? test(t) : test.test(t)))
-  return {
-    kit: some(HOST) && some(STEP_CONTRACT) && some(SCENE_CONTRACT),
-    index: some(REGISTRY),
-  }
+/**
+ * The registry module: a top-level source file of `src/presentations/` (any name) that exports a
+ * slug -> loader list, preferring `index.*`. Registries elsewhere in the project, such as a blog's
+ * routes, are not a presentation index. Registration edits this same file.
+ */
+export function findRegistry(dir) {
+  const presentations = path.join(dir, 'src', 'presentations')
+  if (!fs.existsSync(presentations)) return null
+  const files = fs
+    .readdirSync(presentations, { withFileTypes: true })
+    .filter((e) => e.isFile() && SOURCE.test(e.name) && !/\.(test|spec)\./.test(e.name))
+    .map((e) => e.name)
+    .sort((a, b) => Number(/^index\./.test(b)) - Number(/^index\./.test(a)) || a.localeCompare(b))
+  const found = files.find((name) => isRegistry(fs.readFileSync(path.join(presentations, name), 'utf8')))
+  return found ? path.join(presentations, found) : null
+}
+
+/** Kit: a Presentation host plus the Step/Scene contract, anywhere under `src/presentation-kit/`. */
+function detectKit(dir) {
+  const texts = sourceFiles(path.join(dir, 'src', 'presentation-kit')).map((f) => fs.readFileSync(f, 'utf8'))
+  const some = (test) => texts.some((t) => test.test(t))
+  return some(HOST) && some(STEP_CONTRACT) && some(SCENE_CONTRACT)
 }
 
 export function isEmptyDir(dir) {
@@ -56,8 +70,7 @@ export function detectAnchors(dir) {
     ['vite', 'react', 'typescript'].every((d) => d in deps) &&
     hasFile(dir, /^vite\.config\.[cm]?[jt]s$/) &&
     exists(dir, 'tsconfig.json')
-  const { kit, index } = detectKitAndIndex(dir)
-  return { build, kit, index }
+  return { build, kit: detectKit(dir), index: findRegistry(dir) !== null }
 }
 
 export function missingAnchors(dir) {

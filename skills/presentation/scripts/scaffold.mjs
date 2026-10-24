@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { missingAnchors, planScaffold } from './anchors.mjs'
-import { registerPresentation } from './register.mjs'
+import { prepareRegistration } from './register.mjs'
 
 export const TEMPLATES_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates')
 export const BOOTSTRAP_DIR = path.join(TEMPLATES_DIR, 'bootstrap')
@@ -136,11 +136,13 @@ export function createPresentation(appRoot, { slug, title, register = true }) {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error(`Invalid slug "${slug}" (use lowercase-kebab-case)`)
   const dir = path.join(appRoot, 'src', 'presentations', slug)
   if (fs.existsSync(dir)) throw new Error(`Presentation folder already exists: ${dir}`)
+  // Resolve the registry first: a missing or unusable one must fail before anything is written.
+  const registration = register ? prepareRegistration(appRoot, { slug, title }) : null
   fs.mkdirSync(dir, { recursive: true })
   for (const rel of listFiles(PRESENTATION_TEMPLATE_DIR)) {
     fs.writeFileSync(path.join(dir, rel), render(fs.readFileSync(path.join(PRESENTATION_TEMPLATE_DIR, rel), 'utf8'), { slug, title }))
   }
-  if (register) registerPresentation(appRoot, { slug, title })
+  if (registration) fs.writeFileSync(registration.file, registration.source)
   return dir
 }
 

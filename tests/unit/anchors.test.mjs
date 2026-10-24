@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { detectAnchors, missingAnchors, planScaffold, resolveTarget } from '../../skills/presentation/scripts/anchors.mjs'
+import { detectAnchors, findRegistry, missingAnchors, planScaffold, resolveTarget } from '../../skills/presentation/scripts/anchors.mjs'
 import { buildAnchor, indexAnchor, kitAnchor, tmpDir, write } from './helpers.mjs'
 
 describe('detectAnchors', () => {
@@ -19,9 +19,9 @@ describe('detectAnchors', () => {
     const dir = write(tmpDir(), {
       ...rest,
       'vite.config.mjs': 'export default {}',
-      'src/engine/Deck.jsx': 'export const Presentation = () => null\n',
-      'src/engine/contract.ts': 'export type Step = { id: string }\nexport type Scene = () => null\n',
-      'src/registry.ts': 'export const REGISTRY = [{ slug: "a", load: () => import("./a") }]\n',
+      'src/presentation-kit/Deck.jsx': 'export const Presentation = () => null\n',
+      'src/presentation-kit/engine/contract.ts': 'export type Step = { id: string }\nexport type Scene = () => null\n',
+      'src/presentations/registry.ts': 'export const REGISTRY = [{ slug: "a", load: () => import("./a") }]\n',
     })
     expect(missingAnchors(dir)).toEqual([])
   })
@@ -35,6 +35,32 @@ describe('detectAnchors', () => {
     expect(detectAnchors(dir)).toMatchObject({ kit: false, index: false })
     const partial = write(tmpDir(), { 'src/presentation-kit/Presentation.tsx': 'export function Presentation() { return null }' })
     expect(detectAnchors(partial).kit).toBe(false)
+  })
+
+  it('does not mistake another module for the presentation index or the kit', () => {
+    const dir = write(tmpDir(), {
+      ...buildAnchor(),
+      ...kitAnchor,
+      'src/blog/routes.ts': "export const routes = [{ slug: 'posts', load: () => import('./posts') }]\n",
+      'src/presentations/notes.ts': 'export const note = 1\n',
+    })
+    expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: false })
+    expect(missingAnchors(dir)).toEqual(['index'])
+    expect(findRegistry(dir)).toBeNull()
+    const elsewhere = write(tmpDir(), {
+      ...buildAnchor(),
+      ...indexAnchor,
+      'src/engine/Deck.tsx': 'export function Presentation() { return null }\nexport type Step = {}\nexport type Scene = {}\n',
+    })
+    expect(detectAnchors(elsewhere)).toMatchObject({ kit: false, index: true })
+  })
+
+  it('finds the registry by what it exports, preferring index', () => {
+    const entry = "export const all = [{ slug: 'a', load: () => import('./a') }]\n"
+    const dir = write(tmpDir(), { 'src/presentations/zeta.ts': entry, 'src/presentations/index.ts': entry })
+    expect(findRegistry(dir)).toBe(path.join(dir, 'src/presentations/index.ts'))
+    const other = write(tmpDir(), { 'src/presentations/talks.tsx': entry })
+    expect(findRegistry(other)).toBe(path.join(other, 'src/presentations/talks.tsx'))
   })
 
   it('does not count a build setup without vite, react, typescript, or a build script', () => {

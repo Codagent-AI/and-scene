@@ -89,6 +89,7 @@ describe('verification failures', () => {
   it.each([
     ['a late error inside a transition is attributed to its own step', 4, 700],
     ['a late error on the final step is not missed', 9, 700],
+    ['a late error well after the settle window on the final step is not missed', 9, 1500],
   ])('%s', async (_name, step, delayMs) => {
     const result = await verifyWithFault((dir) =>
       edit(path.join(dir, SAMPLE, 'scene.tsx'), (s) =>

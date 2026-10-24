@@ -41,8 +41,8 @@ Before creating or modifying anything, make sure the project has the three **con
 | Anchor | Present when |
 | --- | --- |
 | Build setup | `package.json` with a `build` script and vite, react, typescript; a vite config; `tsconfig.json` |
-| Scene kit | `src/presentation-kit/` with the `Step`/`Scene` types and `Presentation` host |
-| Presentation index | `src/presentations/index.ts`, the registry mapping each presentation to its route |
+| Scene kit | `src/presentation-kit/` holds modules exporting the `Presentation` host and the `Step`/`Scene` types, under any file names |
+| Presentation index | a module in `src/presentations/` (conventionally `index.ts`) exporting the slug-to-loader registry that maps each presentation to its route, ending in a `// presentations:end` marker; registries elsewhere, such as a blog's routes, do not count |
 
 Detection is by presence of the anchors, not byte-identical files, so cosmetic differences do not
 trigger re-scaffolding. Run:

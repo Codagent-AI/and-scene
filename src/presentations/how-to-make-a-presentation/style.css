@@ -165,10 +165,12 @@
   text-decoration: underline;
 }
 
-/* scene entities */
+/* scene entities: the 880 x 380 canvas scales to about half size on a phone, so canvas text stays
+   at 16px or more to remain legible there */
 .htmp [data-presentation-node] {
   color: var(--ink);
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1.2;
 }
 .htmp .htmp-actor,
 .htmp .htmp-card,
@@ -195,7 +197,8 @@
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-color: var(--gold);
-  font-size: 12px;
+  font-size: 16px;
+  white-space: nowrap;
 }
 .htmp .htmp-bubble {
   display: flex;
@@ -212,7 +215,8 @@
   gap: 4px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 16px;
+  line-height: 1;
   color: var(--muted);
   background: var(--bg);
 }
@@ -229,8 +233,8 @@
 }
 .htmp .htmp-tray-label,
 .htmp .htmp-flag {
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-size: 16px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -240,14 +244,14 @@
 }
 .htmp .htmp-card {
   flex-direction: column;
-  padding: 8px;
-  font-size: 11px;
+  padding: 6px;
+  font-size: 16px;
 }
 .htmp .htmp-card [data-htmp-part] {
   display: block;
   width: 100%;
-  padding: 4px 6px;
-  margin: 2px 0;
+  padding: 2px 4px;
+  margin: 1px 0;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.05);
   text-align: center;
@@ -287,7 +291,7 @@
   left: 50%;
   bottom: 6px;
   transform: translateX(-50%);
-  font-size: 13px;
+  font-size: 16px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--gold);

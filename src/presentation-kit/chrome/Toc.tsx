@@ -17,7 +17,7 @@ export function Toc<T>({ steps, index, top, bottom, width, onJump }: TocProps<T>
       aria-label="Table of contents"
       style={{ position: 'absolute', left: 0, top, bottom, width, overflow: 'hidden' }}
     >
-      <ol style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+      <ol>
         {tocEntries(steps, index).map((e) => (
           <li key={e.era}>
             <button

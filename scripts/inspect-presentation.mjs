@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { ATTRIBUTION_HINT, findAttributionIssues, findIndistinctActive, findOverlaps } from './lib/diagnostics.mjs'
 import { launchBrowser, sleep, startPreview } from './lib/preview.mjs'
+import { settleThenCapture } from './lib/settle.mjs'
 import { collectSnapshot } from './lib/snapshot.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
@@ -65,10 +66,16 @@ async function main() {
           i,
         )
       }
-      await sleep(opts.settle)
       const file = path.join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
-      const capturedAfterMs = Date.now() - navigatedAt
-      await page.screenshot({ path: file })
+      let capturedAfterMs = 0
+      await settleThenCapture({
+        settleMs: opts.settle,
+        sleep,
+        capture: async () => {
+          capturedAfterMs = Date.now() - navigatedAt
+          await page.screenshot({ path: file })
+        },
+      })
       report.steps.push({ step: i + 1, file: path.relative(root, file), capturedAfterMs })
 
       const snap = await page.evaluate(collectSnapshot)

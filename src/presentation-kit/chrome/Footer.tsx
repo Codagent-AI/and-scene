@@ -28,12 +28,12 @@ export function Footer<T>({ height, steps, index, mode, onPrev, onNext, onJump }
         overflow: 'hidden',
       }}
     >
-      <h2 data-presentation-title="" style={{ margin: 0 }}>
+      <h2 data-presentation-title="">
         {step.title}
       </h2>
       {browse ? (
         <>
-          <p data-presentation-caption="" style={{ margin: 0 }}>
+          <p data-presentation-caption="">
             {step.caption}
           </p>
           <div style={{ display: 'flex', alignItems: 'center' }}>

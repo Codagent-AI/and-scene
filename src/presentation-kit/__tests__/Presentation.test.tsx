@@ -4,6 +4,8 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { Star } from 'lucide-react'
 import { describe, expect, it } from 'vitest'
 import {
+  ENTER_DELAY,
+  LAYOUT_T,
   Appear,
   Arrow,
   Box,
@@ -273,6 +275,11 @@ describe('entity transitions', () => {
     expect(appear.querySelector('[data-presentation-entity="b"]')).not.toBeNull()
     expect(appear.querySelector('[data-presentation-entity="a"]')).toBeNull()
     expect((appear as HTMLElement).style.opacity).toBe('0')
+  })
+
+  it('delays newcomers until the persisting entities have mostly finished their layout morph', () => {
+    expect(ENTER_DELAY).toBeGreaterThan(LAYOUT_T.duration / 2)
+    expect(ENTER_DELAY).toBeLessThanOrEqual(LAYOUT_T.duration)
   })
 
   it('animates a departing entity out before removing it', async () => {

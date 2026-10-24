@@ -123,7 +123,9 @@
 
 /* ---- scene entities ---- */
 .htmp [data-presentation-node] {
-  font-size: 15px;
+  /* Diagram text stays at or above 21px: the 880px canvas renders at ~0.39
+     on a phone, and smaller text becomes unreadable there. */
+  font-size: 22px;
   line-height: 1.2;
 }
 .htmp .actor {
@@ -133,7 +135,7 @@
   border: 1.5px solid var(--gold);
   border-radius: 14px;
   background: var(--panel);
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 650;
 }
 .htmp .bubble {
@@ -167,19 +169,20 @@
 .htmp .card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px;
+  gap: 2px;
+  padding: 6px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
 }
 .htmp .card-part {
-  font-size: 13px;
+  font-size: 21px;
+  line-height: 1.15;
   color: var(--muted);
 }
 .htmp .card-visual {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   margin-top: auto;
   color: var(--gold);
 }
@@ -218,11 +221,11 @@
   border: 1px solid var(--gold);
   border-radius: 999px;
   color: var(--gold);
-  font-size: 13px;
+  font-size: 22px;
 }
 .htmp .depth svg {
-  width: 14px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
 }
 .htmp .kit {
   display: flex;
@@ -232,11 +235,11 @@
   border: 1.5px solid var(--gold);
   border-radius: 0 0 12px 12px;
   color: var(--gold);
-  font-size: 14px;
+  font-size: 22px;
 }
 .htmp .kit svg {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
 }
 .htmp .verify {
   display: flex;
@@ -250,18 +253,19 @@
 }
 .htmp .verify-title {
   font-weight: 650;
-  font-size: 18px;
+  font-size: 30px;
 }
 .htmp .verify-sub {
-  font-size: 13px;
+  font-size: 21px;
   color: var(--muted);
+  white-space: nowrap;
 }
 .htmp .modify-tag {
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--gold);
-  font-size: 13px;
+  font-size: 22px;
 }
 .htmp .edited {
   border: 2px solid var(--gold);
@@ -277,8 +281,8 @@
   align-items: center;
   justify-content: center;
   color: var(--gold);
-  font-size: 15px;
-  letter-spacing: 0.04em;
+  font-size: 22px;
+  letter-spacing: 0.02em;
 }
 
 @media (max-width: 959px) {

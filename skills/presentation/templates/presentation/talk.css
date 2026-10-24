@@ -124,7 +124,9 @@
 
 /* ---- scene entities ---- */
 .__CLASS__ [data-presentation-node] {
-  font-size: 15px;
+  /* The canvas shrinks on phones; keep diagram text at 21px or more so it
+     stays readable there. */
+  font-size: 22px;
   line-height: 1.2;
 }
 .__CLASS__ .entity {
@@ -134,7 +136,7 @@
   border: 1.5px solid var(--gold);
   border-radius: 14px;
   background: var(--panel);
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 650;
 }
 .__CLASS__ .link {

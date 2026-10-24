@@ -38,7 +38,7 @@ export function Scene({ payload: { n } }: SceneProps<ScenePayload>) {
       )}
       {n >= 3 && (
         <Appear key="note">
-          <Label id={E.note} x={290} y={240} w={300} h={28} className="note">
+          <Label id={E.note} x={270} y={240} w={340} h={34} className="note">
             the whole story, one scene
           </Label>
         </Appear>

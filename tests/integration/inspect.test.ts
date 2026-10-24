@@ -8,7 +8,7 @@ const SETTLE_MS = 1300
 // A tiny presentation used as an inspection fixture. `collide` places two
 // labels on top of each other from step 2; `allow` wraps them in an
 // allow-overlap marker; `polish` styles active chrome and attribution.
-function fixture(slug: string, opts: { collide?: boolean; allow?: boolean; polish?: boolean; intrude?: boolean }) {
+function fixture(slug: string, opts: { collide?: boolean; allow?: boolean; polish?: boolean; intrude?: boolean; tiny?: boolean }) {
   const stack = `
           <Label id="${slug}/a" x={100} y={100} w={160} h={30}>alpha text</Label>
           <Label id="${slug}/b" x={120} y={108} w={160} h={30}>beta text</Label>`
@@ -35,7 +35,10 @@ function Scene({ payload: { n } }: SceneProps<{ n: number }>) {
     <SceneLayer>
       {n >= 1 && (
         <Appear key="one">
-          <Box id="${slug}/box" x={40} y={40} w={120} h={40}>box</Box>
+          <Box id="${slug}/box" x={40} y={40} w={120} h={40}>box</Box>${
+            opts.tiny ? `
+          <Label id="${slug}/tiny" x={300} y={200} w={200} h={20} style={{ fontSize: 5 }}>tiny text</Label>` : ''
+          }
         </Appear>
       )}
       {n >= 2 && (
@@ -75,6 +78,7 @@ const FIXTURES = {
   'fx-chrome': fixture('fx-chrome', { polish: true, intrude: true }),
   'fx-plain': fixture('fx-plain', { polish: false }),
   'fx-clean': fixture('fx-clean', { polish: true }),
+  'fx-tiny': fixture('fx-tiny', { polish: true, tiny: true }),
 }
 
 interface Report {
@@ -85,6 +89,7 @@ interface Report {
 let root: string
 let tmp: string
 const results: Record<string, { output: string; status: number | null; report: Report; dir: string }> = {}
+let sampleNarrow: { output: string; status: number | null; report: Report }
 
 beforeAll(async () => {
   tmp = makeTempDir('and-scene-int2-')
@@ -105,6 +110,13 @@ beforeAll(async () => {
     const res = await runAsync('node', ['scripts/inspect-presentation.mjs', slug, '--no-build', '--settle', String(SETTLE_MS), '--out', out], root)
     results[slug] = { output: res.output, status: res.status, dir: out, report: JSON.parse(fs.readFileSync(path.join(out, 'report.json'), 'utf8')) }
   }
+  const narrowOut = path.join(root, 'out', 'sample-narrow')
+  const narrow = await runAsync(
+    'node',
+    ['scripts/inspect-presentation.mjs', 'how-to-make-a-presentation', '--no-build', '--settle', String(SETTLE_MS), '--viewport', '390x844', '--out', narrowOut],
+    root,
+  )
+  sampleNarrow = { output: narrow.output, status: narrow.status, report: JSON.parse(fs.readFileSync(path.join(narrowOut, 'report.json'), 'utf8')) }
 })
 
 afterAll(() => removeDir(tmp))
@@ -156,6 +168,19 @@ describe('INT-002: screenshot helper', () => {
     expect(texts).toMatch(/active table of contents is visually indistinct/)
     expect(texts).toMatch(/attribution link uses the browser-default link colour/)
     expect(texts).toMatch(/data-presentation-attribution/)
+  })
+
+  it('reports diagram text that renders too small at the inspected viewport', () => {
+    const w = results['fx-tiny'].report.warnings.filter((x) => x.text.includes('render below'))
+    expect(w.length).toBeGreaterThan(0)
+    expect(w.some((x) => x.step === 1 && x.text.includes('tiny text'))).toBe(true)
+    expect(results['fx-clean'].report.warnings.filter((x) => x.text.includes('render below'))).toEqual([])
+  })
+
+  it('keeps the reference sample readable at a narrow phone viewport', () => {
+    expect(sampleNarrow.status, sampleNarrow.output).toBe(0)
+    expect(sampleNarrow.report.steps).toHaveLength(9)
+    expect(sampleNarrow.report.warnings).toEqual([])
   })
 
   it('reports nothing for a polished, collision-free presentation', () => {

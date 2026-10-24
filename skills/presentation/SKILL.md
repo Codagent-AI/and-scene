@@ -132,7 +132,9 @@ Never report success while a check fails. Fix the problem and re-run.
    fit the canvas, intentional overlaps must stay readable, and nothing may collide with the
    caption, progress indicators, table of contents or navigation controls.
 4. Review every warning. Fix accidental text or chrome collisions, indistinct active
-   progress/table-of-contents state, and unpolished attribution (via the attribution hook). Mark a
+   progress/table-of-contents state, unpolished attribution (via the attribution hook), and
+   diagram text that renders below 8px at the inspected viewport (the canvas scales down on narrow
+   screens, so keep diagram font sizes at about 21px or more in design units). Mark a
    subtree `data-presentation-allow-overlap` **only** where an overlap is intentional and still
    readable. Re-run the helper and report any remaining advisory warnings honestly.
 

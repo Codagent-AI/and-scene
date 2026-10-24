@@ -2,7 +2,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { findAttributionIssues, findClippedChrome, findIndistinctActive, findOverlaps } from '../../scripts/lib/diagnostics.mjs'
+import { findAttributionIssues, findClippedChrome, findIndistinctActive, findOverlaps, findSmallText } from '../../scripts/lib/diagnostics.mjs'
 import { parseSlugs } from '../../scripts/lib/registry.mjs'
 import { settleThenCapture } from '../../scripts/lib/settle.mjs'
 
@@ -93,6 +93,22 @@ describe('findClippedChrome', () => {
   it('lists each clipped container once', () => {
     expect(findClippedChrome(['data-presentation-footer', 'data-presentation-footer'])).toEqual(['data-presentation-footer'])
     expect(findClippedChrome([])).toEqual([])
+  })
+})
+
+describe('findSmallText', () => {
+  it('flags text that renders below the readable minimum', () => {
+    const items = [
+      { label: 'card caption', px: 5.1 },
+      { label: 'verify title', px: 11.7 },
+      { label: 'edge', px: 8 },
+    ]
+    expect(findSmallText(items)).toEqual([{ label: 'card caption', px: 5.1 }])
+  })
+
+  it('accepts readable text and an empty diagram', () => {
+    expect(findSmallText([{ label: 'title', px: 16 }])).toEqual([])
+    expect(findSmallText([])).toEqual([])
   })
 })
 

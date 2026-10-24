@@ -42,8 +42,8 @@ function CardLink({ from }: { from: number }) {
       />
       <SymbolChip
         id={E.morph(from)}
-        x={x1 + 4}
-        y={LINK_Y - 26}
+        x={x1 + 1}
+        y={LINK_Y - 28}
         w={22}
         h={22}
         Icon={ArrowLeftRight}
@@ -64,7 +64,7 @@ export function SampleScene({ payload: { n } }: SceneProps<SamplePayload>) {
       {n >= 9 && (
         <Appear key="frame">
           <Frame id={E.frame} x={6} y={6} w={868} h={368} className="frame" />
-          <Label id={E.frameLabel} x={250} y={338} w={380} h={26} className="frame-label">
+          <Label id={E.frameLabel} x={140} y={334} w={600} h={32} className="frame-label">
             this presentation, built by the skill
           </Label>
         </Appear>
@@ -74,7 +74,7 @@ export function SampleScene({ payload: { n } }: SceneProps<SamplePayload>) {
           <Box id={E.you} x={30} y={44} w={150} h={64} className="actor you">
             you
           </Box>
-          <Label id={E.prompt} x={210} y={6} w={140} h={36} className="bubble">
+          <Label id={E.prompt} x={210} y={12} w={160} h={32} className="bubble">
             “a topic…”
           </Label>
         </Appear>
@@ -91,7 +91,7 @@ export function SampleScene({ payload: { n } }: SceneProps<SamplePayload>) {
             both
             className="conversation"
           />
-          <SymbolChip id={E.question} x={440} y={32} w={150} h={30} className="question">
+          <SymbolChip id={E.question} x={440} y={26} w={190} h={36} className="question">
             which topic?
           </SymbolChip>
         </Appear>
@@ -113,7 +113,7 @@ export function SampleScene({ payload: { n } }: SceneProps<SamplePayload>) {
           <Box id={E.ghost} x={cardX(4)} y={CARD.y} w={CARD.w} h={CARD.h} variant="ghost" className="card ghost">
             <span className="card-part">?</span>
           </Box>
-          <Box id={E.depth} x={30} y={118} w={150} h={26} Icon={SlidersHorizontal} className="depth">
+          <Box id={E.depth} x={30} y={116} w={225} h={32} Icon={SlidersHorizontal} className="depth">
             partial ↔ full
           </Box>
         </Appear>
@@ -123,10 +123,10 @@ export function SampleScene({ payload: { n } }: SceneProps<SamplePayload>) {
           <Arrow
             id={E.kitPlug}
             from={[cardX(2) + CARD.w / 2, CARD.y + CARD.h]}
-            to={[cardX(2) + CARD.w / 2, 276]}
+            to={[cardX(2) + CARD.w / 2, 280]}
             className="plug"
           />
-          <Box id={E.kit} x={cardX(1)} y={278} w={cardX(3) + CARD.w - cardX(1)} h={44} Icon={Plug} className="kit">
+          <Box id={E.kit} x={cardX(0)} y={282} w={cardX(3) + CARD.w - cardX(0)} h={40} Icon={Plug} className="kit">
             scene kit · boxes · arrows · motion
           </Box>
         </Appear>
@@ -136,14 +136,14 @@ export function SampleScene({ payload: { n } }: SceneProps<SamplePayload>) {
           <Arrow
             id={E.chain}
             from={[cardX(4) + CARD.w, LINK_Y]}
-            to={[690, LINK_Y]}
+            to={[680, LINK_Y]}
             className="link"
           />
-          <Box id={E.verify} x={690} y={CARD.y} w={150} h={CARD.h} className="verify">
+          <Box id={E.verify} x={680} y={CARD.y} w={160} h={CARD.h} className="verify">
             <span className="verify-title">verify</span>
             <span className="verify-sub">build · render</span>
           </Box>
-          <SymbolChip id={E.pass} x={822} y={CARD.y - 10} w={26} h={26} Icon={Check} label="checks pass" className="pass" />
+          <SymbolChip id={E.pass} x={822} y={CARD.y - 16} w={32} h={32} Icon={Check} label="checks pass" className="pass" />
         </Appear>
       )}
       {n >= 8 && (
@@ -155,16 +155,16 @@ export function SampleScene({ payload: { n } }: SceneProps<SamplePayload>) {
             bend={[460, 90]}
             className="modify"
           />
-          <Label id={E.modifyTag} x={540} y={116} w={80} h={22} className="modify-tag">
+          <Label id={E.modifyTag} x={520} y={112} w={110} h={30} className="modify-tag">
             modify
           </Label>
           <Emphasis id={E.edited} x={cardX(1) - 5} y={CARD.y - 5} w={CARD.w + 10} h={CARD.h + 10} className="edited" />
           <SymbolChip
             id={E.editedFlag}
-            x={cardX(1) + CARD.w - 14}
-            y={CARD.y - 14}
-            w={24}
-            h={24}
+            x={cardX(1) + CARD.w - 16}
+            y={CARD.y - 16}
+            w={32}
+            h={32}
             Icon={Pencil}
             label="edited"
             className="edited-flag"

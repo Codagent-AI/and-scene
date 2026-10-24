@@ -6,7 +6,7 @@
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-import { ATTRIBUTION_HINT, findAttributionIssues, findClippedChrome, findIndistinctActive, findOverlaps } from './lib/diagnostics.mjs'
+import { ATTRIBUTION_HINT, findAttributionIssues, findClippedChrome, findIndistinctActive, findOverlaps, findSmallText, SMALL_TEXT_MIN_PX } from './lib/diagnostics.mjs'
 import { launchBrowser, sleep, startPreview, waitForStepIndex } from './lib/preview.mjs'
 import { settleThenCapture } from './lib/settle.mjs'
 import { collectSnapshot } from './lib/snapshot.mjs'
@@ -85,6 +85,14 @@ async function main() {
       }
       for (const hook of findClippedChrome(snap.clipped)) {
         warn(i + 1, `content of ${hook} is clipped by its reserved space; shorten it, restyle it, or reduce its padding`)
+      }
+      const small = findSmallText(snap.smallText)
+      if (small.length) {
+        const smallest = small.reduce((a, b) => (a.px <= b.px ? a : b))
+        warn(
+          i + 1,
+          `${small.length} diagram text element(s) render below ${SMALL_TEXT_MIN_PX}px at this viewport (smallest ${smallest.px.toFixed(1)}px: ${smallest.label}); raise the font size or simplify the diagram`,
+        )
       }
       if (i === 0) {
         for (const issue of findAttributionIssues(snap.attribution)) warn(1, `${issue}; ${ATTRIBUTION_HINT}`)

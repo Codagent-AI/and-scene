@@ -26,5 +26,5 @@ export const E = {
 
 // Fixed design-canvas geometry (880 x 380). Entities accumulate and are never
 // moved, so every coordinate below is used by every step that shows it.
-export const CARD = { y: 160, w: 104, h: 90, gap: 30, x0: 30 }
+export const CARD = { y: 160, w: 104, h: 96, gap: 24, x0: 30 }
 export const cardX = (n: number) => CARD.x0 + n * (CARD.w + CARD.gap)

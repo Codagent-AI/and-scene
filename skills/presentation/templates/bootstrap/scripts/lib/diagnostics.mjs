@@ -3,6 +3,7 @@
 
 const OVERLAP_MIN_PX = 2
 const MIN_ATTRIBUTION_FONT_PX = 12
+const MIN_RENDERED_TEXT_PX = 8
 const BROWSER_DEFAULT_LINK_COLORS = new Set(['rgb(0, 0, 238)', 'rgb(158, 158, 255)'])
 
 function intersects(a, b) {
@@ -72,4 +73,13 @@ export function findClippedChrome(clipped) {
   return [...new Set(clipped)]
 }
 
+/**
+ * Diagram text that renders too small to read once the canvas is scaled to the
+ * viewport. Items: `{ label, px }`, `px` being the rendered font size.
+ */
+export function findSmallText(items) {
+  return items.filter((i) => i.px < MIN_RENDERED_TEXT_PX)
+}
+
+export const SMALL_TEXT_MIN_PX = MIN_RENDERED_TEXT_PX
 export const ATTRIBUTION_HINT = 'style it via the [data-presentation-attribution] hook'

@@ -133,9 +133,21 @@ export function collectSnapshot() {
       .map(() => sel.slice(1, -1)),
   )
 
+  // Diagram text is drawn on the scaled canvas: its rendered size is the
+  // computed size times the canvas scale.
+  const smallText = []
+  for (const canvas of document.querySelectorAll('[data-presentation-canvas]')) {
+    const scale = Number(canvas.getAttribute('data-presentation-scale')) || 1
+    for (const el of canvas.querySelectorAll('*')) {
+      if (el.closest('svg') || !textRect(el) || !visible(el)) continue
+      smallText.push({ label: describe(el), px: parseFloat(getComputedStyle(el).fontSize) * scale })
+    }
+  }
+
   const root = document.querySelector('[data-presentation-root]')
   return {
     clipped,
+    smallText,
     stepIndex: root ? Number(root.getAttribute('data-step-index')) : -1,
     elements,
     groups: [

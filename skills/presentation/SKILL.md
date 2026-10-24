@@ -38,7 +38,10 @@ Partial: add only missing anchors/dependencies without disturbing existing ones.
 Already inside a presentation app: reuse its target. Otherwise monorepo signals
 (package.json workspaces, pnpm-workspace.yaml, or packages/apps layout) select a
 self-contained `presentations/` app; empty/standalone projects select root.
-Preserve monorepo root build setup and unrelated files. In **any non-empty project
+Preserve monorepo root build setup and unrelated files. Judge anchors for the
+resolved target app, not the monorepo root: a new `presentations/` app must be
+self-contained, so it needs its own build setup even when the root already builds.
+In **any non-empty project
 lacking kit or index**, state the resolved target and wait for user confirmation
 before scaffold writes, including partial monorepos.
 

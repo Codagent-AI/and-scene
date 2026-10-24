@@ -6,8 +6,11 @@ async function files(dir, prefix = '') {
   const entries = await readdir(dir, { withFileTypes: true })
   return (await Promise.all(entries.map(entry => entry.isDirectory() ? files(resolve(dir, entry.name), prefix + entry.name + '/') : prefix + entry.name))).flat()
 }
-export async function scaffold(target, anchors = ['build', 'kit', 'index']) {
-  if (anchors.some(anchor => !['build', 'kit', 'index'].includes(anchor))) throw new Error('Unknown scaffold anchor')
+export async function scaffold(target, requested = ['build', 'kit', 'index']) {
+  if (requested.some(anchor => !['build', 'kit', 'index'].includes(anchor))) throw new Error('Unknown scaffold anchor')
+  // A target without its own package.json cannot have a build anchor, so a new self-contained app always receives one.
+  const hasPackage = await readFile(resolve(target, 'package.json')).then(() => true, error => { if (error.code !== 'ENOENT') throw error; return false })
+  const anchors = hasPackage ? requested : [...new Set([...requested, 'build'])]
   const selected = (await files(bootstrap)).filter(path => {
     if (path.startsWith('src/presentation-kit/')) return anchors.includes('kit')
     if (path.startsWith('src/')) return anchors.includes('index')

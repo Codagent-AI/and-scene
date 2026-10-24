@@ -1,3 +1,7 @@
+import { execFileSync } from 'node:child_process'
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { validateReference, phaseFailure } from '../scripts/verify.mjs'
 import { parseOptions } from '../scripts/browser-runtime.mjs'
@@ -52,5 +56,24 @@ describe('script contracts', () => {
     expect(diagnose({ ...good, visible: false })[0]).toContain('missing attribution')
     expect(diagnose({ ...good, fontSize: 10 })[0]).toContain('unpolished attribution')
     expect(diagnose({ ...good, browserDefault: true })[0]).toContain('unpolished attribution')
+  })
+  it('I-24 new monorepo app gets its own build setup even when the root already builds', async () => {
+    const temporary = await mkdtemp(join(tmpdir(), 'and-scene-monorepo-'))
+    const helper = (target: string, anchors: string) => execFileSync(process.execPath, [resolve('skills/presentation/scaffold.mjs'), '--target', target, '--anchors', anchors], { cwd: tmpdir() })
+    try {
+      const rootPackage = '{"private":true,"workspaces":["presentations/*"],"scripts":{"build":"turbo build"}}\n'
+      await writeFile(join(temporary, 'package.json'), rootPackage)
+      await writeFile(join(temporary, 'README.md'), 'unrelated')
+      helper(join(temporary, 'presentations', 'scene-app'), 'kit,index')
+      const written = await readdir(join(temporary, 'presentations', 'scene-app'))
+      for (const name of ['package.json', 'tsconfig.json', 'tsconfig.app.json', 'vite.config.ts', 'index.html', 'src']) expect(written).toContain(name)
+      expect(await readFile(join(temporary, 'package.json'), 'utf8')).toBe(rootPackage)
+      expect((await readdir(temporary)).sort()).toEqual(['README.md', 'package.json', 'presentations'])
+      const hosted = join(temporary, 'hosted')
+      await mkdir(hosted)
+      await writeFile(join(hosted, 'package.json'), '{"scripts":{"build":"custom-build"}}\n')
+      helper(hosted, 'kit')
+      expect(await readdir(hosted)).not.toContain('vite.config.ts')
+    } finally { await rm(temporary, { recursive: true, force: true }) }
   })
 })

@@ -29,6 +29,7 @@ describe('INT-001 materialized bootstrap is complete and style-neutral', () => {
     steps.build = run('npm', ['run', 'build'], { cwd: app })
     steps.lint = run('npm', ['run', 'lint'], { cwd: app })
     steps.verify = run('npm', ['run', 'verify'], { cwd: app, env: { VERIFY_SETTLE_MS: '700' } })
+    steps.inspect = run('npm', ['run', 'inspect', '--', 'starter', '--no-build', '--settle', '400'], { cwd: app })
     steps.verifySecond = run('npm', ['run', 'verify', '--', 'second-talk'], { cwd: app, env: { VERIFY_SETTLE_MS: '700' } })
   })
   afterAll(() => {
@@ -76,6 +77,14 @@ describe('INT-001 materialized bootstrap is complete and style-neutral', () => {
     expect(steps.verifySecond.output).toMatch(/open http:\/\/127\.0\.0\.1:\d+\/second-talk/)
     expect(steps.verifySecond.output).toContain('step 2/2 rendered')
     expect(existsSync(path.join(app, 'scripts/inspect-presentation.mjs'))).toBe(true)
+  })
+
+  it('ships a working project-local screenshot helper entry point', () => {
+    expect(steps.inspect.code, steps.inspect.output).toBe(0)
+    expect(steps.inspect.output).toMatch(/production preview http:\/\/127\.0\.0\.1:\d+\/starter/)
+    expect(existsSync(path.join(app, 'inspection/starter/step-01.png'))).toBe(true)
+    expect(existsSync(path.join(app, 'inspection/starter/step-02.png'))).toBe(true)
+    expect(JSON.parse(readFileSync(path.join(app, 'package.json'), 'utf8')).scripts.inspect).toBe('node scripts/inspect-presentation.mjs')
   })
 
   it('keeps the canonical kit and scripts aligned with the materialized copies, both directions', () => {

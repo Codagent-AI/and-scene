@@ -10,11 +10,11 @@ export const stepFile = (index) => `step-${String(index + 1).padStart(2, '0')}.p
  * advanced and the settle interval has elapsed. `shoot(file)` and `snapshot()`
  * are injected so the loop can be tested without a browser.
  */
-export async function captureSteps({ page, count, outDir, settleMs = DEFAULT_SETTLE_MS, shoot, snapshot, sleep = defaultSleep, now = Date.now }) {
+export async function captureSteps({ page, count, outDir, settleMs = DEFAULT_SETTLE_MS, indexTimeoutMs = 5000, shoot, snapshot, sleep = defaultSleep, now = Date.now }) {
   const records = []
   for (let i = 0; i < count; i++) {
     if (i > 0) await page.keyboard.press('ArrowRight')
-    const state = await waitForIndex(page, i, { sleep })
+    const state = await waitForIndex(page, i, { sleep, timeoutMs: indexTimeoutMs })
     if (state?.index !== i) throw new Error(`step index did not reach ${i} (stuck at ${state?.index})`)
     const settledFrom = now()
     await sleep(settleMs)

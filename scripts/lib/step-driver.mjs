@@ -44,8 +44,12 @@ export const waitForIndex = (page, index, { timeoutMs = 5000, intervalMs = 50, s
  * Open a presentation route and step through every step with ArrowRight.
  * Throws a VerifyError naming the phase and failing step index on any browser
  * error, missing hook, or transition that does not advance the step index.
+ *
+ * @param {unknown} page
+ * @param {string} url
+ * @param {{ outline?: { era?: string, title: string, caption: string }[], timeoutMs?: number, stepSettleMs?: number, onStep?: (step: { index: number, title?: string }) => void, sleep?: (ms: number) => Promise<void> }} [options]
  */
-export async function driveSteps(page, url, { outline, timeoutMs = 5000, stepSettleMs = 150, sleep = defaultSleep } = {}) {
+export async function driveSteps(page, url, { outline, timeoutMs = 5000, stepSettleMs = 150, onStep, sleep = defaultSleep } = {}) {
   let step = 0
   const errors = collectErrors(page, () => step)
   const fail = (message, at = step) => {
@@ -74,6 +78,7 @@ export async function driveSteps(page, url, { outline, timeoutMs = 5000, stepSet
     rendered.push({ index: i, title: state.title, caption: state.caption, era: state.era })
     await sleep(stepSettleMs)
     check()
+    onStep?.({ index: i, title: state.title })
     if (i === first.count - 1) break
     step = i + 1
     await page.keyboard.press('ArrowRight')

@@ -39,6 +39,7 @@ export async function runVerify({ root, config, log = console.log, deps = {} }) 
     } catch (err) {
       throw new VerifyError('preview', err instanceof Error ? err.message : String(err))
     }
+    log(`verify: preview ready at ${preview.origin}`)
     try {
       browser = await d.launchBrowser()
     } catch (err) {
@@ -51,7 +52,10 @@ export async function runVerify({ root, config, log = console.log, deps = {} }) 
       try {
         const page = await context.newPage()
         await assertRegistered(page, preview.origin, route.slug)
-        const run = await d.driveSteps(page, `${preview.origin}/${route.slug}`, { outline: route.outline })
+        const run = await d.driveSteps(page, `${preview.origin}/${route.slug}`, {
+          outline: route.outline,
+          onStep: ({ index, title }) => log(`verify:   step index ${index} ok: ${title}`),
+        })
         results.push({ slug: route.slug, count: run.count })
       } finally {
         await context.close()

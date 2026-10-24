@@ -1,7 +1,7 @@
-import type { Mode, Step } from '../types'
+import type { Mode } from '../types'
 
 export interface FooterProps {
-  steps: readonly Pick<Step<never>, 'id' | 'title' | 'caption'>[]
+  steps: readonly { id: string; title: string; caption: string }[]
   index: number
   mode: Mode
   onPrev: () => void

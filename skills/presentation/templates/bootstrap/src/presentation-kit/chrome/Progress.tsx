@@ -1,13 +1,15 @@
-export interface ProgressProps {
+import type { HTMLAttributes } from 'react'
+
+export interface ProgressProps extends HTMLAttributes<HTMLDivElement> {
   titles: string[]
   index: number
   onJump: (index: number) => void
 }
 
 /** One button per step; the active one carries `aria-current="step"` and `data-presentation-active`. */
-export function Progress({ titles, index, onJump }: ProgressProps) {
+export function Progress({ titles, index, onJump, style, ...rest }: ProgressProps) {
   return (
-    <div data-presentation-progress="" role="group" aria-label="Steps" style={{ display: 'flex', alignItems: 'center' }}>
+    <div role="group" aria-label="Steps" {...rest} data-presentation-progress="" style={{ display: 'flex', alignItems: 'center', ...style }}>
       {titles.map((title, i) => {
         const active = i === index
         return (

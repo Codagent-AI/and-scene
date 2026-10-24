@@ -1,6 +1,7 @@
-import { render, waitFor } from '@testing-library/react'
+import { fireEvent, render, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { validateSteps } from '../../src/presentation-kit'
+import { Presentation, validateSteps } from '../../src/presentation-kit'
+import { setViewport } from './helpers'
 import { presentations } from '../../src/presentations'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'
 import { SampleScene } from '../../src/presentations/how-to-make-a-presentation/Scene'
@@ -50,6 +51,24 @@ describe('reference sample', () => {
   it('can load its Talk entry from the registry', async () => {
     const mod = await presentations.find((p) => p.slug === SLUG)!.load()
     expect(typeof mod.default).toBe('function')
+  })
+})
+
+describe('sample walkthrough', () => {
+  it('shows each committed step\'s caption and title forward and back through the presentation chrome', () => {
+    setViewport(1440, 900)
+    const { container } = render(<Presentation steps={STEPS} title="Sample" initialMode="browse" />)
+    const caption = () => container.querySelector('[data-presentation-caption]')!.textContent
+    const title = () => container.querySelector('[data-presentation-step-title]')!.textContent
+    const click = (sel: string) => fireEvent.click(container.querySelector(sel)!)
+    for (let i = 0; i < 9; i++) {
+      expect([title(), caption()]).toEqual([outline[i].title, outline[i].caption])
+      if (i < 8) click('[data-presentation-next]')
+    }
+    for (let i = 8; i >= 0; i--) {
+      expect([title(), caption()]).toEqual([outline[i].title, outline[i].caption])
+      if (i > 0) click('[data-presentation-prev]')
+    }
   })
 })
 

@@ -42,7 +42,7 @@ export function Stage({ step, index, mode, canvas = { width: DESIGN_W, height: D
         style={{ position: 'relative', flex: 'none', width: canvas.width, height: canvas.height, scale }}
       >
         <LayoutGroup>
-          <AnimatePresence initial={false}>
+          <AnimatePresence>
             <motion.div
               key={sceneKey(step)}
               data-presentation-scene=""

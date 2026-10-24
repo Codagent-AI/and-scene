@@ -5,14 +5,19 @@ import { describe, expect, it } from 'vitest'
 import {
   Appear,
   Arrow,
+  Attribution,
   Box,
   ENTER_DELAY,
   ENTER_T,
   Emphasis,
+  Footer,
   Frame,
+  Header,
   Label,
+  Progress,
   SceneLayer,
   SymbolChip,
+  Toc,
 } from '../../src/presentation-kit'
 import { useEntityProps, placement } from '../../src/presentation-kit/nodes/shared'
 import { useAppearMotion } from '../../src/presentation-kit/nodes/appearMotion'
@@ -41,15 +46,44 @@ describe('node primitives', () => {
     expect(el.style).toMatchObject({ position: 'absolute', left: '10px', top: '20px', width: '30px', height: '40px' })
   })
 
-  it('Arrow exposes hooks, class, and a line with a head, plus a second head when bidirectional', () => {
-    const { container, rerender } = render(<Arrow id="a" from={{ x: 0, y: 0 }} to={{ x: 100, y: 0 }} className="mine" />)
+  it('Arrow exposes hooks, class, style, data-*, and a line with a head, plus a second head when bidirectional', () => {
+    const { container, rerender } = render(<Arrow id="a" from={{ x: 0, y: 0 }} to={{ x: 100, y: 0 }} className="mine" data-extra="yes" style={{ zIndex: 7 }} />)
     const svg = container.querySelector('svg')!
     expect(hooks(svg)).toEqual({ node: 'arrow', entity: 'a' })
     expect(svg.classList.contains('mine')).toBe(true)
+    expect(svg.getAttribute('data-extra')).toBe('yes')
+    expect(svg.style.zIndex).toBe('7')
+    expect(svg.style.position).toBe('absolute')
     expect(svg.querySelectorAll('line')).toHaveLength(1)
     expect(svg.querySelectorAll('[data-presentation-arrowhead]')).toHaveLength(1)
     rerender(<Arrow id="a" from={{ x: 0, y: 0 }} to={{ x: 100, y: 0 }} bidirectional />)
     expect(container.querySelectorAll('[data-presentation-arrowhead]')).toHaveLength(2)
+  })
+
+  it('chrome pieces expose their hook and pass className, style, and data-* through to their element', () => {
+    const common = { className: 'mine', style: { zIndex: 9 }, 'data-extra': 'yes' }
+    const noop = () => {}
+    const step = { id: 's', era: 'e', title: 'T', caption: 'C' }
+    const cases: [string, ReactNode][] = [
+      ['header', <Header {...common} title="t" mode="browse" />],
+      ['footer', <Footer {...common} mode="browse" step={step} index={0} count={2} titles={['a', 'b']} onJump={noop} onPrev={noop} onNext={noop} />],
+      ['footer', <Footer {...common} mode="present" step={step} index={0} count={2} titles={['a', 'b']} onJump={noop} onPrev={noop} onNext={noop} />],
+      ['toc', <Toc {...common} sections={[{ era: 'e', first: 0, indices: [0] }]} active={0} onJump={noop} />],
+      ['progress', <Progress {...common} titles={['a']} index={0} onJump={noop} />],
+      ['attribution', <Attribution {...common} />],
+    ]
+    for (const [hook, element] of cases) {
+      const { container, unmount } = render(<>{element}</>)
+      const el = container.querySelector<HTMLElement>(
+        hook === 'progress' ? '[data-presentation-progress]' : hook === 'attribution' ? '[data-presentation-attribution]' : `[data-presentation-chrome="${hook}"]`,
+      )!
+      expect(el, hook).not.toBeNull()
+      expect(el.classList.contains('mine'), hook).toBe(true)
+      expect(el.getAttribute('data-extra'), hook).toBe('yes')
+      expect(el.style.zIndex, hook).toBe('9')
+      expect(el.style.position === 'absolute' || hook === 'progress', hook).toBe(true)
+      unmount()
+    }
   })
 
   it('Box renders an optional Lucide glyph only when given an icon component', () => {

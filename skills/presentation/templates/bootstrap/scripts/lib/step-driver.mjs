@@ -1,6 +1,7 @@
 import { defaultSleep } from './loopback.mjs'
 import { VerifyError } from './report.mjs'
 import { validateRendered } from './outline.mjs'
+import { ANIMATION_SETTLE_MS } from './timing.mjs'
 
 /** Runs in the page: the public hooks every presentation exposes. */
 export function readHooks() {
@@ -49,7 +50,7 @@ export const waitForIndex = (page, index, { timeoutMs = 5000, intervalMs = 50, s
  * @param {string} url
  * @param {{ outline?: { era?: string, title: string, caption: string }[], timeoutMs?: number, stepSettleMs?: number, onStep?: (step: { index: number, title?: string }) => void, sleep?: (ms: number) => Promise<void> }} [options]
  */
-export async function driveSteps(page, url, { outline, timeoutMs = 5000, stepSettleMs = 150, onStep, sleep = defaultSleep } = {}) {
+export async function driveSteps(page, url, { outline, timeoutMs = 5000, stepSettleMs = ANIMATION_SETTLE_MS, onStep, sleep = defaultSleep } = {}) {
   let step = 0
   const errors = collectErrors(page, () => step)
   const fail = (message, at = step) => {

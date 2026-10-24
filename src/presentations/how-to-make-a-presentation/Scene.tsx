@@ -1,4 +1,4 @@
-import { Appear, Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip, type SceneProps } from '../../presentation-kit'
+import { Appear, Arrow, Box, Emphasis, Frame, Label, SceneLayer, SymbolChip, useSeenBeat, type SceneProps } from '../../presentation-kit'
 import { AnimatePresence, motion } from 'motion/react'
 import { DESIGN_H, DESIGN_W, EASE, ENTER_DELAY, ENTER_T, EXIT_T } from '../../presentation-kit'
 import { ENTITIES, LINKS, MODIFY_ARC, type EntityDef } from './entities'
@@ -55,23 +55,24 @@ function ModifyArc({ fresh }: { fresh: boolean }) {
 }
 
 /**
- * One persistent scene for the whole presentation. Entities born at the active
- * beat are newcomers (`Appear`); everything already on screen renders
+ * One persistent scene for the whole presentation. Entities born after the beat
+ * last shown (including ones skipped by a direct jump) are newcomers (`Appear`); everything already on screen renders
  * identically each beat so it keeps its place.
  */
 export function SampleScene({ payload: { beat } }: SceneProps<SamplePayload>) {
+  const seen = useSeenBeat(beat)
   return (
     <SceneLayer className="sample-scene">
       <AnimatePresence>
         {LINKS.filter((l) => l.beat <= beat).map((l) => (
-          <Appear key={l.id} active={l.beat === beat}>
+          <Appear key={l.id} active={l.beat > seen}>
             <Arrow id={l.id} from={l.from} to={l.to} bidirectional={l.bidirectional} className={own(l.tone)} />
           </Appear>
         ))}
         {ENTITIES.filter((e) => e.beat <= beat).map((def) => (
-          <Entity key={def.id} def={def} fresh={def.beat === beat} />
+          <Entity key={def.id} def={def} fresh={def.beat > seen} />
         ))}
-        {beat >= MODIFY_ARC.beat && <ModifyArc key={MODIFY_ARC.id} fresh={beat === MODIFY_ARC.beat} />}
+        {beat >= MODIFY_ARC.beat && <ModifyArc key={MODIFY_ARC.id} fresh={MODIFY_ARC.beat > seen} />}
       </AnimatePresence>
     </SceneLayer>
   )

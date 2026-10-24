@@ -48,6 +48,8 @@ describe('step model', () => {
     it('rejects a missing Scene and duplicate ids', () => {
       const [a, b] = makeSteps(2)
       expect(validateSteps([{ ...a, Scene: undefined }])).toEqual(['step 1: missing Scene'])
+      expect(validateSteps([{ ...a, Scene: null as never }])).toEqual(['step 1: missing Scene'])
+      expect(validateSteps([{ ...a, Scene: 'div' as never }])).toEqual(['step 1: missing Scene'])
       expect(validateSteps([a, { ...b, id: a.id }])).toEqual([`step 2: duplicate id "${a.id}"`])
     })
   })

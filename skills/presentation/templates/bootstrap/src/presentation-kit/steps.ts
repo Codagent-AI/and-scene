@@ -40,7 +40,8 @@ export function validateSteps(steps: ReadonlyArray<Partial<AnyStep>>): string[] 
         problems.push(`step ${i + 1}: missing ${field}`)
       }
     }
-    if (typeof step.Scene !== 'function' && typeof step.Scene !== 'object') {
+    const scene = step.Scene as unknown
+    if (typeof scene !== 'function' && (typeof scene !== 'object' || scene === null)) {
       problems.push(`step ${i + 1}: missing Scene`)
     }
     if (typeof step.id === 'string' && step.id !== '') {

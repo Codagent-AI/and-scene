@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { act, render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { defineStep, Presentation, type AnyStep, type SceneProps } from '../../src/presentation-kit'
+import { Appear, Box, defineStep, Presentation, SceneLayer, type AnyStep, type SceneProps } from '../../src/presentation-kit'
 
 const mounts: string[] = []
 
@@ -62,5 +62,30 @@ describe('persistent grouped scenes', () => {
     render(<Presentation steps={steps} title="t" />)
     next()
     expect(mounts).toEqual(['a', 'b'])
+  })
+})
+
+describe('newcomers inside the Stage host', () => {
+  // A scene with no AnimatePresence of its own: its newcomers must still get enter motion.
+  function Bare({ payload }: SceneProps<{ n: number }>) {
+    return (
+      <SceneLayer>
+        <Box id="a" />
+        {payload.n === 2 && (
+          <Appear>
+            <Box id="b" />
+          </Appear>
+        )}
+      </SceneLayer>
+    )
+  }
+
+  it('hides a newcomer that mounts on a later step until its enter motion runs', () => {
+    const steps = [1, 2].map((n) => defineStep({ id: `s${n}`, era: 'e', title: 't', caption: 'c', groupKey: 'g', Scene: Bare, payload: { n } }))
+    const { container } = render(<Presentation steps={steps} title="t" />)
+    expect(container.querySelector('[data-presentation-entity="b"]')).toBeNull()
+    next()
+    const b = container.querySelector<HTMLElement>('[data-presentation-entity="b"]')!
+    expect(b.style.opacity).toBe('0')
   })
 })

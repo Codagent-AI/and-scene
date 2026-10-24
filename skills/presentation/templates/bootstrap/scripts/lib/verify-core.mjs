@@ -2,6 +2,7 @@ import { chromium } from 'playwright'
 import { driveSteps } from './step-driver.mjs'
 import { runBuild, startPreview } from './preview.mjs'
 import { VerifyError } from './report.mjs'
+import { runCleanups } from './cleanup.mjs'
 
 export const DESKTOP = { width: 1440, height: 900 }
 
@@ -58,12 +59,11 @@ export async function runVerify({ root, config, log = console.log, deps = {} }) 
         })
         results.push({ slug: route.slug, count: run.count })
       } finally {
-        await context.close()
+        await runCleanups([() => context.close()], log)
       }
     }
     return results
   } finally {
-    await browser?.close()
-    await preview?.stop()
+    await runCleanups([() => browser?.close(), () => preview?.stop()], log)
   }
 }

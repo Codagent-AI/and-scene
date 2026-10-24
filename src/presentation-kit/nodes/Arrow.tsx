@@ -1,5 +1,4 @@
-import { motion } from 'motion/react'
-import type { CSSProperties } from 'react'
+import { motion, type MotionStyle, type SVGMotionProps } from 'motion/react'
 import { DESIGN_H, DESIGN_W, EASE, LAYOUT_T } from '../constants'
 import { useEntityProps } from './shared'
 
@@ -8,14 +7,14 @@ export interface Point {
   y: number
 }
 
-export interface ArrowProps {
+export interface ArrowProps
+  extends Omit<SVGMotionProps<SVGSVGElement>, 'id' | 'layoutId' | 'initial' | 'animate' | 'exit' | 'style' | 'children' | 'from' | 'to' | 'width' | 'height'> {
   id: string
   from: Point
   to: Point
   /** Add a head at `from` as well. */
   bidirectional?: boolean
-  className?: string
-  style?: CSSProperties
+  style?: MotionStyle
   /** Size of the layer the arrow is drawn on; defaults to the design canvas. */
   width?: number
   height?: number
@@ -39,12 +38,12 @@ function Head({ at, toward }: { at: Point; toward: Point }) {
 }
 
 /** A line between two points with a head at the end; styled through its data hooks. */
-export function Arrow({ id, from, to, bidirectional, className, style, width = DESIGN_W, height = DESIGN_H }: ArrowProps) {
+export function Arrow({ id, from, to, bidirectional, style, width = DESIGN_W, height = DESIGN_H, ...rest }: ArrowProps) {
   const entity = useEntityProps('arrow', id)
   return (
     <motion.svg
       {...entity}
-      className={className}
+      {...rest}
       width={width}
       height={height}
       style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none', ...style }}

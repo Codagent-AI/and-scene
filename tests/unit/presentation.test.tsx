@@ -149,6 +149,23 @@ describe('direct jump and active state', () => {
     expect(root().getAttribute('data-step-index')).toBe('4')
   })
 
+  it('jumps from every progress dot and every ToC entry to its target', () => {
+    render(<Presentation steps={makeSteps(6)} title="Deck" />)
+    const dots = all('[data-presentation-progress-item]')
+    for (const i of [5, 0, 3, 1, 4, 2]) {
+      fireEvent.click(dots[i])
+      expect(root().getAttribute('data-step-index')).toBe(String(i))
+      expect(q('[data-presentation-caption]')!.textContent).toBe(`Caption ${i}`)
+    }
+    const toc = all('[data-presentation-toc-item]')
+    const firsts = [0, 2, 4]
+    for (const e of [2, 0, 1]) {
+      fireEvent.click(toc[e])
+      expect(root().getAttribute('data-step-index')).toBe(String(firsts[e]))
+      expect(q('[data-presentation-caption]')!.textContent).toBe(`Caption ${firsts[e]}`)
+    }
+  })
+
   it('marks only the active dot and ToC entry with aria-current and the active hook', () => {
     render(<Presentation steps={makeSteps(6)} title="Deck" />)
     const state = () => ({

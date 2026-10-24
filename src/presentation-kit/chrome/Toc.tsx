@@ -1,7 +1,8 @@
+import type { HTMLAttributes } from 'react'
 import { STAGE_LAYOUT } from '../constants'
 import type { Section } from '../steps'
 
-export interface TocProps {
+export interface TocProps extends Omit<HTMLAttributes<HTMLElement>, 'onClick'> {
   sections: Section[]
   /** Index of the section containing the active step. */
   active: number
@@ -9,12 +10,13 @@ export interface TocProps {
 }
 
 /** Era-based table of contents; an entry jumps to the first step of its section. */
-export function Toc({ sections, active, onJump }: TocProps) {
+export function Toc({ sections, active, onJump, style, ...rest }: TocProps) {
   return (
     <nav
-      data-presentation-chrome="toc"
       aria-label="Sections"
-      style={{ position: 'absolute', left: 0, top: STAGE_LAYOUT.browse.top, width: STAGE_LAYOUT.browse.tocWidth }}
+      {...rest}
+      data-presentation-chrome="toc"
+      style={{ position: 'absolute', left: 0, top: STAGE_LAYOUT.browse.top, width: STAGE_LAYOUT.browse.tocWidth, ...style }}
     >
       <div data-presentation-toc-list="">
         {sections.map((section, i) => {

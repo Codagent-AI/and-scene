@@ -1,8 +1,8 @@
 import { act, fireEvent, render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { Presentation, type Step } from '../../src/presentation-kit'
+import { Presentation } from '../../src/presentation-kit'
 import { CARD_COUNT, ID } from '../../src/presentations/how-to-make-a-presentation/entities'
-import { Scene, type ScenePayload } from '../../src/presentations/how-to-make-a-presentation/steps/Scene'
+import { Scene } from '../../src/presentations/how-to-make-a-presentation/steps/Scene'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps/steps'
 
 const EXPECTED = [
@@ -77,7 +77,7 @@ describe('reference sample scene content', () => {
   })
 
   it('keeps continuing entities mounted (same DOM node) while navigating', () => {
-    const { container } = render(<Presentation steps={STEPS as Step<ScenePayload>[]} title="t" />)
+    const { container } = render(<Presentation steps={STEPS} title="t" />)
     const you = container.querySelector(`[data-presentation-id="${ID.you}"]`)
     expect(you).not.toBeNull()
     for (let i = 0; i < 8; i++) act(() => void fireEvent.keyDown(window, { key: 'ArrowRight' }))

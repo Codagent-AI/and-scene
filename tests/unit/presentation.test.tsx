@@ -200,3 +200,12 @@ describe('grouped scenes', () => {
     expect(element.props.steps[0].payload.n).toBe(1)
   })
 })
+
+describe('typed step payloads', () => {
+  it('rejects steps whose scene payload type does not match', () => {
+    const steps = makeSteps(1)
+    // @ts-expect-error payload must match the scene's payload type
+    const bad = <Presentation steps={[{ ...steps[0], payload: { n: 'one' } }]} title="Bad" />
+    expect(bad).toBeTruthy()
+  })
+})

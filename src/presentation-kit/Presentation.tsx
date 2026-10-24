@@ -5,7 +5,7 @@ import { Toc } from './chrome/Toc'
 import { TOC_MIN_WIDTH, type Mode } from './constants'
 import { Stage } from './Stage'
 import type { Step } from './types'
-import { usePresentationNav } from './usePresentationNav'
+import { clampIndex, usePresentationNav } from './usePresentationNav'
 
 export interface PresentationProps<TPayload> {
   steps: readonly Step<TPayload>[]
@@ -36,7 +36,8 @@ export function Presentation<TPayload>({
   brand,
   attribution,
 }: PresentationProps<TPayload>) {
-  const { index, mode, next, prev, goTo } = usePresentationNav(steps.length, initialMode)
+  const { index: navIndex, mode, next, prev, goTo } = usePresentationNav(steps.length, initialMode)
+  const index = clampIndex(navIndex, steps.length)
   const wide = useIsWide()
   const step = steps[index]
 

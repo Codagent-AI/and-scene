@@ -1,20 +1,22 @@
 # and-scene
 
-And Scene is a project for building a presentation-generation agent skill.
+Browser presentations built as one evolving scene: stable entities that morph, connect, and
+re-label across named steps.
 
-The intended presentation model is not a stack of unrelated slides. It is one
-diagrammatic scene that evolves through named steps: elements appear, move,
-collapse, connect, and re-label as the talk arc develops.
-
-## Development
+- `src/presentation-kit/` — style-neutral scene kit (stage, navigation, chrome, node primitives)
+- `src/presentations/` — registry plus the worked sample, *How to Use This Skill to Make a Presentation*
+- `skills/presentation/` — the agent skill, scaffold helper, and templates
+- `scripts/verify.mjs`, `scripts/inspect-presentation.mjs` — build/render gate and screenshot diagnostics
 
 ```bash
-npm install
-npm run dev
+npm ci
+npm test                  # fast unit and contract tests
+npm run test:integration  # bootstrap, inspection helper, and verification-failure tests (Chromium)
+npm run lint
 npm run build
+npm run verify            # build + render every step of the reference sample
+npm run inspect -- how-to-make-a-presentation
 ```
 
-## Current State
-
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+After changing the kit, host files, or verification scripts, run `node scripts/sync-templates.mjs`
+to refresh the skill's bootstrap template.

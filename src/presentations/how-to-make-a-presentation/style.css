@@ -1,0 +1,290 @@
+/* Presentation-owned look for "How to Use This Skill to Make a Presentation". */
+[data-presentation-root] {
+  --ink: #f8f3e6;
+  --muted: #b9b09c;
+  --gold: #e0bd62;
+  --line: rgba(248, 243, 230, 0.34);
+  --panel: rgba(248, 243, 230, 0.06);
+  --pass: #6fcf97;
+  color: var(--ink);
+}
+
+/* chrome */
+[data-presentation-header] {
+  padding: 14px 28px 0;
+}
+[data-presentation-header-middle] {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+[data-presentation-marker] {
+  min-width: 2ch;
+  color: var(--gold);
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+[data-presentation-header] h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+[data-presentation-deck-title] {
+  color: var(--muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-presentation-mode-toggle],
+[data-presentation-prev],
+[data-presentation-next] {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+[data-presentation-mode-toggle]:hover,
+[data-presentation-prev]:hover:not(:disabled),
+[data-presentation-next]:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+[data-presentation-prev]:disabled,
+[data-presentation-next]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+[data-presentation-prev] svg,
+[data-presentation-next] svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+[data-presentation-footer] {
+  padding: 8px 28px 6px;
+  text-align: center;
+}
+[data-presentation-footer] > h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3.4vw, 2.6rem);
+  line-height: 1.15;
+}
+[data-presentation-caption] {
+  max-width: 46rem;
+  min-height: 3.2em;
+  margin: 0 auto 10px;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+[data-presentation-controls] {
+  max-width: 46rem;
+  margin: 0 auto;
+}
+[data-presentation-progress] {
+  gap: 10px;
+}
+[data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+[data-presentation-progress-item][data-presentation-active] {
+  border-color: var(--gold);
+  background: var(--gold);
+  transform: scale(1.5);
+}
+
+[data-presentation-toc] {
+  flex: 0 0 11.5rem;
+  padding: 12px 8px 12px 28px;
+}
+[data-presentation-toc] ol {
+  margin: 0;
+  padding: 0;
+}
+[data-presentation-toc-item] {
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-left: 2px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+[data-presentation-toc-item][data-presentation-active] {
+  border-left-color: var(--gold);
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+[data-presentation-attribution-row] {
+  padding: 0 28px 10px;
+}
+[data-presentation-attribution] {
+  padding: 2px 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+[data-presentation-attribution]:hover,
+[data-presentation-attribution]:focus-visible {
+  color: var(--gold);
+}
+
+@media (max-width: 640px) {
+  [data-presentation-header],
+  [data-presentation-footer],
+  [data-presentation-attribution-row] {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  [data-presentation-header] h1 {
+    font-size: 1.1rem;
+  }
+  [data-presentation-deck-title] {
+    display: none;
+  }
+  [data-presentation-caption] {
+    font-size: 0.95rem;
+  }
+  [data-presentation-progress] {
+    gap: 6px;
+  }
+}
+
+/* scene entities (design-canvas units) */
+[data-presentation-box] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 14px;
+  line-height: 1.25;
+  text-align: center;
+}
+[data-presentation-box][data-role="you"],
+[data-presentation-box][data-role="skill"] {
+  flex-direction: row;
+  gap: 8px;
+  border-color: var(--gold);
+  font-size: 16px;
+  font-weight: 700;
+}
+[data-presentation-glyph] {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+[data-presentation-box][data-role="step-card"] {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 10px;
+}
+[data-card-part] {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 11px;
+  text-align: left;
+}
+[data-card-part="visual"] {
+  flex: 1;
+  border-style: dashed;
+}
+[data-presentation-box][data-dashed] {
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+}
+[data-presentation-box-sub] {
+  color: var(--muted);
+  font-size: 11px;
+}
+[data-presentation-box][data-role="verify"] {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 10px;
+}
+[data-presentation-box][data-role="scene-kit"] {
+  border-color: var(--gold);
+  border-style: dashed;
+  color: var(--gold);
+}
+[data-presentation-chip] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(13, 12, 11, 0.9);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+[data-presentation-chip][data-role="morph-label"] {
+  font-size: 10px;
+}
+[data-presentation-chip][data-state="pass"] {
+  border-color: var(--pass);
+  color: var(--pass);
+}
+[data-presentation-chip][data-role="flag"] {
+  border-color: var(--gold);
+  color: var(--gold);
+  font-size: 11px;
+}
+[data-presentation-chip] [data-presentation-glyph] {
+  width: 13px;
+  height: 13px;
+}
+[data-presentation-label] {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: right;
+}
+[data-presentation-label][data-role="modify-label"] {
+  color: var(--gold);
+  text-align: center;
+}
+[data-presentation-arrow] {
+  color: var(--muted);
+}
+[data-presentation-arrow-path] {
+  stroke-width: 2;
+}
+[data-presentation-arrow][data-role="modify-arc"] {
+  color: var(--gold);
+}
+[data-presentation-emphasis] {
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+}
+[data-presentation-frame] {
+  border: 2px dashed var(--gold);
+  border-radius: 16px;
+}
+[data-presentation-chip][data-role="reveal-label"] {
+  border-color: var(--gold);
+  color: var(--gold);
+}

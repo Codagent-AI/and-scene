@@ -1,6 +1,6 @@
 import { AnimatePresence } from 'motion/react'
-import { Appear, Arrow, Box, Label, SceneLayer } from '../../../presentation-kit/index.ts'
-import type { SceneProps } from '../../../presentation-kit/index.ts'
+import { Appear, Arrow, Box, Label, SceneLayer } from '__KIT__'
+import type { SceneProps } from '__KIT__'
 import { ENT } from '../entities.ts'
 
 export interface ScenePayload {

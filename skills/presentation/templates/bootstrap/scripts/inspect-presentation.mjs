@@ -132,6 +132,7 @@ async function main() {
     const page = await browser.newPage({ viewport: opts.size })
     const errors = []
     page.on('pageerror', (e) => errors.push(e.message))
+    page.on('console', (m) => m.type() === 'error' && errors.push(`console error: ${m.text()}`))
     await page.goto(`${preview.baseUrl}/${opts.slug}`)
     await page.waitForSelector(ROOT_SEL, { timeout: 10_000 })
     const count = Number(await page.getAttribute(ROOT_SEL, 'data-step-count'))

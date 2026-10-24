@@ -31,10 +31,24 @@ describe('fixed canvas fit scaling', () => {
     expect(DESIGN_H * small).toBeLessThanOrEqual(500)
   })
 
-  it('clamps to the scale limits and survives degenerate sizes', () => {
-    expect(computeFitScale(1, 1, 'browse')).toBe(MIN_SCALE)
+  it('caps the upscale and survives degenerate sizes', () => {
     expect(computeFitScale(99_999, 99_999, 'browse')).toBe(MAX_SCALE)
     expect(computeFitScale(NaN, 100, 'browse')).toBe(1)
+    expect(computeFitScale(0, 500, 'browse')).toBe(MIN_SCALE)
+    expect(computeFitScale(500, -3, 'present')).toBe(MIN_SCALE)
+  })
+
+  it('always fits positive space exactly, even far below the degenerate-size floor', () => {
+    for (const [w, h] of [[100, 100], [40, 600], [10, 10], [1, 1]]) {
+      const scale = computeFitScale(w, h, 'browse')
+      expect(scale).toBeGreaterThan(0)
+      expect(DESIGN_W * scale).toBeLessThanOrEqual(w + 1e-9)
+      expect(DESIGN_H * scale).toBeLessThanOrEqual(h + 1e-9)
+    }
+    // a very large custom canvas needs a scale well under any fixed minimum
+    const huge = computeFitScale(1000, 800, 'browse', 20_000, 10_000)
+    expect(huge).toBeLessThan(0.1)
+    expect(20_000 * huge).toBeLessThanOrEqual(1000)
   })
 
   it('honors a custom design canvas', () => {

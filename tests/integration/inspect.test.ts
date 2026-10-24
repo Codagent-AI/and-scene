@@ -6,11 +6,11 @@ import { copyRepo, edit, exec } from './helpers.ts'
 let dir: string
 const SETTLE = 1500
 
-const GOOD_CSS = (c: string) => `
+const GOOD_CSS = (c: string, { toc = true, attrSize = 13 } = {}) => `
 .${c} [data-presentation-dot] { width: 10px; height: 10px; border: 1px solid #555; border-radius: 50%; background: transparent; }
 .${c} [data-presentation-dot][data-presentation-active='true'] { width: 24px; background: #123456; border-color: #123456; }
-.${c} [data-presentation-toc-entry][data-presentation-active='true'] { font-weight: 700; background: #def; }
-.${c} [data-presentation-attribution] { font-size: 13px; color: #444; text-decoration: none; }
+${toc ? `.${c} [data-presentation-toc-entry][data-presentation-active='true'] { font-weight: 700; background: #def; }` : ''}
+.${c} [data-presentation-attribution] { font-size: ${attrSize}px; color: #444; text-decoration: none; }
 .${c} [data-presentation-dots] { margin: 0; padding: 0; list-style: none; }
 `
 
@@ -38,6 +38,8 @@ const FIXTURES: Fixture[] = [
             </div>`,
   },
   { slug: 'fx-chrome', css: '', extra: '' },
+  { slug: 'fx-toc', css: GOOD_CSS('fx-toc', { toc: false }), extra: '' },
+  { slug: 'fx-small', css: GOOD_CSS('fx-small', { attrSize: 9 }), extra: '' },
   {
     // The label slides from on top of another label to a clear spot; only settled captures are clean.
     slug: 'fx-settle',
@@ -88,7 +90,8 @@ export default function Talk() {
 
 async function inspect(slug: string, extra: string[] = []) {
   const result = await exec('node', ['scripts/inspect-presentation.mjs', slug, '--settle', String(SETTLE), ...extra], dir)
-  const manifestFile = path.join(dir, 'inspection', slug, 'manifest.json')
+  const out = extra.includes('--out') ? extra[extra.indexOf('--out') + 1] : path.join('inspection', slug)
+  const manifestFile = path.join(dir, out, 'manifest.json')
   const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, 'utf8')) : null
   const warnings = result.output.split('\n').filter((l) => l.startsWith('WARN'))
   return { ...result, manifest, warnings }
@@ -152,6 +155,24 @@ describe('inspect-presentation helper', () => {
       expect(mine.some((w) => w.includes('indistinct-active') && w.includes('dot')), r.output).toBe(true)
       expect(mine.some((w) => w.includes('attribution') && w.includes('data-presentation-attribution'))).toBe(true)
     }
+  })
+
+  it('reports an indistinct active table-of-contents entry separately from the progress dots', async () => {
+    const r = await inspect('fx-toc')
+    expect(r.code, r.output).toBe(0)
+    expect(r.warnings.length).toBe(3)
+    for (const step of [1, 2, 3]) {
+      const mine = r.warnings.filter((w) => w.startsWith(`WARN step ${step}:`))
+      expect(mine).toHaveLength(1)
+      expect(mine[0]).toMatch(/indistinct-active: the active toc-entry/)
+    }
+  })
+
+  it('reports an undersized attribution link with the font size', async () => {
+    const r = await inspect('fx-small')
+    expect(r.warnings).toHaveLength(3)
+    expect(r.warnings[0]).toMatch(/^WARN step 1: attribution: font size 9px is too small/)
+    expect(r.warnings.some((w) => /indistinct|overlap/.test(w))).toBe(false)
   })
 
   it('fails (not just warns) for an unregistered presentation', async () => {

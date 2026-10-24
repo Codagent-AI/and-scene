@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { AnimatePresence } from 'motion/react'
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Appear, Box, ENTER_DELAY, LAYOUT_T, Presentation } from '../../src/presentation-kit/index.ts'
+import { Appear, Arrow, Box, ENTER_DELAY, LAYOUT_T, Presentation } from '../../src/presentation-kit/index.ts'
 import type { SceneProps, Step } from '../../src/presentation-kit/index.ts'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps/index.ts'
 
@@ -241,14 +241,31 @@ describe('entity continuity', () => {
     expect(newcomer).not.toBe(wrapper)
   })
 
-  it('newcomers start hidden and wait for persisting entities to settle', () => {
+  it('newcomers stay hidden while persisting entities settle, then fade in', async () => {
     expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
     render(
       <Appear>
         <span data-testid="newcomer">hi</span>
       </Appear>,
     )
-    expect(screen.getByTestId('newcomer').closest<HTMLElement>('[data-presentation-appear]')!.style.opacity).toBe('0')
+    const wrapper = screen.getByTestId('newcomer').closest<HTMLElement>('[data-presentation-appear]')!
+    expect(wrapper.style.opacity).toBe('0')
+    // well inside the layout transition: the newcomer has not started entering
+    await new Promise((r) => setTimeout(r, (LAYOUT_T * 1000) / 3))
+    expect(wrapper.style.opacity).toBe('0')
+    // after the layout transition plus the fade, it is fully visible
+    await waitFor(() => expect(wrapper.style.opacity).toBe('1'), { timeout: 3000 })
+  })
+
+  it('morphs a continuing arrow between geometries instead of snapping', async () => {
+    const view = render(<svg><Arrow id="a1" from={{ x: 10, y: 10 }} to={{ x: 100, y: 10 }} /></svg>)
+    const line = () => document.querySelector('[data-presentation-id="a1"] path')!.getAttribute('d')
+    await waitFor(() => expect(line()).toBe('M10,10 Q55,10 100,10'))
+    view.rerender(<svg><Arrow id="a1" from={{ x: 10, y: 10 }} to={{ x: 100, y: 200 }} /></svg>)
+    // not snapped to the final geometry on the render that changed the endpoints
+    expect(line()).not.toBe('M10,10 Q55,105 100,200')
+    // it arrives there by animating
+    await waitFor(() => expect(line()).toBe('M10,10 Q55,105 100,200'), { timeout: 3000 })
   })
 
   it('exposes a stable layoutId-backed identity on primitives', () => {
@@ -278,6 +295,8 @@ describe('entity continuity', () => {
     render(<Presentation steps={dep} title="Deck" />)
     expect(screen.queryByTestId('gone')).not.toBeNull()
     act(() => key('ArrowRight'))
+    // the exit animation is in flight: the entity is still mounted and fading out
+    expect(screen.queryByTestId('gone')).not.toBeNull()
     await waitFor(() => expect(screen.queryByTestId('gone')).toBeNull())
   })
 })

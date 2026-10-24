@@ -11,10 +11,13 @@ export function computeFitScale(
   designW = DESIGN_W,
   designH = DESIGN_H,
 ): number {
+  if (!Number.isFinite(availW) || !Number.isFinite(availH)) return 1
+  if (availW <= 0 || availH <= 0) return MIN_SCALE
+  // Padding is dropped when it would leave no room, so any positive space still fits.
   const { padX, padY } = STAGE_LAYOUT[mode]
-  const scale = Math.min((availW - padX) / designW, (availH - padY) / designH)
-  if (!Number.isFinite(scale)) return 1
-  return Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale))
+  const w = availW > padX ? availW - padX : availW
+  const h = availH > padY ? availH - padY : availH
+  return Math.min(MAX_SCALE, w / designW, h / designH)
 }
 
 /** Measures the stage area and returns the uniform scale for the active mode. */

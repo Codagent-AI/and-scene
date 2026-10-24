@@ -146,7 +146,7 @@
   height: 20px;
   color: var(--accent);
 }
-.htmp [data-variant='bubble'] {
+.htmp [data-presentation-node='box'][data-variant='bubble'] {
   border-radius: 16px;
   font-weight: 400;
   color: var(--muted);
@@ -163,7 +163,7 @@
   font-weight: 400;
   color: var(--muted);
 }
-.htmp [data-variant='ghost'] {
+.htmp [data-presentation-node='box'][data-variant='ghost'] {
   border-style: dashed;
   color: var(--muted);
   background: transparent;
@@ -232,7 +232,7 @@
   font-size: 12px;
   font-weight: 700;
 }
-.htmp [data-variant='reveal'] {
+.htmp [data-presentation-node='frame'][data-variant='reveal'] {
   box-sizing: border-box;
   border: 2px solid var(--accent);
   border-radius: 14px;

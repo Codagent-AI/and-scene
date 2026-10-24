@@ -1,8 +1,8 @@
 // Deterministic verification gate: build, registry, and real-browser render check.
 // Usage: node scripts/verify.mjs [--slug <slug>]...
-// With scripts/reference-sample.json present, the canonical reference sample is
-// verified (existence, registration, every normative title/caption in order);
-// otherwise every registered presentation is stepped through.
+// Every registered presentation is stepped through. With scripts/reference-sample.json
+// present, the canonical reference sample is additionally held to its normative outline
+// (existence, registration, every title/caption in order); `--slug` limits the run.
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -37,18 +37,15 @@ function targets() {
   const slugs = args.flatMap((a, i) => (a === '--slug' ? [args[i + 1]] : []))
   const registered = registeredSlugs()
   const reference = loadReference()
-  if (reference && !slugs.length) {
-    if (!registered.includes(reference.slug)) {
-      throw new VerifyError('sample', `reference sample "${reference.slug}" is not registered`)
-    }
-    return [{ slug: reference.slug, steps: reference.steps }]
+  if (reference && !registered.includes(reference.slug)) {
+    throw new VerifyError('sample', `reference sample "${reference.slug}" is not registered`)
   }
   const wanted = slugs.length ? slugs : registered
   if (!wanted.length) throw new VerifyError('registry', 'no presentations are registered')
   for (const slug of wanted) {
     if (!registered.includes(slug)) throw new VerifyError('registry', `"${slug}" is not registered`)
   }
-  return wanted.map((slug) => ({ slug, steps: null }))
+  return wanted.map((slug) => ({ slug, steps: slug === reference?.slug ? reference.steps : null }))
 }
 
 async function text(page, selector) {

@@ -40,7 +40,16 @@ byte-identical scaffold):
 node <skill-dir>/scripts/scaffold.mjs detect <project-dir>
 ```
 
-prints the resolved `target`, which anchors exist, and which are `missing`:
+prints the resolved `target`, which anchors exist, and which are `missing`. The helper
+recognizes anchors by what source files export (a `Presentation` component, a
+`presentations` registry array), not by their names — but it is a heuristic. **Before
+trusting a `missing` result, look at the project yourself** for equivalent
+implementations (a differently named kit, a registry in another file, a half-written
+stub) and treat those as present: never scaffold over them. Cosmetic differences such
+as file names, formatting, or extra dependencies never justify re-scaffolding. If the
+`detect` output says `needsRouting: true`, the app entry point does not use the registry:
+wire it (the `src/main.tsx` and `src/router.ts` templates show the pathname router)
+before creating presentations. Then resolve the target:
 
 - empty or standalone project → the target is the project root;
 - monorepo (`workspaces`, `pnpm-workspace.yaml`, or `packages/`|`apps/`) → a
@@ -100,9 +109,9 @@ re-walk the create flow.
 Never report success while any check fails; fix and re-run.
 
 1. `npm run build` — no type errors.
-2. Render the first step with no console or runtime errors (`npm run verify` renders the
-   registered presentations through every step; for a quick check use
-   `node scripts/verify.mjs --slug <slug>`).
+2. Render the first step with no console or runtime errors (`npm run verify` builds, then steps every
+   registered presentation through all its steps and fails on any console or page error;
+   for a quick check of just yours use `node scripts/verify.mjs --slug <slug>`).
 3. Visual composition: run the project-local helper (prefer it over ad hoc scripts, which
    would not resolve Playwright from the project):
 

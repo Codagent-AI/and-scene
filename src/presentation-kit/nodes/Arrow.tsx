@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { DESIGN_H, DESIGN_W, ENTER_T, EASE } from '../constants.ts'
+import { DESIGN_H, DESIGN_W, ENTER_T, EASE, LAYOUT_T } from '../constants.ts'
 
 interface Point {
   x: number
@@ -29,7 +29,22 @@ function head(tip: Point, from: Point): string {
   return `M${p(0.45)} L${tip.x},${tip.y} L${p(-0.45)}`
 }
 
-/** Connector drawn in canvas coordinates; stroke comes from `currentColor`/CSS. */
+/** Path data keep one command structure whatever the geometry, so `d` can interpolate. */
+function arrowPaths({ from, to, bend = 0 }: Pick<ArrowProps, 'from' | 'to' | 'bend'>) {
+  const mx = (from.x + to.x) / 2
+  const my = (from.y + to.y) / 2
+  const len = Math.hypot(to.x - from.x, to.y - from.y) || 1
+  const c = { x: mx - ((to.y - from.y) / len) * bend, y: my + ((to.x - from.x) / len) * bend }
+  return {
+    line: `M${from.x},${from.y} Q${c.x},${c.y} ${to.x},${to.y}`,
+    toHead: head(to, c),
+    fromHead: head(from, c),
+  }
+}
+
+const PATH_TRANSITION = { duration: LAYOUT_T, ease: EASE }
+
+/** Connector drawn in canvas coordinates; stroke comes from `currentColor`/CSS. Geometry morphs when endpoints change. */
 export function Arrow({
   id,
   from,
@@ -41,11 +56,7 @@ export function Arrow({
   designW = DESIGN_W,
   designH = DESIGN_H,
 }: ArrowProps) {
-  const mx = (from.x + to.x) / 2
-  const my = (from.y + to.y) / 2
-  const len = Math.hypot(to.x - from.x, to.y - from.y) || 1
-  const c = { x: mx - ((to.y - from.y) / len) * bend, y: my + ((to.x - from.x) / len) * bend }
-  const line = bend ? `M${from.x},${from.y} Q${c.x},${c.y} ${to.x},${to.y}` : `M${from.x},${from.y} L${to.x},${to.y}`
+  const { line, toHead, fromHead } = arrowPaths({ from, to, bend })
   return (
     <motion.svg
       data-presentation-node="arrow"
@@ -62,9 +73,11 @@ export function Arrow({
       transition={{ duration: ENTER_T, ease: EASE }}
       style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', overflow: 'visible' }}
     >
-      <path d={line} fill="none" stroke="currentColor" />
-      <path d={head(to, bend ? c : from)} fill="none" stroke="currentColor" />
-      {bidirectional && <path d={head(from, bend ? c : to)} fill="none" stroke="currentColor" />}
+      <motion.path initial={false} animate={{ d: line }} transition={PATH_TRANSITION} fill="none" stroke="currentColor" />
+      <motion.path initial={false} animate={{ d: toHead }} transition={PATH_TRANSITION} fill="none" stroke="currentColor" />
+      {bidirectional && (
+        <motion.path initial={false} animate={{ d: fromHead }} transition={PATH_TRANSITION} fill="none" stroke="currentColor" />
+      )}
     </motion.svg>
   )
 }

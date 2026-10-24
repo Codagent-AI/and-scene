@@ -1,4 +1,4 @@
-import type { StepMeta } from '../../../presentation-kit/index.ts'
+import type { StepMeta } from '__KIT__'
 
 /** Replace with the real outline: one entry per step, in order. */
 export const STEP_META: StepMeta[] = [

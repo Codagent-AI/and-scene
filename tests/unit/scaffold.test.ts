@@ -10,6 +10,7 @@ import {
   createPresentation,
   detect,
   detectAnchors,
+  registerEntry,
   resolveTarget,
 } from '../../skills/presentation/scripts/scaffold.mjs'
 
@@ -47,10 +48,27 @@ describe('anchor detection', () => {
   it('keys on the presence of each anchor, not on a byte-identical scaffold', () => {
     const d = dir({
       'package.json': BUILD_PKG,
-      'src/presentation-kit/Presentation.tsx': '// custom',
-      'src/presentations/index.tsx': '// custom',
+      'src/presentation-kit/Presentation.tsx': 'export function Presentation() { return null }',
+      'src/presentations/index.tsx': 'export const presentations = []',
     })
     expect(detect(d)).toMatchObject({ target: d, anchors: { build: true, kit: true, index: true }, missing: [] })
+  })
+
+  it('recognizes equivalent anchors under other names and locations', () => {
+    const d = dir({
+      'package.json': BUILD_PKG,
+      'src/engine/Deck.tsx': 'export default function Presentation() { return null }',
+      'src/talks/registry.ts': 'export const presentations: unknown[] = []',
+    })
+    expect(detect(d)).toMatchObject({ anchors: { build: true, kit: true, index: true }, missing: [] })
+  })
+
+  it('does not count comment-only or unrelated stubs as anchors', () => {
+    const d = dir({
+      'src/presentation-kit/Presentation.tsx': '// TODO: write the kit',
+      'src/presentations/notes.ts': '// presentations go here',
+    })
+    expect(detectAnchors(d)).toEqual({ build: false, kit: false, index: false })
   })
 
   it('requires a working build script and the core toolchain for the build anchor', () => {
@@ -77,9 +95,9 @@ describe('target resolution', () => {
   })
 
   it('reuses an app that already has anchors, at the root or in presentations/', () => {
-    const root = dir({ 'src/presentation-kit/Presentation.tsx': '', 'packages/a/x': '' })
+    const root = dir({ 'src/presentation-kit/Presentation.tsx': 'export function Presentation() {}', 'packages/a/x': '' })
     expect(resolveTarget(root).target).toBe(root)
-    const nested = dir({ 'pnpm-workspace.yaml': '', 'presentations/src/presentations/index.ts': '' })
+    const nested = dir({ 'pnpm-workspace.yaml': '', 'presentations/src/presentations/index.ts': 'export const presentations = []' })
     expect(resolveTarget(nested).target).toBe(path.join(nested, 'presentations'))
   })
 })
@@ -120,12 +138,36 @@ describe('bootstrap', () => {
     expect(result.created).not.toContain('vite.config.ts')
     expect(readFileSync(path.join(d, 'vite.config.ts'), 'utf8')).toBe('// mine')
     expect(readFileSync(path.join(d, 'src/main.tsx'), 'utf8')).toBe('// my main')
+    // the verification scripts that the added npm scripts invoke come with them
+    expect(existsSync(path.join(d, 'scripts/verify.mjs'))).toBe(true)
+    expect(existsSync(path.join(d, 'scripts/inspect-presentation.mjs'))).toBe(true)
+    expect(existsSync(path.join(d, 'scripts/lib/preview.mjs'))).toBe(true)
+    // an existing entry point that ignores the registry is flagged, never overwritten
+    expect(result.needsRouting).toBe(true)
     expect(readFileSync(path.join(d, 'notes.md'), 'utf8')).toBe('keep')
     const pkg = JSON.parse(readFileSync(path.join(d, 'package.json'), 'utf8'))
     expect(pkg.scripts.build).toBe('tsc -b && vite build')
     expect(pkg.dependencies.motion).toBeDefined()
     expect(pkg.devDependencies.playwright).toBeDefined()
     expect(pkg.scripts.verify).toBeDefined()
+  })
+
+  it('does not flag routing when the existing entry point already uses the registry', () => {
+    const d = dir({ 'package.json': BUILD_PKG, 'src/main.tsx': "import { presentations } from './presentations/index.ts'" })
+    expect(bootstrap(d, { confirmed: true }).needsRouting).toBe(false)
+  })
+
+  it('installs dependencies on request even when node_modules already exists', () => {
+    const d = dir({ 'package.json': BUILD_PKG })
+    mkdirSync(path.join(d, 'node_modules'))
+    const calls: unknown[][] = []
+    const runner = (...args: unknown[]) => (calls.push(args), { status: 0 })
+    const result = bootstrap(d, { confirmed: true, install: true, runner })
+    expect(result.installed).toBe(true)
+    expect(calls).toHaveLength(1)
+    expect(calls[0][0]).toBe('npm')
+    const failing = dir({ 'package.json': BUILD_PKG })
+    expect(() => bootstrap(failing, { confirmed: true, install: true, runner: () => ({ status: 1 }) })).toThrow(/npm install failed/)
   })
 
   it('refuses to write into a non-empty project until the target is confirmed', () => {
@@ -199,13 +241,61 @@ describe('createPresentation', () => {
     expect(readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8')).toBe(registry)
   })
 
+  it('registers into a differently formatted registry and leaves nothing behind when it cannot', () => {
+    const kit = { 'src/presentation-kit/index.ts': 'export function Presentation() {}' }
+    const d = dir({ ...kit, 'src/presentations/index.ts': "export const presentations = [{ slug: 'old', title: 'Old', load: () => import('./old/Talk.tsx') }]\n" })
+    createPresentation(d, 'fresh', 'Fresh')
+    const index = readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8')
+    expect(index).toContain("slug: 'old'")
+    expect(index).toContain("slug: 'fresh'")
+    const broken = dir({ ...kit, 'src/presentations/index.ts': 'export const presentations = [' })
+    expect(() => createPresentation(broken, 'fresh', 'Fresh')).toThrow(/not closed/)
+    expect(existsSync(path.join(broken, 'src/presentations/fresh'))).toBe(false)
+    createPresentation(d, 'again', 'Again')
+  })
+
+  it('imports the scene kit from wherever it lives', () => {
+    const d = dir({
+      'src/engine/index.ts': '',
+      'src/engine/Deck.tsx': 'export default function Presentation() {}',
+      'src/presentations/index.ts': 'export const presentations = []\n',
+    })
+    createPresentation(d, 'deep', 'Deep')
+    expect(readFileSync(path.join(d, 'src/presentations/deep/Talk.tsx'), 'utf8')).toContain("from '../../engine/index.ts'")
+    expect(readFileSync(path.join(d, 'src/presentations/deep/steps/Scene.tsx'), 'utf8')).toContain("from '../../../engine/index.ts'")
+  })
+
   it('works against the committed sample app registry too', () => {
     const d = dir()
     cpSync(path.join(repo, 'src/presentations/index.ts'), path.join(d, 'src/presentations/index.ts'))
+    cpSync(path.join(repo, 'src/presentation-kit'), path.join(d, 'src/presentation-kit'), { recursive: true })
     createPresentation(d, 'extra', 'Extra')
     const index = readFileSync(path.join(d, 'src/presentations/index.ts'), 'utf8')
     expect(index).toContain("slug: 'how-to-make-a-presentation'")
     expect(index).toContain("slug: 'extra'")
+  })
+})
+
+describe('registerEntry', () => {
+  const entry = "  { slug: 'x' },"
+  it.each([
+    ['canonical multi-line', "export const presentations: RegistryEntry[] = [\n  { slug: 'a' },\n]\n"],
+    ['no trailing comma', "export const presentations: RegistryEntry[] = [\n  { slug: 'a' }\n]\n"],
+    ['single line', "export const presentations = [{ slug: 'a' }]\n"],
+    ['empty', 'export const presentations: RegistryEntry[] = []\n'],
+    ['indented with trailing code', "  export const presentations = [\n      { slug: 'a' },\n  ]\n  export const other = [1]\n"],
+  ])('inserts into a %s registry', (_name, source) => {
+    const out = registerEntry(source, entry)
+    const slugs = [...out.matchAll(/slug: '(\w)'/g)].map((m) => m[1])
+    expect(slugs.at(-1)).toBe('x')
+    expect(slugs.length).toBe([...source.matchAll(/slug: '(\w)'/g)].length + 1)
+    // still valid array syntax: evaluate the array literal
+    const literal = /presentations[^=]*=\s*(\[[^]*?\])\s*(?:\n|$)/.exec(out)![1]
+    expect(() => new Function(`return ${literal}`)()).not.toThrow()
+  })
+
+  it('throws when there is no presentations array', () => {
+    expect(() => registerEntry('export const other = []', entry)).toThrow(/presentations/)
   })
 })
 

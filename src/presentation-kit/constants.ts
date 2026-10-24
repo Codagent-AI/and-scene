@@ -11,7 +11,8 @@ export const ENTER_T = 0.4
 /** Newcomers wait for persisting entities to settle before entering. */
 export const ENTER_DELAY = LAYOUT_T
 
-export const MIN_SCALE = 0.2
+/** Scale used only for a degenerate (zero-sized) stage; positive space is always fitted exactly. */
+export const MIN_SCALE = 0.01
 export const MAX_SCALE = 3
 
 /** Viewport width (px) from which the table of contents is shown in browse mode. */

@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -7,6 +7,7 @@ import { exec, repo } from './helpers.ts'
 const cli = path.join(repo, 'skills/presentation/scripts/scaffold.mjs')
 let app: string
 let outside: string
+let partial: string
 const log: Record<string, { code: number; output: string }> = {}
 
 function walk(d: string): string[] {
@@ -26,10 +27,23 @@ beforeAll(async () => {
   log.lint = await exec('npm', ['run', 'lint'], app)
   log.build = await exec('npm', ['run', 'build'], app)
   log.verify = await exec('npm', ['run', 'verify'], app)
+
+  // Partial scaffold: an existing build setup and entry point, but no kit or registry.
+  partial = mkdtempSync(path.join(tmpdir(), 'bootstrap-partial-'))
+  cpSync(app, partial, {
+    recursive: true,
+    filter: (src) => !/node_modules|[\\/]dist$|presentation-kit|[\\/]presentations$|router\.ts|Landing\.tsx/.test(src),
+  })
+  symlinkSync(path.join(app, 'node_modules'), path.join(partial, 'node_modules'), 'dir')
+  log.partialDetect = await exec(process.execPath, [cli, 'detect', partial], outside)
+  log.partialBootstrap = await exec(process.execPath, [cli, 'bootstrap', partial, '--confirmed'], outside)
+  log.partialCreate = await exec(process.execPath, [cli, 'create', partial, 'second-talk', 'Second Talk'], outside)
+  log.partialBuild = await exec('npm', ['run', 'build'], partial)
+  log.partialVerify = await exec('npm', ['run', 'verify'], partial)
 })
 
 afterAll(() => {
-  for (const d of [app, outside]) rmSync(d, { recursive: true, force: true })
+  for (const d of [app, outside, partial]) rmSync(d, { recursive: true, force: true })
 })
 
 describe('materialized bootstrap template', () => {
@@ -59,6 +73,17 @@ describe('materialized bootstrap template', () => {
     expect(log.verify.output).toContain('smoke-test: 3 steps rendered without errors')
     expect(log.verify.output).toContain('VERIFY PASSED')
     expect(log.verify.code).toBe(0)
+  })
+
+  it('completes a partial scaffold so the generated route builds and renders', () => {
+    expect(JSON.parse(log.partialDetect.output).missing).toEqual(['kit', 'index'])
+    expect(log.partialBootstrap.code, log.partialBootstrap.output).toBe(0)
+    expect(JSON.parse(log.partialBootstrap.output).needsRouting).toBe(false)
+    expect(existsSync(path.join(partial, 'scripts/verify.mjs'))).toBe(true)
+    expect(log.partialCreate.code, log.partialCreate.output).toBe(0)
+    expect(log.partialBuild.code, log.partialBuild.output).toBe(0)
+    expect(log.partialVerify.output).toContain('second-talk: 3 steps rendered without errors')
+    expect(log.partialVerify.code).toBe(0)
   })
 
   it('keeps the materialized kit identical to the canonical src/presentation-kit', () => {

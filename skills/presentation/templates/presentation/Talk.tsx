@@ -1,4 +1,4 @@
-import { Presentation } from '../../presentation-kit/index.ts'
+import { Presentation } from '__KIT__'
 import { STEPS } from './steps/index.ts'
 import './style.css'
 

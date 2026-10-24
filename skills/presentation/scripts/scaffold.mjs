@@ -231,9 +231,9 @@ export async function scaffold(target, anchors = ANCHORS) {
 
 const render = (text, vars) => text.replace(/\{\{(SLUG|TITLE)\}\}/g, (_, key) => vars[key])
 
-/** One printable line, free of quote, backslash, comment-terminator, and line-separator characters. */
+/** One printable line, free of quote, backslash, `*`, `/` (so no comment terminator can form), and line-separator characters. */
 const sanitizeTitle = (title) =>
-  title.replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, ' ').replace(/["\\`]/g, '').replace(/\*\//g, '').replace(/\s+/g, ' ').trim()
+  title.replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, ' ').replace(/["\\`]/g, '').replace(/[*/]+/g, '').replace(/\s+/g, ' ').trim()
 
 /** Index of the `]` closing the `[` that encloses `from`, skipping strings and comments. */
 function enclosingArray(text, from) {

@@ -465,6 +465,15 @@ describe('create a presentation', () => {
     expect(readFileSync(path.join(folder, 'talk.css'), 'utf8').match(/\*\//g)?.length).toBe(readFileSync(path.join(folder, 'talk.css'), 'utf8').match(/\/\*/g)?.length)
   })
 
+  it.each(['**//', '*/*/', 'a/**/b'])('cannot rebuild a comment terminator from the title %j', async (title) => {
+    const dir = tmp()
+    await scaffold(dir)
+    await createPresentation(dir, 'term', title)
+    const css = readFileSync(path.join(dir, 'src/presentations/term/talk.css'), 'utf8')
+    expect(css.match(/\*\//g)?.length).toBe(css.match(/\/\*/g)?.length)
+    expect(css.split('\n')[1]).not.toMatch(/\*\/.*\*\//)
+  })
+
   it('adds the entry to the array that holds the slugs, not to a later array of objects', async () => {
     const dir = tmp()
     withKit(dir, 'src/engine')

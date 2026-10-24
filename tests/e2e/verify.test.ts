@@ -137,7 +137,7 @@ describe('E2E-002: verification failures are actionable', () => {
       phase: 'outline',
       rendered: false,
       expectIn: /sample has 8 steps, expected 9/,
-      mutate: (dir) => edit(dir, STEPS, (t) => t.replace(/\s{2}\{\n\s+id: 'step-9'[\s\S]*?payload: \{ stage: 9 \},\n  \},\n/, '')),
+      mutate: (dir) => edit(dir, STEPS, (t) => t.replace(/\s{2}\{\n\s+id: 'step-9'[\s\S]*?payload: \{ stage: 9 \},\n\s{2}\},\n/, '')),
     },
     {
       name: 'a route that renders only placeholder content (no presentation chrome)',

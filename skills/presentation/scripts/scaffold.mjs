@@ -71,7 +71,9 @@ function mergePackage(target, report) {
     pkg.scripts = { ...pkg.scripts, [name]: command }
     report.addedScripts.push(name)
   }
-  pkg.type ??= template.type
+  if (pkg.type !== template.type) {
+    report.wiring.push(`package.json: "type" is ${JSON.stringify(pkg.type ?? 'commonjs')}, the app is ESM; left unchanged, so scaffold into a self-contained directory or resolve it`)
+  }
   writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`)
   report.copied.push('package.json (merged)')
 }

@@ -36,6 +36,7 @@ export function Presentation<TPayload>({
   brand,
   attribution,
 }: PresentationProps<TPayload>) {
+  if (steps.length === 0) throw new Error('<Presentation> requires at least one step')
   const { index: navIndex, mode, next, prev, goTo } = usePresentationNav(steps.length, initialMode)
   const index = clampIndex(navIndex, steps.length)
   const wide = useIsWide()

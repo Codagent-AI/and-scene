@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Presentation } from '../../src/presentation-kit'
 import { mounts } from './counter'
 import { makeSteps } from './steps'
@@ -207,5 +207,13 @@ describe('typed step payloads', () => {
     // @ts-expect-error payload must match the scene's payload type
     const bad = <Presentation steps={[{ ...steps[0], payload: { n: 'one' } }]} title="Bad" />
     expect(bad).toBeTruthy()
+  })
+})
+
+describe('empty step list', () => {
+  it('fails with an actionable message instead of a TypeError', () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(() => render(<Presentation steps={[]} title="Empty" />)).toThrow('requires at least one step')
+    quiet.mockRestore()
   })
 })

@@ -66,6 +66,7 @@ describe('scaffold', () => {
     expect(pkg.dependencies.react).toBe('^18.0.0')
     expect(pkg.devDependencies.vite).toBe('^5.0.0')
     expect(pkg.scripts.build).toBe('my-build')
+    expect(pkg.type).toBeUndefined()
     expect(pkg.dependencies).toHaveProperty('motion')
     expect(pkg.dependencies).toHaveProperty('lucide-react')
     expect(pkg.devDependencies).toHaveProperty('playwright')
@@ -73,7 +74,7 @@ describe('scaffold', () => {
     expect(report.addedDependencies).toEqual(expect.arrayContaining(['motion', 'lucide-react', 'playwright', 'react-dom']))
 
     // The unrelated entry point cannot be rewritten safely: it is reported for a scoped edit.
-    expect(report.wiring).toEqual([expect.stringContaining('src/main.tsx')])
+    expect(report.wiring).toEqual([expect.stringContaining('src/main.tsx'), expect.stringContaining('"type"')])
     expect(existsSync(join(dir, 'scripts/verify.mjs'))).toBe(true)
   })
 

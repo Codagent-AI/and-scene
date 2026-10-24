@@ -97,6 +97,21 @@ describe('swipe', () => {
     expect(result.current.index).toBe(0)
   })
 
+  it('clamps swipes before the first and after the last step', () => {
+    const { result } = setup(3)
+    swipe(80)
+    expect(result.current.index).toBe(0)
+    swipe(-80)
+    swipe(-80)
+    expect(result.current.index).toBe(2)
+    swipe(-80)
+    expect(result.current.index).toBe(2)
+    swipe(80)
+    swipe(80)
+    swipe(80)
+    expect(result.current.index).toBe(0)
+  })
+
   it('swipeDirection maps direction by sign', () => {
     expect(swipeDirection(-100, 0)).toBe('next')
     expect(swipeDirection(100, 0)).toBe('prev')
@@ -143,6 +158,16 @@ describe('controls keep their keys', () => {
       el.setAttribute('role', 'slider')
       return el
     },
+    ...Object.fromEntries(
+      ['grid', 'gridcell', 'treegrid', 'tree', 'tablist', 'menu', 'menubar', 'radiogroup', 'toolbar', 'scrollbar', 'row', 'listbox', 'combobox'].map((role) => [
+        `role=${role}`,
+        () => {
+          const el = document.createElement('div')
+          el.setAttribute('role', role)
+          return el
+        },
+      ]),
+    ),
     'nested descendant': () => {
       const outer = document.createElement('button')
       const inner = document.createElement('span')

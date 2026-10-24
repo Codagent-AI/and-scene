@@ -3,7 +3,7 @@ import { mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { collectSnapshot, DEFAULT_SETTLE_MS, DISTINCTION_PROPS, VIEWPORT, warningsForStep } from './lib/inspect-diagnostics.mjs'
-import { exitOnSignals, launchBrowser, runNpmBuild, startPreview } from './lib/preview.mjs'
+import { closeAll, exitOnSignals, launchBrowser, runNpmBuild, startPreview } from './lib/preview.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -48,17 +48,34 @@ async function inspect({ slug, settleMs, build }) {
           })
       }
       await page.waitForTimeout(settleMs)
+      const settled = await page
+        .waitForFunction(
+          () => [...document.querySelectorAll('[data-presentation-appear],[data-presentation-scene]')].every((el) => Number(getComputedStyle(el).opacity) >= 0.999),
+          undefined,
+          { timeout: 5000 },
+        )
+        .then(() => true, () => false)
       const file = path.join(outDir, `step-${String(index + 1).padStart(2, '0')}.png`)
       await page.screenshot({ path: file })
-      console.log(`captured ${path.basename(file)} ${Date.now() - began}ms after navigation (settle ${settleMs}ms)`)
+      const shown = await page.evaluate(() => ({
+        index: Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')),
+        title: document.querySelector('[data-presentation-title]')?.textContent ?? '',
+      }))
+      console.log(
+        `captured ${path.basename(file)} ${Date.now() - began}ms after navigation (settle ${settleMs}ms) ` +
+          `step ${shown.index + 1}/${total} "${shown.title}" ${settled ? 'settled' : 'UNSETTLED'}`,
+      )
+      if (!settled) {
+        warningCount++
+        console.log(`WARN step ${index + 1} settle: animations were still running at capture; raise --settle`)
+      }
       const warnings = warningsForStep(index + 1, await page.evaluate(collectSnapshot, DISTINCTION_PROPS))
       warningCount += warnings.length
       for (const warning of warnings) console.log(warning)
     }
     console.log(`inspected ${slug}: ${total} screenshots in ${path.relative(root, outDir)}/ (${warningCount} advisory warnings)`)
   } finally {
-    await browser?.close()
-    await preview.stop()
+    await closeAll(browser, preview)
   }
 }
 

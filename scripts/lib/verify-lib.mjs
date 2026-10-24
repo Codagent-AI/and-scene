@@ -11,11 +11,15 @@ export class VerifyFailure extends Error {
 
 export const normalize = (text) => (text ?? '').replace(/\s+/g, ' ').trim()
 
-/** Reads `{ slug, title }` pairs from the explicit presentation registry source. */
+/** Reads `{ slug, title }` pairs from the explicit presentation registry, whatever the property order. */
 export function parseRegistry(source) {
   const entries = []
-  const pattern = /slug:\s*(['"`])([^'"`]+)\1\s*,\s*title:\s*(['"`])([^]*?)\3\s*,/g
-  for (const match of source.matchAll(pattern)) entries.push({ slug: match[2], title: match[4] })
+  const property = (body, name) => new RegExp(`\\b${name}\\s*:\\s*(['"\`])([^]*?)\\1`).exec(body)?.[2]
+  for (const [, body] of source.matchAll(/\{([^{}]*)\}/g)) {
+    const slug = property(body, 'slug')
+    const title = property(body, 'title')
+    if (slug !== undefined && title !== undefined) entries.push({ slug, title })
+  }
   return entries
 }
 
@@ -83,47 +87,67 @@ const readNarration = (page) =>
 /** Steps through one presentation route; resolves with the narration seen at each step. */
 export async function renderPresentation(page, url, slug, { stepTimeoutMs = 5000, settleMs = 300 } = {}) {
   const collector = createErrorCollector(page)
-  const fail = (message, index, total) =>
-    new VerifyFailure('render', message, { slug, step: index === undefined ? undefined : index + 1, index, total })
-  const failIfErrors = (index, total) => {
+  let at = { index: 0, total: undefined }
+  const fail = (message, index = at.index, total = at.total) =>
+    new VerifyFailure('render', message, { slug, step: index + 1, index, total })
+  const failIfErrors = () => {
     const errors = collector.drain()
-    if (errors.length) throw fail(errors.join('; '), index, total)
+    if (errors.length) throw fail(errors.join('; '))
   }
 
-  await page.goto(`${url}/${slug}`, { waitUntil: 'load' })
   try {
-    await page.waitForSelector('[data-step-count]', { timeout: stepTimeoutMs })
-  } catch {
-    failIfErrors(0)
-    throw fail(`/${slug} did not render a presentation (no data-step-count hook)`, 0)
-  }
-  const total = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
-  if (!(total > 0)) throw fail('presentation reports no steps', 0, total)
-  const initial = await readIndex(page)
-  if (initial !== 0) throw fail(`opened on step index ${initial} instead of 0`, 0, total)
-
-  const seen = []
-  for (let index = 0; index < total; index++) {
-    collector.setLabel(`step ${index + 1} of ${total}`)
-    if (index > 0) {
-      await page.keyboard.press('ArrowRight')
-      try {
-        await page.waitForFunction(
-          (want) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === want,
-          index,
-          { timeout: stepTimeoutMs },
-        )
-      } catch {
-        failIfErrors(index, total)
-        const actual = await readIndex(page)
-        throw fail(`ArrowRight did not advance to index ${index} (stayed at ${actual})`, index, total)
-      }
-      const actual = await readIndex(page)
-      if (!isAdvance(index - 1, actual)) throw fail(`transition landed on index ${actual}, expected ${index}`, index, total)
+    await page.goto(`${url}/${slug}`, { waitUntil: 'load' })
+    try {
+      await page.waitForSelector('[data-step-count]', { timeout: stepTimeoutMs })
+    } catch {
+      failIfErrors()
+      throw fail(`/${slug} did not render a presentation (no data-step-count hook)`)
     }
-    await page.waitForTimeout(settleMs)
-    failIfErrors(index, total)
-    seen.push(await readNarration(page))
+    const total = Number(await page.getAttribute('[data-step-count]', 'data-step-count'))
+    at = { index: 0, total }
+    if (!(total > 0)) throw fail('presentation reports no steps')
+    const initial = await readIndex(page)
+    if (initial !== 0) throw fail(`opened on step index ${initial} instead of 0`)
+
+    const seen = []
+    for (let index = 0; index < total; index++) {
+      at = { index, total }
+      collector.setLabel(`step ${index + 1} of ${total}`)
+      if (index > 0) {
+        await page.keyboard.press('ArrowRight')
+        try {
+          await page.waitForFunction(
+            (want) => Number(document.querySelector('[data-step-index]')?.getAttribute('data-step-index')) === want,
+            index,
+            { timeout: stepTimeoutMs },
+          )
+        } catch {
+          failIfErrors()
+          const actual = await readIndex(page)
+          throw fail(`ArrowRight did not advance to index ${index} (stayed at ${actual})`)
+        }
+        const actual = await readIndex(page)
+        if (!isAdvance(index - 1, actual)) throw fail(`transition landed on index ${actual}, expected ${index}`)
+      }
+      await page.waitForTimeout(settleMs)
+      failIfErrors()
+      seen.push(await readNarration(page))
+    }
+    return seen
+  } catch (error) {
+    // Anything unexpected (navigation rejected, evaluation failed) still names the step it happened at.
+    if (error instanceof VerifyFailure) throw error
+    throw fail(`${error.message ?? error}`)
   }
-  return seen
+}
+
+/**
+ * Renders each planned route with `renderOne(slug) -> steps seen`; the first failure propagates,
+ * and the total step count is returned on success.
+ */
+export async function renderAll(slugs, renderOne) {
+  if (slugs.length === 0) throw new VerifyFailure('sample', 'no presentations are registered, so there is nothing to verify')
+  let steps = 0
+  for (const slug of slugs) steps += await renderOne(slug)
+  return steps
 }

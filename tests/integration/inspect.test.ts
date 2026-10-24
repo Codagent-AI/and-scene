@@ -43,6 +43,12 @@ const fixtures: Fixture[] = [
     css: CHROME_CSS + ACTIVE_CSS + ATTRIBUTION_CSS,
     layer: `<div key="allowed" data-presentation-allow-overlap="" style={{ position: 'absolute', inset: 0 }}>${OVERLAP}</div>`,
   },
+  {
+    slug: 'fx-hidden',
+    css: CHROME_CSS + ACTIVE_CSS + ATTRIBUTION_CSS,
+    layer: `<div key="invisible" style={{ position: 'absolute', inset: 0, opacity: 0 }}>${OVERLAP}</div>
+<div key="gone" style={{ position: 'absolute', inset: 0, display: 'none' }}>${OVERLAP}</div>`,
+  },
   { slug: 'fx-chrome', css: CHROME_CSS + ATTRIBUTION_CSS, layer: SEPARATE },
   { slug: 'fx-attribution', css: CHROME_CSS + ACTIVE_CSS, layer: SEPARATE },
 ]
@@ -107,10 +113,24 @@ describe('INT-002: screenshot helper', () => {
     }
   })
 
-  it('captures only after the configured settle interval', () => {
+  it('captures only after the configured settle interval and after animations have finished', () => {
     const lines = outputs['fx-clean'].output.split('\n').filter((l) => l.startsWith('captured'))
     expect(lines).toHaveLength(3)
-    for (const line of lines) expect(Number(/ (\d+)ms after navigation/.exec(line)![1])).toBeGreaterThanOrEqual(150)
+    for (const line of lines) {
+      expect(Number(/ (\d+)ms after navigation/.exec(line)![1])).toBeGreaterThanOrEqual(150)
+      expect(line).toMatch(/ settled$/)
+    }
+    // the step-2 newcomer waits 0.6 s and then fades for 0.45 s, far past the 150 ms settle interval,
+    // so a faithful capture must have waited for it
+    expect(Number(/ (\d+)ms after navigation/.exec(lines[1])![1])).toBeGreaterThanOrEqual(1000)
+  })
+
+  it('reports each screenshot as showing its own step, and different steps look different', () => {
+    const lines = outputs['fx-clean'].output.split('\n').filter((l) => l.startsWith('captured'))
+    lines.forEach((line, i) => expect(line).toContain(`step ${i + 1}/3 "Step title ${i + 1}"`))
+    const shots = [1, 2, 3].map((n) => readFileSync(path.join(project, 'inspection/fx-clean', `step-0${n}.png`)))
+    expect(shots[0].equals(shots[1])).toBe(false) // the newcomer is visible and the active step marker moved
+    expect(shots[1].equals(shots[2])).toBe(false) // the active progress dot and caption changed
   })
 
   it('waits the default interval, which outlasts the transition, when none is configured', async () => {
@@ -138,6 +158,12 @@ describe('INT-002: screenshot helper', () => {
   it('does not warn about an explicitly allowed overlap', () => {
     expect(warnings('fx-allowed', 'overlap')).toEqual([])
     expect(outputs['fx-allowed'].output).toContain('0 advisory warnings')
+  })
+
+  it('ignores overlapping text that is invisible itself or through an ancestor', () => {
+    expect(outputs['fx-hidden'].code, outputs['fx-hidden'].output).toBe(0)
+    expect(warnings('fx-hidden', 'overlap')).toEqual([])
+    expect(outputs['fx-hidden'].output).toContain('0 advisory warnings')
   })
 
   it('warns when active progress and table-of-contents chrome is indistinct', () => {

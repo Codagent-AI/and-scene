@@ -200,6 +200,31 @@ describe('attribution', () => {
     expect(q('[data-presentation-attribution]')!.textContent).toBe('made by and-scene')
   })
 
+  it.each([
+    ['label only', { label: 'by me' }, 'by me', 'https://github.com/Codagent-AI/and-scene'],
+    ['href only', { href: 'https://example.com/x' }, 'made by and-scene', 'https://example.com/x'],
+  ])('keeps the default for whatever a partial override (%s) leaves out, in both modes', (_name, option, label, href) => {
+    render(<Presentation steps={makeSteps(['a'])} title="Deck" initialMode="browse" attribution={option} />)
+    for (let pass = 0; pass < 2; pass++) {
+      const link = q('[data-presentation-attribution]') as HTMLAnchorElement
+      expect([link.textContent, link.getAttribute('href')]).toEqual([label, href])
+      fireEvent.keyDown(document.body, { key: 'p' })
+    }
+  })
+
+  it('applies a full override and hiding in browse mode as well as present mode', () => {
+    for (const initialMode of ['browse', 'present'] as const) {
+      const full = render(<Presentation steps={makeSteps(['a'])} title="Deck" initialMode={initialMode} attribution={{ label: 'x', href: 'https://example.com/y' }} />)
+      expect(q('[data-presentation-attribution]')!.textContent).toBe('x')
+      full.unmount()
+      const hidden = render(<Presentation steps={makeSteps(['a'])} title="Deck" initialMode={initialMode} attribution={false} />)
+      expect(q('[data-presentation-attribution]')).toBeNull()
+      fireEvent.keyDown(document.body, { key: 'p' })
+      expect(q('[data-presentation-attribution]')).toBeNull()
+      hidden.unmount()
+    }
+  })
+
   it('has no default top-left brand link; an explicit host brand renders in that slot', () => {
     const { unmount } = render(<Presentation steps={makeSteps(['a'])} title="Deck" />)
     const slot = q('[data-presentation-brand]')!

@@ -5,6 +5,9 @@ import type { Mode } from './types'
 const INTERACTIVE_ROLES = [
   'button', 'link', 'tab', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'checkbox', 'radio',
   'switch', 'slider', 'spinbutton', 'textbox', 'searchbox', 'combobox', 'listbox', 'option', 'treeitem',
+  // composite widgets that own arrow-key navigation
+  'grid', 'gridcell', 'treegrid', 'tree', 'tablist', 'menu', 'menubar', 'radiogroup', 'toolbar', 'scrollbar',
+  'row', 'rowheader', 'columnheader',
 ]
 const INTERACTIVE_SELECTOR = [
   'button',

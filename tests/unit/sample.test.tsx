@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render } from '@testing-library/react'
+import { fireEvent, render, waitFor } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { E, INTRODUCED_AT, type EntityName } from '../../src/presentations/how-to-make-a-presentation/entities'
@@ -219,5 +219,70 @@ describe('reference sample scene', () => {
       }
       document.body.innerHTML = ''
     }
+  })
+})
+
+describe('continuity while navigating the nine-step scene', () => {
+  beforeEach(() => setViewport(1280, 800))
+
+  const next = () => fireEvent.keyDown(document.body, { key: 'ArrowRight' })
+  const prev = () => fireEvent.keyDown(document.body, { key: 'ArrowLeft' })
+  const node = (id: string) => document.querySelector<HTMLElement>(`[data-presentation-entity="${id}"]`)!
+  const fade = (id: string) => {
+    const wrapper = node(id).closest<HTMLElement>('[data-presentation-appear]')
+    return Number((wrapper ?? node(id)).style.opacity || 1)
+  }
+  const delayOf = (id: string) => node(id).closest('[data-presentation-appear]')?.getAttribute('data-presentation-appear-delay')
+
+  it('keeps continuing entities on the same nodes, fully opaque and with the same delay, step after step', async () => {
+    render(<Talk />)
+    const you = node(E.you)
+    const prompt = node(E.prompt)
+    next()
+    const skill = node(E.skill)
+    expect(fade(E.skill)).toBeLessThan(1) // a newcomer starts transparent
+    await waitFor(() => expect(fade(E.skill)).toBeGreaterThanOrEqual(0.999), { timeout: 3000 })
+    const delay = delayOf(E.skill)
+    for (let step = 3; step <= 9; step++) {
+      next()
+      for (const [id, el] of [[E.you, you], [E.prompt, prompt], [E.skill, skill]] as const) expect(node(id), `${id} at step ${step}`).toBe(el)
+      expect(fade(E.skill), `skill opacity at step ${step}`).toBeGreaterThanOrEqual(0.999)
+      expect(delayOf(E.skill)).toBe(delay)
+      expect(fade(E.you)).toBe(1)
+    }
+  })
+
+  it('keeps the remaining entities untouched when stepping back, and lets departing ones finish exiting', async () => {
+    render(<Talk />)
+    for (let i = 0; i < 8; i++) next()
+    await waitFor(() => expect(fade(E.frame)).toBeGreaterThanOrEqual(0.999), { timeout: 3000 })
+    const you = node(E.you)
+    const skill = node(E.skill)
+    const frame = node(E.frame)
+    prev()
+    expect(frame.isConnected).toBe(true) // exit still pending
+    for (let i = 0; i < 3; i++) prev()
+    expect(node(E.you)).toBe(you)
+    expect(node(E.skill)).toBe(skill)
+    expect(fade(E.skill)).toBeGreaterThanOrEqual(0.999)
+    await waitFor(() => expect(frame.isConnected).toBe(false), { timeout: 3000 })
+  })
+
+  it('never restarts a continuing entity’s fade under rapid forward and backward navigation', () => {
+    render(<Talk />)
+    const you = node(E.you)
+    next()
+    const skill = node(E.skill)
+    let previous = fade(E.skill)
+    const press = [...Array(7).fill(next), ...Array(5).fill(prev), ...Array(3).fill(next)] as (() => void)[] // 2 -> 9 -> 4 -> 7
+    for (const action of press) {
+      action()
+      expect(node(E.you)).toBe(you)
+      expect(node(E.skill)).toBe(skill)
+      const now = fade(E.skill)
+      expect(now).toBeGreaterThanOrEqual(previous) // opacity never drops back
+      previous = now
+    }
+    expect(document.querySelector('[data-presentation-root]')!.getAttribute('data-step-index')).toBe('6')
   })
 })

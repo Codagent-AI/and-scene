@@ -140,6 +140,21 @@ describe('entering, continuing and departing entities', () => {
     expect(over.style.position).toBe('absolute')
   })
 
+  it('holds a newcomer transparent through the layout-settle delay, then fades it in; persisting entities are never delayed', async () => {
+    const steps = [
+      step('1', { entities: ['x'] }, { groupKey: 'g' }),
+      step('2', { entities: ['x', 'y'], newcomers: ['y'] }, { groupKey: 'g' }),
+    ]
+    render(<Presentation steps={steps} title="T" />)
+    next()
+    const wrapper = q('[data-presentation-entity="ns/y"]')!.closest<HTMLElement>('[data-presentation-appear]')!
+    const x = q('[data-presentation-entity="ns/x"]')!
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    expect(Number(wrapper.style.opacity)).toBeLessThan(0.05) // still inside LAYOUT_T + ENTER_DELAY (0.6 s)
+    expect(x.closest('[data-presentation-appear]')).toBeNull()
+    await waitFor(() => expect(Number(wrapper.style.opacity)).toBeGreaterThanOrEqual(0.999), { timeout: 3000 })
+  })
+
   it('Appear accepts a custom delay', () => {
     render(<Appear delay={0}><span /></Appear>)
     expect(q('[data-presentation-appear]')!.getAttribute('data-presentation-appear-delay')).toBe('0')
@@ -193,6 +208,35 @@ describe('primitives', () => {
     expect(q('[data-presentation-entity="e/frame"]')).toHaveClass('f')
     expect(q('[data-presentation-entity="e/arrow"]')).toHaveClass('a')
     expect(q('[data-presentation-scene-layer]')!.style.position).toBe('absolute')
+  })
+
+  it('every primitive and SceneLayer pass class, style and data attributes through', () => {
+    render(
+      <SceneLayer className="layer" data-layer-extra="1" style={{ zIndex: 2 }}>
+        <Box key="b" id="p/box" className="k" data-extra="b">b</Box>
+        <Label key="l" id="p/label" className="k" data-extra="l">l</Label>
+        <Frame key="f" id="p/frame" className="k" data-extra="f" />
+        <Emphasis key="m" id="p/emphasis" className="k" data-extra="m" />
+        <SymbolChip key="s" id="p/chip" className="k" data-extra="s" />
+        <Arrow key="a" id="p/arrow" from={[0, 0]} to={[9, 9]} className="k" data-extra="a" style={{ opacity: 0.5 }} />
+        <Appear key="p" className="k" data-extra="p"><span /></Appear>
+      </SceneLayer>,
+    )
+    for (const [id, extra] of [['p/box', 'b'], ['p/label', 'l'], ['p/frame', 'f'], ['p/emphasis', 'm'], ['p/chip', 's'], ['p/arrow', 'a']]) {
+      const el = q(`[data-presentation-entity="${id}"]`)!
+      expect(el, id).toHaveClass('k')
+      expect(el.getAttribute('data-extra'), id).toBe(extra)
+    }
+    expect(q('[data-presentation-entity="p/arrow"]')!.style.opacity).toBe('0.5')
+    expect(q('[data-presentation-entity="p/arrow"]')!.style.position).toBe('absolute')
+    const appear = q('[data-presentation-appear]')!
+    expect(appear).toHaveClass('k')
+    expect(appear.getAttribute('data-extra')).toBe('p')
+    const layer = q('[data-presentation-scene-layer]')!
+    expect(layer).toHaveClass('layer')
+    expect(layer.getAttribute('data-layer-extra')).toBe('1')
+    expect(layer.style.zIndex).toBe('2')
+    expect(layer.style.position).toBe('absolute')
   })
 
   it('Box and SymbolChip render an optional Lucide glyph component', () => {

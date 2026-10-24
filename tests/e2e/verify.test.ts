@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { copyProject, npm, portIsFree, removeProject, repoRoot, type RunResult } from '../support/project'
@@ -48,6 +48,8 @@ interface Fault {
   name: string
   file: string
   edit: (source: string) => string
+  /** Delete the file instead of rewriting it. */
+  removeFile?: boolean
   phase: 'build' | 'sample' | 'render'
   /** Whether verification gets far enough to start the production preview. */
   startsPreview: boolean
@@ -70,6 +72,32 @@ const faults: Fault[] = [
     phase: 'build',
     startsPreview: false,
     expected: [/FAIL build/, /npm run build exited with code/],
+  },
+  {
+    name: 'a missing verify.config.json',
+    file: 'verify.config.json',
+    edit: () => '',
+    removeFile: true,
+    phase: 'sample',
+    startsPreview: false,
+    expected: [/FAIL sample/, /verify\.config\.json is missing/],
+  },
+  {
+    name: 'a verify.config.json that names no required presentation',
+    file: 'verify.config.json',
+    edit: () => '{}',
+    phase: 'sample',
+    startsPreview: false,
+    expected: [/FAIL sample/, /must name the required reference presentation/],
+  },
+  {
+    name: 'a missing sample outline file',
+    file: 'scripts/sample-outline.json',
+    edit: () => '',
+    removeFile: true,
+    phase: 'sample',
+    startsPreview: false,
+    expected: [/FAIL sample/, /sample-outline\.json is missing/],
   },
   {
     name: 'a missing reference sample',
@@ -138,7 +166,8 @@ describe('E2E-002: verification failures are actionable', () => {
     const copy = copyProject('e2e002')
     copies.push(copy)
     const file = path.join(copy, fault.file)
-    writeFileSync(file, fault.edit(readFileSync(file, 'utf8')))
+    if (fault.removeFile) rmSync(file)
+    else writeFileSync(file, fault.edit(readFileSync(file, 'utf8')))
 
     const result = await npm(['run', 'verify'], copy)
 

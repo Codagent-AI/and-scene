@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import { describe, expect, it } from 'vitest'
-import { checkOutline, createErrorCollector, isAdvance, normalize, parseRegistry, planRoutes, VerifyFailure } from '../../scripts/lib/verify-lib.mjs'
+import { checkOutline, createErrorCollector, isAdvance, normalize, parseRegistry, planRoutes, renderAll, renderPresentation, VerifyFailure } from '../../scripts/lib/verify-lib.mjs'
 
 const registrySource = `
 export const presentations: PresentationEntry[] = [
@@ -36,7 +36,7 @@ describe('registry parsing and route planning', () => {
     }
   })
 
-  it('plans non-sample failures too: two registered entries with different counts both get routes', () => {
+  it('gives every registered presentation a route, required one first', () => {
     expect(planRoutes([{ slug: 'a', title: 'A' }, { slug: 'b', title: 'B' }, { slug: 'c', title: 'C' }], 'b')).toEqual(['b', 'a', 'c'])
   })
 })
@@ -117,5 +117,108 @@ describe('browser error collection', () => {
     page.emit('console', message('warning', 'careful'))
     page.emit('console', message('log', 'hi'))
     expect(collector.drain()).toEqual([])
+  })
+})
+
+describe('registry parsing is independent of property order', () => {
+  it('reads entries whichever order slug, title and load appear in', () => {
+    const source = `export const presentations = [
+      { title: 'Reversed', slug: 'reversed', load: () => import('./reversed/Talk') },
+      { load: () => import('./b/Talk'), slug: "b", title: "B" },
+      { slug: 'c',
+        load: () => import('./c/Talk'),
+        title: \`C\` },
+    ]`
+    expect(parseRegistry(source)).toEqual([
+      { slug: 'reversed', title: 'Reversed' },
+      { slug: 'b', title: 'B' },
+      { slug: 'c', title: 'C' },
+    ])
+  })
+
+  it('skips objects that are not registry entries', () => {
+    expect(parseRegistry("const options = { slug: 'x' }")).toEqual([])
+  })
+})
+
+describe('rendering every planned route', () => {
+  it('sums step counts across presentations of different lengths', async () => {
+    const counts: Record<string, number> = { a: 9, b: 3, c: 5 }
+    expect(await renderAll(['a', 'b', 'c'], async (slug: string) => counts[slug])).toBe(17)
+  })
+
+  it('stops at and propagates a failure in a non-sample presentation, naming it', async () => {
+    const seen: string[] = []
+    await expect(
+      renderAll(['sample', 'other', 'never'], async (slug: string) => {
+        seen.push(slug)
+        if (slug === 'other') throw new VerifyFailure('render', 'boom', { slug, step: 2, index: 1, total: 3 })
+        return 9
+      }),
+    ).rejects.toMatchObject({ phase: 'render', slug: 'other', step: 2 })
+    expect(seen).toEqual(['sample', 'other'])
+  })
+
+  it('fails the sample phase rather than passing with nothing to verify', async () => {
+    await expect(renderAll([], async () => 1)).rejects.toMatchObject({ phase: 'sample' })
+  })
+})
+
+describe('renderPresentation names the step for every browser failure', () => {
+  const makePage = (over: Record<string, unknown> = {}) => {
+    const page = new EventEmitter() as EventEmitter & Record<string, unknown>
+    let index = 0
+    Object.assign(page, {
+      goto: async () => undefined,
+      waitForSelector: async () => undefined,
+      getAttribute: async () => '3',
+      waitForTimeout: async () => undefined,
+      waitForFunction: async () => undefined,
+      keyboard: { press: async () => { index++ } },
+      evaluate: async (fn: () => unknown) => (String(fn).includes('data-step-index') ? index : { era: 'e', title: 't', caption: 'c' }),
+      ...over,
+    })
+    return page
+  }
+
+  it('returns the narration seen at every step for a healthy page', async () => {
+    const seen = await renderPresentation(makePage() as never, 'http://127.0.0.1:1', 'x', { settleMs: 0 })
+    expect(seen).toHaveLength(3)
+  })
+
+  it('reports a rejected key press at the step it was needed for', async () => {
+    const page = makePage({ keyboard: { press: async () => { throw new Error('page crashed') } } })
+    await expect(renderPresentation(page as never, 'http://127.0.0.1:1', 'x', { settleMs: 0 })).rejects.toMatchObject({
+      phase: 'render', slug: 'x', step: 2, index: 1, total: 3,
+    })
+  })
+
+  it('reports a failed narration read at its step', async () => {
+    let calls = 0
+    const page = makePage({
+      evaluate: async (fn: () => unknown) => {
+        if (String(fn).includes('data-step-index') && !String(fn).includes('era')) return 0
+        if (++calls === 2) throw new Error('evaluation failed')
+        return { era: 'e', title: 't', caption: 'c' }
+      },
+    })
+    await expect(renderPresentation(page as never, 'http://127.0.0.1:1', 'x', { settleMs: 0 })).rejects.toMatchObject({ step: 2, index: 1 })
+  })
+
+  it('turns a failed request into a render failure for the step it happened in', async () => {
+    const page = makePage()
+    let presses = 0
+    ;(page.keyboard as { press: () => Promise<void> }).press = async () => {
+      presses++
+      page.emit('requestfailed', { url: () => 'http://x/chunk.js', failure: () => ({ errorText: 'net::ERR_ABORTED' }) })
+    }
+    const evaluate = page.evaluate as (fn: () => unknown) => Promise<unknown>
+    page.evaluate = async (fn: () => unknown) => (String(fn).includes('data-step-index') ? presses : evaluate(fn))
+    await expect(renderPresentation(page as never, 'http://127.0.0.1:1', 'x', { settleMs: 0 })).rejects.toMatchObject({ step: 2 })
+  })
+
+  it('reports a navigation failure as step 1', async () => {
+    const page = makePage({ goto: async () => { throw new Error('net::ERR_CONNECTION_REFUSED') } })
+    await expect(renderPresentation(page as never, 'http://127.0.0.1:1', 'x')).rejects.toMatchObject({ step: 1, index: 0 })
   })
 })

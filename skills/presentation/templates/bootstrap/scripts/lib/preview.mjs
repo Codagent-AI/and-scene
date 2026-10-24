@@ -108,3 +108,12 @@ export function runNpmBuild(root) {
     })
   })
 }
+
+/** Closes the browser, then always stops the preview, even when closing the browser fails. */
+export async function closeAll(browser, preview) {
+  try {
+    await browser?.close()
+  } finally {
+    await preview.stop()
+  }
+}

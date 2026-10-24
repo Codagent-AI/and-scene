@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -31,5 +32,26 @@ describe('preview process lifecycle', () => {
 
   it('fails with a clear message when vite cannot be resolved', async () => {
     await expect(startPreview(path.parse(site).root)).rejects.toThrow(/vite is not installed/)
+  })
+
+  it.each([
+    ['SIGTERM', 143],
+    ['SIGINT', 130],
+  ] as const)('stops the preview and exits %s-style when the script is interrupted', async (signal, code) => {
+    const child = spawn(process.execPath, [path.resolve(__dirname, '../support/signal-fixture.mjs'), site], { stdio: ['ignore', 'pipe', 'inherit'] })
+    const port = await new Promise<number>((resolve, reject) => {
+      let out = ''
+      child.stdout.on('data', (chunk) => {
+        out += chunk
+        const match = /READY (\d+)/.exec(out)
+        if (match) resolve(Number(match[1]))
+      })
+      child.once('exit', () => reject(new Error(`fixture exited early: ${out}`)))
+    })
+    expect(await portIsFree(port)).toBe(false)
+    const exited = new Promise<number | null>((resolve) => child.once('exit', resolve))
+    child.kill(signal)
+    expect(await exited).toBe(code)
+    expect(await portIsFree(port)).toBe(true)
   })
 })

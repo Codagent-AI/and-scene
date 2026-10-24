@@ -79,9 +79,14 @@ export function warningsForStep(step, snapshot) {
 export function collectSnapshot(props) {
   const root = document.querySelector('[data-presentation-root]')
   const visible = (el) => {
-    const style = getComputedStyle(el)
     const rect = el.getBoundingClientRect()
-    return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0
+    if (rect.width <= 0 || rect.height <= 0) return false
+    // hidden when it, or any ancestor, is not displayed or fully transparent
+    for (let node = el; node && node !== document.documentElement; node = node.parentElement) {
+      const style = getComputedStyle(node)
+      if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false
+    }
+    return true
   }
   const textRect = (el) => {
     let box = null

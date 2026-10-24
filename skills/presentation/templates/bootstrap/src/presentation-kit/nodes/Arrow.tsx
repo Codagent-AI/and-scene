@@ -1,21 +1,18 @@
-import { motion } from 'motion/react'
-import type { CSSProperties } from 'react'
+import { motion, type SVGMotionProps } from 'motion/react'
 import { arrowPath, type Point } from './arrowPath'
 import { EXIT } from './shared'
 
-export interface ArrowProps {
+export interface ArrowProps extends Omit<SVGMotionProps<SVGSVGElement>, 'id' | 'layoutId' | 'children' | 'from' | 'to'> {
   id: string
   from: Point
   to: Point
   /** Sideways offset of the curve midpoint; 0 draws a straight line. */
   bend?: number
   twoWay?: boolean
-  className?: string
-  style?: CSSProperties
 }
 
 /** A line between two canvas points; the path animates when its endpoints change. */
-export function Arrow({ id, from, to, bend, twoWay, className, style }: ArrowProps) {
+export function Arrow({ id, from, to, bend, twoWay, style, ...rest }: ArrowProps) {
   const head = `${id.replace(/[^a-zA-Z0-9_-]/g, '_')}-head`
   return (
     <motion.svg
@@ -23,7 +20,6 @@ export function Arrow({ id, from, to, bend, twoWay, className, style }: ArrowPro
       exit={EXIT}
       data-presentation-entity={id}
       data-presentation-node="arrow"
-      className={className}
       aria-hidden
       style={{
         position: 'absolute',
@@ -35,6 +31,7 @@ export function Arrow({ id, from, to, bend, twoWay, className, style }: ArrowPro
         pointerEvents: 'none',
         ...style,
       }}
+      {...rest}
     >
       <defs>
         <marker id={head} markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">

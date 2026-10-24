@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -44,6 +44,14 @@ describe('repository hygiene', () => {
     const tracked = git('ls-files').split('\n')
     expect(tracked.filter((f) => /(^|\/)(node_modules|dist|inspection)\//.test(f))).toEqual([])
     expect(tracked.filter((f) => f.endsWith('.png') && f.includes('inspection'))).toEqual([])
+  })
+
+  it('keeps process-spawning and browser tests out of the unit suite', () => {
+    const dir = path.join(root, 'tests/unit')
+    for (const file of readdirSync(dir).filter((f) => /\.(ts|tsx)$/.test(f) && f !== 'project.test.ts')) {
+      const source = readFileSync(path.join(dir, file), 'utf8')
+      expect(source, file).not.toMatch(/child_process|startPreview|from 'playwright'|support\/project/)
+    }
   })
 
   it('does not use localhost in verification or inspection automation', () => {

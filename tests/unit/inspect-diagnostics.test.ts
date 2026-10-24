@@ -39,10 +39,6 @@ describe('overlap detection', () => {
     ]
     expect(findOverlaps(items)).toEqual([['outside-1', 'outside-2']])
   })
-
-  it('does not warn about hidden elements because they are never collected as items', () => {
-    expect(findOverlaps([])).toEqual([])
-  })
 })
 
 describe('active chrome distinction', () => {

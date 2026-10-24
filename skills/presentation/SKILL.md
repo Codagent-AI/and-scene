@@ -168,6 +168,8 @@ Do not commit `inspection-output/`, `dist/`, or `node_modules/`.
 
 ## Modify an existing presentation
 
+First run step 2 (detect the three anchors and scaffold only what is missing), as for create.
+
 1. Identify the target first. If the request does not clearly name one presentation (or is
    ambiguous), **list the existing presentations** from the index and ask which one, before
    changing anything.

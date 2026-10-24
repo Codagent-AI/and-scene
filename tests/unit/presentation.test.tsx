@@ -1,4 +1,5 @@
 import { act, fireEvent, render, within } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { Presentation, WIDE_VIEWPORT, type AnyStep } from '../../src/presentation-kit'
 import { makeSteps, setViewport } from './helpers'
@@ -117,6 +118,22 @@ describe('Presentation chrome', () => {
   })
 })
 
+describe('StrictMode', () => {
+  it('advances one step per key and one swipe after effect replay', () => {
+    render(
+      <StrictMode>
+        <Presentation steps={makeSteps(5)} title="Deck" />
+      </StrictMode>,
+    )
+    key('ArrowRight')
+    expect(root().getAttribute('data-step-index')).toBe('1')
+    key('p')
+    expect(root().getAttribute('data-presentation-mode')).toBe('present')
+    key('ArrowRight')
+    expect(root().getAttribute('data-step-index')).toBe('2')
+  })
+})
+
 describe('direct jump and active state', () => {
   it('jumps from a dot to its step and from a ToC entry to the first step of its era', () => {
     render(<Presentation steps={makeSteps(6)} title="Deck" />)
@@ -200,6 +217,16 @@ describe('attribution and branding', () => {
     expect(link.style.bottom).toBe('0px')
     expect(link.style.position).toBe('absolute')
     expect(link.parentElement).toBe(root())
+  })
+
+  it('passes class, style, and data attributes through to the attribution link itself', () => {
+    render(<Presentation steps={makeSteps(2)} title="Deck" attribution={{ className: 'credit', style: { zIndex: 5 }, 'data-extra': 'yes' } as object} />)
+    const link = q('[data-presentation-attribution]')!
+    expect(link.classList.contains('credit')).toBe(true)
+    expect(link.style.zIndex).toBe('5')
+    expect(link.style.position).toBe('absolute')
+    expect(link.getAttribute('data-extra')).toBe('yes')
+    expect(link.textContent).toBe('made by and-scene')
   })
 
   it('can be overridden or omitted', () => {

@@ -45,7 +45,7 @@ export function FixtureScene({ payload: { step, apart } }: SceneProps<Payload>) 
 }
 `
 
-const talk = (apart: boolean, css: boolean, title: string) => `
+const talk = (apart: boolean, css: boolean, title: string, attribution = '') => `
 import { defineStep, Presentation } from '../../presentation-kit'
 import { FixtureScene } from '../fixture-scene/Scene'
 ${css ? "import './styles.css'" : ''}
@@ -55,7 +55,7 @@ const steps = [1, 2, 3, 4].map((n) =>
 )
 
 export default function Talk() {
-  return <Presentation className="fx" steps={steps} title="${title}" />
+  return <Presentation className="fx" steps={steps} title="${title}"${attribution} />
 }
 `
 
@@ -70,6 +70,7 @@ const POLISHED_CSS = `
 let dir: string
 let defects: RunResult
 let polished: RunResult
+let missing: RunResult
 const SETTLE = 800
 
 const report = (slug: string) => JSON.parse(readFileSync(path.join(dir, 'inspection-output', slug, 'report.json'), 'utf8'))
@@ -82,6 +83,7 @@ beforeAll(async () => {
     'fixture-scene': { 'Scene.tsx': SCENE },
     defects: { 'Talk.tsx': talk(false, false, 'Defects') },
     polished: { 'Talk.tsx': talk(true, true, 'Polished'), 'styles.css': POLISHED_CSS },
+    noattr: { 'Talk.tsx': talk(true, true, 'No attribution', ' attribution={false}'), 'styles.css': POLISHED_CSS },
   })) {
     mkdirSync(path.join(src, folder), { recursive: true })
     for (const [name, content] of Object.entries(files)) writeFileSync(path.join(src, folder, name), content)
@@ -89,10 +91,11 @@ beforeAll(async () => {
   edit(path.join(src, 'index.ts'), (s) =>
     s.replace(
       'export const presentations: PresentationEntry[] = [',
-      "export const presentations: PresentationEntry[] = [\n  { slug: 'defects', title: 'Defects', load: () => import('./defects/Talk') },\n  { slug: 'polished', title: 'Polished', load: () => import('./polished/Talk') },",
+      "export const presentations: PresentationEntry[] = [\n  { slug: 'noattr', title: 'No attribution', load: () => import('./noattr/Talk') },\n  { slug: 'defects', title: 'Defects', load: () => import('./defects/Talk') },\n  { slug: 'polished', title: 'Polished', load: () => import('./polished/Talk') },",
     ),
   )
   defects = await run('node', ['scripts/inspect-presentation.mjs', 'defects', '--settle', String(SETTLE)], { cwd: dir })
+  missing = await run('node', ['scripts/inspect-presentation.mjs', 'noattr', '--settle', String(SETTLE), '--no-build'], { cwd: dir })
   polished = await run('node', ['scripts/inspect-presentation.mjs', 'polished', '--settle', String(SETTLE), '--no-build'], { cwd: dir })
 })
 
@@ -153,6 +156,16 @@ describe('INT-002: screenshot helper', () => {
     expect(warnings(polished)).toEqual([])
     expect(polished.stdout).toContain('0 advisory warning(s)')
     expect(existsSync(path.join(dir, 'inspection-output/polished/step-04.png'))).toBe(true)
+  })
+
+  it('reports a missing attribution link on every step while still exiting zero', () => {
+    expect(missing.code, missing.stdout + missing.stderr).toBe(0)
+    const lines = warnings(missing)
+    expect(lines).toHaveLength(4)
+    for (let step = 1; step <= 4; step++) {
+      expect(lines.filter((l) => l.startsWith(`warning: step ${step} attribution:`))).toHaveLength(1)
+    }
+    expect(lines[0]).toMatch(/no attribution link \(\[data-presentation-attribution\]\) is rendered/)
   })
 
   it('fails clearly for an unregistered presentation', async () => {

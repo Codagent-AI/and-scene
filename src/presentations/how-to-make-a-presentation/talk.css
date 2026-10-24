@@ -1,0 +1,300 @@
+/* Visual style for the "How to Use This Skill" presentation. Plain CSS owned by
+   this presentation; the reusable kit supplies hooks only. */
+.htmp {
+  --ink: #f8f3e6;
+  --muted: #b9b09b;
+  --gold: #c7a755;
+  --line: rgba(248, 243, 230, 0.34);
+  --panel: rgba(248, 243, 230, 0.06);
+  --ok: #6fcf97;
+  position: fixed;
+  inset: 0;
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---- chrome ---- */
+.htmp [data-presentation-header] {
+  padding: 0 32px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.htmp [data-presentation-marker] {
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  font-weight: 600;
+}
+.htmp [data-presentation-era] {
+  margin-left: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+}
+.htmp [data-presentation-deck-title] {
+  margin-left: 16px;
+  color: var(--ink);
+}
+.htmp button {
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  cursor: pointer;
+}
+.htmp button:focus-visible,
+.htmp a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.htmp [data-presentation-mode-toggle],
+.htmp [data-presentation-prev],
+.htmp [data-presentation-next] {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 13px;
+}
+.htmp [data-presentation-mode-toggle] {
+  margin-left: 20px;
+}
+.htmp [data-presentation-prev]:disabled,
+.htmp [data-presentation-next]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.htmp [data-presentation-footer] {
+  padding: 0 232px 0 32px;
+  gap: 8px;
+}
+.htmp [data-presentation-title] {
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.15;
+}
+.htmp [data-presentation-caption] {
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.htmp [data-presentation-progress] {
+  gap: 8px;
+  margin: 0 16px;
+}
+.htmp [data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.htmp [data-presentation-progress-item][aria-current='step'] {
+  width: 28px;
+  border-radius: 6px;
+  border-color: var(--gold);
+  background: var(--gold);
+}
+.htmp [data-presentation-toc] {
+  padding: 8px 0 0 32px;
+}
+.htmp [data-presentation-toc-item] {
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-left: 2px solid var(--line);
+  text-align: left;
+  font-size: 14px;
+  color: var(--muted);
+}
+.htmp [data-presentation-toc-item][aria-current='step'] {
+  color: var(--ink);
+  font-weight: 650;
+  border-left: 4px solid var(--gold);
+  background: rgba(199, 167, 85, 0.14);
+}
+.htmp [data-presentation-attribution] {
+  right: 20px !important;
+  bottom: 14px !important;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---- scene entities ---- */
+.htmp [data-presentation-node] {
+  font-size: 15px;
+  line-height: 1.2;
+}
+.htmp .actor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--gold);
+  border-radius: 14px;
+  background: var(--panel);
+  font-size: 20px;
+  font-weight: 650;
+}
+.htmp .bubble {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 18px 18px 18px 4px;
+  color: var(--muted);
+  font-style: italic;
+}
+.htmp .question {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  color: var(--gold);
+}
+.htmp .conversation,
+.htmp .link,
+.htmp .plug,
+.htmp .modify {
+  color: var(--muted);
+  stroke-width: 1.8;
+}
+.htmp .modify {
+  color: var(--gold);
+  stroke-dasharray: 6 5;
+}
+.htmp .card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.htmp .card-part {
+  font-size: 13px;
+  color: var(--muted);
+}
+.htmp .card-visual {
+  width: 22px;
+  height: 22px;
+  margin-top: auto;
+  color: var(--gold);
+}
+.htmp .ghost {
+  border-style: dashed;
+  background: transparent;
+  align-items: center;
+  justify-content: center;
+}
+.htmp .morph-chip,
+.htmp .pass,
+.htmp .edited-flag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #1a1815;
+  border: 1px solid var(--line);
+  color: var(--gold);
+}
+.htmp .morph-chip svg,
+.htmp .pass svg,
+.htmp .edited-flag svg {
+  width: 70%;
+  height: 70%;
+}
+.htmp .pass {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.htmp .depth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: 13px;
+}
+.htmp .depth svg {
+  width: 14px;
+  height: 14px;
+}
+.htmp .kit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px solid var(--gold);
+  border-radius: 0 0 12px 12px;
+  color: var(--gold);
+  font-size: 14px;
+}
+.htmp .kit svg {
+  width: 18px;
+  height: 18px;
+}
+.htmp .verify {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--ok);
+  border-radius: 10px;
+  background: rgba(111, 207, 151, 0.08);
+}
+.htmp .verify-title {
+  font-weight: 650;
+  font-size: 18px;
+}
+.htmp .verify-sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+.htmp .modify-tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+  font-size: 13px;
+}
+.htmp .edited {
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  box-shadow: 0 0 18px rgba(199, 167, 85, 0.45);
+}
+.htmp .frame {
+  border: 2px dashed var(--gold);
+  border-radius: 20px;
+}
+.htmp .frame-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 959px) {
+  .htmp [data-presentation-footer] {
+    padding: 0 16px;
+  }
+  .htmp [data-presentation-header] {
+    padding: 0 16px;
+  }
+  .htmp [data-presentation-title] {
+    font-size: 22px;
+  }
+  .htmp [data-presentation-caption] {
+    font-size: 13px;
+  }
+  .htmp [data-presentation-deck-title] {
+    display: none;
+  }
+}

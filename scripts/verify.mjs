@@ -6,7 +6,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { HOST, launchChromium, run, startPreview } from './lib/preview.mjs'
+import { launchChromium, run, startPreview } from './lib/preview.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const STEP_TIMEOUT_MS = 4000
@@ -57,7 +57,7 @@ async function text(page, selector) {
 
 async function renderPresentation(browser, baseUrl, { slug, steps }) {
   const page = await browser.newPage()
-  let step = 0
+  let step = 0 // the step being rendered, or entered by the key press in flight
   const errors = []
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(`step ${step}: console error: ${msg.text()}`)
@@ -77,7 +77,8 @@ async function renderPresentation(browser, baseUrl, { slug, steps }) {
     if (steps && count !== steps.length) {
       throw fail(`expected ${steps.length} steps but the presentation reports ${count}`)
     }
-    for (step = 0; step < count; step++) {
+    step = 0
+    for (;;) {
       const index = Number(await page.getAttribute(root$, 'data-step-index'))
       if (index !== step) throw fail(`step ${step}: transition failed, step index is ${index}`)
       if (steps) {
@@ -93,16 +94,18 @@ async function renderPresentation(browser, baseUrl, { slug, steps }) {
       await page.waitForTimeout(SETTLE_MS)
       if (errors.length) throw fail(errors[0])
       if (step === count - 1) break
+      step += 1
       await page.keyboard.press('ArrowRight')
       try {
         await page.waitForFunction(
           ([sel, next]) =>
             document.querySelector(sel)?.getAttribute('data-step-index') === String(next),
-          [root$, step + 1],
+          [root$, step],
           { timeout: STEP_TIMEOUT_MS },
         )
       } catch {
-        throw fail(`step ${step}: transition failed, step index did not advance to ${step + 1}`)
+        if (errors.length) throw fail(errors[0])
+        throw fail(`step ${step - 1}: transition failed, step index did not advance to ${step}`)
       }
     }
     if (errors.length) throw fail(errors[0])
@@ -119,11 +122,12 @@ async function main() {
   }
   console.log('[verify] registry')
   const list = targets()
-  console.log(`[verify] render (http://${HOST})`)
+  console.log(`[verify] render`)
   const preview = await startPreview(root)
   let browser
   try {
     browser = await launchChromium()
+    console.log(`  preview at ${preview.baseUrl}`)
     for (const target of list) await renderPresentation(browser, preview.baseUrl, target)
   } finally {
     await browser?.close()

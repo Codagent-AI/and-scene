@@ -193,7 +193,7 @@ describe('sample scene rendering', () => {
 describe('sample diagram legibility', () => {
   // The 880 x 380 canvas is scaled to about 0.39 on a 390px-wide phone, so design-size text that is
   // comfortable on desktop becomes unreadable there. Diagram text must stay large in canvas pixels.
-  const MIN_DIAGRAM_FONT_PX = 18
+  const MIN_DIAGRAM_FONT_PX = 20
   const css = readFileSync(path.resolve(process.cwd(), 'src/presentations/how-to-make-a-presentation/styles.css'), 'utf8')
   const scene = css.slice(css.indexOf('/* Scene entities */'), css.indexOf('/* Arrows and the modify arc'))
 

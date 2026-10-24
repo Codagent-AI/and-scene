@@ -137,12 +137,12 @@
   border: 1.5px solid var(--line);
   border-radius: 10px;
   background: #171b24;
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .how-to [data-presentation-node='label'] {
   color: var(--muted);
-  font-size: 18px;
+  font-size: 22px;
   line-height: 1;
   text-align: center;
 }
@@ -174,9 +174,12 @@
   background: #141822;
 }
 
-.how-to .sample-tray-label,
-.how-to .sample-link-label {
+.how-to .sample-tray-label {
   text-align: left;
+}
+
+.how-to .sample-link-label {
+  font-size: 20px;
 }
 
 .how-to .sample-card {
@@ -193,7 +196,7 @@
 .how-to .sample-depth {
   border-radius: 6px;
   color: var(--warn);
-  font-size: 18px;
+  font-size: 22px;
 }
 
 .how-to .sample-socket {
@@ -205,7 +208,8 @@
 .how-to .sample-verify {
   flex-direction: column;
   border-color: var(--good);
-  font-size: 18px;
+  font-size: 22px;
+  text-align: center;
 }
 
 .how-to .sample-pass {
@@ -235,7 +239,7 @@
 
 .how-to .sample-reveal-label {
   color: var(--accent);
-  font-size: 20px;
+  font-size: 24px;
   text-align: right;
 }
 

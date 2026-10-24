@@ -44,5 +44,5 @@ export function useViewport(): Viewport {
 
 export function useFitScale(mode: Mode, canvas?: { width: number; height: number }) {
   const viewport = useViewport()
-  return computeFitScale(viewport, mode, canvas)
+  return { scale: computeFitScale(viewport, mode, canvas), inset: stageInsets(mode, viewport.width) }
 }

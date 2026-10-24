@@ -1,6 +1,6 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { DESIGN_H, DESIGN_W, EASE, ENTER_T, EXIT_T, type Mode } from './constants'
-import { stageInsets, useFitScale, useViewport } from './useFitScale'
+import { useFitScale } from './useFitScale'
 import { sceneKey } from './steps'
 import type { AnyStep } from './types'
 
@@ -18,9 +18,7 @@ export interface StageProps {
  * other transitions cross-fade while shared `layoutId` entities morph.
  */
 export function Stage({ step, index, mode, canvas = { width: DESIGN_W, height: DESIGN_H } }: StageProps) {
-  const scale = useFitScale(mode, canvas)
-  const { width } = useViewport()
-  const inset = stageInsets(mode, width)
+  const { scale, inset } = useFitScale(mode, canvas)
   const { Scene } = step
   return (
     <div

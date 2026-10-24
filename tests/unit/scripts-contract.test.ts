@@ -23,3 +23,19 @@ describe('verification scripts use the IPv4 loopback address', () => {
     expect(read('verify.mjs')).toContain('preview.url')
   })
 })
+
+describe('inspection helper flags scene text that canvas scaling makes unreadable', () => {
+  const template = path.join(import.meta.dirname, '../../skills/presentation/templates/bootstrap/scripts')
+
+  it('derives effective text size from the canvas scale and reports it as an advisory', () => {
+    const script = read('inspect-presentation.mjs')
+    expect(script).toContain('data-presentation-scale')
+    expect(script).toMatch(/kind: 'small-text'/)
+    expect(script).toMatch(/const MIN_SCENE_TEXT_PX = \d+/)
+    expect(script).toContain('page.evaluate(diagnose, MIN_SCENE_TEXT_PX)')
+  })
+
+  it('keeps the bootstrap template copy aligned with the root helper', () => {
+    expect(readFileSync(path.join(template, 'inspect-presentation.mjs'), 'utf8')).toBe(read('inspect-presentation.mjs'))
+  })
+})

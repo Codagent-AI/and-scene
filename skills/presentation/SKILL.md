@@ -135,7 +135,9 @@ Do not report success until all of these pass; when one fails, fix the cause and
    caption, progress dots, table of contents, or navigation controls.
 4. Review every advisory warning the helper prints. Fix accidental text/chrome collisions,
    indistinct active-step chrome, and unpolished attribution (style the hooks in the
-   presentation's CSS). Add `data-presentation-allow-overlap` only to subtrees whose overlap is
+   presentation's CSS). A `small-text` warning means canvas scaling shrinks scene text below
+   a readable size at that viewport (typically the 390×844 pass): enlarge the type in the
+   presentation's CSS or simplify the scene, then re-run. Add `data-presentation-allow-overlap` only to subtrees whose overlap is
    intentional and readable. Re-run the helper after fixing.
 
 Finish by reporting the route, the final check results, and any advisory warnings you left on

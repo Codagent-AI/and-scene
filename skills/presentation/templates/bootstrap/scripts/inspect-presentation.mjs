@@ -10,6 +10,9 @@ import { run, sleep, startPreview, tail } from './lib/preview.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
 
+/** Scene text that renders smaller than this (after canvas scaling) is flagged as hard to read. */
+const MIN_SCENE_TEXT_PX = 9
+
 function parseArgs(argv) {
   const opts = { slug: undefined, out: path.join(root, '.inspection'), settle: 1200, viewport: [1440, 900], mode: 'initial', skipBuild: false }
   for (let i = 0; i < argv.length; i++) {
@@ -27,7 +30,7 @@ function parseArgs(argv) {
 }
 
 /** Runs inside the page; returns advisory warnings for the step currently on screen. */
-function diagnose() {
+function diagnose(MIN_SCENE_TEXT_PX) {
   const warnings = []
   const label = (el, text) => {
     const entity = el.closest('[data-presentation-entity]')?.getAttribute('data-presentation-entity')
@@ -74,6 +77,24 @@ function diagnose() {
       const b = items[j]
       if (a.el.contains(b.el) || b.el.contains(a.el) || allowed(a.el) || allowed(b.el)) continue
       if (intersects(a.box, b.box)) warnings.push({ kind: 'overlap', message: `${label(a.el, a.text)} overlaps ${label(b.el, b.text)}` })
+    }
+  }
+
+  // scene text is scaled with the canvas, so it can shrink below a readable size on narrow viewports
+  const canvas = document.querySelector('[data-presentation-canvas]')
+  const scale = canvas ? parseFloat(canvas.getAttribute('data-presentation-scale')) : NaN
+  if (Number.isFinite(scale) && scale > 0) {
+    let smallest
+    for (const item of items) {
+      if (item.chrome || !canvas.contains(item.el)) continue
+      const size = parseFloat(getComputedStyle(item.el).fontSize) * scale
+      if (!smallest || size < smallest.size) smallest = { size, item }
+    }
+    if (smallest && smallest.size < MIN_SCENE_TEXT_PX) {
+      warnings.push({
+        kind: 'small-text',
+        message: `scene text renders as small as ${smallest.size.toFixed(1)}px at canvas scale ${scale.toFixed(2)} (${label(smallest.item.el, smallest.item.text)}); enlarge type in the presentation CSS or simplify the scene so it stays readable at this viewport`,
+      })
     }
   }
 
@@ -133,7 +154,7 @@ async function main() {
     for (let i = 0; i < count; i++) {
       await sleep(opts.settle)
       const file = path.join(dir, `step-${String(i + 1).padStart(2, '0')}.png`)
-      for (const w of await page.evaluate(diagnose)) {
+      for (const w of await page.evaluate(diagnose, MIN_SCENE_TEXT_PX)) {
         const key = `${w.kind}:${w.kind === 'overlap' ? `${i}:` : ''}${w.message}`
         if (!grouped.has(key)) grouped.set(key, { kind: w.kind, message: w.message, steps: [] })
         grouped.get(key).steps.push(i + 1)

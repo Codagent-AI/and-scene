@@ -1,0 +1,10 @@
+.polished [data-presentation-dot][data-presentation-active='true'] {
+  font-weight: 700;
+  background: #e2c46f;
+}
+
+.polished [data-presentation-attribution] {
+  font-size: 14px;
+  color: #a9a090;
+  text-decoration: none;
+}

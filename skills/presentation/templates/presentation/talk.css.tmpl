@@ -1,0 +1,15 @@
+/* Presentation-owned look. The scene kit ships no styles; target its data-presentation-* hooks here. */
+.talk-{{slug}} {
+  /* palette, typography, spacing */
+}
+
+.talk-{{slug}} [data-presentation-dot][data-presentation-active='true'],
+.talk-{{slug}} [data-presentation-toc-entry][data-presentation-active='true'] {
+  /* make the active step visibly distinct */
+  font-weight: 700;
+}
+
+.talk-{{slug}} [data-presentation-attribution] {
+  /* make the attribution legible and intentional */
+  font-size: 0.8rem;
+}

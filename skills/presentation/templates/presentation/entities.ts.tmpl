@@ -1,0 +1,6 @@
+/** {{title}}: this presentation's `layoutId` namespace and the step (1-based) each entity first appears in. */
+export const INTRO = {
+  // 'entity-id': 1,
+} as const
+
+export type EntityId = keyof typeof INTRO

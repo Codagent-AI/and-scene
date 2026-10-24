@@ -1,0 +1,25 @@
+import type { ReactNode } from 'react'
+import { Appear, SceneLayer, type SceneProps } from '../../presentation-kit'
+import { INTRO, type EntityId } from './entities'
+
+export interface ScenePayload {
+  /** 1-based step number whose entities are on screen. */
+  step: number
+}
+
+// One node per entity id. Keep every entity at fixed coordinates so it morphs in place.
+const NODES: Record<EntityId, ReactNode> = {
+  // 'entity-id': <Box id="entity-id" className="{{slug}}-box" x={40} y={40} w={160} h={64}>label</Box>,
+}
+
+/** One persistent scene; only the payload changes between steps. */
+export function Scene({ payload }: SceneProps<ScenePayload>) {
+  const ids = Object.keys(INTRO) as EntityId[]
+  return (
+    <SceneLayer>
+      {ids.filter((id) => INTRO[id] <= payload.step).map((id) => (
+        <Appear key={id}>{NODES[id]}</Appear>
+      ))}
+    </SceneLayer>
+  )
+}

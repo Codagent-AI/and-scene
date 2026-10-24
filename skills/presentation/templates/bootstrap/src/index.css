@@ -1,0 +1,8 @@
+/* Host app CSS only. Presentations own their look in presentation-local CSS. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

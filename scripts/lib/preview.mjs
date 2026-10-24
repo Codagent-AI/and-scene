@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import net from 'node:net'
 import path from 'node:path'
 
-/** Deterministic IPv4 loopback; never `localhost`, whose resolution differs between environments. */
+/** Deterministic IPv4 loopback; never a hostname, whose IPv4/IPv6 resolution differs between environments. */
 export const HOST = '127.0.0.1'
 
 export const baseUrl = (port) => `http://${HOST}:${port}`

@@ -60,6 +60,7 @@ async function renderPresentation(browser, url, slug) {
     if (errors.length) throw new VerifyError('render', `${slug}: ${errors[0]}`)
   }
   const sel = '[data-presentation-root]'
+  const observed = []
   try {
     await page.goto(`${url}/${slug}`)
     try {
@@ -93,6 +94,7 @@ async function renderPresentation(browser, url, slug) {
           }
         }
       }
+      observed.push(i)
       await sleep(SETTLE_MS)
       assertClean()
       if (i === count - 1) break
@@ -109,7 +111,7 @@ async function renderPresentation(browser, url, slug) {
         throw new VerifyError('render', `${slug}: step index ${i + 1}: transition from step index ${i} did not advance`)
       }
     }
-    log(`PASS render ${slug} (${count} steps)`)
+    log(`PASS render ${slug} (${count} steps, observed step indices ${observed.join(',')})`)
   } finally {
     await page.close()
   }

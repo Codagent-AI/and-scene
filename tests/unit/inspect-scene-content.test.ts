@@ -9,7 +9,7 @@ afterEach(() => {
 describe('scene content sampling', () => {
   it('keys elements that share an entity id by DOM order so each is compared with itself', () => {
     document.body.innerHTML = '<div data-presentation-entity="x"></div><div data-presentation-entity="x"></div><div data-presentation-entity="y"></div>'
-    expect(collectSceneContent().map((sample: { id: string }) => sample.id)).toEqual(['x', 'x#1', 'y'])
+    expect(collectSceneContent().map((sample) => sample.id)).toEqual(['x', 'x#1', 'y'])
   })
 
   it('reports the opacity accumulated through ancestors', () => {

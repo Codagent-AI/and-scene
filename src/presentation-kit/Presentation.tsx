@@ -41,6 +41,10 @@ export function Presentation<P>({
     document.title = title
   }, [title])
 
+  if (steps.length === 0) {
+    // Nothing to show yet; keep the verification hooks so tooling reports an empty deck, not a crash.
+    return <div className={className} data-presentation-root="" data-step-count={0} data-presentation-step-count={0} data-step-index={0} data-presentation-step-index={0} />
+  }
   const step = steps[nav.index]
   const browse = nav.mode === 'browse'
   return (

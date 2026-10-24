@@ -6,5 +6,6 @@ export default defineConfig({
     include: ['tests/unit/**/*.test.{ts,tsx}'],
     environment: 'node',
     setupFiles: ['tests/unit/setup.ts'],
+    testTimeout: 30000, // jsdom + motion tests slow down when workers compete for CPU
   },
 })

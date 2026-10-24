@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { closeAll } from '../../scripts/lib/preview.mjs'
+import { closeAll, runNpmBuild } from '../../scripts/lib/preview.mjs'
 
 describe('closeAll', () => {
   it('closes the browser, then stops the preview', async () => {
@@ -18,5 +18,17 @@ describe('closeAll', () => {
     const stop = vi.fn(async () => undefined)
     await closeAll(undefined, { stop })
     expect(stop).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('runNpmBuild', () => {
+  it('rejects with a clear message when npm cannot be started', async () => {
+    const original = process.env.PATH
+    process.env.PATH = ''
+    try {
+      await expect(runNpmBuild('/')).rejects.toThrow(/could not run npm/)
+    } finally {
+      process.env.PATH = original
+    }
   })
 })

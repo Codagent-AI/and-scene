@@ -37,6 +37,15 @@ describe('step model and numbering', () => {
   })
 })
 
+describe('empty deck', () => {
+  it('renders an empty root with zero-step hooks instead of crashing', () => {
+    render(<Presentation steps={[]} title="Empty" />)
+    expect(root().getAttribute('data-step-count')).toBe('0')
+    expect(root().getAttribute('data-step-index')).toBe('0')
+    expect(root().children).toHaveLength(0)
+  })
+})
+
 describe('present mode', () => {
   it('shows marker and one-line title only; hides caption, ToC, progress and prev/next', () => {
     render(<Presentation steps={makeSteps(['the ask', 'the ask', 'the build'])} title="Deck" initialMode="present" initialIndex={1} />)

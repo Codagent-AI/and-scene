@@ -52,5 +52,5 @@ describe('presentation templates', () => {
     expect(entities).toContain('fresh/')
     expect(entities).not.toContain('starter')
     expect(readFileSync(path.join(dir, 'steps.ts'), 'utf8')).not.toMatch(/__[A-Z]+__/)
-  })
+  }, 90000) // a cold TypeScript program over the kit and its dependencies can take tens of seconds
 })

@@ -36,7 +36,12 @@ function killTree(child, signal) {
   try {
     process.kill(-child.pid, signal)
   } catch {
-    /* already gone */
+    // no process groups (e.g. Windows) or already gone: fall back to the child itself
+    try {
+      child.kill(signal)
+    } catch {
+      /* already gone */
+    }
   }
 }
 
@@ -66,7 +71,8 @@ export async function startPreview(root, { timeoutMs = 30000 } = {}) {
     process.off('exit', onExit)
     killTree(child, 'SIGTERM')
     const timer = setTimeout(() => killTree(child, 'SIGKILL'), 3000)
-    await exited
+    // never wait forever for a process that cannot be signalled
+    await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 6000).unref())])
     clearTimeout(timer)
   }
 
@@ -102,6 +108,7 @@ export function runNpmBuild(root) {
     let output = ''
     child.stdout.on('data', (chunk) => (output += chunk))
     child.stderr.on('data', (chunk) => (output += chunk))
+    child.on('error', (error) => reject(new Error(`could not run npm: ${error.message}`)))
     child.on('close', (code) => {
       if (code === 0) resolve()
       else reject(new Error(`npm run build exited with code ${code}\n${output.trim()}`))

@@ -1,0 +1,239 @@
+/* Presentation-owned look for "How to Use This Skill to Make a Presentation".
+   The scene kit supplies behavior and hooks only; everything visual lives here. */
+.htmp {
+  --bg: #12141c;
+  --ink: #e9ecf5;
+  --muted: #98a0b8;
+  --line: #3a4160;
+  --accent: #7cc4ff;
+  --good: #5fd38d;
+  --warn: #ffb454;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.htmp [data-presentation-header] {
+  padding: 14px 24px 6px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.htmp [data-presentation-marker-number] {
+  color: var(--accent);
+  font-weight: 700;
+}
+.htmp [data-presentation-deck-title] {
+  font-weight: 600;
+}
+
+/* chrome: footer */
+.htmp [data-presentation-footer] {
+  padding: 8px 24px 36px;
+}
+.htmp [data-presentation-step-title] {
+  margin: 0 0 6px;
+  font-size: 22px;
+  line-height: 1.2;
+}
+.htmp [data-presentation-caption] {
+  margin: 0 0 12px;
+  max-width: 62ch;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.htmp [data-presentation-nav] {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.htmp [data-presentation-prev],
+.htmp [data-presentation-next] {
+  padding: 4px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.htmp [data-presentation-prev]:hover,
+.htmp [data-presentation-next]:hover {
+  border-color: var(--accent);
+}
+.htmp [data-presentation-dots] {
+  gap: 8px;
+}
+.htmp [data-presentation-dot] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.htmp [data-presentation-dot][data-presentation-active='true'] {
+  width: 26px;
+  border-radius: 6px;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+/* chrome: table of contents */
+.htmp [data-presentation-toc] {
+  width: 170px;
+  padding: 16px 0 0 24px;
+}
+.htmp [data-presentation-toc-entry] {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-left: 2px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.htmp [data-presentation-toc-entry][data-presentation-active='true'] {
+  border-left-color: var(--accent);
+  background: rgba(124, 196, 255, 0.12);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* chrome: attribution */
+.htmp [data-presentation-attribution] {
+  right: 24px !important;
+  bottom: 8px !important;
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--muted);
+}
+.htmp [data-presentation-attribution]:hover {
+  color: var(--accent);
+}
+
+/* scene entities */
+.htmp [data-presentation-node='box'] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: #1b1f2e;
+  font-size: 15px;
+  font-weight: 600;
+}
+.htmp [data-presentation-icon] {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+.htmp [data-variant='bubble'] {
+  border-radius: 16px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.htmp [data-variant='step-card'] {
+  gap: 2px;
+  font-size: 13px;
+}
+.htmp [data-variant='step-card'] [data-part] {
+  display: block;
+}
+.htmp [data-variant='step-card'] [data-part='caption'],
+.htmp [data-variant='step-card'] [data-part='visual'] {
+  font-weight: 400;
+  color: var(--muted);
+}
+.htmp [data-variant='ghost'] {
+  border-style: dashed;
+  color: var(--muted);
+  background: transparent;
+}
+.htmp [data-variant='scene-kit'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.htmp [data-variant='verify'] {
+  border-color: var(--good);
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 18px;
+}
+.htmp [data-presentation-node='symbol-chip'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #232842;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.htmp [data-presentation-node='symbol-chip'] [data-presentation-icon] {
+  width: 14px;
+  height: 14px;
+}
+.htmp [data-variant='pass'] {
+  border-color: var(--good);
+  color: var(--good);
+}
+.htmp [data-variant='depth'] {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.htmp [data-variant='morph'] {
+  font-size: 10px;
+  color: var(--muted);
+}
+.htmp [data-presentation-node='arrow'] {
+  color: var(--muted);
+}
+.htmp [data-presentation-node='arrow'][data-variant='ghost'] path {
+  stroke-dasharray: 4 4;
+}
+.htmp [data-presentation-node='arrow'][data-variant='modify'] {
+  color: var(--warn);
+}
+.htmp [data-presentation-node='arrow'][data-variant='socket'] {
+  color: var(--accent);
+}
+.htmp [data-variant='tray'] {
+  background: var(--line);
+  border-radius: 2px;
+}
+.htmp [data-variant='edited'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--warn);
+  color: #12141c;
+  font-size: 12px;
+  font-weight: 700;
+}
+.htmp [data-variant='reveal'] {
+  box-sizing: border-box;
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  pointer-events: none;
+}
+.htmp [data-variant='reveal-label'] {
+  color: var(--accent);
+  font-size: 12px;
+  text-align: right;
+}

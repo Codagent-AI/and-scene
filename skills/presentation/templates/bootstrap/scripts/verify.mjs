@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { HOST, launchChromium, runBuild, startPreview } from './lib/preview.mjs'
+import { registeredSlugs as listSlugs, findRegistry } from './lib/registry.mjs'
 import { VerifyError, renderPresentation } from './lib/render.mjs'
 
 function parseArgs(argv) {
@@ -16,10 +17,9 @@ function parseArgs(argv) {
 }
 
 function registeredSlugs(root) {
-  const file = path.join(root, 'src', 'presentations', 'index.ts')
-  if (!fs.existsSync(file)) throw new VerifyError('registry', `missing ${path.relative(root, file)}`)
-  const source = fs.readFileSync(file, 'utf8')
-  return [...source.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
+  const slugs = listSlugs(root)
+  if (!slugs) throw new VerifyError('registry', 'no presentation registry found in src/presentations/')
+  return slugs
 }
 
 function readReference(root) {
@@ -39,7 +39,7 @@ async function main() {
   const slugs = registeredSlugs(root)
   const reference = readReference(root)
   if (reference && !slugs.includes(reference.slug)) {
-    throw new VerifyError('reference-sample', `reference sample "${reference.slug}" is not registered in src/presentations/index.ts`)
+    throw new VerifyError('reference-sample', `reference sample "${reference.slug}" is not registered in ${path.relative(root, findRegistry(root))}`)
   }
   if (slugs.length === 0) throw new VerifyError('registry', 'no presentations registered')
 

@@ -1,6 +1,10 @@
 // Contract-level detection of the three scaffold anchors and scaffold-target resolution.
 import fs from 'node:fs'
 import path from 'node:path'
+// One implementation, shared with the verification scripts that ship in the same bootstrap template.
+import { findRegistry } from '../templates/bootstrap/scripts/lib/registry.mjs'
+
+export { findRegistry }
 
 export const ANCHORS = ['build', 'kit', 'index']
 
@@ -31,24 +35,6 @@ function sourceFiles(dir, depth = 0) {
 const HOST = /export\s+(default\s+)?(async\s+)?(function|const|class)\s+Presentation\b|export\s*\{[^}]*\bPresentation\b/
 const STEP_CONTRACT = /\b(interface|type)\s+Step\b/
 const SCENE_CONTRACT = /\b(interface|type)\s+Scene(Props)?\b/
-const isRegistry = (text) => /\bexport\b/.test(text) && /\bslug\b/.test(text) && /\bload\b/.test(text)
-
-/**
- * The registry module: a top-level source file of `src/presentations/` (any name) that exports a
- * slug -> loader list, preferring `index.*`. Registries elsewhere in the project, such as a blog's
- * routes, are not a presentation index. Registration edits this same file.
- */
-export function findRegistry(dir) {
-  const presentations = path.join(dir, 'src', 'presentations')
-  if (!fs.existsSync(presentations)) return null
-  const files = fs
-    .readdirSync(presentations, { withFileTypes: true })
-    .filter((e) => e.isFile() && SOURCE.test(e.name) && !/\.(test|spec)\./.test(e.name))
-    .map((e) => e.name)
-    .sort((a, b) => Number(/^index\./.test(b)) - Number(/^index\./.test(a)) || a.localeCompare(b))
-  const found = files.find((name) => isRegistry(fs.readFileSync(path.join(presentations, name), 'utf8')))
-  return found ? path.join(presentations, found) : null
-}
 
 /** Kit: a Presentation host plus the Step/Scene contract, anywhere under `src/presentation-kit/`. */
 function detectKit(dir) {

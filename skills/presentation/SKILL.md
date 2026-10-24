@@ -30,7 +30,7 @@ For a step whose layout is key or complex, you may draw an ASCII mockup and ask 
 it before building. Do this selectively, not for every step.
 
 When **modifying** a presentation, do not run the full flow. Identify the target first: if the user
-did not name one clearly, list the registered presentations (`src/presentations/index.ts`) and ask
+did not name one clearly, list the registered presentations (the registry module in `src/presentations/`, `index.ts` by default) and ask
 which to change before touching anything. Then ask only about the requested changes (steps,
 entities, or style).
 
@@ -86,7 +86,7 @@ node "$SKILL/scripts/scaffold.mjs" create --target <app root> --slug <kebab-slug
 ```
 
 This writes `src/presentations/<slug>/{entities.ts,scene.tsx,steps.ts,Talk.tsx,style.css}` from
-`$SKILL/templates/presentation/` and adds one entry to `src/presentations/index.ts`; existing
+`$SKILL/templates/presentation/` and adds one entry to that registry module; existing
 presentations are untouched and stay reachable at `/<their-slug>`. Then replace the placeholder
 entities, steps, and captions with the user's content.
 

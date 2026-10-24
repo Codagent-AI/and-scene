@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url'
 import { HOST, launchChromium, runBuild, sleep, startPreview } from './lib/preview.mjs'
 
 const STEP_TIMEOUT = 5000
+// Longer than the kit's default entrance (delay plus duration, 0.95 s), so errors raised late in a
+// transition are seen while the step that caused them is still current.
+const SETTLE_MS = 1100
 
 class VerifyError extends Error {
   constructor(phase, message, step) {
@@ -74,7 +77,7 @@ async function renderPresentation(browser, baseUrl, slug, reference) {
           throw fail(`step index did not advance to ${i}`)
         }
       }
-      await sleep(150)
+      await sleep(SETTLE_MS)
       if (errors.length) throw fail(`browser error: ${errors[0].text}`, errors[0].step)
       if (reference) {
         const title = (await page.locator('[data-presentation-title]').textContent())?.trim()
@@ -115,7 +118,11 @@ async function main() {
   console.log(`[verify] preview ${preview.url} (host ${HOST})`)
   let browser
   try {
-    browser = await launchChromium()
+    try {
+      browser = await launchChromium()
+    } catch (err) {
+      throw new VerifyError('browser', err.message)
+    }
     for (const slug of slugs) {
       await renderPresentation(browser, preview.url, slug, reference?.slug === slug ? reference : null)
     }

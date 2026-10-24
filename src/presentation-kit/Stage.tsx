@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { DESIGN_H, DESIGN_W, ENTER_T } from './constants'
 import { sceneKey } from './steps'
@@ -17,11 +17,10 @@ export function Stage<TPayload>({ steps, index, mode }: StageProps<TPayload>) {
   const region = useRef<HTMLDivElement>(null)
   const scale = useFitScale(region, mode)
   const step = steps[index]
-  const first = useRef(step.id)
+  const [firstId] = useState(step.id)
   const [hasNavigated, setHasNavigated] = useState(false)
-  useEffect(() => {
-    if (step.id !== first.current) setHasNavigated(true)
-  }, [step.id])
+  // Latch during render so newcomers of the very first navigation already see it.
+  if (!hasNavigated && step.id !== firstId) setHasNavigated(true)
   const { Scene } = step
 
   return (

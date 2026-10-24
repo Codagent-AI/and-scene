@@ -86,6 +86,21 @@ describe('verification failures', () => {
     expect(result.stderr).toContain('uncaught at six')
   })
 
+  it.each([
+    ['a late error inside a transition is attributed to its own step', 4, 700],
+    ['a late error on the final step is not missed', 9, 700],
+  ])('%s', async (_name, step, delayMs) => {
+    const result = await verifyWithFault((dir) =>
+      edit(path.join(dir, SAMPLE, 'scene.tsx'), (s) =>
+        s
+          .replace("import { Blocks,", "import { useEffect } from 'react'\nimport { Blocks,")
+          .replace('  return (\n    <SceneLayer>', `  useEffect(() => {\n    if (payload.upTo !== ${step}) return\n    const t = setTimeout(() => console.error('late boom'), ${delayMs})\n    return () => clearTimeout(t)\n  }, [payload.upTo])\n  return (\n    <SceneLayer>`),
+      ),
+    )
+    await expectFailure(result, { phase: 'render', step })
+    expect(result.stderr).toContain('late boom')
+  })
+
   it('fails when a transition does not advance the public step index', async () => {
     const result = await verifyWithFault((dir) =>
       edit(path.join(dir, 'src/presentation-kit/usePresentationNav.ts'), (s) =>

@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import { detectAnchors } from '../../skills/presentation/scripts/anchors.mjs'
 import { registerInSource } from '../../skills/presentation/scripts/register.mjs'
@@ -41,18 +42,48 @@ describe('scaffoldMissing', () => {
     const dir = write(tmpDir(), {
       ...buildAnchor(),
       ...kitAnchor,
-      'src/presentation-kit/Presentation.tsx': 'my own kit',
+      'src/presentation-kit/Presentation.tsx': 'export function Presentation() { return null } // my own kit',
       'src/main.tsx': 'my own main',
     })
-    const before = read(dir, 'package.json')
+    const before = JSON.parse(read(dir, 'package.json'))
     const result = scaffoldMissing(dir)
     expect(result.missing).toEqual(['index'])
-    expect(read(dir, 'src/presentation-kit/Presentation.tsx')).toBe('my own kit')
+    expect(read(dir, 'src/presentation-kit/Presentation.tsx')).toContain('my own kit')
     expect(read(dir, 'src/main.tsx')).toBe('my own main')
-    expect(read(dir, 'package.json')).toBe(before)
+    const after = JSON.parse(read(dir, 'package.json'))
+    expect(after.scripts).toMatchObject(before.scripts)
+    expect(after.dependencies).toMatchObject(before.dependencies)
     expect(result.created).toContain('src/presentations/index.ts')
     expect(result.created.some((f) => f.startsWith('src/presentation-kit/'))).toBe(false)
     expect(detectAnchors(dir).index).toBe(true)
+  })
+
+  it('adds dependencies, verification scripts, and route files even when only the kit and index are missing', () => {
+    const dir = write(tmpDir(), { ...buildAnchor(), 'src/main.tsx': 'my own main' })
+    const result = scaffoldMissing(dir)
+    expect(result.missing).toEqual(['kit', 'index'])
+    const pkg = JSON.parse(read(dir, 'package.json'))
+    for (const dep of ['motion', 'lucide-react', 'react-dom']) expect(pkg.dependencies[dep], dep).toBeTruthy()
+    for (const dep of ['playwright', '@types/react']) expect(pkg.devDependencies[dep], dep).toBeTruthy()
+    expect(pkg.scripts).toMatchObject({ verify: expect.any(String), inspect: expect.any(String) })
+    expect(fs.existsSync(path.join(dir, 'scripts/verify.mjs'))).toBe(true)
+    expect(fs.existsSync(path.join(dir, 'src/Router.tsx'))).toBe(true)
+    expect(read(dir, 'src/main.tsx')).toBe('my own main')
+    expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('installs packages, then Chromium, when asked', () => {
+    const calls = []
+    const dir = tmpDir()
+    const result = scaffoldMissing(dir, { install: true, runCommand: (cmd, args) => (calls.push([cmd, ...args].join(' ')), true) })
+    expect(calls).toEqual(['npm ci', 'npx playwright install chromium'])
+    expect(result.installed).toBe(true)
+  })
+
+  it('reports an actionable error when the Chromium download fails', () => {
+    const run = (cmd) => cmd !== 'npx'
+    expect(() => scaffoldMissing(tmpDir(), { install: true, runCommand: run })).toThrow(/npx playwright install chromium/)
+    expect(() => scaffoldMissing(tmpDir(), { install: true, runCommand: () => false })).toThrow(/npm ci failed/)
   })
 
   it('merges only missing dependencies and scripts into an existing package.json', () => {
@@ -98,6 +129,23 @@ describe('createPresentation and registry', () => {
     expect(fs.existsSync(path.join(dir, 'src/presentations/hello-scene/Talk.tsx'))).toBe(true)
   })
 
+  it.each(["What's next?", 'Say "hi" \\ there', 'ends */ comment', 'multi\nline `tick` ${x}'])('generates syntactically valid source for the title %j', (title) => {
+    const dir = tmpDir()
+    scaffoldMissing(dir)
+    const folder = createPresentation(dir, { slug: 'quoted', title })
+    for (const file of ['steps.ts', 'Talk.tsx', 'entities.ts', 'scene.tsx']) {
+      const out = ts.transpileModule(fs.readFileSync(path.join(folder, file), 'utf8'), {
+        reportDiagnostics: true,
+        fileName: file,
+        compilerOptions: { jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
+      })
+      expect(out.diagnostics.map((d) => ts.flattenDiagnosticMessageText(d.messageText, ' ')), file).toEqual([])
+    }
+    expect(read(dir, 'src/presentations/quoted/steps.ts')).toContain(JSON.stringify(title))
+    expect(() => ts.transpileModule(read(dir, 'src/presentations/index.ts'), { reportDiagnostics: true })).not.toThrow()
+    expect(detectAnchors(dir).index).toBe(true)
+  })
+
   it('refuses a duplicate slug, an existing folder, and an invalid slug', () => {
     const dir = tmpDir()
     scaffoldMissing(dir)
@@ -105,6 +153,18 @@ describe('createPresentation and registry', () => {
     expect(() => createPresentation(dir, { slug: 'one', title: 'One' })).toThrow(/already exists/)
     expect(() => createPresentation(dir, { slug: 'Bad Slug', title: 'x' })).toThrow(/Invalid slug/)
     expect(() => registerInSource(read(dir, 'src/presentations/index.ts'), { slug: 'one', title: 'x' })).toThrow(/already registered/)
+  })
+
+  it.each([['no indentation', ''], ['four spaces', '    '], ['a tab', '\t']])('registers when the marker uses %s', (_name, indent) => {
+    const source = `export const presentations = [\n${indent}// presentations:end\n]\n`
+    const updated = registerInSource(source, { slug: 'a-talk', title: 'A' })
+    expect(updated).toContain("slug: 'a-talk'")
+    expect(updated).toContain(`${indent}// presentations:end`)
+    expect(updated.indexOf("slug: 'a-talk'")).toBeLessThan(updated.indexOf('presentations:end'))
+  })
+
+  it('refuses rather than silently skipping a marker it cannot use', () => {
+    expect(() => registerInSource('export const p = [] /* x */ // presentations:end', { slug: 'a', title: 'A' })).toThrow(/did not change/)
   })
 
   it('fails clearly when the registry marker is gone', () => {

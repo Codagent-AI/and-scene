@@ -37,4 +37,12 @@ describe('isInteractiveTarget', () => {
     expect(isInteractiveTarget(document.getElementById('d'))).toBe(false)
     expect(isInteractiveTarget(null)).toBe(false)
   })
+
+  it.each(['slider', 'spinbutton', 'combobox', 'textbox', 'listbox', 'checkbox', 'radio', 'switch', 'tab', 'menuitem'])(
+    'recognises ARIA %s widgets',
+    (role) => {
+      document.body.innerHTML = `<div role="${role}" id="w"></div>`
+      expect(isInteractiveTarget(document.getElementById('w'))).toBe(true)
+    },
+  )
 })

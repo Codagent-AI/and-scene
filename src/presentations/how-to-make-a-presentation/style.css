@@ -191,6 +191,12 @@
   height: 18px;
   color: var(--gold);
 }
+.htmp .htmp-control {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-color: var(--gold);
+  font-size: 12px;
+}
 .htmp .htmp-bubble {
   display: flex;
   align-items: center;

@@ -102,6 +102,21 @@ describe('reference sample scene', () => {
     }
   })
 
+  it('docks the depth control on "you" from step 5', () => {
+    render(<Talk />)
+    for (let i = 0; i < 4; i++) next()
+    const box = (id: string) => {
+      const el = document.querySelector<HTMLElement>(`[data-presentation-entity="${id}"]`)!
+      return { left: parseFloat(el.style.left), top: parseFloat(el.style.top), width: parseFloat(el.style.width), height: parseFloat(el.style.height) }
+    }
+    const you = box(ENTITIES.you.id)
+    const depth = box(ENTITIES.depth.id)
+    expect(depth.top).toBe(you.top + you.height)
+    expect(depth.left).toBeGreaterThanOrEqual(you.left)
+    expect(depth.left + depth.width).toBeLessThanOrEqual(you.left + you.width)
+    expect(document.querySelector(`[data-presentation-entity="${ENTITIES.depth.id}"]`)?.getAttribute('data-presentation-state')).toBe('docked')
+  })
+
   it('styles active chrome and attribution in presentation-owned CSS', () => {
     const css = fs.readFileSync(path.resolve(__dirname, '../style.css'), 'utf8')
     expect(css).toMatch(/\[data-presentation-progress-item\]\[data-presentation-active="true"\]\s*\{[^}]*background/)

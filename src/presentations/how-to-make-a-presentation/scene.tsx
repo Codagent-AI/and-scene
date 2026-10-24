@@ -39,7 +39,7 @@ const render: Record<EntityKey, () => React.ReactNode> = {
     </Box>
   ),
   prompt: () => (
-    <Label id={ENTITIES.prompt.id} x={30} y={88} width={150} height={30} className="htmp-bubble">
+    <Label id={ENTITIES.prompt.id} x={170} y={84} width={150} height={30} className="htmp-bubble">
       a topic…
     </Label>
   ),
@@ -89,7 +89,7 @@ const render: Record<EntityKey, () => React.ReactNode> = {
     <Arrow id={ENTITIES.link4Ghost.id} from={{ x: cardX[3] + CARD_W + 4, y: MID }} to={{ x: GHOST_X - 4, y: MID }} className="htmp-arrow" />
   ),
   depth: () => (
-    <Box id={ENTITIES.depth.id} x={190} y={84} width={150} height={30} className="htmp-control">
+    <Box id={ENTITIES.depth.id} x={30} y={76} width={120} height={28} state="docked" className="htmp-control">
       partial ↔ full
     </Box>
   ),

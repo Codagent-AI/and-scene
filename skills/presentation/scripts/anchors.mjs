@@ -16,6 +16,33 @@ function readJson(file) {
   }
 }
 
+const SOURCE = /\.[cm]?[jt]sx?$/
+const SKIP_DIRS = new Set(['node_modules', 'dist', '.git', '__tests__'])
+
+function sourceFiles(dir, depth = 0) {
+  if (depth > 6 || !fs.existsSync(dir)) return []
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    if (e.isDirectory()) return SKIP_DIRS.has(e.name) ? [] : sourceFiles(path.join(dir, e.name), depth + 1)
+    return SOURCE.test(e.name) && !/\.(test|spec)\./.test(e.name) ? [path.join(dir, e.name)] : []
+  })
+}
+
+// Contract markers, independent of file naming: the host, the step/scene contract, the registry.
+const HOST = /export\s+(default\s+)?(async\s+)?(function|const|class)\s+Presentation\b|export\s*\{[^}]*\bPresentation\b/
+const STEP_CONTRACT = /\b(interface|type)\s+Step\b/
+const SCENE_CONTRACT = /\b(interface|type)\s+Scene(Props)?\b/
+const REGISTRY = (text) => /\bexport\b/.test(text) && /\bslug\b/.test(text) && /\bload\b/.test(text)
+
+/** Kit: a Presentation host plus the Step/Scene contract; index: a slug -> loader registry. */
+function detectKitAndIndex(dir) {
+  const texts = sourceFiles(path.join(dir, 'src')).map((f) => fs.readFileSync(f, 'utf8'))
+  const some = (test) => texts.some((t) => (typeof test === 'function' ? test(t) : test.test(t)))
+  return {
+    kit: some(HOST) && some(STEP_CONTRACT) && some(SCENE_CONTRACT),
+    index: some(REGISTRY),
+  }
+}
+
 export function isEmptyDir(dir) {
   return !fs.existsSync(dir) || fs.readdirSync(dir).filter((n) => n !== '.git').length === 0
 }
@@ -29,9 +56,7 @@ export function detectAnchors(dir) {
     ['vite', 'react', 'typescript'].every((d) => d in deps) &&
     hasFile(dir, /^vite\.config\.[cm]?[jt]s$/) &&
     exists(dir, 'tsconfig.json')
-  const kitDir = path.join(dir, 'src', 'presentation-kit')
-  const kit = hasFile(kitDir, /^types\.[jt]s$/) && hasFile(kitDir, /^Presentation\.[jt]sx?$/)
-  const index = hasFile(path.join(dir, 'src', 'presentations'), /^index\.[jt]sx?$/)
+  const { kit, index } = detectKitAndIndex(dir)
   return { build, kit, index }
 }
 

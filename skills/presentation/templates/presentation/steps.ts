@@ -10,7 +10,7 @@ const step = (upTo: number, fields: { id: string; era: string; title: string; ca
 })
 
 export const STEPS: readonly Step<SceneState>[] = [
-  step(1, { id: 'start', era: 'start', title: '__TITLE__', caption: 'Replace this caption with the opening beat.' }),
+  step(1, { id: 'start', era: 'start', title: __TITLE_LITERAL__, caption: 'Replace this caption with the opening beat.' }),
   step(2, { id: 'develop', era: 'middle', title: 'The idea develops', caption: 'Replace this caption with the next beat.' }),
   step(3, { id: 'land', era: 'end', title: 'The idea lands', caption: 'Replace this caption with the closing beat.' }),
 ]

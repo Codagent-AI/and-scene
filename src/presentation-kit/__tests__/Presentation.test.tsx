@@ -134,6 +134,18 @@ describe('navigation', () => {
     expect(index()).toBe(0)
   })
 
+  it('lets a focused ARIA slider keep its arrow keys', () => {
+    setup()
+    const slider = document.createElement('div')
+    slider.setAttribute('role', 'slider')
+    slider.tabIndex = 0
+    document.body.appendChild(slider)
+    key('ArrowRight', slider)
+    key('PageDown', slider)
+    expect(index()).toBe(0)
+    slider.remove()
+  })
+
   it('ignores keys combined with modifiers', () => {
     setup()
     fireEvent.keyDown(window, { key: 'ArrowRight', ctrlKey: true })

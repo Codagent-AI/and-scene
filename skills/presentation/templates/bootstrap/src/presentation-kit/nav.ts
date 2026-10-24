@@ -29,8 +29,15 @@ export function swipeAction(dx: number, dy: number): NavAction | null {
   return dx < 0 ? 'next' : 'prev'
 }
 
-const INTERACTIVE =
-  'button, a[href], input, select, textarea, summary, [role="button"], [role="link"], [contenteditable=""], [contenteditable="true"]'
+const WIDGET_ROLES = [
+  'button', 'link', 'slider', 'spinbutton', 'combobox', 'textbox', 'searchbox', 'listbox', 'option',
+  'checkbox', 'radio', 'switch', 'tab', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'scrollbar',
+  'tree', 'treeitem', 'grid', 'gridcell',
+]
+const INTERACTIVE = [
+  'button', 'a[href]', 'input', 'select', 'textarea', 'summary', '[contenteditable=""]', '[contenteditable="true"]',
+  ...WIDGET_ROLES.map((role) => `[role="${role}"]`),
+].join(', ')
 
 /** Focused controls keep their keys instead of driving the deck. */
 export function isInteractiveTarget(target: EventTarget | null): boolean {

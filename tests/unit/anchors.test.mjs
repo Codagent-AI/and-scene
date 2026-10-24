@@ -14,16 +14,27 @@ describe('detectAnchors', () => {
     expect(missingAnchors(dir)).toEqual([])
   })
 
-  it('tolerates cosmetic differences: extra deps, js config, jsx/tsx naming', () => {
+  it('tolerates cosmetic differences: extra deps, js config, other file names and layout', () => {
+    const { 'vite.config.ts': _drop, ...rest } = buildAnchor({ dependencies: { react: '^18', tailwindcss: '^4', zod: '^3' } })
     const dir = write(tmpDir(), {
-      ...buildAnchor({ dependencies: { react: '^18', tailwindcss: '^4', zod: '^3' } }),
-      
+      ...rest,
       'vite.config.mjs': 'export default {}',
-      'src/presentation-kit/types.js': '',
-      'src/presentation-kit/Presentation.jsx': '',
-      'src/presentations/index.tsx': '',
+      'src/engine/Deck.jsx': 'export const Presentation = () => null\n',
+      'src/engine/contract.ts': 'export type Step = { id: string }\nexport type Scene = () => null\n',
+      'src/registry.ts': 'export const REGISTRY = [{ slug: "a", load: () => import("./a") }]\n',
     })
     expect(missingAnchors(dir)).toEqual([])
+  })
+
+  it('does not count empty or unrelated stubs as the kit or the index', () => {
+    const dir = write(tmpDir(), {
+      'src/presentation-kit/types.ts': '',
+      'src/presentation-kit/Presentation.tsx': '',
+      'src/presentations/index.ts': '',
+    })
+    expect(detectAnchors(dir)).toMatchObject({ kit: false, index: false })
+    const partial = write(tmpDir(), { 'src/presentation-kit/Presentation.tsx': 'export function Presentation() { return null }' })
+    expect(detectAnchors(partial).kit).toBe(false)
   })
 
   it('does not count a build setup without vite, react, typescript, or a build script', () => {

@@ -26,5 +26,10 @@ export const buildAnchor = (extra = {}) => ({
   'vite.config.ts': '',
   'tsconfig.json': '{}',
 })
-export const kitAnchor = { 'src/presentation-kit/types.ts': '', 'src/presentation-kit/Presentation.tsx': '' }
-export const indexAnchor = { 'src/presentations/index.ts': '' }
+export const kitAnchor = {
+  'src/presentation-kit/types.ts': 'export interface Step { id: string }\nexport interface SceneProps { stepId: string }\n',
+  'src/presentation-kit/Presentation.tsx': 'export function Presentation() { return null }\n',
+}
+export const indexAnchor = {
+  'src/presentations/index.ts': "export const presentations = [] as { slug: string; load: () => Promise<unknown> }[]\n  // presentations:end\n",
+}

@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { render } from '../skills/presentation/scripts/scaffold.mjs'
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 export const BOOTSTRAP = path.join(ROOT, 'skills', 'presentation', 'templates', 'bootstrap')
@@ -77,9 +78,7 @@ function starterFiles() {
   const out = {}
   for (const rel of listFiles(PRESENTATION_TEMPLATE)) {
     const text = fs.readFileSync(path.join(PRESENTATION_TEMPLATE, rel), 'utf8')
-    out[path.join('src', 'presentations', STARTER_SLUG, rel)] = text
-      .replaceAll('__SLUG__', STARTER_SLUG)
-      .replaceAll('__TITLE__', STARTER_TITLE)
+    out[path.join('src', 'presentations', STARTER_SLUG, rel)] = render(text, { slug: STARTER_SLUG, title: STARTER_TITLE })
   }
   return out
 }

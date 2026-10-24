@@ -12,7 +12,6 @@ export const BOOTSTRAP_DIR = path.join(TEMPLATES_DIR, 'bootstrap')
 export const PRESENTATION_TEMPLATE_DIR = path.join(TEMPLATES_DIR, 'presentation')
 
 const BUILD_FILES = [
-  'package.json',
   'tsconfig.json',
   'tsconfig.app.json',
   'tsconfig.node.json',
@@ -21,6 +20,12 @@ const BUILD_FILES = [
   'index.html',
   '.gitignore',
   'public/favicon.svg',
+]
+
+// Needed by any anchor: dependencies, the verification scripts, and the files that route a URL
+// to a registered presentation. Existing files are never overwritten.
+const SUPPORT_FILES = [
+  'package.json',
   'src/main.tsx',
   'src/Router.tsx',
   'src/route.ts',
@@ -48,6 +53,7 @@ const FILES_BY_ANCHOR = {
   kit: () => expand(['src/presentation-kit']),
   index: () => expand(['src/presentations']),
 }
+const supportFiles = () => expand(SUPPORT_FILES)
 
 function mergePackageJson(templateFile, targetFile) {
   const template = JSON.parse(fs.readFileSync(templateFile, 'utf8'))
@@ -66,31 +72,31 @@ function mergePackageJson(templateFile, targetFile) {
   return added
 }
 
+function runInherited(command, args, cwd) {
+  return spawnSync(command, args, { cwd, stdio: ['ignore', 2, 2] }).status === 0
+}
+
 /**
- * Copies the template files of every missing anchor into `target`. Existing files are never
- * overwritten; an existing package.json only gains the dependencies and scripts it lacks.
+ * Copies the template files of every missing anchor, plus the shared support files (dependencies,
+ * verification scripts, route host), into `target`. Existing files are never overwritten; an
+ * existing package.json only gains the dependencies and scripts it lacks. With `install`, runs the
+ * package install and downloads the Chromium that render verification drives.
  */
-export function scaffoldMissing(target, { install = false } = {}) {
+export function scaffoldMissing(target, { install = false, runCommand = runInherited } = {}) {
   const missing = missingAnchors(target)
   const created = []
   const skipped = []
   const merged = []
   fs.mkdirSync(target, { recursive: true })
-  const copied = new Set()
-  for (const anchor of missing) {
-    for (const rel of FILES_BY_ANCHOR[anchor]()) {
-      if (copied.has(rel)) continue
-      copied.add(rel)
-      const from = path.join(BOOTSTRAP_DIR, rel)
-      const to = path.join(target, rel)
-      if (rel === 'package.json' && fs.existsSync(to)) {
-        merged.push(...mergePackageJson(from, to))
-        continue
-      }
-      if (fs.existsSync(to)) {
-        skipped.push(rel)
-        continue
-      }
+  const planned = missing.length ? [...supportFiles(), ...missing.flatMap((anchor) => FILES_BY_ANCHOR[anchor]())] : []
+  for (const rel of new Set(planned)) {
+    const from = path.join(BOOTSTRAP_DIR, rel)
+    const to = path.join(target, rel)
+    if (rel === 'package.json' && fs.existsSync(to)) {
+      merged.push(...mergePackageJson(from, to))
+    } else if (fs.existsSync(to)) {
+      skipped.push(rel)
+    } else {
       fs.mkdirSync(path.dirname(to), { recursive: true })
       fs.copyFileSync(from, to)
       created.push(rel)
@@ -105,15 +111,24 @@ export function scaffoldMissing(target, { install = false } = {}) {
   let installed = false
   if (install && missing.length) {
     const command = created.includes(lock) ? 'ci' : 'install'
-    const result = spawnSync('npm', [command], { cwd: target, stdio: ['ignore', 2, 2] })
-    if (result.status !== 0) throw new Error(`npm ${command} failed in ${target}`)
+    if (!runCommand('npm', [command], target)) throw new Error(`npm ${command} failed in ${target}`)
+    if (!runCommand('npx', ['playwright', 'install', 'chromium'], target)) {
+      throw new Error(`Chromium download failed in ${target}; run "npx playwright install chromium" there before npm run verify`)
+    }
     installed = true
   }
   return { missing, created, skipped, merged, installed }
 }
 
+const quoted = (value) => JSON.stringify(value)
+const commentSafe = (value) => value.replace(/\*\//g, '* /').replace(/\s+/g, ' ')
+
+/** Substitutes the presentation tokens; titles are escaped for the context they land in. */
 export function render(text, { slug, title }) {
-  return text.replaceAll('__SLUG__', slug).replaceAll('__TITLE__', title)
+  return text
+    .replaceAll('__TITLE_LITERAL__', quoted(title))
+    .replaceAll('__TITLE_COMMENT__', commentSafe(title))
+    .replaceAll('__SLUG__', slug)
 }
 
 /** Writes a presentation folder from the presentation template and registers it. */

@@ -77,9 +77,21 @@ export async function startPreview(root, port = 0) {
   }
 }
 
+/** Turns Playwright's missing-browser failure into an actionable instruction. */
+export function explainLaunchError(err) {
+  if (/Executable doesn't exist|npx playwright install/i.test(String(err?.message))) {
+    return new Error('Chromium is not installed for Playwright; run "npx playwright install chromium" and retry')
+  }
+  return err
+}
+
 export async function launchChromium() {
-  const { chromium } = await import('playwright')
-  return chromium.launch()
+  try {
+    const { chromium } = await import('playwright')
+    return await chromium.launch()
+  } catch (err) {
+    throw explainLaunchError(err)
+  }
 }
 
 export function sleep(ms) {

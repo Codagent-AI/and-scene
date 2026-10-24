@@ -68,7 +68,12 @@ node "$SKILL/scripts/scaffold.mjs" apply --cwd <project directory> --install
 
 This copies only the missing anchors from `$SKILL/templates/bootstrap/` (existing files are never
 overwritten; an existing `package.json` only gains missing dependencies and scripts) and installs
-dependencies. Do not assume any dependency is installed. The scaffold is styling-framework-neutral:
+dependencies and downloads the Chromium that render verification drives (`npx playwright install
+chromium`; if that download fails, tell the user and retry before verifying). Do not assume any
+dependency or browser is installed. Besides the missing anchors, `apply` always adds the shared
+support files it lacks: dependencies, `scripts/verify.mjs`, `scripts/inspect-presentation.mjs`, and
+the route host (`src/main.tsx`, `src/Router.tsx`, `src/route.ts`, `src/Landing.tsx`). If the project
+already has its own `src/main.tsx` it is kept; wire it to `src/Router.tsx` so `/<slug>` routes work. The scaffold is styling-framework-neutral:
 React, Vite, TypeScript, Motion, Lucide, ESLint, and Playwright, with no Tailwind, theme, colors, or
 fonts. If all three anchors exist, skip scaffolding.
 

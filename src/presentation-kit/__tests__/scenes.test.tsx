@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { AnimatePresence } from 'motion/react'
@@ -7,6 +7,7 @@ import { Appear } from '../nodes/Appear'
 import { Box } from '../nodes/Box'
 import { SceneLayer } from '../nodes/SceneLayer'
 import { ENTER_DELAY, LAYOUT_T } from '../constants'
+import { StageContext } from '../stageContext'
 import type { SceneProps, Step } from '../types'
 
 afterEach(cleanup)
@@ -78,10 +79,11 @@ describe('grouped scenes', () => {
     expect(entity('b')?.closest('[data-presentation-appear]')).not.toBe(wrapper)
   })
 
-  it('animates a departing entity out', async () => {
+  it('animates a departing entity out instead of removing it at once', async () => {
     render(<Presentation steps={typedSteps()} />)
     next()
     next()
+    expect(entity('a')).not.toBeNull()
     await waitFor(() => expect(entity('a')).toBeNull())
     expect(entity('b')).not.toBeNull()
   })
@@ -91,6 +93,27 @@ describe('grouped scenes', () => {
     await act(async () => next())
     const wrapper = entity('b')?.closest('[data-presentation-appear]') as HTMLElement
     expect(wrapper.style.opacity).toBe('0')
+    expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
+  })
+})
+
+describe('newcomer sequencing', () => {
+  it('delays newcomers from the very first navigation, not only later ones', () => {
+    const seen: boolean[] = []
+    function Probe({ payload }: SceneProps<{ n: number }>) {
+      const { hasNavigated } = useContext(StageContext)
+      seen.push(hasNavigated)
+      return <span data-testid={`probe-${payload.n}`} />
+    }
+    const steps: Step<{ n: number }>[] = [1, 2].map((n) => ({
+      id: `probe-${n}`, era: 'e', title: 't', caption: 'c', groupKey: 'g', Scene: Probe, payload: { n },
+    }))
+    render(<Presentation steps={steps} />)
+    expect(seen.every((v) => !v)).toBe(true)
+    seen.length = 0
+    next()
+    expect(seen.length).toBeGreaterThan(0)
+    expect(seen.every(Boolean)).toBe(true)
     expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
   })
 })

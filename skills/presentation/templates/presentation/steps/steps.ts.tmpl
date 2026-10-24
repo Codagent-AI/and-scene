@@ -1,0 +1,17 @@
+import type { Step } from '../../../presentation-kit'
+import { Scene, type ScenePayload } from './Scene'
+
+const COPY: ReadonlyArray<readonly [id: string, era: string, title: string, caption: string]> = [
+  ['start', 'intro', 'Where we begin', 'Replace this caption with the narration for the first step.'],
+  ['next', 'intro', 'What comes next', 'Each step extends the same scene; entities keep their ids and morph.'],
+]
+
+export const STEPS: Step<ScenePayload>[] = COPY.map(([id, era, title, caption], i) => ({
+  id,
+  era,
+  title,
+  caption,
+  Scene,
+  payload: { beat: i + 1 },
+  groupKey: '__SLUG__',
+}))

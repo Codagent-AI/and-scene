@@ -1,0 +1,26 @@
+import { Sparkles, Star } from 'lucide-react'
+import { Appear, Arrow, Box, SceneLayer, type SceneProps } from '../../../presentation-kit'
+import { ID, LINK, POS } from '../entities'
+
+export interface ScenePayload {
+  /** 1-based beat of the story; entities accumulate as it grows. */
+  beat: number
+}
+
+/**
+ * One persistent scene for every step. An entity mounts at the beat that introduces it
+ * (wrapped in <Appear>) and then keeps its id, so continuing entities morph in place.
+ */
+export function Scene({ payload: { beat } }: SceneProps<ScenePayload>) {
+  return (
+    <SceneLayer>
+      <Box id={ID.start} Icon={Star} label="Start here" {...POS.start} />
+      {beat >= 2 && (
+        <Appear>
+          <Box id={ID.next} Icon={Sparkles} label="Then this" {...POS.next} />
+          <Arrow id={ID.link} {...LINK} />
+        </Appear>
+      )}
+    </SceneLayer>
+  )
+}

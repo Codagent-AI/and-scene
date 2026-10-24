@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { join } from 'node:path'
 
-/** All preview servers and browser URLs use the IPv4 loopback address, never `localhost`. */
+/** All preview servers and browser URLs use the IPv4 loopback address, never a resolved hostname. */
 export const HOST = '127.0.0.1'
 
 export class PhaseError extends Error {
@@ -22,7 +22,7 @@ export function readFlag(argv, name) {
 export function readRegistrySlugs(root) {
   const file = join(root, 'src', 'presentations', 'index.ts')
   if (!existsSync(file)) throw new PhaseError('registry', 'src/presentations/index.ts is missing')
-  const text = readFileSync(file, 'utf8')
+  const text = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
   return [...text.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((m) => m[1])
 }
 

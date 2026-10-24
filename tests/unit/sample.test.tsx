@@ -13,6 +13,7 @@ import { key, setViewport, stepIndex } from './helpers.tsx'
 
 const ROOT = path.resolve(__dirname, '../..')
 const SAMPLE_DIR = path.join(ROOT, 'src/presentations/how-to-make-a-presentation')
+const SampleSource = readFileSync(path.join(SAMPLE_DIR, 'SampleScene.tsx'), 'utf8')
 const q = (sel: string) => document.querySelector(sel) as HTMLElement | null
 const visible = (i: number) => new Set<EntityId>(STEPS[i].payload.visible)
 
@@ -180,7 +181,6 @@ describe('reference sample composition (geometry contract)', () => {
   })
 })
 
-const SampleSource = readFileSync(path.join(SAMPLE_DIR, 'SampleScene.tsx'), 'utf8')
 
 describe('presentation-owned styling', () => {
   const css = readFileSync(path.join(SAMPLE_DIR, 'talk.css'), 'utf8')

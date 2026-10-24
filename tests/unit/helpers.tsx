@@ -1,6 +1,6 @@
 import { act } from '@testing-library/react'
-import type { Step } from '../../src/presentation-kit/index.ts'
-import type { SceneProps } from '../../src/presentation-kit/index.ts'
+import { useEffect } from 'react'
+import type { SceneProps, Step } from '../../src/presentation-kit/index.ts'
 
 export interface Payload {
   label: string
@@ -12,8 +12,6 @@ export function resetCounters() {
   counters.mounts = 0
   counters.unmounts = 0
 }
-
-import { useEffect } from 'react'
 
 export function CountingScene({ payload, index }: SceneProps<Payload>) {
   useEffect(() => {

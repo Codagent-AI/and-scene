@@ -1,0 +1,6 @@
+/*
+ * Presentation-owned look. The scene kit ships no colors, fonts, spacing, or
+ * control styles: add them here, targeting the kit's stable hooks, e.g.
+ *   .example [data-presentation-progress-item][data-presentation-active] { ... }
+ *   .example [data-presentation-attribution] { ... }
+ */

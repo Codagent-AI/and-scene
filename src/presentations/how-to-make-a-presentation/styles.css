@@ -1,0 +1,264 @@
+/* Presentation-owned look: plain CSS targeting the kit's stable hooks. */
+.how-to {
+  --ink: #e8eaf0;
+  --muted: #9aa3b5;
+  --line: #3b4560;
+  --accent: #7cc4ff;
+  --good: #5fd38d;
+  --warn: #ffc857;
+  background: #0f1115;
+  color: var(--ink);
+  font-family: system-ui, sans-serif;
+}
+
+.how-to [data-presentation-chrome='header'],
+.how-to [data-presentation-chrome='footer'] {
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.how-to [data-presentation-chrome='header'] {
+  height: 48px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.how-to [data-presentation-marker] {
+  margin-right: 12px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+}
+
+.how-to [data-presentation-step-title] {
+  font-size: 22px;
+  font-weight: 650;
+}
+
+.how-to [data-presentation-caption] {
+  max-width: 720px;
+  margin: 8px 0 16px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.how-to [data-presentation-chrome='nav'] {
+  gap: 12px;
+}
+
+.how-to [data-presentation-progress] {
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.how-to [data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.how-to [data-presentation-progress-item][data-presentation-active] {
+  width: 28px;
+  border-radius: 6px;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.how-to [data-presentation-prev],
+.how-to [data-presentation-next] {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.how-to [data-presentation-prev]:disabled,
+.how-to [data-presentation-next]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.how-to [data-presentation-toc-list] {
+  margin: 0;
+  padding: 0 0 0 24px;
+}
+
+.how-to [data-presentation-toc-item] {
+  display: block;
+  width: 100%;
+  margin: 2px 0;
+  padding: 8px 12px;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.how-to [data-presentation-toc-item][data-presentation-active] {
+  border-left-color: var(--accent);
+  background: rgb(124 196 255 / 14%);
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.how-to [data-presentation-attribution] {
+  padding: 0 24px;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.how-to [data-presentation-attribution]:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* Scene entities */
+.how-to [data-presentation-node='box'],
+.how-to [data-presentation-node='symbol-chip'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: #171b24;
+  font-size: 15px;
+}
+
+.how-to [data-presentation-node='label'] {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.how-to [data-presentation-glyph] {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+.how-to .sample-actor {
+  font-weight: 650;
+}
+
+.how-to .sample-bubble {
+  border-radius: 18px 18px 18px 4px;
+  color: var(--muted);
+}
+
+.how-to .sample-question {
+  border-radius: 999px;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.how-to .sample-tray {
+  border: 0;
+  border-radius: 14px;
+  background: #141822;
+}
+
+.how-to .sample-tray-label,
+.how-to .sample-link-label {
+  text-align: left;
+}
+
+.how-to .sample-card {
+  border-color: var(--accent);
+}
+
+.how-to .sample-ghost {
+  border-style: dashed;
+  color: var(--muted);
+  font-size: 28px;
+  background: transparent;
+}
+
+.how-to .sample-depth {
+  border-radius: 6px;
+  color: var(--warn);
+  font-size: 13px;
+}
+
+.how-to .sample-socket {
+  border-color: var(--accent);
+  border-radius: 4px 4px 14px 14px;
+  color: var(--accent);
+}
+
+.how-to .sample-verify {
+  flex-direction: column;
+  border-color: var(--good);
+  font-size: 13px;
+}
+
+.how-to .sample-pass {
+  border-color: var(--good);
+  background: rgb(95 211 141 / 20%);
+}
+
+.how-to .sample-pass [data-presentation-glyph] {
+  color: var(--good);
+}
+
+.how-to .sample-edited {
+  box-sizing: border-box;
+  border: 2px solid var(--warn);
+  border-radius: 14px;
+}
+
+.how-to .sample-edited-label {
+  color: var(--warn);
+}
+
+.how-to .sample-reveal {
+  box-sizing: border-box;
+  border: 2px dashed var(--accent);
+  border-radius: 18px;
+}
+
+.how-to .sample-reveal-label {
+  color: var(--accent);
+  font-size: 14px;
+  text-align: right;
+}
+
+/* Arrows and the modify arc: stroke and fill belong to the presentation. */
+.how-to svg line,
+.how-to svg path {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+}
+
+.how-to svg polygon {
+  fill: var(--muted);
+}
+
+.how-to .sample-arc path {
+  stroke: var(--warn);
+  stroke-dasharray: 6 6;
+}
+
+.how-to .sample-talk line {
+  stroke: var(--accent);
+}
+
+.how-to .sample-talk polygon {
+  fill: var(--accent);
+}

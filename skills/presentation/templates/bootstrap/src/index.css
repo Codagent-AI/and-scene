@@ -1,0 +1,5 @@
+/* Host-owned page styles. The scene kit ships no styles; each presentation
+   owns its own look in its own stylesheet. */
+body {
+  margin: 0;
+}

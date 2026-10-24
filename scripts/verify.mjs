@@ -104,8 +104,9 @@ async function phaseRender(slugs, reference) {
   if (slugs.length === 0) throw new VerifyError('registry', 'no presentations are registered')
   const server = await startPreview(root)
   log(`preview: ${server.url}`)
-  const browser = await launchBrowser()
+  let browser
   try {
+    browser = await launchBrowser()
     for (const slug of slugs) {
       const outline = reference && slug === reference.REFERENCE_SLUG ? reference.REFERENCE_OUTLINE : null
       const page = await browser.newPage()
@@ -116,7 +117,7 @@ async function phaseRender(slugs, reference) {
       }
     }
   } finally {
-    await browser.close()
+    await browser?.close()
     await server.close()
   }
 }

@@ -16,8 +16,6 @@ export function collectSnapshot() {
     'borderTopWidth',
     'borderTopStyle',
     'borderRadius',
-    'width',
-    'height',
     'fontWeight',
     'fontSize',
     'opacity',
@@ -95,7 +93,13 @@ export function collectSnapshot() {
 
   function styleOf(el) {
     const cs = getComputedStyle(el)
-    return Object.fromEntries(STYLE_KEYS.map((k) => [k, cs[k]]))
+    const style = Object.fromEntries(STYLE_KEYS.map((k) => [k, cs[k]]))
+    // Text items differ in intrinsic size; only compare size for glyph-only items.
+    if (!el.textContent.trim()) {
+      style.width = cs.width
+      style.height = cs.height
+    }
+    return style
   }
   function group(name, selector) {
     return {

@@ -1,0 +1,166 @@
+/* Visual style for "__TITLE__". Plain CSS owned by this presentation; the
+   reusable kit supplies hooks only. Restyle freely. */
+.__CLASS__ {
+  --ink: #f8f3e6;
+  --muted: #b9b09b;
+  --gold: #c7a755;
+  --line: rgba(248, 243, 230, 0.34);
+  --panel: rgba(248, 243, 230, 0.06);
+  --ok: #6fcf97;
+  background: #0d0c0b;
+  position: fixed;
+  inset: 0;
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---- chrome ---- */
+.__CLASS__ [data-presentation-header] {
+  padding: 0 32px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.__CLASS__ [data-presentation-marker] {
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  font-weight: 600;
+}
+.__CLASS__ [data-presentation-era] {
+  margin-left: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+}
+.__CLASS__ [data-presentation-deck-title] {
+  margin-left: 16px;
+  color: var(--ink);
+}
+.__CLASS__ button {
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  cursor: pointer;
+}
+.__CLASS__ button:focus-visible,
+.__CLASS__ a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.__CLASS__ [data-presentation-mode-toggle],
+.__CLASS__ [data-presentation-prev],
+.__CLASS__ [data-presentation-next] {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 13px;
+}
+.__CLASS__ [data-presentation-mode-toggle] {
+  margin-left: 20px;
+}
+.__CLASS__ [data-presentation-prev]:disabled,
+.__CLASS__ [data-presentation-next]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.__CLASS__ [data-presentation-footer] {
+  padding: 0 232px 0 32px;
+  gap: 8px;
+}
+.__CLASS__ [data-presentation-title] {
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.15;
+}
+.__CLASS__ [data-presentation-caption] {
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.__CLASS__ [data-presentation-progress] {
+  gap: 8px;
+  margin: 0 16px;
+}
+.__CLASS__ [data-presentation-progress-item] {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.__CLASS__ [data-presentation-progress-item][aria-current='step'] {
+  width: 28px;
+  border-radius: 6px;
+  border-color: var(--gold);
+  background: var(--gold);
+}
+.__CLASS__ [data-presentation-toc] {
+  padding: 8px 0 0 32px;
+}
+.__CLASS__ [data-presentation-toc-item] {
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-left: 2px solid var(--line);
+  text-align: left;
+  font-size: 14px;
+  color: var(--muted);
+}
+.__CLASS__ [data-presentation-toc-item][aria-current='step'] {
+  color: var(--ink);
+  font-weight: 650;
+  border-left: 4px solid var(--gold);
+  background: rgba(199, 167, 85, 0.14);
+}
+.__CLASS__ [data-presentation-attribution] {
+  right: 20px !important;
+  bottom: 14px !important;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---- scene entities ---- */
+.__CLASS__ [data-presentation-node] {
+  font-size: 15px;
+  line-height: 1.2;
+}
+.__CLASS__ .entity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--gold);
+  border-radius: 14px;
+  background: var(--panel);
+  font-size: 20px;
+  font-weight: 650;
+}
+.__CLASS__ .link {
+  color: var(--muted);
+  stroke-width: 1.8;
+}
+.__CLASS__ .note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-style: italic;
+}
+
+@media (max-width: 959px) {
+  .__CLASS__ [data-presentation-footer],
+  .__CLASS__ [data-presentation-header] {
+    padding: 0 16px;
+  }
+  .__CLASS__ [data-presentation-title] {
+    font-size: 22px;
+  }
+  .__CLASS__ [data-presentation-caption] {
+    font-size: 13px;
+  }
+  .__CLASS__ [data-presentation-deck-title] {
+    display: none;
+  }
+}

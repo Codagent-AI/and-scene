@@ -14,7 +14,7 @@ import { collectSnapshot } from './lib/snapshot.mjs'
 const root = path.resolve(import.meta.dirname, '..')
 
 function parseArgs(argv) {
-  const opts = { slug: null, out: null, settle: 900, viewport: '1280x720', build: true }
+  const opts = { slug: null, out: null, settle: 1300, viewport: '1280x720', build: true }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--out') opts.out = argv[++i]
@@ -44,13 +44,14 @@ async function main() {
   }
 
   const server = await startPreview(root)
-  const browser = await launchBrowser()
+  let browser
   const report = { slug: opts.slug, viewport: opts.viewport, settleMs: opts.settle, steps: [], warnings: [] }
   const warn = (step, text) => {
     report.warnings.push({ step, text })
     console.log(`WARN step ${step}: ${text}`)
   }
   try {
+    browser = await launchBrowser()
     const page = await browser.newPage({ viewport: { width, height } })
     const res = await page.goto(`${server.url}/${opts.slug}`, { waitUntil: 'load' })
     if (!res?.ok()) throw new Error(`/${opts.slug} responded ${res?.status()}`)
@@ -90,7 +91,7 @@ async function main() {
       }
     }
   } finally {
-    await browser.close()
+    await browser?.close()
     await server.close()
   }
 

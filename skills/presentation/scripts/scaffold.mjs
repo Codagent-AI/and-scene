@@ -231,9 +231,53 @@ export async function scaffold(target, anchors = ANCHORS) {
 
 const render = (text, vars) => text.replace(/\{\{(SLUG|TITLE)\}\}/g, (_, key) => vars[key])
 
+/** One printable line, free of quote, backslash, comment-terminator, and line-separator characters. */
+const sanitizeTitle = (title) =>
+  title.replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, ' ').replace(/["\\`]/g, '').replace(/\*\//g, '').replace(/\s+/g, ' ').trim()
+
+/** Index of the `]` closing the `[` that encloses `from`, skipping strings and comments. */
+function enclosingArray(text, from) {
+  let depth = 0
+  let open = -1
+  for (let i = from - 1; i >= 0; i--) {
+    if (text[i] === ']') depth++
+    else if (text[i] === '[') {
+      if (depth === 0) {
+        open = i
+        break
+      }
+      depth--
+    }
+  }
+  if (open === -1) return undefined
+  depth = 0
+  for (let i = open; i < text.length; i++) {
+    const c = text[i]
+    if (c === '"' || c === "'" || c === '`') {
+      for (i++; i < text.length && text[i] !== c; i++) if (text[i] === '\\') i++
+    } else if (c === '/' && text[i + 1] === '/') i = text.indexOf('\n', i) === -1 ? text.length : text.indexOf('\n', i)
+    else if (c === '/' && text[i + 1] === '*') i = text.indexOf('*/', i) === -1 ? text.length : text.indexOf('*/', i) + 1
+    else if (c === '[') depth++
+    else if (c === ']' && --depth === 0) return { open, close: i }
+  }
+  return undefined
+}
+
 const toImport = (from, to) => {
   const rel = path.relative(from, to).split(path.sep).join('/')
   return rel.startsWith('.') ? rel : `./${rel}`
+}
+
+/** Refuses to write a registry that TypeScript cannot parse (skipped when TypeScript is unavailable). */
+async function assertParses(file, text) {
+  let ts
+  try {
+    ts = (await import('typescript')).default
+  } catch {
+    return
+  }
+  const { diagnostics } = ts.transpileModule(text, { reportDiagnostics: true, fileName: file })
+  if (diagnostics?.length) throw new Error(`refusing to register: the updated ${file} would not parse (${diagnostics[0].messageText})`)
 }
 
 /**
@@ -252,9 +296,17 @@ export async function createPresentation(target, slug, title) {
   const destDir = path.join(path.dirname(registryFile), slug)
   if (await exists(destDir)) throw new Error(`presentation folder already exists: ${destDir}`)
   if (new RegExp(`['"]?slug['"]?\\s*:\\s*['"]${slug}['"]`).test(registry)) throw new Error(`slug already registered: ${slug}`)
-  const close = [...registry.matchAll(/\}(\s*,)?(\s*)\]/g)].pop()
-  if (!close) throw new Error(`could not find the end of the presentations array in ${registryFile}`)
-  const vars = { SLUG: slug, TITLE: title.replace(/["\\]/g, '') }
+  // the array holding the existing `slug:` entries, wherever it sits in the file
+  const firstSlug = registry.search(/['"]?\bslug\b['"]?\s*:\s*['"`]/)
+  const array = enclosingArray(registry, firstSlug)
+  const tail = array && /\}(\s*,)?(\s*)$/.exec(registry.slice(array.open, array.close))
+  if (!array || !tail) throw new Error(`could not find the presentations array in ${registryFile}`)
+  const vars = { SLUG: slug, TITLE: sanitizeTitle(title) }
+  const loader = toImport(path.dirname(registryFile), path.join(destDir, 'Talk.tsx'))
+  const entry = `{\n    slug: '${slug}',\n    title: '${vars.TITLE.replace(/'/g, "\\'")}',\n    load: () => import('${loader}'),\n  }`
+  const bodyEnd = array.open + tail.index + 1
+  const updated = `${registry.slice(0, bodyEnd)},\n  ${entry}${tail[1] ? ',' : ''}${tail[2]}${registry.slice(array.close)}`
+  await assertParses(registryFile, updated)
   for (const file of await walk(PRESENTATION_TEMPLATE_DIR)) {
     const dest = path.join(destDir, path.relative(PRESENTATION_TEMPLATE_DIR, file))
     await mkdir(path.dirname(dest), { recursive: true })
@@ -262,10 +314,7 @@ export async function createPresentation(target, slug, title) {
     const text = render(await readFile(file, 'utf8'), vars).replace(/(?:\.\.\/)+presentation-kit\/index\.ts/g, kitImport)
     await writeFile(dest, text)
   }
-  const loader = toImport(path.dirname(registryFile), path.join(destDir, 'Talk.tsx'))
-  const entry = `{\n    slug: '${slug}',\n    title: '${vars.TITLE.replace(/'/g, "\\'")}',\n    load: () => import('${loader}'),\n  }`
-  const at = close.index
-  await writeFile(registryFile, `${registry.slice(0, at + 1)},\n  ${entry}${close[1] ? ',' : ''}${close[2]}]${registry.slice(at + close[0].length)}`)
+  await writeFile(registryFile, updated)
   return { dir: destDir, registry: registryFile, registered: slug }
 }
 

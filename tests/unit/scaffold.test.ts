@@ -448,6 +448,47 @@ describe('create a presentation', () => {
     expect(scene).not.toContain('presentation-kit')
   })
 
+  it('keeps hostile titles on one line and out of comment and string terminators', async () => {
+    const dir = tmp()
+    await scaffold(dir)
+    await createPresentation(dir, 'odd', "Line one\nLine */ two\u2028it's \"q\" \\ `x`")
+    const registry = path.join(dir, 'src/presentations/index.ts')
+    expect(syntaxErrors(registry)).toEqual([])
+    const text = readFileSync(registry, 'utf8')
+    expect(text).toContain("title: 'Line one Line two it\\'s q x'")
+    const folder = path.join(dir, 'src/presentations/odd')
+    for (const f of ['Talk.tsx', 'talk.css', 'entities.ts']) {
+      const body = readFileSync(path.join(folder, f), 'utf8')
+      expect(body).not.toContain('\u2028')
+      if (f.endsWith('.ts') || f.endsWith('.tsx')) expect(syntaxErrors(path.join(folder, f)).length, f).toBe(0)
+    }
+    expect(readFileSync(path.join(folder, 'talk.css'), 'utf8').match(/\*\//g)?.length).toBe(readFileSync(path.join(folder, 'talk.css'), 'utf8').match(/\/\*/g)?.length)
+  })
+
+  it('adds the entry to the array that holds the slugs, not to a later array of objects', async () => {
+    const dir = tmp()
+    withKit(dir, 'src/engine')
+    put(dir, 'src/talks/registry.ts', `export const presentations = [\n  { slug: 'a', title: 'A', load: () => import('./a') }\n]\nexport const other = [{ id: 1 }]\nexport const nested = { list: [{ x: 1 }] }\n`)
+    put(dir, 'src/talks/route.ts', 'export const pick = (l: { slug: string }[]) => l.find((e) => e.slug === location.pathname)\n')
+    await createPresentation(dir, 'later', 'Later')
+    const text = readFileSync(path.join(dir, 'src/talks/registry.ts'), 'utf8')
+    expect(syntaxErrors(path.join(dir, 'src/talks/registry.ts'))).toEqual([])
+    expect(text.indexOf("slug: 'later'")).toBeLessThan(text.indexOf('export const other'))
+    expect(text).toContain('export const other = [{ id: 1 }]')
+    expect(text).toContain('export const nested = { list: [{ x: 1 }] }')
+  })
+
+  it('writes nothing when the updated registry would not parse', async () => {
+    const dir = tmp()
+    withKit(dir, 'src/engine')
+    const broken = `export const presentations = [\n  { slug: 'a', title: 'A', load: () => import('./a') }\n]\nconst oops = (\n`
+    put(dir, 'src/talks/registry.ts', broken)
+    put(dir, 'src/talks/route.ts', 'export const pick = (l: { slug: string }[]) => l.find((e) => e.slug === location.pathname)\n')
+    await expect(createPresentation(dir, 'nope', 'Nope')).rejects.toThrow(/would not parse/)
+    expect(existsSync(path.join(dir, 'src/talks/nope'))).toBe(false)
+    expect(readFileSync(path.join(dir, 'src/talks/registry.ts'), 'utf8')).toBe(broken)
+  })
+
   it('refuses invalid or duplicate slugs without changing anything', async () => {
     const dir = tmp()
     await scaffold(dir)

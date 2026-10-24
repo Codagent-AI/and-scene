@@ -66,15 +66,16 @@ export function createErrorCollector() {
 }
 
 async function loadSteps(cwd, config) {
-  const { createServer } = await import(pathToFileURL(path.join(cwd, 'node_modules/vite/dist/node/index.js')).href)
-  const server = await createServer({ root: cwd, logLevel: 'silent', server: { middlewareMode: true }, appType: 'custom' })
+  let server
   try {
+    const { createServer } = await import(pathToFileURL(path.join(cwd, 'node_modules/vite/dist/node/index.js')).href)
+    server = await createServer({ root: cwd, logLevel: 'silent', server: { middlewareMode: true }, appType: 'custom' })
     const mod = await server.ssrLoadModule(config.stepsModule)
     return mod[config.stepsExport]
   } catch (error) {
     throw new PhaseError('sample', `could not load ${config.stepsModule}: ${error.message}`)
   } finally {
-    await server.close()
+    await server?.close()
   }
 }
 

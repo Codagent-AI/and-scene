@@ -65,7 +65,7 @@ export async function startPreview({ cwd, phase = 'preview', log = console.log, 
   })
   const exited = new Promise((resolve) => child.once('exit', resolve))
   const stop = async () => {
-    if (child.exitCode !== null || child.pid === undefined) return
+    if (child.exitCode !== null || child.signalCode !== null || child.pid === undefined) return
     for (const signal of ['SIGTERM', 'SIGKILL']) {
       try {
         process.kill(-child.pid, signal)

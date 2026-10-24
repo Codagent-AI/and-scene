@@ -65,4 +65,9 @@ export function findAttributionIssues(attribution) {
   return issues
 }
 
+/** Chrome containers whose content overflows (and is hidden by) their box. */
+export function findClippedChrome(clipped) {
+  return [...new Set(clipped)]
+}
+
 export const ATTRIBUTION_HINT = 'style it via the [data-presentation-attribution] hook'

@@ -26,6 +26,6 @@ export interface StageGeometry {
 }
 
 export const STAGE_LAYOUT: Record<PresentationMode, StageGeometry> = {
-  browse: { top: 72, bottom: 184, side: 24, tocWidth: 208, tocMinViewport: 960 },
+  browse: { top: 72, bottom: 232, side: 24, tocWidth: 208, tocMinViewport: 960 },
   present: { top: 56, bottom: 96, side: 24, tocWidth: 0, tocMinViewport: 0 },
 }

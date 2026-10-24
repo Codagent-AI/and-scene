@@ -125,8 +125,19 @@ export function collectSnapshot() {
       })()
     : null
 
+  const clipped = [
+    '[data-presentation-header]',
+    '[data-presentation-footer]',
+    '[data-presentation-toc]',
+  ].flatMap((sel) =>
+    [...document.querySelectorAll(sel)]
+      .filter((el) => el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)
+      .map(() => sel.slice(1, -1)),
+  )
+
   const root = document.querySelector('[data-presentation-root]')
   return {
+    clipped,
     stepIndex: root ? Number(root.getAttribute('data-step-index')) : -1,
     elements,
     groups: [

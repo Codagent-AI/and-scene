@@ -2,7 +2,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { findAttributionIssues, findIndistinctActive, findOverlaps } from '../../scripts/lib/diagnostics.mjs'
+import { findAttributionIssues, findClippedChrome, findIndistinctActive, findOverlaps } from '../../scripts/lib/diagnostics.mjs'
 import { parseSlugs } from '../../scripts/lib/registry.mjs'
 import { settleThenCapture } from '../../scripts/lib/settle.mjs'
 
@@ -74,6 +74,13 @@ describe('findAttributionIssues', () => {
 
   it('accepts a polished attribution', () => {
     expect(findAttributionIssues({ fontSize: 13, color: 'rgb(185, 176, 155)', height: 24 })).toEqual([])
+  })
+})
+
+describe('findClippedChrome', () => {
+  it('lists each clipped container once', () => {
+    expect(findClippedChrome(['data-presentation-footer', 'data-presentation-footer'])).toEqual(['data-presentation-footer'])
+    expect(findClippedChrome([])).toEqual([])
   })
 })
 

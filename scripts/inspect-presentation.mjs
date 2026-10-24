@@ -6,7 +6,7 @@
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-import { ATTRIBUTION_HINT, findAttributionIssues, findIndistinctActive, findOverlaps } from './lib/diagnostics.mjs'
+import { ATTRIBUTION_HINT, findAttributionIssues, findClippedChrome, findIndistinctActive, findOverlaps } from './lib/diagnostics.mjs'
 import { launchBrowser, sleep, startPreview, waitForStepIndex } from './lib/preview.mjs'
 import { settleThenCapture } from './lib/settle.mjs'
 import { collectSnapshot } from './lib/snapshot.mjs'
@@ -82,6 +82,9 @@ async function main() {
       }
       for (const g of findIndistinctActive(snap.groups)) {
         warn(i + 1, `active ${g.chrome} is visually indistinct from inactive ones; style [data-presentation-active="true"] / [aria-current]`)
+      }
+      for (const hook of findClippedChrome(snap.clipped)) {
+        warn(i + 1, `content of ${hook} is clipped by its reserved space; shorten it, restyle it, or reduce its padding`)
       }
       if (i === 0) {
         for (const issue of findAttributionIssues(snap.attribution)) warn(1, `${issue}; ${ATTRIBUTION_HINT}`)

@@ -150,15 +150,22 @@
 }
 
 @media (max-width: 959px) {
-  .__CLASS__ [data-presentation-footer],
   .__CLASS__ [data-presentation-header] {
     padding: 0 16px;
   }
+  .__CLASS__ [data-presentation-footer] {
+    /* Leave the bottom strip to the attribution link. */
+    padding: 0 16px 52px;
+  }
+  .__CLASS__ [data-presentation-footer] {
+    gap: 4px;
+  }
   .__CLASS__ [data-presentation-title] {
-    font-size: 22px;
+    font-size: 20px;
   }
   .__CLASS__ [data-presentation-caption] {
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 1.35;
   }
   .__CLASS__ [data-presentation-deck-title] {
     display: none;

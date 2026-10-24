@@ -283,16 +283,21 @@
 
 @media (max-width: 959px) {
   .htmp [data-presentation-footer] {
-    padding: 0 16px;
+    /* Leave the bottom strip to the attribution link. */
+    padding: 0 16px 52px;
   }
   .htmp [data-presentation-header] {
     padding: 0 16px;
   }
+  .htmp [data-presentation-footer] {
+    gap: 4px;
+  }
   .htmp [data-presentation-title] {
-    font-size: 22px;
+    font-size: 20px;
   }
   .htmp [data-presentation-caption] {
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 1.35;
   }
   .htmp [data-presentation-deck-title] {
     display: none;

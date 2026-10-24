@@ -8,7 +8,7 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { detectTarget } from './detect-target.mjs'
+import { detectTarget, isEntrypoint } from './detect-target.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 export const BOOTSTRAP = join(HERE, '..', 'templates', 'bootstrap')
@@ -100,7 +100,7 @@ export function scaffold(target, missing) {
   return report
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isEntrypoint(import.meta.url)) {
   const detected = detectTarget(process.argv[2] ?? process.cwd())
   const report = scaffold(detected.target, detected.missing)
   console.log(JSON.stringify({ target: detected.target, missing: detected.missing, ...report }, null, 2))

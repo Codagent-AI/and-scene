@@ -5,7 +5,7 @@
 //
 // Detection is contract-level: it keys on the presence of the three anchors (build setup,
 // scene kit, presentation index), not on a byte-identical scaffold.
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -39,24 +39,57 @@ const exportsName = (text, pattern) =>
     `export\\s+(?:default\\s+)?(?:declare\\s+)?(?:async\\s+)?(?:function|const|class|interface|type)\\s+(?:${pattern})\\b|export\\s+(?:type\\s+)?\\{[^}]*\\b(?:${pattern})\\b`,
   ).test(text)
 
+const commentless = (text) => stripComments(text).trim()
+
+/** The one-level chain of npm scripts a `build` script runs, so `npm run compile` -> `vite build` counts. */
+function buildCommand(scripts) {
+  const build = scripts?.build
+  if (typeof build !== 'string') return ''
+  const chained = [...build.matchAll(/(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?([\w:-]+)/g)].map((m) => scripts[m[1]])
+  return [build, ...chained.filter((c) => typeof c === 'string')].join(' && ')
+}
+
+/** A tsconfig that actually configures TypeScript (options, references, or an extended base). */
+function isTsconfig(file) {
+  try {
+    return /"(?:compilerOptions|references|extends)"\s*:/.test(readFileSync(file, 'utf8'))
+  } catch {
+    return false
+  }
+}
+
 /**
  * Which of the three contract anchors exist under `dir`. Detection reads what the files
- * export, not what they are called, so renamed or reorganised equivalents still count and
- * empty files with canonical names do not.
+ * contain, not what they are called, so renamed or reorganised equivalents still count and
+ * empty or placeholder files with canonical names do not. It cannot run the build: the skill's
+ * own build/render self-verification is what proves the result works.
  */
 export function detectAnchors(dir) {
   const pkg = readJson(join(dir, 'package.json'))
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies }
+  const files = listing(dir)
+  const viteConfig = files.find((f) => /^vite\.config\.[cm]?[jt]s$/.test(f))
+  const viteConfigText = viteConfig ? commentless(readFileSync(join(dir, viteConfig), 'utf8')) : ''
   const build =
-    Boolean(pkg?.scripts?.build) &&
+    /\bvite\b/.test(buildCommand(pkg?.scripts)) &&
     Boolean(deps.vite && deps.react && deps.typescript) &&
-    listing(dir).some((f) => /^vite\.config\.[cm]?[jt]s$/.test(f)) &&
-    listing(dir).some((f) => /^tsconfig.*\.json$/.test(f))
-  const sources = sourceFiles(join(dir, 'src')).map((f) => stripComments(readFileSync(f, 'utf8')))
-  // Scene kit: the presentation host, the stage that mounts the active step, and the step contract.
-  const kit = [/Presentation/, /Stage/, /Step|SceneProps/].every((name) => sources.some((text) => exportsName(text, name.source)))
-  // Presentation index: a registry of presentations that maps each one to a loadable route.
-  const index = sources.some((text) => exportsName(text, '\\w*(?:[Pp]resentations|[Rr]egistry)\\w*'))
+    /export\s+default|module\.exports|defineConfig/.test(viteConfigText) &&
+    files.some((f) => /^tsconfig.*\.json$/.test(f) && isTsconfig(join(dir, f)))
+
+  const sources = sourceFiles(join(dir, 'src')).map((f) => commentless(readFileSync(f, 'utf8')))
+  const declaring = (name, holds) => sources.some((text) => exportsName(text, name) && holds(text))
+  // Scene kit: a host that takes steps, a stage that mounts each step's Scene, the Step/Scene
+  // contract, present/browse navigation, and the fit-scale canvas.
+  const kit =
+    declaring('Presentation', (t) => /\bsteps\b/.test(t)) &&
+    declaring('Stage', (t) => /\bScene\b/.test(t)) &&
+    declaring('Step|SceneProps', (t) => /\bScene\b/.test(t) && /\bid\b/.test(t)) &&
+    sources.some((t) => /keydown|ArrowRight/.test(t)) &&
+    sources.some((t) => /\bscale\b/i.test(t))
+  // Presentation index: a registry of presentations whose entries map a slug to a loadable route.
+  const index =
+    declaring('\\w*(?:[Pp]resentations|[Rr]egistry)\\w*', () => true) &&
+    sources.some((t) => /\bslug\b/.test(t) && /\bload\b|import\(/.test(t))
   return { build, kit, index }
 }
 
@@ -104,6 +137,15 @@ export function detectTarget(input) {
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+/** True when this module is the script node was started with, even through a symlinked path. */
+export function isEntrypoint(metaUrl, argv1 = process.argv[1]) {
+  try {
+    return Boolean(argv1) && realpathSync(argv1) === realpathSync(fileURLToPath(metaUrl))
+  } catch {
+    return false
+  }
+}
+
+if (isEntrypoint(import.meta.url)) {
   console.log(JSON.stringify(detectTarget(process.argv[2] ?? process.cwd()), null, 2))
 }

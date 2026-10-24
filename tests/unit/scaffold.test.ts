@@ -13,6 +13,9 @@ const tmp = () => {
 }
 afterEach(() => dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })))
 
+const HOST_VITE = "import { defineConfig } from 'vite'\nexport default defineConfig({ /* host config */ })"
+const HOST_TSCONFIG = '{ "compilerOptions": { "strict": true } }'
+
 const read = (dir: string, file: string) => readFileSync(join(dir, file), 'utf8')
 
 describe('scaffold', () => {
@@ -37,17 +40,17 @@ describe('scaffold', () => {
       join(dir, 'package.json'),
       JSON.stringify({
         name: 'host',
-        scripts: { build: 'my-build', lint: 'my-lint' },
+        scripts: { build: 'vite build --mode host', lint: 'my-lint' },
         dependencies: { react: '^18.0.0' },
         devDependencies: { vite: '^5.0.0', typescript: '^5.0.0' },
       }),
     )
-    writeFileSync(join(dir, 'vite.config.ts'), '// host config')
-    writeFileSync(join(dir, 'tsconfig.json'), '{ "host": true }')
+    writeFileSync(join(dir, 'vite.config.ts'), HOST_VITE)
+    writeFileSync(join(dir, 'tsconfig.json'), HOST_TSCONFIG)
     mkdirSync(join(dir, 'src'), { recursive: true })
     writeFileSync(join(dir, 'src/main.tsx'), "console.log('host app')")
     cpSync(join(BOOTSTRAP, 'src/presentation-kit'), join(dir, 'src/presentation-kit'), { recursive: true })
-    writeFileSync(join(dir, 'src/presentation-kit/Stage.tsx'), 'export function Stage() { return "customised" }')
+    writeFileSync(join(dir, 'src/presentation-kit/Stage.tsx'), 'export function Stage() { return "customised" + typeof Scene }')
 
     const before = detectTarget(dir)
     expect(before.missing).toEqual(['index'])
@@ -56,8 +59,8 @@ describe('scaffold', () => {
     // Index anchor installed; everything that existed is untouched.
     expect(detectTarget(dir).scaffold).toBe('none')
     expect(report.copied).toEqual(expect.arrayContaining(['src/presentations/index.ts', 'src/router.ts', 'src/Landing.tsx']))
-    expect(read(dir, 'vite.config.ts')).toBe('// host config')
-    expect(read(dir, 'tsconfig.json')).toBe('{ "host": true }')
+    expect(read(dir, 'vite.config.ts')).toBe(HOST_VITE)
+    expect(read(dir, 'tsconfig.json')).toBe(HOST_TSCONFIG)
     expect(read(dir, 'src/main.tsx')).toBe("console.log('host app')")
     expect(read(dir, 'src/presentation-kit/Stage.tsx')).toContain('customised')
 
@@ -65,7 +68,7 @@ describe('scaffold', () => {
     const pkg = JSON.parse(read(dir, 'package.json'))
     expect(pkg.dependencies.react).toBe('^18.0.0')
     expect(pkg.devDependencies.vite).toBe('^5.0.0')
-    expect(pkg.scripts.build).toBe('my-build')
+    expect(pkg.scripts.build).toBe('vite build --mode host')
     expect(pkg.type).toBeUndefined()
     expect(pkg.dependencies).toHaveProperty('motion')
     expect(pkg.dependencies).toHaveProperty('lucide-react')

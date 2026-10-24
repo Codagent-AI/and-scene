@@ -4,6 +4,7 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { isEntrypoint } from '../skills/presentation/scripts/detect-target.mjs'
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 export const TEMPLATE = join(ROOT, 'skills', 'presentation', 'templates', 'bootstrap')
@@ -41,7 +42,7 @@ export function findDrift(root = ROOT, template = TEMPLATE) {
   return drift
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isEntrypoint(import.meta.url)) {
   if (process.argv.includes('--check')) {
     const drift = findDrift()
     if (drift.length) {

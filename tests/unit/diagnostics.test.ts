@@ -107,10 +107,14 @@ const style = (overrides: object = {}) => ({
 
 describe('indistinct active chrome (M-72)', () => {
   it('flags identical computed styles and accepts any real visual difference', () => {
-    expect(isIndistinct(style(), style())).toBe(true)
-    for (const diff of [{ backgroundColor: 'rgb(9, 9, 9)' }, { transform: 'scale(1.5)' }, { fontWeight: '700' }, { width: '20px' }, { borderColor: 'rgb(2, 2, 2)' }, { opacity: '0.5' }]) {
-      expect(isIndistinct(style(diff), style()), JSON.stringify(diff)).toBe(false)
+    expect(isIndistinct(style(), style(), 'progress')).toBe(true)
+    for (const diff of [{ backgroundColor: 'rgb(9, 9, 9)' }, { transform: 'scale(1.5)' }, { fontWeight: '700' }, { borderColor: 'rgb(2, 2, 2)' }, { opacity: '0.5' }]) {
+      expect(isIndistinct(style(diff), style(), 'toc'), JSON.stringify(diff)).toBe(false)
+      expect(isIndistinct(style(diff), style(), 'progress'), JSON.stringify(diff)).toBe(false)
     }
+    // dots have identical content, so a size change is a cue; ToC entries differ in text length
+    expect(isIndistinct(style({ width: '20px' }), style(), 'progress')).toBe(false)
+    expect(isIndistinct(style({ width: '90px', height: '30px' }), style(), 'toc')).toBe(true)
   })
 
   it('reports progress and ToC separately with the step number and the hook to style', () => {

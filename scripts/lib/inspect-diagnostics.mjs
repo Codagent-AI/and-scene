@@ -53,8 +53,6 @@ const STYLE_KEYS = [
   'backgroundColor',
   'borderColor',
   'borderWidth',
-  'width',
-  'height',
   'transform',
   'opacity',
   'fontWeight',
@@ -63,9 +61,14 @@ const STYLE_KEYS = [
   'outlineStyle',
 ]
 
-/** True when the active entry's computed style matches an inactive one on every visual property. */
-export function isIndistinct(active, inactive) {
-  return STYLE_KEYS.every((key) => active[key] === inactive[key])
+/**
+ * True when the active entry's computed style matches an inactive one on every visual property.
+ * Progress dots have identical content, so their size is a visual cue; table-of-contents
+ * entries differ in text length, so their size is not.
+ */
+export function isIndistinct(active, inactive, kind) {
+  const keys = kind === 'progress' ? [...STYLE_KEYS, 'width', 'height'] : STYLE_KEYS
+  return keys.every((key) => active[key] === inactive[key])
 }
 
 /** attr: null (missing) or { fontSize:number, color:string }. Returns issue strings. */
@@ -84,7 +87,7 @@ export function stepWarnings(step, snapshot) {
     warnings.push(`WARN step ${step} [overlap] ${a} overlaps ${b}`)
   }
   for (const [kind, pair] of Object.entries(snapshot.active)) {
-    if (pair && isIndistinct(pair.active, pair.inactive)) {
+    if (pair && isIndistinct(pair.active, pair.inactive, kind)) {
       warnings.push(`WARN step ${step} [active-${kind}] active ${kind} entry looks the same as inactive ones; style [data-presentation-active]`)
     }
   }

@@ -40,7 +40,7 @@ if (argv.includes('--help') || argv.includes('-h')) {
   process.exit(0)
 }
 const option = (name, fallback) => {
-  const i = argv.indexOf(name)
+  const i = argv.lastIndexOf(name) // a later flag overrides an earlier one
   return i >= 0 ? argv[i + 1] : fallback
 }
 const slug = argv.find((a, i) => !a.startsWith('--') && !['--out', '--settle', '--viewport', '--root'].includes(argv[i - 1]))

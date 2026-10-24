@@ -73,4 +73,3 @@ export const ENTITIES: readonly Entity[] = [
 
 export const entitiesAt = (stage: number) => ENTITIES.filter((e) => e.since <= stage)
 
-export const ID = Object.fromEntries(ENTITIES.map((e) => [e.id, e.id])) as Record<string, string>

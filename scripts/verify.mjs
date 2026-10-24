@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Whole-app verification: build -> reference sample present -> render every step in Chromium.
-// Usage: node scripts/verify.mjs [--root <dir>]   (config: <root>/verify.config.json)
+// Usage: node scripts/verify.mjs [--root <dir>] [--port <n>]   (config: <root>/verify.config.json)
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -12,6 +12,8 @@ import { HOST, freePort, startPreview, trackErrors, waitForStep } from './lib/pr
 const argv = process.argv.slice(2)
 const rootArg = argv.indexOf('--root')
 const root = path.resolve(rootArg >= 0 ? argv[rootArg + 1] : path.join(path.dirname(fileURLToPath(import.meta.url)), '..'))
+
+const portArg = argv.indexOf('--port')
 
 class PhaseError extends Error {
   constructor(phase, message) {
@@ -35,7 +37,7 @@ function runBuild() {
 }
 
 async function renderEveryStep(config, settleMs) {
-  const port = await freePort()
+  const port = portArg >= 0 ? Number(argv[portArg + 1]) : await freePort()
   let preview
   let browser
   try {
@@ -64,7 +66,7 @@ async function renderEveryStep(config, settleMs) {
         await page.keyboard.press('ArrowRight')
       }
       if (!(await waitForStep(page, i))) {
-        throw new PhaseError('render', `step ${i}: the step index did not advance to ${i}`)
+        throw new PhaseError('render', `step ${i}: the step index did not advance to ${i}${errors.length ? `\n${errors.join('\n')}` : ''}`)
       }
       await page.waitForTimeout(settleMs)
       const rendered = await page.evaluate(() => ({
@@ -75,6 +77,7 @@ async function renderEveryStep(config, settleMs) {
       const problems = checkRenderedStep(config.steps[i], rendered)
       if (problems.length) throw new PhaseError('outline', `step ${i}: ${problems.join('; ')}`)
       if (errors.length) throw new PhaseError('render', `step ${i}: ${errors.join('; ')}`)
+      console.log(`verify: [render] ${config.slug}: step ${i} ok (${rendered.title})`)
     }
     return { count, url: route }
   } finally {

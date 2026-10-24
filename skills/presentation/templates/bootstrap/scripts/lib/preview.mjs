@@ -34,7 +34,7 @@ export async function startPreview(root, port, { timeoutMs = 30000 } = {}) {
   for (;;) {
     if (child.exitCode !== null) throw new Error(`preview exited early:\n${output.trim()}`)
     try {
-      const res = await fetch(`${url}/`)
+      const res = await fetch(`${url}/`, { signal: AbortSignal.timeout(1500) })
       if (res.ok) break
     } catch {
       /* not ready yet */

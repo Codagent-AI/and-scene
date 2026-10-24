@@ -1,7 +1,7 @@
-import { act, fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useEffect, useState } from 'react'
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Presentation, Stage, Box, Label, Arrow, Frame, Emphasis, SymbolChip, Appear, SceneLayer, validateSteps, fitScale, useFitScale, usePresentationNav, clampIndex, LAYOUT_T, ENTER_T, ENTER_DELAY } from '../src/presentation-kit'
 import type { SceneProps, Step } from '../src/presentation-kit'
 import { eraEntries } from '../src/presentation-kit/chrome/Toc'
@@ -52,6 +52,20 @@ describe('runtime contracts', () => {
     expect(appear.props.animate).toEqual({ opacity: 1, y: 0 })
     expect(appear.props.exit).toEqual({ opacity: 0, y: 0, transition: { delay: 0, duration: .18 } })
     expect(appear.props.transition).toEqual(ENTER_T)
+  })
+  it('I-5 added identities enter once and removed identities retain exit presence until completion', async () => {
+    function Entities({ show }: { show: boolean }) {
+      return <AnimatePresence><Appear key="continuing"><Box id="continuing">continues</Box></Appear>{show && <Appear key="new"><Box id="new">newcomer</Box></Appear>}</AnimatePresence>
+    }
+    const view = render(<Entities show={false} />)
+    const continuing = document.querySelector('[data-entity-id="continuing"]')!
+    view.rerender(<Entities show />)
+    expect(document.querySelector('[data-entity-id="new"]')).toBeTruthy()
+    expect(document.querySelector('[data-entity-id="continuing"]')).toBe(continuing)
+    view.rerender(<Entities show={false} />)
+    expect(document.querySelector('[data-entity-id="new"]')).toBeTruthy()
+    await waitFor(() => expect(document.querySelector('[data-entity-id="new"]')).toBeNull(), { timeout: 1500 })
+    expect(document.querySelector('[data-entity-id="continuing"]')).toBe(continuing)
   })
   it('I-6 grouped payload updates retain mount and local state; distinct scene remounts', () => {
     const mounted = vi.fn(), unmounted = vi.fn()
@@ -185,6 +199,11 @@ describe('runtime contracts', () => {
     expect(findPresentation('/one', entries)?.title).toBe('One'); expect(findPresentation('/two/', entries)?.title).toBe('Two')
     expect(findPresentation('/missing', entries)).toBeUndefined(); expect(findPresentation('/', entries)).toBeUndefined()
     render(<Landing />); expect(screen.getByRole('link', { name: /How to Use This Skill/ }).getAttribute('href')).toBe('/how-to-make-a-presentation')
+  })
+  it('I-40 public count and index hooks enumerate active step state', () => {
+    setup(); expect(root().getAttribute('data-step-count')).toBe('3'); expect(index()).toBe(0)
+    press('ArrowRight'); expect(index()).toBe(1); expect(root().getAttribute('data-step-count')).toBe('3')
+    press('ArrowRight'); expect(index()).toBe(2)
   })
   it('I-31 sample captions and next previous controls cover every step', () => {
     render(<Presentation steps={STEPS} title="Sample" />)

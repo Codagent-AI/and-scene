@@ -33,9 +33,9 @@ export async function verify(options, cwd = process.cwd()) {
       await visitSteps(page, count, async index => {
         if (errors.length) throw new Error(errors.join('; '))
         if (expected) {
-          const title = await page.locator('[data-presentation-title]').innerText()
-          const caption = await page.locator('[data-presentation-caption]').innerText()
-          const marker = await page.locator('[data-presentation-marker]').innerText()
+          const title = await page.locator('[data-presentation-title]').textContent()
+          const caption = await page.locator('[data-presentation-caption]').textContent()
+          const marker = await page.locator('[data-presentation-marker]').textContent()
           if (title !== expected[index].title || caption !== expected[index].caption || !marker.endsWith(expected[index].era)) throw new Error('Reference rendered narration differs from canonical outline')
         }
         console.log(`STEP ${index} PASS`)

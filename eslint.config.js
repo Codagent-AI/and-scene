@@ -19,5 +19,5 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
-  { files: ['tests/**/*.{ts,tsx}', 'src/presentations/**/steps/*.{ts,tsx}', 'src/presentation-kit/chrome/Toc.tsx'], rules: { 'react-refresh/only-export-components': 'off' } },
+  { files: ['src/main.tsx', 'tests/**/*.{ts,tsx}', 'src/presentations/**/steps/*.{ts,tsx}', 'src/presentation-kit/chrome/Toc.tsx'], rules: { 'react-refresh/only-export-components': 'off' } },
 ])

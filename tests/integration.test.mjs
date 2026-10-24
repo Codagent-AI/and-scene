@@ -17,7 +17,7 @@ function command(args, cwd, limit = 120000) {
     child.stderr.on('data', chunk => { output += chunk })
     const timeout = setTimeout(() => { child.kill('SIGTERM'); reject(new Error(`Timed out ${args.join(' ')}: ${output}`)) }, limit)
     child.once('error', error => { clearTimeout(timeout); reject(error) })
-    child.once('exit', code => { clearTimeout(timeout); done({ code, output }) })
+    child.once('exit', code => { clearTimeout(timeout); console.log(`COMMAND npm ${args.join(' ')} in ${cwd} => ${code}\n${output}`); done({ code, output }) })
   })
 }
 async function assertCleanup(output) {

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
 import { fireEvent, render, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { Presentation, validateSteps } from '../../src/presentation-kit'
@@ -185,5 +187,25 @@ describe('sample scene rendering', () => {
     const { container, rerender } = render(<SampleScene {...props(9)} />)
     rerender(<SampleScene {...props(5)} />)
     await waitFor(() => expect(rendered(container).sort()).toEqual(ids(5).sort()), { timeout: 3000 })
+  })
+})
+
+describe('sample diagram legibility', () => {
+  // The 880 x 380 canvas is scaled to about 0.39 on a 390px-wide phone, so design-size text that is
+  // comfortable on desktop becomes unreadable there. Diagram text must stay large in canvas pixels.
+  const MIN_DIAGRAM_FONT_PX = 18
+  const css = readFileSync(path.resolve(process.cwd(), 'src/presentations/how-to-make-a-presentation/styles.css'), 'utf8')
+  const scene = css.slice(css.indexOf('/* Scene entities */'), css.indexOf('/* Arrows and the modify arc'))
+
+  it('sets every scene-entity font size at or above the minimum', () => {
+    const sizes = [...scene.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map((m) => Number(m[1]))
+    expect(sizes.length).toBeGreaterThan(0)
+    expect(Math.min(...sizes)).toBeGreaterThanOrEqual(MIN_DIAGRAM_FONT_PX)
+  })
+
+  it('gives every text label room for a line at its font size', () => {
+    for (const e of ENTITIES.filter((o) => o.kind === 'label')) {
+      expect(e.h, e.id).toBeGreaterThanOrEqual(MIN_DIAGRAM_FONT_PX)
+    }
   })
 })

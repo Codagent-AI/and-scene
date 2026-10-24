@@ -137,12 +137,13 @@
   border: 1.5px solid var(--line);
   border-radius: 10px;
   background: #171b24;
-  font-size: 15px;
+  font-size: 20px;
 }
 
 .how-to [data-presentation-node='label'] {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 18px;
+  line-height: 1;
   text-align: center;
 }
 
@@ -192,7 +193,7 @@
 .how-to .sample-depth {
   border-radius: 6px;
   color: var(--warn);
-  font-size: 13px;
+  font-size: 18px;
 }
 
 .how-to .sample-socket {
@@ -204,7 +205,7 @@
 .how-to .sample-verify {
   flex-direction: column;
   border-color: var(--good);
-  font-size: 13px;
+  font-size: 18px;
 }
 
 .how-to .sample-pass {
@@ -234,7 +235,7 @@
 
 .how-to .sample-reveal-label {
   color: var(--accent);
-  font-size: 14px;
+  font-size: 20px;
   text-align: right;
 }
 

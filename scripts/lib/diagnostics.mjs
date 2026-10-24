@@ -96,6 +96,8 @@ export function extractSnapshot() {
     progress: group('[data-presentation-progress-item]'),
     toc: group('[data-presentation-toc-item]'),
     attribution: link ? { label: describe(link), style: style(link) } : null,
+    // Entities not yet fully opaque: nonzero means a newcomer's motion had not finished.
+    unsettled: [...document.querySelectorAll('[data-presentation-entity]')].filter((el) => Number(getComputedStyle(el).opacity) < 1).length,
   }
 }
 

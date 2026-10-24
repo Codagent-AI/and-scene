@@ -2,13 +2,14 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { ANIMATION_SETTLE_MS } from '../../scripts/lib/timing.mjs'
 import { cleanupTempDirs, copyRepo, edit, run, type RunResult } from '../support/repo'
 
 afterAll(cleanupTempDirs)
 
 const SCENE = `
 import { useEffect, useState } from 'react'
-import { Label, SceneLayer, type SceneProps } from '../../presentation-kit'
+import { Appear, Label, SceneLayer, type SceneProps } from '../../presentation-kit'
 
 export interface Payload {
   step: number
@@ -18,16 +19,20 @@ export interface Payload {
 
 export function FixtureScene({ payload: { step, apart } }: SceneProps<Payload>) {
   // The collision only exists once this timer has fired, i.e. after the step's transition settles.
-  const [moved, setMoved] = useState(false)
+  const [movedAt, setMovedAt] = useState(0)
+  const moved = movedAt === step
   useEffect(() => {
-    setMoved(false)
-    const t = setTimeout(() => setMoved(true), 300)
+    const t = setTimeout(() => setMovedAt(step), 300)
     return () => clearTimeout(t)
   }, [step])
   return (
     <SceneLayer>
       <Label id="alpha" x={100} y={100} w={220} h={30}>Alpha text</Label>
-      {step === 2 && <Label id="beta" x={100} y={moved && !apart ? 105 : 200} w={220} h={30}>Beta text</Label>}
+      {step === 2 && (
+        <Appear>
+          <Label id="beta" x={100} y={moved && !apart ? 105 : 200} w={220} h={30}>Beta text</Label>
+        </Appear>
+      )}
       {step === 3 && (
         <div data-presentation-allow-overlap="" style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}>
           <Label id="stack-a" x={400} y={200} w={200} h={30}>Stacked one</Label>
@@ -71,7 +76,7 @@ let dir: string
 let defects: RunResult
 let polished: RunResult
 let missing: RunResult
-const SETTLE = 800
+const SETTLE = ANIMATION_SETTLE_MS
 
 const report = (slug: string) => JSON.parse(readFileSync(path.join(dir, 'inspection-output', slug, 'report.json'), 'utf8'))
 const warnings = (r: RunResult) => r.stdout.split('\n').filter((l) => l.startsWith('warning:'))
@@ -117,6 +122,26 @@ describe('INT-002: screenshot helper', () => {
     for (const s of report('defects').steps) {
       expect(s.settleMs).toBe(SETTLE)
       expect(s.waitedMs).toBeGreaterThanOrEqual(SETTLE)
+    }
+  })
+
+  it('captures with newcomer motion finished by default, but not when the settle interval is skipped', async () => {
+    const stepOf = (slug: string) => report(slug).steps as { unsettled: number }[]
+    expect(stepOf('defects').map((s) => s.unsettled)).toEqual([0, 0, 0, 0])
+    const rushed = await run('node', ['scripts/inspect-presentation.mjs', 'defects', '--settle', '0', '--no-build', '--out', 'inspection-output/rushed'], { cwd: dir })
+    expect(rushed.code, rushed.stdout + rushed.stderr).toBe(0)
+    const rushedSteps = JSON.parse(readFileSync(path.join(dir, 'inspection-output/rushed/report.json'), 'utf8')).steps
+    expect(rushedSteps[1].unsettled).toBeGreaterThan(0)
+  })
+
+  it('uses a default settle interval longer than the kit\'s newcomer motion', async () => {
+    const r = await run('node', ['scripts/inspect-presentation.mjs', 'polished', '--no-build', '--out', 'inspection-output/default'], { cwd: dir })
+    expect(r.code, r.stdout + r.stderr).toBe(0)
+    const steps = JSON.parse(readFileSync(path.join(dir, 'inspection-output/default/report.json'), 'utf8')).steps
+    for (const s of steps) {
+      expect(s.settleMs).toBeGreaterThan(950)
+      expect(s.waitedMs).toBeGreaterThanOrEqual(s.settleMs)
+      expect(s.unsettled).toBe(0)
     }
   })
 

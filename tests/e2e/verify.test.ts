@@ -92,6 +92,17 @@ describe('E2E-002: verification failures are actionable', () => {
     expect(r.stderr).toMatch(/verify: FAIL \[render, step index 3\].*injected failure/)
   })
 
+  it('fails in the render phase for an error that surfaces during the final step\'s newcomer motion', async () => {
+    const r = await faulty('e2e-late', (dir) =>
+      edit(path.join(dir, sample, 'Scene.tsx'), (s) =>
+        s
+          .replace("import { AnimatePresence, motion } from 'motion/react'", "import { useEffect } from 'react'\nimport { AnimatePresence, motion } from 'motion/react'")
+          .replace("  const seen = useSeenBeat(beat)\n", "  const seen = useSeenBeat(beat)\n  useEffect(() => {\n    if (beat !== 9) return\n    const t = setTimeout(() => console.error('late failure'), 900)\n    return () => clearTimeout(t)\n  }, [beat])\n"),
+      ),
+    )
+    expect(r.stderr).toMatch(/verify: FAIL \[render, step index 8\].*late failure/)
+  })
+
   it('fails in the render phase naming the step whose transition never advances', async () => {
     const r = await faulty('e2e-stall', (dir) =>
       edit(path.join(dir, sample, 'Talk.tsx'), (s) =>

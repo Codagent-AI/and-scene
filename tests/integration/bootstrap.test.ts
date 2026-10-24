@@ -1,5 +1,5 @@
 // INT-001: the distributable bootstrap template works outside the repository that authored it.
-import { cpSync, existsSync, readFileSync, readdirSync, renameSync, statSync } from 'node:fs'
+import { cpSync, existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { REPO, cleanupTempDirs, isListening, previewPort, run, tempDir, type RunResult } from '../support/repo'
@@ -16,6 +16,7 @@ const walk = (dir: string): string[] =>
 
 let app: string
 let elsewhere: string
+let scaffold: RunResult
 let install: RunResult
 let build: RunResult
 let lint: RunResult
@@ -25,9 +26,11 @@ beforeAll(async () => {
   const parent = tempDir('int-bootstrap')
   app = path.join(parent, 'app')
   elsewhere = tempDir('int-cwd')
-  cpSync(TEMPLATE, app, { recursive: true })
-  renameSync(path.join(app, 'gitignore.template'), path.join(app, '.gitignore'))
-  // Every command runs from a working directory outside both the template and the source repository.
+  // The skill is relocated first, so template lookup can only work relative to the skill's own files;
+  // every command then runs from a working directory outside the skill, the template, and the repository.
+  const skill = path.join(parent, 'skill')
+  cpSync(path.join(REPO, 'skills/presentation'), skill, { recursive: true })
+  scaffold = await run('node', [path.join(skill, 'scripts/scaffold.mjs'), '--root', app], { cwd: elsewhere })
   install = await run('npm', ['--prefix', app, 'ci', '--no-audit', '--no-fund'], { cwd: elsewhere })
   build = await run('npm', ['--prefix', app, 'run', 'build'], { cwd: elsewhere })
   lint = await run('npm', ['--prefix', app, 'run', 'lint'], { cwd: elsewhere })
@@ -35,6 +38,19 @@ beforeAll(async () => {
 })
 
 describe('INT-001: materialized bootstrap', () => {
+  it('is materialized from the skill-relative templates regardless of the working directory', () => {
+    expect(scaffold.code, scaffold.stderr).toBe(0)
+    const report = JSON.parse(scaffold.stdout)
+    expect(report.target).toBe(app)
+    expect(report.skipped).toEqual([])
+    const template = walk(TEMPLATE).map((f) => path.relative(TEMPLATE, f).replace('gitignore.template', '.gitignore')).sort()
+    expect([...report.copied].sort()).toEqual(template)
+    for (const f of template) {
+      const from = path.join(TEMPLATE, f.replace(/^\.gitignore$/, 'gitignore.template'))
+      expect(readFileSync(path.join(app, f), 'utf8') === readFileSync(from, 'utf8'), f).toBe(true)
+    }
+  })
+
   it('installs from its committed lock data', () => {
     expect(install.code, install.stderr).toBe(0)
   })

@@ -1,8 +1,9 @@
 import path from 'node:path'
 import { defaultSleep } from './loopback.mjs'
 import { waitForIndex } from './step-driver.mjs'
+import { ANIMATION_SETTLE_MS } from './timing.mjs'
 
-export const DEFAULT_SETTLE_MS = 900
+export const DEFAULT_SETTLE_MS = ANIMATION_SETTLE_MS
 export const stepFile = (index) => `step-${String(index + 1).padStart(2, '0')}.png`
 
 /**
@@ -19,8 +20,9 @@ export async function captureSteps({ page, count, outDir, settleMs = DEFAULT_SET
     const settledFrom = now()
     await sleep(settleMs)
     const file = path.join(outDir, stepFile(i))
+    const taken = await snapshot()
     await shoot(file)
-    records.push({ index: i, file, settleMs, waitedMs: now() - settledFrom, snapshot: await snapshot() })
+    records.push({ index: i, file, settleMs, waitedMs: now() - settledFrom, snapshot: taken })
   }
   return records
 }

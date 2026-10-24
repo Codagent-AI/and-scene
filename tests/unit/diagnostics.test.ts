@@ -8,6 +8,9 @@ import {
   indistinctActive,
 } from '../../scripts/lib/diagnostics.mjs'
 import { DEFAULT_SETTLE_MS, captureSteps, stepFile } from '../../scripts/lib/capture.mjs'
+import { ANIMATION_SETTLE_MS } from '../../scripts/lib/timing.mjs'
+import { runInspect } from '../../scripts/lib/inspect-core.mjs'
+import { ENTER_DELAY, ENTER_T } from '../../src/presentation-kit'
 
 type Item = { id: number; label: string; rect: { x: number; y: number; w: number; h: number }; allowed: boolean; ancestors: number[] }
 const item = (id: number, x: number, y: number, w: number, h: number, extra: Partial<Item> = {}): Item => ({
@@ -118,16 +121,17 @@ describe('captureSteps', () => {
     const r = rig()
     const records = await captureSteps({ ...r, count: 3, outDir: '/out', settleMs: 700 })
     expect(r.events).toEqual([
-      'sleep:700', 'shoot:step-01.png', 'snapshot',
-      'press', 'sleep:700', 'shoot:step-02.png', 'snapshot',
-      'press', 'sleep:700', 'shoot:step-03.png', 'snapshot',
+      'sleep:700', 'snapshot', 'shoot:step-01.png',
+      'press', 'sleep:700', 'snapshot', 'shoot:step-02.png',
+      'press', 'sleep:700', 'snapshot', 'shoot:step-03.png',
     ])
     expect(records.map((x: { waitedMs: number }) => x.waitedMs)).toEqual([700, 700, 700])
     expect(records.map((x: { snapshot: { at: number } }) => x.snapshot.at)).toEqual([0, 1, 2])
   })
 
   it('has a documented non-zero default settle and zero-padded predictable file names', () => {
-    expect(DEFAULT_SETTLE_MS).toBeGreaterThan(0)
+    expect(DEFAULT_SETTLE_MS).toBe(ANIMATION_SETTLE_MS)
+    expect(DEFAULT_SETTLE_MS).toBeGreaterThan((ENTER_DELAY + ENTER_T) * 1000)
     expect([0, 8, 9, 99].map(stepFile)).toEqual(['step-01.png', 'step-09.png', 'step-10.png', 'step-100.png'])
   })
 
@@ -137,5 +141,47 @@ describe('captureSteps', () => {
     r.page.evaluate = async () => ({ count: 3, index: 0 })
     await expect(captureSteps({ ...r, count: 2, outDir: '/out', settleMs: 1, indexTimeoutMs: 10, sleep: async () => {} })).rejects.toThrow(/did not reach 1/)
     expect(r.events).not.toContain('shoot:step-02.png')
+  })
+})
+
+describe('runInspect cleanup', () => {
+  const opts = { slug: 'demo', settle: 1, width: 1440, height: 900, build: true }
+  const rig = (over: { buildOk?: boolean; launchFails?: boolean; closeFails?: boolean } = {}) => {
+    const calls: string[] = []
+    const deps = {
+      build: async () => (calls.push('build'), { ok: over.buildOk ?? true, output: 'tsc failed' }),
+      startPreview: async () => ({ origin: 'http://127.0.0.1:9', stop: async () => void calls.push('preview:stop') }),
+      launchBrowser: async () => {
+        calls.push('launch')
+        if (over.launchFails) throw new Error('no chromium')
+        return {
+          newPage: async () => ({ on: () => {}, goto: async () => {}, evaluate: async () => null }),
+          close: async () => {
+            calls.push('browser:close')
+            if (over.closeFails) throw new Error('crashed')
+          },
+        }
+      },
+    }
+    return { calls, deps }
+  }
+  const go = (deps: object) => runInspect({ root: '/x', opts: { ...opts }, log: () => {}, deps })
+
+  it('stops the preview when the browser cannot launch', async () => {
+    const { calls, deps } = rig({ launchFails: true })
+    await expect(go(deps)).rejects.toThrow('no chromium')
+    expect(calls).toContain('preview:stop')
+  })
+
+  it('stops the preview and closes the browser when the presentation is not found, even if closing fails', async () => {
+    const { calls, deps } = rig({ closeFails: true })
+    await expect(runInspect({ root: '/x', opts: { ...opts, build: false, hooksTimeoutMs: 10 }, log: () => {}, deps })).rejects.toThrow(/no presentation found/)
+    expect(calls.slice(-2)).toEqual(['browser:close', 'preview:stop'])
+  })
+
+  it('does not start a preview when the build fails', async () => {
+    const { calls, deps } = rig({ buildOk: false })
+    await expect(go(deps)).rejects.toThrow(/npm run build failed/)
+    expect(calls).toEqual(['build'])
   })
 })

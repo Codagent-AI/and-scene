@@ -10,6 +10,9 @@ import { validateRendered } from '../../scripts/lib/outline.mjs'
 import { runVerify } from '../../scripts/lib/verify-core.mjs'
 import { LOOPBACK_HOST, freePort, originOf, waitForReady } from '../../scripts/lib/loopback.mjs'
 import { readConfig } from '../../scripts/lib/config.mjs'
+import { ANIMATION_SETTLE_MS } from '../../scripts/lib/timing.mjs'
+import { runCleanups } from '../../scripts/lib/cleanup.mjs'
+import { ENTER_DELAY, ENTER_T } from '../../src/presentation-kit'
 
 const noSleep = () => Promise.resolve()
 const outline = Array.from({ length: 4 }, (_, i) => ({ era: `era${i}`, title: `T${i}`, caption: `C${i}` }))
@@ -26,11 +29,15 @@ function fakePage(opts: {
   gotoFails?: boolean
   countAfter?: number
   titles?: string[]
+  /** Emit a console error this many ms after the page reaches `index`. */
+  lateError?: { index: number; afterMs: number; text: string }
 } = {}) {
   const count = opts.count ?? 4
   const handlers: Record<string, ((arg: unknown) => void)[]> = {}
   const emit = (event: string, arg: unknown) => handlers[event]?.forEach((h) => h(arg))
   let index = 0
+  let since = 0
+  let lateSent = false
   const fire = (i: number) => {
     const e = opts.errorOnIndex?.[i]
     if (e?.kind === 'console') emit('console', { type: () => 'error', text: () => e.text })
@@ -58,8 +65,18 @@ function fakePage(opts: {
         expect(key).toBe('ArrowRight')
         if (opts.stallAt === index) return
         index += 1
+        since = 0
         fire(index)
       },
+    },
+    /** Advance the fake clock; delayed faults fire once their time has passed. */
+    advance: (ms: number) => {
+      since += ms
+      const late = opts.lateError
+      if (late && !lateSent && index === late.index && since >= late.afterMs) {
+        lateSent = true
+        emit('console', { type: () => 'error', text: () => late.text })
+      }
     },
   }
   return page
@@ -168,6 +185,46 @@ describe('driveSteps', () => {
   })
 })
 
+describe('settling before sampling for errors', () => {
+  it('waits longer than the kit\'s newcomer motion by default', () => {
+    expect(ANIMATION_SETTLE_MS).toBeGreaterThan((ENTER_DELAY + ENTER_T) * 1000)
+  })
+
+  const timed = (page: ReturnType<typeof fakePage>, extra = {}) =>
+    driveSteps(page, 'http://127.0.0.1:1/x', { outline, timeoutMs: 15, sleep: async (ms: number) => page.advance(ms), ...extra })
+
+  it('catches an error that surfaces during newcomer motion on the final step', async () => {
+    const page = fakePage({ lateError: { index: 3, afterMs: 950, text: 'late failure' } })
+    const err = await failure(timed(page))
+    expect(err).toMatchObject({ phase: 'render', step: 3 })
+    expect(err.message).toContain('late failure')
+  })
+
+  it('attributes a late error to the step that produced it, not the next step', async () => {
+    const page = fakePage({ lateError: { index: 1, afterMs: 900, text: 'late on one' } })
+    const err = await failure(timed(page))
+    expect(err).toMatchObject({ phase: 'render', step: 1 })
+  })
+
+  it('would have missed those errors with the old 150ms window', async () => {
+    const page = fakePage({ lateError: { index: 3, afterMs: 950, text: 'late failure' } })
+    await expect(timed(page, { stepSettleMs: 150 })).resolves.toBeTruthy()
+  })
+})
+
+describe('runCleanups', () => {
+  it('runs every cleanup even when earlier ones reject, logging instead of throwing', async () => {
+    const order: string[] = []
+    const logs: string[] = []
+    await runCleanups(
+      [async () => (order.push('a'), Promise.reject(new Error('close failed'))), async () => void order.push('b')],
+      (m: string) => logs.push(m),
+    )
+    expect(order).toEqual(['a', 'b'])
+    expect(logs).toEqual(['cleanup failed: close failed'])
+  })
+})
+
 describe('reporting', () => {
   it('names the phase, and the step index when there is one', () => {
     expect(formatFailure(new VerifyError('build', 'tsc failed'))).toBe('verify: FAIL [build] tsc failed')
@@ -179,7 +236,7 @@ describe('reporting', () => {
   })
 })
 
-function fakeDeps(over: { buildOk?: boolean; previewFails?: boolean; browserFails?: boolean; registered?: boolean; driveFails?: boolean } = {}) {
+function fakeDeps(over: { closeFails?: boolean; contextCloseFails?: boolean; buildOk?: boolean; previewFails?: boolean; browserFails?: boolean; registered?: boolean; driveFails?: boolean } = {}) {
   const calls: string[] = []
   const deps = {
     build: async () => (calls.push('build'), { ok: over.buildOk ?? true, output: 'tsc: error TS1' }),
@@ -194,9 +251,15 @@ function fakeDeps(over: { buildOk?: boolean; previewFails?: boolean; browserFail
       return {
         newContext: async () => ({
           newPage: async () => ({ goto: async () => {}, evaluate: async () => over.registered ?? true }),
-          close: async () => void calls.push('context:close'),
+          close: async () => {
+            calls.push('context:close')
+            if (over.contextCloseFails) throw new Error('context gone')
+          },
         }),
-        close: async () => void calls.push('browser:close'),
+        close: async () => {
+          calls.push('browser:close')
+          if (over.closeFails) throw new Error('browser crashed')
+        },
       }
     },
     driveSteps: async () => {
@@ -244,6 +307,15 @@ describe('runVerify', () => {
     expect(err.message).toContain('"demo" is not registered')
     expect(calls).not.toContain('drive')
     expect(calls.slice(-3)).toEqual(['context:close', 'browser:close', 'preview:stop'])
+  })
+
+  it('still stops the preview when the browser or context fails to close, keeping the real result', async () => {
+    const ok = fakeDeps({ closeFails: true, contextCloseFails: true })
+    await expect(run(ok.deps)).resolves.toEqual([{ slug: 'demo', count: 9 }])
+    expect(ok.calls.slice(-3)).toEqual(['context:close', 'browser:close', 'preview:stop'])
+    const bad = fakeDeps({ closeFails: true, driveFails: true })
+    expect(await failure(run(bad.deps))).toMatchObject({ phase: 'render', step: 2 })
+    expect(bad.calls.at(-1)).toBe('preview:stop')
   })
 
   it('names the failing step and still cleans up when stepping fails', async () => {

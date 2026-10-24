@@ -1,11 +1,11 @@
-import type { ComponentPropsWithoutRef, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { motion } from 'motion/react'
-import { LAYOUT_TRANSITION, placementStyle, type NodeBaseProps } from './shared.ts'
+import { LAYOUT_TRANSITION, placementStyle, type DivProps, type NodeBaseProps } from './shared.ts'
 
 export interface SymbolChipProps
   extends NodeBaseProps,
-    Omit<ComponentPropsWithoutRef<'div'>, 'style' | 'className' | 'id' | 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart'> {
+    DivProps {
   /** Text or character symbol. */
   symbol?: ReactNode
   /** Optional glyph, passed as a component. */

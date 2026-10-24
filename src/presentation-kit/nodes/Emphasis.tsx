@@ -1,10 +1,9 @@
-import type { ComponentPropsWithoutRef } from 'react'
 import { motion } from 'motion/react'
-import { LAYOUT_TRANSITION, placementStyle, type NodeBaseProps } from './shared.ts'
+import { LAYOUT_TRANSITION, placementStyle, type DivProps, type NodeBaseProps } from './shared.ts'
 
 export interface EmphasisProps
   extends NodeBaseProps,
-    Omit<ComponentPropsWithoutRef<'div'>, 'style' | 'className' | 'id' | 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart'> {}
+    DivProps {}
 
 /** A marker laid over an entity to call attention to it. */
 export function Emphasis({ id, x, y, w, h, className, style, children, ...rest }: EmphasisProps) {

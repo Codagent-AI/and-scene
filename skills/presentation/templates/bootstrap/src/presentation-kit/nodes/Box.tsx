@@ -1,11 +1,11 @@
-import type { ComponentPropsWithoutRef, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { motion } from 'motion/react'
-import { LAYOUT_TRANSITION, placementStyle, type NodeBaseProps } from './shared.ts'
+import { LAYOUT_TRANSITION, placementStyle, type DivProps, type NodeBaseProps } from './shared.ts'
 
 export interface BoxProps
   extends NodeBaseProps,
-    Omit<ComponentPropsWithoutRef<'div'>, 'style' | 'className' | 'id' | 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart'> {
+    DivProps {
   /** Optional glyph, passed as a component (`icon={User}`). */
   icon?: LucideIcon
   label?: ReactNode

@@ -1,0 +1,232 @@
+import { act, fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { useEffect, useState } from 'react'
+import { motion } from 'motion/react'
+import { Presentation, Stage, Box, Label, Arrow, Frame, Emphasis, SymbolChip, Appear, SceneLayer, validateSteps, fitScale, useFitScale, usePresentationNav, clampIndex, LAYOUT_T, ENTER_T, ENTER_DELAY } from '../src/presentation-kit'
+import type { SceneProps, Step } from '../src/presentation-kit'
+import { eraEntries } from '../src/presentation-kit/chrome/Toc'
+import { findPresentation } from '../src/presentations'
+import Landing from '../src/Landing'
+import { STEPS } from '../src/presentations/how-to-make-a-presentation/steps'
+import { entities, entityId, visibleEntities } from '../src/presentations/how-to-make-a-presentation/entities'
+import canonical from '../scripts/reference-outline.json'
+function Diagram({ payload }: SceneProps<number>) { return <Box id="entity" style={{ position: 'absolute', left: payload * 10, width: 100 + payload }} data-emphasis={payload > 1 ? 'strong' : 'normal'}>state {payload}</Box> }
+const steps: Step<number>[] = [0, 1, 2].map((i) => ({ id: `s${i}`, era: i < 2 ? 'first' : 'second', title: `Title ${i}`, caption: `Caption ${i}`, Scene: Diagram, payload: i, groupKey: 'same' }))
+const setup = () => render(<Presentation steps={steps} title="Fixture" />)
+const root = () => document.querySelector('[data-presentation]')!
+const index = () => Number(root().getAttribute('data-step-index'))
+const press = (key: string, target: EventTarget = window) => fireEvent.keyDown(target, { key })
+
+describe('runtime contracts', () => {
+  it('I-1 metadata and active diagram; rejects empty, incomplete and duplicate steps', () => {
+    expect(() => validateSteps(steps)).not.toThrow()
+    expect(() => validateSteps([])).toThrow('at least one')
+    for (const key of ['id', 'era', 'title', 'caption', 'Scene']) expect(() => validateSteps([{ ...steps[0], [key]: '' }])).toThrow('Incomplete')
+    expect(() => validateSteps([steps[0], steps[0]])).toThrow('Duplicate')
+    setup(); expect(screen.getByText('state 0')).toBeTruthy(); press('ArrowRight'); expect(screen.getByText('state 1')).toBeTruthy()
+  })
+  it('I-2 numbering follows reordered shortened arrays', () => {
+    const view = render(<Presentation steps={[steps[2], steps[0]]} title="Reordered" />)
+    expect(screen.getByText('01 / second')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Step 2: Title 0' })).toBeTruthy()
+    view.rerender(<Presentation steps={[steps[1]]} title="Short" />)
+    expect(screen.getByText('01 / first')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Step 2:/ })).toBeNull()
+  })
+  it('I-4 stable layoutId preserves node while position size label and emphasis change', () => {
+    const element = Box({ id: 'entity', children: 'old' })
+    expect(element.props.layoutId).toBe('entity'); expect(element.props.layout).toBe(true)
+    expect(element.props.transition.layout).toEqual(LAYOUT_T)
+    setup(); const entity = document.querySelector('[data-entity-id="entity"]')!
+    press('ArrowRight')
+    expect(document.querySelector('[data-entity-id="entity"]')).toBe(entity)
+    expect(entity.textContent).toBe('state 1'); expect(entity.getAttribute('style')).toContain('left: 10px')
+    expect(entity.getAttribute('style')).toContain('width: 101px')
+    press('ArrowRight'); expect(entity.getAttribute('data-emphasis')).toBe('strong')
+  })
+  it('I-5 newcomers wait for layout; departures exit without enter delay', () => {
+    expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T.duration)
+    expect(ENTER_T.delay).toBe(ENTER_DELAY)
+    const appear = Appear({ children: 'new' })
+    expect(appear.props.initial).toEqual({ opacity: 0, y: 8 })
+    expect(appear.props.animate).toEqual({ opacity: 1, y: 0 })
+    expect(appear.props.exit).toEqual({ opacity: 0, y: 0, transition: { delay: 0, duration: .18 } })
+    expect(appear.props.transition).toEqual(ENTER_T)
+  })
+  it('I-6 grouped payload updates retain mount and local state; distinct scene remounts', () => {
+    const mounted = vi.fn(), unmounted = vi.fn()
+    function Group({ payload }: SceneProps<number>) {
+      const [sentinel] = useState(() => Math.random())
+      useEffect(() => { mounted(); return unmounted }, [])
+      return <div data-testid="group" data-sentinel={sentinel}>{payload}</div>
+    }
+    const grouped = steps.map(s => ({ ...s, Scene: Group }))
+    const view = render(<Stage step={grouped[0]} mode="browse" />)
+    const node = screen.getByTestId('group'); const sentinel = node.getAttribute('data-sentinel')
+    view.rerender(<Stage step={grouped[1]} mode="browse" />)
+    expect(screen.getByTestId('group')).toBe(node); expect(node.textContent).toBe('1'); expect(node.getAttribute('data-sentinel')).toBe(sentinel)
+    expect(mounted).toHaveBeenCalledTimes(1); expect(unmounted).not.toHaveBeenCalled()
+    view.rerender(<Stage step={{ ...grouped[2], Scene: Diagram }} mode="browse" />)
+    expect(unmounted).toHaveBeenCalledTimes(1)
+  })
+  it('I-7 grouped authored stacking coordinates remain independent layers', () => {
+    const layer = SceneLayer({ style: { zIndex: 3 }, children: 'layer' })
+    expect(layer.props.style).toEqual({ position: 'absolute', inset: 0, zIndex: 3 })
+    const view = render(<Stage step={steps[0]} mode="browse" />)
+    const node = document.querySelector('[data-presentation-scene]')!
+    view.rerender(<Stage step={steps[1]} mode="browse" />)
+    expect(document.querySelector('[data-presentation-scene]')).toBe(node)
+    expect(node.getAttribute('style')).toContain('position: absolute')
+  })
+  it('I-8 style-neutral primitive hooks forward authored class style and data', () => {
+    for (const Primitive of [Box, Label, Arrow, Frame, Emphasis, SymbolChip]) {
+      const element = Primitive({ id: 'shared', className: 'authored', style: { left: 17, color: 'red' }, 'aria-label': 'semantic' })
+      expect(element.props.className).toBe('authored'); expect(element.props.style).toEqual({ left: 17, color: 'red' })
+      expect(element.props['data-entity-id']).toBe('shared'); expect(element.props['data-presentation-node']).toBeTruthy()
+      expect(Primitive({ id: 'unstyled' }).props.style).toBeUndefined()
+    }
+  })
+  it('I-9 literal coordinates and raw motion layoutIds are accepted', () => {
+    render(<SceneLayer><Box id="literal" className="mine" style={{ position: 'absolute', left: 27, top: 42 }} /><motion.div layoutId="raw" data-testid="raw" style={{ left: 50 }} /></SceneLayer>)
+    expect(document.querySelector('[data-entity-id="literal"]')?.getAttribute('style')).toContain('left: 27px')
+    expect(screen.getByTestId('raw').getAttribute('style')).toContain('left: 50px')
+  })
+  it('I-10 attribution default destination hook geometry and opt-in brand', () => {
+    const view = setup()
+    const link = screen.getByRole('link', { name: 'made by and-scene' })
+    expect(link.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene')
+    expect(link.hasAttribute('data-presentation-attribution')).toBe(true)
+    expect(link.parentElement?.style.right).toBe('24px'); expect(link.parentElement?.style.bottom).toBe('12px')
+    expect(document.querySelector('[data-presentation-brand]')).toBeNull()
+    view.rerender(<Presentation steps={steps} title="Fixture" brand={<a href="/">Host</a>} attribution={false} />)
+    expect(screen.getByRole('link', { name: 'Host' })).toBeTruthy(); expect(screen.queryByText('made by and-scene')).toBeNull()
+  })
+  it('I-11 mode-specific chrome and configurable initial mode', () => {
+    const view = render(<Presentation steps={steps} title="Fixture" initialMode="present" />)
+    expect(screen.getByText('Title 0')).toBeTruthy(); expect(screen.queryByText('Caption 0')).toBeNull()
+    expect(screen.queryByRole('navigation')).toBeNull(); expect(document.querySelector('[data-presentation-marker]')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to browse mode' }))
+    expect(screen.getByText('Caption 0')).toBeTruthy(); expect(screen.getByRole('navigation', { name: 'Steps' })).toBeTruthy()
+    expect(screen.getByRole('navigation', { name: 'Sections' })).toBeTruthy()
+    view.unmount()
+    vi.mocked(window.matchMedia).mockReturnValueOnce({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() } as unknown as MediaQueryList)
+    setup(); expect(screen.queryByRole('navigation', { name: 'Sections' })).toBeNull()
+  })
+  it('I-12 mode toggles preserve middle index and scene payload', () => {
+    setup(); press('ArrowRight'); press('p'); expect(index()).toBe(1); expect(root().getAttribute('data-presentation-mode')).toBe('present')
+    press('P'); expect(index()).toBe(1); expect(screen.getByText('state 1')).toBeTruthy()
+  })
+  it('I-13 each keyboard binding changes state once; modifiers are ignored', () => {
+    const { result } = renderHook(() => usePresentationNav(10))
+    for (const key of ['ArrowRight', ' ', 'PageDown']) { const before = result.current.index; act(() => press(key)); expect(result.current.index).toBe(before + 1) }
+    for (const key of ['ArrowLeft', 'PageUp']) { const before = result.current.index; act(() => press(key)); expect(result.current.index).toBe(before - 1) }
+    act(() => press('P')); expect(result.current.mode).toBe('present')
+    act(() => fireEvent.keyDown(window, { key: 'ArrowRight', ctrlKey: true })); expect(result.current.index).toBe(1)
+  })
+  it('I-14 horizontal swipes navigate; vertical short and multi-touch gestures do not', () => {
+    setup()
+    const swipe = (x: number, y: number) => { fireEvent.touchStart(root(), { touches: [{ clientX: 100, clientY: 100 }] }); fireEvent.touchEnd(root(), { changedTouches: [{ clientX: x, clientY: y }] }) }
+    swipe(10, 105); expect(index()).toBe(1)
+    swipe(190, 105); expect(index()).toBe(0)
+    swipe(95, 100); swipe(90, 250); expect(index()).toBe(0)
+    fireEvent.touchStart(root(), { touches: [{ clientX: 100, clientY: 100 }, { clientX: 0, clientY: 0 }] }); fireEvent.touchEnd(root(), { changedTouches: [{ clientX: 0, clientY: 100 }] }); expect(index()).toBe(0)
+  })
+  it('I-15 progress jumps and repeated-era ToC selects first step', () => {
+    setup(); fireEvent.click(screen.getByRole('button', { name: 'Step 3: Title 2' })); expect(index()).toBe(2)
+    fireEvent.click(screen.getByRole('button', { name: 'first' })); expect(index()).toBe(0)
+    expect(eraEntries(steps)).toEqual([{ era: 'first', index: 0 }, { era: 'second', index: 2 }])
+  })
+  it('I-16 progress and ToC semantic current hooks track every navigation', () => {
+    setup()
+    const check = (i: number) => {
+      const active = document.querySelectorAll('[data-presentation-active="true"]')
+      expect(active).toHaveLength(2); for (const control of active) expect(control.getAttribute('aria-current')).toBe('step')
+      expect(screen.getByRole('button', { name: `Step ${i + 1}: Title ${i}` }).getAttribute('data-presentation-active')).toBe('true')
+    }
+    check(0); press('ArrowRight'); check(1); press('ArrowLeft'); check(0)
+    fireEvent.click(screen.getByRole('button', { name: 'second' })); check(2)
+  })
+  it('I-17 focused controls keep navigation keys', () => {
+    setup()
+    const controls = ['button', 'a', 'input', 'textarea', 'select', 'div']
+    for (const tag of controls) {
+      const control = document.createElement(tag)
+      if (tag === 'div') control.setAttribute('contenteditable', 'true')
+      document.body.append(control)
+      for (const key of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) press(key, control)
+      expect(index()).toBe(0); expect(root().getAttribute('data-presentation-mode')).toBe('browse'); control.remove()
+    }
+  })
+  it('I-18 both boundaries clamp and invalid destinations are safe', () => {
+    const { result } = renderHook(() => usePresentationNav(3))
+    act(() => result.current.prev()); expect(result.current.index).toBe(0)
+    act(() => result.current.jump(100)); expect(result.current.index).toBe(2)
+    act(() => result.current.next()); expect(result.current.index).toBe(2)
+    act(() => result.current.jump(-20)); expect(result.current.index).toBe(0)
+    expect(clampIndex(NaN, 3)).toBe(0)
+  })
+  it('I-19 uniform fit dimensions resize mode geometry and listener cleanup', () => {
+    expect(fitScale(1440, 900, 'browse')).toBe(1)
+    expect(fitScale(488, 900, 'browse')).toBe(.5)
+    expect(fitScale(1440, 510, 'browse')).toBe(.5)
+    expect(fitScale(10, 10, 'browse')).toBe(0)
+    expect(fitScale(1440, 510, 'present')).toBeGreaterThan(.5)
+    const remove = vi.spyOn(window, 'removeEventListener')
+    const view = renderHook(() => useFitScale('browse'))
+    act(() => { Object.defineProperty(window, 'innerWidth', { value: 488, configurable: true }); fireEvent(window, new Event('resize')) })
+    expect(view.result.current).toBe(.5); view.unmount(); expect(remove).toHaveBeenCalledWith('resize', expect.any(Function))
+    setup(); const canvas = document.querySelector('[data-presentation-canvas]') as HTMLElement
+    expect((document.querySelector('[data-presentation-stage]') as HTMLElement).style.gridTemplateColumns).toBe('minmax(0, 1fr)'); expect(canvas.style.width).toBe('880px'); expect(canvas.style.height).toBe('380px'); expect(canvas.style.transform).toBe('scale(0.5)')
+    Object.defineProperty(window, 'innerWidth', { value: 1024, configurable: true })
+  })
+  it('I-26 registry routes multiple entries and landing enumerates sample', () => {
+    const load = async () => ({ default: () => null })
+    const entries = [{ slug: 'one', title: 'One', load }, { slug: 'two', title: 'Two', load }]
+    expect(findPresentation('/one', entries)?.title).toBe('One'); expect(findPresentation('/two/', entries)?.title).toBe('Two')
+    expect(findPresentation('/missing', entries)).toBeUndefined(); expect(findPresentation('/', entries)).toBeUndefined()
+    render(<Landing />); expect(screen.getByRole('link', { name: /How to Use This Skill/ }).getAttribute('href')).toBe('/how-to-make-a-presentation')
+  })
+  it('I-31 sample captions and next previous controls cover every step', () => {
+    render(<Presentation steps={STEPS} title="Sample" />)
+    for (let i = 0; i < STEPS.length; i++) { expect(screen.getByText(STEPS[i].caption)).toBeTruthy(); if (i < STEPS.length - 1) fireEvent.click(screen.getByRole('button', { name: 'Next step' })) }
+    fireEvent.click(screen.getByRole('button', { name: 'Previous step' })); expect(index()).toBe(7)
+  })
+  it('I-33 reference metadata matches every canonical id era title and caption', () => {
+    expect(STEPS.map(({ id, era, title, caption }) => ({ id, era, title, caption }))).toEqual(canonical)
+    expect(findPresentation('/how-to-make-a-presentation')?.title).toBe('How to Use This Skill to Make a Presentation')
+  })
+  for (const [row, beats] of [[34, [1, 2]], [35, [3, 4]], [36, [5, 6]], [37, [7, 8]], [38, [9]]] as const) {
+    it(`I-${row} sample scene intents and stable accumulating coordinates`, () => {
+      for (const beat of beats) {
+        const step = STEPS[beat - 1]; const view = render(<step.Scene payload={step.payload} />)
+        const expected = visibleEntities(beat)
+        expect(document.querySelectorAll('[data-entity-id]')).toHaveLength(expected.length)
+        for (const key of expected) {
+          const node = document.querySelector(`[data-entity-id="${entityId(key)}"]`) as HTMLElement
+          expect(node).toBeTruthy(); expect(node.style.left).toBe(`${entities[key].x}px`); expect(node.style.top).toBe(`${entities[key].y}px`)
+        }
+        if (beat >= 3) expect(screen.getAllByText('title · caption · visual').length).toBeGreaterThanOrEqual(1)
+        if (beat >= 7) expect(document.querySelector('[data-check-status="pass"]')).toBeTruthy()
+        if (beat >= 8) expect(screen.getByText('edited')).toBeTruthy()
+        view.unmount()
+      }
+    })
+  }
+  it('I-38 continuing sample DOM identities and coordinates stay invariant; invariant detects moved entities', () => {
+    const view = render(<Stage step={STEPS[0]} mode="browse" />)
+    const seen = new Map<string, { node: Element; style: string }>()
+    function invariant() {
+      for (const node of document.querySelectorAll('[data-entity-id]')) {
+        const id = node.getAttribute('data-entity-id')!
+        const before = seen.get(id)
+        const style = ['left', 'top', 'width', 'height'].map(k => (node as HTMLElement).style.getPropertyValue(k)).join(',')
+        if (before) { expect(node).toBe(before.node); expect(style).toBe(before.style) }
+        seen.set(id, { node, style })
+      }
+      expect(document.querySelectorAll('[data-entity-id]').length).toBeGreaterThanOrEqual(seen.size)
+    }
+    for (const step of STEPS) { view.rerender(<Stage step={step} mode="browse" />); invariant() }
+    const node = document.querySelector('[data-entity-id]') as HTMLElement
+    node.style.left = '999px'; expect(invariant).toThrow()
+  })
+})

@@ -23,3 +23,7 @@ validator_logs
 *.njsproj
 *.sln
 *.sw?
+
+# Presentation inspection artifacts
+.artifacts/
+*.tsbuildinfo

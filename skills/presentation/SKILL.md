@@ -56,16 +56,31 @@ missing.
 3. **Presentation index** — the registry mapping each presentation to its own route, so several
    coexist. (`src/presentations/index.ts`.)
 
+**Detect first, read-only.** Run the skill's scaffold script in dry-run mode. Locate it from this
+file's directory (`<skill-dir>/scripts/scaffold.mjs`, where `<skill-dir>` is the directory containing
+this `SKILL.md`); it finds its templates relative to itself, so the working directory does not matter:
+
+```bash
+node <skill-dir>/scripts/scaffold.mjs --root <project> --dry-run
+```
+
+It prints the resolved target, which anchors exist, the files it would copy, and the dependencies
+that are missing. Nothing is written in dry-run mode.
+
 Decide what to do:
 
 | Situation | Action |
 |---|---|
-| All three anchors present (you are inside a presentation app) | Use that app. Do not scaffold. Go to step 3. |
-| Some anchors present | Scaffold **only the missing anchors** and their dependencies. Leave existing files untouched. |
+| The kit **and** the index exist in the project root or in its `presentations/` folder (an existing presentation app) | Use that app. Do not scaffold. Go to step 3. |
+| Some anchors present in the target | Scaffold **only the missing anchors** and their dependencies. Leave existing files untouched. |
 | None present | Full scaffold from `templates/bootstrap/`. |
 
-**Where to scaffold.** If anchors already exist, that app is the target and nothing is relocated.
-Otherwise:
+A build setup alone does **not** make a directory a presentation app. In particular, a monorepo root
+that only has its own build setup is not one: it falls through to the target table below, so the
+presentation app goes into `presentations/` and the root is left alone.
+
+**Where to scaffold.** If an existing presentation app is found, it is the target and nothing is
+relocated. Otherwise:
 
 | Project | Target |
 |---|---|
@@ -73,13 +88,15 @@ Otherwise:
 | Monorepo: `workspaces` in the root `package.json`, **or** a `pnpm-workspace.yaml`, **or** a root `packages/` or `apps/` directory | A self-contained app in `presentations/`; do not modify the monorepo root |
 
 **Confirm before writing in a non-empty project.** If the project is non-empty and lacks the
-scene kit or presentation index, first tell the user the exact target directory and what you will
-add, and wait for their confirmation. Make no write, install, or generation before they confirm.
-The monorepo heuristic is a guess; the confirmation is what catches a wrong guess.
+scene kit or presentation index, first tell the user the exact target directory (from the dry run)
+and what you will add, and wait for their confirmation. Make no write, install, or generation before
+they confirm. The monorepo heuristic is a guess; the confirmation is what catches a wrong guess.
 
-**Scaffolding.** Copy from `templates/bootstrap/` (resolved from this file's directory, see
-above), copying only the missing anchors when the scaffold is partial. Never assume dependencies are
-installed; ensure the full set, installing whatever is absent:
+**Scaffolding.** After confirmation, run the same script without `--dry-run`. It copies from
+`templates/bootstrap/` (resolved from this file's directory), copies only the missing anchors when
+the scaffold is partial, and never overwrites an existing file. Never assume dependencies are
+installed; ensure the full set (the script lists any missing from the target's `package.json`),
+installing whatever is absent:
 
 - Runtime: `react`, `react-dom`, `motion`, `lucide-react`.
 - Build/dev: `vite`, `@vitejs/plugin-react`, `typescript`, `@types/react`, `@types/react-dom`,
@@ -111,8 +128,9 @@ framework unless the host project already uses one or the user explicitly asks f
   (position, size, label, emphasis). Never re-create an entity under a new id to move it.
 - Steps showing successive states of one diagram share a `groupKey` and `Scene`, so the scene
   persists and only `payload` changes.
-- Wrap only **newcomers** in `<Appear>`; pass `active={false}` once an entity continues, so it
-  morphs rather than fading in again. Wrap conditional entities in `AnimatePresence` so
+- Wrap every entity in `<Appear active={...}>` and make only **newcomers** active: use
+  `useSeenBeat(beat)` and pass `def.beat > seen`, so entities skipped by a direct jump also enter,
+  while continuing entities morph rather than fading in again. Wrap conditional entities in `AnimatePresence` so
   departing entities animate out.
 - Keep the whole composition inside the fixed canvas. Intentional overlap or stacking is fine
   when it reads clearly; do not spread entities just to avoid overlap.
@@ -168,11 +186,12 @@ Do not commit `inspection-output/`, `dist/`, or `node_modules/`.
 
 ## Modify an existing presentation
 
-First run step 2 (detect the three anchors and scaffold only what is missing), as for create.
+Make **no write of any kind** (including scaffolding) until the target presentation is identified.
 
-1. Identify the target first. If the request does not clearly name one presentation (or is
-   ambiguous), **list the existing presentations** from the index and ask which one, before
-   changing anything.
+1. Find the existing presentation app with the read-only dry run from step 2. If none exists, there
+   is nothing to modify: say so and offer the create flow instead. Otherwise, if the request does not
+   clearly name one presentation (or is ambiguous), **list the existing presentations** from the
+   index and ask which one, before changing anything.
 2. With the target known, ask **only** about the requested changes (steps, entities, or style)
    and make scoped, in-place edits to that presentation. Do not re-walk the create interview,
    and leave other presentations alone.

@@ -1,0 +1,7 @@
+/* Host app reset only; presentations own their look in presentation-local CSS. */
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}

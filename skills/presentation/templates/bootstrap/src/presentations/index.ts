@@ -1,12 +1,5 @@
-import type { ComponentType } from 'react'
+import type { RegistryEntry } from '../router.ts'
 
-export interface PresentationEntry {
-  slug: string
-  title: string
-  load: () => Promise<{ default: ComponentType }>
-}
-
-/** Explicit registry — add a folder + one line here for each presentation. */
-export const presentations: PresentationEntry[] = []
-
-export const presentationSlugs = new Set(presentations.map((p) => p.slug))
+// Explicit registry: adding a presentation is a new folder plus one entry here.
+export const presentations: RegistryEntry[] = [
+]

@@ -1,59 +1,66 @@
-import { AnimatePresence, LayoutGroup } from 'motion/react'
-import { DESIGN_H, STAGE_LAYOUT } from './constants'
-import { useFitScale } from './useFitScale'
-import type { Mode, Step } from './types'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { DESIGN_H, DESIGN_W, ENTER_T, EASE } from './constants.ts'
+import { useFitScale } from './useFitScale.ts'
+import type { Mode, Step } from './types.ts'
+
+interface StageProps<TPayload> {
+  steps: readonly Step<TPayload>[]
+  index: number
+  mode: Mode
+  designW?: number
+  designH?: number
+}
 
 /**
- * The fixed design canvas, scaled to fit the gap between header and footer.
- * transform-origin is the canvas center and the canvas is flex-centered, so the
- * diagram stays centered at any scale.
- *
- * Hosts the LayoutGroup + AnimatePresence: only the active step's Scene is
- * mounted (keyed by groupKey, falling back to id), so when the step changes the
- * outgoing and incoming scenes coexist briefly and their shared layoutId
- * elements morph between them. Steps that share a groupKey (and Scene) are NOT
- * remounted when navigating between them — the same instance persists and only
- * its `step` prop changes, so on-screen elements update in place instead of
- * re-animating. See StepMeta.groupKey.
+ * Hosts the active step's Scene on a fixed design canvas scaled to fit.
+ * Steps sharing a groupKey (and Scene) keep one instance: only the payload changes,
+ * so continuing entities morph through layout projection instead of remounting.
  */
-export function Stage<P extends Record<string, unknown> = Record<string, unknown>>({
-  step,
+export function Stage<TPayload>({
+  steps,
+  index,
   mode,
-}: {
-  step: Step<P>
-  mode: Mode
-}) {
-  const layout = STAGE_LAYOUT[mode]
-  const scale = useFitScale(layout)
-  const Scene = step.Scene
+  designW = DESIGN_W,
+  designH = DESIGN_H,
+}: StageProps<TPayload>) {
+  const { areaRef, scale } = useFitScale(mode, designW, designH)
+  const step = steps[index]
+  const key = `${step.groupKey ?? step.id}`
+  const { Scene } = step
 
   return (
     <div
-      data-presentation-stage-shell
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: layout.top,
-        bottom: layout.bottom,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+      ref={areaRef}
+      data-presentation-stage-area=""
+      style={{ position: 'relative', flex: '1 1 0', minWidth: 0, minHeight: 0, overflow: 'hidden' }}
     >
       <div
-        data-presentation-stage
+        data-presentation-stage=""
+        data-presentation-scale={scale.toFixed(3)}
         style={{
-          position: 'relative',
-          flexShrink: 0,
-          width: layout.fitW,
-          height: DESIGN_H,
-          transform: `scale(${scale})`,
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          width: designW,
+          height: designH,
+          transform: `translate(-50%, -50%) scale(${scale})`,
+          transformOrigin: 'center center',
         }}
       >
         <LayoutGroup>
-          <AnimatePresence>
-            <Scene key={step.groupKey ?? step.id} step={step} />
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={key}
+              data-presentation-scene=""
+              data-presentation-group={key}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, position: 'absolute', inset: 0 }}
+              transition={{ duration: ENTER_T, ease: EASE }}
+              style={{ position: 'relative', width: designW, height: designH }}
+            >
+              <Scene payload={step.payload} step={step} index={index} />
+            </motion.div>
           </AnimatePresence>
         </LayoutGroup>
       </div>

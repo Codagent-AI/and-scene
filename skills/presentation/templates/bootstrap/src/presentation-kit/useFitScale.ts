@@ -1,25 +1,46 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useLayoutEffect, useRef, useState } from 'react'
+import type { RefObject } from 'react'
+import { DESIGN_H, DESIGN_W, MAX_SCALE, MIN_SCALE, STAGE_LAYOUT } from './constants.ts'
+import type { Mode } from './types.ts'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+/** Uniform scale that fits the design canvas into the available box. */
+export function computeFitScale(
+  availW: number,
+  availH: number,
+  mode: Mode,
+  designW = DESIGN_W,
+  designH = DESIGN_H,
+): number {
+  if (!Number.isFinite(availW) || !Number.isFinite(availH)) return 1
+  if (availW <= 0 || availH <= 0) return MIN_SCALE
+  // Padding is dropped when it would leave no room, so any positive space still fits.
+  const { padX, padY } = STAGE_LAYOUT[mode]
+  const w = availW > padX ? availW - padX : availW
+  const h = availH > padY ? availH - padY : availH
+  return Math.min(MAX_SCALE, w / designW, h / designH)
+}
 
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
+/** Measures the stage area and returns the uniform scale for the active mode. */
+export function useFitScale(mode: Mode, designW = DESIGN_W, designH = DESIGN_H) {
+  const areaRef: RefObject<HTMLDivElement | null> = useRef(null)
   const [scale, setScale] = useState(1)
+
   useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
+    const el = areaRef.current
+    if (!el) return
+    const update = () => {
+      const { width, height } = el.getBoundingClientRect()
+      if (width > 0 && height > 0) setScale(computeFitScale(width, height, mode, designW, designH))
     }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+    update()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', update)
+      return () => window.removeEventListener('resize', update)
+    }
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [mode, designW, designH])
+
+  return { areaRef, scale }
 }

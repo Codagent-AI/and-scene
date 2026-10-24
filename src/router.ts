@@ -1,10 +1,19 @@
+import type { ComponentType } from 'react'
+
+export interface RegistryEntry {
+  slug: string
+  title: string
+  // Loads the module whose default export renders the presentation.
+  load: () => Promise<{ default: ComponentType }>
+}
+
 export type Route =
   | { kind: 'landing' }
-  | { kind: 'presentation'; slug: string }
+  | { kind: 'presentation'; entry: RegistryEntry }
 
-export function resolveRoute(pathname: string, slugs: ReadonlySet<string>): Route {
-  if (pathname === '/' || pathname === '') return { kind: 'landing' }
-  const slug = pathname.replace(/^\//, '').replace(/\/$/, '')
-  if (slug && slugs.has(slug)) return { kind: 'presentation', slug }
-  return { kind: 'landing' }
+/** "/" and unknown paths show the landing page; "/<slug>" opens that presentation. */
+export function resolveRoute(pathname: string, registry: readonly RegistryEntry[]): Route {
+  const slug = pathname.replace(/^\/+|\/+$/g, '')
+  const entry = registry.find((e) => e.slug === slug)
+  return entry ? { kind: 'presentation', entry } : { kind: 'landing' }
 }

@@ -1,15 +1,14 @@
-import { Presentation } from '../../presentation-kit'
-import { STEPS } from './steps'
+import { Presentation } from '../../presentation-kit/index.ts'
+import { STEPS } from './steps/index.ts'
 import './style.css'
 
 export default function Talk() {
   return (
-    <div className="reference-talk">
-      <Presentation
-        steps={STEPS}
-        title="How to Use This Skill to Make a Presentation"
-        initialMode="browse"
-      />
-    </div>
+    <Presentation
+      className="htmp"
+      steps={STEPS}
+      title="How to Use This Skill to Make a Presentation"
+      initialMode="browse"
+    />
   )
 }

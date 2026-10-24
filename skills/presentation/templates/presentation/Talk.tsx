@@ -1,15 +1,7 @@
-import { Presentation } from '../../presentation-kit'
-import { introStep } from './steps/intro'
-
-/** Replace with all steps for the talk; keep order stable for navigation. */
-const STEPS = [introStep]
+import { Presentation } from '__KIT__'
+import { STEPS } from './steps/index.ts'
+import './style.css'
 
 export default function Talk() {
-  return (
-    <Presentation
-      steps={STEPS}
-      title="{{PRESENTATION_TITLE}}"
-      initialMode="browse"
-    />
-  )
+  return <Presentation className="__SLUG__" steps={STEPS} title={__TITLE_JSON__} initialMode="browse" />
 }

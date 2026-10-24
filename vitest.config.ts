@@ -6,5 +6,6 @@ export default defineConfig({
     include: ['tests/unit/**/*.test.{ts,tsx}'],
     environment: 'node',
     restoreMocks: true,
+    setupFiles: ['tests/support/setup.ts'],
   },
 })

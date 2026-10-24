@@ -8,6 +8,7 @@ export interface AppearProps {
   delay?: number
   className?: string
   style?: CSSProperties
+  [dataAttribute: `data-${string}`]: string | undefined
 }
 
 /**
@@ -15,9 +16,10 @@ export interface AppearProps {
  * fades out when removed. Place it directly inside `SceneLayer`. Entities that keep
  * existing across steps stay mounted, so this wrapper never replays for them.
  */
-export function Appear({ children, delay = ENTER_DELAY, className, style }: AppearProps) {
+export function Appear({ children, delay = ENTER_DELAY, className, style, ...rest }: AppearProps) {
   return (
     <motion.div
+      {...rest}
       className={className}
       style={{ position: 'absolute', inset: 0, ...style }}
       initial={{ opacity: 0 }}

@@ -66,7 +66,7 @@ export const ENTITIES: readonly Entity[] = [
   { id: 'modify', since: 8, role: 'modify-arc', kind: 'arrow', from: [785, 128], to: [300, 176], bend: -20, head: 'end' },
   { id: 'modify-label', since: 8, role: 'modify-label', kind: 'label', x: 560, y: 134, w: 150, h: 18, text: 'edit in place' },
   { id: 'edited-flag', since: 8, role: 'flag', kind: 'chip', x: 204, y: 152, w: 64, h: 18, text: 'edited', glyph: 'flag' },
-  { id: 'edited-ring', since: 8, role: 'flagged-card', kind: 'emphasis', x: 196, y: 172, w: 128, h: 116 },
+  { id: 'edited-ring', since: 8, role: 'flagged-card', kind: 'emphasis', x: 198, y: 174, w: 124, h: 112 },
   { id: 'reveal', since: 9, role: 'reveal-frame', kind: 'frame', x: 6, y: 2, w: 868, h: 376 },
   { id: 'reveal-label', since: 9, role: 'reveal-label', kind: 'chip', x: 270, y: 8, w: 340, h: 20, text: "you're looking at the skill's own output" },
 ]

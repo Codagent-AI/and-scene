@@ -15,7 +15,7 @@ export function Toc({ steps, index, onJump, slot }: TocProps) {
   const active = activeEraIndex(eras, index)
   return (
     <nav aria-label="Table of contents" {...slot} data-presentation-toc="">
-      <ol style={{ listStyle: 'none' }}>
+      <ol>
         {eras.map((era, i) => {
           const isActive = i === active
           return (

@@ -6,6 +6,7 @@ export default defineConfig({
     include: ['tests/unit/**/*.test.{ts,tsx}'],
     environment: 'node',
     restoreMocks: true,
+    testTimeout: 20000, // first-time transforms of the sample bundle can be slow on a busy machine
     setupFiles: ['tests/support/setup.ts'],
   },
 })

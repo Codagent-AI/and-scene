@@ -12,6 +12,7 @@ test('E2E-001 reference passes whole-app production verification with visible ni
   assert.deepEqual(records.map(r=>Number(r[1])),[0,1,2,3,4,5,6,7,8])
   records.forEach((r,i)=>assert.deepEqual(JSON.parse(r[2]),expected.steps[i]))
   assert.match(result.output,/PREVIEW host=127\.0\.0\.1 readiness=http:\/\/127\.0\.0\.1:/);assert.match(result.output,/ROUTE http:\/\/127\.0\.0\.1:\d+\/how-to-make-a-presentation/);assert.doesNotMatch(result.output,/http:\/\/localhost/)
+  assert.match(result.output,/PREVIEW started pid=/);assert.match(result.output,/BROWSER started pid=/)
   assertStopped(assert,result.output)
  }finally{await remove(dir)}
 })

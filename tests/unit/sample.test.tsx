@@ -1,8 +1,11 @@
+import { isValidElement } from 'react'
+import type { ReactNode } from 'react'
+import { SETTLE_MS } from '../../scripts/browser.mjs'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
-import { Presentation } from '../../src/presentation-kit'
+import { Presentation, LAYOUT_T, ENTER_T } from '../../src/presentation-kit'
 import { EvolvingScene, geometry, visibleEntities } from '../../src/presentations/how-to-make-a-presentation/steps/Scene'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'
 import { entities } from '../../src/presentations/how-to-make-a-presentation/entities'
@@ -12,6 +15,18 @@ import { Router } from '../../src/Router'
 const sample='src/presentations/how-to-make-a-presentation/'
 function entity(id: string) { return document.querySelector(`[data-entity="${id}"]`) as HTMLElement }
 describe('canonical sample',()=>{
+ it('finishes every authored sample transition before the default capture with margin',()=>{
+  let longest=Math.max(LAYOUT_T,ENTER_T)*1000
+  function visit(value:ReactNode) {
+   if(Array.isArray(value)){value.forEach(visit);return}
+   if(!isValidElement<{transition?:{delay?:number;duration?:number;opacity?:{delay?:number;duration?:number}};children?:ReactNode}>(value))return
+   const props=value.props
+   if(props.transition){const t=props.transition.opacity ?? props.transition;expect(t.duration).toBeTypeOf('number');longest=Math.max(longest,((t.delay??0)+t.duration!)*1000)}
+   if(typeof value.type==='function' && value.type.name==='Content')visit(value.type(props));else visit(props.children)
+  }
+  for(let beat=1;beat<=9;beat++)visit(EvolvingScene({payload:{beat}}))
+  expect(longest).toBeGreaterThan(0);expect(longest).toBeLessThanOrEqual(SETTLE_MS-150)
+ })
  it('matches independently transcribed nine-step metadata',()=>{
   expect(STEPS.map(({id,era,title,caption})=>({id,era,title,caption}))).toEqual(reference.steps)
   expect(presentations[0].title).toBe(reference.title);expect(STEPS).toHaveLength(9)

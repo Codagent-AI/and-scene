@@ -20,6 +20,8 @@ export function run(cmd,args,cwd,timeout=180000) {
 export async function edit(dir,file,fn){const p=path.join(dir,file);await writeFile(p,fn(await readFile(p,'utf8')))}
 export async function remove(dir){await rm(dir,{recursive:true,force:true})}
 export function assertStopped(assert,output) {
- const pids=[...output.matchAll(/PREVIEW .* pid=(\d+)/g)].map(m=>Number(m[1]))
- for(const pid of pids){assert.match(output,new RegExp(`PREVIEW stopped pid=${pid}`));assert.throws(()=>process.kill(pid,0))}
+ for(const kind of ['PREVIEW','BROWSER']) {
+  const pids=[...output.matchAll(new RegExp(`${kind} started pid=(\\d+)`,'g'))].map(m=>Number(m[1]))
+  for(const pid of pids){assert.match(output,new RegExp(`${kind} stopped pid=${pid}`));assert.throws(()=>process.kill(pid,0))}
+ }
 }

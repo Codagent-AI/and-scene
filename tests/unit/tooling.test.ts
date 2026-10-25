@@ -37,6 +37,13 @@ describe('diagnostics',()=>{
   for(const attribution of [null,{...goodAttribution,size:11.5},{size:16,family:'"Times New Roman"',color:'rgb(0, 0, 238)',decoration:'none'}])expect(diagnose(state({attribution}),5)).toEqual(['step 5: unpolished attribution: style [data-presentation-attribution]'])
   expect(diagnose(state(),0)).toEqual([])
  })
+ it('includes padded and icon-only chrome bounds while excluding self ancestors invisible controls and scoped exemptions',()=>{
+  const label=rect('scene',{owner:1,ancestors:[0]})
+  const control=rect('control',{owner:2,ancestors:[0]})
+  expect(diagnose(state({text:[label],controls:[control]}),4)).toEqual(['step 4: overlap scene / control'])
+  expect(diagnose(state({controls:[control,rect('icon',{owner:3,ancestors:[0]})]}),4)).toEqual(['step 4: overlap control / icon'])
+  for(const change of [{owner:1},{ancestors:[1,0]},{visible:false},{allowed:true}])expect(diagnose(state({text:[label],controls:[{...control,...change}]}),4)).toEqual([])
+ })
  it('collects computed geometry via text ranges and scoped ancestor markers rather than parent duplicate text',()=>{
   // The production collector uses browser geometry; this contract covers its selection policy.
   const s=readFileSync('scripts/diagnostics.mjs','utf8');expect(s).toContain('createTreeWalker');expect(s).toContain("closest('[data-presentation-allow-overlap]')");expect(s).toContain('checkVisibility')

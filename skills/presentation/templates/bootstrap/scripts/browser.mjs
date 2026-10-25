@@ -18,10 +18,11 @@ async function freePort() {
  return port
 }
 export async function withPreview(run) {
- let browser, child
+ let browser, browserServer, child
  const port = await freePort(), url = `http://${HOST}:${port}`
  try {
   child = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', HOST, '--port', String(port), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] })
+  console.log(`PREVIEW started pid=${child.pid}`)
   let output = '', exited = false
   child.stdout.on('data', d => { output += d }); child.stderr.on('data', d => { output += d })
   child.on('exit', () => { exited = true })
@@ -33,10 +34,19 @@ export async function withPreview(run) {
   }
   if (!ready) throw new Error(`preview readiness failed: ${url}`)
   console.log(`PREVIEW host=${HOST} readiness=${url} pid=${child.pid}`)
-  browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] })
+  browserServer = await chromium.launchServer({ headless: true, host: HOST, args: ['--no-sandbox'] })
+  console.log(`BROWSER started pid=${browserServer.process().pid}`)
+  browser = await chromium.connect(browserServer.wsEndpoint())
   return await run(browser, url)
  } finally {
-  try { if (browser) await browser.close() } finally {
+  try {
+   try { if (browser) await browser.close() } finally {
+    if (browserServer) {
+     await browserServer.close()
+     console.log(`BROWSER stopped pid=${browserServer.process().pid}`)
+    }
+   }
+  } finally {
   if (child && child.exitCode === null) {
    const closed = new Promise(resolve => child.once('exit', resolve))
    child.kill('SIGTERM')

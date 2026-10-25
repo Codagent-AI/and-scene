@@ -26,6 +26,16 @@ try {
    await page.goto(`${base}/${slug}`)
    try { await page.locator('[data-presentation-root]').waitFor({ timeout: 5000 }) }
    catch { errors.check(); throw new Error('sample: missing registered presentation') }
+   const root = page.locator('[data-presentation-root]')
+   // Release authored controls before scripted shortcuts; product focus ownership stays intact.
+   await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur() })
+   if (await root.getAttribute('data-presentation-mode') === 'present') {
+    const index = await root.getAttribute('data-step-index')
+    await page.keyboard.press('p')
+    await page.waitForFunction(() => document.querySelector('[data-presentation-root]')?.getAttribute('data-presentation-mode') === 'browse')
+    if (await root.getAttribute('data-step-index') !== index) throw new Error('transition: mode toggle changed step')
+    console.log('MODE normalized present to browse without changing step')
+   }
    const count = await stepCount(page), canonical = slug === config.slug ? expected : null
    if (canonical && (count !== canonical.steps.length || await page.locator('main').getAttribute('aria-label') !== canonical.title)) throw new Error('sample: incorrect title or step count')
    const actual = []

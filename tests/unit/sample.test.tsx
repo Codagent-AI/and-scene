@@ -97,7 +97,7 @@ describe('registry routing and styling contracts',()=>{
   const size=(selector:string)=>Number(new RegExp(selector.replace(/[.]/g,'\\.')+'[^{]*\\{[^}]*font-size: (\\d+)px').exec(narrow)?.[1])
   expect(fitScale(390,844,'browse')).toBeGreaterThanOrEqual(0.4)
   for(const sel of ['.you, .making .skill','.socket','.verify strong','.card1 strong, .making .card2 strong, .making .card3 strong'])expect(size(sel),sel).toBeGreaterThanOrEqual(20)
-  for(const sel of ['.entity','.card-parts','.tray-label','.edit-flag','.reveal-label','.verify-checks','.modify span'])expect(size(sel)*fitScale(390,844,'browse'),sel).toBeGreaterThanOrEqual(6)
+  for(const sel of ['.entity','.card-parts','.tray-label','.edit-flag','.reveal-label','.verify-checks','.verify-pass','.modify span','.depth'])expect(size(sel)*fitScale(390,844,'browse'),sel).toBeGreaterThanOrEqual(8)
   expect(narrow).toMatch(/\.socket-detail[^{]*\{[^}]*display: none/)
  })
  it('public step hooks track the rendered active caption and diagram',()=>{

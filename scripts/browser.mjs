@@ -71,7 +71,7 @@ export async function visit(page, baseURL, slug, errors) {
   if (!Number.isInteger(count) || count < 1) throw new Error('sample: invalid data-step-count')
   return { host, count }
 }
-export async function advance(page, host, index, errors) {
+export async function advance(page, index, errors) {
   errors.setStep(index)
   await page.keyboard.press('ArrowRight')
   try { await page.waitForFunction(i => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === String(i), index, { timeout: 4000 }) }

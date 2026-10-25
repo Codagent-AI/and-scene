@@ -12,9 +12,9 @@ export async function inspect({ cwd = process.cwd(), slug, settle = 850, skipBui
   const captures = []
   await withPreview(async (page, baseURL) => {
     const errors = browserErrors(page)
-    const { host, count } = await visit(page, baseURL, slug, errors)
+    const { count } = await visit(page, baseURL, slug, errors)
     for (let index = 0; index < count; index++) {
-      if (index) await advance(page, host, index, errors)
+      if (index) await advance(page, index, errors)
       const transitionAt = Date.now()
       await page.waitForTimeout(settle)
       errors.assertClean()

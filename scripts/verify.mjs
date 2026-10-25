@@ -10,7 +10,7 @@ export async function verify({ cwd = process.cwd(), slug = REFERENCE_SLUG, skipB
     const { host, count } = await visit(page, baseURL, slug, errors)
     const metadata = []
     for (let index = 0; index < count; index++) {
-      if (index) await advance(page, host, index, errors)
+      if (index) await advance(page, index, errors)
       await page.waitForTimeout(850)
       errors.assertClean()
       const actualIndex = Number(await host.getAttribute('data-step-index'))

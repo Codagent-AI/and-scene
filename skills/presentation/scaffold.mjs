@@ -1,4 +1,4 @@
-import { readFile, readdir, mkdir, copyFile, access } from 'node:fs/promises'
+import { readFile, readdir, mkdir, copyFile, access, writeFile } from 'node:fs/promises'
 import { dirname, resolve, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { spawnSync } from 'node:child_process'
@@ -71,7 +71,7 @@ export async function scaffold(root, { confirmed = false, install = true } = {})
   const baseline = await packageAt(templateRoot), pkg = await packageAt(target)
   const merged = { ...baseline, ...pkg, scripts: { ...baseline.scripts, ...pkg.scripts }, dependencies: { ...baseline.dependencies, ...pkg.dependencies }, devDependencies: { ...baseline.devDependencies, ...pkg.devDependencies } }
   await mkdir(target, { recursive: true })
-  await import('node:fs/promises').then(fs => fs.writeFile(join(target, 'package.json'), JSON.stringify(merged, null, 2) + '\n'))
+  await writeFile(join(target, 'package.json'), JSON.stringify(merged, null, 2) + '\n')
   if (!await exists(join(target, 'package-lock.json')) && !Object.keys(pkg).length) await copyFile(join(templateRoot, 'package-lock.json'), join(target, 'package-lock.json'))
   if (install) {
     const result = spawnSync('npm', ['install'], { cwd: target, stdio: 'inherit' })

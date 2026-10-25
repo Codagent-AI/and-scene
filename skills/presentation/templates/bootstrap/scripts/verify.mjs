@@ -41,7 +41,12 @@ export async function verify({ cwd = resolve(dirname(fileURLToPath(import.meta.u
     console.log(`PASS verify ${slug}`)
   } catch (error) { throw new Error(`FAIL ${phase}${phase === 'render' ? ` step ${index}` : ''}: ${error.message}`) }
 }
+export function parseVerifyArgs(args) {
+  const at = args.lastIndexOf('--slug')
+  const slug = at < 0 ? REFERENCE_SLUG : args[at + 1]
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug ?? '')) throw new Error('--slug requires a lowercase hyphenated presentation slug')
+  return { slug, skipBuild: args.includes('--no-build') }
+}
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const at = process.argv.indexOf('--slug')
-  verify({ slug: at < 0 ? REFERENCE_SLUG : process.argv[at + 1], skipBuild: process.argv.includes('--no-build') }).catch(error => { console.error(error.message); process.exitCode = 1 })
+  Promise.resolve().then(() => verify(parseVerifyArgs(process.argv.slice(2)))).catch(error => { console.error(error.message); process.exitCode = 1 })
 }

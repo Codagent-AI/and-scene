@@ -6,6 +6,7 @@ import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { inspectPresentation } from '../scripts/inspect-presentation.mjs'
+import { withPreview, settle } from '../scripts/browser.mjs'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const bootstrap = resolve(root, 'skills/presentation/templates/bootstrap')
 async function command(cmd, args, cwd, limit = 120000) {
@@ -152,6 +153,26 @@ test('E2E-001 reference presentation passes whole-app production verification on
   assert.match(result.output,/PREVIEW http:\/\/127\.0\.0\.1:\d+ PID \d+; readiness http:\/\/127\.0\.0\.1:/)
   assert.doesNotMatch(result.output,/localhost/)
   cleaned(result.output)
+})
+
+test('E2E-003 reference scene stays inside a narrow viewport on every step', { timeout: 180000 }, async () => {
+  const built = await command('npm',['run','build'],root)
+  assert.equal(built.code,0)
+  await withPreview(root, async (browser, base) => {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+    await page.goto(`${base}/how-to-make-a-presentation`)
+    for (let step = 0; step < 9; step++) {
+      await settle(page)
+      const box = await page.evaluate(() => {
+        const rect = document.querySelector('[data-presentation-canvas]').getBoundingClientRect()
+        return { left: rect.left, right: rect.right, width: innerWidth, step: document.querySelector('[data-step-index]').getAttribute('data-step-index') }
+      })
+      assert.equal(box.step, String(step))
+      assert.ok(box.left >= -1 && box.right <= box.width + 1, `step ${step} canvas ${box.left}..${box.right} inside ${box.width}px viewport`)
+      await page.keyboard.press('ArrowRight')
+    }
+    await page.close()
+  })
 })
 
 test('E2E-002 faulty copies fail by phase and step and clean up preview processes', { timeout: 240000 }, async t => {

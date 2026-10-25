@@ -25,6 +25,22 @@ test('I-47 chrome bounding boxes warn even when their text ranges do not touch',
   vi.spyOn(Range.prototype, 'getClientRects').mockReturnValueOnce([{ left: 10, top: 10, right: 20, bottom: 30 }] as unknown as DOMRectList).mockReturnValueOnce([{ left: 80, top: 10, right: 90, bottom: 30 }] as unknown as DOMRectList)
   expect(inspectDocument().some((w: string) => w.includes('overlap button[left] / button[right]'))).toBe(true)
 })
+test('I-47 title text beside a control does not warn when only the title block box overlaps the control', () => {
+  fixture('<h1 data-presentation-title>Wide title block</h1><button>Present</button>')
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+    const [left, right] = this.matches('button') ? [80, 110] : [10, 110]
+    return { width: right - left, height: 20, x: left, y: 10, left, top: 10, right, bottom: 30, toJSON: () => ({}) }
+  })
+  vi.spyOn(Range.prototype, 'getClientRects').mockImplementation(function (this: Range) {
+    const title = this.startContainer instanceof Element && this.startContainer.matches('h1')
+    return (title ? [{ left: 10, top: 10, right: 40, bottom: 30 }] : [{ left: 80, top: 10, right: 110, bottom: 30 }]) as unknown as DOMRectList
+  })
+  expect(inspectDocument().some((w: string) => w.includes('overlap'))).toBe(false)
+})
+test('I-47 title text that reaches a control still warns', () => {
+  fixture('<h1 data-presentation-title>Wide title block</h1><button>Present</button>')
+  expect(inspectDocument().some((w: string) => w.includes('overlap h1[Wide title block] / button[Present]'))).toBe(true)
+})
 test('I-48 indistinct progress and ToC warn; distinct active states do not', () => {
   const controls = ['progress-step','toc-entry'].map(h => `<button data-presentation-${h}="0" data-presentation-active="true">active</button><button data-presentation-${h}="1" data-presentation-active="false">inactive</button>`).join('')
   fixture(controls + attribution)

@@ -217,5 +217,9 @@ describe('scene contracts', () => {
     const { container } = render(<Stage step={makeSteps()[0]} mode="browse" />)
     const canvas = container.querySelector<HTMLElement>('[data-presentation-canvas]')!
     expect(canvas.style.width).toBe('880px'); expect(canvas.style.height).toBe('380px'); expect(canvas.style.transform).toBe(`scale(${result.current})`)
+    // Narrow viewports: the 880px canvas must be centered by absolute offsets, not by a grid track that grows to canvas width.
+    const stage = container.querySelector<HTMLElement>('[data-presentation-stage]')!
+    expect(stage.style.display).not.toBe('grid')
+    expect([canvas.style.position, canvas.style.left, canvas.style.top, canvas.style.marginLeft, canvas.style.marginTop]).toEqual(['absolute', '50%', '50%', `${-DESIGN_W / 2}px`, `${-DESIGN_H / 2}px`])
   })
 })

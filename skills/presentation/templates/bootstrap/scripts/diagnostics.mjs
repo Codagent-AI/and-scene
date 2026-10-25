@@ -11,13 +11,16 @@ export function inspectDocument() {
     return true
   }
   const describe = el => `${el.tagName.toLowerCase()}[${el.getAttribute('data-story-name') ?? el.getAttribute('data-presentation-entity') ?? el.textContent?.trim().slice(0, 55)}]`
-  const chrome = 'button, [data-presentation-attribution], [data-presentation-marker], [data-presentation-title], [data-presentation-caption]'
+  const boxChrome = 'button, [data-presentation-attribution], [data-presentation-marker]'
+  const textChrome = '[data-presentation-title], [data-presentation-caption]'
+  const chrome = `${boxChrome}, ${textChrome}`
   const nodes = [...root.querySelectorAll('*')].filter(el => visible(el) && !el.closest('[data-presentation-allow-overlap]') && (el.matches(chrome) || [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim())))
-  // Text ranges ignore decorative frames; chrome occupies its entire control box.
-  const rects = el => el.matches(chrome) ? [el.getBoundingClientRect()] : [...el.childNodes].filter(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()).flatMap(n => {
-    const range = document.createRange(); range.selectNodeContents(n)
+  // Text ranges ignore decorative frames and unused block width; controls occupy their entire box.
+  const rangeRects = node => {
+    const range = document.createRange(); range.selectNodeContents(node)
     return [...range.getClientRects()]
-  })
+  }
+  const rects = el => el.matches(boxChrome) ? [el.getBoundingClientRect()] : el.matches(textChrome) ? rangeRects(el) : [...el.childNodes].filter(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()).flatMap(rangeRects)
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
     const a = nodes[i], b = nodes[j]
     if (a.contains(b) || b.contains(a)) continue

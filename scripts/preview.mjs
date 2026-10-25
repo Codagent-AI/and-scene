@@ -4,6 +4,8 @@ import net from 'node:net'
 import path from 'node:path'
 
 export const HOST = '127.0.0.1'
+/** Time for a step transition to finish: the kit's newcomer delay plus its fade, with margin (ms). */
+export const SETTLE_MS = 1300
 
 export function freePort() {
   return new Promise((resolve, reject) => {

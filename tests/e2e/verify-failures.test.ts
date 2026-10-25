@@ -78,9 +78,37 @@ describe('E2E-002 verification failure contract', () => {
       ),
     )
     expect(run.code).not.toBe(0)
-    expect(run.out).toContain('FAIL phase=render')
-    expect(run.out).toMatch(/step=\d \(index \d\)/)
+    expect(run.out).toContain('FAIL phase=render presentation=how-to-make-a-presentation step=5 (index 4)')
     expect(run.out).toContain('injected page fault')
+  })
+
+  it('fails the render phase when a scene crashes while rendering, naming that step rather than a stalled transition', async () => {
+    const run = await verifyWithFault('rendercrash', (d) =>
+      edit(d, SCENE, (t) =>
+        t.replace(
+          'const shown = new Set<EntityId>(payload.shown)',
+          "if (payload.shown.includes(E.ghost)) throw new Error('injected render fault')\n  const shown = new Set<EntityId>(payload.shown)",
+        ),
+      ),
+    )
+    expect(run.code).not.toBe(0)
+    expect(run.out).toContain('FAIL phase=render presentation=how-to-make-a-presentation step=5 (index 4)')
+    expect(run.out).toContain('injected render fault')
+    expect(run.out).not.toContain('transition did not advance')
+  })
+
+  it('fails when an error fires after the final step finishes its entry animation', async () => {
+    const run = await verifyWithFault('latefault', (d) =>
+      edit(d, SCENE, (t) =>
+        t.replace(
+          'const shown = new Set<EntityId>(payload.shown)',
+          "if (payload.shown.includes(E.frameLabel)) setTimeout(() => console.error('injected late fault'), 900)\n  const shown = new Set<EntityId>(payload.shown)",
+        ),
+      ),
+    )
+    expect(run.code).not.toBe(0)
+    expect(run.out).toContain('FAIL phase=render presentation=how-to-make-a-presentation step=9 (index 8)')
+    expect(run.out).toContain('injected late fault')
   })
 
   it('fails the render phase when a transition does not advance the step index', async () => {

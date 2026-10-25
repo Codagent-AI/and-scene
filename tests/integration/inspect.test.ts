@@ -40,10 +40,16 @@ export default function Talk() {
   return { talk, css: opts.css ? POLISHED_CSS : null }
 }
 
+const CHROME_CSS = `[data-presentation-caption] { position: relative; top: 34px; left: 50%; }`
+
 const VARIANTS = {
   'fx-collision': fixture('fx-collision', { css: true, allowOverlap: false }),
   'fx-allowed': fixture('fx-allowed', { css: true, allowOverlap: true }),
   'fx-plain': fixture('fx-plain', { css: false, allowOverlap: true }),
+  'fx-chrome': (() => {
+    const v = fixture('fx-chrome', { css: true, allowOverlap: true })
+    return { ...v, css: `${v.css}${CHROME_CSS}` }
+  })(),
 }
 
 let dir = ''
@@ -72,7 +78,8 @@ beforeAll(() => {
   if (build.code !== 0) throw new Error(build.out)
   runs['fx-collision'] = inspect('fx-collision', ['--settle', '1200'])
   runs['fx-allowed'] = inspect('fx-allowed', ['--settle', '700'])
-  runs['fx-plain'] = inspect('fx-plain', ['--settle', '700'])
+  runs['fx-plain'] = inspect('fx-plain')
+  runs['fx-chrome'] = inspect('fx-chrome', ['--settle', '700'])
 })
 
 afterAll(() => {
@@ -126,6 +133,21 @@ describe('INT-002 screenshot helper', () => {
     const w = runs['fx-plain'].warnings.filter((x) => x.includes('attribution'))
     expect(w.length).toBeGreaterThan(0)
     expect(w.every((x) => x.includes('[data-presentation-attribution]'))).toBe(true)
+  })
+
+  it('settles by default for as long as the kit needs to finish entering', () => {
+    const steps = runs['fx-plain'].manifest.steps
+    expect(steps.length).toBe(3)
+    for (const s of steps) {
+      expect(s.settleMs).toBeGreaterThanOrEqual(1000)
+      expect(s.capturedAt - s.navigatedAt).toBeGreaterThanOrEqual(1000)
+    }
+  })
+
+  it('reports text colliding with text-less chrome such as progress dots', () => {
+    const w = runs['fx-chrome'].warnings.filter((x) => x.includes('overlap'))
+    expect(w.some((x) => x.includes('data-presentation-progress-dot') && x.includes('data-presentation-caption'))).toBe(true)
+    expect(runs['fx-allowed'].warnings.filter((x) => x.includes('progress-dot'))).toEqual([])
   })
 
   it('treats warnings as advisory (exit code stays zero)', () => {

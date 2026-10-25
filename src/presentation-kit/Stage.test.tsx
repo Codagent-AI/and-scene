@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { describe, expect, it } from 'vitest'
 import { Presentation } from './Presentation.tsx'
 import { sceneKey } from './sceneKey.ts'
+import { ENTER_DELAY, ENTER_T } from './constants.ts'
 import { Appear } from './nodes/Appear.tsx'
 import { Arrow } from './nodes/Arrow.tsx'
+import { arrowPaths } from './nodes/arrowPaths.ts'
 import { Box } from './nodes/Box.tsx'
 import { Emphasis } from './nodes/Emphasis.tsx'
 import { Frame } from './nodes/Frame.tsx'
@@ -72,6 +74,17 @@ describe('Appear', () => {
     expect(el.style.opacity).toBe('0')
   })
 
+  it('keeps a newcomer hidden until persisting entities have had time to move, then reveals it', async () => {
+    const started = performance.now()
+    render(<Appear id="n">late</Appear>)
+    const el = screen.getByText('late')
+    await new Promise((r) => setTimeout(r, ENTER_DELAY * 1000 * 0.6))
+    expect(Number(el.style.opacity)).toBe(0)
+    await waitFor(() => expect(Number(el.style.opacity)).toBe(1), { timeout: 4000 })
+    expect(performance.now() - started).toBeGreaterThanOrEqual(ENTER_DELAY * 1000)
+    expect(ENTER_T).toBeGreaterThan(0)
+  })
+
   it('does not apply newcomer fade to continuing entities', () => {
     render(<Appear id="c" enter={false}>x</Appear>)
     const el = screen.getByText('x')
@@ -136,8 +149,36 @@ describe('node primitives', () => {
     expect(box.style.left).toBe('1px')
     expect(box.style.width).toBe('3px')
     expect(screen.getByText('chip').getAttribute('data-tone')).toBe('warm')
-    expect(document.querySelectorAll('[data-presentation-arrow-head]')).toHaveLength(1)
+    expect(document.querySelectorAll('[data-presentation-arrow-head]')).toHaveLength(2)
     expect(document.querySelector('[data-presentation-layer]')).not.toBeNull()
+  })
+
+  it('Arrow forwards style, class, and data attributes', () => {
+    render(<Arrow id="a" className="k" data-extra="1" style={{ opacity: 0.5 }} from={{ x: 0, y: 0 }} to={{ x: 5, y: 5 }} />)
+    const svg = document.querySelector('[data-presentation-entity="a"]') as SVGElement
+    expect(svg.getAttribute('class')).toBe('k')
+    expect(svg.getAttribute('data-extra')).toBe('1')
+    expect(svg.style.position).toBe('absolute')
+  })
+
+  it('Arrow animates its geometry when the endpoints of the same entity change', async () => {
+    const at = (x: number) => <Arrow id="m" from={{ x: 0, y: 0 }} to={{ x, y: 100 }} />
+    const { rerender } = render(at(100))
+    const line = () => document.querySelector('[data-presentation-arrow-line]') as SVGPathElement
+    const before = line().getAttribute('d')
+    rerender(at(400))
+    const final = arrowPaths({ from: { x: 0, y: 0 }, to: { x: 400, y: 100 } }).line
+    await waitFor(() => expect(line().getAttribute('d')).not.toBe(before))
+    expect(line().getAttribute('d')).not.toBe(final)
+    await waitFor(() => expect(line().getAttribute('d')).toBe(final), { timeout: 3000 })
+  })
+
+  it('Arrow paths keep one command layout for straight and curved lines', () => {
+    const shape = (d: string) => d.replace(/[-\d.e]+/g, '#')
+    const straight = arrowPaths({ from: { x: 0, y: 0 }, to: { x: 9, y: 9 } })
+    const curved = arrowPaths({ from: { x: 0, y: 0 }, to: { x: 9, y: 9 }, curve: { x: 9, y: 0 } })
+    expect(shape(straight.line)).toBe(shape(curved.line))
+    expect(shape(straight.endHead)).toBe(shape(curved.endHead))
   })
 
   it('marks allowOverlap subtrees with the allow-overlap hook', () => {

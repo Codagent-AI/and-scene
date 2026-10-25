@@ -93,10 +93,10 @@ export function SampleScene({ payload }: SceneProps<SampleState>) {
             {s.node}
           </Appear>
         ))}
+        {LINES.filter((l) => shown.has(l.id)).map((l) => (
+          <Arrow key={l.id} className="arrow" {...l} />
+        ))}
       </AnimatePresence>
-      {LINES.filter((l) => shown.has(l.id)).map((l) => (
-        <Arrow key={l.id} className="arrow" {...l} />
-      ))}
     </SceneLayer>
   )
 }

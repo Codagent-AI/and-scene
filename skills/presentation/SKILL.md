@@ -99,7 +99,8 @@ node <skill-dir>/scripts/new-presentation.mjs --cwd <project-dir> --slug <slug> 
 
 It writes `src/presentations/<slug>/` (`entities.ts`, `Scene.tsx`, `steps.ts`, `Talk.tsx`,
 `style.css`) from `templates/presentation/` and appends one line to the registry; existing
-presentations are left untouched. Then fill in the story:
+presentations are left untouched. The generated `style.css` is an empty placeholder: the look is yours
+to write from the user's visual direction. If the registry cannot be extended the script writes nothing. Then fill in the story:
 
 - `entities.ts`: this presentation's `layoutId` namespace, one stable id per thing on screen.
 - `steps`: ordered steps. Each has a stable `id`, an `era` (section label), a one-line `title`

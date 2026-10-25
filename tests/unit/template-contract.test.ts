@@ -64,6 +64,9 @@ describe('bootstrap template is complete and style-neutral', () => {
     expect(host).not.toMatch(/color|font|background|border|shadow|--/i)
     const stylesheets = walk(bootstrap).filter((f) => f.endsWith('.css'))
     expect(stylesheets.sort()).toEqual(['src/index.css', 'src/presentations/starter/style.css'])
+    // The starter's stylesheet is an empty placeholder: no rule, so no colors, fonts, spacing, or cards.
+    const starter = fs.readFileSync(path.join(bootstrap, 'src/presentations/starter/style.css'), 'utf8')
+    expect(starter.replace(/\/\*[\s\S]*?\*\//g, '').trim()).toBe('')
   })
 
   it('registers a starter presentation so the app has a route to verify', () => {

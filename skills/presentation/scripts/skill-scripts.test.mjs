@@ -87,9 +87,23 @@ describe('anchor detection and target resolution', () => {
 
   it('detects anchors by contract, not by file-for-file identity', () => {
     const dir = tmp()
+    write(
+      dir,
+      'src/presentation-kit/engine.tsx',
+      "import { AnimatePresence } from 'motion/react'\nexport type Step = { id: string }\nexport function Presentation() { window.addEventListener('keydown', () => {}); return AnimatePresence && 'scale(1)' }",
+    )
+    write(dir, 'src/presentations/index.js', 'export const presentations = [{ slug: "a" }]')
+    write(dir, 'src/router.js', 'import { presentations } from "./presentations/index.js"\nexport const route = () => presentations.find((p) => p.slug === location.pathname)')
+    expect(detectAnchors(dir)).toEqual({ build: false, kit: true, index: true })
+  })
+
+  it('rejects look-alike infrastructure that does not implement the contracts', () => {
+    const dir = tmp()
     write(dir, 'src/presentation-kit/engine.tsx', 'export function Presentation() {}\nexport type Step = {}')
     write(dir, 'src/presentations/index.js', 'export const presentations = []')
-    expect(detectAnchors(dir)).toEqual({ build: false, kit: true, index: true })
+    expect(detectAnchors(dir)).toEqual({ build: false, kit: false, index: false })
+    write(dir, 'src/presentations/index.js', 'export const presentations = [{ slug: "a" }]')
+    expect(detectAnchors(dir).index).toBe(false)
   })
 })
 
@@ -123,6 +137,9 @@ describe('scaffold', () => {
     expect(report.wire[0]).toMatch(/src\/main\.tsx already exists/)
     expect(report.written).not.toContain('tsconfig.json')
     expect(report.written).toContain('src/presentation-kit/Presentation.tsx')
+    for (const f of ['verify.mjs', 'inspect-presentation.mjs', 'inspection-checks.mjs', 'preview.mjs']) {
+      expect(fs.existsSync(path.join(dir, 'scripts', f)), f).toBe(true)
+    }
     expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
   })
 
@@ -143,6 +160,20 @@ describe('scaffold', () => {
     expect(pkg.scripts.verify).toBeTruthy()
     expect(pkg.scripts.build).toBe('tsc -b && vite build')
     expect(report.dependenciesAdded).toContain('playwright')
+    // Every merged npm command points at a script that now exists.
+    for (const command of [pkg.scripts.verify, pkg.scripts.inspect]) {
+      expect(fs.existsSync(path.join(dir, command.split(' ')[1])), command).toBe(true)
+    }
+  })
+
+  it('adds the verification scripts when only the presentation index is missing', () => {
+    const dir = tmp()
+    scaffold({ cwd: dir })
+    fs.rmSync(path.join(dir, 'scripts'), { recursive: true })
+    fs.rmSync(path.join(dir, 'src/presentations'), { recursive: true })
+    const report = scaffold({ cwd: dir })
+    expect(report.missing).toEqual(['index'])
+    expect(fs.existsSync(path.join(dir, 'scripts/verify.mjs'))).toBe(true)
   })
 
   it('scaffolds a self-contained app under presentations/ in a monorepo and leaves the root alone', () => {
@@ -218,6 +249,29 @@ describe('new presentation', () => {
     const dir = tmp()
     write(dir, 'index.ts', 'export const nothing = 1')
     expect(() => registerPresentation(path.join(dir, 'index.ts'), { slug: 'a', title: 'A' })).toThrow(/cannot find the presentations array/)
+  })
+
+  it('supports a JavaScript registry', () => {
+    const dir = tmp()
+    scaffold({ cwd: dir })
+    fs.renameSync(path.join(dir, 'src/presentations/index.ts'), path.join(dir, 'src/presentations/index.js'))
+    newPresentation({ cwd: dir, slug: 'from-js', title: 'From JS' })
+    expect(fs.readFileSync(path.join(dir, 'src/presentations/index.js'), 'utf8')).toContain("slug: 'from-js'")
+    expect(fs.existsSync(path.join(dir, 'src/presentations/from-js/Talk.tsx'))).toBe(true)
+  })
+
+  it('writes nothing when the registry cannot be extended, so a retry is not blocked', () => {
+    const dir = tmp()
+    scaffold({ cwd: dir })
+    const indexFile = path.join(dir, 'src/presentations/index.ts')
+    const original = fs.readFileSync(indexFile, 'utf8')
+    fs.writeFileSync(indexFile, original.replace(/presentations: PresentationEntry\[\] = \[/, 'presentations = Object.freeze(['))
+    const broken = fs.readFileSync(indexFile, 'utf8')
+    expect(() => newPresentation({ cwd: dir, slug: 'half', title: 'Half' })).toThrow(/cannot find the presentations array/)
+    expect(fs.existsSync(path.join(dir, 'src/presentations/half'))).toBe(false)
+    expect(fs.readFileSync(indexFile, 'utf8')).toBe(broken)
+    fs.writeFileSync(indexFile, original)
+    expect(newPresentation({ cwd: dir, slug: 'half', title: 'Half' }).route).toBe('/half')
   })
 
   it('leaves existing presentation folders untouched', () => {

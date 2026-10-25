@@ -4,12 +4,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
-import { run, startPreview } from './preview.mjs'
+import { run, SETTLE_MS, startPreview } from './preview.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const REFERENCE_SLUG = 'how-to-make-a-presentation'
 const STEP_TIMEOUT_MS = 4000
-const SETTLE_MS = 150
 
 // The canonical reference sample: titles and captions are normative.
 const REFERENCE_STEPS = [
@@ -116,6 +115,9 @@ async function stepThrough(browser, baseUrl, slug) {
             { timeout: STEP_TIMEOUT_MS },
           )
         } catch {
+          // A scene that crashes while rendering never commits the new index: report the crash, not the stall.
+          const crash = errors.find((e) => e.step === i + 1)
+          if (crash) throw fail('render', crash.text)
           throw new VerifyError('render', `transition did not advance data-step-index from ${i} to ${i + 1}`, { presentation: slug, step: i })
         }
       }

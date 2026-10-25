@@ -20,14 +20,21 @@ export function renderTemplates(dir, { slug, title }) {
   }
 }
 
-/** Appends one registry line, leaving every existing entry untouched. */
-export function registerPresentation(indexFile, { slug, title }) {
-  const text = fs.readFileSync(indexFile, 'utf8')
-  const open = text.search(/presentations:\s*PresentationEntry\[\]\s*=\s*\[/)
-  const close = text.indexOf('\n]', open)
-  if (open === -1 || close === -1) throw new Error(`cannot find the presentations array in ${indexFile}`)
+const REGISTRY_ARRAY = /\bpresentations\b(\s*:\s*[^=\n]+)?\s*=\s*\[/
+const REGISTRY_FILES = ['index.ts', 'index.tsx', 'index.js', 'index.jsx']
+
+/** Returns the registry text with one entry appended; throws, writing nothing, if it has no array to extend. */
+export function withRegistryEntry(text, { slug, title }, file = 'the registry') {
+  const open = text.search(REGISTRY_ARRAY)
+  const close = open === -1 ? -1 : text.indexOf('\n]', open)
+  if (close === -1) throw new Error(`cannot find the presentations array in ${file} (expected "presentations = [" ... "\\n]")`)
   const entry = `  {\n    slug: '${slug}',\n    title: '${title.replaceAll("'", "\\'")}',\n    load: () => import('./${slug}/Talk.tsx'),\n  },`
-  fs.writeFileSync(indexFile, `${text.slice(0, close)}\n${entry}${text.slice(close)}`)
+  return `${text.slice(0, close)}\n${entry}${text.slice(close)}`
+}
+
+/** Appends one registry line, leaving every existing entry untouched. */
+export function registerPresentation(indexFile, presentation) {
+  fs.writeFileSync(indexFile, withRegistryEntry(fs.readFileSync(indexFile, 'utf8'), presentation, indexFile))
 }
 
 export function newPresentation({ cwd, slug, title }) {
@@ -37,9 +44,16 @@ export function newPresentation({ cwd, slug, title }) {
   if (plan.missing.length > 0) throw new Error(`scaffold the missing anchors first: ${plan.missing.join(', ')}`)
   const dir = path.join(plan.target, 'src', 'presentations', slug)
   if (fs.existsSync(dir)) throw new Error(`presentation "${slug}" already exists`)
-  const indexFile = ['index.ts', 'index.tsx'].map((n) => path.join(plan.target, 'src', 'presentations', n)).find(fs.existsSync)
-  renderTemplates(dir, { slug, title })
-  registerPresentation(indexFile, { slug, title })
+  const indexFile = REGISTRY_FILES.map((n) => path.join(plan.target, 'src', 'presentations', n)).find(fs.existsSync)
+  // Validate the registry before writing anything, so a failure never leaves a half-created presentation.
+  const registry = withRegistryEntry(fs.readFileSync(indexFile, 'utf8'), { slug, title }, indexFile)
+  try {
+    renderTemplates(dir, { slug, title })
+    fs.writeFileSync(indexFile, registry)
+  } catch (err) {
+    fs.rmSync(dir, { recursive: true, force: true })
+    throw err
+  }
   return { target: plan.target, folder: path.relative(plan.target, dir), route: `/${slug}` }
 }
 

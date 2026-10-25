@@ -6,13 +6,13 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { attributionIssues, findOverlaps, isActiveDistinct } from './inspection-checks.mjs'
-import { run, startPreview } from './preview.mjs'
+import { run, SETTLE_MS, startPreview } from './preview.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const STEP_TIMEOUT_MS = 4000
 
 function parseArgs(argv) {
-  const opts = { slug: undefined, out: undefined, settle: 900, viewport: '1440x900', build: true }
+  const opts = { slug: undefined, out: undefined, settle: SETTLE_MS, viewport: '1440x900', build: true }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--out') opts.out = argv[++i]
@@ -44,12 +44,17 @@ function collectPage() {
   }
   const items = []
   const els = []
+  // Visible text, plus text-less controls and icons (progress dots, icon buttons, glyphs) that text must not cover.
+  const CONTROL = 'button, a[href], [data-presentation-glyph], [data-presentation-progress-dot]'
   for (const el of document.querySelectorAll('[data-presentation-root] *')) {
     const own = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim())
-    if (!own.length || !visible(el)) continue
-    const range = document.createRange()
-    range.selectNodeContents(el)
-    const rect = rectOf(range.getBoundingClientRect())
+    if (!visible(el) || (!own.length && !el.matches(CONTROL))) continue
+    let rect
+    if (own.length) {
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      rect = rectOf(range.getBoundingClientRect())
+    } else rect = rectOf(el.getBoundingClientRect())
     if (rect.w === 0 || rect.h === 0) continue
     els.push(el)
     items.push({ label: describe(el), rect, allowed: el.closest('[data-presentation-allow-overlap]') !== null, ancestors: [] })

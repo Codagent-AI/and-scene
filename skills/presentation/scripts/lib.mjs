@@ -26,8 +26,10 @@ export const ANCHOR_PATHS = {
     'src/index.css',
     'scripts',
   ],
-  kit: ['src/presentation-kit'],
-  index: ['src/main.tsx', 'src/App.tsx', 'src/Landing.tsx', 'src/route.ts', 'src/presentations'],
+  // The verify/inspect scripts ride along with every anchor, because scaffolding merges the npm
+  // commands that run them into an existing package.json; existing files are never overwritten.
+  kit: ['src/presentation-kit', 'scripts'],
+  index: ['src/main.tsx', 'src/App.tsx', 'src/Landing.tsx', 'src/route.ts', 'src/presentations', 'scripts'],
 }
 
 /** Dependencies every presentation app needs, as declared by the bootstrap template. */
@@ -60,11 +62,30 @@ export function detectAnchors(dir) {
   const build = Boolean(
     pkg?.scripts?.build && deps.vite && deps.react && deps.typescript && (hasViteConfig || fs.existsSync(path.join(dir, 'index.html'))),
   )
-  const kitSources = filesIn(path.join(dir, 'src', 'presentation-kit')).filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f))
-  const kitText = kitSources.map((f) => fs.readFileSync(f, 'utf8'))
-  const kit = kitText.some((t) => /export[^;\n]*\bPresentation\b/.test(t)) && kitText.some((t) => /\bStep\b/.test(t))
+  const kitText = filesIn(path.join(dir, 'src', 'presentation-kit'))
+    .filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f))
+    .map((f) => fs.readFileSync(f, 'utf8'))
+    .join('\n')
+  // Kit contract: the Presentation host, the Step contract, a presence-based stage, key/touch
+  // navigation, and fit scaling.
+  const kit =
+    /export\s+(function|const)\s+Presentation\b/.test(kitText) &&
+    /export\s+(interface|type)\s+Step\b/.test(kitText) &&
+    /AnimatePresence/.test(kitText) &&
+    /keydown/.test(kitText) &&
+    /scale\(/.test(kitText)
   const presentationsDir = path.join(dir, 'src', 'presentations')
-  const index = fs.existsSync(presentationsDir) && fs.readdirSync(presentationsDir).some((n) => /^index\.(ts|tsx|js|jsx)$/.test(n))
+  const registry = fs.existsSync(presentationsDir)
+    ? fs.readdirSync(presentationsDir).find((n) => /^index\.(ts|tsx|js|jsx)$/.test(n))
+    : undefined
+  // Index contract: a registry of slugs, and a router that maps the location onto it.
+  const hasRouter = filesIn(path.join(dir, 'src'))
+    .filter((f) => /\.(tsx?|jsx?)$/.test(f) && !f.startsWith(presentationsDir) && !/\.test\./.test(f))
+    .some((f) => {
+      const text = fs.readFileSync(f, 'utf8')
+      return /pathname|location/.test(text) && /presentations/.test(text)
+    })
+  const index = Boolean(registry && /slug/.test(fs.readFileSync(path.join(presentationsDir, registry), 'utf8')) && hasRouter)
   return { build, kit, index }
 }
 

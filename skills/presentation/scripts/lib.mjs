@@ -32,12 +32,21 @@ export const ANCHOR_PATHS = {
   index: ['src/main.tsx', 'src/App.tsx', 'src/Landing.tsx', 'src/route.ts', 'src/presentations', 'scripts'],
 }
 
+/** Attributes of one HTML start tag; values may be double-quoted, single-quoted or unquoted. */
+function tagAttributes(tag) {
+  const attrs = {}
+  const body = tag.replace(/^<\s*[^\s>/]+/, '')
+  for (const m of body.matchAll(/([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g)) {
+    attrs[m[1].toLowerCase()] ??= m[2] ?? m[3] ?? m[4] ?? ''
+  }
+  return attrs
+}
+
 /** The `src` of the first `<script type="module" src=...>` in an HTML document, if any. */
 export function moduleEntry(html) {
-  for (const [tag] of html.matchAll(/<script\b[^>]*>/gi)) {
-    if (!/\btype\s*=\s*["']?module["']?/i.test(tag)) continue
-    const src = tag.match(/\bsrc\s*=\s*["']([^"']+)["']/i)
-    if (src) return src[1]
+  for (const [tag] of html.replace(/<!--[\s\S]*?-->/g, '').matchAll(/<script\b[^>]*>/gi)) {
+    const attrs = tagAttributes(tag)
+    if (attrs.type?.toLowerCase() === 'module' && attrs.src) return attrs.src
   }
   return undefined
 }

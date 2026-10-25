@@ -108,6 +108,27 @@ describe('anchor detection and target resolution', () => {
     expect(detectAnchors(dir).build).toBe(true)
   })
 
+  it.each([
+    ['double quotes', '<script type="module" src="/src/legacy.tsx"></script>', '/src/legacy.tsx'],
+    ['single quotes', "<script type='module' src='/src/legacy.tsx'></script>", '/src/legacy.tsx'],
+    ['unquoted values', '<script type=module src=/src/legacy.tsx></script>', '/src/legacy.tsx'],
+    ['unquoted, src first', '<script src=/src/legacy.tsx type=module></script>', '/src/legacy.tsx'],
+    ['spaced and mixed-case', '<SCRIPT  TYPE = "Module"\n  SRC = "./main.js" async></SCRIPT>', './main.js'],
+    ['a classic script', '<script src="/classic.js"></script>', undefined],
+    ['an inline module', '<script type="module">import "/x.js"</script>', undefined],
+    ['a commented-out module', '<!-- <script type="module" src="/old.tsx"></script> -->', undefined],
+    ['a module-like type', '<script type=modules src=/x.js></script>', undefined],
+  ])('reads the module entry from HTML with %s', (_name, html, expected) => {
+    expect(moduleEntry(`<html><body><div id="root"></div>${html}</body></html>`)).toBe(expected)
+  })
+
+  it('recognizes a host build setup that boots from an unquoted module entry', () => {
+    const dir = tmp()
+    buildAnchorFiles(dir)
+    write(dir, 'index.html', '<!doctype html><html><body><div id=root></div><script type=module src=/src/legacy.tsx></script></body></html>')
+    expect(detectAnchors(dir).build).toBe(true)
+  })
+
   it('rejects look-alike infrastructure that does not implement the contracts', () => {
     const dir = tmp()
     write(dir, 'src/presentation-kit/engine.tsx', 'export function Presentation() {}\nexport type Step = {}')
@@ -171,10 +192,13 @@ describe('scaffold', () => {
     expect(fs.readFileSync(path.join(dir, 'index.html'), 'utf8')).toBe(patched)
   })
 
-  it('points at a host entry other than src/main.tsx instead of editing the HTML', () => {
+  it.each([
+    ['quoted', '<script type="module" src="/src/index.tsx"></script>'],
+    ['unquoted', '<script type=module src=/src/index.tsx></script>'],
+  ])('points at a host entry other than src/main.tsx instead of editing the HTML (%s)', (_name, tag) => {
     const dir = tmp()
     buildAnchorFiles(dir)
-    const html = '<html><body><div id="root"></div><script type="module" src="/src/index.tsx"></script></body></html>'
+    const html = `<html><body><div id="root"></div>${tag}</body></html>`
     write(dir, 'index.html', html)
     const report = scaffold({ cwd: dir })
     expect(fs.readFileSync(path.join(dir, 'index.html'), 'utf8')).toBe(html)

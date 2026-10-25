@@ -49,3 +49,27 @@ describe('INT-001 partial scaffold with an index.html that has no module entry',
     expect(fs.readFileSync(path.join(dir, 'index.html'), 'utf8')).toContain('<div id="root"></div>')
   })
 })
+
+describe('INT-001 partial scaffold with an unquoted module entry', () => {
+  it('keeps the host entry: build anchor detected, index.html untouched', () => {
+    const legacy = fs.mkdtempSync(path.join(os.tmpdir(), 'and-scene-int001-legacy-'))
+    try {
+      fs.writeFileSync(
+        path.join(legacy, 'package.json'),
+        JSON.stringify({ name: 'host', scripts: { build: 'tsc -b && vite build' }, dependencies: { react: '^19' }, devDependencies: { vite: '^8', typescript: '~6' } }),
+      )
+      fs.copyFileSync(path.join(skillDir, 'templates/bootstrap/vite.config.ts'), path.join(legacy, 'vite.config.ts'))
+      const html = '<!doctype html>\n<html><body><div id=root></div><script type=module src=/src/legacy.tsx></script></body></html>\n'
+      fs.writeFileSync(path.join(legacy, 'index.html'), html)
+      const detect = JSON.parse(sh(process.execPath, [path.join(skillDir, 'scripts/detect-target.mjs'), legacy], os.tmpdir()).out)
+      expect(detect.anchors.build).toBe(true)
+      expect(detect.missing).toEqual(['kit', 'index'])
+      const out = sh(process.execPath, [path.join(skillDir, 'scripts/scaffold.mjs'), '--cwd', legacy], os.tmpdir())
+      expect(out.code, out.out).toBe(0)
+      expect(fs.readFileSync(path.join(legacy, 'index.html'), 'utf8')).toBe(html)
+      expect(out.out).toMatch(/index\.html loads \/src\/legacy\.tsx/)
+    } finally {
+      fs.rmSync(legacy, { recursive: true, force: true })
+    }
+  })
+})

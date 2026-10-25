@@ -79,14 +79,14 @@ export async function verify({ cwd = process.cwd(), slug = SAMPLE_SLUG, build = 
       const { hook, count } = await stepCount(page)
       const metadata = []
       try { await visitSteps(page, count, hook, async index => {
-        const title = await page.locator('[data-presentation-title]').innerText()
-        const caption = await page.locator('[data-presentation-caption]').innerText()
-        const marker = await page.locator('[data-presentation-marker]').innerText()
+        const title = await page.locator('[data-presentation-title]').textContent()
+        const caption = await page.locator('[data-presentation-caption]').textContent()
+        const marker = await page.locator('[data-presentation-marker]').textContent()
         metadata.push({ title, caption, era: marker.split(' / ').slice(1).join(' / ') })
         if (errors.length) throw new Error(errors.join('\n'))
         console.log(`step ${index}: rendered`)
         activeStep = index + 1
-      }) } catch (error) { throw new Error([...errors, error.message].join('\n')) }
+      }) } catch (error) { throw new Error([...errors, error.message].join('\n'), { cause: error }) }
       if (slug === SAMPLE_SLUG) { phase = 'sample'; validateMetadata(metadata) }
       if (errors.length) throw new Error(errors.join('\n'))
     })

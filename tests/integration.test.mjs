@@ -110,6 +110,7 @@ test('E2E-002 independent fault copies fail actionably and clean up preview proc
   const faults = {
     build: async dir => writeFile(join(dir,'src/broken.ts'), 'const broken: number = "not a number"; export {broken}'),
     missing: async dir => {
+      await rm(join(dir, 'src/presentations/how-to-make-a-presentation'), { recursive: true })
       const p=join(dir,'src/presentations/index.ts')
       await writeFile(p, `import type { PresentationEntry } from './registry-type'\nexport const presentations: PresentationEntry[] = []`)
       await writeFile(join(dir,'src/presentations/registry-type.ts'), `import type {ComponentType} from 'react'; export interface PresentationEntry {slug:string;title:string;load:()=>Promise<{default:ComponentType}>}`)

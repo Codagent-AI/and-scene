@@ -23,3 +23,7 @@ validator_logs
 *.njsproj
 *.sln
 *.sw?
+
+artifacts/
+.test-work/
+skills/presentation/templates/bootstrap/dist/

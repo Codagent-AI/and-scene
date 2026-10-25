@@ -1,0 +1,56 @@
+.making { background: #f5f2e9; color: #25372f; font-family: 'Trebuchet MS', sans-serif; }
+.making button { font: inherit; color: inherit; cursor: pointer; }
+.making button:focus-visible, .making a:focus-visible { outline: 3px solid #507b56; outline-offset: 4px; }
+.making [data-presentation-header] { position: absolute; top: 34px; left: 5vw; right: 5vw; display: flex; align-items: baseline; gap: 24px; }
+.making [data-presentation-marker] { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: #617063; white-space: nowrap; }
+.making [data-presentation-title] { margin: 0; font: 400 clamp(23px, 3vw, 38px)/1.2 Georgia, serif; letter-spacing: -.035em; }
+.making [data-presentation-toc] { position: absolute; right: 26px; top: 150px; width: 92px; display: grid; gap: 12px; z-index: 2; }
+.making [data-presentation-toc-entry] { border: 0; background: transparent; text-align: left; font-size: 11px; color: #738073; padding: 5px 7px; border-left: 2px solid #d6d9ce; }
+.making [data-presentation-toc-entry][data-presentation-active] { border-color: #47734f; color: #24452e; font-weight: 700; background: #e1e7d8; }
+.making [data-presentation-footer] { position: absolute; bottom: 57px; left: 50%; transform: translateX(-50%); width: min(660px, 86vw); text-align: center; }
+.making [data-presentation-caption] { font: 400 17px/1.65 Georgia, serif; min-height: 56px; margin: 0 0 25px; color: #526052; }
+.making [data-presentation-navigation] { display: flex; justify-content: center; align-items: center; gap: 25px; }
+.making [aria-label="Steps"] { display: flex; gap: 9px; }
+.making [data-presentation-progress] { border: 1px solid #bcc7b4; background: transparent; color: #64755e; width: 25px; height: 25px; border-radius: 50%; font-size: 10px; padding: 0; }
+.making [data-presentation-progress][data-presentation-active] { background: #365d40; color: #fff; border-color: #365d40; }
+.making [data-presentation-prev], .making [data-presentation-next] { border: 0; background: transparent; font-size: 20px; padding: 8px; }
+.making button:disabled { opacity: .3; cursor: default; }
+.making [data-presentation-mode-toggle] { position: absolute; left: 5vw; bottom: 19px; border: 1px solid #bdc8b7; border-radius: 5px; background: transparent; font-size: 11px; padding: 7px 12px; }
+.making [data-presentation-attribution] { font-size: 12px; color: #596b55; text-decoration: none; border-bottom: 1px solid #b4bfaa; padding-bottom: 3px; }
+.making .entity { display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.making .you, .making .skill { border: 1px solid #aebba6; border-radius: 10px; background: #fdfbf5; gap: 12px; font-size: 18px; z-index: 2; }
+.making .skill { background: #e1e8d8; border-color: #8da17e; }
+.making .node-symbol { font-size: 25px; color: #638451; }
+.making .prompt { font: italic 14px Georgia, serif; color: #71805f; }
+.making .conversation-line { width: 100%; height: 25px; font-size: 28px; line-height: 22px; text-align: center; background: linear-gradient(#a8b69d,#a8b69d) left center / 100% 1px no-repeat; }
+.making .question { color: #5a6b52; font: 12px Georgia, serif; }
+.making .tray { border-bottom: 1px solid #b9c4ae; background: #e9edde; border-radius: 10px; align-items: flex-start; justify-content: flex-start; }
+.making .tray-label { position: absolute; top: -19px; left: 4px; font-size: 9px; letter-spacing: .14em; color: #718066; }
+.making .card1, .making .card2, .making .card3 { display: block; padding: 12px; border: 1px solid #aebca1; border-radius: 6px; background: #fffdf5; }
+.making .card-number { font-size: 9px; color: #8a977e; margin-right: 8px; }
+.making .card-parts { display: block; font-size: 8px; margin-top: 9px; color: #738268; }
+.making .mini-diagram { display: block; font-size: 22px; color: #6a875b; margin-top: 6px; }
+.making .morph1, .making .morph2 { flex-direction: column; gap: 1px; color: #6d805e; }
+.making .morph1 small, .making .morph2 small { font-size: 7px; }
+.making .ghost { border: 1px dashed #9aa98e; border-radius: 6px; color: #93a185; }
+.making .depth { font-size: 10px; justify-content: space-between; border-bottom: 1px solid #b5c1aa; color: #68795d; }
+.making .socket { background: #d8e2cd; border: 1px solid #a2b593; border-radius: 5px; font-size: 11px; z-index: 2; }
+.making .verify { border: 1px solid #7d9c6e; border-radius: 6px; flex-direction: column; gap: 15px; background: #e0ebd6; }
+.making .verify-checks, .making .verify-pass { position: absolute; top: 62px; font-size: 11px; }
+.making .verify strong { position: absolute; top: 18px; }
+.making .verify-pass { color: #2d6f38; font-weight: 700; }
+.making .pipeline { color: #6a875b; }
+.making .modify svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: #8b7045; stroke-width: 1.3; }
+.making .modify span { position: absolute; top: 8px; left: 20px; font-size: 10px; color: #876e44; }
+.making .edit-flag { position: absolute; top: -10px; right: 8px; background: #eee0bb; color: #7c6232; border-radius: 3px; font-size: 8px; padding: 3px 5px; }
+.making .reveal { pointer-events: none; border: 1px solid #748c62; border-radius: 15px; }
+.making .reveal-label { position: absolute; bottom: -5px; left: 28px; background: #f5f2e9; padding: 0 10px; font-size: 9px; letter-spacing: .14em; color: #577047; }
+.making[data-presentation-mode="present"] [data-presentation-header] { top: 30px; }
+@media (max-width: 700px) {
+ .making [data-presentation-header] { top: 25px; display: grid; gap: 10px; }
+ .making [data-presentation-title] { font-size: 26px; }
+ .making [data-presentation-caption] { font-size: 15px; line-height: 1.55; min-height: 72px; margin-bottom: 15px; }
+ .making [data-presentation-navigation] { gap: 10px; }
+ .making [aria-label="Steps"] { gap: 5px; }
+ .making [data-presentation-progress] { width: 22px; height: 22px; }
+}

@@ -1,0 +1,1 @@
+export const entities = Object.fromEntries(['you', 'prompt', 'skill', 'conversation', 'question', 'tray', 'card1', 'card2', 'card3', 'morph1', 'morph2', 'ghost', 'depth', 'socket', 'verify', 'pipeline', 'modify', 'reveal'].map(id => [id, `make-presentation:${id}`]))

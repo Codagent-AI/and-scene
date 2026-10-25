@@ -25,15 +25,16 @@ export function collectDiagnostics() {
     const range = document.createRange()
     range.selectNodeContents(node)
     for (const rect of range.getClientRects()) {
-      if (rect.width && rect.height) text.push({ element, rect })
+      if (rect.width && rect.height) text.push({ element, rect, kind: 'text' })
     }
   }
   for (const element of root.querySelectorAll('[data-presentation-caption], [data-presentation-title], [data-presentation-marker], [data-presentation-progress-entry], [data-presentation-toc-entry], [data-presentation-prev], [data-presentation-next], [data-presentation-mode-toggle], [data-presentation-attribution]')) {
-    if (visible(element) && !element.closest('[data-presentation-allow-overlap]')) text.push({ element, rect: element.getBoundingClientRect() })
+    if (visible(element) && !element.closest('[data-presentation-allow-overlap]')) text.push({ element, rect: element.getBoundingClientRect(), kind: 'chrome' })
   }
   for (let i = 0; i < text.length; i++) for (let j = i + 1; j < text.length; j++) {
     const a = text[i], b = text[j]
-    if (a.element === b.element || a.element.contains(b.element) || b.element.contains(a.element)) continue
+    // Exclude a chrome container's own contents, not distinct text ranges in nested elements.
+    if ((a.kind === 'chrome' && a.element.contains(b.element)) || (b.kind === 'chrome' && b.element.contains(a.element))) continue
     const x = Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left)
     const y = Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top)
     if (x > 2 && y > 2) warnings.push(`step ${step}: overlap: ${name(a.element)} / ${name(b.element)}`)
@@ -46,7 +47,7 @@ export function collectDiagnostics() {
     const controls = [...root.querySelectorAll(`[data-presentation-${hook}]`)].filter(visible)
     const active = controls.find(element => element.getAttribute('data-presentation-active') === 'true')
     const inactive = controls.filter(element => element !== active)
-    if (active && inactive.length && inactive.every(element => signature(active) === signature(element))) warnings.push(`step ${step}: indistinct active ${hook}`)
+    if (active && inactive.length && inactive.some(element => signature(active) === signature(element))) warnings.push(`step ${step}: indistinct active ${hook}`)
   }
   const attribution = root.querySelector('[data-presentation-attribution]')
   if (!attribution || !visible(attribution)) warnings.push(`step ${step}: missing attribution; style [data-presentation-attribution]`)

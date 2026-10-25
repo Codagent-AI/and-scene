@@ -7,19 +7,32 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { materialize, templateRoot } from '../skills/presentation/bootstrap.mjs'
 import { inspect } from '../scripts/inspect-presentation.mjs'
+import { observeChromium } from './browser-processes.mjs'
 const root = fileURLToPath(new URL('../', import.meta.url))
-function run(args, cwd, expected = 0) {
+function run(args, cwd, expected = 0, requireBrowserCleanup = false) {
   return new Promise((resolve, reject) => {
     const child = spawn(args[0], args.slice(1), { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
+    const assertChromiumClosed = requireBrowserCleanup ? observeChromium(child.pid) : null
     let output = ''
     child.stdout.on('data', chunk => { output += chunk })
     child.stderr.on('data', chunk => { output += chunk })
     const timer = setTimeout(() => child.kill('SIGTERM'), 120000)
-    child.on('error', reject)
-    child.on('exit', code => {
+    child.on('error', error => { if (assertChromiumClosed) void assertChromiumClosed().catch(() => {}); reject(error) })
+    child.on('close', async code => {
       clearTimeout(timer)
       console.log(output)
-      try { assert.equal(code, expected, output); resolve(output) } catch (error) { reject(error) }
+      try {
+        if (assertChromiumClosed) {
+          await assertChromiumClosed()
+          const started = output.match(/preview (http:\/\/127\.0\.0\.1:\d+)/)?.[1]
+          assert.ok(started, 'cleanup test must observe a real preview URL')
+          assert.ok(output.includes('preview stopped ' + started))
+          await assert.rejects(fetch(started))
+          console.log('Preview cleanup asserted after CLI exit: ' + started)
+        }
+        assert.equal(code, expected, output)
+        resolve(output)
+      } catch (error) { reject(error) }
     })
   })
 }
@@ -52,7 +65,7 @@ test('INT-001 materialized bootstrap installs builds renders externally and stay
   for (const path of actual) assert.ok(!/#[a-fA-F0-9]{3,8}\b|boxShadow:|fontFamily:/.test(await readFile(join(dir, 'src/presentation-kit', path), 'utf8')), path)
   assert.match(await readFile(join(dir, 'src/index.css'), 'utf8'), /^\/\*[^]*\*\/\s*$/)
   await run(['npm','ci','--no-audit','--no-fund'], dir)
-  const output = await run(['npm','run','verify','--','example'], dir)
+  const output = await run(['npm','run','verify','--','example'], dir, 0, true)
   assert.match(output, /PASS verification: example/)
   assert.match(output, /step 1: rendered/)
   await assert.rejects(materialize(dir), /Refusing to overwrite/)
@@ -80,8 +93,10 @@ test('INT-002 inspection captures settled per-step artifacts and advisory diagno
 function Diagram({payload}: SceneProps<number>) { return <div>
 <span style={{position:'absolute',left:100,top:100}}>unmarked-A-{payload}</span><span style={{position:'absolute',left:100,top:100}}>unmarked-B</span>
 <div data-presentation-allow-overlap=""><span style={{position:'absolute',left:300,top:150}}>allowed-A</span><span style={{position:'absolute',left:300,top:150}}>allowed-B</span></div>
+<div data-presentation-entity="nested-parent" style={{position:'absolute',left:100,top:160}}>parent text<span data-presentation-entity="nested-child" style={{position:'absolute',left:0,top:0}}>child text</span></div>
+<style>{'[data-presentation-progress-entry]:nth-child(3), [data-presentation-toc-entry]:nth-child(3) { font-weight: 700 }'}</style>
 </div> }
-const steps: Step<number>[] = [0,1,2].map(i => ({id:String(i),era:i===2?'finish':'start',title:'Diagnostic '+i,caption:'Caption '+i,Scene:Diagram,payload:i,groupKey:'diagnostic'}))
+const steps: Step<number>[] = [0,1,2].map(i => ({id:String(i),era:'section-'+i,title:'Diagnostic '+i,caption:'Caption '+i,Scene:Diagram,payload:i,groupKey:'diagnostic'}))
 export default function Talk() {return <Presentation steps={steps} title="Diagnostic" />}`)
   await writeFile(join(dir, 'src/presentations/index.ts'), `export const presentations = [{slug: 'diagnostics',title:'Diagnostics',load:()=>import('./diagnostics/Talk')}]`)
   const start = Date.now()
@@ -96,16 +111,27 @@ export default function Talk() {return <Presentation steps={steps} title="Diagno
     assert.deepEqual([...png.subarray(0,8)], [137,80,78,71,13,10,26,10])
     assert.ok(png.length > 1000)
     assert.ok(report.warnings.some(w => w.includes(`step ${i}: overlap`) && w.includes('unmarked-A') && w.includes('unmarked-B')))
+    assert.ok(report.warnings.some(w => w.includes('nested-parent') && w.includes('nested-child')))
     assert.ok(!report.warnings.some(w => w.includes('allowed-')))
-    assert.ok(report.warnings.some(w => w.includes(`step ${i}: indistinct active progress-entry`)))
-    assert.ok(report.warnings.some(w => w.includes(`step ${i}: indistinct active toc-entry`)))
+    // Steps 0/1 each match one inactive peer but differ from the bold third control.
+    for (const hook of ['progress-entry', 'toc-entry']) assert.equal(report.warnings.some(w => w.includes(`step ${i}: indistinct active ${hook}`)), i < 2)
     assert.ok(report.warnings.some(w => w.includes(`step ${i}: unpolished attribution`) && w.includes('[data-presentation-attribution]')))
   }
   assert.equal((await readdir(join(dir, '.artifacts/inspection/diagnostics'))).filter(p => p.endsWith('.png')).length, 3)
   assert.deepEqual(JSON.parse(await readFile(join(dir, '.artifacts/inspection/diagnostics/report.json'), 'utf8')), reports)
 }))
 
-// E2E-001 is npm run verify itself; do not duplicate its expensive production build here.
+test('E2E-001 verifies browse and present initial modes and cleans up Chromium', { timeout: 180000 }, async t => {
+  for (const mode of ['browse', 'present']) await t.test(mode, async () => temporary(async dir => {
+    await copyApp(dir)
+    const talk = join(dir, 'src/presentations/how-to-make-a-presentation/Talk.tsx')
+    await writeFile(talk, (await readFile(talk, 'utf8')).replace('initialMode="browse"', `initialMode="${mode}"`))
+    const output = await run(['npm', 'run', 'verify'], dir, 0, true)
+    assert.match(output, /PASS verification: how-to-make-a-presentation/)
+    for (let index = 0; index < 9; index++) assert.ok(output.includes(`step ${index}: rendered (${mode})`))
+  }))
+})
+
 test('E2E-002 independent fault copies fail actionably and clean up preview processes', { timeout: 600000 }, async t => {
   const faults = {
     build: async dir => writeFile(join(dir,'src/broken.ts'), 'const broken: number = "not a number"; export {broken}'),
@@ -138,16 +164,11 @@ test('E2E-002 independent fault copies fail actionably and clean up preview proc
   }
   for (const [name, inject] of Object.entries(faults)) await t.test(name, async () => temporary(async dir => {
     await copyApp(dir); await inject(dir)
-    const output = await run(['npm','run','verify'], dir, 1)
+    const output = await run(['npm','run','verify'], dir, 1, !['build', 'missing'].includes(name))
     assert.ok(!output.includes('PASS verification'))
     if (name === 'build') assert.match(output, /FAIL build/)
     else if (['missing','malformed'].includes(name)) assert.match(output, /FAIL sample/)
     else assert.match(output, /FAIL render step 1/)
     if (['console','page','render'].includes(name)) assert.match(output, new RegExp(`injected ${name} failure`))
-    const started = output.match(/preview (http:\/\/127\.0\.0\.1:\d+)/)?.[1]
-    if (started) {
-      assert.ok(output.includes('preview stopped '+started))
-      await assert.rejects(fetch(started))
-    }
   }))
 })

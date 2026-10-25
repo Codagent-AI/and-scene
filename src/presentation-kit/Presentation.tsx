@@ -27,7 +27,7 @@ function PresentationHost<T>({ steps, title, initialMode = 'browse', brand, attr
   const fit = useFitScale(nav.mode)
   const wide = fit.width + fit.left + 24 >= WIDE_VIEWPORT
   const step = steps[nav.index]
-  return <main aria-label={title} className={className} data-presentation="" data-presentation-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.index} data-presentation-step-id={step.id} style={{ position: 'relative', width: '100%', height: '100dvh', overflow: 'hidden' }}>
+  return <main aria-label={title} className={className} data-presentation="" data-presentation-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.index} data-presentation-step-id={step.id} data-presentation-step-caption={step.caption} style={{ position: 'relative', width: '100%', height: '100dvh', overflow: 'hidden' }}>
     <Header mode={nav.mode} step={step} index={nav.index} brand={brand} />
     <Stage step={step} mode={nav.mode} designWidth={designWidth} designHeight={designHeight} />
     {nav.mode === 'browse' && wide && <Toc steps={steps} index={nav.index} jump={nav.jump} />}

@@ -21,6 +21,7 @@ describe('runtime contracts', () => {
     expect(root().getAttribute('data-step-count')).toBe('2')
     expect(screen.getByRole('heading').textContent).toBe('third')
     expect(screen.getByText('Caption third')).toBeTruthy()
+    expect(root().getAttribute('data-presentation-step-caption')).toBe('Caption third')
     expect(document.querySelector('[data-presentation-marker]')?.textContent).toBe('01 / finish')
     key('ArrowRight')
     expect(screen.getByRole('heading').textContent).toBe('first')
@@ -115,6 +116,8 @@ describe('runtime contracts', () => {
     expect(root().getAttribute('data-presentation-mode')).toBe('browse')
     fireEvent.click(screen.getByRole('button', { name: 'Switch to present mode' }))
     expect(index()).toBe(1)
+    expect(root().getAttribute('data-presentation-step-caption')).toBe('Caption second')
+    expect(document.querySelector('[data-presentation-caption]')).toBeNull()
     expect(root().getAttribute('data-presentation-mode')).toBe('present')
   })
   it('I-11 every navigation key advances exactly once', () => {
@@ -152,7 +155,7 @@ describe('runtime contracts', () => {
   })
   it('I-13 controls retain keys without deck double handling', () => {
     const { result } = renderHook(() => usePresentationNav(10))
-    for (const tag of ['button', 'a', 'input', 'textarea', 'select', 'div']) {
+    for (const tag of ['button', 'a', 'input', 'textarea', 'select', 'summary', 'div']) {
       const control = document.createElement(tag)
       if (tag === 'a') control.setAttribute('href', '/')
       if (tag === 'div') control.setAttribute('contenteditable', 'true')
@@ -163,6 +166,32 @@ describe('runtime contracts', () => {
     }
     const ignored = new KeyboardEvent('keydown', { key: 'ArrowRight', ctrlKey: true, bubbles: true })
     act(() => window.dispatchEvent(ignored)); expect(result.current.index).toBe(0)
+  })
+  it('I-13 focused disclosure and custom controls keep uncancelled keys', () => {
+    const { result } = renderHook(() => usePresentationNav(3))
+    const disclosure = document.createElement('details')
+    const summary = document.createElement('summary')
+    summary.innerHTML = '<span>Disclosure</span>'
+    disclosure.append(summary)
+    document.body.append(disclosure)
+    summary.focus()
+    for (const target of [summary, summary.firstElementChild!]) for (const value of [' ', 'ArrowRight', 'PageDown', 'P']) {
+      const event = new KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true })
+      act(() => target.dispatchEvent(event))
+      expect(event.defaultPrevented).toBe(false)
+      expect(result.current.index).toBe(0)
+      expect(result.current.mode).toBe('browse')
+    }
+    disclosure.remove()
+    const control = document.createElement('div')
+    control.tabIndex = 0
+    document.body.append(control)
+    control.focus()
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+    act(() => control.dispatchEvent(event))
+    expect(event.defaultPrevented).toBe(false)
+    expect(result.current.index).toBe(0)
+    control.remove()
   })
   it('I-14 first last and single step clamp with disabled controls', () => {
     render(<Presentation steps={[steps[0]]} title="One" />)

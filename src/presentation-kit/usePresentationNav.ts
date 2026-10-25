@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Mode } from './types'
 
 export function isInteractive(target: EventTarget | null) {
-  return target instanceof Element && !!target.closest('button, a, input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="slider"], [role="textbox"], [role="combobox"]')
+  return target instanceof Element && !!target.closest('button, a, input, textarea, select, summary, audio[controls], video[controls], [tabindex], [contenteditable]:not([contenteditable="false"]), [role="button"], [role="slider"], [role="textbox"], [role="combobox"]')
 }
 export function clampIndex(index: number, count: number) {
   return Math.max(0, Math.min(count - 1, Math.trunc(index)))

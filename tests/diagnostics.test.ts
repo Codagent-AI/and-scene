@@ -40,3 +40,20 @@ it('I-43 missing undersized and browser-default attribution warn with hook guida
   link.remove()
   expect(collectDiagnostics()).toContain('step 2: missing attribution; style [data-presentation-attribution]')
 })
+
+it('I-41 nested direct text collisions warn but chrome containing its label does not', () => {
+  fixture('<div data-presentation-entity="parent">direct parent text<span data-presentation-entity="child">nested child text</span></div>')
+  expect(collectDiagnostics()).toContain('step 2: overlap: parent / child')
+  fixture('<button data-presentation-next data-x="0"><span data-x="0">own label</span></button>')
+  expect(collectDiagnostics().some((warning: string) => warning.includes('overlap'))).toBe(false)
+  fixture('<div data-presentation-allow-overlap>allowed parent<span>allowed child</span></div>')
+  expect(collectDiagnostics().some((warning: string) => warning.includes('overlap'))).toBe(false)
+})
+it('I-42 any matching inactive peer warns even with mixed styles', () => {
+  for (const hook of ['progress-entry', 'toc-entry']) {
+    fixture(`<button data-presentation-${hook} data-presentation-active="true">active A</button><button data-presentation-${hook} data-presentation-active="false" data-x="100">inactive A</button><button data-presentation-${hook} data-presentation-active="false" data-x="200" style="font-weight:700">inactive B</button>`)
+    expect(collectDiagnostics()).toContain(`step 2: indistinct active ${hook}`)
+    document.querySelector<HTMLElement>('[data-presentation-active="true"]')!.style.color = 'rgb(12, 34, 56)'
+    expect(collectDiagnostics().some((warning: string) => warning.includes('indistinct'))).toBe(false)
+  }
+})

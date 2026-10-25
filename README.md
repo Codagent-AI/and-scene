@@ -16,7 +16,7 @@ controls keep their keyboard behavior.
 
 ```sh
 npm test                 # fast Vitest unit and component contracts
-npm run test:integration # INT-001, INT-002 and E2E-002; real temporary apps/browser
+npm run test:integration # INT-001/002 and E2E-001/002; real temporary apps/browser
 npm run lint
 npm run build
 npm run verify           # E2E-001: whole app build and every reference step

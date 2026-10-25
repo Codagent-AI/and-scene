@@ -80,11 +80,12 @@ export async function verify({ cwd = process.cwd(), slug = SAMPLE_SLUG, build = 
       const metadata = []
       try { await visitSteps(page, count, hook, async index => {
         const title = await page.locator('[data-presentation-title]').textContent()
-        const caption = await page.locator('[data-presentation-caption]').textContent()
+        // Narration remains available when present mode intentionally hides its paragraph.
+        const caption = await hook.getAttribute('data-presentation-step-caption')
         const marker = await page.locator('[data-presentation-marker]').textContent()
         metadata.push({ title, caption, era: marker.split(' / ').slice(1).join(' / ') })
         if (errors.length) throw new Error(errors.join('\n'))
-        console.log(`step ${index}: rendered`)
+        console.log(`step ${index}: rendered (${await hook.getAttribute('data-presentation-mode')})`)
         activeStep = index + 1
       }) } catch (error) { throw new Error([...errors, error.message].join('\n'), { cause: error }) }
       if (slug === SAMPLE_SLUG) { phase = 'sample'; validateMetadata(metadata) }

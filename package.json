@@ -12,7 +12,8 @@
     "test:integration": "vitest run -c vitest.integration.config.ts tests/integration",
     "test:e2e": "vitest run -c vitest.integration.config.ts tests/e2e",
     "verify": "node scripts/verify.mjs",
-    "inspect": "node scripts/inspect-presentation.mjs"
+    "inspect": "node scripts/inspect-presentation.mjs",
+    "sync:templates": "node scripts/sync-templates.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

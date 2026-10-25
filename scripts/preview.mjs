@@ -69,7 +69,7 @@ export async function startPreview(root) {
     await waitReady(`${url}/`, child, 30_000)
   } catch (err) {
     stop()
-    throw new Error(`${err.message}\n${log}`)
+    throw new Error(`${err.message}\n${log}`, { cause: err })
   }
   return { url, stop }
 }

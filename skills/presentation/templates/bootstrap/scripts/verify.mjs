@@ -20,7 +20,6 @@ export async function verify({ cwd = resolve(dirname(fileURLToPath(import.meta.u
       catch (error) { assertClean(); throw error }
       const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
       if (!Number.isInteger(count) || count < 1 || (slug === REFERENCE_SLUG && count !== REFERENCE.length)) throw new Error(`Malformed step count ${count}`)
-      phase = 'render'
       for (index = 0; index < count; index++) {
         try {
           await assertIndex(page, index)

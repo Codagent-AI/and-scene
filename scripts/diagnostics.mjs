@@ -11,9 +11,10 @@ export function inspectDocument() {
     return true
   }
   const describe = el => `${el.tagName.toLowerCase()}[${el.getAttribute('data-story-name') ?? el.getAttribute('data-presentation-entity') ?? el.textContent?.trim().slice(0, 55)}]`
-  const nodes = [...root.querySelectorAll('*')].filter(el => visible(el) && !el.closest('[data-presentation-allow-overlap]') && [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()))
-  // Text ranges avoid treating decorative frames and text containers as occupied text.
-  const rects = el => [...el.childNodes].filter(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()).flatMap(n => {
+  const chrome = 'button, [data-presentation-attribution], [data-presentation-marker], [data-presentation-title], [data-presentation-caption]'
+  const nodes = [...root.querySelectorAll('*')].filter(el => visible(el) && !el.closest('[data-presentation-allow-overlap]') && (el.matches(chrome) || [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim())))
+  // Text ranges ignore decorative frames; chrome occupies its entire control box.
+  const rects = el => el.matches(chrome) ? [el.getBoundingClientRect()] : [...el.childNodes].filter(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()).flatMap(n => {
     const range = document.createRange(); range.selectNodeContents(n)
     return [...range.getClientRects()]
   })

@@ -148,7 +148,9 @@ test('E2E-002 faulty copies fail by phase and step and clean up preview processe
     ['render error', async dir => { const p=join(dir,'src/presentations/how-to-make-a-presentation/steps/StoryScene.tsx'); await writeFile(p,(await readFile(p,'utf8')).replace('  return <SceneLayer>', "  throw new Error('injected render failure')\n  return <SceneLayer>")) }, /FAIL render step 0.*injected render failure/],
     ['transition stall', async dir => { const p=join(dir,'src/presentation-kit/usePresentationNav.ts'); await writeFile(p,(await readFile(p,'utf8')).replace('clamp(i + 1, count)', 'clamp(i, count)')) }, /FAIL render step 1.*step 1/],
   ]
-  for (const [name,inject,expected] of faults) await t.test(name,async()=>temporary(async dir=>{
+  const selected = faults.filter(([name]) => !process.env.AND_SCENE_FAULT || name === process.env.AND_SCENE_FAULT)
+  assert.ok(selected.length, 'Named fault filter must select a case')
+  for (const [name,inject,expected] of selected) await t.test(name,async()=>temporary(async dir=>{
     await copyApp(dir); await inject(dir)
     const result=await command('npm',['run','verify'],dir)
     assert.notEqual(result.code,0)

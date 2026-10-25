@@ -169,7 +169,7 @@ describe('scene contracts', () => {
   })
   test('I-18 interactive elements retain key behavior without index or mode changes', () => {
     const { result } = renderHook(() => usePresentationNav(5))
-    for (const tag of ['button', 'a', 'input', 'select', 'textarea', 'div']) {
+    for (const tag of ['button', 'a', 'input', 'select', 'textarea', 'summary', 'div']) {
       const control = document.createElement(tag)
       if (tag === 'div') control.setAttribute('contenteditable', 'true')
       document.body.append(control)
@@ -177,6 +177,14 @@ describe('scene contracts', () => {
       expect(result.current.index).toBe(0); expect(result.current.mode).toBe('browse')
       control.remove()
     }
+  })
+  test('I-18 custom focused controls and prevented events keep their keys', () => {
+    const { result } = renderHook(() => usePresentationNav(4))
+    const control = document.createElement('div'); control.setAttribute('role', 'tab'); control.tabIndex = 0; document.body.append(control)
+    for (const value of ['ArrowRight', ' ', 'p']) expect(key(value, control).defaultPrevented).toBe(false)
+    expect(result.current.index).toBe(0); expect(result.current.mode).toBe('browse'); control.remove()
+    const prevented = new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true }); prevented.preventDefault()
+    act(() => window.dispatchEvent(prevented)); expect(result.current.index).toBe(0)
   })
   test('I-19 navigation clamps at ends across repeated actions and touch controls', () => {
     const { result } = renderHook(() => usePresentationNav(3))

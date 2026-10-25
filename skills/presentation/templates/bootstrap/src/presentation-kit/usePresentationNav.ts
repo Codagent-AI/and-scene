@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Mode } from './types'
 export const clamp = (index: number, count: number) => Math.max(0, Math.min(index, count - 1))
+const INTERACTIVE = [
+  'button', 'a', 'input', 'select', 'textarea', 'summary', 'audio[controls]', 'video[controls]',
+  '[contenteditable]:not([contenteditable="false"])', '[tabindex]:not([tabindex="-1"])',
+  ...['button', 'slider', 'textbox', 'combobox', 'checkbox', 'radio', 'switch', 'tab',
+    'menuitem', 'option', 'listbox', 'treeitem', 'spinbutton'].map(role => `[role="${role}"]`),
+].join(',')
 export function isInteractive(target: EventTarget | null) {
-  return target instanceof Element && Boolean(target.closest('button, a, input, select, textarea, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="slider"], [role="textbox"], [role="combobox"]'))
+  return target instanceof Element && Boolean(target.closest(INTERACTIVE))
 }
 export function usePresentationNav(count: number, initialMode: Mode = 'browse') {
   const [index, setIndex] = useState(0)
@@ -14,7 +20,7 @@ export function usePresentationNav(count: number, initialMode: Mode = 'browse') 
   const toggle = useCallback(() => setMode(m => m === 'browse' ? 'present' : 'browse'), [])
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
-      if (isInteractive(event.target) || event.altKey || event.ctrlKey || event.metaKey) return
+      if (event.defaultPrevented || isInteractive(event.target) || event.altKey || event.ctrlKey || event.metaKey) return
       if (['ArrowRight', ' ', 'PageDown'].includes(event.key)) { event.preventDefault(); next() }
       else if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); prev() }
       else if (event.key.toLowerCase() === 'p') { event.preventDefault(); toggle() }

@@ -20,6 +20,11 @@ test('I-47 fully transparent ancestor text does not generate overlap warnings', 
   fixture(`<div style="opacity:0"><span>invisible</span></div><span>visible</span>${attribution}`)
   expect(inspectDocument().some((w: string) => w.includes('invisible'))).toBe(false)
 })
+test('I-47 chrome bounding boxes warn even when their text ranges do not touch', () => {
+  fixture('<button>left</button><button>right</button>')
+  vi.spyOn(Range.prototype, 'getClientRects').mockReturnValueOnce([{ left: 10, top: 10, right: 20, bottom: 30 }] as unknown as DOMRectList).mockReturnValueOnce([{ left: 80, top: 10, right: 90, bottom: 30 }] as unknown as DOMRectList)
+  expect(inspectDocument().some((w: string) => w.includes('overlap button[left] / button[right]'))).toBe(true)
+})
 test('I-48 indistinct progress and ToC warn; distinct active states do not', () => {
   const controls = ['progress-step','toc-entry'].map(h => `<button data-presentation-${h}="0" data-presentation-active="true">active</button><button data-presentation-${h}="1" data-presentation-active="false">inactive</button>`).join('')
   fixture(controls + attribution)

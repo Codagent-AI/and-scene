@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run && npm run test:types",
+    "test": "npm run test:types && vitest run",
     "test:browser": "node --test --test-concurrency=1 tests/browser.test.mjs",
     "verify": "node scripts/verify.mjs",
     "inspect": "node scripts/inspect-presentation.mjs",

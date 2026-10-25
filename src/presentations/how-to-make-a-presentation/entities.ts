@@ -1,0 +1,1 @@
+export const entities = Object.fromEntries(['you', 'prompt', 'skill', 'conversation', 'question', 'tray', 'card1', 'card2', 'ghost', 'depth', 'kit', 'verify', 'modify', 'reveal', 'morph'].map(id => [id, `how-to:${id}`])) as Record<string, string>

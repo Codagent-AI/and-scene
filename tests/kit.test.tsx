@@ -155,4 +155,9 @@ describe('Continuity and geometry', () => {
     expect(canvas.style.width).toBe('880px'); expect(canvas.style.height).toBe('380px')
     const transform = canvas.style.transform; rerender(<Stage step={steps[1]} mode={mode} />); expect(canvas.style.transform).toBe(transform)
   })
+  it.each(['browse','present'] as const)('I-20 stage track is viewport-bounded so a scaled canvas stays centered in %s', mode => {
+    const { container } = render(<Stage step={steps[0]} mode={mode} />)
+    const stage = container.querySelector('[data-presentation-stage]') as HTMLElement
+    expect(stage.style.gridTemplateColumns).toBe('minmax(0, 1fr)'); expect(stage.style.gridTemplateRows).toBe('minmax(0, 1fr)')
+  })
 })

@@ -4,6 +4,7 @@ import { cp, mkdtemp, rm, readFile, writeFile, mkdir, symlink, readdir } from 'n
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawn } from 'node:child_process'
+import { pathToFileURL } from 'node:url'
 
 const root = process.cwd()
 const evidence = process.env.EVIDENCE_DIR
@@ -110,6 +111,27 @@ export default function Talk(){return <Presentation steps={steps} title="Diagnos
   }
   assert.match(result.output,/warnings are advisory/)
   await save('INT-002-report.json',report)
+}))
+
+test('INT-003 narrow-viewport canvas stays inside the viewport on every step', {timeout:240000}, async () => isolated(async dir => {
+  const build = await command(dir,'npm',['run','build']); await save('INT-003-build.log',build); assert.equal(build.code,0,build.output)
+  const { withPreview } = await import(pathToFileURL(join(dir,'scripts/browser.mjs')).href)
+  const observed = []
+  for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }]) {
+    await withPreview(async (page, baseURL) => {
+      await page.goto(`${baseURL}/how-to-make-a-presentation`)
+      const count = Number(await page.locator('[data-step-count]').first().getAttribute('data-step-count'))
+      for (let index = 0; index < count; index++) {
+        if (index) await page.keyboard.press('ArrowRight')
+        await page.waitForTimeout(900)
+        const rect = await page.evaluate(() => { const r = document.querySelector('[data-presentation-canvas]').getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom } })
+        observed.push({ viewport, index, rect })
+        assert.ok(rect.left >= -1 && rect.right <= viewport.width + 1, `step ${index} canvas x=${rect.left}..${rect.right} outside ${viewport.width}px viewport`)
+        assert.ok(rect.top >= -1 && rect.bottom <= viewport.height + 1, `step ${index} canvas y=${rect.top}..${rect.bottom} outside ${viewport.height}px viewport`)
+      }
+    }, { cwd: dir, viewport })
+  }
+  await save('INT-003-report.json',observed)
 }))
 
 test('E2E-001 reference presentation passes production verification', {timeout:180000}, async () => {

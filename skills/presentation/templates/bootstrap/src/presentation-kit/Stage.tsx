@@ -15,7 +15,7 @@ export function Stage<T>({ step, mode, width = DESIGN_W, height = DESIGN_H }: { 
   const geometry = STAGE_LAYOUT[mode]
   const left = mode === 'browse' && viewport.width >= 1100 ? 180 : 0
   const Scene = step.Scene
-  return <div data-presentation-stage="" style={{ position: 'absolute', top: geometry.top, bottom: geometry.bottom, left, right: 0, display: 'grid', placeItems: 'center' }}>
+  return <div data-presentation-stage="" style={{ position: 'absolute', top: geometry.top, bottom: geometry.bottom, left, right: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gridTemplateRows: 'minmax(0, 1fr)', placeItems: 'center' }}>
     <div data-presentation-canvas="" data-scale={scale} style={{ position: 'relative', width, height, transform: `scale(${scale})`, flexShrink: 0 }}>
       <LayoutGroup>
         <AnimatePresence initial={false}>

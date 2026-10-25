@@ -17,11 +17,29 @@ describe('fixed-canvas fit scaling', () => {
     expect(tall).toBeCloseTo((600 - g.side * 2) / DESIGN_W)
   })
 
-  it('shrinks and grows with the viewport but never below the minimum', () => {
+  it('shrinks and grows with the viewport', () => {
     const big = computeFitScale({ width: 1600, height: 1000 }, 'present')
     const small = computeFitScale({ width: 800, height: 600 }, 'present')
     expect(big).toBeGreaterThan(small)
+  })
+
+  it('always fits the available area: small viewports are never clipped by a scale floor', () => {
+    for (const mode of ['browse', 'present'] as const) {
+      for (const [width, height] of [[390, 300], [320, 260], [600, 280], [1400, 330], [1100, 400]]) {
+        const g = STAGE_LAYOUT[mode]
+        const toc = showsToc(mode, width) ? g.tocWidth : 0
+        const availW = width - g.side * 2 - toc
+        const availH = height - g.top - g.bottom
+        const scale = computeFitScale({ width, height }, mode)
+        expect(DESIGN_W * scale, `${mode} ${width}x${height} width`).toBeLessThanOrEqual(availW + 1e-6)
+        expect(DESIGN_H * scale, `${mode} ${width}x${height} height`).toBeLessThanOrEqual(availH + 1e-6)
+      }
+    }
+  })
+
+  it('falls back to a tiny positive scale only when the chrome leaves no room at all', () => {
     expect(computeFitScale({ width: 10, height: 10 }, 'browse')).toBe(MIN_SCALE)
+    expect(MIN_SCALE).toBeGreaterThan(0)
   })
 
   it('reserves room for the table of contents only in wide browse layouts', () => {

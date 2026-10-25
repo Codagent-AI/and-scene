@@ -80,6 +80,35 @@ describe('usePresentationNav', () => {
     expect(isInteractiveTarget(document.body)).toBe(false)
   })
 
+  it('leaves keys to custom widgets exposed by role or contenteditable', () => {
+    const { result } = renderHook(() => usePresentationNav({ count: 5 }))
+    for (const role of ['slider', 'combobox', 'listbox', 'textbox', 'spinbutton', 'tab', 'menuitem']) {
+      const el = document.createElement('div')
+      el.setAttribute('role', role)
+      document.body.append(el)
+      press('ArrowRight', el)
+      press('ArrowLeft', el)
+      el.remove()
+    }
+    const editable = document.createElement('div')
+    editable.setAttribute('contenteditable', 'true')
+    document.body.append(editable)
+    press('ArrowRight', editable)
+    editable.remove()
+    expect(result.current.index).toBe(0)
+  })
+
+  it('does not advance when a focused widget already handled the key', () => {
+    const { result } = renderHook(() => usePresentationNav({ count: 5 }))
+    const el = document.createElement('div')
+    el.tabIndex = 0
+    el.addEventListener('keydown', (e) => e.preventDefault())
+    document.body.append(el)
+    press('ArrowRight', el)
+    el.remove()
+    expect(result.current.index).toBe(0)
+  })
+
   it('ignores modified keys', () => {
     const { result } = renderHook(() => usePresentationNav({ count: 3 }))
     act(() => {

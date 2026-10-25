@@ -40,12 +40,34 @@ export function detectAnchors(dir) {
     .filter((f) => /\.tsx?$/.test(f) && !/__tests__|\.test\./.test(f))
     .map((f) => read(path.join(dir, 'src/presentation-kit', f)))
     .join('\n')
-  const indexFile = ['index.ts', 'index.tsx'].map((f) => path.join(dir, 'src/presentations', f)).find(existsSync)
+  const indexFile = findIndexFile(dir)
   return {
     build: Boolean(pkg?.scripts?.build) && hasVite,
-    kit: /\bPresentation\b/.test(kitSrc) && /\bStep\b/.test(kitSrc) && /\bScene/.test(kitSrc),
-    index: Boolean(indexFile) && /\bexport\b/.test(read(indexFile)),
+    kit: KIT_CONTRACT.every((re) => re.test(kitSrc)),
+    index: Boolean(indexFile) && /\bexport\s+(const|default|function)\b/.test(read(indexFile)) && /\b(slug|PresentationEntry|load)\b/.test(read(indexFile)),
   }
+}
+
+/**
+ * The scene-kit contract, matched on behavior rather than file names: the exported
+ * Presentation host, the Step/Scene contract, a stage that mounts the active step and
+ * runs morphs, keyboard/touch navigation, chrome (captions, table of contents), and
+ * fit-scale canvas.
+ */
+const KIT_CONTRACT = [
+  /\bexport\b[^\n]*\bPresentation\b/,
+  /\b(interface|type)\s+Step\b/,
+  /\b(interface|type)\s+SceneProps\b/,
+  /\bAnimatePresence\b/,
+  /\bkeydown\b/,
+  /\btouch(start|end)\b/i,
+  /\bcaption\b/i,
+  /\bToc\b|table of contents|\btoc\b/i,
+  /\bscale\b/i,
+]
+
+export function findIndexFile(dir) {
+  return ['index.ts', 'index.tsx'].map((f) => path.join(dir, 'src/presentations', f)).find(existsSync)
 }
 
 export function isMonorepo(dir) {
@@ -149,30 +171,68 @@ export function apply(dir, { confirmed = false } = {}) {
   return { target: p.target, scaffolded: p.missing, created, skipped, manual, packageChanged, nextSteps: p.missing.length || packageChanged ? ['npm install'] : [] }
 }
 
+/** Index of the `]` closing the array whose `[` is at `open`, skipping strings and comments. */
+function matchingBracket(src, open) {
+  let depth = 0
+  for (let i = open; i < src.length; i++) {
+    const ch = src[i]
+    if (ch === "'" || ch === '"' || ch === '`') {
+      for (i++; i < src.length && src[i] !== ch; i++) if (src[i] === '\\') i++
+    } else if (ch === '/' && src[i + 1] === '/') {
+      i = src.indexOf('\n', i)
+      if (i < 0) return -1
+    } else if (ch === '/' && src[i + 1] === '*') {
+      i = src.indexOf('*/', i)
+      if (i < 0) return -1
+    } else if (ch === '[') depth++
+    else if (ch === ']' && --depth === 0) return i
+  }
+  return -1
+}
+
+/** Adds the registry entry, preferring the begin/end markers and otherwise the exported array. Throws rather than silently skipping. */
+export function register(registry, slug, title) {
+  const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk.tsx'),\n  },\n`
+  const marker = /^[ \t]*\/\/ presentations:end[ \t]*$/m
+  let updated
+  if (marker.test(registry)) {
+    updated = registry.replace(marker, (m) => `${entry}${m}`)
+  } else {
+    const decl = /\bexport\s+(?:const|let)\s+\w+(?:\s*:\s*[^=]+)?\s*=\s*\[/.exec(registry)
+    if (!decl) throw new Error('Cannot find the exported presentations array in the index; register the presentation by hand')
+    const open = decl.index + decl[0].length - 1
+    const close = matchingBracket(registry, open)
+    if (close < 0) throw new Error('Cannot parse the presentations array in the index; register the presentation by hand')
+    const body = registry.slice(open + 1, close)
+    const needsComma = /[^\s,]\s*$/.test(body.replace(/\/\/[^\n]*$/gm, ''))
+    const lead = needsComma ? body.replace(/\s*$/, '') + ',' : body.replace(/\s*$/, '')
+    updated = `${registry.slice(0, open + 1)}${lead}\n${entry}${registry.slice(close)}`
+  }
+  if (!new RegExp(`slug:\\s*['"]${slug}['"]`).test(updated)) throw new Error('Registration did not take effect; register the presentation by hand')
+  return updated
+}
+
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 /** Copy templates/presentation into src/presentations/<slug> and register it in the index. */
 export function addPresentation(dir, slug, title) {
   if (!SLUG.test(slug)) throw new Error(`Invalid slug "${slug}": use lowercase words joined by hyphens`)
   const { target } = resolveTarget(dir)
-  const indexFile = path.join(target, 'src/presentations/index.ts')
-  if (!existsSync(indexFile)) throw new Error(`No presentation index at ${indexFile}; run apply first`)
+  const indexFile = findIndexFile(target)
+  if (!indexFile) throw new Error(`No presentation index under ${path.join(target, 'src/presentations')}; run apply first`)
   const folder = path.join(target, 'src/presentations', slug)
   const registry = read(indexFile)
   if (existsSync(folder) || new RegExp(`slug:\\s*['"]${slug}['"]`).test(registry)) {
     throw new Error(`Presentation "${slug}" already exists`)
   }
-  const fill = (s) => s.replaceAll('__SLUG__', slug).replaceAll('__TITLE__', title.replaceAll('\\', '\\\\').replaceAll("'", "\\'").replaceAll('"', '\\"'))
+  // The title is always substituted as a complete JS string literal, valid in TS and in JSX expressions.
+  const fill = (s) => s.replaceAll('__SLUG__', slug).replaceAll('__TITLE_JSON__', JSON.stringify(title))
+  const updated = register(registry, slug, title)
   for (const rel of walk(PRESENTATION_DIR)) {
     const dest = path.join(folder, rel)
     mkdirSync(path.dirname(dest), { recursive: true })
     writeFileSync(dest, fill(read(path.join(PRESENTATION_DIR, rel))))
   }
-  const entry = `  {\n    slug: '${slug}',\n    title: ${JSON.stringify(title)},\n    load: () => import('./${slug}/Talk.tsx'),\n  },\n`
-  const marker = /^[ \t]*\/\/ presentations:end[ \t]*$/m
-  const updated = marker.test(registry)
-    ? registry.replace(marker, (m) => `${entry}${m}`)
-    : registry.replace(/\n\]/, `\n${entry}]`)
   writeFileSync(indexFile, updated)
   return { folder, route: `/${slug}`, registered: path.relative(target, indexFile) }
 }

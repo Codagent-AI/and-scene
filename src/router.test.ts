@@ -19,6 +19,11 @@ describe('resolveRoute', () => {
     expect(resolveRoute('/one/', registry)).toEqual({ kind: 'presentation', entry: registry[0] })
   })
 
+  it('reports malformed percent-encoding as not found instead of throwing', () => {
+    expect(resolveRoute('/%FF', registry)).toEqual({ kind: 'not-found', path: '/%FF' })
+    expect(resolveRoute('/%E0%A4%A', registry).kind).toBe('not-found')
+  })
+
   it('reports unknown paths as not found', () => {
     expect(resolveRoute('/nope', registry)).toEqual({ kind: 'not-found', path: '/nope' })
     expect(resolveRoute('/one/extra', registry).kind).toBe('not-found')

@@ -1,4 +1,5 @@
 import net from 'node:net'
+import { rmSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { cleanup, copyRepo, edit, run } from '../helpers.mjs'
@@ -57,6 +58,26 @@ describe('E2E-002: verification failures are actionable', () => {
       inject: (d) => edit(path.join(d, 'src/presentations/index.ts'), (s) => s.replace(/slug: 'how-to-make-a-presentation'/, "slug: 'renamed-sample'")),
       expects: /how-to-make-a-presentation.*not registered/,
       previewRan: false,
+    },
+    {
+      name: 'a deleted reference outline with an emptied registry',
+      phase: 'sample',
+      inject: (d) => {
+        rmSync(path.join(d, 'scripts/reference-outline.json'))
+        edit(path.join(d, 'src/presentations/index.ts'), (s) => s.replace(/\{\s*slug: 'how-to-make-a-presentation'[\s\S]*?\},\n/, ''))
+      },
+      expects: /reference-outline\.json is missing/,
+      previewRan: false,
+    },
+    {
+      name: 'a crash while rendering the first step',
+      phase: 'render',
+      inject: (d) =>
+        edit(path.join(d, 'src/presentations/how-to-make-a-presentation/steps/SampleScene.tsx'), (s) =>
+          s.replace('return (\n    <SceneLayer>', "if (stage === 1) throw new Error('first step crash')\n  return (\n    <SceneLayer>"),
+        ),
+      expects: /\(render\).*at step 0: .*first step crash/,
+      previewRan: true,
     },
     {
       name: 'an out-of-order sample',

@@ -15,7 +15,10 @@ const KEY_ACTIONS: Record<string, NavAction> = {
   P: 'toggle-mode',
 }
 
-const INTERACTIVE = 'a[href],button,input,select,textarea,summary,[role="button"],[contenteditable="true"]'
+const WIDGET_ROLES = ['button', 'link', 'slider', 'spinbutton', 'combobox', 'listbox', 'option', 'textbox', 'searchbox', 'menu', 'menuitem', 'menubar', 'tab', 'tablist', 'radio', 'radiogroup', 'checkbox', 'switch', 'tree', 'treeitem', 'grid', 'gridcell', 'scrollbar']
+  .map((r) => `[role="${r}"]`)
+  .join(',')
+const INTERACTIVE = `a[href],button,input,select,textarea,summary,audio[controls],video[controls],[contenteditable]:not([contenteditable="false"]),${WIDGET_ROLES}`
 
 export function clampIndex(index: number, count: number): number {
   return Math.min(Math.max(index, 0), Math.max(count - 1, 0))
@@ -60,7 +63,8 @@ export function usePresentationNav({ count, initialMode = 'present' }: NavOption
       else if (action === 'toggle-mode') toggleMode()
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || isInteractiveTarget(e.target)) return
+      // A control that already handled the key (preventDefault) keeps it.
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || isInteractiveTarget(e.target)) return
       const action = actionForKey(e.key)
       if (!action) return
       e.preventDefault()

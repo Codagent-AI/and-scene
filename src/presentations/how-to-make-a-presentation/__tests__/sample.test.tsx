@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { act, fireEvent, render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { ENTER_DELAY, ENTER_T } from '../../../presentation-kit/index.ts'
 import { presentations } from '../../index.ts'
 import { E, entityIdsAt } from '../entities.ts'
 import { STEPS } from '../steps/index.ts'
@@ -50,6 +51,16 @@ describe('reference sample', () => {
       for (const id of entityIdsAt(stage)) expect(present, `stage ${stage}`).toContain(id)
       if (stage < 9) act(() => void fireEvent.keyDown(window, { key: 'ArrowRight' }))
     }
+  })
+
+  it('is settled by the screenshot helper\'s default interval: the longest entrance finishes first', () => {
+    const src = readFileSync(path.resolve(import.meta.dirname, '../../../../scripts/inspect-presentation.mjs'), 'utf8')
+    const defaultSettleMs = Number(/flag\('settle', (\d+)\)/.exec(src)![1])
+    const scene = readFileSync(path.resolve(import.meta.dirname, '../steps/SampleScene.tsx'), 'utf8')
+    const longestExtraDelay = Math.max(...[...scene.matchAll(/delay=\{([\d.]+)\}/g)].map((m) => Number(m[1])), 0)
+    const entranceMs = (ENTER_DELAY + longestExtraDelay + ENTER_T.duration) * 1000
+    expect(longestExtraDelay).toBeGreaterThan(0)
+    expect(defaultSettleMs).toBeGreaterThan(entranceMs)
   })
 
   it('opens in browse mode so captions are visible', () => {

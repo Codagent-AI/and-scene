@@ -34,13 +34,41 @@ describe('anchor detection', () => {
     expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
   })
 
+  // A renamed, reformatted kit that still has every part of the contract.
+  const RENAMED_KIT = `
+    import { AnimatePresence } from 'motion/react'
+    export type Step = { id: string; caption: string }
+    export type SceneProps = { payload: unknown }
+    const Toc = () => null // table of contents chrome
+    export function Presentation() {
+      window.addEventListener('keydown', () => {})
+      window.addEventListener('touchstart', () => {})
+      window.addEventListener('touchend', () => {})
+      const scale = 1
+      return [AnimatePresence, Toc, scale]
+    }`
+
   it('is contract-level: cosmetic differences do not hide an anchor', () => {
     const dir = tmp()
     buildOnly(dir)
     put(dir, 'vite.config.mjs', 'export default {}')
-    put(dir, 'src/presentation-kit/engine.tsx', 'export type Step = {}; export type SceneProps = {}; export function Presentation() {}')
-    put(dir, 'src/presentations/index.tsx', 'export const presentations = []')
+    put(dir, 'src/presentation-kit/engine.tsx', RENAMED_KIT)
+    put(dir, 'src/presentations/index.tsx', 'export const registry = [{ slug: "a", title: "A", load: () => import("./a") }]')
     expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('does not accept a stub that names the pieces without implementing the contract', () => {
+    const dir = tmp()
+    put(dir, 'src/presentation-kit/stub.tsx', 'export type Step = {}; export type SceneProps = {}; export function Presentation() {}')
+    expect(detectAnchors(dir).kit).toBe(false)
+    put(dir, 'src/presentations/index.ts', 'export const unrelated = 1')
+    expect(detectAnchors(dir).index).toBe(false)
+  })
+
+  it.each(['keydown', 'AnimatePresence', 'touch', 'caption', 'scale'])('requires the kit to provide %s', (part) => {
+    const dir = tmp()
+    put(dir, 'src/presentation-kit/engine.tsx', RENAMED_KIT.replaceAll(part, 'x'))
+    expect(detectAnchors(dir).kit).toBe(false)
   })
 
   it('reports build only when both a build script and a vite config exist', () => {
@@ -108,7 +136,7 @@ describe('apply', () => {
     const dir = tmp()
     apply(dir)
     rmSync(path.join(dir, 'src/presentation-kit'), { recursive: true })
-    put(dir, 'src/presentations/index.ts', '// customised\nexport const presentations = []\n')
+    put(dir, 'src/presentations/index.ts', "// customised\nimport type { PresentationEntry } from './types.ts'\nexport const presentations: PresentationEntry[] = []\n")
     const result = apply(dir, { confirmed: true })
     expect(result.scaffolded).toEqual(['kit'])
     expect(result.created.every((f) => f.startsWith('src/presentation-kit/') || f.startsWith('scripts/'))).toBe(true)
@@ -224,6 +252,46 @@ describe('addPresentation', () => {
     expect(() => addPresentation(dir, 'Bad Slug', 'x')).toThrow(/Invalid slug/)
     addPresentation(dir, 'dup', 'Dup')
     expect(() => addPresentation(dir, 'dup', 'Dup')).toThrow(/already exists/)
+  })
+
+  it('registers into a customised index.tsx without markers, keeping its entries', () => {
+    const dir = tmp()
+    apply(dir)
+    rmSync(path.join(dir, 'src/presentations/index.ts'))
+    put(dir, 'src/presentations/index.tsx', "import type { PresentationEntry } from './types.ts'\nexport const presentations: PresentationEntry[] = [{ slug: 'old', title: 'Old', load: () => import('./old/Talk.tsx') }] // [done]\n")
+    addPresentation(dir, 'fresh', 'Fresh')
+    const index = readFileSync(path.join(dir, 'src/presentations/index.tsx'), 'utf8')
+    expect(index).toContain("slug: 'old'")
+    expect(index).toContain("slug: 'fresh'")
+    expect(index.indexOf("slug: 'old'")).toBeLessThan(index.indexOf("slug: 'fresh'"))
+    expect(index).toMatch(/\},\s*\{\s*slug: 'fresh'/)
+  })
+
+  it('registers into an empty one-line array', () => {
+    const dir = tmp()
+    apply(dir)
+    put(dir, 'src/presentations/index.ts', 'export const presentations = []\n')
+    addPresentation(dir, 'solo', 'Solo')
+    expect(readFileSync(path.join(dir, 'src/presentations/index.ts'), 'utf8')).toMatch(/\[\s*\{\s*slug: 'solo'[\s\S]*\},?\s*\]/)
+  })
+
+  it('fails loudly, writing nothing, when the index has no array it can extend', () => {
+    const dir = tmp()
+    apply(dir)
+    put(dir, 'src/presentations/index.ts', 'export const presentations = buildList()\n')
+    expect(() => addPresentation(dir, 'nope', 'Nope')).toThrow(/by hand/)
+    expect(existsSync(path.join(dir, 'src/presentations/nope'))).toBe(false)
+  })
+
+  it('substitutes any title as a valid string literal in every generated file', () => {
+    const dir = tmp()
+    apply(dir)
+    const title = `Say "hi" \\ {x} <b> it's`
+    addPresentation(dir, 'quoted', title)
+    const talk = readFileSync(path.join(dir, 'src/presentations/quoted/Talk.tsx'), 'utf8')
+    expect(talk).toContain(`title={${JSON.stringify(title)}}`)
+    expect(readFileSync(path.join(dir, 'src/presentations/quoted/steps/index.ts'), 'utf8')).toContain(`title: ${JSON.stringify(title)}`)
+    expect(readFileSync(path.join(dir, 'src/presentations/quoted/steps/Scene.tsx'), 'utf8')).toContain(`<strong>{${JSON.stringify(title)}}</strong>`)
   })
 
   it('adds into presentations/ for a monorepo target', () => {

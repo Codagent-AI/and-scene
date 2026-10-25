@@ -187,7 +187,7 @@ describe('attribution and branding', () => {
     show(<Presentation steps={grouped} title="Deck" />)
     const a = document.querySelector('[data-presentation-attribution]') as HTMLAnchorElement
     expect(a.textContent).toBe('made by and-scene')
-    expect(a.getAttribute('href')).toBe('https://github.com/and-scene/and-scene')
+    expect(a.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene')
     expect(a.style.right).toBe('16px')
     expect(a.style.bottom).toBe('8px')
   })
@@ -277,9 +277,8 @@ describe('entity transitions', () => {
     expect((appear as HTMLElement).style.opacity).toBe('0')
   })
 
-  it('delays newcomers until the persisting entities have mostly finished their layout morph', () => {
-    expect(ENTER_DELAY).toBeGreaterThan(LAYOUT_T.duration / 2)
-    expect(ENTER_DELAY).toBeLessThanOrEqual(LAYOUT_T.duration)
+  it('delays newcomers until the persisting entities have finished their layout morph', () => {
+    expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T.duration)
   })
 
   it('animates a departing entity out before removing it', async () => {

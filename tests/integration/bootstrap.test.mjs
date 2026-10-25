@@ -25,6 +25,7 @@ describe('INT-001: materialized bootstrap is complete and style-neutral', () => 
     // Invoked from a working directory outside both the source repository and the target.
     steps.apply = await run(process.execPath, [SCAFFOLD, 'apply', app], { cwd: outside })
     steps.add = await run(process.execPath, [SCAFFOLD, 'add', app, 'smoke', 'Smoke Test'], { cwd: outside })
+    steps.addQuoted = await run(process.execPath, [SCAFFOLD, 'add', app, 'quoted', `Say "hi" \\ {x} <b> it's`], { cwd: outside })
     steps.install = await run('npm', ['ci', '--prefer-offline', '--no-audit', '--no-fund'], { cwd: app })
     steps.build = await run('npm', ['run', 'build'], { cwd: app })
     steps.lint = await run('npm', ['run', 'lint'], { cwd: app })
@@ -32,12 +33,13 @@ describe('INT-001: materialized bootstrap is complete and style-neutral', () => 
   })
 
   it('scaffolds, installs from the committed lock data, builds, and lints', () => {
-    for (const k of ['apply', 'add', 'install', 'build', 'lint']) expect(steps[k].code, `${k}\n${steps[k].out}`).toBe(0)
+    for (const k of ['apply', 'add', 'addQuoted', 'install', 'build', 'lint']) expect(steps[k].code, `${k}\n${steps[k].out}`).toBe(0)
   })
 
   it('renders the registered route through its own verification entry point', () => {
     expect(steps.verify.code, steps.verify.out).toBe(0)
     expect(steps.verify.out).toContain('smoke: rendered 2 steps without errors')
+    expect(steps.verify.out).toContain('quoted: rendered 2 steps without errors')
     expect(steps.verify.out).toContain('[verify] PASS')
   })
 

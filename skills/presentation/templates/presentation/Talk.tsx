@@ -3,5 +3,5 @@ import { STEPS } from './steps/index.ts'
 import './styles.css'
 
 export default function Talk() {
-  return <Presentation steps={STEPS} title="__TITLE__" initialMode="browse" />
+  return <Presentation steps={STEPS} title={__TITLE_JSON__} initialMode="browse" />
 }

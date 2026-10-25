@@ -2,8 +2,9 @@
 // Capture a settled screenshot of every step of a registered presentation from a
 // production preview, and print advisory visual warnings. Warnings never fail the run.
 //
-//   node scripts/inspect-presentation.mjs <slug> [--viewport 1440x900] [--settle 1200]
+//   node scripts/inspect-presentation.mjs <slug> [--viewport 1440x900] [--settle 2000]
 //        [--out .presentation-inspect/<slug>] [--skip-build]
+// A capture waits the settle interval (minimum) and then until entity motion has stopped.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { chromium } from 'playwright'
@@ -22,7 +23,8 @@ if (!slug) {
   process.exit(2)
 }
 const [vw, vh] = flag('viewport', '1440x900').split('x').map(Number)
-const settleMs = Number(flag('settle', 1200))
+const settleMs = Number(flag('settle', 2000))
+const SETTLE_CAP_MS = 10000
 const outDir = path.resolve(root, flag('out', path.join('.presentation-inspect', slug)))
 
 if (!readRegistrySlugs(root).includes(slug)) {
@@ -101,6 +103,30 @@ function collect(styleProps) {
   }
 }
 
+/** In the page: running animations (including delayed ones) and a signature of every entity's box and opacity. */
+function motionSignature() {
+  const parts = [...document.querySelectorAll('[data-presentation-entity],[data-presentation-appear],[data-presentation-scene]')].map((el) => {
+    const r = el.getBoundingClientRect()
+    return [el.getAttribute('data-presentation-entity') ?? '', r.x.toFixed(1), r.y.toFixed(1), r.width.toFixed(1), r.height.toFixed(1), getComputedStyle(el).opacity].join(':')
+  })
+  return { running: document.getAnimations().filter((a) => a.playState === 'running').length, parts: parts.join(',') }
+}
+
+/** Waits the settle interval, then until entity geometry and opacity stop changing. */
+async function waitSettled(page) {
+  await page.waitForTimeout(settleMs)
+  const deadline = Date.now() + SETTLE_CAP_MS
+  let last = await page.evaluate(motionSignature)
+  let stableFor = 0
+  while (stableFor < 3 && Date.now() < deadline) {
+    await page.waitForTimeout(100)
+    const next = await page.evaluate(motionSignature)
+    stableFor = next.running === 0 && last.running === 0 && next.parts === last.parts ? stableFor + 1 : 0
+    last = next
+  }
+  return stableFor >= 3
+}
+
 async function main() {
   if (!argv.includes('--skip-build')) {
     const build = await runBuild(root)
@@ -119,7 +145,8 @@ async function main() {
     const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
     for (let i = 0; i < count; i++) {
       const advancedAt = Date.now()
-      await page.waitForTimeout(settleMs)
+      const settled = await waitSettled(page)
+      if (!settled) warnings.push(`step ${i}: motion was still running after ${SETTLE_CAP_MS}ms; the screenshot may show an unfinished transition`)
       const file = path.join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
       await page.screenshot({ path: file })
       captures.push({ step: i, file: path.relative(root, file), advancedAt, capturedAt: Date.now(), settleMs })

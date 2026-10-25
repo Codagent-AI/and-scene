@@ -19,14 +19,21 @@ class CheckFailure extends Error {
 
 const log = (msg) => console.log(`[verify] ${msg}`)
 
+// The and-scene repository itself must always carry its canonical sample outline;
+// scaffolded projects (any other package name) have no reference sample to check.
 function loadReference() {
   const file = path.join(root, 'scripts/reference-outline.json')
-  return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null
+  const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'))
+  if (existsSync(file)) return JSON.parse(readFileSync(file, 'utf8'))
+  if (pkg.name === 'and-scene') {
+    throw new CheckFailure('sample', 'scripts/reference-outline.json is missing; the reference sample cannot be verified')
+  }
+  return null
 }
 
 async function renderPresentation(browser, baseUrl, slug, reference) {
   const page = await browser.newPage()
-  let currentStep = 'load'
+  let currentStep = '0' // errors before the first step settles belong to step 0
   const problems = []
   page.on('console', (m) => m.type() === 'error' && problems.push(`console.error at step ${currentStep}: ${m.text()}`))
   page.on('pageerror', (e) => problems.push(`uncaught exception at step ${currentStep}: ${e.message}`))

@@ -17,7 +17,7 @@ export function Scene({ payload: { stage } }: SceneProps<Payload>) {
   return (
     <SceneLayer>
       <Box id={E.subject} at={{ x: 80, y: 130, w: 220, h: 80 }}>
-        <strong>__TITLE__</strong>
+        <strong>{__TITLE_JSON__}</strong>
       </Box>
       <Appear when={stage >= 2}>
         <Arrow id={E.link} from={[300, 170]} to={[560, 170]} />

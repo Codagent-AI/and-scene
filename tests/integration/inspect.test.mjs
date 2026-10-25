@@ -14,6 +14,9 @@ export function Scene({ payload: { stage } }: SceneProps<Payload>) {
   return (
     <SceneLayer>
       <Label id="base" at={{ x: 40, y: 40, w: 200, h: 20 }}>baseline text</Label>
+      <Appear when={stage === 2} delay={1.2}>
+        <Label id="late" at={{ x: 40, y: 300, w: 200, h: 20 }}>late arrival</Label>
+      </Appear>
       <Appear when={stage === 2}>
         <Label id="clash-a" at={{ x: 300, y: 150, w: 240, h: 20 }}>colliding text one</Label>
         <Label id="clash-b" at={{ x: 320, y: 152, w: 240, h: 20 }}>colliding text two</Label>
@@ -88,6 +91,13 @@ describe('INT-002: screenshot helper emits faithful artifacts and advisory warni
 
   it('captures only after the settle interval has elapsed for every step', () => {
     for (const c of report('fixture-rough').captures) expect(c.capturedAt - c.advancedAt).toBeGreaterThanOrEqual(SETTLE)
+  })
+
+  it('keeps waiting past the settle interval until entity motion has actually finished', () => {
+    // Step 1 introduces a newcomer behind a 1.2s delay plus the enter delay and fade: far beyond the 500ms interval.
+    const second = report('fixture-rough').captures[1]
+    expect(second.capturedAt - second.advancedAt).toBeGreaterThanOrEqual(2000)
+    expect(results.rough.out).not.toMatch(/still running/)
   })
 
   it('warns about the unmarked collision on its own step only', () => {

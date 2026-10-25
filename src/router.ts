@@ -9,7 +9,12 @@ export type Route =
 export function resolveRoute(pathname: string, registry: readonly PresentationEntry[]): Route {
   const path = pathname.replace(/\/+$/, '')
   if (path === '') return { kind: 'landing' }
-  const slug = decodeURIComponent(path.replace(/^\//, ''))
+  let slug: string
+  try {
+    slug = decodeURIComponent(path.replace(/^\//, ''))
+  } catch {
+    return { kind: 'not-found', path: pathname } // malformed escape such as /%FF
+  }
   const entry = registry.find((e) => e.slug === slug)
   return entry ? { kind: 'presentation', entry } : { kind: 'not-found', path: pathname }
 }

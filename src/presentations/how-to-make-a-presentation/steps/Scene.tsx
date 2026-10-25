@@ -25,7 +25,7 @@ function Content({ id, beat }: { id: string; beat: number }) {
  if (id.startsWith('morph')) return <><span>→</span><small>morph</small></>
  if (id === 'ghost') return <>···</>
  if (id === 'depth') return <>partial <span>↔</span> full</>
- if (id === 'socket') return <>⊞ shared scene kit · boxes, arrows, motion</>
+ if (id === 'socket') return <>⊞ shared scene kit<span className="socket-detail"> · boxes, arrows, motion</span></>
  if (id === 'pipeline') return <>→</>
  if (id === 'verify') return <><strong>verify</strong><motion.span className="verify-checks" initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ delay: ENTER_DELAY + 0.15, duration: 0.12 }}>build + render</motion.span><motion.span className="verify-pass" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: ENTER_DELAY + 0.35, duration: 0.12 }}>✓ passed</motion.span></>
  if (id === 'modify') return <><svg viewBox="0 0 245 65" aria-label="modify from conversation to route"><path d="M230 0 Q230 40 20 45 L0 63 M0 63 L14 59 M0 63 L4 48" /></svg><span>ask → edit in place</span></>

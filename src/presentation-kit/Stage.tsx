@@ -13,8 +13,8 @@ import { useFitScale } from './useFitScale'
 export function Stage<T>({ step, mode }: { step: Step<T>; mode: Mode }) {
   const scale = useFitScale(mode), id = useId()
   const Scene = step.Scene
-  return <div data-presentation-stage="" style={{ position: 'absolute', top: STAGE_LAYOUT[mode].top, bottom: STAGE_LAYOUT[mode].bottom, left: 0, right: 0, display: 'grid', placeItems: 'center' }}>
-    <div data-presentation-canvas="" style={{ width: DESIGN_W, height: DESIGN_H, position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%, -50%) scale(${scale})` }}>
+  return <div data-presentation-stage="" style={{ position: 'absolute', top: STAGE_LAYOUT[mode].top, bottom: STAGE_LAYOUT[mode].bottom, left: 0, right: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
+    <div data-presentation-canvas="" style={{ width: DESIGN_W, height: DESIGN_H, position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%, -50%) scale(${scale})`, pointerEvents: 'auto' }}>
       <LayoutGroup id={id}><AnimatePresence mode="sync"><motion.div key={`${sceneId(step.Scene)}:${step.groupKey ?? step.id}`} data-presentation-scene="" style={{ position: 'absolute', inset: 0 }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: ENTER_T }}><Scene payload={step.payload} /></motion.div></AnimatePresence></LayoutGroup>
     </div>
   </div>

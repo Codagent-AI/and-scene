@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { Presentation, LAYOUT_T, ENTER_T } from '../../src/presentation-kit'
+import { fitScale } from '../../src/presentation-kit/useFitScale'
 import { EvolvingScene, geometry, visibleEntities } from '../../src/presentations/how-to-make-a-presentation/steps/Scene'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'
 import { entities } from '../../src/presentations/how-to-make-a-presentation/entities'
@@ -90,6 +91,14 @@ describe('registry routing and styling contracts',()=>{
  })
  it('styles active navigation and attribution locally with effective declarations',()=>{
   const css=readFileSync(sample+'presentation.css','utf8');expect(css).toMatch(/\[data-presentation-progress\]\[data-presentation-active\]\s*\{[^}]*background: #365d40; color: #fff/);expect(css).toMatch(/\[data-presentation-toc-entry\]\[data-presentation-active\]\s*\{[^}]*font-weight: 700/);expect(css).toMatch(/\[data-presentation-attribution\]\s*\{[^}]*font-size: 12px; color: #596b55; text-decoration: none/)
+ })
+ it('keeps scene text legible at phone widths by authoring larger narrow sizes and dropping decoration',()=>{
+  const css=readFileSync(sample+'presentation.css','utf8'),narrow=css.slice(css.lastIndexOf('@media (max-width: 700px)'))
+  const size=(selector:string)=>Number(new RegExp(selector.replace(/[.]/g,'\\.')+'[^{]*\\{[^}]*font-size: (\\d+)px').exec(narrow)?.[1])
+  expect(fitScale(390,844,'browse')).toBeGreaterThanOrEqual(0.4)
+  for(const sel of ['.you, .making .skill','.socket','.verify strong','.card1 strong, .making .card2 strong, .making .card3 strong'])expect(size(sel),sel).toBeGreaterThanOrEqual(20)
+  for(const sel of ['.entity','.card-parts','.tray-label','.edit-flag','.reveal-label','.verify-checks','.modify span'])expect(size(sel)*fitScale(390,844,'browse'),sel).toBeGreaterThanOrEqual(6)
+  expect(narrow).toMatch(/\.socket-detail[^{]*\{[^}]*display: none/)
  })
  it('public step hooks track the rendered active caption and diagram',()=>{
   render(<Presentation steps={STEPS} title={reference.title}/>);for(let i=0;i<9;i++){expect(document.querySelector('main')!.getAttribute('data-step-index')).toBe(String(i));expect(document.querySelector('main')!.getAttribute('data-step-count')).toBe('9');expect(document.querySelector('main')!.getAttribute('data-presentation-step-count')).toBe('9');expect(document.querySelector('main')!.getAttribute('data-presentation-step-index')).toBe(String(i));expect(document.querySelector('[data-presentation-caption]')!.textContent).toBe(reference.steps[i].caption);if(i<8)fireEvent.keyDown(window,{key:'ArrowRight'})}

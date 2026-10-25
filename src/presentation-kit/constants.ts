@@ -6,7 +6,7 @@ export const LAYOUT_T = 0.45
 export const ENTER_DELAY = 0.46
 export const ENTER_T = 0.24
 export const STAGE_LAYOUT = {
-  browse: { top: 110, bottom: 210, sides: 32 },
-  present: { top: 76, bottom: 100, sides: 32 },
+  browse: { top: 110, bottom: 210, sides: 12 },
+  present: { top: 76, bottom: 100, sides: 12 },
 } as const
 export const TOC_MIN_WIDTH = 1024

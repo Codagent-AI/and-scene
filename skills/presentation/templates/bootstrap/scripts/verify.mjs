@@ -31,7 +31,8 @@ try {
    await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur() })
    if (await root.getAttribute('data-presentation-mode') === 'present') {
     const index = await root.getAttribute('data-step-index')
-    await page.keyboard.press('p')
+    try { await page.locator('[data-presentation-mode-toggle]').click({ timeout: 3000 }) }
+    catch { errors.check(); throw new Error('transition: mode toggle is not clickable') }
     await page.waitForFunction(() => document.querySelector('[data-presentation-root]')?.getAttribute('data-presentation-mode') === 'browse')
     if (await root.getAttribute('data-step-index') !== index) throw new Error('transition: mode toggle changed step')
     console.log('MODE normalized present to browse without changing step')

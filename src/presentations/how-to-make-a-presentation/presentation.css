@@ -54,3 +54,25 @@
  .making [aria-label="Steps"] { gap: 5px; }
  .making [data-presentation-progress] { width: 22px; height: 22px; }
 }
+/* The 880x380 canvas scales to about 0.37 on a phone, so scene text is authored larger here and secondary detail is dropped. */
+@media (max-width: 700px) {
+ .making .entity { font-size: 18px; white-space: nowrap; }
+ .making .you, .making .skill { font-size: 24px; }
+ .making .node-symbol, .making .card-number, .making .mini-diagram, .making .morph1 small, .making .morph2 small, .making .socket-detail { display: none; }
+ .making .prompt { font-size: 20px; }
+ .making .question { font-size: 20px; }
+ .making .tray-label { top: -26px; font-size: 18px; letter-spacing: .05em; }
+ .making .card1, .making .card2, .making .card3 { padding: 6px 8px; white-space: normal; }
+ .making .card1 strong, .making .card2 strong, .making .card3 strong { display: block; font-size: 20px; line-height: 24px; }
+ .making .card-parts { font-size: 16px; line-height: 17px; margin-top: 4px; }
+ .making .morph1, .making .morph2 { font-size: 24px; }
+ .making .ghost { font-size: 24px; }
+ .making .depth { font-size: 18px; width: auto !important; min-width: 115px; padding: 0 6px; }
+ .making .socket { font-size: 22px; }
+ .making .verify strong { font-size: 24px; }
+ .making .verify-checks { font-size: 16px; }
+ .making .verify-pass { font-size: 20px; }
+ .making .modify span { font-size: 20px; }
+ .making .edit-flag { top: auto; bottom: -10px; right: 6px; font-size: 16px; padding: 3px 6px; }
+ .making .reveal-label { font-size: 18px; letter-spacing: .08em; }
+}

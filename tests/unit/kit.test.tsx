@@ -59,6 +59,12 @@ describe('mode and chrome', () => {
   for (let i=0;i<4;i++) { key('p'); expect(index()).toBe(1); fireEvent.click(screen.getByLabelText('Toggle presentation mode')); expect(index()).toBe(1) }
   v.unmount(); render(<Presentation title="test" steps={steps} initialMode="browse" />); expect(root().getAttribute('data-presentation-mode')).toBe('browse')
  })
+ it('keeps chrome controls reachable by letting only the canvas capture pointers', () => {
+  render(<Presentation title="test" steps={steps} />)
+  const stage = document.querySelector<HTMLElement>('[data-presentation-stage]')!, canvas = document.querySelector<HTMLElement>('[data-presentation-canvas]')!
+  expect(stage.style.pointerEvents).toBe('none'); expect(canvas.style.pointerEvents).toBe('auto')
+  expect(stage.contains(screen.getByLabelText('Toggle presentation mode'))).toBe(false)
+ })
  it('jumps by actual progress and era buttons with current-state semantics', () => {
   resize(1440,900); render(<Presentation title="test" steps={steps} />)
   fireEvent.click(screen.getByLabelText('Step 4: D')); expect(index()).toBe(3)

@@ -1,39 +1,27 @@
-import { Sparkles } from 'lucide-react'
-import { presentations } from './presentations'
+import { presentations } from './presentations/index.ts'
+import type { PresentationEntry } from './presentations/types.ts'
 
-export function Landing() {
+export function Landing({ registry = presentations }: { registry?: readonly PresentationEntry[] }) {
   return (
-    <main>
-      <div>
-        <p>and-scene</p>
-        <h1>Presentations as evolving diagrams.</h1>
-        <p>
-          One shared canvas holds the talk together. Each step changes positions,
-          labels, focus, or connections while the audience follows one idea as it
-          develops.
-        </p>
+    <main className="landing">
+      <h1>and-scene</h1>
+      <ul>
+        {registry.map((p) => (
+          <li key={p.slug}>
+            <a href={`/${p.slug}`}>{p.title}</a>
+          </li>
+        ))}
+      </ul>
+    </main>
+  )
+}
 
-        <section aria-labelledby="presentations-heading">
-          <h2 id="presentations-heading">Presentations</h2>
-          {presentations.length === 0 ? (
-            <p>
-              No presentations registered yet. Add one under{' '}
-              <code>src/presentations/</code> and register it in{' '}
-              <code>index.ts</code>.
-            </p>
-          ) : (
-            <ul>
-              {presentations.map((entry) => (
-                <li key={entry.slug}>
-                  <a href={`/${entry.slug}`}>
-                    <Sparkles size={18} aria-hidden /> {entry.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
+export function NotFound({ path }: { path: string }) {
+  return (
+    <main className="landing">
+      <h1>Not found</h1>
+      <p>No presentation is registered at {path}.</p>
+      <a href="/">Back to all presentations</a>
     </main>
   )
 }

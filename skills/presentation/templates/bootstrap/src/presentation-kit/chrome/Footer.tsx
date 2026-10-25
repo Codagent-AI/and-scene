@@ -1,139 +1,117 @@
-import { AnimatePresence, motion } from 'motion/react'
-import { EASE } from '../constants'
-import type { Mode, StepMeta } from '../types'
+import type { Mode, StepMeta } from '../types.ts'
+import { stepNumber } from './sections.ts'
 
-interface FooterProps {
-  steps: StepMeta[]
-  step: number
-  last: number
+export interface FooterProps {
+  steps: readonly StepMeta[]
+  index: number
   mode: Mode
-  homeHref?: string
-  onPrev: () => void
+  onJump: (index: number) => void
   onNext: () => void
-  onSelect: (i: number) => void
+  onPrev: () => void
 }
 
-/**
- * Bottom chrome: the per-step caption (browse mode only — the title now lives
- * at the top in both modes), a row of progress dots, and prev/next.
- */
-export function Footer({
-  steps,
-  step,
-  last,
-  mode,
-  homeHref = '/',
-  onPrev,
-  onNext,
-  onSelect,
-}: FooterProps) {
-  const current = steps[step]
-  const browsing = mode === 'browse'
+const blurOnPointer = (e: { detail: number; currentTarget: HTMLElement }) => {
+  if (e.detail > 0) e.currentTarget.blur()
+}
 
+export function Footer({ steps, index, mode, onJump, onNext, onPrev }: FooterProps) {
+  const step = steps[index]
+  const marker = (
+    <span data-presentation-marker="">
+      {String(stepNumber(index)).padStart(2, '0')} / {String(steps.length).padStart(2, '0')}
+    </span>
+  )
+  if (mode === 'present') {
+    return (
+      <footer
+        data-presentation-footer=""
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          padding: '12px 16px 40px',
+          boxSizing: 'border-box',
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 12,
+          justifyContent: 'center',
+        }}
+      >
+        {marker}
+        <h2 data-presentation-step-title="">{step.title}</h2>
+      </footer>
+    )
+  }
   return (
     <footer
-      data-presentation-footer
-      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20, padding: '0 40px 24px' }}
+      data-presentation-footer=""
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: 184,
+        padding: '8px 16px 36px',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        overflow: 'hidden',
+      }}
     >
-      <div data-presentation-footer-inner style={{ maxWidth: '48rem', margin: '0 auto' }}>
-        {/* Browse: the caption sits here, above the dots. Presenter: nothing —
-            the title is at the top now, so the band collapses away. */}
-        {browsing && (
-          <div
-            data-presentation-caption-shell
-            style={{
-              minHeight: '4.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={`caption-${step}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.35, ease: EASE }}
-                data-presentation-caption
-                style={{ textAlign: 'center' }}
-              >
-                {current.caption}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-        )}
-
-        <div
-          data-presentation-footer-row
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: browsing ? 'space-between' : 'center',
-            gap: browsing ? 12 : 0,
-            marginTop: browsing ? 20 : 0,
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+        {marker}
+        <h2 data-presentation-step-title="">{step.title}</h2>
+      </div>
+      <p data-presentation-step-caption="" style={{ margin: 0 }}>
+        {step.caption}
+      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto' }}>
+        <button
+          type="button"
+          data-presentation-nav-button="prev"
+          aria-label="Previous step"
+          disabled={index === 0}
+          onClick={(e) => {
+            onPrev()
+            blurOnPointer(e)
           }}
         >
-          {/* progress dots — centered on their own in presenter mode. In browse
-              mode they share the row with the nav, so they take the leftover
-              space and wrap rather than shoving prev/next off a narrow screen. */}
-          <div
-            data-testid="step-progress"
-            data-step-count={steps.length}
-            data-step-index={step}
-            data-presentation-progress
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              minWidth: browsing ? 0 : undefined,
-              flex: browsing ? '1 1 0' : undefined,
-              flexWrap: browsing ? 'wrap' : undefined,
-            }}
-          >
-            {steps.map((s, i) => (
-              <button
-                key={s.id}
-                onClick={() => onSelect(i)}
-                // Consecutive steps in an era share that label, so era alone gives
-                // many dots the same name. The position + title make each dot
-                // distinct for screen readers; blank-title chrome cards fall back
-                // to era.
-                aria-label={`Go to step ${i + 1}: ${s.title || s.era}`}
-                aria-current={i === step ? 'step' : undefined}
-                data-presentation-progress-dot
-                data-active={i === step ? 'true' : undefined}
-              />
-            ))}
-          </div>
-
-          {/* nav — hidden in presenter mode */}
-          {browsing && (
-            <div
-              data-presentation-nav
-              style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: 12 }}
-            >
-              <button
-                onClick={onPrev}
-                disabled={step === 0}
-                data-presentation-button="previous"
-              >
-                &#x2190; prev
-              </button>
-              {/* On the last step there's nowhere further to advance, so the
-                  next button becomes an exit back to the home route. */}
-              {step === last ? (
-                <a href={homeHref} data-presentation-button="home">
-                  home
-                </a>
-              ) : (
-                <button onClick={onNext} data-presentation-button="next">
-                  next &#x2192;
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+          prev
+        </button>
+        <nav
+          data-presentation-progress=""
+          aria-label="Step progress"
+          style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}
+        >
+          {steps.map((s, i) => (
+            <button
+              key={s.id}
+              type="button"
+              data-presentation-progress-item=""
+              data-active={i === index ? 'true' : 'false'}
+              aria-current={i === index ? 'step' : undefined}
+              aria-label={`Go to step ${stepNumber(i)}: ${s.title}`}
+              onClick={(e) => {
+                onJump(i)
+                blurOnPointer(e)
+              }}
+            />
+          ))}
+        </nav>
+        <button
+          type="button"
+          data-presentation-nav-button="next"
+          aria-label="Next step"
+          disabled={index === steps.length - 1}
+          onClick={(e) => {
+            onNext()
+            blurOnPointer(e)
+          }}
+        >
+          next
+        </button>
       </div>
     </footer>
   )

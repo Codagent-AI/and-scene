@@ -1,10 +1,20 @@
+import type { PresentationEntry } from './presentations/types.ts'
+
 export type Route =
   | { kind: 'landing' }
-  | { kind: 'presentation'; slug: string }
+  | { kind: 'presentation'; entry: PresentationEntry }
+  | { kind: 'not-found'; path: string }
 
-export function resolveRoute(pathname: string, slugs: ReadonlySet<string>): Route {
-  if (pathname === '/' || pathname === '') return { kind: 'landing' }
-  const slug = pathname.replace(/^\//, '').replace(/\/$/, '')
-  if (slug && slugs.has(slug)) return { kind: 'presentation', slug }
-  return { kind: 'landing' }
+/** "/" is the landing page, "/<slug>" a registered presentation, anything else not found. */
+export function resolveRoute(pathname: string, registry: readonly PresentationEntry[]): Route {
+  const path = pathname.replace(/\/+$/, '')
+  if (path === '') return { kind: 'landing' }
+  let slug: string
+  try {
+    slug = decodeURIComponent(path.replace(/^\//, ''))
+  } catch {
+    return { kind: 'not-found', path: pathname } // malformed escape such as /%FF
+  }
+  const entry = registry.find((e) => e.slug === slug)
+  return entry ? { kind: 'presentation', entry } : { kind: 'not-found', path: pathname }
 }

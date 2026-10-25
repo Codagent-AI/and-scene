@@ -1,12 +1,7 @@
-import type { ComponentType } from 'react'
+import type { PresentationEntry } from './types.ts'
 
-export interface PresentationEntry {
-  slug: string
-  title: string
-  load: () => Promise<{ default: ComponentType }>
-}
-
-/** Explicit registry — add a folder + one line here for each presentation. */
-export const presentations: PresentationEntry[] = []
-
-export const presentationSlugs = new Set(presentations.map((p) => p.slug))
+// Explicit registry: one line per presentation, in review-friendly order.
+export const presentations: PresentationEntry[] = [
+  // presentations:begin
+  // presentations:end
+]

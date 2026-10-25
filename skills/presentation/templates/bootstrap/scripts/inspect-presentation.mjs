@@ -1,429 +1,191 @@
-import { spawn } from 'node:child_process'
-import { mkdir } from 'node:fs/promises'
-import { dirname, join, resolve, sep } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+#!/usr/bin/env node
+// Capture a settled screenshot of every step of a registered presentation from a
+// production preview, and print advisory visual warnings. Warnings never fail the run.
+//
+//   node scripts/inspect-presentation.mjs <slug> [--viewport 1440x900] [--settle 2000]
+//        [--out .presentation-inspect/<slug>] [--skip-build]
+// A capture waits the settle interval (minimum) and then until entity motion has stopped.
+import { mkdirSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
 import { chromium } from 'playwright'
+import { attributionIssues, findOverlaps, isActiveDistinct } from './inspect-lib.mjs'
+import { readRegistrySlugs, runBuild, startPreview } from './lib.mjs'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const VITE_BIN = join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'vite.cmd' : 'vite')
-const OUT_ROOT = join(ROOT, 'artifacts', 'presentation-inspection')
-const DEFAULT_SETTLE_MS = 950
-const PREVIEW_URL_RE = /http:\/\/127\.0\.0\.1:(\d+)\//
+const root = process.cwd()
+const argv = process.argv.slice(2)
+const flag = (name, fallback) => {
+  const i = argv.indexOf(`--${name}`)
+  return i >= 0 ? argv[i + 1] : fallback
+}
+const slug = argv.find((a, i) => !a.startsWith('--') && !argv[i - 1]?.startsWith('--'))
+if (!slug) {
+  console.error('usage: inspect-presentation.mjs <slug> [--viewport WxH] [--settle ms] [--out dir] [--skip-build]')
+  process.exit(2)
+}
+const [vw, vh] = flag('viewport', '1440x900').split('x').map(Number)
+const settleMs = Number(flag('settle', 2000))
+const SETTLE_CAP_MS = 10000
+const outDir = path.resolve(root, flag('out', path.join('.presentation-inspect', slug)))
 
-function parseArgs() {
-  const args = process.argv.slice(2)
-  const opts = { slug: '', width: 1440, height: 900, settleMs: DEFAULT_SETTLE_MS }
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
-    if (arg === '--width') opts.width = Number(args[++i])
-    else if (arg === '--height') opts.height = Number(args[++i])
-    else if (arg === '--settle-ms') opts.settleMs = Number(args[++i])
-    else if (arg === '--slug' || arg === '--route') opts.slug = normalizeSlug(args[++i] ?? '')
-    else if (!arg.startsWith('--') && !opts.slug) opts.slug = normalizeSlug(arg)
-  }
-  if (!Number.isFinite(opts.width) || opts.width < 320) throw new Error(`invalid width: ${opts.width}`)
-  if (!Number.isFinite(opts.height) || opts.height < 320) throw new Error(`invalid height: ${opts.height}`)
-  if (!Number.isFinite(opts.settleMs) || opts.settleMs < 0) {
-    throw new Error(`invalid --settle-ms: ${opts.settleMs}`)
-  }
-  return opts
+if (!readRegistrySlugs(root).includes(slug)) {
+  console.error(`[inspect] "${slug}" is not registered in src/presentations/index.ts`)
+  process.exit(2)
 }
 
-function normalizeSlug(value) {
-  return value.replace(/^https?:\/\/[^/]+/, '').replace(/^\//, '').replace(/\/$/, '')
-}
+const STYLE_PROPS = [
+  'backgroundColor', 'color', 'borderTopColor', 'borderTopWidth', 'outlineStyle', 'width', 'height',
+  'opacity', 'fontWeight', 'textDecorationLine', 'boxShadow', 'transform', 'fontSize', 'fontFamily',
+]
 
-function artifactDirForSlug(slug) {
-  const safeName = slug.replace(/[\\/]+/g, '_')
-  if (!safeName || safeName.includes('..')) {
-    throw new Error(`invalid presentation slug for artifact output: ${slug}`)
+/** Runs in the page: collects text/chrome boxes and chrome styles for analysis. */
+function collect(styleProps) {
+  const rootEl = document.querySelector('[data-presentation-root]')
+  const describe = (el) => {
+    const hook = [...el.attributes].find((a) => a.name.startsWith('data-presentation-'))?.name
+    const text = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 30)
+    return `${el.tagName.toLowerCase()}${hook ? `[${hook}]` : ''}${text ? ` "${text}"` : ''}`
   }
-
-  const root = resolve(OUT_ROOT)
-  const outDir = resolve(root, safeName)
-  if (outDir !== root && outDir.startsWith(`${root}${sep}`)) return outDir
-  throw new Error(`presentation artifact output escaped ${OUT_ROOT}: ${slug}`)
+  const visible = (el) => {
+    for (let n = el; n && n !== document.body; n = n.parentElement) {
+      const s = getComputedStyle(n)
+      if (s.display === 'none' || s.visibility === 'hidden' || Number(s.opacity) < 0.05) return false
+    }
+    return true
+  }
+  const textRect = (el) => {
+    const range = document.createRange()
+    const rects = []
+    for (const node of el.childNodes) {
+      if (node.nodeType === 3 && node.textContent.trim()) {
+        range.selectNodeContents(node)
+        rects.push(...range.getClientRects())
+      }
+    }
+    if (!rects.length) return null
+    const x = Math.min(...rects.map((r) => r.left))
+    const y = Math.min(...rects.map((r) => r.top))
+    return { x, y, w: Math.max(...rects.map((r) => r.right)) - x, h: Math.max(...rects.map((r) => r.bottom)) - y }
+  }
+  const chromeSel = '[data-presentation-progress-item],[data-presentation-toc-item],[data-presentation-nav-button],[data-presentation-mode-toggle]'
+  const ids = new Map()
+  const nameOf = (el) => {
+    if (!ids.has(el)) ids.set(el, `${describe(el)}#${ids.size}`)
+    return ids.get(el)
+  }
+  const items = []
+  for (const el of rootEl.querySelectorAll('*')) {
+    if (el.closest('svg') || !visible(el)) continue
+    const isChrome = el.matches(chromeSel)
+    const rect = isChrome ? el.getBoundingClientRect() : textRect(el)
+    if (!rect) continue
+    const r = { x: rect.x, y: rect.y, w: rect.w ?? rect.width, h: rect.h ?? rect.height }
+    if (r.w <= 0 || r.h <= 0) continue
+    const ancestors = []
+    for (let n = el.parentElement; n; n = n.parentElement) ancestors.push(nameOf(n))
+    items.push({ name: nameOf(el), rect: r, allowOverlap: el.closest('[data-presentation-allow-overlap]') !== null, ancestors })
+  }
+  const styleOf = (el) => {
+    const s = getComputedStyle(el)
+    return Object.fromEntries(styleProps.map((p) => [p, s[p]]))
+  }
+  const activeVsInactive = (sel) => {
+    const all = [...rootEl.querySelectorAll(sel)]
+    const active = all.find((e) => e.getAttribute('aria-current') || e.dataset.active === 'true')
+    const inactive = all.find((e) => e !== active)
+    return active && inactive ? { name: describe(active), active: styleOf(active), inactive: styleOf(inactive) } : null
+  }
+  const attr = rootEl.querySelector('[data-presentation-attribution]')
+  return {
+    items,
+    progress: activeVsInactive('[data-presentation-progress-item]'),
+    toc: activeVsInactive('[data-presentation-toc-item]'),
+    attribution: attr ? styleOf(attr) : null,
+  }
 }
 
-function runBuild() {
-  return new Promise((resolve, reject) => {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-    const child = spawn(npm, ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: false })
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`build exited ${code}`))))
-    child.on('error', reject)
+/** In the page: running animations (including delayed ones) and a signature of every entity's box and opacity. */
+function motionSignature() {
+  const parts = [...document.querySelectorAll('[data-presentation-entity],[data-presentation-appear],[data-presentation-scene]')].map((el) => {
+    const r = el.getBoundingClientRect()
+    return [el.getAttribute('data-presentation-entity') ?? '', r.x.toFixed(1), r.y.toFixed(1), r.width.toFixed(1), r.height.toFixed(1), getComputedStyle(el).opacity].join(':')
   })
+  return { running: document.getAnimations().filter((a) => a.playState === 'running').length, parts: parts.join(',') }
 }
 
-async function readRegistry() {
-  const registryUrl = pathToFileURL(join(ROOT, 'src/presentations/index.ts')).href
-  const mod = await import(registryUrl)
-  if (!Array.isArray(mod.presentations)) {
-    throw new Error('src/presentations/index.ts does not export a `presentations` array')
+/** Waits the settle interval, then until entity geometry and opacity stop changing. */
+async function waitSettled(page) {
+  await page.waitForTimeout(settleMs)
+  const deadline = Date.now() + SETTLE_CAP_MS
+  let last = await page.evaluate(motionSignature)
+  let stableFor = 0
+  while (stableFor < 3 && Date.now() < deadline) {
+    await page.waitForTimeout(100)
+    const next = await page.evaluate(motionSignature)
+    stableFor = next.running === 0 && last.running === 0 && next.parts === last.parts ? stableFor + 1 : 0
+    last = next
   }
-  return mod.presentations
-}
-
-function childExited(child) {
-  return child.exitCode !== null || child.signalCode !== null
-}
-
-async function waitForPreview(baseUrl, child, deadlineMs = 30_000) {
-  const started = Date.now()
-  while (Date.now() - started < deadlineMs) {
-    if (childExited(child)) throw new Error(`vite preview exited before ready (code ${child.exitCode})`)
-    try {
-      const res = await fetch(baseUrl)
-      const html = await res.text()
-      if (res.ok && html.includes('id="root"')) return
-    } catch {
-      // server not listening yet
-    }
-    await new Promise((r) => setTimeout(r, 200))
-  }
-  throw new Error('vite preview did not become ready within 30s')
-}
-
-function stopPreview(child) {
-  return new Promise((resolve) => {
-    if (!child.pid) {
-      resolve()
-      return
-    }
-    child.once('close', () => resolve())
-    try {
-      process.kill(-child.pid, 'SIGTERM')
-    } catch {
-      child.kill('SIGTERM')
-    }
-    setTimeout(() => {
-      if (!childExited(child)) {
-        try {
-          process.kill(-child.pid, 'SIGKILL')
-        } catch {
-          child.kill('SIGKILL')
-        }
-      }
-      resolve()
-    }, 3000)
-  })
-}
-
-function startPreview() {
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      VITE_BIN,
-      ['preview', '--port', '0', '--host', '127.0.0.1'],
-      { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
-    )
-
-    let output = ''
-    let settled = false
-    let readyStarted = false
-
-    const cleanup = () => {
-      clearTimeout(timer)
-      child.stdout?.off('data', onData)
-      child.stderr?.off('data', onData)
-      child.off('error', onError)
-      child.off('close', onClose)
-    }
-    const rejectWith = async (err) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      await stopPreview(child)
-      reject(err)
-    }
-    const resolveWith = (value) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      resolve(value)
-    }
-    const onData = (chunk) => {
-      output += chunk.toString()
-      const match = output.match(PREVIEW_URL_RE)
-      if (!match || readyStarted) return
-      readyStarted = true
-      const baseUrl = match[0]
-      waitForPreview(baseUrl, child)
-        .then(() => resolveWith({ child, baseUrl }))
-        .catch(rejectWith)
-    }
-    const onError = (err) => rejectWith(err)
-    const onClose = (code) => {
-      if (!settled) rejectWith(new Error(`vite preview exited before ready (code ${code})`))
-    }
-    const timer = setTimeout(() => {
-      const detail = output.trim() ? ` Output:\n${output.trim()}` : ''
-      rejectWith(new Error(`vite preview did not print a local URL within 30s.${detail}`))
-    }, 30_000)
-
-    child.stdout?.on('data', onData)
-    child.stderr?.on('data', onData)
-    child.on('error', onError)
-    child.on('close', onClose)
-  })
-}
-
-async function findOverlapWarnings(page, slug, stepIndex) {
-  return page.evaluate(
-    ({ slug, stepIndex }) => {
-      const selectors = [
-        '[data-node-part="label"]',
-        '[data-node-part="subtitle"]',
-        '[data-node="label"]',
-        '[data-presentation-title]',
-        '[data-presentation-caption]',
-        '[data-presentation-toc-item]',
-        '[data-presentation-button]',
-      ]
-
-      const rectFor = (el) => {
-        const rect = el.getBoundingClientRect()
-        if (rect.width < 1 || rect.height < 1) return null
-        const style = window.getComputedStyle(el)
-        if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) < 0.2) {
-          return null
-        }
-        return {
-          left: rect.left,
-          right: rect.right,
-          top: rect.top,
-          bottom: rect.bottom,
-          width: rect.width,
-          height: rect.height,
-        }
-      }
-
-      const labelFor = (el) => {
-        const hook = Array.from(el.attributes)
-          .find((attr) => attr.name.startsWith('data-node') || attr.name.startsWith('data-presentation'))
-        const text = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40)
-        return `${hook ? hook.name : el.tagName.toLowerCase()}${text ? ` "${text}"` : ''}`
-      }
-
-      const items = selectors.flatMap((selector) =>
-        Array.from(document.querySelectorAll(selector)),
-      )
-        .filter((el) => !el.closest('[data-allow-overlap]'))
-        .map((el) => ({ el, rect: rectFor(el), label: labelFor(el) }))
-        .filter((item) => item.rect)
-
-      const warnings = []
-      for (let i = 0; i < items.length; i++) {
-        for (let j = i + 1; j < items.length; j++) {
-          const a = items[i]
-          const b = items[j]
-          if (a.el.contains(b.el) || b.el.contains(a.el)) continue
-          const left = Math.max(a.rect.left, b.rect.left)
-          const right = Math.min(a.rect.right, b.rect.right)
-          const top = Math.max(a.rect.top, b.rect.top)
-          const bottom = Math.min(a.rect.bottom, b.rect.bottom)
-          const width = right - left
-          const height = bottom - top
-          if (width <= 0 || height <= 0) continue
-
-          const area = width * height
-          const smaller = Math.min(a.rect.width * a.rect.height, b.rect.width * b.rect.height)
-          if (area < 24 || area / smaller < 0.08) continue
-
-          warnings.push(
-            `${slug} step ${stepIndex + 1}: ${a.label} overlaps ${b.label} (${Math.round(area)}px^2)`,
-          )
-          if (warnings.length >= 10) return warnings
-        }
-      }
-      return warnings
-    },
-    { slug, stepIndex },
-  )
-}
-
-export async function findChromeWarnings(page, slug, stepIndex) {
-  return page.evaluate(
-    ({ slug, stepIndex }) => {
-      const isVisible = (el) => {
-        if (!el) return false
-        const rect = el.getBoundingClientRect()
-        const style = window.getComputedStyle(el)
-        return (
-          rect.width >= 1 &&
-          rect.height >= 1 &&
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          Number(style.opacity) >= 0.2
-        )
-      }
-
-      const styleSignature = (el, { includeSize = false } = {}) => {
-        const style = window.getComputedStyle(el)
-        const rect = el.getBoundingClientRect()
-        const parts = [
-          style.color,
-          style.backgroundColor,
-          style.borderTopColor,
-          style.borderRightColor,
-          style.borderBottomColor,
-          style.borderLeftColor,
-          style.fontWeight,
-          style.opacity,
-          style.textDecorationLine,
-        ]
-        if (includeSize) parts.push(String(Math.round(rect.width)), String(Math.round(rect.height)))
-        return parts.join('|')
-      }
-
-      const warnings = []
-      const progressDots = Array.from(document.querySelectorAll('[data-presentation-progress-dot]'))
-        .filter(isVisible)
-      const activeProgress = progressDots.find((el) =>
-        el.getAttribute('data-active') === 'true' || el.getAttribute('aria-current') === 'step',
-      )
-      const inactiveProgress = progressDots.find((el) => el !== activeProgress)
-      if (!activeProgress && progressDots.length > 1) {
-        warnings.push(`${slug} step ${stepIndex + 1}: no active progress dot is exposed`)
-      } else if (
-        activeProgress &&
-        inactiveProgress &&
-        styleSignature(activeProgress, { includeSize: true }) ===
-          styleSignature(inactiveProgress, { includeSize: true })
-      ) {
-        warnings.push(
-          `${slug} step ${stepIndex + 1}: active progress dot looks identical to inactive dots; style [data-presentation-progress-dot][data-active='true']`,
-        )
-      }
-
-      const tocItems = Array.from(document.querySelectorAll('[data-presentation-toc-item]'))
-        .filter(isVisible)
-      const activeToc = tocItems.find((el) =>
-        el.getAttribute('data-active') === 'true' || el.getAttribute('aria-current') === 'step',
-      )
-      const inactiveToc = tocItems.find((el) => el !== activeToc)
-      if (!activeToc && tocItems.length > 1) {
-        warnings.push(`${slug} step ${stepIndex + 1}: no active table-of-contents item is exposed`)
-      } else if (activeToc && inactiveToc && styleSignature(activeToc) === styleSignature(inactiveToc)) {
-        warnings.push(
-          `${slug} step ${stepIndex + 1}: active table-of-contents item looks identical to inactive items; style [data-presentation-toc-item][data-active='true']`,
-        )
-      }
-
-      const attribution = document.querySelector('[data-presentation-attribution]')
-      if (!attribution) {
-        warnings.push(
-          `${slug}: attribution is not rendered; pass attribution={null} only for an intentional opt-out`,
-        )
-      } else if (!isVisible(attribution)) {
-        warnings.push(
-          `${slug}: attribution is present but not visible; style [data-presentation-attribution] in presentation CSS`,
-        )
-      } else {
-        const style = window.getComputedStyle(attribution)
-        const rect = attribution.getBoundingClientRect()
-        const fontSize = Number.parseFloat(style.fontSize)
-        const defaultLinkBlue = style.color === 'rgb(0, 0, 238)' || style.color === '-webkit-link'
-        if (fontSize < 12 || rect.height < 14 || defaultLinkBlue) {
-          warnings.push(
-            `${slug}: attribution appears too small or browser-default; style [data-presentation-attribution] in presentation CSS`,
-          )
-        }
-      }
-
-      return warnings
-    },
-    { slug, stepIndex },
-  )
-}
-
-export function appendInspectionWarnings(warnings, seenAttributionWarnings, additions) {
-  for (const warning of additions) {
-    const isAttributionWarning = warning.includes(': attribution ')
-    if (isAttributionWarning && seenAttributionWarnings.has(warning)) continue
-    warnings.push(warning)
-    if (isAttributionWarning) seenAttributionWarnings.add(warning)
-  }
-}
-
-async function capturePresentation(page, baseUrl, slug, width, height, settleMs) {
-  const outDir = artifactDirForSlug(slug)
-  await mkdir(outDir, { recursive: true })
-  await page.setViewportSize({ width, height })
-  await page.goto(`${baseUrl}${slug}`, { waitUntil: 'load', timeout: 30_000 })
-
-  const progress = page.locator('[data-testid="step-progress"]')
-  await progress.waitFor({ timeout: 10_000 })
-  const stepCount = Number(await progress.getAttribute('data-step-count'))
-  if (!Number.isFinite(stepCount) || stepCount < 1) {
-    throw new Error(`${slug}: invalid data-step-count: ${stepCount}`)
-  }
-
-  const written = []
-  const warnings = []
-  const seenAttributionWarnings = new Set()
-  for (let i = 0; i < stepCount; i++) {
-    const expectedIndex = Number(await progress.getAttribute('data-step-index'))
-    if (expectedIndex !== i) throw new Error(`${slug} step ${i}: expected index ${i}, got ${expectedIndex}`)
-
-    await page.waitForTimeout(settleMs)
-    warnings.push(...await findOverlapWarnings(page, slug, i))
-    appendInspectionWarnings(warnings, seenAttributionWarnings, await findChromeWarnings(page, slug, i))
-
-    const path = join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
-    await page.screenshot({ path, fullPage: false })
-    written.push(path)
-
-    if (i < stepCount - 1) {
-      await page.keyboard.press('ArrowRight')
-      await page.waitForFunction(
-        (expected) => {
-          const el = document.querySelector('[data-testid="step-progress"]')
-          return el && Number(el.getAttribute('data-step-index')) === expected
-        },
-        i + 1,
-        { timeout: 5000 },
-      )
-    }
-  }
-  return { written, warnings }
+  return stableFor >= 3
 }
 
 async function main() {
-  const opts = parseArgs()
-  await runBuild()
-
-  const presentations = await readRegistry()
-  const selected = opts.slug ? presentations.filter((entry) => entry.slug === opts.slug) : presentations
-  if (selected.length === 0) {
-    throw new Error(opts.slug ? `presentation not found: ${opts.slug}` : 'no presentations registered')
+  if (!argv.includes('--skip-build')) {
+    const build = await runBuild(root)
+    if (build.code !== 0) throw new Error(`npm run build failed:\n${build.out}`)
   }
-
-  const { child, baseUrl } = await startPreview()
-  let browser
+  mkdirSync(outDir, { recursive: true })
+  const preview = await startPreview(root)
+  const browser = await chromium.launch()
+  const warnings = []
+  const captures = []
+  const itemCounts = []
   try {
-    browser = await chromium.launch()
-    const page = await browser.newPage()
-    for (const { slug } of selected) {
-      const { written, warnings } = await capturePresentation(
-        page,
-        baseUrl,
-        slug,
-        opts.width,
-        opts.height,
-        opts.settleMs,
-      )
-      console.log(`INSPECT: ${slug} (${written.length} screenshot${written.length === 1 ? '' : 's'})`)
-      for (const path of written) console.log(path)
-      for (const warning of warnings) console.warn(`WARN [inspect-overlap]: ${warning}`)
+    const page = await browser.newPage({ viewport: { width: vw, height: vh } })
+    await page.goto(`${preview.url}/${slug}`, { waitUntil: 'load' })
+    await page.waitForSelector('[data-step-count]', { timeout: 10000 })
+    const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
+    for (let i = 0; i < count; i++) {
+      const advancedAt = Date.now()
+      const settled = await waitSettled(page)
+      if (!settled) warnings.push(`step ${i}: motion was still running after ${SETTLE_CAP_MS}ms; the screenshot may show an unfinished transition`)
+      const file = path.join(outDir, `step-${String(i + 1).padStart(2, '0')}.png`)
+      await page.screenshot({ path: file })
+      captures.push({ step: i, file: path.relative(root, file), advancedAt, capturedAt: Date.now(), settleMs })
+
+      const data = await page.evaluate(collect, STYLE_PROPS)
+      itemCounts.push(data.items.length)
+      for (const [a, b] of findOverlaps(data.items)) {
+        warnings.push(`step ${i}: unmarked overlap between ${a} and ${b} (wrap intentional overlap in [data-presentation-allow-overlap])`)
+      }
+      for (const [label, pair] of [['progress indicator', data.progress], ['table-of-contents entry', data.toc]]) {
+        if (pair && !isActiveDistinct(pair.active, pair.inactive)) {
+          warnings.push(`step ${i}: active ${label} ${pair.name} is indistinct from inactive ones (style [data-active='true'] / [aria-current])`)
+        }
+      }
+      if (data.attribution) {
+        for (const issue of attributionIssues(data.attribution)) {
+          warnings.push(`step ${i}: attribution ${issue} (style [data-presentation-attribution])`)
+        }
+      }
+      if (i < count - 1) {
+        await page.keyboard.press('ArrowRight')
+        await page.waitForFunction(
+          (n) => document.querySelector('[data-step-count]')?.getAttribute('data-step-index') === String(n),
+          i + 1,
+          { timeout: 5000 },
+        )
+      }
     }
   } finally {
-    await browser?.close()
-    await stopPreview(child)
+    await browser.close()
+    await preview.stop()
   }
+  writeFileSync(path.join(outDir, 'report.json'), JSON.stringify({ slug, viewport: { width: vw, height: vh }, captures, warnings, itemCounts }, null, 2))
+  console.log(`[inspect] ${captures.length} screenshots written to ${path.relative(root, outDir)}`)
+  for (const w of warnings) console.log(`[inspect] WARN ${w}`)
+  console.log(`[inspect] ${warnings.length} advisory warning(s)`)
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((err) => {
-    console.error(`FAIL [inspect]: ${err instanceof Error ? err.message : String(err)}`)
-    process.exit(1)
-  })
-}
+main().catch((err) => {
+  console.error(`[inspect] failed: ${err.message}`)
+  process.exitCode = 1
+})

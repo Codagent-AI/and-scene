@@ -1,0 +1,4 @@
+/* Host stylesheet. The scene kit ships no styles; each presentation owns its own look. */
+body {
+  margin: 0;
+}

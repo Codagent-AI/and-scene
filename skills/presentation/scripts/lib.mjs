@@ -32,6 +32,16 @@ export const ANCHOR_PATHS = {
   index: ['src/main.tsx', 'src/App.tsx', 'src/Landing.tsx', 'src/route.ts', 'src/presentations', 'scripts'],
 }
 
+/** The `src` of the first `<script type="module" src=...>` in an HTML document, if any. */
+export function moduleEntry(html) {
+  for (const [tag] of html.matchAll(/<script\b[^>]*>/gi)) {
+    if (!/\btype\s*=\s*["']?module["']?/i.test(tag)) continue
+    const src = tag.match(/\bsrc\s*=\s*["']([^"']+)["']/i)
+    if (src) return src[1]
+  }
+  return undefined
+}
+
 /** Dependencies every presentation app needs, as declared by the bootstrap template. */
 export function requiredDependencies() {
   const pkg = JSON.parse(fs.readFileSync(path.join(BOOTSTRAP_DIR, 'package.json'), 'utf8'))
@@ -59,8 +69,11 @@ export function detectAnchors(dir) {
   const pkg = readJson(path.join(dir, 'package.json'))
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies }
   const hasViteConfig = fs.readdirSync(dir, { withFileTypes: true }).some((e) => /^vite\.config\./.test(e.name))
+  const htmlFile = path.join(dir, 'index.html')
+  // A working app boots from the HTML: an index.html without a module entry builds to a blank page.
+  const bootsApp = !fs.existsSync(htmlFile) || Boolean(moduleEntry(fs.readFileSync(htmlFile, 'utf8')))
   const build = Boolean(
-    pkg?.scripts?.build && deps.vite && deps.react && deps.typescript && (hasViteConfig || fs.existsSync(path.join(dir, 'index.html'))),
+    pkg?.scripts?.build && deps.vite && deps.react && deps.typescript && (hasViteConfig || fs.existsSync(htmlFile)) && bootsApp,
   )
   const kitText = filesIn(path.join(dir, 'src', 'presentation-kit'))
     .filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f))

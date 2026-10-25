@@ -21,6 +21,25 @@ describe('findOverlaps', () => {
     expect(findOverlaps([item('parent', 0, 0, 100, 100), item('child', 10, 10, 20, 20, { ancestors: [0] })])).toEqual([])
   })
 
+  it('compares wrapped text line by line, not by its union box', () => {
+    // "1 / 9" sits beside the first line of a heading that wraps below it: the union box covers
+    // the number, the lines do not.
+    const number = item('number', 0, 0, 30, 14)
+    const wrapped = item('era', 40, 0, 60, 30, {
+      rects: [
+        { x: 40, y: 0, w: 30, h: 14 },
+        { x: 0, y: 16, w: 40, h: 14 },
+      ],
+    })
+    expect(findOverlaps([number, wrapped])).toEqual([])
+  })
+
+  it('still reports a wrapped line that really overlaps', () => {
+    const number = item('number', 0, 0, 30, 14)
+    const wrapped = item('era', 0, 0, 60, 30, { rects: [{ x: 20, y: 0, w: 40, h: 14 }, { x: 0, y: 16, w: 40, h: 14 }] })
+    expect(findOverlaps([number, wrapped])).toEqual([['number', 'era']])
+  })
+
   it('ignores slivers smaller than the threshold', () => {
     expect(findOverlaps([item('a', 0, 0, 50, 20), item('b', 49, 0, 50, 20)])).toEqual([])
   })

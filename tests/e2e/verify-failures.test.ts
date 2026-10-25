@@ -43,6 +43,21 @@ describe('E2E-002 verification failure contract', () => {
     expect(run.out).toContain('is not registered')
   })
 
+  it('still requires the sample when the opt-out field is removed and another presentation is registered', async () => {
+    const run = await verifyWithFault('field-removed', (d) => {
+      edit(d, 'package.json', (t) => {
+        const pkg = JSON.parse(t)
+        delete pkg.andScene
+        return `${JSON.stringify(pkg, null, 2)}\n`
+      })
+      // The sample's route is replaced by an unrelated, healthy presentation.
+      edit(d, 'src/presentations/index.ts', (t) => t.replace("slug: 'how-to-make-a-presentation'", "slug: 'unrelated-talk'"))
+    })
+    expect(run.code).not.toBe(0)
+    expect(run.out).toContain('FAIL phase=sample')
+    expect(run.out).toContain('is not registered')
+  })
+
   it('fails the sample phase, naming the step, when the steps are out of order', async () => {
     const run = await verifyWithFault('order', (d) => {
       edit(d, 'src/presentations/how-to-make-a-presentation/steps/index.ts', (t) =>

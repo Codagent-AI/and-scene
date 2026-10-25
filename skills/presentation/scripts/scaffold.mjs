@@ -5,7 +5,7 @@
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-import { ANCHOR_PATHS, BOOTSTRAP_DIR, filesIn, requiredDependencies, resolveTarget } from './lib.mjs'
+import { ANCHOR_PATHS, BOOTSTRAP_DIR, filesIn, moduleEntry, requiredDependencies, resolveTarget } from './lib.mjs'
 
 function mergePackageJson(file) {
   const required = requiredDependencies()
@@ -23,6 +23,11 @@ function mergePackageJson(file) {
     if (pkg.scripts?.[name]) continue
     pkg.scripts = { ...pkg.scripts, [name]: command }
     added.push(`script:${name}`)
+  }
+  // The scaffolded verify.mjs requires the reference sample unless the project opts out; a host has none.
+  if (added.includes('script:verify') && pkg.andScene?.requireReferenceSample === undefined) {
+    pkg.andScene = { ...pkg.andScene, requireReferenceSample: false }
+    added.push('andScene.requireReferenceSample')
   }
   if (added.length) fs.writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`)
   return added
@@ -55,6 +60,21 @@ export function scaffold({ cwd, dryRun = false }) {
         fs.mkdirSync(path.dirname(dest), { recursive: true })
         fs.copyFileSync(file, dest)
       }
+    }
+  }
+
+  // An existing index.html is never replaced, but it must boot the app or the route renders blank.
+  const htmlFile = path.join(target, 'index.html')
+  if ((plan.missing.includes('build') || plan.missing.includes('index')) && fs.existsSync(htmlFile)) {
+    const html = fs.readFileSync(htmlFile, 'utf8')
+    const entry = moduleEntry(html)
+    if (!entry) {
+      const tag = '<script type="module" src="/src/main.tsx"></script>'
+      const patched = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `  ${tag}\n  </body>`) : `${html.trimEnd()}\n${tag}\n`
+      if (!dryRun) fs.writeFileSync(htmlFile, patched)
+      wire.push('index.html had no module script: added <script type="module" src="/src/main.tsx"> so the app mounts')
+    } else if (entry.replace(/^\//, '') !== 'src/main.tsx') {
+      wire.push(`index.html loads ${entry}: render <App pathname={window.location.pathname} /> from src/App.tsx there`)
     }
   }
 

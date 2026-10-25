@@ -80,8 +80,10 @@ node <skill-dir>/scripts/scaffold.mjs --cwd <project-dir> --install
 The script copies only the missing anchors from `templates/bootstrap/`, never overwrites an existing
 file, merges the missing dependencies into an existing `package.json`, then installs dependencies and
 the Chromium browser used by the render check. Do not assume any dependency is already installed. If
-`wire` in its output says `src/main.tsx` already exists, render
-`<App pathname={window.location.pathname} />` from `src/App.tsx` there.
+`wire` in its output says `src/main.tsx` already exists, or that `index.html` loads another entry,
+render `<App pathname={window.location.pathname} />` from `src/App.tsx` there. An existing
+`index.html` with no module script is not a working build setup: the script adds
+`<script type="module" src="/src/main.tsx">` to it (and nothing else) so the route mounts.
 
 When all three anchors are present, skip scaffolding.
 
@@ -100,7 +102,8 @@ node <skill-dir>/scripts/new-presentation.mjs --cwd <project-dir> --slug <slug> 
 It writes `src/presentations/<slug>/` (`entities.ts`, `Scene.tsx`, `steps.ts`, `Talk.tsx`,
 `style.css`) from `templates/presentation/` and appends one line to the registry; existing
 presentations are left untouched. The generated `style.css` is an empty placeholder: the look is yours
-to write from the user's visual direction. If the registry cannot be extended the script writes nothing. Then fill in the story:
+to write from the user's visual direction. If the registry cannot be extended (no `presentations = [` array it can read) the script writes nothing:
+add the entry to that registry by hand, following its conventions, without re-scaffolding. Then fill in the story:
 
 - `entities.ts`: this presentation's `layoutId` namespace, one stable id per thing on screen.
 - `steps`: ordered steps. Each has a stable `id`, an `era` (section label), a one-line `title`

@@ -30,6 +30,21 @@ describe('bootstrap template stays aligned with the canonical sources', () => {
   })
 })
 
+describe('reference-sample requirement', () => {
+  const readPkg = (dir: string) => JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))
+
+  it('is on unless a project explicitly opts out, so a missing or mistyped field cannot disable it', () => {
+    const verify = fs.readFileSync(path.join(root, 'scripts/verify.mjs'), 'utf8')
+    expect(verify).toMatch(/requireReferenceSample\s*!==\s*false/)
+    expect(verify).not.toMatch(/requireReferenceSample\s*===\s*true/)
+  })
+
+  it('keeps the requirement for this repository and opts the scaffolded template out', () => {
+    expect(readPkg(root).andScene?.requireReferenceSample).not.toBe(false)
+    expect(readPkg(bootstrap).andScene).toEqual({ requireReferenceSample: false })
+  })
+})
+
 describe('bootstrap template is complete and style-neutral', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(bootstrap, 'package.json'), 'utf8'))
   const deps = { ...pkg.dependencies, ...pkg.devDependencies }
@@ -76,6 +91,6 @@ describe('bootstrap template is complete and style-neutral', () => {
   })
 
   it('does not mark the template as requiring the reference sample', () => {
-    expect(pkg.andScene).toBeUndefined()
+    expect(pkg.andScene?.requireReferenceSample).toBe(false)
   })
 })

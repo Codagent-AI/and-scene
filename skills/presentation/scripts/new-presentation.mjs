@@ -23,13 +23,46 @@ export function renderTemplates(dir, { slug, title }) {
 const REGISTRY_ARRAY = /\bpresentations\b(\s*:\s*[^=\n]+)?\s*=\s*\[/
 const REGISTRY_FILES = ['index.ts', 'index.tsx', 'index.js', 'index.jsx']
 
+/**
+ * Finds the `]` closing the array whose `[` is at `open`, skipping strings and comments.
+ * Returns its index and the index of the last code character before it, or null if unbalanced.
+ */
+function arrayEnd(text, open) {
+  let depth = 0
+  let last = open
+  for (let i = open; i < text.length; i++) {
+    const c = text[i]
+    if (c === '"' || c === "'" || c === '`') {
+      for (i++; i < text.length && text[i] !== c; i++) if (text[i] === '\\') i++
+      last = i
+    } else if (c === '/' && text[i + 1] === '/') {
+      i = text.indexOf('\n', i)
+      if (i === -1) return null
+    } else if (c === '/' && text[i + 1] === '*') {
+      i = text.indexOf('*/', i + 2)
+      if (i === -1) return null
+      i++
+    } else if (c === ']' && depth === 1) return { close: i, last }
+    else if (!/\s/.test(c)) {
+      if (c === '[') depth++
+      else if (c === ']') depth--
+      last = i
+    }
+  }
+  return null
+}
+
 /** Returns the registry text with one entry appended; throws, writing nothing, if it has no array to extend. */
 export function withRegistryEntry(text, { slug, title }, file = 'the registry') {
-  const open = text.search(REGISTRY_ARRAY)
-  const close = open === -1 ? -1 : text.indexOf('\n]', open)
-  if (close === -1) throw new Error(`cannot find the presentations array in ${file} (expected "presentations = [" ... "\\n]")`)
+  const match = REGISTRY_ARRAY.exec(text)
+  const end = match ? arrayEnd(text, match.index + match[0].length - 1) : null
+  if (!end) throw new Error(`cannot find the presentations array in ${file} (expected "presentations = [" ... "]")`)
   const entry = `  {\n    slug: '${slug}',\n    title: '${title.replaceAll("'", "\\'")}',\n    load: () => import('./${slug}/Talk.tsx'),\n  },`
-  return `${text.slice(0, close)}\n${entry}${text.slice(close)}`
+  // Any layout (empty, one line, trailing comma or not, trailing comment) gains the entry on its own lines before the `]`.
+  const comma = '[,'.includes(text[end.last]) ? '' : ','
+  const code = text.slice(0, end.last + 1)
+  const trailing = text.slice(end.last + 1, end.close).trimEnd()
+  return `${code}${comma}${trailing}\n${entry}\n${text.slice(end.close)}`
 }
 
 /** Appends one registry line, leaving every existing entry untouched. */

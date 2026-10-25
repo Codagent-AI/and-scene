@@ -34,9 +34,12 @@ class VerifyError extends Error {
 const log = (line) => console.log(`[verify] ${line}`)
 const norm = (s) => (s ?? '').replace(/[’]/g, "'").replace(/\s+/g, ' ').trim()
 
+// The reference sample is required unless a project explicitly opts out with
+// `andScene.requireReferenceSample: false` (scaffolded apps do; they have no sample).
+// A missing or mistyped field therefore keeps the requirement on.
 function requiresReference() {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
-  return pkg.andScene?.requireReferenceSample === true
+  return pkg.andScene?.requireReferenceSample !== false
 }
 
 function registeredSlugs() {

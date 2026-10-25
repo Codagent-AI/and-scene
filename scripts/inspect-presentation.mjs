@@ -50,14 +50,17 @@ function collectPage() {
     const own = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim())
     if (!visible(el) || (!own.length && !el.matches(CONTROL))) continue
     let rect
+    let rects
     if (own.length) {
       const range = document.createRange()
       range.selectNodeContents(el)
       rect = rectOf(range.getBoundingClientRect())
+      // Wrapped text has one box per line; the union rect also covers the gaps between lines.
+      rects = [...range.getClientRects()].map(rectOf).filter((r) => r.w > 0 && r.h > 0)
     } else rect = rectOf(el.getBoundingClientRect())
     if (rect.w === 0 || rect.h === 0) continue
     els.push(el)
-    items.push({ label: describe(el), rect, allowed: el.closest('[data-presentation-allow-overlap]') !== null, ancestors: [] })
+    items.push({ label: describe(el), rect, rects, allowed: el.closest('[data-presentation-allow-overlap]') !== null, ancestors: [] })
   }
   items.forEach((item, i) => {
     els.forEach((other, j) => {

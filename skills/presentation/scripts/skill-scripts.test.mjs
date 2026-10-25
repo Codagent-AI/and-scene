@@ -3,8 +3,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { BOOTSTRAP_DIR, SKILL_DIR, detectAnchors, isMonorepo, resolveTarget } from './lib.mjs'
-import { newPresentation, registerPresentation } from './new-presentation.mjs'
+import { BOOTSTRAP_DIR, SKILL_DIR, detectAnchors, isMonorepo, moduleEntry, resolveTarget } from './lib.mjs'
+import { newPresentation, registerPresentation, withRegistryEntry } from './new-presentation.mjs'
 import { scaffold } from './scaffold.mjs'
 
 const dirs = []
@@ -97,6 +97,17 @@ describe('anchor detection and target resolution', () => {
     expect(detectAnchors(dir)).toEqual({ build: false, kit: true, index: true })
   })
 
+  it('does not count a build setup whose index.html never boots the app', () => {
+    const dir = tmp()
+    buildAnchorFiles(dir)
+    write(dir, 'index.html', '<!doctype html><html><body><div id="root"></div></body></html>')
+    expect(detectAnchors(dir).build).toBe(false)
+    write(dir, 'index.html', '<html><body><div id="root"></div><script src="/classic.js"></script></body></html>')
+    expect(detectAnchors(dir).build).toBe(false)
+    write(dir, 'index.html', '<html><body><div id="root"></div><script src="/src/entry.tsx" type="module"></script></body></html>')
+    expect(detectAnchors(dir).build).toBe(true)
+  })
+
   it('rejects look-alike infrastructure that does not implement the contracts', () => {
     const dir = tmp()
     write(dir, 'src/presentation-kit/engine.tsx', 'export function Presentation() {}\nexport type Step = {}')
@@ -141,6 +152,45 @@ describe('scaffold', () => {
       expect(fs.existsSync(path.join(dir, 'scripts', f)), f).toBe(true)
     }
     expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+  })
+
+  it('wires an existing index.html that has no module entry so the route mounts', () => {
+    const dir = tmp()
+    buildAnchorFiles(dir)
+    const html = '<!doctype html>\n<html>\n  <body>\n    <div id="root"></div>\n  </body>\n</html>\n'
+    write(dir, 'index.html', html)
+    expect(resolveTarget(dir).missing).toContain('build')
+    const report = scaffold({ cwd: dir })
+    const patched = fs.readFileSync(path.join(dir, 'index.html'), 'utf8')
+    expect(patched).toContain('<div id="root"></div>')
+    expect(moduleEntry(patched)).toBe('/src/main.tsx')
+    expect(report.wire.join('\n')).toMatch(/index\.html had no module script/)
+    expect(detectAnchors(dir)).toEqual({ build: true, kit: true, index: true })
+    // Re-running changes nothing.
+    expect(scaffold({ cwd: dir }).wire).toEqual([])
+    expect(fs.readFileSync(path.join(dir, 'index.html'), 'utf8')).toBe(patched)
+  })
+
+  it('points at a host entry other than src/main.tsx instead of editing the HTML', () => {
+    const dir = tmp()
+    buildAnchorFiles(dir)
+    const html = '<html><body><div id="root"></div><script type="module" src="/src/index.tsx"></script></body></html>'
+    write(dir, 'index.html', html)
+    const report = scaffold({ cwd: dir })
+    expect(fs.readFileSync(path.join(dir, 'index.html'), 'utf8')).toBe(html)
+    expect(report.wire.join('\n')).toMatch(/index\.html loads \/src\/index\.tsx/)
+  })
+
+  it('opts a scaffolded host out of the reference-sample check it does not have', () => {
+    const dir = tmp()
+    buildAnchorFiles(dir)
+    const report = scaffold({ cwd: dir })
+    const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))
+    expect(pkg.andScene).toEqual({ requireReferenceSample: false })
+    expect(report.dependenciesAdded).toContain('andScene.requireReferenceSample')
+    const fresh = tmp()
+    scaffold({ cwd: fresh })
+    expect(JSON.parse(fs.readFileSync(path.join(fresh, 'package.json'), 'utf8')).andScene).toEqual({ requireReferenceSample: false })
   })
 
   it('does not install a second lockfile over a host package.json', () => {
@@ -249,6 +299,38 @@ describe('new presentation', () => {
     const dir = tmp()
     write(dir, 'index.ts', 'export const nothing = 1')
     expect(() => registerPresentation(path.join(dir, 'index.ts'), { slug: 'a', title: 'A' })).toThrow(/cannot find the presentations array/)
+  })
+
+  it.each([
+    ['one line', 'export const presentations = [{ slug: "a", title: "A", load: () => import("./a/Talk.tsx") }]\n'],
+    ['one line with a trailing comma', 'export const presentations: Entry[] = [{ slug: "a" },]\n'],
+    ['no trailing comma', 'export const presentations: Entry[] = [\n  { slug: "a" }\n]\n'],
+    ['empty on one line', 'export const presentations: Entry[] = []\n'],
+    ['brackets inside strings and comments', 'export const presentations = [\n  { slug: "a]", title: \'[x\' }, // ] note\n]\n'],
+    ['CRLF line endings', 'export const presentations: Entry[] = [\r\n  { slug: "a" },\r\n]\r\n'],
+  ])('extends a registry written %s', (_name, source) => {
+    const out = withRegistryEntry(source, { slug: 'next-one', title: 'Next One' })
+    expect(out).toContain("slug: 'next-one'")
+    // The original entries survive and the array still closes exactly once after the new entry.
+    expect(out.startsWith(source.slice(0, source.indexOf('=')))).toBe(true)
+    expect(out.indexOf("slug: 'next-one'")).toBeLessThan(out.lastIndexOf(']'))
+    expect(out.split('slug:').length - source.split('slug:').length).toBe(1)
+  })
+
+  it('registers a presentation through a one-line registry end to end', () => {
+    const dir = tmp()
+    scaffold({ cwd: dir })
+    const indexFile = path.join(dir, 'src/presentations/index.ts')
+    fs.writeFileSync(
+      indexFile,
+      "export interface PresentationEntry { slug: string }\nexport const presentations: PresentationEntry[] = [{ slug: 'starter', title: 'S', load: () => import('./starter/Talk.tsx') }]\n",
+    )
+    expect(resolveTarget(dir).missing).toEqual([])
+    expect(newPresentation({ cwd: dir, slug: 'new-one', title: 'New One' }).route).toBe('/new-one')
+    const after = fs.readFileSync(indexFile, 'utf8')
+    expect(after).toContain("slug: 'starter'")
+    expect(after).toContain("slug: 'new-one'")
+    expect(fs.existsSync(path.join(dir, 'src/presentations/new-one/Talk.tsx'))).toBe(true)
   })
 
   it('supports a JavaScript registry', () => {

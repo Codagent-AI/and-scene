@@ -11,10 +11,13 @@ export function intersection(a, b) {
 }
 
 /**
- * items: [{ label, rect: {x,y,w,h}, allowed: boolean, nested: number[] }]
- * Items inside an allow-overlap subtree never produce warnings; `ancestors`
+ * items: [{ label, rect: {x,y,w,h}, rects?: {x,y,w,h}[], allowed: boolean, ancestors: number[] }]
+ * `rects` are an item's per-line boxes (wrapped text); they are compared instead of the one union
+ * `rect`, whose bounding box spans the blank space around wrapped lines. Items inside an allow-overlap subtree never produce warnings; `ancestors`
  * lists item indexes that contain the item so containment is not a collision.
  */
+const boxesOf = (item) => (item.rects?.length ? item.rects : [item.rect])
+
 export function findOverlaps(items) {
   const found = []
   for (let i = 0; i < items.length; i++) {
@@ -23,8 +26,13 @@ export function findOverlaps(items) {
       const b = items[j]
       if (a.allowed || b.allowed) continue
       if (a.ancestors?.includes(j) || b.ancestors?.includes(i)) continue
-      const hit = intersection(a.rect, b.rect)
-      if (hit && hit.w >= MIN_OVERLAP_PX && hit.h >= MIN_OVERLAP_PX) found.push([a.label, b.label])
+      const collides = boxesOf(a).some((ra) =>
+        boxesOf(b).some((rb) => {
+          const hit = intersection(ra, rb)
+          return hit && hit.w >= MIN_OVERLAP_PX && hit.h >= MIN_OVERLAP_PX
+        }),
+      )
+      if (collides) found.push([a.label, b.label])
     }
   }
   return found

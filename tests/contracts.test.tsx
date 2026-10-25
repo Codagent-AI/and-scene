@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { Router } from '../src/Router'
 import { Landing } from '../src/Landing'
-import { findPresentation, presentations } from '../src/presentations'
+import { findPresentation, presentations, presentationRoutes } from '../src/presentations'
 import { STEPS } from '../src/presentations/how-to-make-a-presentation/steps'
 // @ts-expect-error JavaScript tooling is exercised through its public interface.
 import { detectAnchors, resolveTarget, scaffold, templateRoot } from '../skills/presentation/scaffold.mjs'
@@ -61,10 +61,10 @@ it('I-25 templates resolve from the skill location', () => {
   expect(templateRoot).toBe(resolve('skills/presentation/templates/bootstrap'))
 })
 it('I-28 registry routing preserves multiple entries and unknown route fallback', async () => {
-  const entries = [
+  const entries = presentationRoutes([
     { slug: 'one', title: 'One', load: async () => ({ default: () => <h1>One route</h1> }) },
     { slug: 'two', title: 'Two', load: async () => ({ default: () => <h1>Two route</h1> }) },
-  ]
+  ])
   expect(findPresentation('/one',entries)?.slug).toBe('one'); expect(findPresentation('/two/',entries)?.slug).toBe('two'); expect(findPresentation('/unknown',entries)).toBeUndefined()
   const { rerender } = render(<Router path="/one" entries={entries} />); expect(await screen.findByText('One route')).toBeTruthy()
   rerender(<Router path="/two" entries={entries} />); expect(await screen.findByText('Two route')).toBeTruthy()
@@ -141,3 +141,36 @@ it('I-38 each canonical beat adds the required scene intent', () => {
     if (i===8) expect(container.querySelector('[data-presentation-entity$=":reveal"]')?.textContent).toContain('This is the presentation.')
   })
 })
+async function seedAnchor(root: string, kind: string) {
+  if (kind==='build') await writeFile(join(root,'package.json'),JSON.stringify(pkg))
+  else {
+    await mkdir(join(root,'src'),{recursive:true})
+    const text=kind==='kit' ? 'export type Step = Scene; function Presentation(){}; const layoutId="present browse"; function useFitScale(){};' : 'const registry=[{slug:"existing",title:"Existing",load:()=>import("./Existing")}];'
+    await writeFile(join(root,'src',`${kind}.tsx`),text)
+  }
+}
+it.each(['build','kit','index'])('I-26 standalone with only %s anchor stays at root', async kind => temp(async root => {
+  await seedAnchor(root,kind); expect(await resolveTarget(root)).toBe(root)
+}))
+it.each(['build','kit','index'])('I-26 monorepo with only %s anchor preserves root and scaffolds child', async kind => temp(async root => {
+  await seedAnchor(root,kind); await mkdir(join(root,'apps'))
+  const preservedFile=kind==='build'?'package.json':`src/${kind}.tsx`
+  const before=await readFile(join(root,preservedFile),'utf8')
+  expect(await resolveTarget(root)).toBe(join(root,'presentations'))
+  const result=await scaffold(root,{confirmed:true,install:false})
+  expect(result.target).toBe(join(root,'presentations')); expect(await readFile(join(root,preservedFile),'utf8')).toBe(before)
+  expect(await detectAnchors(join(root,'presentations'))).toEqual({build:true,kit:true,index:true})
+}))
+it('I-26 complete monorepo root takes precedence over a complete child', async () => temp(async root => {
+  await scaffold(root,{install:false}); await mkdir(join(root,'apps'))
+  await mkdir(join(root,'presentations')); await scaffold(join(root,'presentations'),{install:false})
+  expect(await resolveTarget(root)).toBe(root); expect((await scaffold(root,{install:false})).created).toEqual([])
+}))
+it('I-26 partial target app adds missing anchors without touching root or existing child build', async () => temp(async root => {
+  const rootPackage=JSON.stringify({workspaces:['apps/*']}); await writeFile(join(root,'package.json'),rootPackage)
+  const target=join(root,'presentations'); await mkdir(target); await seedAnchor(target,'build')
+  const result=await scaffold(root,{confirmed:true,install:false}); expect(result.target).toBe(target)
+  expect(result.anchors).toEqual({build:true,kit:false,index:false})
+  expect(await readFile(join(root,'package.json'),'utf8')).toBe(rootPackage)
+  expect(JSON.parse(await readFile(join(target,'package.json'),'utf8')).scripts.build).toBe('custom-build')
+}))

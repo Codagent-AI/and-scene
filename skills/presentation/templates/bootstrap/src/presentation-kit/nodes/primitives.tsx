@@ -1,9 +1,10 @@
 import { motion } from 'motion/react'
 import type { HTMLMotionProps } from 'motion/react'
+import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { ENTER_T, LAYOUT_T } from '../constants'
 
-export type NodeProps = HTMLMotionProps<'div'> & { entityId: string }
+export type NodeProps = Omit<HTMLMotionProps<'div'>, 'children'> & { entityId: string; children?: ReactNode }
 export function Node({ entityId, children, ...props }: NodeProps) {
   return <motion.div layout layoutId={entityId} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.2 } }} transition={{ layout: LAYOUT_T, opacity: ENTER_T }} data-presentation-entity={entityId} {...props}>{children}</motion.div>
 }

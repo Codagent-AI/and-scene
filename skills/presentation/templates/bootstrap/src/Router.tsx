@@ -1,9 +1,7 @@
-import { lazy, Suspense, useMemo } from 'react'
+import { Suspense } from 'react'
 import { Landing } from './Landing'
-import { findPresentation, presentations } from './presentations'
-import type { RegistryEntry } from './presentations'
-export function Router({ path = window.location.pathname, entries = presentations }: { path?: string; entries?: RegistryEntry[] }) {
-  const entry = findPresentation(path, entries)
-  const Talk = useMemo(() => entry ? lazy(entry.load) : null, [entry])
+import { findPresentation, routes } from './presentations'
+export function Router({ path = window.location.pathname, entries = routes }: { path?: string; entries?: typeof routes }) {
+  const Talk = findPresentation(path, entries)?.Component
   return Talk ? <Suspense fallback={<p role="status">Loading presentation…</p>}><Talk /></Suspense> : <Landing />
 }

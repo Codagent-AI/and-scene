@@ -31,7 +31,7 @@ export async function detectAnchors(root) {
 }
 export async function resolveTarget(root) {
   const anchors = await detectAnchors(root)
-  if (anchors.kit || anchors.index) return root
+  if (Object.values(anchors).every(Boolean)) return root
   const pkg = await packageAt(root)
   const monorepo = Boolean(pkg.workspaces) || await exists(join(root, 'pnpm-workspace.yaml')) || await exists(join(root, 'packages')) || await exists(join(root, 'apps'))
   return monorepo ? join(root, 'presentations') : root

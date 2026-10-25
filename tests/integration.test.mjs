@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { cp, mkdtemp, rm, readFile, writeFile, mkdir, symlink, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { resolve, join } from 'node:path'
+import { join } from 'node:path'
 import { spawn } from 'node:child_process'
 
 const root = process.cwd()

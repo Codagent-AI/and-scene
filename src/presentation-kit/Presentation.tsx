@@ -18,9 +18,9 @@ export interface PresentationProps<T> {
   designWidth?: number
   designHeight?: number
 }
-export function Presentation<T>({ steps, title, initialMode = 'browse', brand, attribution, className, designWidth, designHeight }: PresentationProps<T>) {
-  if (!steps.length) throw new Error('Presentation requires at least one step')
-  return <PresentationHost steps={steps} title={title} initialMode={initialMode} brand={brand} attribution={attribution} className={className} designWidth={designWidth} designHeight={designHeight} />
+export function Presentation<T>(props: PresentationProps<T>) {
+  if (!props.steps.length) throw new Error('Presentation requires at least one step')
+  return <PresentationHost {...props} />
 }
 function PresentationHost<T>({ steps, title, initialMode = 'browse', brand, attribution, className, designWidth, designHeight }: PresentationProps<T>) {
   const nav = usePresentationNav(steps.length, initialMode)

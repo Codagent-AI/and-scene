@@ -108,11 +108,12 @@ it('I-43 browser errors retain step attribution for console and page failures', 
   expect(collector.errors[0]).toContain('step 3 console.error: broken'); expect(collector.errors[1]).toContain('step 4 pageerror: uncaught')
   expect(() => collector.assertClean()).toThrow('browser:')
 })
-it('I-46 collision filtering respects visibility, ancestry and explicit exemptions', () => {
+it('I-46 collision filtering reports nested text and respects only visibility and explicit exemptions', () => {
   const item = { id:1,ancestors:[],label:'first',visible:true,allowed:false,x:0,y:0,width:100,height:20 }
   const other = { ...item,id:2,label:'second',x:10 }
   expect(collisionWarnings([item,other])).toEqual(['overlap: first <> second'])
-  for (const override of [{ visible:false },{ allowed:true },{ ancestors:[1] },{ x:200 }]) expect(collisionWarnings([item,{...other,...override}])).toEqual([])
+  expect(collisionWarnings([item,{...other,ancestors:[1]}])).toEqual(['overlap: first <> second'])
+  for (const override of [{ visible:false },{ allowed:true },{ x:200 }]) expect(collisionWarnings([item,{...other,...override}])).toEqual([])
 })
 it('I-47 active chrome diagnostic distinguishes meaningful style changes', () => {
   expect(indistinct({color:'red',fontWeight:'400'},{color:'red',fontWeight:'400'})).toBe(true)
@@ -174,3 +175,14 @@ it('I-26 partial target app adds missing anchors without touching root or existi
   expect(await readFile(join(root,'package.json'),'utf8')).toBe(rootPackage)
   expect(JSON.parse(await readFile(join(target,'package.json'),'utf8')).scripts.build).toBe('custom-build')
 }))
+
+it('I-46 control surfaces detect external text and other controls without duplicating their own label', () => {
+  const surface = {kind:'control',element:5,label:'button surface',visible:true,allowed:false,x:0,y:0,width:100,height:60}
+  const label = {kind:'text',control:5,label:'own label',visible:true,allowed:false,x:20,y:35,width:60,height:15}
+  const external = {...label,control:-1,label:'external text',y:10}
+  expect(collisionWarnings([surface,label])).toEqual([])
+  expect(collisionWarnings([surface,external])).toEqual(['overlap: button surface <> external text'])
+  expect(collisionWarnings([surface,{...surface,element:6,label:'other control',x:50}])).toEqual(['overlap: button surface <> other control'])
+  expect(collisionWarnings([surface,{...label,x:90}])).toEqual(['overlap: button surface <> own label'])
+  expect(collisionWarnings([label,{...label,label:'nested label'}])).toEqual(['overlap: own label <> nested label'])
+})

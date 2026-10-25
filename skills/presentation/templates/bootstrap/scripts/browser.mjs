@@ -15,6 +15,19 @@ async function freePort() {
   await new Promise((yes, no) => server.close(error => error ? no(error) : yes()))
   return port
 }
+async function closeBrowser(browser, browserServer) {
+  const failures = []
+  try { await browser?.close() } catch (error) { failures.push(error) }
+  if (browserServer) {
+    try { await browserServer.close() }
+    catch (error) {
+      failures.push(error)
+      await browserServer.kill()
+    }
+    console.log(`browser: cleaned pid=${browserServer.process().pid}`)
+  }
+  if (failures.length) throw new AggregateError(failures, `cleanup: browser close failed: ${failures.map(error => error.message).join('; ')}`)
+}
 export async function withPreview(run, { cwd = process.cwd(), viewport = { width: 1440, height: 900 } } = {}) {
   const port = await freePort()
   const baseURL = `http://${HOST}:${port}`
@@ -23,7 +36,7 @@ export async function withPreview(run, { cwd = process.cwd(), viewport = { width
   server.stdout.on('data', data => { serverOutput += data })
   server.stderr.on('data', data => { serverOutput += data })
   const exited = new Promise(resolveExit => { server.once('exit', resolveExit); server.once('error', resolveExit) })
-  let browser
+  let browser, browserServer
   try {
     const deadline = Date.now() + 15000
     while (true) {
@@ -33,19 +46,26 @@ export async function withPreview(run, { cwd = process.cwd(), viewport = { width
       await new Promise(done => setTimeout(done, 100))
     }
     console.log(`preview: host=${HOST} readiness=${baseURL} pid=${server.pid}`)
-    browser = await chromium.launch({ headless: true })
+    browserServer = await chromium.launchServer({ headless: true })
+    console.log(`browser: pid=${browserServer.process().pid}`)
+    browser = await chromium.connect(browserServer.wsEndpoint())
     const page = await browser.newPage({ viewport })
     return await run(page, baseURL)
   } finally {
-    await browser?.close()
-    if (server.exitCode === null) {
-      server.kill('SIGTERM')
-      await Promise.race([exited, new Promise(done => setTimeout(done, 2000))])
-      if (server.exitCode === null) { server.kill('SIGKILL'); await exited }
+    try { await closeBrowser(browser, browserServer) }
+    finally {
+      try {
+        if (server.exitCode === null) {
+          server.kill('SIGTERM')
+          await Promise.race([exited, new Promise(done => setTimeout(done, 2000))])
+          if (server.exitCode === null) { server.kill('SIGKILL'); await exited }
+        }
+      } finally {
+        server.stdout.destroy()
+        server.stderr.destroy()
+        console.log(`preview: cleaned pid=${server.pid}`)
+      }
     }
-    server.stdout.destroy()
-    server.stderr.destroy()
-    console.log(`preview: cleaned pid=${server.pid}`)
   }
 }
 export function browserErrors(page) {

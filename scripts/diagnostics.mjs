@@ -2,11 +2,18 @@
 export function overlaps(a, b) {
   return a.x < b.x + b.width - 1 && a.x + a.width > b.x + 1 && a.y < b.y + b.height - 1 && a.y + a.height > b.y + 1
 }
+// A control's contained label is another measurement of that same control.
+// Nested text/text pairs are always checked independently.
+function ownLabel(surface, text) {
+  return surface.kind === 'control' && text.kind === 'text' && text.control === surface.element &&
+    text.x >= surface.x && text.y >= surface.y && text.x + text.width <= surface.x + surface.width && text.y + text.height <= surface.y + surface.height
+}
 export function collisionWarnings(items) {
   const warnings = []
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
     const a = items[i], b = items[j]
-    if (!a.visible || !b.visible || a.allowed || b.allowed || a.ancestors.includes(b.id) || b.ancestors.includes(a.id)) continue
+    if (!a.visible || !b.visible || a.allowed || b.allowed) continue
+    if (ownLabel(a, b) || ownLabel(b, a)) continue
     if (overlaps(a, b)) warnings.push(`overlap: ${a.label} <> ${b.label}`)
   }
   return warnings
@@ -24,22 +31,35 @@ export function attributionWarnings(attribution) {
 }
 export function collectDiagnostics() {
   // Runs in the browser; return serializable geometry and computed style only.
+  const host = document.querySelector('[data-presentation]')
   const visible = el => {
-    const style = getComputedStyle(el), rect = el.getBoundingClientRect()
-    return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0
+    const rect = el.getBoundingClientRect()
+    if (!rect.width || !rect.height) return false
+    for (let ancestor = el; ancestor; ancestor = ancestor.parentElement) {
+      const style = getComputedStyle(ancestor)
+      if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false
+    }
+    return true
   }
-  const all = [...document.querySelectorAll('[data-presentation] *')]
+  const all = [...host.querySelectorAll('*')]
   const identify = el => all.indexOf(el)
+  const controls = 'button,a,input,textarea,select,[role="button"],[role="slider"],[role="tab"],[data-presentation-progress-item],[data-presentation-toc-item]'
   const items = []
-  const walker = document.createTreeWalker(document.querySelector('[data-presentation]'), NodeFilter.SHOW_TEXT)
+  const add = (el, rect, kind, label) => {
+    if (!rect.width || !rect.height) return
+    items.push({ element: identify(el), kind, control: identify(el.closest(controls)), label,
+      visible: true, allowed: Boolean(el.closest('[data-presentation-allow-overlap]')),
+      x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+  }
+  for (const control of host.querySelectorAll(controls)) {
+    if (visible(control)) add(control, control.getBoundingClientRect(), 'control', `control: ${control.getAttribute('aria-label') || control.textContent.trim() || control.tagName.toLowerCase()}`)
+  }
+  const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT)
   while (walker.nextNode()) {
     const node = walker.currentNode, el = node.parentElement
     if (!node.textContent.trim() || !visible(el) || el.closest('[aria-hidden="true"]')) continue
     const range = document.createRange(); range.selectNodeContents(node)
-    const rect = range.getBoundingClientRect()
-    const ancestors = []; let ancestor = el.parentElement
-    while (ancestor) { ancestors.push(identify(ancestor)); ancestor = ancestor.parentElement }
-    items.push({ id: identify(el), ancestors, label: `${el.tagName.toLowerCase()}: ${node.textContent.trim().slice(0, 60)}`, visible: true, allowed: Boolean(el.closest('[data-presentation-allow-overlap]')), x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+    for (const rect of range.getClientRects()) add(el, rect, 'text', `${el.tagName.toLowerCase()}: ${node.textContent.trim().slice(0, 60)}`)
   }
   const fingerprint = el => {
     if (!el) return null

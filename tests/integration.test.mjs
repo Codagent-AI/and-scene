@@ -40,11 +40,14 @@ async function compareTrees(a,b) {
   }
 }
 function assertCleanup(output) {
-  const started = [...output.matchAll(/preview: host=127\.0\.0\.1 readiness=http:\/\/127\.0\.0\.1:\d+ pid=(\d+)/g)].map(m=>Number(m[1]))
-  for (const pid of started) {
-    assert.match(output,new RegExp(`preview: cleaned pid=${pid}`))
-    assert.throws(()=>process.kill(pid,0),`preview ${pid} must have exited`)
+  const previews = [...output.matchAll(/preview: host=127\.0\.0\.1 readiness=http:\/\/127\.0\.0\.1:\d+ pid=(\d+)/g)].map(m=>Number(m[1]))
+  const browsers = [...output.matchAll(/browser: pid=(\d+)/g)].map(m=>Number(m[1]))
+  for (const [kind, pids] of [['preview', previews], ['browser', browsers]]) for (const pid of pids) {
+    assert.match(output,new RegExp(`${kind}: cleaned pid=${pid}`))
+    assert.throws(()=>process.kill(pid,0),`${kind} ${pid} must have exited`)
   }
+  // A rendered route must have acquired and released an actual Chromium process.
+  if (output.includes('browser: url=')) assert.ok(browsers.length, 'Chromium PID must be observed')
 }
 
 test('INT-001 materialized bootstrap is complete and style-neutral', {timeout:240000}, async () => isolated(async dir => {
@@ -71,7 +74,14 @@ import type { SceneProps, Step } from '../../presentation-kit'
 function Scene({payload}:SceneProps<number>) { return <>
 <div style={{position:'absolute',left:100,top:100}}>Unmarked first</div><div style={{position:'absolute',left:100,top:100}}>Unmarked second</div>
 <div data-presentation-allow-overlap="" style={{position:'absolute',left:300,top:200}}><span>Allowed first</span><span style={{position:'absolute',left:0,top:0}}>Allowed second</span></div>
-<div style={{display:'none'}}>Hidden collision</div><span>{payload}</span>
+<div style={{position:'absolute',left:100,top:150}}>Nested parent<span style={{position:'absolute',left:0,top:0}}>Nested child</span></div>
+<button aria-label="Control surface" style={{position:'absolute',left:400,top:100,width:160,height:80}}><span style={{position:'absolute',left:10,top:55}}>Control label</span></button>
+<span style={{position:'absolute',left:420,top:110}}>Surface collision</span>
+<button aria-label="Icon first" style={{position:'absolute',left:600,top:100,width:50,height:50}} />
+<button aria-label="Icon second" style={{position:'absolute',left:620,top:120,width:50,height:50}} />
+<button aria-label="Own label control" style={{position:'absolute',left:400,top:300,width:150,height:45}}><span>Own label text</span></button>
+<div data-presentation-allow-overlap="" style={{position:'absolute',left:100,top:270}}>Allowed parent<span style={{position:'absolute',left:0,top:0}}>Allowed child</span></div>
+<div style={{display:'none'}}>Hidden collision</div><div style={{opacity:0}}><span>Transparent collision</span></div><span>{payload}</span>
 </> }
 const steps:Step<number>[] = [0,1,2].map(i=>({id:String(i),era:i===2?'second':'first',title:'Fixture '+i,caption:'Fixture caption '+i,Scene,payload:i,groupKey:'fixture'}))
 export default function Talk(){return <Presentation steps={steps} title="Diagnostics fixture" attribution={<a data-presentation-attribution="" href="https://example.com" style={{fontSize:8}}>made by and-scene</a>}/>}
@@ -89,7 +99,10 @@ export default function Talk(){return <Presentation steps={steps} title="Diagnos
     assert.ok(capture.capturedAt-capture.transitionAt>=900)
     const png=await readFile(join(artifactDir,capture.file)); assert.equal(png.readUInt32BE(16),1440);assert.equal(png.readUInt32BE(20),900)
     assert.ok(capture.warnings.some(w=>w.includes('Unmarked first') && w.includes('Unmarked second')))
-    assert.ok(!capture.warnings.some(w=>w.includes('Allowed first') || w.includes('Allowed second') || w.includes('Hidden collision')))
+    assert.ok(capture.warnings.some(w=>w.includes('Nested parent') && w.includes('Nested child')))
+    assert.ok(capture.warnings.some(w=>w.includes('Control surface') && w.includes('Surface collision')))
+    assert.ok(capture.warnings.some(w=>w.includes('Icon first') && w.includes('Icon second')))
+    assert.ok(!capture.warnings.some(w=>['Allowed first','Allowed second','Allowed parent','Allowed child','Hidden collision','Transparent collision','Own label text','Own label control','Control label'].some(text=>w.includes(text))))
     assert.ok(capture.warnings.some(w=>w.includes('indistinct progress')))
     assert.ok(capture.warnings.some(w=>w.includes('indistinct toc')))
     assert.ok(capture.warnings.some(w=>w.includes('undersized') && w.includes('[data-presentation-attribution]')))
@@ -107,7 +120,7 @@ test('E2E-001 reference presentation passes production verification', {timeout:1
   assertCleanup(result.output)
 })
 
-for (const fault of ['build','missing','order','console','page','render','transition']) {
+for (const fault of ['build','missing','order','console','page','render','transition','browser-close','browser-server-close']) {
   test(`E2E-002 ${fault} failure identifies phase and step and cleans subprocesses`, {timeout:180000}, async () => isolated(async dir => {
     if (fault==='build') await writeFile(join(dir,'src/broken.ts'),'const broken: number = "bad"; export {broken}')
     if (fault==='missing') {
@@ -126,12 +139,18 @@ for (const fault of ['build','missing','order','console','page','render','transi
       const file=join(dir,'src/presentation-kit/usePresentationNav.ts')
       await writeFile(file,(await readFile(file,'utf8')).replace('Math.min(count - 1, i + 1)','Math.min(count - 1, i)'))
     }
+    if (fault==='browser-close' || fault==='browser-server-close') {
+      const file=join(dir,'scripts/browser.mjs')
+      const target=fault==='browser-close'?'browser':'browserServer'
+      await writeFile(file,(await readFile(file,'utf8')).replace('    const page = await browser.newPage({ viewport })', `    const page = await browser.newPage({ viewport })\n    ${target}.close = async () => { throw new Error('injected ${fault} fault') }`))
+    }
     const result=await command(dir,'npm',['run','verify']); await save(`E2E-002-${fault}.log`,result)
     assert.notEqual(result.code,0,result.output); assert.match(result.output,/FAIL:/); assert.ok(!result.output.includes('PASS:'))
     if(fault==='build') assert.match(result.output,/build: whole-application build failed/)
     if(['missing','order'].includes(fault)) assert.match(result.output,/sample:/)
     if(['console','page','render'].includes(fault)) assert.match(result.output,/browser: step 3/)
     if(fault==='transition') assert.match(result.output,/transition: step 1/)
+    if (fault==='browser-close' || fault==='browser-server-close') assert.match(result.output,/cleanup: browser close failed: injected browser/)
     assertCleanup(result.output)
   }))
 }

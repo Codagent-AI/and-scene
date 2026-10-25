@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "tsc -p tsconfig.test.json && vitest run --config vitest.config.ts",
+    "test:integration": "node --test --test-concurrency=1 tests/integration.test.mjs",
+    "verify": "node scripts/verify.mjs",
+    "inspect": "node scripts/inspect-presentation.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",
@@ -27,6 +31,10 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.0.0",
+    "jsdom": "^27.0.0",
+    "@testing-library/react": "^16.3.0",
+    "playwright": "^1.56.0"
   }
 }

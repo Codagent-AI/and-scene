@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readdir,readFile,mkdir,rm } from 'node:fs/promises'
+import { readdir,readFile,writeFile,mkdir,rm } from 'node:fs/promises'
 import path from 'node:path'
 import { templatePath } from '../../skills/presentation/scaffold.mjs'
 import { root,run } from '../harness.mjs'
@@ -22,9 +22,14 @@ test('INT-001 materialized bootstrap is complete neutral cwd-independent and byt
   assert.deepEqual(copied,canonical)
   for(const file of canonical)assert.deepEqual(await readFile(path.join(target,'src/presentation-kit',file)),await readFile(path.join(root,'src/presentation-kit',file)),file)
   for(const file of ['verify.mjs','inspect-presentation.mjs','browser.mjs','diagnostics.mjs','reference.json'])assert.deepEqual(await readFile(path.join(target,'scripts',file)),await readFile(path.join(root,'scripts',file)),file)
+  // Add another registered route to prove generic bootstrap verification enumerates all entries.
+  await mkdir(path.join(target,'src/presentations/another'))
+  await writeFile(path.join(target,'src/presentations/another/Talk.tsx'),"export { default } from '../welcome/Talk'\n")
+  const registryFile=path.join(target,'src/presentations/index.ts')
+  await writeFile(registryFile,(await readFile(registryFile,'utf8')).replace("[{ slug: 'welcome'", "[{slug:'another',title:'Another',load:()=>import('./another/Talk')},{ slug: 'welcome'"))
   const install=await run('npm',['ci','--no-audit','--no-fund'],target);assert.equal(install.code,0,install.output)
   const browser=await run('npm',['run','browser:install'],target);assert.equal(browser.code,0,browser.output)
-  const verify=await run('npm',['run','verify'],target);console.log(verify.output);assert.equal(verify.code,0,verify.output);assert.match(verify.output,/PASS verification/);assert.match(verify.output,/STEP 0 PASS/)
+  const verify=await run('npm',['run','verify'],target);console.log(verify.output);assert.equal(verify.code,0,verify.output);assert.match(verify.output,/PASS verification/);assert.match(verify.output,/STEP 0 PASS/);assert.match(verify.output,/STEP 1 PASS/);assert.match(verify.output,/\/another/);assert.equal([...verify.output.matchAll(/STEP \d PASS/g)].length,4)
   console.log('INT-001: dependency install; complete anchors; generic welcome route; skill-relative lookup from /tmp; full inventory + byte parity; no-framework build all passed')
  } finally {await rm(target,{recursive:true,force:true})}
 })

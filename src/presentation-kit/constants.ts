@@ -9,3 +9,4 @@ export const STAGE_LAYOUT = {
   browse: { top: 110, bottom: 210, sides: 32 },
   present: { top: 76, bottom: 100, sides: 32 },
 } as const
+export const TOC_MIN_WIDTH = 1024

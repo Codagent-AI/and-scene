@@ -27,3 +27,5 @@ validator_logs
 artifacts/
 .test-work/
 skills/presentation/templates/bootstrap/dist/
+
+inspection/

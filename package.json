@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts",
     "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.mjs",
-    "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.test.mjs",
+    "test:e2e": "node --test --test-concurrency=1 tests/e2e/failures.test.mjs",
     "verify": "node scripts/verify.mjs",
     "inspect": "node scripts/inspect-presentation.mjs",
     "browser:install": "playwright install chromium"

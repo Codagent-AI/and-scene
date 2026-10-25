@@ -34,7 +34,7 @@ describe('diagnostics',()=>{
   expect(diagnose(state({chrome:[{kind,active:true,signature:'active'},{kind,active:false,signature:'inactive'}]}),2)).toEqual([])
  })
  it('diagnoses missing undersized browser-default attribution and accepts legible local styling',()=>{
-  for(const attribution of [null,{...goodAttribution,size:9},{size:16,family:'"Times New Roman"',color:'rgb(0, 0, 238)',decoration:'underline'}])expect(diagnose(state({attribution}),5)).toEqual(['step 5: unpolished attribution: style [data-presentation-attribution]'])
+  for(const attribution of [null,{...goodAttribution,size:11.5},{size:16,family:'"Times New Roman"',color:'rgb(0, 0, 238)',decoration:'none'}])expect(diagnose(state({attribution}),5)).toEqual(['step 5: unpolished attribution: style [data-presentation-attribution]'])
   expect(diagnose(state(),0)).toEqual([])
  })
  it('collects computed geometry via text ranges and scoped ancestor markers rather than parent duplicate text',()=>{

@@ -10,7 +10,7 @@ export function diagnose({ text, chrome, attribution }, step) {
   const controls = chrome.filter(c => c.kind === kind), active = controls.find(c => c.active)
   if (active && controls.some(c => !c.active && c.signature === active.signature)) warn(`indistinct active ${kind} [data-presentation-${kind}]`)
  }
- if (!attribution || attribution.size < 11 || (attribution.family.includes('Times New Roman') && attribution.color === 'rgb(0, 0, 238)' && attribution.decoration.includes('underline'))) warn('unpolished attribution: style [data-presentation-attribution]')
+ if (!attribution || attribution.size < 12 || (attribution.family.includes('Times New Roman') && attribution.color === 'rgb(0, 0, 238)')) warn('unpolished attribution: style [data-presentation-attribution]')
  return warnings
 }
 // Runs in the page: text-node ranges avoid counting an ancestor and its child twice.
@@ -28,8 +28,8 @@ export function collectDiagnostics() {
   text.push({ id: `${identity(el)}:${node.textContent.trim().slice(0, 28)}`, visible, allowed: !!el.closest('[data-presentation-allow-overlap]'), left: r.left, right: r.right, top: r.top, bottom: r.bottom })
  }
  const chrome = [...root.querySelectorAll('[data-presentation-progress],[data-presentation-toc-entry]')].map(el => {
-  const s = getComputedStyle(el)
-  return { kind: el.hasAttribute('data-presentation-progress') ? 'progress' : 'toc-entry', active: el.getAttribute('aria-current') === 'step', signature: [s.color, s.backgroundColor, s.borderColor, s.fontWeight, s.opacity, s.boxShadow, s.textDecoration, s.transform].join('|') }
+  const s = getComputedStyle(el), r = el.getBoundingClientRect()
+  return { kind: el.hasAttribute('data-presentation-progress') ? 'progress' : 'toc-entry', active: el.getAttribute('aria-current') === 'step', signature: [s.color, s.backgroundColor, s.border, r.width, r.height, s.fontWeight, s.opacity, s.boxShadow, s.textDecoration, s.transform].join('|') }
  })
  const a = root.querySelector('[data-presentation-attribution]'), s = a && getComputedStyle(a)
  return { text, chrome, attribution: s && a.checkVisibility({ checkOpacity: true }) ? { size: parseFloat(s.fontSize), family: s.fontFamily, color: s.color, decoration: s.textDecorationLine } : null }

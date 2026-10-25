@@ -13,7 +13,7 @@ const pkg=JSON.parse(await readFile('package.json','utf8'))
 pkg.scripts.test='vitest run --passWithNoTests'
 delete pkg.scripts['test:integration']; delete pkg.scripts['test:e2e']
 await writeFile(`${target}/package.json`,JSON.stringify(pkg,null,2)+'\n')
-await writeFile(`${target}/.gitignore`,'node_modules/\ndist/\nartifacts/\n*.log\n')
+await writeFile(`${target}/.gitignore`,'node_modules/\ndist/\nartifacts/\ninspection/\n*.log\n')
 await writeFile(`${target}/scripts/presentation.json`,JSON.stringify({slug:'welcome'})+'\n')
 await writeFile(`${target}/src/presentations/index.ts`, `import type { ComponentType } from 'react'
 export interface RegistryEntry { slug: string; title: string; load: () => Promise<{ default: ComponentType }> }
@@ -22,7 +22,7 @@ export const presentations: readonly RegistryEntry[] = [{ slug: 'welcome', title
 await writeFile(`${target}/src/presentations/welcome/Talk.tsx`, `import { Presentation, Box } from '../../presentation-kit'
 import type { Step, SceneProps } from '../../presentation-kit'
 function Scene({ payload }: SceneProps<string>) { return <Box layoutId="welcome:idea">{payload}</Box> }
-const steps: Step<string>[] = [{ id: 'welcome', era: 'start', title: 'Your first scene', caption: 'Add your own presentation and local CSS.', Scene, payload: 'One idea, ready to grow.' }]
+const steps: Step<string>[] = [{ id: 'welcome', era: 'start', title: 'Your first scene', caption: 'Add your own presentation and local CSS.', Scene, groupKey: 'welcome', payload: 'One idea, ready to grow.' }, { id: 'next', era: 'start', title: 'Your next beat', caption: 'Keep the same entity as the explanation evolves.', Scene, groupKey: 'welcome', payload: 'The same idea, developed.' }]
 export default function Talk() { return <Presentation steps={steps} title="Welcome" /> }
 `)
 console.log('Bootstrap snapshot synchronized (neutral welcome route).')

@@ -36,13 +36,20 @@ Inspect contracts, not exact paths or template bytes. Three anchors are needed:
 3. A presentation registry mapping multiple entries to their own routes.
 Cosmetic filenames, formatting, and extra dependencies do not invalidate anchors.
 
-First reuse an existing presentation app when inside one, including partially
-implemented anchors. Otherwise detect monorepos using package.json workspaces,
+First reuse an existing presentation app when inside one: evidence is a scene
+kit or routed presentation index, even if its build or another anchor is missing.
+A generic Vite/React/TypeScript build alone does not identify a presentation app
+in a monorepo. Otherwise detect monorepos using package.json workspaces,
 pnpm-workspace.yaml, or packages/ or apps/ directories. In a monorepo target a
-self-contained `presentations/` app; do not mutate the monorepo root build. Empty
-or standalone non-monorepo targets use the root. State the resolved target and,
-before scaffold writes in any non-empty project (including missing kit/index),
-obtain user confirmation. Prior explicit authorization of that target suffices.
+self-contained `presentations/` app; root anchors do not count at that target,
+and the root build and unrelated content remain untouched. Reuse any existing
+presentation app at `presentations/`, adding only its missing anchors there.
+Empty or standalone non-monorepo targets use the root; a standalone build-only
+project is a partial scaffold and keeps its build while adding kit and index.
+Detect the three anchors at the resolved target, not at the monorepo root.
+State the resolved target and, before scaffold writes in any non-empty project
+(including missing kit/index), obtain user confirmation. Prior explicit
+authorization of that target suffices.
 
 With no anchors, copy the complete bootstrap. With all anchors, skip scaffolding.
 With partial anchors, add only missing contracts: preserve working build setup,

@@ -36,7 +36,7 @@ Chromium installation is explicit (`npm run browser:install`), and
 binds, probes, and navigates using `127.0.0.1`. The verify command fails on build,
 sample metadata, runtime/console errors, or stalled step transitions and stops
 its preview and browser. Inspection captures settled images under
-`artifacts/inspection/<slug>/<viewport>/`, with a JSON report. `--settle <ms>`
+`inspection/<slug>/`, with a JSON report. `--settle <ms>`
 changes the default 1200ms. Warnings are advisory; review composition rather
 than treating their count as a visual-quality score. No hosted CI is configured.
 

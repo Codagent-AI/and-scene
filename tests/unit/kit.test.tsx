@@ -45,6 +45,8 @@ describe('mode and chrome', () => {
   expect(screen.getByText('A paragraph caption.')).toBeTruthy()
   fireEvent.click(screen.getByLabelText('Next step')); expect(index()).toBe(1)
   fireEvent.click(screen.getByLabelText('Previous step')); expect(index()).toBe(0)
+  resize(1024,900); expect(screen.getByRole('navigation', { name: 'Sections' })).toBeTruthy()
+  resize(1023,900); expect(screen.queryByRole('navigation', { name: 'Sections' })).toBeNull()
   resize(390,844); expect(screen.queryByRole('navigation', { name: 'Sections' })).toBeNull()
   fireEvent.click(screen.getByLabelText('Toggle presentation mode'))
   expect(screen.queryByLabelText('Next step')).toBeNull(); expect(document.querySelector('[data-presentation-caption]')).toBeNull()
@@ -71,7 +73,7 @@ describe('mode and chrome', () => {
  })
  it('provides bottom-right attribution and opt-in branding', () => {
   const v = render(<Presentation title="test" steps={steps} />)
-  const a=screen.getByText('made by and-scene'); expect(a.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene'); expect(a.hasAttribute('data-presentation-attribution')).toBe(true)
+  const a=screen.getByText('made by and-scene'); expect(a.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene'); expect(a.hasAttribute('data-presentation-attribution')).toBe(true);expect(a.getAttribute('target')).toBe('_blank');expect(a.getAttribute('rel')).toBe('noopener noreferrer')
   expect((a as HTMLElement).style.right).toBe('16px'); expect((a as HTMLElement).style.bottom).toBe('12px')
   expect(document.querySelector('header a')).toBeNull()
   v.rerender(<Presentation title="test" steps={steps} brand={<a href="/">Host</a>} />); expect(screen.getByText('Host')).toBeTruthy()
@@ -86,8 +88,8 @@ describe('navigation', () => {
   const prev=result.current.index; unmount(); act(()=>key('ArrowRight')); expect(result.current.index).toBe(prev); expect(remove).toHaveBeenCalledWith('keydown',expect.any(Function)); remove.mockRestore()
  })
  it('does not intercept focused controls descendants or editable content, including P', () => {
-  render(<><Presentation title="test" steps={steps}/><button><span>nested</span></button><a href="#">link</a><input/><select/><textarea/><div contentEditable suppressContentEditableWarning>editable<span>child</span></div></>)
-  for(const target of document.querySelectorAll('button,a,input,select,textarea,[contenteditable],button span,[contenteditable] span')) for(const k of ['ArrowRight',' ','PageDown','ArrowLeft','PageUp','p']) {
+  render(<><Presentation title="test" steps={steps}/><button><span>nested</span></button><a href="#">link</a><input/><select/><textarea/><details><summary>details</summary></details><div role="tab"><span>tab child</span></div><div role="link">link role</div><div contentEditable suppressContentEditableWarning>editable<span>child</span></div></>)
+  for(const target of document.querySelectorAll('button,a,input,select,textarea,[contenteditable],button span,[contenteditable] span,summary,[role=tab],[role=tab] span,[role=link]')) for(const k of ['ArrowRight',' ','PageDown','ArrowLeft','PageUp','p']) {
    const event = new KeyboardEvent('keydown',{key:k,bubbles:true,cancelable:true}); target.dispatchEvent(event)
    expect(index()).toBe(0); expect(event.defaultPrevented).toBe(false); expect(root().getAttribute('data-presentation-mode')).toBe('browse')
   }
@@ -95,7 +97,7 @@ describe('navigation', () => {
  it('swipes once in each direction and ignores vertical or cancelled gestures', () => {
   render(<Presentation title="test" steps={steps}/>); const el=root()
   const swipe=(x:number,y:number) => { fireEvent.touchStart(el,{touches:[{clientX:200,clientY:200}]}); fireEvent.touchMove(el,{touches:[{clientX:x,clientY:y}]}); fireEvent.touchEnd(el,{changedTouches:[{clientX:x,clientY:y}]}) }
-  swipe(100,210); expect(index()).toBe(1); swipe(200,100); expect(index()).toBe(1); swipe(300,210); expect(index()).toBe(0)
+  swipe(151,210); expect(index()).toBe(0); swipe(150,210); expect(index()).toBe(1); swipe(200,100); expect(index()).toBe(1); swipe(300,210); expect(index()).toBe(0)
   fireEvent.touchStart(el,{touches:[{clientX:200,clientY:200}]}); fireEvent.touchCancel(el); fireEvent.touchEnd(el,{changedTouches:[{clientX:50,clientY:200}]}); expect(index()).toBe(0)
  })
  it('clamps hook keyboard swipe and screen controls at both boundaries', () => {

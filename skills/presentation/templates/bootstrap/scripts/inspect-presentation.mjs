@@ -9,7 +9,7 @@ try {
  const width = option('--width', 1440), height = option('--height', 900), settle = option('--settle', SETTLE_MS)
  if (![width, height, settle].every(n => Number.isFinite(n) && n > 0)) throw new Error('viewport and settle must be positive')
  await command('npm', ['run', 'build'])
- const directory = path.join('artifacts', 'inspection', slug, `${width}x${height}`)
+ const directory = path.join('inspection', slug)
  await mkdir(directory, { recursive: true })
  const report = { viewport: { width, height }, settle, captures: [] }
  await withPreview(async (browser, base) => {
@@ -23,7 +23,7 @@ try {
    const transitionedAt = Date.now()
    await page.waitForTimeout(settle); errors.check()
    const warnings = diagnose(await page.evaluate(collectDiagnostics), i)
-   for (const warning of warnings) console.log(`ADVISORY ${warning}`)
+   for (const warning of warnings) console.log(`warn ${warning}`)
    const file = path.join(directory, `step-${String(i + 1).padStart(2, '0')}.png`)
    const capturedAt = Date.now()
    // A textual fingerprint makes accidental repeated-step capture detectable.

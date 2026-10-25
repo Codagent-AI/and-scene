@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TouchEvent } from 'react'
 import type { Mode } from './types'
-const interactive = 'button,a,input,select,textarea,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="slider"],[role="textbox"]'
+const interactive = 'button,a,input,select,textarea,summary,[role="tab"],[role="link"],[contenteditable]:not([contenteditable="false"]),[role="button"],[role="slider"],[role="textbox"]'
 export function usePresentationNav(count: number, initialMode: Mode = 'browse') {
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState<Mode>(initialMode)
@@ -27,7 +27,7 @@ export function usePresentationNav(count: number, initialMode: Mode = 'browse') 
       start.current = null
       if (!s || !t) return
       const dx = t.clientX - s.x, dy = t.clientY - s.y
-      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { if (dx < 0) next(); else prev() }
+      if (Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy)) { if (dx < 0) next(); else prev() }
     },
     onTouchCancel() { start.current = null },
   } }

@@ -62,9 +62,10 @@ function collectPage() {
 
   const style = (el) => {
     const cs = getComputedStyle(el)
-    return Object.fromEntries(
-      ['backgroundColor', 'color', 'borderTopColor', 'borderTopWidth', 'fontWeight', 'opacity', 'transform', 'boxShadow', 'outlineStyle', 'textDecorationLine', 'width', 'height'].map((p) => [p, cs[p]]),
+    const props = Object.fromEntries(
+      ['backgroundColor', 'color', 'borderTopColor', 'borderTopWidth', 'fontWeight', 'opacity', 'transform', 'boxShadow', 'outlineStyle', 'textDecorationLine'].map((p) => [p, cs[p]]),
     )
+    return { ...props, size: el.textContent.trim() ? '' : `${cs.width} ${cs.height}` }
   }
   const chrome = []
   for (const [name, selector] of [

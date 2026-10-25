@@ -41,11 +41,13 @@ const DISTINCT_PROPS = [
   'boxShadow',
   'outlineStyle',
   'textDecorationLine',
-  'width',
-  'height',
+  'size',
 ]
 
-/** Active chrome must differ from an inactive sibling in at least one visible property. */
+/**
+ * Active chrome must differ from an inactive sibling in at least one visible property.
+ * `size` is only set for text-less controls (dots), where text length cannot change the box.
+ */
 export function isActiveDistinct(active, inactive) {
   return DISTINCT_PROPS.some((p) => active[p] !== inactive[p])
 }

@@ -33,13 +33,13 @@ describe('intersection', () => {
 })
 
 describe('isActiveDistinct', () => {
-  const base = { backgroundColor: 'rgb(0, 0, 0)', color: 'rgb(1, 1, 1)', width: '10px', opacity: '1' }
+  const base = { backgroundColor: 'rgb(0, 0, 0)', color: 'rgb(1, 1, 1)', size: '10px 10px', opacity: '1' }
   it('is false when active and inactive look identical', () => {
     expect(isActiveDistinct({ ...base }, { ...base })).toBe(false)
   })
   it('is true when any visual property differs', () => {
     expect(isActiveDistinct({ ...base, backgroundColor: 'rgb(9, 9, 9)' }, base)).toBe(true)
-    expect(isActiveDistinct({ ...base, width: '14px' }, base)).toBe(true)
+    expect(isActiveDistinct({ ...base, size: '14px 14px' }, base)).toBe(true)
   })
 })
 

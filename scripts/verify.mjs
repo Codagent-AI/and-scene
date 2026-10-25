@@ -92,7 +92,6 @@ async function stepThrough(browser, baseUrl, slug) {
       if ((await root$.getAttribute('data-mode')) !== 'browse') await page.keyboard.press('p')
     }
     for (let i = 0; i < count; i++) {
-      current = i
       const index = Number(await root$.getAttribute('data-step-index'))
       if (index !== i) throw fail('render', `expected data-step-index ${i}, found ${index}`)
       await page.waitForTimeout(SETTLE_MS)
@@ -105,7 +104,10 @@ async function stepThrough(browser, baseUrl, slug) {
       }
       const here = errors.find((e) => e.step === i)
       if (here) throw fail('render', here.text)
+      log(`  step ${i + 1}/${count} ok${isReference ? `: ${REFERENCE_STEPS[i][0]}` : ''}`)
       if (i < count - 1) {
+        // Errors raised while moving to the next step belong to that step.
+        current = i + 1
         await page.keyboard.press('ArrowRight')
         try {
           await page.waitForFunction(
@@ -114,7 +116,7 @@ async function stepThrough(browser, baseUrl, slug) {
             { timeout: STEP_TIMEOUT_MS },
           )
         } catch {
-          throw fail('render', `transition did not advance data-step-index from ${i} to ${i + 1}`)
+          throw new VerifyError('render', `transition did not advance data-step-index from ${i} to ${i + 1}`, { presentation: slug, step: i })
         }
       }
     }

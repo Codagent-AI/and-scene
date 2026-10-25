@@ -23,3 +23,7 @@ validator_logs
 *.njsproj
 *.sln
 *.sw?
+
+# Local browser artifacts and disposable test fixtures
+artifacts/
+.test-work/

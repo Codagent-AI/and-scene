@@ -1,21 +1,22 @@
-/** Stable layoutId namespace — entities morph across steps when ids match. */
-export const ENTITIES = {
-  you: 'you',
-  prompt: 'prompt',
-  questionChip: 'question-chip',
-  convoArrow: 'convo-arrow',
-  skill: 'skill',
-  stepCard1: 'step-card-1',
-  stepCard2: 'step-card-2',
-  stepCard3: 'step-card-3',
-  ghostCard: 'ghost-card',
-  depthChip: 'depth-chip',
-  tray: 'tray',
-  kitSocket: 'kit-socket',
-  verifyArrow: 'verify-arrow',
-  verifyNode: 'verify-node',
-  greenCheck: 'green-check',
-  editBadge: 'edit-badge',
+/** Stable identities for the reference sample's continuously evolving scene. */
+export const entities = {
+  you: 'how-to-make-a-presentation:you',
+  prompt: 'how-to-make-a-presentation:prompt',
+  skill: 'how-to-make-a-presentation:skill',
+  conversation: 'how-to-make-a-presentation:conversation',
+  question: 'how-to-make-a-presentation:question',
+  cardOne: 'how-to-make-a-presentation:card-one',
+  cardTwo: 'how-to-make-a-presentation:card-two',
+  cardThree: 'how-to-make-a-presentation:card-three',
+  cardFour: 'how-to-make-a-presentation:card-four',
+  cardLinks: 'how-to-make-a-presentation:card-links',
+  morphLabel: 'how-to-make-a-presentation:morph-label',
+  ghostCard: 'how-to-make-a-presentation:ghost-card',
+  depthControl: 'how-to-make-a-presentation:depth-control',
+  sceneKit: 'how-to-make-a-presentation:scene-kit',
+  verify: 'how-to-make-a-presentation:verify',
+  verificationPass: 'how-to-make-a-presentation:verification-pass',
+  modifyArc: 'how-to-make-a-presentation:modify-arc',
+  editedFlag: 'how-to-make-a-presentation:edited-flag',
+  reveal: 'how-to-make-a-presentation:reveal',
 } as const
-
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]

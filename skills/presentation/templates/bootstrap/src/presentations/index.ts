@@ -1,12 +1,18 @@
-import type { ComponentType } from 'react'
+import { lazy } from 'react'
+import type { ComponentType, LazyExoticComponent } from 'react'
 
-export interface PresentationEntry {
+export interface PresentationRegistration {
   slug: string
   title: string
   load: () => Promise<{ default: ComponentType }>
 }
 
-/** Explicit registry — add a folder + one line here for each presentation. */
-export const presentations: PresentationEntry[] = []
+export interface RegisteredPresentation extends PresentationRegistration {
+  Component: LazyExoticComponent<ComponentType>
+}
 
-export const presentationSlugs = new Set(presentations.map((p) => p.slug))
+export function definePresentation(registration: PresentationRegistration): RegisteredPresentation {
+  return { ...registration, Component: lazy(registration.load) }
+}
+
+export const presentations: readonly RegisteredPresentation[] = []

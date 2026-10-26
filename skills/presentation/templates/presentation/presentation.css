@@ -1,0 +1,4 @@
+/* Presentation-owned visual direction. The reusable scene kit remains unstyled. */
+[data-presentation="true"] { min-height: 100vh; }
+[data-presentation-attribution="true"] { font-size: .875rem; }
+.{{SLUG}}-scene { display: grid; place-items: center; }

@@ -19,10 +19,12 @@
 .how-to-presentation .story-entity { display: flex; align-items: center; justify-content: center; }
 .how-to-presentation .person, .how-to-presentation .skill { background: #244e3b; color: #fbf9f1; border-radius: 12px; font-size: 17px; font-weight: 600; box-shadow: 0 5px 0 #d7dfd3; }
 .how-to-presentation .skill { background: #d9e5ce; color: #244e3b; border: 1px solid #819775; }
-.how-to-presentation .prompt { font: italic 18px Georgia, serif; color: #647667; }
+.how-to-presentation .prompt { font: italic 18px Georgia, serif; color: #647667; background: #fffef7; border: 1px solid #c5cfb8; border-radius: 16px; }
+.how-to-presentation .prompt::before { content: ''; position: absolute; left: 32px; top: -5px; width: 8px; height: 8px; background: #fffef7; border-top: 1px solid #c5cfb8; border-left: 1px solid #c5cfb8; transform: rotate(45deg); }
 .how-to-presentation .conversation { font-size: 40px; letter-spacing: 0; border-bottom: 1px solid #7d9583; }
 .how-to-presentation .chip, .how-to-presentation .depth { border-radius: 20px; background: #e5e9d9; border: 1px solid #c5cfb8; font-size: 11px; letter-spacing: .035em; }
 .how-to-presentation .tray { justify-content: start; color: #667d6b; font: 10px ui-monospace, monospace; letter-spacing: .16em; }
+.how-to-presentation .tray::after { content: ''; position: absolute; top: 26px; left: -8px; width: 776px; height: 100px; border-radius: 12px; background: #e9eddf; pointer-events: none; }
 .how-to-presentation .card { background: #fffef7; border: 1px solid #aebfa9; border-radius: 9px; flex-direction: column; gap: 10px; box-shadow: 0 4px 0 #e0e6d6; }
 .how-to-presentation .card strong { font: 28px Georgia, serif; }
 .how-to-presentation .card span { font: 10px ui-monospace, monospace; }

@@ -70,7 +70,7 @@ test('INT-002 inspection captures settled steps and advisory collision active-st
     const fixture = `import { useState } from 'react'
 export default function Fixture() {
  const [index,setIndex] = useState(0)
- return <main data-presentation="" data-step-count="2" data-step-index={index} onKeyDown={e => {if(e.key==='ArrowRight') setIndex(i => Math.min(1,i+1))}} tabIndex={-1} ref={el => el?.focus()}>
+ return <main style={{minHeight:"100vh"}} data-presentation="" data-step-count="2" data-step-index={index} onKeyDown={e => {if(e.key==='ArrowRight') setIndex(i => Math.min(1,i+1))}} tabIndex={-1} ref={el => el?.focus()}>
  <style>{'button{background:white;color:black;border:1px solid black;font:14px Arial} .moving{position:absolute;left:30px;top:100px;transition:left 60ms linear}.moving[data-step="1"]{left:100px}'}</style>
  <span style={{position:'absolute',left:20,top:20}}>collision-A</span><span style={{position:'absolute',left:20,top:20}}>collision-B</span>
  <div data-presentation-allow-overlap=""><span style={{position:'absolute',left:20,top:60}}>allowed-A</span><span style={{position:'absolute',left:20,top:60}}>allowed-B</span></div>

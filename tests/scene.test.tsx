@@ -171,6 +171,11 @@ describe('primitives motion identity and style ownership', () => {
   })
 })
 describe('fixed canvas scaling', () => {
+  it('reserves wide browse chrome above the canvas', () => {
+    // Sample ToC occupies y=113..140; reserve a separate diagram region below it.
+    expect(STAGE_LAYOUT.browse.top).toBeGreaterThan(140)
+    expect(STAGE_LAYOUT.browse.bottom).toBeGreaterThanOrEqual(190)
+  })
   it('uniformly fits wide narrow short and resized viewports in both modes without overflow', () => {
     expect([DESIGN_W, DESIGN_H]).toEqual([880, 380])
     for (const mode of ['browse', 'present'] as const) for (const [w, h] of [[1440, 900], [375, 812], [1440, 400], [20, 20]]) {

@@ -1,5 +1,6 @@
 import { command, withBrowser, options, stepIndex, SETTLE_MS } from './browser-tools.mjs'
 import { REFERENCE, REFERENCE_SLUG, REFERENCE_TITLE, validateReference } from './reference.mjs'
+import { browserErrors, verificationFailure } from './render-errors.mjs'
 const args = options(process.argv.slice(2))
 let phase = 'build'; let index = 0
 try {
@@ -9,13 +10,11 @@ try {
   const reference = slug === REFERENCE_SLUG
   await withBrowser(process.cwd(), async (browser, base) => {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-    const errors = []
-    page.on('console', message => { if (message.type() === 'error') errors.push(`console: ${message.text()}`) })
-    page.on('pageerror', error => errors.push(`pageerror: ${error.message}`))
+    const errors = browserErrors(page)
     await page.goto(base)
     const link = page.locator(`a[href="/${slug}"]`)
     await link.waitFor({ timeout: 5000 })
-    if (reference && await link.innerText() !== REFERENCE_TITLE) throw new Error('Reference sample registration title is incorrect')
+    if (reference && await page.getByRole('link', { name: REFERENCE_TITLE, exact: true }).count() !== 1) throw new Error('Reference sample registration title is incorrect')
     phase = 'render'
     await page.goto(`${base}/${slug}`)
     await stepIndex(page, 0)
@@ -39,6 +38,6 @@ try {
   })
   console.log('PASS verification: build, registration, metadata, all steps rendered')
 } catch (error) {
-  console.error(`FAIL verification phase=${phase} step=${index}: ${error.message}`)
+  console.error(verificationFailure(phase, index, error))
   process.exitCode = 1
 }

@@ -7,6 +7,6 @@ export const ENTER_DELAY = LAYOUT_T
 export const SETTLE_MS = (LAYOUT_T + ENTER_T) * 1000 + 150
 export const MIN_SCALE = 0
 export const STAGE_LAYOUT = {
-  browse: { top: 94, bottom: 190, left: 24, right: 24 },
+  browse: { top: 154, bottom: 190, left: 24, right: 24 },
   present: { top: 40, bottom: 100, left: 24, right: 24 },
 } as const

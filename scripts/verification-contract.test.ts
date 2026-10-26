@@ -1,0 +1,22 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { expect, test } from 'vitest'
+
+const root = resolve(import.meta.dirname, '..')
+
+test('ships project-local production verification and inspection commands', () => {
+  const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as { scripts: Record<string, string> }
+
+  expect(packageJson.scripts.verify).toBe('node scripts/verify.mjs')
+  expect(packageJson.scripts.inspect).toBe('node scripts/inspect-presentation.mjs')
+  expect(existsSync(resolve(root, 'scripts', 'verify.mjs'))).toBe(true)
+  expect(existsSync(resolve(root, 'scripts', 'inspect-presentation.mjs'))).toBe(true)
+})
+
+test('root verification cannot bypass the canonical reference sample with a slug argument', () => {
+  const source = readFileSync(resolve(root, 'scripts', 'verify.mjs'), 'utf8')
+
+  expect(source).toContain('const slug = referenceSlug')
+  expect(source).toContain("if (process.argv[2]) throw new Error('Root verification always targets the canonical reference sample.')")
+  expect(source).not.toContain('process.argv[2] ?? referenceSlug')
+})

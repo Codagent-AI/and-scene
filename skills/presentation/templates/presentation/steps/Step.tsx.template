@@ -1,0 +1,17 @@
+import { Box, SceneLayer, type SceneProps, type Step } from '../../../presentation-kit'
+import { entities } from '../entities'
+import type { PresentationPayload } from '.'
+
+function {{StepComponent}}Scene({ payload }: SceneProps<PresentationPayload>) {
+  return <SceneLayer><Box id={entities.subject} className="{{slug}}-subject">{payload.label}</Box></SceneLayer>
+}
+
+export const {{StepComponent}}: Step<PresentationPayload> = {
+  id: '{{stepId}}',
+  era: '{{era}}',
+  title: '{{title}}',
+  caption: '{{caption}}',
+  Scene: {{StepComponent}}Scene,
+  groupKey: '{{slug}}-scene',
+  payload: { label: '{{visualLabel}}' },
+}

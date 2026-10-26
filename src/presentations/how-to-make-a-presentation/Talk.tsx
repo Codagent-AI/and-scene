@@ -1,15 +1,7 @@
 import { Presentation } from '../../presentation-kit'
-import { STEPS } from './steps'
-import './style.css'
+import './presentation.css'
+import { steps } from './steps'
 
 export default function Talk() {
-  return (
-    <div className="reference-talk">
-      <Presentation
-        steps={STEPS}
-        title="How to Use This Skill to Make a Presentation"
-        initialMode="browse"
-      />
-    </div>
-  )
+  return <Presentation className="how-to-make-a-presentation" initialMode="browse" steps={steps} title="How to Use This Skill to Make a Presentation" />
 }

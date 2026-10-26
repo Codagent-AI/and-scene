@@ -1,0 +1,8 @@
+import type { Step } from '../../../presentation-kit'
+import { {{StepComponent}} } from './{{StepFile}}'
+
+export interface PresentationPayload {
+  label: string
+}
+
+export const steps: readonly [Step<PresentationPayload>, ...Step<PresentationPayload>[]] = [{{StepComponent}}]

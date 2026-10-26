@@ -1,0 +1,4 @@
+/* This file owns the presentation's visual language. The scene kit is intentionally unstyled. */
+.{{slug}}-presentation {
+  /* Add presentation-specific color, type, spacing, card, control, and attribution treatments here. */
+}

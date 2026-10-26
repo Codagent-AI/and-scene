@@ -1,255 +1,223 @@
-import { spawn } from 'node:child_process'
-import { dirname, join } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+#!/usr/bin/env node
+// Deterministic build + browser-render verification.
+//
+// 1. Builds the whole app (tsc -b && vite build); fails on any type/build error.
+// 2. Starts `vite preview` bound to 127.0.0.1 and waits for it to answer.
+// 3. Uses Playwright/Chromium to open every registered presentation route,
+//    step through every step via the chrome's data-step-count/data-step-index
+//    hooks, and fail on console errors, uncaught page errors, or a step index
+//    that does not advance.
+// 4. Re-opens each route at a phone-width viewport and fails if the browse-mode
+//    table of contents is still visible (it is scoped to wide viewports).
+// 5. Exits non-zero with the failing check/step reported.
+
+import { spawn, spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+import process from 'node:process'
 import { chromium } from 'playwright'
 
-/**
- * Presentation-agnostic verifier for a scaffolded project.
- *
- * Rather than pinning to a single known slug, this reads the project's own
- * registry and renders EVERY registered
- * presentation through all of its steps, failing on any build error, console
- * error, or uncaught page error. A project with no presentations yet still
- * passes (the scaffold builds; there is simply nothing to render).
- *
- * Run via `npm run verify` (which supplies --experimental-strip-types so the
- * TypeScript registry can be imported directly).
- */
+const projectRoot = path.resolve(fileURLToPath(import.meta.url), '../..')
+const HOST = '127.0.0.1'
+const PORT = Number(process.env.VERIFY_PORT ?? 4173)
+const BASE_URL = `http://${HOST}:${PORT}`
+// Appear nodes mount after ENTER_DELAY (0.5s) and fade in over ENTER_T (0.35s)
+// — see src/presentation-kit/constants.ts. Wait past both, plus a buffer, so
+// every step is inspected in its settled state.
+const STEP_SETTLE_MS = 900
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const VITE_BIN = join(ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'vite.cmd' : 'vite')
-const PREVIEW_URL_RE = /http:\/\/127\.0\.0\.1:(\d+)\//
+// Short on purpose: by the time this is read the step has already settled, so a
+// missing root means the tree unmounted rather than that it is still rendering.
+const ROOT_ATTR_TIMEOUT_MS = 5_000
 
-/** @param {string} check @param {string} detail */
-function fail(check, detail) {
-  console.error(`FAIL [${check}]: ${detail}`)
-  process.exit(1)
+const NARROW_VIEWPORT = { width: 390, height: 800 }
+
+function fail(message) {
+  console.error(`\n[verify] FAIL: ${message}`)
+  process.exitCode = 1
 }
 
-function pass(msg) {
-  console.log(`PASS: ${msg}`)
+function readRegisteredSlugs() {
+  const indexPath = path.join(projectRoot, 'src/presentations/index.ts')
+  const source = readFileSync(indexPath, 'utf8')
+  const slugs = [...source.matchAll(/slug:\s*['"]([^'"]+)['"]/g)].map((match) => match[1])
+  return slugs
 }
 
-function runBuild() {
-  return new Promise((resolve, reject) => {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-    const child = spawn(npm, ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: false })
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`build exited ${code}`))))
-    child.on('error', reject)
-  })
-}
-
-/** Read the project's presentation registry. Returns the list of { slug }. */
-async function readRegistry() {
-  const registryUrl = pathToFileURL(join(ROOT, 'src/presentations/index.ts')).href
-  const mod = await import(registryUrl)
-  const presentations = mod.presentations
-  if (!Array.isArray(presentations)) {
-    throw new Error('src/presentations/index.ts does not export a `presentations` array')
-  }
-  return presentations
-}
-
-/** @param {import('node:child_process').ChildProcess} child */
-function childExited(child) {
-  return child.exitCode !== null || child.signalCode !== null
-}
-
-/** @param {string} baseUrl @param {import('node:child_process').ChildProcess} child */
-async function waitForPreview(baseUrl, child, deadlineMs = 30_000) {
-  const started = Date.now()
-  while (Date.now() - started < deadlineMs) {
-    if (childExited(child)) {
-      throw new Error(`vite preview exited before ready (code ${child.exitCode})`)
-    }
+async function waitForServer(url, timeoutMs = 20_000) {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
     try {
-      const res = await fetch(baseUrl)
-      const html = await res.text()
-      if (res.ok && html.includes('id="root"')) return
+      const response = await fetch(url)
+      if (response.ok || response.status < 500) return
     } catch {
-      // server not listening yet
+      // server not ready yet
     }
-    await new Promise((r) => setTimeout(r, 200))
+    await new Promise((resolve) => setTimeout(resolve, 200))
   }
-  throw new Error('vite preview did not become ready within 30s')
+  throw new Error(`Preview server at ${url} did not become ready within ${timeoutMs}ms`)
 }
 
-/** @param {import('node:child_process').ChildProcess} child */
-function stopPreview(child) {
-  return new Promise((resolve) => {
-    if (!child.pid) {
-      resolve()
-      return
-    }
-    child.once('close', () => resolve())
-    try {
-      process.kill(-child.pid, 'SIGTERM')
-    } catch {
-      child.kill('SIGTERM')
-    }
-    setTimeout(() => {
-      if (!childExited(child)) {
-        try {
-          process.kill(-child.pid, 'SIGKILL')
-        } catch {
-          child.kill('SIGKILL')
-        }
-      }
-      resolve()
-    }, 3000)
-  })
-}
-
-function startPreview() {
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      VITE_BIN,
-      ['preview', '--port', '0', '--host', '127.0.0.1'],
-      { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
-    )
-
-    let output = ''
-    let settled = false
-    let readyStarted = false
-
-    const cleanup = () => {
-      clearTimeout(timer)
-      child.stdout?.off('data', onData)
-      child.stderr?.off('data', onData)
-      child.off('error', onError)
-      child.off('close', onClose)
-    }
-    const rejectWith = async (err) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      await stopPreview(child)
-      reject(err)
-    }
-    const resolveWith = (value) => {
-      if (settled) return
-      settled = true
-      cleanup()
-      resolve(value)
-    }
-    const onData = (chunk) => {
-      output += chunk.toString()
-      const match = output.match(PREVIEW_URL_RE)
-      if (!match || readyStarted) return
-      readyStarted = true
-      const baseUrl = match[0]
-      waitForPreview(baseUrl, child)
-        .then(() => resolveWith({ child, baseUrl }))
-        .catch(rejectWith)
-    }
-    const onError = (err) => rejectWith(err)
-    const onClose = (code) => {
-      if (!settled) rejectWith(new Error(`vite preview exited before ready (code ${code})`))
-    }
-    const timer = setTimeout(() => {
-      const detail = output.trim() ? ` Output:\n${output.trim()}` : ''
-      rejectWith(new Error(`vite preview did not print a local URL within 30s.${detail}`))
-    }, 30_000)
-
-    child.stdout?.on('data', onData)
-    child.stderr?.on('data', onData)
-    child.on('error', onError)
-    child.on('close', onClose)
-  })
-}
-
-/** Step a single presentation through every step, capturing render errors. */
-async function renderPresentation(page, baseUrl, slug) {
+async function verifyRoute(browser, slug) {
+  const page = await browser.newPage()
   const errors = []
-  // Start at 0 so errors during the initial page load (before the step loop
-  // runs) are attributed to step 0 rather than a confusing `step null`.
-  let failingStep = 0
 
-  const onConsole = (msg) => {
-    if (msg.type() === 'error') errors.push({ step: failingStep, msg: msg.text() })
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(`console.error: ${message.text()}`)
+  })
+  page.on('pageerror', (error) => {
+    errors.push(`pageerror: ${error.message}`)
+  })
+
+  const url = slug ? `${BASE_URL}/${slug}` : BASE_URL
+  await page.goto(url, { waitUntil: 'networkidle' })
+
+  const root = page.locator('[data-presentation-root]')
+  const stepCount = Number(await root.getAttribute('data-step-count'))
+  if (!Number.isFinite(stepCount) || stepCount < 1) {
+    await page.close()
+    return { slug, ok: false, message: `missing or invalid data-step-count on ${url}` }
   }
-  const onPageError = (err) => errors.push({ step: failingStep, msg: err.message })
-  page.on('console', onConsole)
-  page.on('pageerror', onPageError)
 
-  try {
-    await page.goto(`${baseUrl}${slug}`, { waitUntil: 'load', timeout: 30_000 })
+  for (let index = 0; index < stepCount; index += 1) {
+    // Let the step settle before inspecting it. Appear nodes mount only after
+    // ENTER_DELAY and then fade in over ENTER_T, so checking sooner inspects a
+    // half-mounted step and misses errors thrown by the delayed content —
+    // including on the final step, where nothing re-checks afterwards.
+    await page.waitForTimeout(STEP_SETTLE_MS)
 
-    const progress = page.locator('[data-testid="step-progress"]')
-    await progress.waitFor({ timeout: 10_000 })
-
-    const stepCount = Number(await progress.getAttribute('data-step-count'))
-    if (!Number.isFinite(stepCount) || stepCount < 1) {
-      throw new Error(`${slug}: invalid data-step-count: ${stepCount}`)
+    // Consult captured errors before touching the DOM. An uncaught render error
+    // unmounts the tree, taking [data-presentation-root] with it, so reading
+    // data-step-index first stalls for the full locator timeout and then reports
+    // that timeout instead of the page error we already hold.
+    if (errors.length > 0) {
+      await page.close()
+      return { slug, ok: false, message: `step ${index}: ${errors.join('; ')}` }
     }
 
-    for (let i = 0; i < stepCount; i++) {
-      failingStep = i
-      const index = Number(await progress.getAttribute('data-step-index'))
-      if (index !== i) throw new Error(`${slug} step ${i}: expected index ${i}, got ${index}`)
+    let raw
+    try {
+      raw = await root.getAttribute('data-step-index', { timeout: ROOT_ATTR_TIMEOUT_MS })
+    } catch {
+      // The root went away without a captured error — still identify the step.
+      const detail = errors.length > 0 ? errors.join('; ') : 'the presentation root disappeared'
+      await page.close()
+      return { slug, ok: false, message: `step ${index}: ${detail}` }
+    }
 
-      if (i < stepCount - 1) {
-        await page.keyboard.press('ArrowRight')
-        await page.waitForFunction(
-          (expected) => {
-            const el = document.querySelector('[data-testid="step-progress"]')
-            return el && Number(el.getAttribute('data-step-index')) === expected
-          },
-          i + 1,
-          { timeout: 5000 },
-        )
+    // Check for the attribute before converting: `Number(null)` is 0, so a root
+    // that never renders the hook at all would otherwise satisfy step 0 — and on
+    // a single-step presentation nothing later would catch it.
+    if (raw === null || !Number.isInteger(Number(raw))) {
+      await page.close()
+      return {
+        slug,
+        ok: false,
+        message: `step ${index}: [data-presentation-root] has no integer data-step-index (got ${JSON.stringify(raw)})`,
       }
     }
-
-    if (errors.length > 0) {
-      const first = errors[0]
-      throw new Error(`${slug} step ${first.step}: ${first.msg}`)
+    const current = Number(raw)
+    if (current !== index) {
+      await page.close()
+      return { slug, ok: false, message: `step ${index}: expected data-step-index=${index}, got ${current}` }
     }
-  } finally {
-    page.off('console', onConsole)
-    page.off('pageerror', onPageError)
+    if (index < stepCount - 1) {
+      await page.keyboard.press('ArrowRight')
+    }
   }
+
+  if (errors.length > 0) {
+    await page.close()
+    return { slug, ok: false, message: errors.join('; ') }
+  }
+
+  await page.close()
+  return { slug, ok: true }
 }
 
-/** @param {string} baseUrl @param {Array<{ slug: string }>} presentations */
-async function renderCheck(baseUrl, presentations) {
-  const browser = await chromium.launch()
+// The browse-mode table of contents is scoped to wide viewports. The kit
+// renders it unconditionally in browse mode (visibility is a style decision the
+// presentation owns), so this asserts each presentation actually collapses it
+// at a phone-width viewport instead of leaving it floating over the scene.
+async function verifyNarrowViewport(browser, slug) {
+  const page = await browser.newPage({ viewport: NARROW_VIEWPORT })
   try {
-    const page = await browser.newPage()
-    for (const { slug } of presentations) {
-      await renderPresentation(page, baseUrl, slug)
+    await page.goto(`${BASE_URL}/${slug}`, { waitUntil: 'networkidle' })
+
+    // isVisible() is false for an element that does not exist, so this also
+    // covers a presentation that renders no table of contents at all.
+    const toc = page.locator('[data-presentation-chrome="toc"]')
+    if (await toc.first().isVisible()) {
+      return {
+        ok: false,
+        message: `table of contents is still visible at ${NARROW_VIEWPORT.width}px; scope it to wide viewports in this presentation's CSS`,
+      }
     }
+    return { ok: true }
   } finally {
-    await browser.close()
+    await page.close()
   }
 }
 
 async function main() {
+  console.log('[verify] building the whole app…')
+  const build = spawnSync('npm', ['run', 'build'], { cwd: projectRoot, stdio: 'inherit', shell: true })
+  if (build.status !== 0) {
+    fail('npm run build reported a type or build error')
+    return
+  }
+
+  const slugs = readRegisteredSlugs()
+  if (slugs.length === 0) {
+    console.warn('[verify] no presentations registered in src/presentations/index.ts; skipping render check')
+    return
+  }
+
+  console.log(`[verify] starting preview on ${BASE_URL}…`)
+  // detached + killing the negative pid terminates the whole process group —
+  // spawning through a shell means `preview.kill()` alone would only kill the
+  // shell wrapper and leave the actual vite server running.
+  const preview = spawn('npx', ['vite', 'preview', '--host', HOST, '--port', String(PORT), '--strictPort'], {
+    cwd: projectRoot,
+    stdio: 'ignore',
+    shell: true,
+    detached: true,
+  })
+
   try {
-    await runBuild()
-    pass('build')
+    await waitForServer(BASE_URL)
 
-    const presentations = await readRegistry()
-    pass(`registry (${presentations.length} presentation${presentations.length === 1 ? '' : 's'})`)
-
-    if (presentations.length === 0) {
-      console.log('VERIFY: PASS (no presentations registered yet)')
-      return
-    }
-
-    const { child, baseUrl } = await startPreview()
+    const browser = await chromium.launch()
     try {
-      await renderCheck(baseUrl, presentations)
-      pass('render')
-    } finally {
-      await stopPreview(child)
-    }
+      for (const slug of slugs) {
+        console.log(`[verify] rendering /${slug}…`)
+        const result = await verifyRoute(browser, slug)
+        if (!result.ok) fail(`/${slug} — ${result.message}`)
 
-    console.log('VERIFY: PASS')
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    fail(message.includes(' step ') ? 'render' : 'verify', message)
+        const narrow = await verifyNarrowViewport(browser, slug)
+        if (!narrow.ok) fail(`/${slug} — ${narrow.message}`)
+
+        if (result.ok && narrow.ok) {
+          console.log(`[verify] /${slug} OK (${slugs.length} route(s) checked)`)
+        }
+      }
+    } finally {
+      await browser.close()
+    }
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error))
+  } finally {
+    try {
+      process.kill(-preview.pid, 'SIGKILL')
+    } catch {
+      // process group already gone
+    }
+  }
+
+  if (process.exitCode !== 1) {
+    console.log('\n[verify] PASS')
   }
 }
 
-main()
+await main()

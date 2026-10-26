@@ -1,0 +1,6 @@
+import type { Step } from '../../../presentation-kit/types'
+import { step1 } from './Step1'
+
+// List every step, in on-screen order. Numbering is derived from position —
+// insert, remove, or reorder entries here rather than renumbering steps.
+export const STEPS: Step[] = [step1]

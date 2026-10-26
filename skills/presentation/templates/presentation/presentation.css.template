@@ -1,0 +1,37 @@
+/*
+ * {{PRESENTATION_TITLE}} — presentation-owned styling.
+ *
+ * The scene kit ships with zero visual defaults: no palette, typography,
+ * spacing, borders, shadows, or card/button treatments. Every visual choice
+ * for this presentation belongs in this file (or another file this
+ * presentation imports), targeting the kit's stable data hooks:
+ *
+ *   [data-presentation-node="box"]           generic entity container
+ *   [data-presentation-node="label"]         text label
+ *   [data-presentation-node="arrow"]         connector
+ *   [data-presentation-node="frame"]         outer frame/group
+ *   [data-presentation-node="emphasis"]      emphasis marker
+ *   [data-presentation-node="symbol-chip"]   icon + label chip
+ *   [data-presentation-node="appear"]        entering-entity wrapper
+ *   [data-presentation-node="presence"]      departing-entity wrapper
+ *   [data-presentation-active="true"]        the active variant of the above
+ *   [data-presentation-node="progress-dot"][data-presentation-active="true"]
+ *   [data-presentation-node="toc-entry"][data-presentation-active="true"]
+ *   [data-presentation-attribution]          the "made by and-scene" link
+ *
+ * Import this file from Talk.tsx. Give the active progress dot, active ToC
+ * entry, and attribution link a visibly distinct, legible treatment — the
+ * inspection helper flags steps where they read as indistinct or default.
+ */
+
+/* Browse mode shows the table of contents on wide viewports only. The kit
+   renders it whenever the presentation is in browse mode and leaves
+   viewport-based visibility to the presentation, so collapse it here rather
+   than letting it float over the scene on narrow screens. Tune or move the
+   breakpoint to suit this presentation's layout, but keep the narrow-viewport
+   rule — `npm run verify` checks it. */
+@media (max-width: 900px) {
+  [data-presentation-chrome='toc'] {
+    display: none;
+  }
+}

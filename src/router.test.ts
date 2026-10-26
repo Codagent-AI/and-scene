@@ -1,21 +1,31 @@
 import { describe, expect, it } from 'vitest'
 import { resolveRoute } from './router'
+import type { PresentationRegistryEntry } from './presentations'
+
+const entries: PresentationRegistryEntry[] = [
+  { slug: 'how-to-make-a-presentation', title: 'How to Make a Presentation', load: () => Promise.reject() },
+]
 
 describe('resolveRoute', () => {
-  const slugs = new Set(['demo-talk'])
-
-  it('routes "/" to landing', () => {
-    expect(resolveRoute('/', slugs)).toEqual({ kind: 'landing' })
+  it('resolves "/" to the landing route', () => {
+    expect(resolveRoute('/', entries)).toEqual({ type: 'landing' })
   })
 
-  it('routes unknown paths to landing', () => {
-    expect(resolveRoute('/missing', slugs)).toEqual({ kind: 'landing' })
+  it('resolves a registered slug to its presentation entry', () => {
+    expect(resolveRoute('/how-to-make-a-presentation', entries)).toEqual({
+      type: 'presentation',
+      entry: entries[0],
+    })
   })
 
-  it('routes registered slugs to a lazy presentation', () => {
-    expect(resolveRoute('/demo-talk', slugs)).toEqual({
-      kind: 'presentation',
-      slug: 'demo-talk',
+  it('resolves an unregistered slug to not-found', () => {
+    expect(resolveRoute('/does-not-exist', entries)).toEqual({ type: 'not-found', pathname: '/does-not-exist' })
+  })
+
+  it('tolerates a trailing slash on a registered slug', () => {
+    expect(resolveRoute('/how-to-make-a-presentation/', entries)).toEqual({
+      type: 'presentation',
+      entry: entries[0],
     })
   })
 })

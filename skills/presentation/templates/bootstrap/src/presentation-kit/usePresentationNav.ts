@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Mode } from './types'
 export const clamp = (index: number, count: number) => Math.max(0, Math.min(count - 1, index))
+const interactiveRoles = ['button', 'checkbox', 'combobox', 'grid', 'gridcell', 'link', 'listbox', 'menu', 'menubar', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option', 'radio', 'radiogroup', 'scrollbar', 'searchbox', 'slider', 'spinbutton', 'switch', 'tab', 'tablist', 'textbox', 'tree', 'treegrid', 'treeitem']
+const interactiveSelector = ['button', 'a', 'input', 'select', 'textarea', 'summary', 'audio[controls]', 'video[controls]', 'iframe', '[tabindex]:not([tabindex="-1"])', '[contenteditable]:not([contenteditable="false"])', ...interactiveRoles.map(role => `[role~="${role}"]`)].join(',')
 export function isInteractive(target: EventTarget | null) {
-  return target instanceof Element && !!target.closest('button,a,input,select,textarea,[role="button"],[role="link"],[role="slider"],[role="textbox"],[contenteditable]:not([contenteditable="false"])')
+  return target instanceof Element && !!target.closest(interactiveSelector)
 }
 export function usePresentationNav(count: number, initialMode: Mode = 'browse') {
   const [index, setIndex] = useState(0)

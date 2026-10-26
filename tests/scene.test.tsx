@@ -110,6 +110,25 @@ describe('navigation hook', () => {
     fireEvent.keyDown(window, { key: 'ArrowRight', ctrlKey: true })
     expect(result.current.index).toBe(0); expect(result.current.mode).toBe('browse')
   })
+  it('preserves native summary and ARIA widget keys without preventing their default actions', () => {
+    const { result } = renderHook(() => usePresentationNav(10))
+    const roles = ['button', 'checkbox', 'combobox', 'grid', 'gridcell', 'link', 'listbox', 'menu', 'menubar', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option', 'radio', 'radiogroup', 'scrollbar', 'searchbox', 'slider', 'spinbutton', 'switch', 'tab', 'tablist', 'textbox', 'tree', 'treegrid', 'treeitem']
+    const { container } = render(<div><details><summary><span>Expand</span></summary></details>{roles.map(role => <div key={role} role={role} tabIndex={0}><span>{role}</span></div>)}<div tabIndex={0}>Focusable custom control</div><audio controls /><video controls /></div>)
+    for (const control of container.querySelectorAll('summary,[role],[tabindex],audio,video')) {
+      for (const target of [control, control.firstElementChild].filter((el): el is Element => !!el)) {
+        for (const value of [' ', 'ArrowRight', 'ArrowLeft', 'PageDown', 'PageUp', 'P']) {
+          const event = new KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true })
+          fireEvent(target, event)
+          expect(event.defaultPrevented).toBe(false)
+          expect(result.current.index).toBe(0)
+          expect(result.current.mode).toBe('browse')
+        }
+      }
+    }
+    // Ordinary scene text still drives presentation navigation.
+    const text = document.createElement('span'); container.append(text)
+    key('ArrowRight', text); expect(result.current.index).toBe(1)
+  })
   it('left/right horizontal swipes navigate while short vertical multitouch and control gestures do not', () => {
     const { result } = renderHook(() => usePresentationNav(4))
     const swipe = (x: number, y: number, target: Window | Element = window, touches = [{ clientX: 100, clientY: 100 }]) => { fireEvent.touchStart(target, { touches }); fireEvent.touchEnd(target, { changedTouches: [{ clientX: x, clientY: y }] }) }

@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const bootstrap = join(root, 'skills/presentation/templates/bootstrap')
 const evidence = process.env.AND_SCENE_EVIDENCE
-async function save(name, text) { if (evidence) { await mkdir(evidence, { recursive: true }); await writeFile(join(evidence, name + '.txt'), text) } }
+async function save(name, text) { if (evidence) { await mkdir(evidence, { recursive: true }); await writeFile(join(evidence, (process.env.AND_SCENE_EVIDENCE_PREFIX || '') + name + '.txt'), text) } }
 async function run(cwd, args, name, expected = 0) {
   const result = await new Promise((resolve, reject) => {
     const child = spawn('npm', args, { cwd, env: { ...process.env, NO_COLOR: '1' }, stdio: ['ignore', 'pipe', 'pipe'] })
@@ -34,13 +34,20 @@ async function disposable(source = root, install = false) {
   if (!install) await symlink(join(root, 'node_modules'), join(target, 'node_modules'), 'dir')
   return target
 }
-async function assertStopped(output) {
+async function assertStopped(output, label) {
   const starts = [...output.matchAll(/Preview ready (http:\/\/127\.0\.0\.1:\d+) \(pid (\d+)\)/g)]
+  const browsers = [...output.matchAll(/Browser ready \(pid (\d+)\)/g)]
+  assert.equal(browsers.length, starts.length, 'Every ready preview owns one Chromium process')
+  for (const [, pid] of browsers) {
+    assert.ok(output.includes(`Browser stopped (pid ${pid})`), output)
+    assert.throws(() => process.kill(Number(pid), 0), { code: 'ESRCH' })
+  }
   for (const [, url, pid] of starts) {
     assert.ok(output.includes(`Preview stopped ${url}`), output)
     assert.throws(() => process.kill(Number(pid), 0), { code: 'ESRCH' })
     await assert.rejects(fetch(url, { signal: AbortSignal.timeout(1000) }))
   }
+  await save(`${label}-cleanup`, `PASS actual process cleanup: Chromium PIDs ${browsers.map(b => b[1]).join(',') || '(not launched)'} are gone; preview PIDs ${starts.map(p => p[2]).join(',') || '(not launched)'} are gone and preview URLs are unavailable.\n`)
 }
 test('INT-001 materialized bootstrap builds and verifies independently with aligned neutral kit', { timeout: 150000 }, async () => {
   const dir = await disposable(bootstrap, true)
@@ -58,9 +65,12 @@ test('INT-001 materialized bootstrap builds and verifies independently with alig
     }
     for (const name of await files(join(root, 'scripts'))) assert.equal(await readFile(join(root,'scripts', name), 'utf8'), await readFile(join(dir,'scripts', name), 'utf8'), `script parity ${name}`)
     assert.equal((await readFile(join(dir, 'src/index.css'), 'utf8')).trim(), '')
+    const talk = join(dir, 'src/presentations/example/Talk.tsx')
+    await writeFile(talk, (await readFile(talk, 'utf8')).replace('initialMode="browse"', 'initialMode="present"'))
     const output = await run(dir, ['run', 'verify'], 'INT-001')
+    assert.match(output, /Render initial mode=present/)
     assert.match(output, /PASS step 0/); assert.match(output, /PASS step 1/); assert.match(output, /PASS verification/)
-    await assertStopped(output)
+    await assertStopped(output, 'INT-001')
     await save('INT-001-contract', 'PASS INT-001: skill-relative bootstrap resolved using import.meta.url from tests; materialized outside source; npm ci; full dependency set; all kit and script files byte-aligned; no framework or kit visual defaults; neutral CSS; independent build and two-step route verification.\n')
   } finally { await rm(dir, { recursive: true, force: true }) }
 })
@@ -99,16 +109,27 @@ export default function Fixture() {
       assert.match(warnings, /unpolished attribution.*data-presentation-attribution/)
     }
     assert.match(output, /visual warnings are advisory/)
-    await assertStopped(output)
+    await assertStopped(output, 'INT-002')
     await save('INT-002-contract', 'PASS INT-002: two named 1440x900 PNG artifacts; 150ms settle exceeds 60ms fixture transition; capture timestamps meet interval; unmarked text collisions warn; allowed and hidden texts do not warn; progress/ToC and attribution diagnostics identify each step; warning-bearing run exits zero; preview cleaned.\n' + JSON.stringify(report, null, 2))
   } finally { await rm(dir, { recursive: true, force: true }) }
 })
-test('E2E-001 reference presentation passes production verification', { timeout: 100000 }, async () => {
-  const output = await run(root, ['run', 'verify'], 'E2E-001')
-  for (let i = 0; i < 9; i++) assert.match(output, new RegExp(`PASS step ${i} http://127\\.0\\.0\\.1:\\d+/how-to-make-a-presentation data-step-count=9`))
-  assert.match(output, /PASS verification: build, registration, metadata, all steps rendered/)
-  assert.doesNotMatch(output, /localhost/)
-  await assertStopped(output)
+test('E2E-001 reference presentation passes production verification', { timeout: 150000 }, async t => {
+  for (const mode of ['browse', 'present']) await t.test(`initial ${mode} mode`, async () => {
+    const dir = mode === 'browse' ? root : await disposable()
+    try {
+      if (mode === 'present') {
+        const talk = join(dir, 'src/presentations/how-to-make-a-presentation/Talk.tsx')
+        await writeFile(talk, (await readFile(talk, 'utf8')).replace('initialMode="browse"', 'initialMode="present"'))
+      }
+      const label = mode === 'browse' ? 'E2E-001' : 'E2E-001-present'
+      const output = await run(dir, ['run', 'verify'], label)
+      assert.match(output, new RegExp(`Render initial mode=${mode}`))
+      for (let i = 0; i < 9; i++) assert.match(output, new RegExp(`PASS step ${i} http://127\\.0\\.0\\.1:\\d+/how-to-make-a-presentation data-step-count=9`))
+      assert.match(output, /PASS verification: build, registration, metadata, all steps rendered/)
+      assert.doesNotMatch(output, /localhost/)
+      await assertStopped(output, label)
+    } finally { if (dir !== root) await rm(dir, { recursive: true, force: true }) }
+  })
 })
 test('E2E-002 verification failures identify phase and step and clean up processes', { timeout: 400000 }, async t => {
   const faults = [
@@ -127,7 +148,7 @@ test('E2E-002 verification failures identify phase and step and clean up process
       const output = await run(dir, ['run', 'verify'], `E2E-002-${name}`, 1)
       assert.match(output, /FAIL verification/); assert.match(output, message)
       assert.doesNotMatch(output, /PASS verification:/)
-      await assertStopped(output)
+      await assertStopped(output, `E2E-002-${name}`)
     } finally { await rm(dir, { recursive: true, force: true }) }
   })
 })

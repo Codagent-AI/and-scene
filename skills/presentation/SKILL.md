@@ -38,6 +38,12 @@ cosmetic customizations do not make an anchor missing):
 2. Scene kit: typed Step/Scene, stage/morph host, fit scaling, navigation and chrome.
 3. Index: a presentation registry and per-presentation routes.
 
+Record an anchor map while inspecting: the actual build command, kit entry and
+contracts, presentation folder convention, registry file/export/form, route
+resolver and route URL convention, plus available verification/inspection commands.
+Use that map in every later step. These may have different names and locations;
+never create a parallel anchor just because a bootstrap path is absent.
+
 An existing presentation app takes precedence: reuse it and fill only missing
 anchors. Otherwise, detect a monorepo by package.json `workspaces`,
 `pnpm-workspace.yaml`, or an existing `packages/` or `apps/` directory. In a
@@ -70,16 +76,24 @@ belongs to the presentation or host, using plain CSS by default.
 
 ## 3. Create or modify
 
-Create `src/presentations/<slug>/` using the presentation templates as structural
-examples. Adapt import depths to the destination. Use a unique kebab-case slug;
+Use the resolved presentation folder, kit imports, registry and route resolver
+from the anchor map. The paths `src/presentations/<slug>/` and
+`src/presentations/index.ts` are defaults ONLY for an app made from this bootstrap.
+For an existing app (for example `talks/registry.ts`), register in that actual
+index using its existing entry form; do not create a second canonical-path index.
+Use the presentation templates as structural examples, adapting import depths,
+module conventions and route URLs to the host. Choose a unique kebab-case slug;
 never overwrite an existing slug without an explicit modification request.
 
-Write `entities.ts` with a presentation-local layoutId namespace, `steps/*.tsx`
-with typed Step objects, `Talk.tsx` rendering Presentation, and presentation-local
-CSS. Add one explicit `{ slug, title, load: () => import('./<slug>/Talk') }` entry
-to `src/presentations/index.ts`; keep every existing entry. Verify the landing
-index links the new route. On modification, edit only the chosen presentation and
-necessary registration/verification artifacts.
+Write a self-contained presentation folder with stable entity IDs, typed steps,
+an entry component and local CSS, following the host's equivalent conventions.
+In a bootstrap app these are `entities.ts`, `steps/*.tsx` and `Talk.tsx` plus one
+explicit `{ slug, title, load: () => import('./<slug>/Talk') }` registry entry.
+In every host, add exactly one entry to the discovered registry, preserve every
+existing entry, and confirm the existing route resolver loads the new component.
+Verify the landing index links the actual new route and existing routes remain
+reachable. On modification, edit only the chosen presentation and necessary
+registration/verification artifacts in their resolved locations.
 
 Each step has id, era, title (one line for live delivery), caption (reading
 paragraph), Scene, and payload; numbering derives from order. Adjacent beats in
@@ -101,14 +115,32 @@ default bottom-right "made by and-scene" link; header branding is host opt-in.
 
 ## 4. Verify, inspect, repair
 
-1. Run `npm run build`. Fix all type/build failures.
-2. Run `npm run verify -- --slug <slug>` for the created/modified route. This
-   builds and renders every step in Chromium against a production preview on
-   127.0.0.1, rejecting console errors, uncaught errors and failed transitions.
-   At minimum a first-step production render is mandatory even during iteration.
-   Run the app's full default `npm run verify` before completion too, preserving
-   its reference-sample gate if present. Do not replace a failing check with a
-   weaker one, delete assertions, or report a broken build/render as success.
+1. Run the resolved host build command (`npm run build` in the bootstrap).
+   Fix all type/build failures without replacing working host build infrastructure.
+2. Inspect the host's verification commands before invoking them. Reuse a working
+   host render check that covers the actual selected route; never overwrite or
+   rewrite an existing verifier. In a bootstrap app, use
+   `npm run verify -- --slug <slug>` to build and render every step in Chromium
+   against a production preview on 127.0.0.1, rejecting console/page errors and
+   failed transitions. It supports presentations opening in either mode.
+   If the host has no verifier, lacks slug selection, or cannot check this route,
+   write a temporary Playwright render helper **under the project root** so it
+   resolves the host's local dependencies. Run the host build, start its production
+   preview on 127.0.0.1, wait for readiness there, and open the resolved route in
+   Chromium. Attach console-error and pageerror listeners before navigation;
+   wait for the first scene and its animations to settle, and fail non-zero on
+   either error channel or a missing/failed scene. Respect the declared initial
+   mode; do not require hidden browse captions in present mode. At minimum the
+   first step must render cleanly; enumerate all steps when the host supports it.
+   Always close browser/context and preview processes on success AND failure.
+   A verifier is not a fourth scaffold anchor: do not scaffold over a complete
+   host, add a permanent verifier or change its scripts just to meet this gate.
+   Run the host's existing full verification command too when available,
+   preserving its reference-sample gate if present. Report exactly which command
+   and route ran, and whether only the first step or all steps were checked; do
+   not claim a reference gate absent from that host. Do not substitute a weaker
+   check for a failing compatible one, delete assertions, or report a broken
+   build/render as success. Repair failures and rerun the actual failed checks.
 3. Prefer `npm run inspect -- <slug>` to capture all settled steps from the
    project-local helper and review its advisory warnings. Dependencies resolve
    locally and captures wait for animations. If the host has no helper, write a

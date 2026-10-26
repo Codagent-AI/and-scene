@@ -19,6 +19,15 @@ try {
     await page.goto(`${base}/${slug}`)
     await stepIndex(page, 0)
     const host = page.locator('[data-presentation]')
+    const initialMode = await host.getAttribute('data-presentation-mode')
+    console.log(`Render initial mode=${initialMode}`)
+    // Canonical captions are validated in browse mode; generic routes keep the
+    // author's declared mode and need no metadata that that mode hides.
+    if (reference && initialMode === 'present') {
+      await page.keyboard.press('p')
+      await page.locator('[data-presentation-mode="browse"]').waitFor()
+      await stepIndex(page, 0)
+    }
     const count = Number(await host.getAttribute('data-step-count'))
     if (!Number.isInteger(count) || count < 1) throw new Error('Invalid data-step-count')
     if (reference && count !== REFERENCE.length) throw new Error(`Reference sample expected 9 steps, received ${count}`)
@@ -29,7 +38,10 @@ try {
       phase = 'render'
       await page.waitForTimeout(SETTLE_MS)
       if (errors.length) throw new Error(errors.join('; '))
-      actual.push({ title: await page.locator('[data-presentation-title]').innerText(), caption: await page.locator('[data-presentation-caption]').innerText(), era: await host.getAttribute('data-step-era') })
+      const title = await page.locator('[data-presentation-title]').innerText()
+      const mode = await host.getAttribute('data-presentation-mode')
+      const caption = mode === 'present' ? undefined : await page.locator('[data-presentation-caption]').innerText()
+      if (reference) actual.push({ title, caption, era: await host.getAttribute('data-step-era') })
       console.log(`PASS step ${index} ${base}/${slug} data-step-count=${count}`)
       if (index < count - 1) await page.keyboard.press('ArrowRight')
     }

@@ -44,16 +44,27 @@ export async function productionPreview(cwd = process.cwd()) {
 }
 export async function withBrowser(cwd, run) {
   const preview = await productionPreview(cwd)
-  let browser
-  const stop = () => { void browser?.close(); void preview.close() }
+  let server; let browser
+  const stop = () => { void server?.close(); void preview.close() }
   process.once('SIGINT', stop); process.once('SIGTERM', stop)
   try {
-    browser = await chromium.launch({ headless: true })
+    // Own the Chromium process explicitly so cleanup can be verified by PID,
+    // rather than mistaking a disconnected client for a terminated browser.
+    server = await chromium.launchServer({ headless: true })
+    console.log(`Browser ready (pid ${server.process().pid})`)
+    browser = await chromium.connect(server.wsEndpoint())
     return await run(browser, preview.url)
   } finally {
-    await browser?.close(); await preview.close()
-    process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop)
-    console.log(`Preview stopped ${preview.url}`)
+    try {
+      try { await browser?.close() } finally {
+        await server?.close()
+        if (server) console.log(`Browser stopped (pid ${server.process().pid})`)
+      }
+    } finally {
+      await preview.close()
+      process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop)
+      console.log(`Preview stopped ${preview.url}`)
+    }
   }
 }
 export function options(args) {

@@ -70,26 +70,41 @@ describe('diagnostics', () => {
 })
 describe('collectDiagnostics chrome rectangles', () => {
   const rect = (left: number, right: number, top = 0) => ({ left, right, top, bottom: top + 20, width: right - left, height: 20 })
+  const span = (el: Element, attr: string) => (el.getAttribute(attr) ?? '0,0').split(',').map(Number) as [number, number]
+  const top = (el: Element) => Number(el.getAttribute('data-top') ?? 0)
+  function withGeometry(body: string, run: (result: ReturnType<typeof collectDiagnostics>) => void) {
+    document.documentElement.innerHTML = `<head><style>* { opacity: 1 }</style></head><body><main data-presentation>${body}</main></body>`
+    const proto = Element.prototype as unknown as { getBoundingClientRect: () => object }
+    const original = proto.getBoundingClientRect
+    proto.getBoundingClientRect = function (this: Element) { const [l, r] = span(this, 'data-box'); return rect(l || 1, r || 2, top(this)) }
+    const rangeProto = Range.prototype as unknown as { getBoundingClientRect: () => object }
+    const rangeOriginal = rangeProto.getBoundingClientRect
+    rangeProto.getBoundingClientRect = function (this: Range) { const el = this.startContainer.parentElement!; const [l, r] = span(el, 'data-glyphs'); return rect(l, r, top(el)) }
+    try { run(collectDiagnostics()) } finally { proto.getBoundingClientRect = original; rangeProto.getBoundingClientRect = rangeOriginal }
+  }
+  const quiet = { size: 12, browserDefault: false }
   it('I-45 block-level text chrome uses glyph bounds while interactive chrome keeps its padded box', () => {
-    document.documentElement.innerHTML = `<head><style>* { opacity: 1 }</style></head><body><main data-presentation><header>
+    withGeometry(`<header>
       <div data-presentation-marker data-box="24,1416" data-glyphs="24,120">01 / the ask</div>
       <div data-presentation-document-title data-top="30" data-box="24,1416" data-glyphs="24,200">Deck</div>
       <button data-presentation-mode-toggle data-box="1335,1416" data-glyphs="1350,1400">Present</button>
-      <div data-presentation-brand data-top="60" data-box="24,60"></div></header></main></body>`
-    const span = (el: Element, attr: string) => (el.getAttribute(attr) ?? '0,0').split(',').map(Number) as [number, number]
-    const proto = Element.prototype as unknown as { getBoundingClientRect: () => object }
-    const original = proto.getBoundingClientRect
-    proto.getBoundingClientRect = function (this: Element) { const [l, r] = span(this, 'data-box'); return rect(l || 1, r || 2, Number(this.getAttribute('data-top') ?? 0)) }
-    const rangeProto = Range.prototype as unknown as { getBoundingClientRect: () => object }
-    const rangeOriginal = rangeProto.getBoundingClientRect
-    rangeProto.getBoundingClientRect = function (this: Range) { const [l, r] = span(this.startContainer.parentElement!, 'data-glyphs'); return rect(l, r, Number(this.startContainer.parentElement!.getAttribute('data-top') ?? 0)) }
-    try {
-      const { texts, chrome } = collectDiagnostics()
+      <div data-presentation-brand data-top="60" data-box="24,60"></div></header>`, ({ texts, chrome }) => {
       expect(chrome.map((c: { label: string }) => c.label.split(' ')[0])).toEqual(['mode-toggle', 'brand'])
-      expect(diagnose({ texts, chrome, controls: [], attribution: { size: 12, browserDefault: false } })).toEqual([])
-    } finally {
-      proto.getBoundingClientRect = original
-      rangeProto.getBoundingClientRect = rangeOriginal
-    }
+      expect(diagnose({ texts, chrome, controls: [], attribution: quiet })).toEqual([])
+    })
+  })
+  it('I-45 decorated text chrome keeps its visible box so a styled brand colliding with scene text warns', () => {
+    const scene = '<div data-presentation-stage><span data-entity-id="you" data-box="550,700" data-glyphs="576,644">you</span></div>'
+    const brand = (style: string) => `<header><div data-presentation-brand style="${style}" data-box="550,790" data-glyphs="24,120">HOST BRAND</div></header>${scene}`
+    withGeometry(brand('background-color: rgba(0, 0, 0, 0.2)'), ({ texts, chrome }) => {
+      expect(diagnose({ texts, chrome, controls: [], attribution: quiet })).toEqual(['overlap: you / brand (HOST BRAND)'])
+    })
+    withGeometry(brand('border-top-width: 1px; border-top-style: solid'), ({ texts, chrome }) => {
+      expect(diagnose({ texts, chrome, controls: [], attribution: quiet })).toEqual(['overlap: you / brand (HOST BRAND)'])
+    })
+    withGeometry(brand('background-color: rgba(0, 0, 0, 0)'), ({ texts, chrome }) => {
+      expect(chrome).toEqual([])
+      expect(diagnose({ texts, chrome, controls: [], attribution: quiet })).toEqual([])
+    })
   })
 })

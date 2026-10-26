@@ -29,6 +29,12 @@ export function collectDiagnostics() {
     }
     return el.getBoundingClientRect().width > 0 && el.getBoundingClientRect().height > 0
   }
+  function decorated(style) {
+    const background = style.backgroundColor
+    if (background && background !== 'transparent' && !/(,|\/)\s*0\)$/.test(background)) return true
+    if (['Top', 'Right', 'Bottom', 'Left'].some(side => parseFloat(style[`border${side}Width`]) > 0 && style[`border${side}Style`] !== 'none')) return true
+    return !!style.boxShadow && style.boxShadow !== 'none'
+  }
   function owner(node) {
     if (!owners.has(node)) owners.set(node, owners.size)
     return owners.get(node)
@@ -52,8 +58,8 @@ export function collectDiagnostics() {
   for (const hook of hooks) {
     for (const el of root.querySelectorAll(`[data-presentation-${hook}]`)) {
       if (el.closest('[data-presentation-stage]') || !visible(el)) continue
-      // Non-interactive chrome with visible text is block-level, so its box spans the container; its glyphs are already collected.
-      if (!el.matches('button,a') && texts.some(t => t.ancestors.includes(owner(el)))) continue
+      // Undecorated non-interactive text chrome is block-level, so its box spans the container; its glyphs are already collected.
+      if (!el.matches('button,a') && !decorated(getComputedStyle(el)) && texts.some(t => t.ancestors.includes(owner(el)))) continue
       const name = el.getAttribute('aria-label') || el.textContent.trim().slice(0, 60)
       chrome.push(item(el, el.getBoundingClientRect(), `${hook}${name ? ` (${name})` : ''}`))
     }

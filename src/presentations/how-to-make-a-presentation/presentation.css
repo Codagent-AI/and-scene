@@ -1,0 +1,38 @@
+.how-to-presentation { background: #f4f1e9; color: #243b31; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.how-to-presentation * { box-sizing: border-box; }
+.how-to-presentation [data-presentation-header] { position: absolute; top: 25px; left: 5vw; right: 5vw; display: flex; justify-content: space-between; align-items: start; }
+.how-to-presentation [data-presentation-marker] { font: 11px/1.5 ui-monospace, monospace; text-transform: uppercase; letter-spacing: .16em; color: #5e7468; }
+.how-to-presentation h1 { margin: 8px 0 0; font: 500 clamp(22px, 3.3vw, 38px)/1.1 Georgia, serif; letter-spacing: -.035em; }
+.how-to-presentation button { cursor: pointer; font-family: inherit; font-size: 12px; line-height: 1.2; color: #3c5548; background: transparent; border: 1px solid #bdc8bf; border-radius: 6px; padding: 8px 12px; }
+.how-to-presentation button:hover { background: #e2e8df; }
+.how-to-presentation button:focus-visible { outline: 2px solid #216442; outline-offset: 3px; }
+.how-to-presentation button:disabled { opacity: .4; cursor: default; }
+.how-to-presentation [data-presentation-footer] { position: absolute; bottom: 48px; left: max(24px, 12vw); right: max(24px, 12vw); text-align: center; }
+.how-to-presentation [data-presentation-caption] { max-width: 750px; margin: 0 auto 24px; font-size: 15px; line-height: 1.6; }
+.how-to-presentation [data-presentation-progress] { display: flex; align-items: center; justify-content: center; gap: 7px; }
+.how-to-presentation [data-presentation-progress-step] { width: 28px; height: 28px; padding: 0; border-radius: 50%; font-size: 11px; }
+.how-to-presentation [data-presentation-active="true"] { background: #24543e; color: #fffdf7; border-color: #24543e; font-weight: 700; box-shadow: 0 0 0 3px #d7e3d8; }
+.how-to-presentation [data-presentation-toc] { position: absolute; top: 113px; left: 5vw; right: 5vw; justify-content: center; gap: 12px; z-index: 2; }
+.how-to-presentation [data-presentation-toc-entry] { font-size: 11px; padding: 5px 12px; text-transform: uppercase; letter-spacing: .09em; }
+.how-to-presentation [data-presentation-attribution] { font-size: 12px; color: #516a5a; text-decoration: none; letter-spacing: .025em; }
+.how-to-presentation [data-presentation-attribution]:hover { text-decoration: underline; }
+.how-to-presentation .story-entity { display: flex; align-items: center; justify-content: center; }
+.how-to-presentation .person, .how-to-presentation .skill { background: #244e3b; color: #fbf9f1; border-radius: 12px; font-size: 17px; font-weight: 600; box-shadow: 0 5px 0 #d7dfd3; }
+.how-to-presentation .skill { background: #d9e5ce; color: #244e3b; border: 1px solid #819775; }
+.how-to-presentation .prompt { font: italic 18px Georgia, serif; color: #647667; }
+.how-to-presentation .conversation { font-size: 40px; letter-spacing: 0; border-bottom: 1px solid #7d9583; }
+.how-to-presentation .chip, .how-to-presentation .depth { border-radius: 20px; background: #e5e9d9; border: 1px solid #c5cfb8; font-size: 11px; letter-spacing: .035em; }
+.how-to-presentation .tray { justify-content: start; color: #667d6b; font: 10px ui-monospace, monospace; letter-spacing: .16em; }
+.how-to-presentation .card { background: #fffef7; border: 1px solid #aebfa9; border-radius: 9px; flex-direction: column; gap: 10px; box-shadow: 0 4px 0 #e0e6d6; }
+.how-to-presentation .card strong { font: 28px Georgia, serif; }
+.how-to-presentation .card span { font: 10px ui-monospace, monospace; }
+.how-to-presentation .card small { position: absolute; right: 7px; top: 8px; font-size: 10px; color: #326b42; }
+.how-to-presentation .morph { flex-direction: column; font-size: 20px; }
+.how-to-presentation .morph small { font: 8px ui-monospace, monospace; }
+.how-to-presentation .ghost { border: 1px dashed #8da28a; border-radius: 9px; font-size: 30px; color: #8da28a; }
+.how-to-presentation .socket { background: #e1e8d8; border: 1px solid #97ae90; border-radius: 6px; font: 11px ui-monospace, monospace; }
+.how-to-presentation .verify { background: #dcead6; border: 1px solid #75a16d; border-radius: 9px; flex-direction: column; gap: 12px; color: #256035; }
+.how-to-presentation .verify span { font: 9px ui-monospace, monospace; }
+.how-to-presentation .modify { border-right: 1px dashed #9a7949; border-bottom: 1px dashed #9a7949; border-radius: 0 0 30px 0; color: #8e693b; font: 12px ui-monospace, monospace; justify-content: end; align-items: start; padding-right: 30px; }
+.how-to-presentation .reveal { border: 1px solid #72906c; border-radius: 18px; pointer-events: none; align-items: end; padding-bottom: 5px; font: 9px ui-monospace, monospace; letter-spacing: .18em; color: #58734f; }
+@media(max-width:600px) { .how-to-presentation [data-presentation-header] { left: 20px; right: 20px; } .how-to-presentation [data-presentation-caption] { font-size: 13px; line-height: 1.5; margin-bottom: 16px; } .how-to-presentation [data-presentation-progress] { gap: 4px; } .how-to-presentation [data-presentation-progress-step] { width: 20px; height: 24px; font-size: 10px; } .how-to-presentation [data-presentation-prev], .how-to-presentation [data-presentation-next] { padding: 7px 5px; font-size: 10px; } }

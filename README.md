@@ -1,20 +1,54 @@
-# and-scene
+# And Scene
 
-And Scene is a project for building a presentation-generation agent skill.
+Browser presentations as one evolving diagram. The React kit owns scene identity,
+motion, navigation, chrome behavior and fixed-canvas fit scaling. Each presentation
+owns its visual design in local CSS. No styling framework is required.
 
-The intended presentation model is not a stack of unrelated slides. It is one
-diagrammatic scene that evolves through named steps: elements appear, move,
-collapse, connect, and re-label as the talk arc develops.
-
-## Development
-
-```bash
-npm install
-npm run dev
-npm run build
+```sh
+npm ci
+npx playwright install chromium
+npm run dev -- --host 127.0.0.1
 ```
 
-## Current State
+Open `/` for the explicit registry or `/how-to-make-a-presentation` for the
+nine-step reference. Right/Space/PageDown advance, Left/PageUp go back, P switches
+browse/present mode; horizontal swipes and browse controls also navigate. Focused
+controls keep their keys. Navigation clamps at the ends.
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+```sh
+npm test                  # fast Vitest unit/component/type contracts
+npm run test:integration  # INT-001/002 and E2E-001/002, real builds and Chromium
+npm run lint
+npm run build
+npm run verify            # whole build and all reference steps in Chromium
+npm run verify -- --slug your-slug
+npm run inspect -- how-to-make-a-presentation
+```
+
+Inspection writes settled desktop screenshots and `report.json` to
+`artifacts/inspection/<slug>/` (gitignored). `--settle <ms>` configures the default
+850ms settle interval; `--output <path>` changes the artifact destination. Warnings
+for text collisions, indistinct active controls and attribution are advisory,
+not automated visual-quality failures. Mark only intentional readable overlap
+subtrees with `data-presentation-allow-overlap`. The helper never replaces visual
+review of first, last, dense/key and responsive narrow compositions.
+
+The distributable skill lives in `skills/presentation/SKILL.md`. Its templates
+resolve relative to that file. `templates/bootstrap/` is a complete neutral app,
+including lockfile, kit, lint/build setup and local browser scripts; its example
+route deliberately has no visual theme. `templates/presentation/` supplies a
+minimal typed grouped-scene example. Copy the bootstrap only for missing anchors;
+preserve existing app contracts and dependencies. Monorepos get a self-contained
+`presentations/` app after the skill's target-confirmation step.
+
+Add presentations as `src/presentations/<slug>/Talk.tsx`, entity IDs, typed steps,
+and local CSS, plus one explicit lazy registry entry in
+`src/presentations/index.ts`. Keep entity IDs stable across steps. Shared groupKey
+and Scene preserve the instance while payload changes. Newcomers wait for layout
+motion; departures use AnimatePresence. Do not add visual defaults to the kit.
+
+Canonical `src/presentation-kit/` and its bootstrap copy must be byte-aligned.
+Keep all scripts under `scripts/` aligned with bootstrap copies too. INT-001
+checks both snapshots in an independently installed/materialized app. Browser
+failure tests inject faults only into throwaway copies and assert preview cleanup.
+No build output, dependencies, screenshots or hosted CI configuration belong in git.

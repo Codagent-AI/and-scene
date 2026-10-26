@@ -74,13 +74,32 @@ test('INT-002 settled screenshots and real browser advisory diagnostics', { time
     await writeFile(join(dir,'Talk.tsx'),`import { useState } from 'react'
 export default function Talk() {
  const [step, setStep] = useState(0)
+ const icon = <svg width="16" height="16" aria-hidden="true"><path d="M2 8 L14 8" stroke="currentColor" /></svg>
  window.onkeydown = e => { if(e.key === 'ArrowRight') setStep(n => Math.min(2,n+1)) }
  return <main style={{height:'100vh'}} data-presentation="" data-step-count="3" data-step-index={step}>
  <div data-presentation-allow-overlap="" style={{position:'absolute',left:10,top:10}}><span id="allowed-a" style={{position:'absolute'}}>allowed first</span><span id="allowed-b" style={{position:'absolute'}}>allowed second</span></div>
  <div style={{display:'none'}}><span>hidden first</span><span>hidden second</span></div>
  <div style={{position:'absolute',left:100,top:100}}><span id="collision-a" style={{position:'absolute',whiteSpace:'nowrap'}}>accidental first</span><span id="collision-b" style={{position:'absolute',whiteSpace:'nowrap'}}>accidental second</span></div>
- <nav style={{position:'absolute',top:300}}>{[0,1,2].map(i=><button key={i} data-presentation-progress-step="" data-presentation-active={step===i?'true':'false'}>{i}</button>)}</nav>
- <nav style={{position:'absolute',top:350}}>{[0,1,2].map(i=><button key={i} data-presentation-toc-entry="" data-presentation-active={step===i?'true':'false'}>{i}</button>)}</nav>
+ <nav style={{position:'absolute',top:300}}>{[0,1,2].map(i=><button key={i} style={{background:step>0 && i===0?'#f0d0b0':'#eee'}} data-presentation-progress-step="" data-presentation-active={step===i?'true':'false'}>{i}</button>)}</nav>
+ <nav style={{position:'absolute',top:350}}>{[0,1,2].map(i=><button key={i} style={{background:step>0 && i===0?'#f0d0b0':'#eee'}} data-presentation-toc-entry="" data-presentation-active={step===i?'true':'false'}>{i}</button>)}</nav>
+ <button data-presentation-next="" aria-label="Padded next" style={{position:'absolute',left:600,top:50,width:190,height:100,padding:24}}><span style={{position:'absolute',right:8,bottom:8}}>Next</span></button>
+ <span style={{position:'absolute',left:610,top:56}}>padding collision</span>
+ <button data-presentation-mode-toggle="" aria-label="Icon mode" style={{position:'absolute',left:900,top:50,width:80,height:70}}>{icon}</button>
+ <span style={{position:'absolute',left:908,top:56}}>icon collision</span>
+ <button data-presentation-prev="" aria-label="Icon previous" style={{position:'absolute',left:1120,top:50,width:70,height:60}}>{icon}</button>
+ <div data-presentation-brand="" aria-label="Icon brand" style={{position:'absolute',left:1150,top:70,width:80,height:60}}>{icon}</div>
+ <div data-presentation-allow-overlap="" style={{position:'absolute',left:600,top:200}}>
+   <button data-presentation-next="" aria-label="Allowed next" style={{position:'absolute',width:100,height:60}}>allowed chrome</button>
+   <button data-presentation-prev="" aria-label="Allowed previous" style={{position:'absolute',width:100,height:60}}>{icon}</button>
+ </div>
+ <button data-presentation-next="" aria-label="Hidden next" style={{display:'none'}}>{icon}</button>
+ <div data-presentation-brand="" aria-label="Container brand" style={{position:'absolute',left:900,top:500,width:200,height:60}}>
+   <span data-presentation-title="" aria-label="Owned title" style={{display:'block',width:120,height:32}}>owned caption</span>
+ </div>
+ <div data-presentation-stage="" style={{position:'absolute',left:1120,top:500}}>
+   <div data-presentation-next="" aria-label="Scene decoration" style={{position:'absolute',width:160,height:80}}>{icon}</div>
+   <span style={{position:'absolute',whiteSpace:'nowrap'}}>stage label</span>
+ </div>
  {step!==2 && <a data-presentation-attribution="" href="https://example.com" style={{position:'absolute',top:400,fontSize:step===0?8:16}}>made by and-scene</a>}
  </main>
 }`)
@@ -99,8 +118,15 @@ export const presentations:PresentationEntry[]=[{slug:'diagnostics',title:'Diagn
       const bytes=await readFile(join(directory,report[i].file)); assert.equal(bytes.subarray(1,4).toString(),'PNG')
       assert.ok(report[i].warnings.some(w=>w.includes('accidental first')&&w.includes('accidental second')))
       assert.ok(!report[i].warnings.some(w=>w.includes('allowed first')||w.includes('allowed second')||w.includes('hidden first')||w.includes('hidden second')))
-      assert.ok(report[i].warnings.some(w=>w.includes('indistinct active navigation: progress-step')))
-      assert.ok(report[i].warnings.some(w=>w.includes('indistinct active navigation: toc-entry')))
+      for (const kind of ['progress-step','toc-entry']) assert.equal(report[i].warnings.filter(w=>w.includes(`indistinct active navigation: ${kind}`)).length,1)
+      for (const [first,second] of [['padding collision','next (Padded next)'],['icon collision','mode-toggle (Icon mode)'],['prev (Icon previous)','brand (Icon brand)']]) {
+        assert.ok(report[i].warnings.some(w=>w.includes('overlap:')&&w.includes(first)&&w.includes(second)), `${i}: missing ${first} / ${second}`)
+      }
+      assert.ok(!report[i].warnings.some(w=>['Allowed next','Allowed previous','allowed chrome','Hidden next','Scene decoration'].some(label=>w.includes(label))))
+      assert.ok(!report[i].warnings.some(w=>w.includes('Container brand')&&(w.includes('Owned title')||w.includes('owned caption'))))
+      assert.ok(!report[i].warnings.some(w=>w.includes('Owned title')&&w.includes('owned caption')))
+      assert.ok(!report[i].warnings.some(w=>w.includes('next (Padded next)')&&w.includes('/ Next')))
+
       assert.ok(report[i].warnings.some(w=>w.includes('attribution')))
       assert.match(log,new RegExp('ADVISORY step '+i+':'))
     }

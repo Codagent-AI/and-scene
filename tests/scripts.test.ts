@@ -25,6 +25,39 @@ describe('diagnostics', () => {
     expect(findOverlaps([text(0,true),text(1)])).toEqual([])
     expect(findOverlaps([text(0),text(1,false,25)])).toEqual([])
   })
+  it('I-45 text overlaps icon-only and padded chrome and chrome overlaps chrome', () => {
+    const sceneText = text(0)
+    const iconChrome = { ...text(1), label: 'mode-toggle (Icon mode)' }
+    const paddedChrome = { ...text(2), label: 'next (Padded next)', right: 100 }
+    const diagnostics = (texts: object[], chrome: object[]) => diagnose({ texts, chrome, controls: [], attribution: { size: 12, browserDefault: false } })
+    expect(diagnostics([sceneText], [iconChrome])).toEqual(['overlap: text 0 / mode-toggle (Icon mode)'])
+    expect(diagnostics([text(0, false, 50)], [paddedChrome])).toEqual(['overlap: text 0 / next (Padded next)'])
+    expect(diagnostics([], [iconChrome, paddedChrome])).toEqual(['overlap: mode-toggle (Icon mode) / next (Padded next)'])
+    expect(diagnostics([sceneText], [{ ...iconChrome, allowed: true }])).toEqual([])
+  })
+  it('I-45 own chrome text and nested chrome are not collisions', () => {
+    const chrome = { ...text(1), label: 'brand' }
+    const nested = { ...text(2), label: 'title', ancestors: [1] }
+    const ownText = { ...text(3), ancestors: [2, 1] }
+    expect(findOverlaps([chrome, nested, ownText])).toEqual([])
+    expect(findOverlaps([ownText, nested, chrome])).toEqual([])
+    expect(findOverlaps([chrome, { ...text(4), allowed: true }])).toEqual([])
+  })
+  it.each(['progress-step', 'toc-entry'])('I-46 later indistinct inactive %s peer warns once even when the first peer differs', kind => {
+    const controls = [
+      { kind, label: 'distinct', active: false, visual: ['red'] },
+      { kind, label: 'matching', active: false, visual: ['black'] },
+      { kind, label: 'active', active: true, visual: ['black'] },
+    ]
+    const diagnostics = () => diagnose({ texts: [], controls, attribution: { size: 12, browserDefault: false } })
+    expect(diagnostics()).toEqual([`indistinct active navigation: ${kind} active`])
+    controls[0].visual = ['black']
+    expect(diagnostics()).toEqual([`indistinct active navigation: ${kind} active`])
+    controls[0].visual = ['green']; controls[1].visual = ['green']
+    expect(diagnostics()).toEqual([])
+    controls[1].kind = 'unrelated'; controls[1].visual = ['black']
+    expect(diagnostics()).toEqual([])
+  })
   it('I-46 indistinct active chrome and missing small or default attribution warn', () => {
     for (const kind of ['progress-step','toc-entry']) {
       const controls = [{ kind, label:'a',active:true,visual:['black'] },{kind,label:'b',active:false,visual:['black']}]

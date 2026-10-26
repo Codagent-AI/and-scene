@@ -1,68 +1,57 @@
-import { useEffect, useState } from 'react'
-import { toSections } from './tocSections'
-import type { StepMeta } from '../types'
+import { useMemo } from 'react'
+import type { Step } from '../types'
 
-interface TocProps {
-  steps: StepMeta[]
-  step: number
-  onSelect: (i: number) => void
+export interface TocProps<TPayload> {
+  steps: Step<TPayload>[]
+  activeIndex: number
+  onSelectSection: (firstStepIndex: number) => void
 }
 
-function isWideViewport() {
-  if (typeof window === 'undefined') return true
-  if (window.matchMedia) return window.matchMedia('(min-width: 1280px)').matches
-  return window.innerWidth >= 1280
+interface Era {
+  section: string
+  firstStepIndex: number
 }
 
 /**
- * Table of contents down the left margin, built from each step's era label.
- * The section containing the current step is highlighted; clicking an entry
- * jumps to that section's first step. Shown only when the viewport is wide
- * enough to hold it beside the centered stage (xl+); below that it's hidden and
- * the era simply isn't displayed (its only other home was the header).
+ * Era-based table of contents for browse mode. One entry per distinct
+ * `section` label, in order of first appearance; activating an entry jumps
+ * to the first step of that era.
  */
-export function Toc({ steps, step, onSelect }: TocProps) {
-  const sections = toSections(steps)
-  const [visible, setVisible] = useState(isWideViewport)
+export function Toc<TPayload>({ steps, activeIndex, onSelectSection }: TocProps<TPayload>) {
+  const eras = useMemo<Era[]>(() => {
+    const seen = new Set<string>()
+    const result: Era[] = []
+    steps.forEach((step, index) => {
+      if (seen.has(step.section)) return
+      seen.add(step.section)
+      result.push({ section: step.section, firstStepIndex: index })
+    })
+    return result
+  }, [steps])
 
-  useEffect(() => {
-    if (!window.matchMedia) return
-    const query = window.matchMedia('(min-width: 1280px)')
-    const update = () => setVisible(query.matches)
-    query.addEventListener('change', update)
-    return () => query.removeEventListener('change', update)
-  }, [])
+  const activeSection = steps[activeIndex]?.section
 
   return (
-    <nav
-      aria-label="Contents"
-      data-presentation-toc
-      style={{
-        display: visible ? undefined : 'none',
-        position: 'absolute',
-        left: 32,
-        top: '50%',
-        zIndex: 20,
-        transform: 'translateY(-50%)',
-      }}
-    >
-      <ol data-presentation-toc-list style={{ display: 'grid', gap: 14, margin: 0, padding: 0 }}>
-        {sections.map((sec) => {
-          const active = step >= sec.start && step <= sec.end
+    <nav className="sk-toc" data-scene-kit="toc" aria-label="Table of contents">
+      <ul className="sk-toc__list">
+        {eras.map((era) => {
+          const isActive = era.section === activeSection
           return (
-            <li key={sec.era}>
+            <li key={era.section} className="sk-toc__item">
               <button
-                onClick={() => onSelect(sec.start)}
-                aria-current={active ? 'step' : undefined}
-                data-presentation-toc-item
-                data-active={active ? 'true' : undefined}
+                type="button"
+                className="sk-toc__entry"
+                data-scene-kit="toc-entry"
+                data-active={isActive ? 'true' : 'false'}
+                aria-current={isActive ? 'true' : undefined}
+                onClick={() => onSelectSection(era.firstStepIndex)}
               >
-                {sec.era}
+                {era.section}
               </button>
             </li>
           )
         })}
-      </ol>
+      </ul>
     </nav>
   )
 }

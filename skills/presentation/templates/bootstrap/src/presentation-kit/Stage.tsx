@@ -1,59 +1,59 @@
-import { AnimatePresence, LayoutGroup } from 'motion/react'
-import { DESIGN_H, STAGE_LAYOUT } from './constants'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { DESIGN_H, DESIGN_W, ENTER_T, EASE } from './constants'
 import { useFitScale } from './useFitScale'
-import type { Mode, Step } from './types'
+import type { PresentationMode, Step } from './types'
+
+export interface StageProps<TPayload> {
+  steps: Step<TPayload>[]
+  index: number
+  mode: PresentationMode
+}
 
 /**
- * The fixed design canvas, scaled to fit the gap between header and footer.
- * transform-origin is the canvas center and the canvas is flex-centered, so the
- * diagram stays centered at any scale.
- *
- * Hosts the LayoutGroup + AnimatePresence: only the active step's Scene is
- * mounted (keyed by groupKey, falling back to id), so when the step changes the
- * outgoing and incoming scenes coexist briefly and their shared layoutId
- * elements morph between them. Steps that share a groupKey (and Scene) are NOT
- * remounted when navigating between them — the same instance persists and only
- * its `step` prop changes, so on-screen elements update in place instead of
- * re-animating. See StepMeta.groupKey.
+ * Fixed-design-canvas host for the active step's Scene. Wraps the canvas in
+ * `LayoutGroup` + `AnimatePresence` so persisting `layoutId` entities morph
+ * across steps and departing/entering scenes cross-fade at group boundaries.
+ * Steps sharing a `groupKey` and `Scene` keep the same instance mounted —
+ * only `payload` changes — so on-screen entities update in place instead of
+ * remounting.
  */
-export function Stage<P extends Record<string, unknown> = Record<string, unknown>>({
-  step,
-  mode,
-}: {
-  step: Step<P>
-  mode: Mode
-}) {
-  const layout = STAGE_LAYOUT[mode]
-  const scale = useFitScale(layout)
+export function Stage<TPayload>({ steps, index, mode }: StageProps<TPayload>) {
+  const { containerRef, scale } = useFitScale(mode)
+  const step = steps[index]
+  const groupKey = step.groupKey ?? step.id
   const Scene = step.Scene
 
   return (
-    <div
-      data-presentation-stage-shell
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: layout.top,
-        bottom: layout.bottom,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <div className="sk-stage" data-scene-kit="stage" ref={containerRef}>
       <div
-        data-presentation-stage
+        className="sk-stage__canvas"
+        data-scene-kit="stage-canvas"
         style={{
-          position: 'relative',
-          flexShrink: 0,
-          width: layout.fitW,
+          width: DESIGN_W,
           height: DESIGN_H,
+          // The stage is a flex container, so without this the canvas shrinks
+          // below DESIGN_W on narrow viewports while the absolutely positioned
+          // scene keeps design coordinates — the fixed canvas would reflow and
+          // clip, which is exactly what fit-scaling exists to prevent.
+          flexShrink: 0,
+          position: 'relative',
           transform: `scale(${scale})`,
         }}
       >
         <LayoutGroup>
-          <AnimatePresence>
-            <Scene key={step.groupKey ?? step.id} step={step} />
+          <AnimatePresence mode="sync" initial={false}>
+            <motion.div
+              key={groupKey}
+              className="sk-stage__scene"
+              data-scene-kit="stage-scene"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: ENTER_T, ease: EASE }}
+              style={{ position: 'absolute', inset: 0 }}
+            >
+              <Scene payload={step.payload} active />
+            </motion.div>
           </AnimatePresence>
         </LayoutGroup>
       </div>

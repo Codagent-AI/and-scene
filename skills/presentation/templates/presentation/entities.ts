@@ -1,14 +1,11 @@
 /**
- * Stable layoutId namespace for this presentation.
- * Every entity that persists or morphs across steps gets a constant here.
+ * TEMPLATE — replace with this presentation's own layoutId namespace.
+ *
+ * Every stable on-screen entity (a Box, Label, Arrow, Frame, Emphasis, or
+ * SymbolChip that should morph across steps rather than remount) needs a
+ * layoutId that is unique within this presentation. Keep them here so every
+ * step file imports from one place instead of hand-rolling strings.
  */
-export const ENTITIES = {
-  /** Primary focal node — rename to match your topic. */
-  hero: 'hero',
-  /** Supporting label or annotation. */
-  caption: 'caption',
-  /** Connector between entities. */
-  flow: 'flow',
+export const entities = {
+  // exampleEntity: 'example-entity',
 } as const
-
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]

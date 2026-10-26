@@ -1,45 +1,60 @@
 import type { ComponentType } from 'react'
 
-export type Mode = 'browse' | 'present'
+/** Runtime mode: present is delivery-focused, browse is reading-focused. */
+export type PresentationMode = 'present' | 'browse'
 
-/** Narration + identity for one beat of the evolving diagram. */
-export interface StepMeta<P extends Record<string, unknown> = Record<string, unknown>> {
-  /** Stable key for AnimatePresence + React reconciliation. */
+/** Narration and identity carried by every step, independent of its diagram payload. */
+export interface StepMeta {
+  /** Stable identity; does not change when steps are inserted/removed/reordered. */
   id: string
-  /** Header label, e.g. "the model". */
-  era: string
-  /** Presenter-mode one-liner. */
+  /** Section/era label used to group steps in the table of contents. */
+  section: string
+  /** One-line presenter title shown in present mode and as the browse heading. */
   title: string
-  /** Browsing-mode paragraph. */
+  /** Multi-line reading caption shown in browse mode. */
   caption: string
-  /**
-   * AnimatePresence key override. Consecutive steps that share a groupKey are
-   * NOT remounted when you navigate between them — the Scene instance persists
-   * and only its `step` prop changes, so elements already on screen never fade
-   * out and back in; they update in place (and a newly added element animates
-   * in on its own). Steps sharing a groupKey must also share the same `Scene`
-   * component. Defaults to `id`.
-   */
+}
+
+/** Props a step's Scene component receives while it is the active (or persisting) step. */
+export interface SceneProps<TPayload> {
+  /** The diagram state to render for the current step. */
+  payload: TPayload
+  /** Whether this step is the currently active step (vs. a settling neighbor). */
+  active: boolean
+}
+
+/**
+ * One named state in the evolving scene. Steps that share a `groupKey` (and the
+ * same `Scene` component) are not remounted when navigating between them — the
+ * component instance persists and only `payload` changes, preserving entity
+ * continuity for layout morphs.
+ */
+export interface Step<TPayload> extends StepMeta {
+  /** Scene component composing kit primitives for this step's diagram state. */
+  Scene: ComponentType<SceneProps<TPayload>>
+  /** The diagram state shown while this step is active. */
+  payload: TPayload
+  /** Adjacent steps sharing a groupKey and Scene persist the same instance. */
   groupKey?: string
-  /** Per-step data handed to the Scene (e.g. how many chips to show). */
-  payload?: P
 }
 
 /**
- * Props every Scene receives. Most scenes ignore them; a grouped scene reads
- * `step.payload` to decide which sub-state of its diagram to render.
- */
-export interface SceneProps<P extends Record<string, unknown> = Record<string, unknown>> {
-  step: Step<P>
-}
-
-/**
- * A step = its narration + the diagram layer rendered while it is active.
+ * A step with its payload type erased, for hosting heterogeneous step arrays.
  *
- * `Scene` composes the shared nodes (see ./nodes). Elements that should morph
- * between steps share a layoutId — that's the only contract between one step
- * and the next.
+ * Deliberately `any` rather than `unknown`: a `Step<TPayload>` carries its
+ * payload both as data (covariant) and through `Scene`'s props (contravariant),
+ * so `Step<unknown>` accepts no concrete step at all under strict function
+ * variance. `any` is bivariant, which is what an intentionally erased type
+ * needs. Each step still pairs its own `Scene` with its own `payload`.
  */
-export interface Step<P extends Record<string, unknown> = Record<string, unknown>> extends StepMeta<P> {
-  Scene: ComponentType<SceneProps<P>>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyStep = Step<any>
+
+export interface PresentationProps<TPayload> {
+  /** Ordered steps making up the presentation. On-screen numbering derives from position. */
+  steps: Step<TPayload>[]
+  /** Presentation title shown in browse-mode chrome. */
+  title: string
+  /** Mode the presentation opens in. Defaults to 'present'. */
+  initialMode?: PresentationMode
 }

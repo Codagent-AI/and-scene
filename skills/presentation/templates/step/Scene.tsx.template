@@ -1,0 +1,6 @@
+import { Box, SceneLayer, type SceneProps } from '../../../presentation-kit'
+import { entities } from '../entities'
+
+export function Scene({ payload }: SceneProps<{ readonly message: string }>) {
+  return <SceneLayer className="{{slug}}-scene"><Box layoutId={entities.primary}>{payload.message}</Box></SceneLayer>
+}

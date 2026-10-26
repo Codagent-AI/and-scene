@@ -1,0 +1,4 @@
+export const entities = {
+  root: '{{slug}}:root',
+  primary: '{{slug}}:primary',
+} as const

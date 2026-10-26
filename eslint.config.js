@@ -22,6 +22,7 @@ export default defineConfig([
     ],
     languageOptions: {
       globals: globals.browser,
+      parserOptions: { tsconfigRootDir: import.meta.dirname },
     },
   },
   { files: ['tests/**/*.tsx'], rules: { 'react-refresh/only-export-components': 'off' } },

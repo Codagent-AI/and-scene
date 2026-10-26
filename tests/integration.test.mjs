@@ -61,6 +61,7 @@ test('INT-001 materialized bootstrap builds renders and preserves canonical cont
       assert.ok(!/#[0-9a-f]{3,8}\b|fontFamily|boxShadow|borderRadius|tailwind|--color-|--font-/.test(source),file)
     }
     await command(app,['npm','ci','--no-audit','--no-fund'])
+    await command(app,['npm','run','lint'])
     const log=await command(work,['npm','--prefix',app,'run','verify'])
     assert.match(log,/PASS render step 1/); assert.match(log,/PASS verification/); assertCleanup(log)
     assert.equal(await readFile(join(app,'src/index.css'),'utf8'),'body { margin: 0; }\n')
@@ -74,7 +75,7 @@ test('INT-002 settled screenshots and real browser advisory diagnostics', { time
 export default function Talk() {
  const [step, setStep] = useState(0)
  window.onkeydown = e => { if(e.key === 'ArrowRight') setStep(n => Math.min(2,n+1)) }
- return <main data-presentation="" data-step-count="3" data-step-index={step}>
+ return <main style={{height:'100vh'}} data-presentation="" data-step-count="3" data-step-index={step}>
  <div data-presentation-allow-overlap="" style={{position:'absolute',left:10,top:10}}><span id="allowed-a" style={{position:'absolute'}}>allowed first</span><span id="allowed-b" style={{position:'absolute'}}>allowed second</span></div>
  <div style={{display:'none'}}><span>hidden first</span><span>hidden second</span></div>
  <div style={{position:'absolute',left:100,top:100}}><span id="collision-a" style={{position:'absolute',whiteSpace:'nowrap'}}>accidental first</span><span id="collision-b" style={{position:'absolute',whiteSpace:'nowrap'}}>accidental second</span></div>

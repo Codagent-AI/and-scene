@@ -10,9 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-artifacts
+validator_logs
 *.local
-worktrees
+
+# presentation screenshot inspection output
+.presentation-inspect
 
 # Editor directories and files
 .vscode/*
@@ -24,4 +26,3 @@ worktrees
 *.njsproj
 *.sln
 *.sw?
-validator_logs

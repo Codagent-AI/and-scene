@@ -1,93 +1,87 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { Mode } from './types'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { PresentationMode } from './types'
 
-/**
- * Step index + presenter/browse mode, driven by the keyboard and surfaced for
- * the on-screen controls.
- *
- *   →/Space/PageDown  next        ←/PageUp  prev        P  toggle mode
- *
- * On touch screens the same next/prev is driven by a horizontal swipe: swipe
- * left to advance, right to go back.
- */
-// A swipe must travel this far horizontally, and be clearly more horizontal
-// than vertical, before it counts — so taps and vertical scrolls never trip it.
-const SWIPE_MIN_PX = 50
-const SWIPE_RATIO = 1.5
+export function clampStepIndex(index: number, count: number): number {
+  return Math.min(Math.max(index, 0), Math.max(count - 1, 0))
+}
 
-export function usePresentationNav(stepCount: number, initialMode: Mode = 'browse') {
-  const [step, setStep] = useState(0)
-  const [mode, setMode] = useState<Mode>(initialMode)
-
-  const last = stepCount - 1
-  const next = useCallback(() => setStep((s) => Math.min(last, s + 1)), [last])
-  const prev = useCallback(() => setStep((s) => Math.max(0, s - 1)), [])
-  const toggleMode = useCallback(
-    () => setMode((m) => (m === 'browse' ? 'present' : 'browse')),
-    [],
+function targetOwnsKeyboard(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && Boolean(
+    target.closest(
+      'button, a, input, select, textarea, [contenteditable]:not([contenteditable="false"])',
+    ),
   )
+}
+
+export interface PresentationNav {
+  index: number
+  mode: PresentationMode
+  next: () => void
+  previous: () => void
+  goTo: (index: number) => void
+  toggleMode: () => void
+  onTouchStart: (event: React.TouchEvent) => void
+  onTouchEnd: (event: React.TouchEvent) => void
+}
+
+export function usePresentationNav(
+  count: number,
+  initialMode: PresentationMode = 'browse',
+): PresentationNav {
+  const [requestedIndex, setRequestedIndex] = useState(0)
+  const [mode, setMode] = useState<PresentationMode>(initialMode)
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const index = clampStepIndex(requestedIndex, count)
+
+  const goTo = useCallback((nextIndex: number) => {
+    setRequestedIndex(clampStepIndex(nextIndex, count))
+  }, [count])
+  const next = useCallback(() => goTo(index + 1), [goTo, index])
+  const previous = useCallback(() => goTo(index - 1), [goTo, index])
+  const toggleMode = useCallback(() => {
+    setMode((current) => (current === 'browse' ? 'present' : 'browse'))
+  }, [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // Don't hijack keys aimed at a focused control: Space/arrows on the
-      // prev/next buttons or a progress dot should drive that control, not also
-      // advance the deck.
-      const target = e.target
-      if (
-        target instanceof HTMLElement &&
-        (target.closest('button, a, input, textarea, select') ||
-          target.isContentEditable)
-      ) {
-        return
-      }
-      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
-        e.preventDefault()
+    // React state intentionally tracks the clamped position if the deck changes size.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRequestedIndex((current) => clampStepIndex(current, count))
+  }, [count])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return
+      if (targetOwnsKeyboard(event.target)) return
+      if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') {
+        event.preventDefault()
         next()
-      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-        e.preventDefault()
-        prev()
-      } else if (e.key === 'p' || e.key === 'P') {
+      } else if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+        event.preventDefault()
+        previous()
+      } else if (event.key.toLowerCase() === 'p') {
+        event.preventDefault()
         toggleMode()
       }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [next, prev, toggleMode])
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [next, previous, toggleMode])
 
-  useEffect(() => {
-    // Horizontal swipe = next/prev. We track the start point and decide on
-    // release, so the gesture never interferes with scrolling or tapping a
-    // control mid-drag.
-    let startX = 0
-    let startY = 0
-    let tracking = false
+  const onTouchStart = useCallback((event: React.TouchEvent) => {
+    const touch = event.touches[0]
+    touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null
+  }, [])
+  const onTouchEnd = useCallback((event: React.TouchEvent) => {
+    const start = touchStart.current
+    const end = event.changedTouches[0]
+    touchStart.current = null
+    if (!start || !end) return
+    const horizontalDistance = start.x - end.clientX
+    const verticalDistance = start.y - end.clientY
+    if (Math.abs(horizontalDistance) < 40 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return
+    if (horizontalDistance > 0) next()
+    else previous()
+  }, [next, previous])
 
-    const onStart = (e: TouchEvent) => {
-      // Single-finger only; a pinch/two-finger gesture isn't a page swipe.
-      tracking = e.touches.length === 1
-      if (tracking) {
-        startX = e.touches[0].clientX
-        startY = e.touches[0].clientY
-      }
-    }
-    const onEnd = (e: TouchEvent) => {
-      if (!tracking) return
-      tracking = false
-      const t = e.changedTouches[0]
-      const dx = t.clientX - startX
-      const dy = t.clientY - startY
-      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * SWIPE_RATIO) return
-      if (dx < 0) next()
-      else prev()
-    }
-
-    window.addEventListener('touchstart', onStart, { passive: true })
-    window.addEventListener('touchend', onEnd, { passive: true })
-    return () => {
-      window.removeEventListener('touchstart', onStart)
-      window.removeEventListener('touchend', onEnd)
-    }
-  }, [next, prev])
-
-  return { step, setStep, next, prev, last, mode, toggleMode }
+  return { index, mode, next, previous, goTo, toggleMode, onTouchStart, onTouchEnd }
 }

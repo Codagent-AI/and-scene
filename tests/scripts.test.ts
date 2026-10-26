@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EventEmitter } from 'node:events'
-import { diagnose, findOverlaps } from '../scripts/diagnostics.mjs'
+import { collectDiagnostics, diagnose, findOverlaps } from '../scripts/diagnostics.mjs'
 import { validateOutline } from '../scripts/verify.mjs'
 import { watchErrors } from '../scripts/browser-runtime.mjs'
 import outline from '../scripts/reference-outline.json'
@@ -66,5 +66,30 @@ describe('diagnostics', () => {
     }
     for (const attribution of [null,{size:8,browserDefault:false},{size:16,browserDefault:true}]) expect(diagnose({texts:[],controls:[],attribution})[0]).toContain('attribution')
     expect(diagnose({texts:[],controls:[],attribution:{size:12,browserDefault:false}})).toEqual([])
+  })
+})
+describe('collectDiagnostics chrome rectangles', () => {
+  const rect = (left: number, right: number, top = 0) => ({ left, right, top, bottom: top + 20, width: right - left, height: 20 })
+  it('I-45 block-level text chrome uses glyph bounds while interactive chrome keeps its padded box', () => {
+    document.documentElement.innerHTML = `<head><style>* { opacity: 1 }</style></head><body><main data-presentation><header>
+      <div data-presentation-marker data-box="24,1416" data-glyphs="24,120">01 / the ask</div>
+      <div data-presentation-document-title data-top="30" data-box="24,1416" data-glyphs="24,200">Deck</div>
+      <button data-presentation-mode-toggle data-box="1335,1416" data-glyphs="1350,1400">Present</button>
+      <div data-presentation-brand data-top="60" data-box="24,60"></div></header></main></body>`
+    const span = (el: Element, attr: string) => (el.getAttribute(attr) ?? '0,0').split(',').map(Number) as [number, number]
+    const proto = Element.prototype as unknown as { getBoundingClientRect: () => object }
+    const original = proto.getBoundingClientRect
+    proto.getBoundingClientRect = function (this: Element) { const [l, r] = span(this, 'data-box'); return rect(l || 1, r || 2, Number(this.getAttribute('data-top') ?? 0)) }
+    const rangeProto = Range.prototype as unknown as { getBoundingClientRect: () => object }
+    const rangeOriginal = rangeProto.getBoundingClientRect
+    rangeProto.getBoundingClientRect = function (this: Range) { const [l, r] = span(this.startContainer.parentElement!, 'data-glyphs'); return rect(l, r, Number(this.startContainer.parentElement!.getAttribute('data-top') ?? 0)) }
+    try {
+      const { texts, chrome } = collectDiagnostics()
+      expect(chrome.map((c: { label: string }) => c.label.split(' ')[0])).toEqual(['mode-toggle', 'brand'])
+      expect(diagnose({ texts, chrome, controls: [], attribution: { size: 12, browserDefault: false } })).toEqual([])
+    } finally {
+      proto.getBoundingClientRect = original
+      rangeProto.getBoundingClientRect = rangeOriginal
+    }
   })
 })

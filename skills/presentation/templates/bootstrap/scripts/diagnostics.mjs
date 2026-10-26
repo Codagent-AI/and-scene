@@ -52,6 +52,8 @@ export function collectDiagnostics() {
   for (const hook of hooks) {
     for (const el of root.querySelectorAll(`[data-presentation-${hook}]`)) {
       if (el.closest('[data-presentation-stage]') || !visible(el)) continue
+      // Non-interactive chrome with visible text is block-level, so its box spans the container; its glyphs are already collected.
+      if (!el.matches('button,a') && texts.some(t => t.ancestors.includes(owner(el)))) continue
       const name = el.getAttribute('aria-label') || el.textContent.trim().slice(0, 60)
       chrome.push(item(el, el.getBoundingClientRect(), `${hook}${name ? ` (${name})` : ''}`))
     }

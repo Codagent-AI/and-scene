@@ -1,0 +1,58 @@
+.reference-presentation { background: #f7f5ed; color: #222d29; font-family: 'Avenir Next', 'Segoe UI', sans-serif; overflow: hidden; }
+.reference-presentation * { box-sizing: border-box; }
+.reference-presentation [data-presentation-header] { padding-top: 24px; }
+.reference-presentation [data-presentation-document-title] { font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: #637069; }
+.reference-presentation [data-presentation-marker] { margin-top: 18px; color: #69766d; font-size: 12px; letter-spacing: .07em; }
+.reference-presentation [data-presentation-title] { font-size: clamp(24px, 3.5vw, 40px); line-height: 1.15; letter-spacing: -.04em; margin: 7px 0 0; font-weight: 650; }
+.reference-presentation [data-presentation-mode-toggle] { position: absolute; right: 0; top: 25px; }
+.reference-presentation button { font: inherit; color: inherit; background: transparent; border: 1px solid #bdc6ba; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+.reference-presentation button:hover { background: #e7ebdf; }
+.reference-presentation button:focus-visible { outline: 3px solid #b9603e; outline-offset: 3px; }
+.reference-presentation button:disabled { opacity: .35; cursor: default; }
+.reference-presentation [data-presentation-toc] { display: flex; flex-direction: column; gap: 7px; }
+.reference-presentation [data-presentation-toc-entry] { text-align: left; border-color: transparent; font-size: 13px; }
+.reference-presentation [data-presentation-active="true"] { background: #234d41; color: #fffdf5; border-color: #234d41; font-weight: 700; }
+.reference-presentation [data-presentation-caption] { font-size: clamp(14px, 1.6vw, 17px); line-height: 1.6; max-width: 730px; margin: 0 auto 22px; min-height: 54px; text-align: center; color: #47574f; }
+.reference-presentation [data-presentation-footer] { max-width: 1000px; margin: auto; }
+.reference-presentation [data-presentation-navigation] { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.reference-presentation [data-presentation-progress] { display: flex; gap: 7px; }
+.reference-presentation [data-presentation-progress-step] { width: 31px; height: 31px; padding: 0; border-radius: 50%; font-size: 12px; }
+.reference-presentation [data-presentation-attribution] { color: #4d6657; font-size: 12px; text-decoration: none; border-bottom: 1px solid #b8c7b4; line-height: 1.6; }
+.reference-presentation[data-presentation-mode="present"] [data-presentation-footer] { text-align: center; }
+.reference-presentation[data-presentation-mode="present"] [data-presentation-document-title] { display: none; }
+.sample-scene [data-entity-id] { position: absolute; }
+.sample-scene .actor { display: flex; align-items: center; justify-content: center; gap: 10px; border: 1.5px solid #244e42; border-radius: 13px; background: #fcfbf6; font-size: 20px; font-weight: 650; }
+.sample-scene .actor svg { width: 22px; height: 22px; }
+.sample-scene .skill { background: #244e42; color: #fffdf3; }
+.sample-scene .prompt { font-family: Georgia, serif; font-size: 16px; font-style: italic; line-height: 1.5; color: #786149; display: flex; align-items: center; }
+.sample-scene .connector { color: #7c927f; stroke-width: 1.5; pointer-events: none; }
+.sample-scene .question { font-size: 12px; text-align: center; line-height: 30px; color: #4f6657; }
+.sample-scene .tray { border: 0; background: #e9ece0; border-radius: 14px; }
+.sample-scene .step-card { background: #fffdf6; border: 1px solid #b9c6b0; border-radius: 8px; display: flex; flex-direction: column; padding: 10px 12px; gap: 6px; box-shadow: 0 3px 0 #d7ddcd; }
+.sample-scene .card-number { font-size: 10px; color: #7b8a74; letter-spacing: .1em; }
+.sample-scene .step-card strong { font-size: 15px; font-weight: 650; }
+.sample-scene .step-card > span:last-child { font-size: 10px; color: #687661; white-space: nowrap; }
+.sample-scene .morph-label { text-align: center; font-size: 10px; color: #75846f; }
+.sample-scene .ghost-card { border: 1px dashed #a6b39b; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; gap: 9px; text-align: center; font-size: 12px; color: #66775d; }
+.sample-scene .ghost-card small { font-size: 9px; }
+.sample-scene .depth { background: #f0ddbf; color: #74542b; border-radius: 0 0 8px 8px; text-align: center; font-size: 11px; line-height: 30px; }
+.sample-scene .kit-socket { border: 1px solid #8caa9c; border-top: 0; border-radius: 0 0 8px 8px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; background: #d7e4d7; }
+.sample-scene .kit-socket svg { width: 17px; height: 17px; }
+.sample-scene .verify-node { background: #244e42; color: #f8fff3; border-radius: 8px; display: flex; align-items: center; flex-direction: column; justify-content: center; gap: 3px; font-size: 14px; }
+.sample-scene .verify-node svg { width: 17px; height: 17px; }
+.sample-scene .verify-node span { font-size: 10px; }
+.sample-scene .verify-node small { font-size: 8px; letter-spacing: .12em; color: #cce7ac; }
+.sample-scene .modify-arc { stroke-width: 1.5; color: #b3613f; }
+.sample-scene .modify-label { font-size: 11px; color: #9d5337; text-align: center; line-height: 26px; }
+.sample-scene .edit-flag { background: #bd6948; color: #fff8ea; font-size: 10px; text-align: center; line-height: 22px; border-radius: 4px; }
+.sample-scene .reveal-frame { border: 1.5px solid #ba704b; border-radius: 18px; pointer-events: none; }
+.sample-scene .reveal-label { position: absolute; right: 20px; top: -8px; background: #f7f5ed; padding: 0 8px; color: #9c5739; font-size: 10px; letter-spacing: .09em; }
+@media (max-width: 620px) {
+  .reference-presentation [data-presentation-document-title] { max-width: 225px; font-size: 9px; }
+  .reference-presentation [data-presentation-mode-toggle] { font-size: 11px; padding: 6px 8px; }
+  .reference-presentation [data-presentation-caption] { font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+  .reference-presentation [data-presentation-navigation] { flex-wrap: wrap; justify-content: center; }
+  .reference-presentation [data-presentation-progress] { order: -1; width: 100%; justify-content: center; gap: 5px; }
+  .reference-presentation [data-presentation-prev], .reference-presentation [data-presentation-next] { font-size: 12px; padding: 5px 12px; }
+  .reference-presentation [data-presentation-progress-step] { width: 26px; height: 26px; font-size: 10px; }
+}

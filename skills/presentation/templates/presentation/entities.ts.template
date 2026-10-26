@@ -1,0 +1,2 @@
+// Extend with stable IDs shared across the presentation's beats.
+export const entities = { subject: '__SLUG__:subject' } as const

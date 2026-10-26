@@ -1,0 +1,1 @@
+{ "extends": "../tsconfig.app.json", "compilerOptions": { "strict": true, "tsBuildInfoFile": "../node_modules/.tmp/types.tsbuildinfo" }, "include": ["types.fixture.tsx"] }

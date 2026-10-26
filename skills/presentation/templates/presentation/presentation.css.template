@@ -1,0 +1,3 @@
+/* Author presentation-owned colors, typography, spacing and node/chrome treatments.
+   Style [data-presentation-active="true"] and [data-presentation-attribution].
+   The kit deliberately supplies no visual defaults. */

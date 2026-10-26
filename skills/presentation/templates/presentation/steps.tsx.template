@@ -1,0 +1,11 @@
+import { AnimatePresence } from 'motion/react'
+import { Box, SceneLayer } from '../../presentation-kit'
+import type { SceneProps, Step } from '../../presentation-kit'
+import { entities } from './entities'
+interface Payload { label: string }
+function Scene({ payload }: SceneProps<Payload>) {
+  return <SceneLayer><AnimatePresence><Box key={entities.subject} id={entities.subject} style={{ position: 'absolute', left: 100, top: 100 }}>{payload.label}</Box></AnimatePresence></SceneLayer>
+}
+export const STEPS: Step<Payload>[] = [
+  { id: 'opening', era: 'the idea', title: '__STEP_TITLE__', caption: '__CAPTION__', groupKey: 'diagram', Scene, payload: { label: '__LABEL__' } },
+]

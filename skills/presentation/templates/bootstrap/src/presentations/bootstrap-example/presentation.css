@@ -1,0 +1,6 @@
+[data-presentation-root] { min-height: 100vh; padding: 2rem; position: relative; }
+[data-presentation-stage] { margin: 2rem auto; }
+[data-presentation-header], [data-presentation-footer] { display: flex; gap: 1rem; justify-content: space-between; }
+[data-presentation-progress-item][data-presentation-active="true"], [data-presentation-toc-entry][data-presentation-active="true"] { outline: 2px solid currentColor; }
+[data-presentation-attribution] { color: inherit; font-size: 0.875rem; padding: 1rem; text-decoration: none; }
+.bootstrap-example-message { left: 2rem; position: absolute; top: 2rem; }

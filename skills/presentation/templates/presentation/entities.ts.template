@@ -1,0 +1,2 @@
+// Replace these IDs with stable, presentation-specific identities.
+export const entities = { example: 'example' } as const

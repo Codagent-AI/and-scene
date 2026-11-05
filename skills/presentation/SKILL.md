@@ -1,0 +1,15 @@
+---
+name: presentation
+description: Create or modify browser presentations as one evolving scene.
+---
+# Presentation
+
+Gather missing topic, visual style, and each step's content and visual description, asking one question at a time. Do not invent details the user can supply. If the user chooses to proceed with partial detail, build from what is known. A complete prompt needs no redundant questions. For a key or complex composition, an ASCII sketch may help confirm the layout.
+
+Before creating or modifying, inspect the project for three contract anchors: a working Vite/React/TypeScript build, a reusable scene kit supporting grouped scenes, navigation, chrome and fit scaling, and a presentation registry with routes. Detect anchors by capability, not exact filenames or formatting. Reuse existing anchors; scaffold only missing pieces and dependencies. Resolve all templates relative to this SKILL.md, not the current directory. When already inside a presentation app, use it and scaffold only missing anchors. Otherwise, for an empty or standalone project use its root; for a monorepo (workspaces, pnpm workspace, or apps/packages layout), use a self-contained `presentations/` app. If a non-empty project lacks the kit or index, state the target and obtain confirmation before writing. Copy the missing portions of `templates/bootstrap/` and install all required React, React DOM, Motion, Lucide, Vite, TypeScript, React and Node types, ESLint and Playwright dependencies. Preserve existing files and unrelated projects. Do not introduce a required styling framework or visual defaults in the kit.
+
+For a new presentation, create a folder with stable entity IDs, named step scenes, and a Talk entry. Add an explicit registry entry and route. Preserve existing presentations. Put palette, typography and component styling in presentation-owned or host CSS; use plain CSS unless the host already uses a framework or the user requests one. For modifications, identify the target first; if ambiguous, list presentations and ask which to modify before changing files. Ask only about requested changes and edit only the target and necessary registration or verification files.
+
+Build and render at least the first step without console or runtime errors before reporting success. Check visual composition at first, last and dense/key steps, and at a narrow viewport when responsive-sensitive. Prefer the project-local `npm run inspect -- <slug>` helper; if unavailable, place a temporary Playwright helper under the project root. Review warnings, fix accidental text/chrome collisions, indistinct active controls and unpolished attribution; mark only intentional, readable overlaps with `data-presentation-allow-overlap`. Ensure active state and attribution are styled by the presentation or host. Fix and rerun failing build, render and visual checks; report the final checks and remaining advisory warnings accurately.
+
+The bootstrap includes a neutral placeholder sample required by `npm run verify`; keep it registered while using that verification script.

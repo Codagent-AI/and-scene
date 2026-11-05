@@ -1,0 +1,18 @@
+---
+name: presentation
+description: Create or modify an evolving scene presentation from a topic.
+---
+
+# Presentation
+
+Ask for missing details one question at a time: topic, visual style, and content and visual description of each step. Do not invent details the user can provide. The user may choose to proceed with partial detail; do not impose a completeness gate. If the prompt already provides these details, proceed. For a complex or important step, optionally sketch an ASCII mockup to confirm its layout.
+
+Before creating or modifying, identify the target app and detect these contract anchors by behavior, not exact filenames: (1) Vite, React and TypeScript with a working build, (2) a scene kit with typed step/scene contract, stage, morphs, navigation, modes, chrome and fit scaling, and (3) a presentation index mapping multiple presentations to routes. Reuse existing anchors; add only missing anchors and dependencies without overwriting existing work. If none exist, scaffold all three. Resolve template paths relative to this SKILL.md, never the caller's current directory. Templates are in `templates/bootstrap/`.
+
+For an empty directory or standalone project, target its root. For a monorepo (package workspaces, pnpm-workspace.yaml, or apps/ or packages/ layout), target a self-contained `presentations/` app. If already inside a presentation app, reuse it. If the project is non-empty and lacks the kit or index, state the target and obtain confirmation before writing. Preserve unrelated files. Ensure React, React DOM, Motion, Lucide, Vite, the React Vite plugin, TypeScript, React and Node types, ESLint stack, and Playwright are installed; do not assume dependencies exist. Do not introduce Tailwind or another framework unless the host already uses it or the user requests it. The scaffold and kit have no presentation visual defaults.
+
+For creation, write a self-contained presentation folder with stable entity IDs, typed steps, a Talk.tsx entry, and presentation-owned CSS (plain CSS by default). Register it in the explicit index at its own route without changing existing presentations. Compose one evolving scene: persistent entities retain IDs and new entities enter after continuing movement. Each step has an era, title, caption and scene. Use the kit's hooks and navigation. The host or presentation owns all colors, typography and chrome styling, including a distinct active state and legible attribution.
+
+For modification, identify the target first. If ambiguous, list existing presentations and ask which one before changing anything. Ask only about requested changes and edit the selected presentation without repeating the creation interview.
+
+Before reporting success, run the build and a browser render check of at least the first step, checking runtime and console errors. Fix failures and rerun. Inspect settled browser screenshots or equivalent views of the first, last and dense/key steps, and a narrow viewport when responsive-sensitive. Prefer the project-local `npm run inspect -- <slug>` helper; if unavailable, write any temporary Playwright helper under the project root. Review advisory warnings: fix accidental text/chrome collisions, indistinct active navigation and unpolished attribution. Mark only intentional, readable overlap with `data-presentation-allow-overlap`. Recheck until the result is visually coherent. Report the checks and remaining advisory status accurately; never report success while checks fail.

@@ -1,0 +1,1 @@
+Copy bootstrap files into the resolved target only for missing anchors. Add a presentation folder under src/presentations with a Talk.tsx default export, typed Step array, stable IDs and local CSS, then add its loader to the registry. The build, verification and inspection scripts are project-local.

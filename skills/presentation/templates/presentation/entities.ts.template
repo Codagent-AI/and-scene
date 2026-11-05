@@ -1,0 +1,2 @@
+// Define stable, presentation-local entity IDs here.
+export const entities = { opening: 'opening' } as const

@@ -1,0 +1,6 @@
+import { Presentation } from '../../presentation-kit/Presentation'
+import type { SceneProps, Step } from '../../presentation-kit/types'
+import './style.css'
+function Scene({ payload }: SceneProps<string>) { return <div data-presentation-layer>{payload}</div> }
+const steps: Step<string>[] = [{ id: 'opening', era: 'introduction', title: 'Opening', caption: 'Describe this step.', Scene, payload: 'Replace with your evolving scene.', groupKey: 'scene' }]
+export default function Talk() { return <Presentation title="Presentation" steps={steps} /> }

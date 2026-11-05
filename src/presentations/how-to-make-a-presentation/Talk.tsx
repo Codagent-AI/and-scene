@@ -15,20 +15,21 @@ const details = [
  ['the reveal',"You're looking at one",'This presentation was built exactly this way. Thanks for watching.'],
 ]
 function Scene({ payload: n }: SceneProps<number>) {
- const item = (id: string, content: React.ReactNode, x: number, y: number, className = '', delay = false) => <motion.div key={id} layoutId={id} layout className={`scene-item ${className}`} style={{ left: x, top: y }} initial={delay ? { opacity: 0 } : false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ layout: { duration: LAYOUT_T }, opacity: { delay: delay ? ENTER_DELAY : 0 } }}>{content}</motion.div>
+ const connection = (id: string, d: string) => <motion.path key={id} data-entity={id} d={d} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .3, delay: ENTER_DELAY }} />
+ const item = (id: string, content: React.ReactNode, x: number, y: number, className = '', delay = false) => <motion.div key={id} layoutId={id} layout data-entity={id} className={`scene-item ${className}`} style={{ left: x, top: y }} initial={delay ? { opacity: 0 } : false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ layout: { duration: LAYOUT_T }, opacity: { delay: delay ? ENTER_DELAY : 0 } }}>{content}</motion.div>
  return <div className="scene" data-presentation-layer>
-  <svg className="connections" viewBox="0 0 880 380" aria-hidden="true">{n >= 3 && <path d="M210 280 H237" />}{n >= 5 && <path d="M307 324 V337" />}{n >= 6 && <path d="M560 280 H608" />}{n >= 7 && <path d="M670 130 C700 175 310 168 310 234" />}</svg>
+  <svg className="connections" viewBox="0 0 880 380" aria-hidden="true"><AnimatePresence>{n >= 1 && connection('conversation', 'M248 96 H574 M257 90 L248 96 L257 102 M565 90 L574 96 L565 102')}{n >= 3 && connection('card-link', 'M210 280 H237')}{n >= 5 && connection('kit-link', 'M307 324 V337')}{n >= 6 && connection('verify-link', 'M560 280 H608')}{n >= 7 && connection('modify-link', 'M670 130 C700 175 310 168 310 234')}</AnimatePresence></svg>
   <AnimatePresence>
   {item('you', <><small>THE AUTHOR</small><strong>You</strong></>, 58, 48, 'person')}
-  {item('prompt', 'I have an idea…', 204, 59, 'bubble')}
+  {item('prompt', 'I have an idea…', 300, 8, 'bubble')}
   {n >= 1 && item('skill', <><small>YOUR COLLABORATOR</small><strong>Presentation skill</strong></>, 574, 48, 'person skill', true)}
-  {n >= 1 && item('question', '←  one question at a time  →', 304, 124, 'question', true)}
+  {n >= 1 && item('question', 'one question at a time', 330, 62, 'question', true)}
   {n >= 2 && item('tray-label', 'THE STORY TAKES SHAPE', 62, 207, 'tray-label', true)}
   {n >= 2 && item('card1', <><small>01 / STEP</small><b>Title</b><span>Caption · Visual</span></>, 62, 236, 'card', true)}
   {n >= 3 && item('card2', <><small>02 / STEP</small><b>New beat {n >= 7 ? '✦' : ''}</b><span>{n >= 7 ? 'Edited in place' : 'Caption · Visual'}</span></>, 237, 236, 'card', true)}
   {n >= 3 && item('morph', 'morph →', 193, 278, 'morph', true)}
   {n >= 4 && item('card3', <><small>03 / STEP</small><b>More to come</b><span>Partial or full</span></>, 412, 236, 'card ghost', true)}
-  {n >= 4 && item('depth', 'partial  ◉────  full', 57, 153, 'depth', true)}
+  {n >= 4 && item('depth', 'partial  ◉────  full', 58, 125, 'depth', true)}
   {n >= 5 && item('kit', '◇  SHARED SCENE KIT', 232, 337, 'kit', true)}
   {n >= 6 && item('verify', <><small>CHECKS</small><b>Build + render</b><span>✓ PASS</span></>, 608, 236, 'card verify', true)}
   {n >= 7 && item('modify', '↳ modify a step in place', 467, 190, 'modify', true)}

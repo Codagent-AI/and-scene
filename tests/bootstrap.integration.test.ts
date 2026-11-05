@@ -14,9 +14,9 @@ it('INT-001 materializes bootstrap and preserves kit parity', () => {
   const pkg=JSON.parse(readFileSync(join(dir,'package.json'),'utf8'))
   for(const name of ['react','react-dom','motion','lucide-react']) expect(pkg.dependencies[name]).toBeTruthy()
   for(const name of ['vite','@vitejs/plugin-react','typescript','@types/react','@types/react-dom','@types/node','eslint','playwright']) expect(pkg.devDependencies[name]).toBeTruthy()
-  expect(JSON.stringify(pkg)).not.toContain('tailwind')
-  const scan=(path:string) => { for(const item of readdirSync(path,{withFileTypes:true})) { const file=join(path,item.name); if(item.isDirectory()) scan(file); else if(file.endsWith('.css')) expect(readFileSync(file,'utf8')).not.toMatch(/(?:^|[;{])\s*(?:color|background(?:-color)?|font(?:-family|-size)?|border(?:-color|-radius)?|box-shadow|text-shadow)\s*:/im) } }
-  scan(join(dir,'src'))
+  expect(JSON.stringify(pkg)).not.toMatch(/tailwindcss|@tailwindcss|bootstrap|bulma|daisyui|@mui\/|@chakra-ui\//i)
+  const scan=(path:string) => { for(const item of readdirSync(path,{withFileTypes:true})) { const file=join(path,item.name); if(item.isDirectory()) scan(file); else if(/\.(css|tsx?|jsx?)$/.test(file)) { const content=readFileSync(file,'utf8'); expect(content, file).not.toMatch(/(?:^|[;{])\s*(?:color|background(?:-color)?|font(?:-family|-size)?|border(?:-color|-radius)?|box-shadow|text-shadow|--[\w-]+)\s*:/im); expect(content, file).not.toMatch(/['"]?(?:color|background|backgroundColor|font|fontFamily|fontSize|border|borderColor|borderRadius|boxShadow|textShadow|--[\w-]+)['"]?\s*:/); expect(content, file).not.toMatch(/(?:from\s*|import\s*|require\s*\()\s*['"](?:tailwindcss|@tailwindcss\/|bootstrap|bulma|daisyui|@mui\/|@chakra-ui\/)/) } } }
+  scan(join(dir,'src')); expect(readdirSync(dir).filter(name => /^(tailwind|postcss)\.config\./i.test(name))).toEqual([]); for(const config of ['vite.config.ts','package.json','index.html']) expect(readFileSync(join(dir,config),'utf8')).not.toMatch(/tailwind|bootstrap|bulma|daisyui|@mui\/|@chakra-ui\/|@theme|--[a-z][\w-]*\s*:/i)
   for(const file of ['verify.mjs','inspect-presentation.mjs']) expect(readFileSync(join(dir,'scripts',file))).toEqual(readFileSync(resolve('scripts',file)))
  } finally { rmSync(dir,{recursive:true,force:true}) }
 },300000)

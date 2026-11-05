@@ -10,7 +10,8 @@ function Scene({payload: n}: {payload: number}) {
     {item('you', 0, 'entity you', <><b>YOU</b><span>the storyteller</span></>)}
     {item('prompt', 0, 'prompt', '“I have a topic.”')}
     {item('skill', 1, 'entity skill', <><b>THE SKILL</b><span>your creative partner</span></>)}
-    {item('connection', 1, 'connection', <>←────────→<small>one question at a time</small></>)}
+    {item('connection', 1, 'connection', <><small>one question at a time</small>←────────→</>)}
+    {item('tray-base', 2, 'tray-base', '')}
     {item('tray', 2, 'tray-label', 'THE STORY, STEP BY STEP')}
     {item('card1', 2, 'card card-one', <><small>01 / STEP</small><b>Title</b><span>Caption · Visual</span></>)}
     {item('link1', 3, 'card-link link-one', 'morph →')}
@@ -20,6 +21,7 @@ function Scene({payload: n}: {payload: number}) {
     {item('ghost', 4, 'card ghost', <>more to come <span>partial ↔ full</span></>)}
     {item('depth', 4, 'depth', 'partial ↔ full')}
     {item('kit', 5, 'kit', '⊕  SHARED SCENE KIT · boxes, arrows, motion')}
+    {item('verify-link', 6, 'verify-link', '→')}
     {item('verify', 6, 'verify', <>✓ <b>VERIFY</b><span>build + render pass</span></>)}
     {item('modify', 7, 'modify', <><svg viewBox="0 0 330 100" aria-hidden="true"><path d="M 300 5 C 280 70, 110 0, 50 95" fill="none" stroke="currentColor" strokeWidth="2" markerEnd="url(#modify-arrow)"/><defs><marker id="modify-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L0 6 L6 3 Z" fill="currentColor"/></marker></defs></svg><span>MODIFY IN PLACE</span></>)}
     {item('edited', 7, 'edited', 'edited ↗')}

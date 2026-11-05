@@ -7,10 +7,12 @@ const captions = ['It starts with you, a topic, and mild overconfidence.','One q
 function run(command, args) { return new Promise((resolve, reject) => { const p = spawn(command, args, {stdio:'inherit'}); p.on('error', reject); p.on('exit', code => code === 0 ? resolve() : reject(new Error(`${command} failed (${code})`))) }) }
 let server, browser, step = 0
 try {
-  console.log('Checking build'); await run('npm', ['run','build'])
+  console.log('Checking build'); try { await run('npm', ['run','build']) } catch (error) { throw new Error(`build failed: ${error.message}`) }
   const registry = await readFile('src/presentations/index.ts','utf8')
   if (!registry.includes('how-to-make-a-presentation')) throw new Error('sample registration missing')
   server = spawn('npm', ['run','preview','--','--host','127.0.0.1','--port','4173','--strictPort'], {stdio:'ignore', detached:true})
+  await new Promise(r => setTimeout(r, 500))
+  if (server.exitCode !== null) throw new Error('preview failed to start')
   let ready = false
   for (let i=0;i<100;i++) { try { if ((await fetch('http://127.0.0.1:4173/')).ok) { ready = true; break } } catch {} await new Promise(r=>setTimeout(r,100)) }
   if (!ready) throw new Error('preview failed to start')
@@ -23,6 +25,7 @@ try {
   if (count !== 9) throw new Error(`sample count ${count}, expected 9`)
   for (step=0;step<count;step++) {
     await page.waitForTimeout(750)
+    if (errors.length) throw new Error(errors.join('; '))
     if (Number(await root.getAttribute('data-step-index')) !== step) throw new Error('step transition failed')
     if (await page.locator('[data-presentation-toc] [aria-current]').textContent() !== eras[step] || await page.locator('[data-presentation-footer] h1').textContent() !== titles[step] || await page.locator('[data-presentation-footer] p').textContent() !== captions[step]) throw new Error('sample metadata mismatch')
     if (errors.length) throw new Error(errors.join('; '))
@@ -30,4 +33,4 @@ try {
   }
   console.log('PASS: build and nine sample steps')
 } catch (error) { console.error(`FAIL at step ${step}: ${error.message}`); process.exitCode = 1 }
-finally { if (browser) await browser.close(); if (server) { process.kill(-server.pid, 'SIGTERM'); } }
+finally { if (browser) await browser.close(); if (server) { try { process.kill(-server.pid, 'SIGTERM') } catch (error) { if (error.code !== 'ESRCH') throw error } } }

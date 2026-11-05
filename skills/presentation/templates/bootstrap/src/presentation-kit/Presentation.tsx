@@ -8,6 +8,7 @@ export function Presentation<T>({ steps, title, initialMode = 'browse', brand, a
   const nav = usePresentationNav(steps.length, initialMode)
   const scale = useFitScale(nav.mode)
   const step = steps[nav.index]
+  if (!step) return null
   const Scene = step.Scene
   const eras = steps.map((s, i) => ({ era: s.era, index: i })).filter((s, i, all) => all.findIndex(x => x.era === s.era) === i)
   return <main data-presentation-root data-step-count={steps.length} data-step-index={nav.index} data-presentation-mode={nav.mode} {...{ onTouchStart: nav.onTouchStart, onTouchEnd: nav.onTouchEnd }}>

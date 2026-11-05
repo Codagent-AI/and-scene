@@ -1,0 +1,1 @@
+Create `entities.ts`, `steps/`, `Talk.tsx`, and presentation-owned CSS in a new slug directory. Use stable IDs and typed `Step` payloads from the scene kit; register the lazy import in the presentation index.

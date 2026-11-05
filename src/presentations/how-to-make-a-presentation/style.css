@@ -1,0 +1,38 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color:#182c39; background:#f6f3eb; }
+* { box-sizing:border-box }
+body { margin:0 }
+[data-presentation] { min-height:100vh; display:flex; flex-direction:column; padding:24px 5vw 50px; gap:18px }
+[data-presentation-header] { display:flex; align-items:center; gap:16px; font-size:14px; font-weight:650; letter-spacing:.03em; }
+[data-presentation-marker] { background:#153f49; color:#fff; border-radius:50%; padding:10px; font-size:11px }
+button { font:inherit; cursor:pointer }
+[data-presentation-mode] { margin-left:auto; background:transparent; border:1px solid #899b99; border-radius:40px; padding:8px 18px; color:#24434a }
+[data-presentation-toc] { display:flex; justify-content:center; gap:24px }
+[data-presentation-toc-item] { border:0; padding:8px 2px; color:#72827e; background:none; font-size:12px; text-transform:uppercase; letter-spacing:.12em }
+[data-presentation-toc-item][data-active=true] { color:#bd572f; border-bottom:2px solid #bd572f; font-weight:750 }
+[data-presentation-stage] { flex:none; margin:auto !important }
+[data-presentation-footer] { display:flex; align-items:end; justify-content:space-between; gap:24px; max-width:1050px; width:100%; margin:0 auto }
+[data-presentation-footer] h1 { font-size:clamp(23px,3vw,37px); margin:0 0 8px; letter-spacing:-.04em }
+[data-presentation-footer] p { max-width:560px; line-height:1.5; margin:0; color:#59706e }
+[data-presentation-controls] { display:flex; gap:14px; align-items:center }
+[data-presentation-controls]>button { background:#173f48; color:white; border:0; border-radius:30px; padding:10px 16px }
+[data-presentation-controls]>button:disabled { opacity:.35 }
+[data-presentation-progress] { display:flex; gap:7px }
+[data-presentation-progress-item] { border:0; padding:0; border-radius:50%; width:8px; height:8px; background:#bdc7be }
+[data-presentation-progress-item][data-active=true] { background:#c65b32; transform:scale(1.5) }
+[data-presentation-attribution] { font-size:12px; color:#526e69; text-decoration:none; font-weight:600 }
+.diagram { position:absolute; inset:0; }
+.scene-item { position:absolute; }
+.person { width:190px; height:74px; padding:12px 16px; background:#173f48; color:white; border-radius:12px; box-shadow:0 6px 18px #163a4220 }
+.person small,.card small { display:block; font-size:9px; letter-spacing:.14em; opacity:.68; margin-bottom:8px }
+.person strong { font-size:20px }.skill { background:#dc754d }
+.bubble { background:white; border:1px solid #d8e1d8; border-radius:22px; padding:9px 14px; font-size:12px; color:#58746f }
+.question,.depth,.eyebrow,.loop,.edit { font-size:10px; letter-spacing:.12em; font-weight:750; color:#ae593d }
+.eyebrow { color:#708983 }.depth { color:#577771 }.loop { color:#ce704f }.edit { color:#c45a37 }
+.tray { width:810px; height:131px; border-radius:12px; background:#e9eee5 }
+.card { width:143px; height:104px; border:1px solid #c6d3c9; background:#fffdf8; border-radius:10px; padding:14px; box-shadow:0 5px 14px #274e4610 }
+.card b,.card span { display:block }.card b { font-size:15px }.card span { font-size:10px; margin-top:8px; color:#718782 }
+.ghost { border:1px dashed #b5c2b8; background:transparent; box-shadow:none; opacity:.7 }.verify { background:#e5f2dd; border-color:#b1cfa8 }.verify b { color:#3c804d }
+.connector { font-size:9px; color:#8d9c92 }.kit { border:1px solid #9bb6ae; background:#e4eee7; border-radius:6px; padding:8px 15px; font-size:10px; color:#416a60; letter-spacing:.09em }
+.modify-arc { position:absolute; left:440px; top:67px; width:280px; height:130px; color:#ce704f; pointer-events:none }
+.reveal { position:absolute; inset:12px 28px 5px; border:2px solid #dc754d; border-radius:18px; pointer-events:none }.reveal span { position:absolute; right:20px; top:-8px; background:#f6f3eb; padding:0 8px; color:#c45b38; font-size:9px; letter-spacing:.13em; font-weight:700 }
+@media (max-width:700px) { [data-presentation] { padding:16px 16px 45px; gap:12px } [data-presentation-toc] { display:none } [data-presentation-footer] { flex-direction:column; align-items:start } [data-presentation-controls] { flex-wrap:wrap } [data-presentation-header] { font-size:11px } }

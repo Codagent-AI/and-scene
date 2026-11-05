@@ -28,3 +28,25 @@
 .connection { top:49px }.depth { top:100px; left:133px; padding:4px 8px; border:1px solid #cc6749; border-radius:12px; background:#f5f1e8; z-index:2 }.verify-link { position:absolute; left:720px; top:220px; color:#638c7a; font-size:20px }
 
 .tray-base { position:absolute; left:90px; top:174px; width:652px; height:112px; background:#e9e7dc; border-radius:12px }
+
+/* Legibility: the 880 x 380 canvas scales to about 0.4 on a phone, so primary labels are sized up inside the canvas. Positions are unchanged. */
+.entity b { font-size:20px; letter-spacing:.04em }
+.prompt { font-size:16px }
+.connection small { font-size:12px }
+.tray-label { font-size:12px }
+.card small { font-size:11px }
+.card b { font-size:19px }
+.card span { font-size:12px }
+.ghost { font-size:14px }
+.depth { font-size:12px }
+.kit { font-size:12px }
+.verify { font-size:18px }
+.modify { font-size:14px }
+.edited { font-size:13px; top:162px }
+.reveal span { font-size:13px }
+.card-link { font-size:10px }
+.link-one { left:231px }
+.link-two { left:391px }
+.verify { font-size:16px; padding:10px 15px; gap:3px }
+.verify b { font-size:18px }
+.depth { top:110px }

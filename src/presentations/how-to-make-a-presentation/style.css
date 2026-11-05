@@ -50,3 +50,10 @@
 .verify { font-size:16px; padding:10px 15px; gap:3px }
 .verify b { font-size:18px }
 .depth { top:110px }
+.card small { font-size:13px }
+.card span { font-size:14px }
+.connection { text-align:center }
+.connection small { font-size:14px }
+.card-link { font-size:12px }
+.link-one { left:224px }
+.link-two { left:383px }

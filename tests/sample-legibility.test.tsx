@@ -13,6 +13,9 @@ describe('reference sample legibility on a narrow viewport', () => {
   it('sizes primary diagram labels so they render at 7px or larger at that scale', () => {
     for (const selector of ['.entity b', '.card b', '.verify b']) expect(fontSize(selector)! * narrow, selector).toBeGreaterThanOrEqual(7)
   })
+  it('sizes instructional card, question and morph labels at 12px or larger', () => {
+    for (const selector of ['.card small', '.card span', '.connection small', '.card-link']) expect(fontSize(selector), selector).toBeGreaterThanOrEqual(12)
+  })
   it('keeps every other diagram label at 10px or larger inside the canvas', () => {
     for (const selector of ['.prompt', '.connection small', '.tray-label', '.card small', '.card span', '.ghost', '.depth', '.kit', '.modify', '.edited', '.reveal span', '.card-link']) expect(fontSize(selector), selector).toBeGreaterThanOrEqual(10)
   })

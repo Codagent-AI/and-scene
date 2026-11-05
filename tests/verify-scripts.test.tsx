@@ -8,6 +8,16 @@ describe('registered presentation discovery', () => {
   it('reads slugs from the explicit index regardless of quoting or formatting', () => {
     expect(registeredSlugs(`export const presentations = [{ slug: 'a-talk', title: 'A', load }, {\n slug: "b", title: 'B', load }]`)).toEqual(['a-talk', 'b'])
   })
+  it('ignores commented-out entries but keeps slugs next to comment-like strings', () => {
+    const source = `export const presentations = [
+  { slug: 'live', title: 'See http://example.com // not a comment', load },
+  // { slug: 'retired', title: 'Retired', load },
+  /* { slug: 'old', title: 'Old', load },
+     { slug: 'older', title: 'Older', load } */
+  { slug: "also-live", title: 'Live', load }, // { slug: 'trailing', load }
+]`
+    expect(registeredSlugs(source)).toEqual(['live', 'also-live'])
+  })
   it('finds nothing in an empty registry', () => {
     expect(registeredSlugs('export const presentations: Entry[] = []')).toEqual([])
   })

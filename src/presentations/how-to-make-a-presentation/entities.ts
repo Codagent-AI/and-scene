@@ -14,6 +14,7 @@ export const entities = {
   depth: 'depth',
   kit: 'kit',
   verify: 'verify',
+  verify_link: 'verify-link',
   loop: 'loop',
   edit: 'edit',
   reveal: 'reveal',

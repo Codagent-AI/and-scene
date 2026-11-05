@@ -17,8 +17,13 @@ try {
  const root = page.locator('[data-presentation]'); await root.waitFor()
  const count = Number(await root.getAttribute('data-step-count'))
  for (let i=0;i<count;i++) {
+  await page.waitForFunction(expected => Number(document.querySelector('[data-presentation]')?.getAttribute('data-step-index')) === expected, i, { timeout: 5000 }).catch(() => { throw Error(`step ${i + 1} did not reach index ${i}`) })
+  const settleStart = performance.now()
   await page.waitForTimeout(1000)
+  const settledMs = Math.floor(performance.now() - settleStart)
+  if (Number(await root.getAttribute('data-step-index')) !== i) throw Error(`step ${i + 1} changed before capture`)
   await page.screenshot({path:`${directory}/step-${String(i+1).padStart(2,'0')}.png`})
+  console.log(`Step ${i+1} captured after ${settledMs}ms settling`)
   const warnings = await page.evaluate(() => {
    const messages = []
    const nodes = [...document.querySelectorAll('body *')].filter(e => { const text = [...e.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent?.trim()); const chrome = e.matches('button, a, [data-presentation-node]'); const r=e.getBoundingClientRect(), style=getComputedStyle(e); return (text || chrome) && r.width>0 && r.height>0 && style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity)>0 && !e.closest('[data-presentation-allow-overlap]') })

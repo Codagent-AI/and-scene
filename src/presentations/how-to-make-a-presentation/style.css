@@ -32,6 +32,7 @@ button { font:inherit; cursor:pointer }
 .card { width:143px; height:104px; border:1px solid #c6d3c9; background:#fffdf8; border-radius:10px; padding:14px; box-shadow:0 5px 14px #274e4610 }
 .card b,.card span { display:block }.card b { font-size:15px }.card span { font-size:10px; margin-top:8px; color:#718782 }
 .ghost { border:1px dashed #b5c2b8; background:transparent; box-shadow:none; opacity:.7 }.verify { background:#e5f2dd; border-color:#b1cfa8 }.verify b { color:#3c804d }
+.verify-link { width:20px; color:#577771; text-align:center; font-size:16px; line-height:20px }
 .connector { font-size:9px; color:#8d9c92 }.kit { border:1px solid #9bb6ae; background:#e4eee7; border-radius:6px; padding:8px 15px; font-size:10px; color:#416a60; letter-spacing:.09em }
 .modify-arc { position:absolute; left:440px; top:67px; width:280px; height:130px; color:#ce704f; pointer-events:none }
 .reveal { position:absolute; inset:12px 28px 5px; border:2px solid #dc754d; border-radius:18px; pointer-events:none }.reveal span { position:absolute; right:20px; top:-8px; background:#f6f3eb; padding:0 8px; color:#c45b38; font-size:9px; letter-spacing:.13em; font-weight:700 }

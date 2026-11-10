@@ -1,20 +1,28 @@
 # and-scene
 
-And Scene is a project for building a presentation-generation agent skill.
+And Scene creates browser presentations as one evolving diagram: stable elements
+appear, move, connect, and change through named steps.
 
-The intended presentation model is not a stack of unrelated slides. It is one
-diagrammatic scene that evolves through named steps: elements appear, move,
-collapse, connect, and re-label as the talk arc develops.
+Use the [presentation skill](skills/presentation/SKILL.md) to create or modify a
+presentation. It includes a self-contained React/Vite/TypeScript bootstrap and a
+style-neutral scene kit. Presentations own their CSS.
 
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev
-npm run build
 ```
 
-## Current State
+Open http://127.0.0.1:5173/how-to-make-a-presentation for the nine-step reference,
+or the root page for the registry.
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+Run `npm test`, `npm run lint`, and `npm run build` for local checks.
+Install the browser with `npx playwright install chromium`, then run
+`npm run verify` for production browser verification and
+`npm run inspect -- how-to-make-a-presentation` for screenshots and diagnostics.
+For another registered route, use `node scripts/verify.mjs <slug>`.
+
+The canonical kit lives in `src/presentation-kit/`; its bootstrap snapshot and
+verification scripts must remain byte-aligned. The approved OpenSpec change
+remains in `openspec/changes/create-and-scene/`.

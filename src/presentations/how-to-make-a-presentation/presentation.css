@@ -1,0 +1,49 @@
+.sample-presentation { color: #efece3; background: #141b20; font-family: 'Avenir Next', Avenir, system-ui, sans-serif; }
+.sample-presentation * { box-sizing: border-box; }
+.sample-presentation [data-presentation] { background: radial-gradient(ellipse at 48% 30%, #233038 0, #141b20 70%); }
+.sample-presentation button { color: #d6dbda; background: transparent; border: 1px solid #526169; border-radius: 6px; font: inherit; cursor: pointer; padding: 7px 12px; }
+.sample-presentation button:hover { background: #35474f; }
+.sample-presentation button:focus-visible, .sample-presentation a:focus-visible { outline: 2px solid #eabc73; outline-offset: 4px; }
+.sample-presentation button:disabled { opacity: .35; cursor: default; }
+.sample-presentation [data-presentation-header] { display: flex; align-items: center; gap: 24px; padding: 28px 36px; font-size: 12px; }
+.sample-presentation [data-presentation-marker] { color: #eabc73; text-transform: uppercase; letter-spacing: .12em; white-space: nowrap; }
+.sample-presentation [data-presentation-name] { color: #aab7bd; }
+.sample-presentation [data-presentation-mode-toggle] { margin-left: auto; }
+.sample-presentation [data-presentation-footer] { text-align: center; padding: 0 24px; }
+.sample-presentation [data-presentation-title] { font-size: clamp(20px, 3vw, 36px); font-weight: 500; letter-spacing: -.035em; margin: 0 0 12px; }
+.sample-presentation [data-presentation-caption] { max-width: 650px; margin: 0 auto 24px; color: #b6c0c3; line-height: 1.6; font-size: 15px; }
+.sample-presentation [data-presentation-navigation] { display: flex; gap: 18px; justify-content: center; align-items: center; }
+.sample-presentation [data-presentation-progress] { display: flex; gap: 7px; }
+.sample-presentation [data-presentation-progress] button { padding: 5px; min-width: 27px; font-size: 11px; border-color: transparent; border-radius: 50%; }
+.sample-presentation [data-presentation-active="true"] { color: #162026; background: #eabc73; border-color: #eabc73; font-weight: 700; }
+.sample-presentation [data-presentation-toc] { position: absolute; top: 88px; left: 36px; display: flex; gap: 8px; }
+.sample-presentation [data-presentation-toc] button { font-size: 11px; padding: 4px 9px; }
+.sample-presentation [data-presentation-attribution] { font: 12px 'Avenir Next', system-ui, sans-serif; color: #aab7bd; text-decoration: none; letter-spacing: .02em; }
+.sample-presentation [data-presentation-attribution]:hover { color: #eabc73; }
+.sample-presentation .entity { display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 18px; border: 1px solid #60747c; border-radius: 9px; background: #213139; color: #eee9db; }
+.sample-presentation .entity small { font-size: 11px; color: #a8b9be; margin-top: 14px; }
+.sample-presentation .entity-person { border-color: #eabc73; background: #3c382e; font-size: 25px; }
+.sample-presentation .entity-skill { border-color: #85bdb8; background: #263e40; font-size: 25px; }
+.sample-presentation .entity-prompt { font-size: 16px; background: transparent; border: 0; font-style: italic; }
+.sample-presentation .entity-chip { font-size: 12px; border-radius: 20px; color: #eabc73; background: #353831; border-color: #6b634c; }
+.sample-presentation .entity-tray { justify-content: start; align-items: start; padding: 12px 20px; font-size: 10px; letter-spacing: .12em; background: #1b2930; border: 0; border-radius: 8px; color: #a8b9be; }
+.sample-presentation .entity-card { font-size: 14px; background: #293c45; }
+.sample-presentation .entity-link, .sample-presentation .entity-connector, .sample-presentation .entity-modify { background: transparent; border: 0; color: #eabc73; font-size: 11px; }
+.sample-presentation .entity-connector { font-size: 32px; }
+.sample-presentation .entity-ghost { border-style: dashed; background: transparent; color: #a8b9be; font-size: 12px; }
+.sample-presentation .entity-depth { font-size: 10px; border-color: #eabc73; border-radius: 0 0 8px 8px; background: #3c382e; }
+.sample-presentation .entity-kit { font-size: 13px; border-color: #85bdb8; border-radius: 0 0 8px 8px; color: #a6d6cf; }
+.sample-presentation .entity-verify { font-size: 15px; color: #b5e5bc; border-color: #76ac7e; background: #243e34; }
+.sample-presentation .entity-verify small { font-size: 10px; color: #b5e5bc; }
+.sample-presentation .entity-reveal { background: transparent; border: 1px solid #eabc73; border-radius: 16px; justify-content: end; padding-bottom: 10px; color: #eabc73; font-size: 10px; letter-spacing: .15em; pointer-events: none; }
+.sample-presentation .entity[data-edited="true"] { border-color: #eabc73; box-shadow: inset 0 0 0 2px #eabc7340; }
+.sample-presentation .modify-arc path { stroke: #eabc73; stroke-width: 1.5; }
+@media(max-width: 600px) {
+ .sample-presentation [data-presentation-header] { padding: 22px 16px; gap: 10px; }
+ .sample-presentation [data-presentation-name] { display: none; }
+ .sample-presentation [data-presentation-caption] { font-size: 13px; line-height: 1.45; margin-bottom: 18px; }
+ .sample-presentation [data-presentation-progress] { gap: 1px; }
+ .sample-presentation [data-presentation-progress] button { min-width: 22px; }
+ .sample-presentation [data-presentation-navigation] { gap: 7px; }
+ .sample-presentation [data-presentation-navigation] > button { padding: 6px 9px; }
+}

@@ -13,3 +13,6 @@ test('bootstrap scene kit is byte-aligned with canonical kit', () => {
 test('bootstrap browser scripts stay byte-aligned', () => {
   for (const file of files('scripts')) expect(readFileSync(join('skills/presentation/templates/bootstrap/scripts', file))).toEqual(readFileSync(join('scripts', file)))
 })
+test('bootstrap route contract stays byte-aligned', () => {
+  expect(readFileSync('skills/presentation/templates/bootstrap/src/presentation-route.mjs')).toEqual(readFileSync('src/presentation-route.mjs'))
+})

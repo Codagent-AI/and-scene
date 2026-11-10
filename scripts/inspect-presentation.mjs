@@ -1,7 +1,8 @@
+import { presentationSlug } from '../src/presentation-route.mjs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { build, withPreview, walk } from './browser.mjs'
 const slug = process.argv[2]
-if (!slug || !/^[a-z0-9-]+$/.test(slug)) throw new Error('Usage: npm run inspect -- <presentation-slug>')
+presentationSlug(slug)
 try {
   await build()
   const directory = `inspection/${slug}`

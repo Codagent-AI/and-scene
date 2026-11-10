@@ -60,3 +60,17 @@ test('inspection writes settled per-step artifacts and diagnoses only unmarked o
     }
   })
 }, 30000)
+
+test('registered underscore routes use the same safe segment in both browser tools', async () => {
+  await copyApp(async target => {
+    const registry = join(target, 'src/presentations/index.ts')
+    await writeFile(registry, (await readFile(registry, 'utf8')).replace("slug: 'how-to-make-a-presentation'", "slug: 'team_intro'"))
+    const verified = await run('node', ['scripts/verify.mjs', 'team_intro'], { cwd: target })
+    expect(verified.stdout).toContain('PASS rendered presentation team_intro')
+    const inspected = await run('node', ['scripts/inspect-presentation.mjs', 'team_intro'], { cwd: target })
+    expect(inspected.stdout).toContain('Captured 9 settled steps in inspection/team_intro')
+    for (const script of ['verify.mjs', 'inspect-presentation.mjs']) {
+      await expect(run('node', ['scripts/' + script, '../escape'], { cwd: target })).rejects.toMatchObject({ code: 1 })
+    }
+  })
+}, 45000)

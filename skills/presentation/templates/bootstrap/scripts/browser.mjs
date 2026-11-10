@@ -1,23 +1,27 @@
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { chromium } from 'playwright'
+/** @returns {Promise<void>} */
 export async function build() {
-  await new Promise((resolve, reject) => {
+  await new Promise(/** @param {(value?: void) => void} resolve */ (resolve, reject) => {
     const child = spawn('npm', ['run', 'build'], { stdio: 'inherit' })
     child.once('error', reject)
     child.once('exit', code => code === 0 ? resolve() : reject(new Error(`build: exited ${code}`)))
   })
 }
+/** @param {(browser: import('playwright').Browser, url: string) => Promise<void>} run */
 export async function withPreview(run) {
   const port = await new Promise((resolve, reject) => {
     const server = createServer()
     server.on('error', reject)
-    server.listen(0, '127.0.0.1', () => { const { port } = server.address(); server.close(() => resolve(port)) })
+    server.listen(0, '127.0.0.1', () => { const address = server.address(); if (!address || typeof address === 'string') return reject(new Error('preview port unavailable')); server.close(() => resolve(address.port)) })
   })
   const url = `http://127.0.0.1:${port}`
   const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'pipe' })
+  /** @type {import('playwright').Browser | undefined} */
   let browser
   let shutdownRequested = false
+  /** @type {Error | undefined} */
   let serverError
   server.on('error', error => { serverError = error })
   try {
@@ -43,8 +47,15 @@ export async function withPreview(run) {
   }
   if (!shutdownRequested || (server.signalCode !== 'SIGTERM' && server.exitCode !== 0 && server.exitCode !== 143)) throw new Error(`preview terminated unexpectedly (code ${server.exitCode}, signal ${server.signalCode}, shutdown ${shutdownRequested})`)
 }
+/** 
+ * @param {import('playwright').Page} page
+ * @param {string} url
+ * @param {string} slug
+ * @param {(page: import('playwright').Page, index: number, count: number) => Promise<void>} inspect
+ */
 export async function walk(page, url, slug, inspect) {
   let index = 0
+  /** @type {string[]} */
   const errors = []
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', error => errors.push(error.message))
@@ -63,6 +74,6 @@ export async function walk(page, url, slug, inspect) {
       if (index < count - 1) await page.keyboard.press('ArrowRight')
     }
   } catch (error) {
-    throw new Error(`render step ${index}: ${error.message}`, { cause: error })
+    throw new Error(`render step ${index}: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
   }
 }

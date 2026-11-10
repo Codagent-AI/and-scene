@@ -1,3 +1,4 @@
+import { presentationSlug } from '../src/presentation-route.mjs'
 import { readFile } from 'node:fs/promises'
 import assert from 'node:assert/strict'
 import { build, withPreview, walk } from './browser.mjs'
@@ -5,7 +6,7 @@ try {
   await build()
   const slug = process.argv[2]
   if (slug) {
-    assert.match(slug, /^[a-z0-9-]+$/, 'presentation slug')
+    presentationSlug(slug)
     await withPreview(async (browser, url) => {
       const page = await browser.newPage()
       await page.goto(url)

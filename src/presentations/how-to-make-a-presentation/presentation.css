@@ -21,8 +21,8 @@
 .how-to-presentation .person { border: 1.5px solid var(--ink); border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 20px; background: #fcfaf3; }
 .how-to-presentation .person svg { width: 23px; }
 .how-to-presentation .skill { background: #dfebe2; border-color: var(--teal); }
-.how-to-presentation .prompt { color: var(--muted); font: italic 17px Georgia, serif; }
-.how-to-presentation .question { text-align: center; font-size: 12px; color: var(--teal); padding-top: 5px; }
+.how-to-presentation .prompt { color: var(--muted); font: italic 14px Georgia, serif; border: 1px solid #c9d0c7; border-radius: 12px; padding: 5px 10px; background: #fffdf6; }
+.how-to-presentation .question { text-align: center; font-size: 12px; color: var(--teal); padding-top: 5px; border: 1px solid #c3d5c5; border-radius: 14px; background: #edf1e7; }
 .how-to-presentation .conversation { font-size: 24px; text-align: center; color: #68857d; overflow: hidden; }
 .how-to-presentation [data-story-tray] { background: #e9e9de; border-radius: 12px; }
 .how-to-presentation .tray-label { color: #60766c; font-size: 9px; letter-spacing: .13em; }
@@ -33,7 +33,7 @@
 .how-to-presentation .card-link { display: flex; flex-direction: column; align-items: center; font-size: 23px; color: #5e8275; }
 .how-to-presentation .card-link small { font-size: 9px; }
 .how-to-presentation .ghost { border-style: dashed; background: transparent; justify-content: center; color: #687e70; }
-.how-to-presentation .depth { color: #87663c; font-size: 11px; padding-top: 5px; }
+.how-to-presentation .depth { color: #87663c; font-size: 11px; padding: 4px 9px; border: 1px solid #d5c6ac; border-radius: 12px; background: #f3e9d6; }
 .how-to-presentation .kit-socket { border: 1px solid #a2b6aa; border-top: 0; border-radius: 0 0 8px 8px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11px; }
 .how-to-presentation .kit-socket svg { width: 17px; }
 .how-to-presentation .verify { background: #d9ebdd; color: #17634e; border: 1px solid #9fc4aa; border-radius: 7px; display: grid; grid-template-columns: 22px 1fr; align-content: center; align-items: center; gap: 4px; padding: 10px; }

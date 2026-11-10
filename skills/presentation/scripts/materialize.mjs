@@ -10,5 +10,5 @@ try {
   await mkdir(target, { recursive: true })
   if ((await readdir(target)).length) throw new Error('target is non-empty; use the skill contract-aware merge procedure')
   await cp(bootstrap, target, { recursive: true })
-  console.log(`Scaffold materialized: ${target}; run npm ci and npx playwright install chromium`)
+  console.log(`Scaffold materialized: ${target}; run npm ci --include=dev and npx playwright install chromium`)
 } catch (error) { console.error(error.message); process.exitCode = 1 }

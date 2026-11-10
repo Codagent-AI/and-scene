@@ -56,7 +56,7 @@ existing registry entries and routing working. If a partial merge changes the
 manifest regenerate its lockfile with npm install. Never assume dependencies are
 installed. Ensure runtime react, react-dom, motion, lucide-react and dev/build vite,
 @vitejs/plugin-react, typescript, @types/react, @types/react-dom, @types/node, the
-ESLint stack, and playwright are present. Use npm ci with the matching lockfile,
+ESLint stack, and playwright are present. Use npm ci --include=dev with the matching lockfile,
 and npx playwright install chromium for render verification.
 
 The bootstrap deliberately has no theme. Do not add Tailwind, its Vite plugin,

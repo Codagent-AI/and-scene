@@ -29,7 +29,8 @@ it('INT-001 materialized bootstrap builds renders resolves externally and stays 
       await writeFile(path, (await readFile(path, 'utf8')).replaceAll('__SLUG__', 'starter').replaceAll('__TITLE__', 'Starter'))
     }
     await writeFile(join(directory, 'src/presentations/index.ts'), `export const presentations = [{ slug: 'starter', title: 'Starter', load: () => import('./starter/Talk') }]\n`)
-    success(command(directory, ['npm', 'ci', '--no-audit', '--no-fund']))
+    success(command(directory, ['npm', 'ci', '--include=dev', '--no-audit', '--no-fund']))
+    success(command(directory, ['npm', 'run', 'lint']))
     const output = success(command(directory, ['npm', 'run', 'verify', '--', 'starter']))
     expect(output).toContain('PASS verify starter: 2 steps')
     assertCleaned(output)

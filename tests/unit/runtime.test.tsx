@@ -43,6 +43,14 @@ describe('step contract and grouped host', () => {
     view.rerender(<Stage steps={different} index={2} mode="browse" />)
     expect(screen.getByText('local 0 payload 3')).toBeInTheDocument()
     expect(mounts).toBe(2)
+    function Other({ payload }: SceneProps<number>) {
+      const [local] = useState(100)
+      useEffect(() => { mounts++ }, [])
+      return <span>other {local} payload {payload}</span>
+    }
+    view.rerender(<Stage steps={different.map((s, i) => i === 2 ? { ...s, Scene: Other } : s)} index={2} mode="browse" />)
+    expect(screen.getByText('other 100 payload 3')).toBeInTheDocument()
+    expect(mounts).toBe(3)
     expect(sceneKey(steps, 1)).toBe('id-1')
     expect(sceneKey([{ ...steps[0], Scene: Counter }, steps[1]], 1)).toBe('id-2')
     expect(sceneKey([steps[0], { ...steps[1], groupKey: undefined }], 1)).toBe('id-2')

@@ -3,7 +3,7 @@ const target = 'skills/presentation/templates/bootstrap'
 await rm(target, { recursive: true, force: true })
 await mkdir(`${target}/src/presentations`, { recursive: true })
 for (const name of ['index.html', 'package-lock.json', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'vite.config.ts', 'eslint.config.js', '.gitignore']) await cp(name, `${target}/${name}`)
-for (const name of ['presentation-kit', 'Router.tsx', 'main.tsx']) await cp(`src/${name}`, `${target}/src/${name}`, { recursive: true })
+for (const name of ['presentation-kit', 'Router.tsx', 'routing.ts', 'main.tsx']) await cp(`src/${name}`, `${target}/src/${name}`, { recursive: true })
 await cp('scripts', `${target}/scripts`, { recursive: true, filter: source => !source.endsWith('sync-bootstrap.mjs') })
 const pkg = JSON.parse(await readFile('package.json', 'utf8'))
 pkg.scripts = { dev: 'vite', build: 'tsc -b && vite build', lint: 'eslint .', preview: 'vite preview', test: 'vitest run --passWithNoTests', verify: 'node scripts/verify.mjs', inspect: 'node scripts/inspect-presentation.mjs' }

@@ -1,18 +1,21 @@
 // Runs in the page: keep this function self-contained for Playwright serialization.
 export function collectVisuals() {
   const visible = el => {
-    const style = getComputedStyle(el)
     const r = el.getBoundingClientRect()
-    return r.width > 0 && r.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0
+    if (r.width <= 0 || r.height <= 0) return false
+    for (let ancestor = el; ancestor; ancestor = ancestor.parentElement) {
+      const style = getComputedStyle(ancestor)
+      if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || 1) === 0) return false
+    }
+    return true
   }
   const identify = el => el.getAttribute('data-presentation-entity') || el.getAttribute('aria-label') || el.textContent.trim().slice(0, 60) || el.tagName
-  const text = [...document.querySelectorAll('[data-presentation] *')].filter(el => visible(el) && !el.closest('[data-presentation-allow-overlap]') && [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()))
-  const boxes = text.map(el => {
+  const text = [...document.querySelectorAll('[data-presentation] *')].filter(el => visible(el) && !el.closest('[data-presentation-allow-overlap]'))
+  const boxes = text.flatMap(el => [...el.childNodes].filter(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim()).flatMap(node => {
     const range = document.createRange()
-    range.selectNodeContents(el)
-    const r = range.getBoundingClientRect()
-    return { id: identify(el), left: r.left, top: r.top, right: r.right, bottom: r.bottom }
-  })
+    range.selectNodeContents(node)
+    return [...range.getClientRects()].map(r => ({ id: identify(el), left: r.left, top: r.top, right: r.right, bottom: r.bottom }))
+  }))
   const signature = el => {
     const s = getComputedStyle(el)
     return [s.color, s.backgroundColor, s.borderColor, s.borderWidth, s.fontWeight, s.textDecoration, s.boxShadow, s.opacity, s.transform].join('|')

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { expect, it } from 'vitest'
-import { Router, resolveRoute } from '../../src/Router'
+import { Router } from '../../src/Router'
+import { resolveRoute } from '../../src/routing'
 import { Landing } from '../../src/Landing'
 import { presentations } from '../../src/presentations'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'

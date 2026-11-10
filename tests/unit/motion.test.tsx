@@ -55,3 +55,10 @@ it.each([Box, Label, Arrow, Frame, Emphasis, SymbolChip])('I-21 primitives forwa
   view.rerender(createElement(Node, { entity: 'id' }, 'plain'))
   expect(view.container.firstElementChild?.getAttribute('style') || '').toBe('')
 })
+it.each([Appear, SceneLayer])('I-21 wrappers forward author class data style and layout identity (%#)', Wrapper => {
+  capture.props = []
+  const view = render(<Wrapper className="author" data-testid="wrapper" style={{ left: 42 }} layoutId="wrapper-id">content</Wrapper>)
+  expect(view.getByTestId('wrapper')).toHaveClass('author')
+  expect(view.getByTestId('wrapper')).toHaveStyle({ left: '42px' })
+  expect(capture.props.find(p => p.layoutId === 'wrapper-id')).toBeTruthy()
+})

@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process'
 export const root = resolve('.')
 export async function temporary() { return mkdtemp(join(tmpdir(), 'and-scene-')) }
 export function command(cwd, args, timeout = 180000) {
-  const result = spawnSync(args[0], args.slice(1), { cwd, timeout, encoding: 'utf8', env: { ...process.env, NO_COLOR: '1' } })
+  const result = spawnSync(args[0], args.slice(1), { cwd, timeout, encoding: 'utf8', env: { ...process.env, NO_COLOR: '1', NODE_ENV: 'production' } })
   const output = (result.stdout || '') + (result.stderr || '')
   if (result.error) throw new Error(`${args.join(' ')}: ${result.error.message}\n${output}`)
   return { status: result.status, output }

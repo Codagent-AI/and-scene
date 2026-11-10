@@ -1,10 +1,11 @@
 import { lazy, Suspense } from 'react'
 import { presentations } from './presentations'
+import { resolveRoute } from './routing'
 import { Landing } from './Landing'
-export function resolveRoute(path: string) { return presentations.find(entry => `/${entry.slug}` === path.replace(/\/$/, '')) }
-const routes = new Map(presentations.map(entry => [entry.slug, lazy(entry.load)]))
+const routes = new Map(presentations.map(entry => {
+  const Talk = lazy(entry.load)
+  return [entry.slug, <Suspense fallback={<p>Loading presentation…</p>}><Talk /></Suspense>]
+}))
 export function Router({ path = window.location.pathname }: { path?: string }) {
-  const entry = resolveRoute(path)
-  const Talk = entry && routes.get(entry.slug)
-  return Talk ? <Suspense fallback={<p>Loading presentation…</p>}><Talk /></Suspense> : <Landing />
+  return routes.get(resolveRoute(path)?.slug || '') || <Landing />
 }

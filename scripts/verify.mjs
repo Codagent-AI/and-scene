@@ -7,8 +7,8 @@ try {
   const actual = []
   await withBrowser(async (page, base) => {
     await visitSteps(page, `${base}/${slug}`, async ({ page, index }) => {
-      const marker = await page.locator('[data-presentation-marker]').innerText()
-      actual.push({ era: marker.split(' / ').slice(1).join(' / '), title: await page.locator('[data-presentation-title]').innerText(), caption: await page.locator('[data-presentation-caption]').innerText() })
+      const marker = await page.locator('[data-presentation-marker]').textContent()
+      actual.push({ era: (marker || '').split(' / ').slice(1).join(' / '), title: await page.locator('[data-presentation-title]').innerText(), caption: await page.locator('[data-presentation-caption]').innerText() })
       if (slug === REFERENCE_SLUG && index === 0 && actual[0].title !== 'You have a topic') throw new Error('reference sample missing')
     })
     if (slug === REFERENCE_SLUG) validateReference(actual)

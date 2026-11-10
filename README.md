@@ -21,7 +21,7 @@ scaffold plus an OpenSpec proposal for the future skill implementation.
 
 ## Evolving-scene presentations
 
-Install with `npm ci` and `npx playwright install chromium`, then `npm run dev`.
+Install with `npm ci --include=dev` and `npx playwright install chromium`, then `npm run dev`.
 The landing page lists the explicit registry in `src/presentations/index.ts`.
 The reference presentation is `/how-to-make-a-presentation`.
 

@@ -54,3 +54,17 @@
   .how-to [data-presentation-footer] { padding: 0 16px; }
 }
 .how-to [data-presentation-toc] { top: 70px !important; left: 24px !important; display: flex; gap: 8px; padding: 0; }
+
+.scene-key { display: none; }
+@media (max-width: 650px) {
+  .how-to .scene-key { display: grid; gap: 3px; position: absolute; top: 114px; left: 20px; right: 20px; font-size: 12px; line-height: 1.4; }
+  .how-to [data-presentation-stage] { top: 280px !important; }
+  .how-to .scene-key [data-from] { display: none; }
+  .how-to:has([data-step-index="1"]) .scene-key [data-from="2"], .how-to:has([data-step-index="2"]) .scene-key [data-from="2"], .how-to:has([data-step-index="3"]) .scene-key [data-from="2"], .how-to:has([data-step-index="4"]) .scene-key [data-from="2"], .how-to:has([data-step-index="5"]) .scene-key [data-from="2"], .how-to:has([data-step-index="6"]) .scene-key [data-from="2"], .how-to:has([data-step-index="7"]) .scene-key [data-from="2"], .how-to:has([data-step-index="8"]) .scene-key [data-from="2"] { display: block; }
+  .how-to:has([data-step-index="2"]) .scene-key [data-from="3"], .how-to:has([data-step-index="3"]) .scene-key [data-from="3"], .how-to:has([data-step-index="4"]) .scene-key [data-from="3"], .how-to:has([data-step-index="5"]) .scene-key [data-from="3"], .how-to:has([data-step-index="6"]) .scene-key [data-from="3"], .how-to:has([data-step-index="7"]) .scene-key [data-from="3"], .how-to:has([data-step-index="8"]) .scene-key [data-from="3"] { display: block; }
+  .how-to:has([data-step-index="4"]) .scene-key [data-from="5"], .how-to:has([data-step-index="5"]) .scene-key [data-from="5"], .how-to:has([data-step-index="6"]) .scene-key [data-from="5"], .how-to:has([data-step-index="7"]) .scene-key [data-from="5"], .how-to:has([data-step-index="8"]) .scene-key [data-from="5"] { display: block; }
+  .how-to:has([data-step-index="5"]) .scene-key [data-from="6"], .how-to:has([data-step-index="6"]) .scene-key [data-from="6"], .how-to:has([data-step-index="7"]) .scene-key [data-from="6"], .how-to:has([data-step-index="8"]) .scene-key [data-from="6"] { display: block; }
+  .how-to:has([data-step-index="6"]) .scene-key [data-from="7"], .how-to:has([data-step-index="7"]) .scene-key [data-from="7"], .how-to:has([data-step-index="8"]) .scene-key [data-from="7"] { display: block; }
+  .how-to:has([data-step-index="7"]) .scene-key [data-from="8"], .how-to:has([data-step-index="8"]) .scene-key [data-from="8"] { display: block; }
+  .how-to:has([data-step-index="8"]) .scene-key [data-from="9"] { display: block; }
+}

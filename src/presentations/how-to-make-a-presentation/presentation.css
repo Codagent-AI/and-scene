@@ -7,6 +7,9 @@
   position: relative;
   padding: 28px 40px 0;
 }
+.how-to [data-presentation-header] [data-presentation-title] {
+  width: fit-content;
+}
 .how-to [data-presentation-marker] {
   color: #64736c;
   font-size: 11px;

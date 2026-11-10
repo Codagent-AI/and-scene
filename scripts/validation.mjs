@@ -12,3 +12,10 @@ export function assertNoErrors(errors, step) {
   if (errors.length)
     throw new Error(`render failed at step ${step}: ${errors.join('; ')}`)
 }
+
+export function settleInterval(value) {
+  const milliseconds = Number(value)
+  if (!Number.isFinite(milliseconds) || milliseconds < 0)
+    throw new Error('Invalid PRESENTATION_SETTLE_MS')
+  return milliseconds
+}

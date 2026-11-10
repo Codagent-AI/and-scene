@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { AnimatePresence } from 'motion/react'
 import { describe, test, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import {
@@ -10,6 +11,7 @@ import {
   Emphasis,
   SymbolChip,
   SceneLayer,
+  Appear,
 } from '../src/presentation-kit'
 import type { Step, SceneProps } from '../src/presentation-kit'
 import { Stage } from '../src/presentation-kit/Stage'
@@ -79,6 +81,35 @@ describe('scene kit contracts', () => {
     expect(ENTRY.transition.duration).toBe(ENTER_T)
     expect(EXIT.opacity).toBe(0)
     expect(EXIT.transition.duration).toBeGreaterThan(0)
+  })
+  test('I-14 departing entities stay mounted for exit and newcomers retain their wrapper', async () => {
+    const { rerender, container } = render(
+      <AnimatePresence>
+        <Appear key="a">
+          <Box entityId="a">A</Box>
+        </Appear>
+      </AnimatePresence>,
+    )
+    const wrapper = container.querySelector('[data-presentation-appear]')
+    rerender(
+      <AnimatePresence>
+        <Appear key="a">
+          <Box entityId="a">Updated A</Box>
+        </Appear>
+      </AnimatePresence>,
+    )
+    expect(container.querySelector('[data-presentation-appear]')).toBe(wrapper)
+    rerender(<AnimatePresence>{null}</AnimatePresence>)
+    expect(
+      container.querySelector('[data-presentation-entity="a"]'),
+    ).toBeTruthy()
+    await waitFor(
+      () =>
+        expect(
+          container.querySelector('[data-presentation-entity="a"]'),
+        ).toBeNull(),
+      { timeout: 2000 },
+    )
   })
   test('I-15 same group and Scene update without remount, changed groups/components remount', async () => {
     const mounted = vi.fn(),

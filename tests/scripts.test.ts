@@ -7,7 +7,7 @@ import {
   bootstrapDirectory,
   skillDirectory,
 } from '../skills/presentation/scaffold.mjs'
-import { assertNoErrors } from '../scripts/validation.mjs'
+import { assertNoErrors, settleInterval } from '../scripts/validation.mjs'
 import { diagnose, overlaps } from '../scripts/diagnostics.mjs'
 
 const rect = { left: 0, top: 0, right: 100, bottom: 20 }
@@ -122,4 +122,23 @@ describe('scaffolding and diagnostics', () => {
     }
     expect(diagnose({ texts: [], navigation: [], attribution }, 1)).toEqual([])
   })
+})
+
+test('I-42 unit scripts exclude slower integration/browser cases', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const pkg = JSON.parse(await readFile('package.json', 'utf8'))
+  const config = await readFile('vitest.config.ts', 'utf8')
+  expect(pkg.scripts.test).toBe('vitest run')
+  expect(config).toContain('tests/**/*.test.{ts,tsx}')
+  expect(pkg.scripts['test:integration']).toContain(
+    'tests/integration.test.mjs',
+  )
+  expect(pkg.scripts.verify).toBe('node scripts/verify.mjs')
+})
+
+test('I-38 settle interval accepts configured delays and rejects invalid values', () => {
+  expect(settleInterval('900')).toBe(900)
+  expect(settleInterval('0')).toBe(0)
+  for (const bad of ['invalid', '-1', Infinity])
+    expect(() => settleInterval(bad)).toThrow('Invalid PRESENTATION_SETTLE_MS')
 })

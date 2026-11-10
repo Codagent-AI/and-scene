@@ -9,14 +9,13 @@ import {
   SETTLE_MS,
 } from './browser.mjs'
 import { collectDiagnostics, diagnose } from './diagnostics.mjs'
+import { settleInterval } from './validation.mjs'
 
 const slug = process.argv[2]
-const settle = Number(process.env.PRESENTATION_SETTLE_MS ?? SETTLE_MS)
 try {
+  const settle = settleInterval(process.env.PRESENTATION_SETTLE_MS ?? SETTLE_MS)
   if (!slug || !/^[a-z0-9-]+$/.test(slug))
     throw new Error('Supply a registered presentation slug')
-  if (!Number.isFinite(settle) || settle < 0)
-    throw new Error('Invalid PRESENTATION_SETTLE_MS')
   await runBuild()
   const directory = resolve('artifacts/inspection', slug)
   await mkdir(directory, { recursive: true })

@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:integration": "node --test --test-concurrency=1 tests/integration.test.mjs",
+    "test:integration": "node --test --test-reporter=tap --test-concurrency=1 tests/integration.test.mjs",
     "verify": "node scripts/verify.mjs",
     "inspect": "node scripts/inspect-presentation.mjs",
     "test:types": "tsc -p tsconfig.contract.json"

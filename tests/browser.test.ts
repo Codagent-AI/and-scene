@@ -175,3 +175,38 @@ it('fits short mobile layouts, preserves key swipes and reveals every declared e
     }
   })
 }, 30000)
+
+it.each(['browse', 'present'])('refits the mounted canvas after narrowing and widening in %s mode', async mode => {
+  await withPreview(async (browser, url) => {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+    await page.goto(url + '/how-to-make-a-presentation')
+    const root = page.locator('[data-presentation-root]')
+    await root.waitFor()
+    if (mode === 'present') await page.keyboard.press('p')
+    for (let index = 0; index < 8; index++) await page.keyboard.press('ArrowRight')
+    const canvas = await page.locator('[data-presentation-canvas]').elementHandle()
+    const measure = () => page.evaluate(() => {
+      const stage = document.querySelector('[data-presentation-stage]')!.getBoundingClientRect()
+      const canvas = document.querySelector('[data-presentation-canvas]')!.getBoundingClientRect()
+      return {
+        width: canvas.width, height: canvas.height,
+        contained: canvas.left >= stage.left - 1 && canvas.right <= stage.right + 1 &&
+          canvas.top >= stage.top - 1 && canvas.bottom <= stage.bottom + 1,
+      }
+    })
+    await expect.poll(async () => (await measure()).width).toBeGreaterThan(800)
+    const wide = await measure()
+    for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 1000 }]) {
+      await page.setViewportSize(viewport)
+      await expect.poll(async () => {
+        const bounds = await measure()
+        return bounds.contained && bounds.width > 0 && bounds.height > 0 &&
+          Math.abs(bounds.width / bounds.height - 880 / 380) < .001 &&
+          (viewport.width === 390 ? bounds.width < wide.width / 2 : Math.abs(bounds.width - wide.width) < 1)
+      }).toBe(true)
+      expect(await root.getAttribute('data-step-index')).toBe('8')
+      expect(await root.getAttribute('data-presentation-mode')).toBe(mode)
+      expect(await canvas!.evaluate(element => element === document.querySelector('[data-presentation-canvas]'))).toBe(true)
+    }
+  })
+}, 15000)

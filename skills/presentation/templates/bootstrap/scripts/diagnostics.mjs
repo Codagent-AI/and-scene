@@ -6,24 +6,37 @@ export function inspectDocument() {
     const rect = element.getBoundingClientRect()
     return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && Number(style.opacity) !== 0 && element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
   }
-  const describe = e => `${e.tagName.toLowerCase()}${e.getAttribute('data-story-entity') ? `[${e.getAttribute('data-story-entity')}]` : ''}: ${e.textContent.trim().slice(0, 48)}`
+  const describe = e => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ''}: ${(e.getAttribute('aria-label') ?? e.textContent.trim()).slice(0, 48)}`
+  const exempt = element => element.closest('[data-allow-overlap="true"]')
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
   const texts = []
   while (walker.nextNode()) {
     const node = walker.currentNode
     const parent = node.parentElement
-    if (!node.textContent.trim() || !parent || parent.closest('script,style,[data-allow-overlap="true"]') || !visible(parent)) continue
+    if (!node.textContent.trim() || !parent || (parent.closest('script,style') || exempt(parent)) || !visible(parent)) continue
     const range = document.createRange()
     range.selectNodeContents(node)
     for (const rect of range.getClientRects()) if (rect.width && rect.height) texts.push({ parent, rect })
   }
+  // Include control hit areas, not just their labels. Region containers are
+  // excluded so normal layout whitespace is not mistaken for a visible control.
+  const chromeRegions = '[data-presentation-header],[data-presentation-footer],[data-presentation-toc],[data-presentation-progress],[data-presentation-attribution]'
+  const controls = 'button,a,input,select,textarea,[role="button"]'
+  const chrome = new Set(document.querySelectorAll('[data-presentation-mode-toggle],[data-presentation-marker],[data-presentation-title],[data-presentation-caption]'))
+  for (const region of document.querySelectorAll(chromeRegions)) {
+    if (region.matches(controls)) chrome.add(region)
+    for (const control of region.querySelectorAll(controls)) chrome.add(control)
+  }
+  for (const parent of chrome) if (visible(parent) && !exempt(parent)) texts.push({ parent, rect: parent.getBoundingClientRect() })
+  const overlaps = new Set()
   for (let i = 0; i < texts.length; i++) for (let j = i + 1; j < texts.length; j++) {
     const a = texts[i], b = texts[j]
-    if (a.parent === b.parent) continue
+    if (a.parent.contains(b.parent) || b.parent.contains(a.parent)) continue
     const x = Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left)
     const y = Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top)
-    if (x > 1 && y > 1) warnings.push(`overlap ${describe(a.parent)} / ${describe(b.parent)}`)
+    if (x > 1 && y > 1) overlaps.add(`overlap ${describe(a.parent)} / ${describe(b.parent)}`)
   }
+  warnings.push(...overlaps)
   const signature = element => {
     const s = getComputedStyle(element)
     return ['color','backgroundColor','borderBottomColor','borderBottomWidth','fontWeight','boxShadow','opacity','transform'].map(k => s[k]).join('|')

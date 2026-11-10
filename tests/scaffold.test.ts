@@ -1,9 +1,11 @@
 // @vitest-environment node
 
 import { it, expect } from 'vitest'
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { pathToFileURL } from 'node:url'
 import { plan, selectTarget, scaffold, templateRoot } from '../skills/presentation/scripts/scaffold.mjs'
 it('I-2 contract override recognizes custom anchors and preserves complete targets', async () => {
  const root = await mkdtemp(path.join(tmpdir(),'scene-anchors-'))
@@ -31,8 +33,16 @@ it('I-3 targets and confirmation guard cover standalone, monorepo and existing a
    } finally { await rm(root,{recursive:true,force:true}) }
  }
 })
-it('I-4 template root is relative to the module, not caller working directory', () => {
- expect(templateRoot).toBe(path.resolve('skills/presentation/templates/bootstrap') + path.sep)
+it('I-4 template lookup from an unrelated caller directory remains skill-relative', async () => {
+ const caller = await mkdtemp(path.join(tmpdir(),'scene-caller-'))
+ const moduleUrl = pathToFileURL(path.resolve('skills/presentation/scripts/scaffold.mjs')).href
+ try {
+  const output = execFileSync(process.execPath, ['--input-type=module','-e', `import { templateRoot } from ${JSON.stringify(moduleUrl)}; console.log(JSON.stringify({ cwd: process.cwd(), templateRoot }))`], { cwd: caller, encoding: 'utf8', timeout: 10000 })
+  const actual = JSON.parse(output)
+  expect(actual.cwd).toBe(await realpath(caller))
+  expect(actual.templateRoot).toBe(templateRoot)
+  expect(actual.templateRoot).not.toContain(caller)
+ } finally { await rm(caller,{recursive:true,force:true}) }
 })
 it('I-2 partial scaffold copies missing anchors while preserving existing build and kit bytes', async () => {
  const root = await mkdtemp(path.join(tmpdir(),'scene-partial-'))

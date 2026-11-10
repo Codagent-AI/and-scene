@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 import { Presentation } from '../src/presentation-kit/Presentation'
 import { Stage } from '../src/presentation-kit/Stage'
@@ -63,18 +63,29 @@ describe('contracts', () => {
    const a = render(<Appear>new</Appear>)
    expect(a.container.querySelector('[data-presentation-appear]')).toBeTruthy()
  })
- it('I-16 grouped scene retains instance and payload; changing group or Scene remounts', () => {
+ it('I-16 shared payloads persist; replacing Scene or group retains the outgoing host through its cross-fade', async () => {
    const mount = vi.fn(), unmount = vi.fn()
    function Stateful({ payload }: SceneProps<number>) { useEffect(() => { mount(); return unmount }, []); return <span>state {payload}</span> }
+   function Replacement() { return <span>replacement</span> }
    const a = { ...steps[0], Scene: Stateful }
-   const { rerender } = render(<Stage step={a} mode="browse" />)
+   const { container, rerender } = render(<Stage step={a} mode="browse" />)
    rerender(<Stage step={{ ...a, id: 'next', payload: 2 }} mode="browse" />)
    expect(mount).toHaveBeenCalledTimes(1)
    expect(screen.getByText('state 2')).toBeTruthy()
+   expect(container.querySelectorAll('[data-presentation-scene]')).toHaveLength(1)
+   rerender(<Stage step={{ ...a, Scene: Replacement }} mode="browse" />)
+   expect(screen.getByText('state 2')).toBeTruthy()
+   expect(screen.getByText('replacement')).toBeTruthy()
+   expect(container.querySelectorAll('[data-presentation-scene]')).toHaveLength(2)
+   expect(unmount).not.toHaveBeenCalled()
+   await waitFor(() => expect(screen.queryByText('state 2')).toBeNull(), { timeout: 2000 })
+   expect(unmount).toHaveBeenCalledTimes(1)
    rerender(<Stage step={{ ...a, groupKey: 'different' }} mode="browse" />)
+   expect(screen.getByText('replacement')).toBeTruthy()
+   expect(screen.getByText('state 0')).toBeTruthy()
    expect(mount).toHaveBeenCalledTimes(2)
-   rerender(<Stage step={{ ...a, groupKey: 'different', Scene }} mode="browse" />)
-   expect(unmount).toHaveBeenCalled()
+   await waitFor(() => expect(screen.queryByText('replacement')).toBeNull(), { timeout: 2000 })
+   expect(container.querySelectorAll('[data-presentation-scene]')).toHaveLength(1)
  })
  it('I-17 I-18 geometry, overlap and primitive hooks are author-controlled', () => {
    const primitives = [Box, Label, Arrow, Frame, Emphasis, SymbolChip]
@@ -187,4 +198,19 @@ describe('contracts', () => {
    expect(screen.getByText('build + render / pass')).toBeTruthy()
    expect(screen.getByText('AND SCENE. / YOU’RE LOOKING AT ONE.')).toBeTruthy()
  })
+})
+
+it('I-15 sample connectors remain during reverse-navigation exits then leave the DOM', async () => {
+ const { container, rerender } = render(<StoryScene payload={9} />)
+ const conversation = container.querySelector('[data-story-connector="conversation"]')
+ const modify = container.querySelector('[data-story-connector="modify"]')
+ expect(conversation).toBeTruthy(); expect(modify).toBeTruthy()
+ await waitFor(() => expect(conversation!.getAttribute('opacity')).toBe('1'), { timeout: 2000 })
+ rerender(<StoryScene payload={7} />)
+ expect(container.querySelector('[data-story-connector="modify"]')).toBe(modify)
+ expect(container.querySelector('[data-story-connector="conversation"]')).toBe(conversation)
+ await waitFor(() => expect(container.querySelector('[data-story-connector="modify"]')).toBeNull(), { timeout: 2000 })
+ rerender(<StoryScene payload={1} />)
+ expect(container.querySelector('[data-story-connector="conversation"]')).toBe(conversation)
+ await waitFor(() => expect(container.querySelector('[data-story-connector="conversation"]')).toBeNull(), { timeout: 2000 })
 })

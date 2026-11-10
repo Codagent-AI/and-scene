@@ -1,9 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cp, mkdtemp, readFile, writeFile, rm, readdir, stat, symlink } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, writeFile, rm, readdir, stat, symlink, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { spawn } from 'node:child_process'
+import { spawn, execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { pathToFileURL } from 'node:url'
 const root = process.cwd()
 async function run(cwd, args, timeout = 180000) {
  return await new Promise((resolve, reject) => {
@@ -36,8 +38,16 @@ async function compare(a,b) {
 }
 test('INT-001 materialized bootstrap builds and verifies outside repository with parity and no required framework', {timeout:180000}, async () => {
  const dir = await mkdtemp(path.join(tmpdir(),'and-scene-bootstrap-'))
+ const caller = await mkdtemp(path.join(tmpdir(),'and-scene-external-caller-'))
  try {
-  await cp('skills/presentation/templates/bootstrap',dir,{recursive:true})
+  const moduleUrl = pathToFileURL(path.join(root,'skills/presentation/scripts/scaffold.mjs')).href
+  const source = `import {plan,scaffold,templateRoot} from ${JSON.stringify(moduleUrl)}; const result = await plan(${JSON.stringify(dir)}); await scaffold(result,{install:false}); console.log(JSON.stringify({cwd:process.cwd(),templateRoot,target:result.target}))`
+  const { stdout } = await promisify(execFile)(process.execPath,['--input-type=module','-e',source],{cwd:caller,timeout:10000})
+  const resolved = JSON.parse(stdout)
+  assert.equal(resolved.cwd,await realpath(caller))
+  assert.equal(resolved.target,dir)
+  assert.equal(resolved.templateRoot,path.join(root,'skills/presentation/templates/bootstrap')+path.sep)
+  console.log(`outside-caller template resolution: ${stdout.trim()}`)
   const installed = await run(dir,['ci','--prefer-offline']); assert.equal(installed.code,0)
   const pkg = JSON.parse(await readFile(path.join(dir,'package.json'),'utf8'))
   for (const dep of ['react','react-dom','motion','lucide-react']) assert.ok(pkg.dependencies[dep])
@@ -47,35 +57,72 @@ test('INT-001 materialized bootstrap builds and verifies outside repository with
   for (const name of ['verify.mjs','browser.mjs','diagnostics.mjs','inspect-presentation.mjs','reference.json']) assert.equal(await readFile(`scripts/${name}`,'utf8'),await readFile(path.join(dir,'scripts',name),'utf8'))
   const result = await run(dir,['run','verify']); assert.equal(result.code,0)
   await assertCleaned(result.output)
- } finally { await rm(dir,{recursive:true,force:true}) }
+ } finally { await rm(dir,{recursive:true,force:true}); await rm(caller,{recursive:true,force:true}) }
 })
 test('INT-002 inspection captures settled artifacts and reports only unmarked collisions plus chrome defects as advisories', {timeout:180000}, async () => {
  const dir = await copy()
  try {
   await writeFile(path.join(dir,'src/presentations/how-to-make-a-presentation/Talk.tsx'), `
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { Presentation } from '../../presentation-kit/Presentation'
 function Fixture({payload}:{payload:number}) {
  const [settled,setSettled] = useState(false)
- useEffect(()=>{setSettled(false);const timer=setTimeout(()=>setSettled(true),700);return ()=>clearTimeout(timer)},[payload])
- return <div style={{position:'relative'}}><div style={{position:'absolute',left:100,top:30}}>collision alpha</div><div style={{position:'absolute',left:100,top:30}}>collision beta</div><div data-allow-overlap="true"><div style={{position:'absolute',left:100,top:80}}>allowed alpha</div><div style={{position:'absolute',left:100,top:80}}>allowed beta</div></div><div style={{position:'absolute',top:150}}>{settled ? 'settled state' : 'transitioning'}</div></div>
+ const [started,setStarted] = useState(0)
+ useLayoutEffect(()=>{setStarted(performance.now());setSettled(false);const timer=setTimeout(()=>setSettled(true),700);return ()=>clearTimeout(timer)},[payload])
+ return <div data-fixture-step={payload} data-fixture-settled={settled} data-fixture-start={started} style={{position:'relative'}}><div style={{position:'absolute',left:100,top:30}}>collision alpha</div><div style={{position:'absolute',left:100,top:30}}>collision beta</div><div data-allow-overlap="true"><div style={{position:'absolute',left:100,top:80}}>allowed alpha</div><div style={{position:'absolute',left:100,top:80}}>allowed beta</div></div><button data-presentation-mode-toggle id="fixture-icon" aria-label="Fixture icon" style={{position:'absolute',left:100,top:210,width:60,height:35}}><svg width="15" height="15" /></button><span style={{position:'absolute',left:105,top:215}}>icon clash</span><button data-presentation-mode-toggle id="fixture-edge" style={{position:'absolute',left:100,top:265,width:190,height:40}}><span style={{position:'absolute',left:100,top:10}}>edge label</span></button><span style={{position:'absolute',left:105,top:270}}>edge clash</span><section data-allow-overlap="true"><button data-presentation-mode-toggle id="allowed-icon" aria-label="Allowed icon" style={{position:'absolute',left:330,top:210,width:60,height:35}}><svg /></button><span style={{position:'absolute',left:335,top:215}}>allowed icon text</span></section><div style={{position:'absolute',top:340}}>{settled ? 'settled state' : 'transitioning'}</div></div>
 }
 export default function Talk(){return <><style>{'[data-presentation-attribution] a {font-size:8px} [data-presentation-header] {height:100px} [data-presentation-footer] {margin-top:20px}'}</style><Presentation title="Fixture" steps={[0,1,2].map(i=>({id:String(i),era:i<2?'one':'two',title:'Fixture '+i,caption:'Caption '+i,Scene:Fixture,payload:i,groupKey:'fixture'}))}/></>}
 `)
-  const start = Date.now()
+  // Observe the actual page immediately before every real screenshot call.
+  // Build/startup duration and the helper's own log messages cannot satisfy this.
+  await writeFile(path.join(dir,'capture-probe.mjs'), `
+import { appendFile } from 'node:fs/promises'
+import { chromium } from 'playwright'
+const launch = chromium.launch.bind(chromium)
+chromium.launch = async (...args) => {
+ const browser = await launch(...args)
+ const newPage = browser.newPage.bind(browser)
+ browser.newPage = async (...options) => {
+  const page = await newPage(...options)
+  const screenshot = page.screenshot.bind(page)
+  page.screenshot = async (options) => {
+   const state = await page.evaluate(() => {
+    const fixture = document.querySelector('[data-fixture-step]')
+    return {index:Number(fixture.dataset.fixtureStep),settled:fixture.dataset.fixtureSettled === 'true',elapsed:performance.now()-Number(fixture.dataset.fixtureStart)}
+   })
+   await appendFile('capture-observations.jsonl', JSON.stringify({...state,path:options.path})+'\\n')
+   return screenshot(options)
+  }
+  return page
+ }
+ return browser
+}
+const { inspect } = await import('./scripts/inspect-presentation.mjs')
+await inspect('how-to-make-a-presentation')
+`)
+  await edit(dir,'package.json',s => { const pkg = JSON.parse(s);pkg.scripts.inspect = 'node capture-probe.mjs';return JSON.stringify(pkg) })
   const result = await run(dir,['run','inspect','--','how-to-make-a-presentation'])
   assert.equal(result.code,0,'warnings must be advisory')
-  assert.ok(Date.now()-start>=2700)
+  const observations = (await readFile(path.join(dir,'capture-observations.jsonl'),'utf8')).trim().split('\n').map(line => JSON.parse(line))
+  assert.equal(observations.length,3)
+  console.log('actual screenshot observations:',JSON.stringify(observations))
   for (let i=0;i<3;i++) {
     assert.match(result.output,new RegExp(`CAPTURE step ${i} settled 900ms`))
     assert.match(result.output,new RegExp(`WARN step ${i}: overlap.*collision alpha.*collision beta`))
     assert.match(result.output,new RegExp(`WARN step ${i}: indistinct active chrome: progress`))
     assert.match(result.output,new RegExp(`WARN step ${i}: unpolished attribution`))
+    assert.match(result.output,new RegExp(`WARN step ${i}: overlap.*icon clash.*button#fixture-icon`))
+    assert.match(result.output,new RegExp(`WARN step ${i}: overlap.*edge clash.*button#fixture-edge`))
+    assert.equal(observations[i].index,i)
+    assert.equal(observations[i].settled,true,`step ${i} captured an unsettled DOM`)
+    assert.ok(observations[i].elapsed>=900,`step ${i} captured before configured settle interval: ${observations[i].elapsed}`)
+    assert.match(observations[i].path,new RegExp(`step-0${i+1}\\.png$`))
     const file = path.join(dir,`artifacts/inspection/how-to-make-a-presentation/step-0${i+1}.png`)
     assert.ok((await stat(file)).size>1000)
   }
   assert.match(result.output,/indistinct active chrome: toc/)
   assert.doesNotMatch(result.output,/WARN[^\n]*allowed (alpha|beta)/)
+  assert.doesNotMatch(result.output,/WARN[^\n]*(allowed-icon|allowed icon text)/)
   await assertCleaned(result.output)
  } finally { await rm(dir,{recursive:true,force:true}) }
 })

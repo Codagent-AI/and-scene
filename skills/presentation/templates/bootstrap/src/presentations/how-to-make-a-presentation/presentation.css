@@ -1,0 +1,38 @@
+.field-guide { background: #f3efe5; color: #20302d; font-family: 'Helvetica Neue', Arial, sans-serif; min-height: 100vh; }
+.field-guide button { font: inherit; cursor: pointer; }
+.field-guide [data-presentation-header] { width: 100%; padding: 38px 6vw 24px; display: flex; align-items: baseline; gap: 28px; min-height: 126px; }
+.field-guide [data-presentation-marker] { font: 12px monospace; color: #67716b; white-space: nowrap; }
+.field-guide [data-presentation-title] { font: 400 clamp(24px, 3vw, 42px) Georgia, serif; letter-spacing: -.035em; }
+.field-guide [data-presentation-mode-toggle] { position: absolute; top: 12px; right: 16px; padding: 5px 10px; background: transparent; border: 1px solid #a0aaa0; border-radius: 20px; font-size: 11px; }
+.field-guide [data-presentation-toc] { display: flex; gap: 24px; margin: 0 0 24px; }
+.field-guide [data-presentation-toc] button { background: none; border: 0; border-bottom: 2px solid transparent; font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: #64706a; padding: 6px 0; }
+.field-guide [data-presentation-toc] [data-presentation-active="true"] { color: #153e32; border-color: #153e32; font-weight: 800; }
+.field-guide [data-presentation-footer] { max-width: 760px; width: 90%; padding: 14px 0 48px; text-align: center; }
+.field-guide [data-presentation-caption] { min-height: 52px; line-height: 1.6; font-size: 15px; margin: 8px auto 16px; max-width: 660px; color: #53635a; }
+.field-guide [data-presentation-progress] { display: flex; justify-content: center; gap: 7px; }
+.field-guide [data-presentation-progress] button { border: 1px solid #b7bdb2; border-radius: 50%; background: transparent; width: 28px; height: 28px; color: #53635a; font-size: 11px; }
+.field-guide [data-presentation-progress] [data-presentation-active="true"] { background: #203f33; color: #fff; border-color: #203f33; font-weight: bold; }
+.field-guide [data-presentation-progress] button:disabled { opacity: .35; }
+.field-guide [data-presentation-attribution] a { color: #4b5e52; font-size: 12px; text-decoration: none; letter-spacing: .02em; }
+.field-guide .story-node { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; border-radius: 9px; font-size: 15px; }
+.field-guide .story-node small { font: 10px monospace; letter-spacing: .02em; }
+.field-guide .story-you { background: #24483d; color: #f8f2df; }
+.field-guide .story-skill { background: #e9bb72; color: #3c321f; }
+.field-guide .story-you small, .field-guide .story-skill small { font-size: 8px; letter-spacing: .08em; }
+.field-guide .story-prompt { font: italic 19px Georgia, serif; }
+.field-guide .story-question { font-size: 12px; color: #657263; }
+.field-guide .story-tray { background: #e8e5da; border-radius: 12px; }
+.field-guide .story-card-1, .field-guide .story-card-2 { border: 1px solid #a5b3a0; background: #fffdf5; font-size: 14px; box-shadow: 0 3px 0 #d5dbcd; }
+.field-guide .story-ghost { border: 1px dashed #9ca78f; font-size: 12px; color: #68735e; }
+.field-guide .story-depth { border: 1px solid #b5bdac; border-radius: 20px; font: 11px monospace; }
+.field-guide .story-kit { background: #dce7d2; border-radius: 0 0 8px 8px; font: 12px monospace; }
+.field-guide .story-verify { background: #d5e9cf; color: #24522c; font-size: 17px; }
+.field-guide .story-verify small { font-size: 9px; }
+.field-guide .story-link-1 { font-size: 21px; gap: 0; }
+.field-guide .story-link-1 small { font-size: 8px; }
+.field-guide .story-modify { font-size: 12px; color: #84652d; }
+.field-guide .story-edited { font: 10px monospace; color: #82602d; }
+.field-guide .story-reveal { border: 1px solid #93703f; border-radius: 16px; position: relative; }
+.field-guide .story-reveal b { position: absolute; bottom: -7px; right: 18px; font: 9px monospace; letter-spacing: .12em; background: #f3efe5; padding: 0 8px; }
+.field-guide [data-presentation-mode="present"] [data-presentation-header] { min-height: 130px; }
+@media(max-width: 600px) { .field-guide [data-presentation-header] { padding: 64px 24px 24px; gap: 14px; min-height: 150px; } .field-guide [data-presentation-caption] { font-size: 13px; } .field-guide [data-presentation-progress] { gap: 3px; } .field-guide [data-presentation-progress] button { width: 24px; height: 24px; } }

@@ -1,0 +1,18 @@
+export const nodes = [
+ { id: 'you', beat: 1, x: 65, y: 38, w: 124, h: 58, label: 'you', sub: 'THE AUTHOR' },
+ { id: 'prompt', beat: 1, x: 217, y: 42, w: 203, h: 50, label: 'I have a topic…', sub: '' },
+ { id: 'question', beat: 2, x: 435, y: 40, w: 210, h: 48, label: '← one question at a time →', sub: '' },
+ { id: 'skill', beat: 2, x: 679, y: 38, w: 132, h: 58, label: 'skill', sub: 'YOUR SCENE PARTNER' },
+ { id: 'tray', beat: 3, x: 65, y: 172, w: 746, h: 132, label: '', sub: '' },
+ { id: 'card-1', beat: 3, x: 82, y: 188, w: 150, h: 99, label: '01 / the opening', sub: 'title · caption · visual' },
+ { id: 'link-1', beat: 4, x: 237, y: 211, w: 57, h: 46, label: '→', sub: 'morph' },
+ { id: 'card-2', beat: 4, x: 299, y: 188, w: 150, h: 99, label: '02 / the idea', sub: 'title · caption · visual' },
+ { id: 'ghost', beat: 5, x: 477, y: 188, w: 125, h: 99, label: '… your next beat', sub: 'room to explore' },
+ { id: 'depth', beat: 5, x: 65, y: 108, w: 180, h: 32, label: 'partial ←→ full', sub: '' },
+ { id: 'kit', beat: 6, x: 299, y: 304, w: 260, h: 38, label: '↳ shared scene kit', sub: '' },
+ { id: 'verify-link', beat: 7, x: 607, y: 211, w: 34, h: 46, label: '→', sub: '' },
+ { id: 'verify', beat: 7, x: 646, y: 188, w: 149, h: 99, label: '✓ verify', sub: 'build + render / pass' },
+ { id: 'modify', beat: 8, x: 477, y: 113, w: 316, h: 35, label: '↶ ask → edit the scene in place ↓', sub: '' },
+ { id: 'edited', beat: 8, x: 322, y: 156, w: 105, h: 25, label: 'EDITED ↙', sub: '' },
+ { id: 'reveal', beat: 9, x: 23, y: 13, w: 831, h: 350, label: '', sub: '' },
+] as const

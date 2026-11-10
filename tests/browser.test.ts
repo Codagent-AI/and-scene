@@ -1,8 +1,11 @@
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-import { beforeAll, expect, it } from 'vitest'
+import { preview } from 'vite'
+import { beforeAll, expect, it, vi } from 'vitest'
 import { chromium } from 'playwright'
 import { build, walk, withPreview } from '../scripts/browser.mjs'
+vi.mock('vite', async importOriginal => {
+  const actual = await importOriginal<typeof import('vite')>()
+  return { ...actual, preview: vi.fn(actual.preview) }
+})
 beforeAll(build, 30000)
 async function fixture(html: string, check: (page: import('playwright').Page) => Promise<void>) {
   const browser = await chromium.launch()
@@ -67,19 +70,40 @@ it.each(['console', 'pageerror'])('rejects a %s error during the final inspectio
   })
 })
 
-it.each([false, true])('cleans up a signalled preview (visitor rejects: %s)', async rejects => {
-  await expect(withPreview(async (_browser, url) => {
-    const { stdout } = await promisify(execFile)('pgrep', ['-f', '-P', String(process.pid), 'vite.js preview'])
-    const child = stdout.trim()
-    expect(child).toBeTruthy()
-    process.kill(Number(child), 'SIGKILL')
-    for (let attempt = 0; attempt < 100; attempt++) {
-      try { await fetch(url) } catch { break }
-      await new Promise(resolve => setTimeout(resolve, 10))
-    }
+it.each([false, true])('cleans up a closed preview (visitor rejects: %s)', async rejects => {
+  let launched: import('playwright').Browser | undefined
+  let previewUrl = ''
+  await expect(withPreview(async (browser, url) => {
+    launched = browser
+    previewUrl = url
+    const result = vi.mocked(preview).mock.results.at(-1)
+    expect(result?.type).toBe('return')
+    const server = await result!.value
+    await server.close()
     if (rejects) throw new Error('visitor failed')
   })).rejects.toThrow(rejects ? 'visitor failed' : 'preview terminated unexpectedly')
+  expect(launched?.isConnected()).toBe(false)
+  await expect(fetch(previewUrl)).rejects.toThrow()
 }, 10000)
+
+it('serves overlapping previews on distinct IPv4 ports and closes both', async () => {
+  const urls: string[] = []
+  const browsers: import('playwright').Browser[] = []
+  await withPreview(async (first, firstUrl) => {
+    await withPreview(async (second, secondUrl) => {
+      urls.push(firstUrl, secondUrl)
+      browsers.push(first, second)
+      expect(firstUrl).not.toBe(secondUrl)
+      for (const url of urls) {
+        expect(new URL(url).hostname).toBe('127.0.0.1')
+        expect((await fetch(url)).ok).toBe(true)
+      }
+    })
+    expect((await fetch(firstUrl)).ok).toBe(true)
+  })
+  for (const browser of browsers) expect(browser.isConnected()).toBe(false)
+  for (const url of urls) await expect(fetch(url)).rejects.toThrow()
+})
 
 it('keeps native disclosure activation and supports click Present then keyboard delivery', async () => {
   await withPreview(async (browser, url) => {

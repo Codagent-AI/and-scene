@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
+import { preview } from 'vite'
 import { chromium } from 'playwright'
 /** @returns {Promise<void>} */
 export async function build() {
@@ -11,41 +11,18 @@ export async function build() {
 }
 /** @param {(browser: import('playwright').Browser, url: string) => Promise<void>} run */
 export async function withPreview(run) {
-  const port = await new Promise((resolve, reject) => {
-    const server = createServer()
-    server.on('error', reject)
-    server.listen(0, '127.0.0.1', () => { const address = server.address(); if (!address || typeof address === 'string') return reject(new Error('preview port unavailable')); server.close(() => resolve(address.port)) })
-  })
-  const url = `http://127.0.0.1:${port}`
-  const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'pipe' })
+  const server = await preview({ preview: { host: '127.0.0.1', port: 0, strictPort: true, open: false } })
   /** @type {import('playwright').Browser | undefined} */
   let browser
-  let shutdownRequested = false
-  /** @type {Error | undefined} */
-  let serverError
-  server.on('error', error => { serverError = error })
   try {
-    let ready = false
-    for (let attempt = 0; attempt < 100; attempt++) {
-      if (serverError) throw serverError
-      if (server.exitCode !== null || server.signalCode !== null) throw new Error('preview exited before ready')
-      try { ready = (await fetch(url)).ok } catch { /* Preview may still be starting. */ }
-      if (ready) break
-      await new Promise(resolve => setTimeout(resolve, 100))
-    }
-    if (!ready) throw new Error('preview readiness timed out')
+    const url = server.resolvedUrls?.local[0]?.replace(/\/$/, '')
+    if (!url) throw new Error('preview URL unavailable')
     browser = await chromium.launch()
     await run(browser, url)
+    if (!server.httpServer.listening) throw new Error('preview terminated unexpectedly')
   } finally {
-    await browser?.close()
-    if (server.exitCode === null && server.signalCode === null) {
-      const exited = new Promise(resolve => server.once('exit', resolve))
-      shutdownRequested = true
-      server.kill('SIGTERM')
-      await exited
-    }
+    await Promise.all([browser?.close(), server.close()])
   }
-  if (!shutdownRequested || (server.signalCode !== 'SIGTERM' && server.exitCode !== 0 && server.exitCode !== 143)) throw new Error(`preview terminated unexpectedly (code ${server.exitCode}, signal ${server.signalCode}, shutdown ${shutdownRequested})`)
 }
 /**
  * @param {import('playwright').Page} page

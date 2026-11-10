@@ -1,32 +1,7 @@
-:root {
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  color: #f8f3e6;
-  background: #0d0c0b;
-  font-synthesis: none;
-  line-height: 1.5;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  min-width: 320px;
-  min-height: 100vh;
-  margin: 0;
-  background:
-    radial-gradient(circle at 20% 10%, rgba(199, 167, 85, 0.16), transparent 28rem),
-    linear-gradient(135deg, #0d0c0b 0%, #161412 58%, #0d0c0b 100%);
-}
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
+/* Host styling only. Bootstrap intentionally omits this visual treatment. */
+body { margin: 0; }
+.landing { min-height: 100vh; box-sizing: border-box; padding: 9vw; background: #f5f2e9; color: #172b2c; font-family: system-ui, sans-serif; }
+.landing > p:first-child { font-size: 12px; letter-spacing: .15em; }
+.landing h1 { font: 600 clamp(40px, 7vw, 90px)/1.05 Georgia, serif; }
+.landing ol { padding: 20px; }
+.landing a { color: #17685b; font-size: 20px; line-height: 1.7; }

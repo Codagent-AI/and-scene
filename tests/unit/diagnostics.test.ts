@@ -39,3 +39,13 @@ it('I-41 direct text ranges avoid false parent-child collisions and ignore invis
     }
   }
 })
+it('I-41 chrome bounds catch external text and control collisions but exclude their own labels', () => {
+  const label = { id: 'label', left: 10, right: 30, top: 10, bottom: 20, kind: 'text', owner: 1, ancestors: [0] }
+  const control = { id: 'textless-control', left: 0, right: 100, top: 0, bottom: 40, kind: 'control', owner: 2, ancestors: [0] }
+  const run = (boxes: object[]) => diagnose({ boxes, chrome: [], attribution: polished })
+  expect(run([label, control])).toEqual(['overlap: label / textless-control'])
+  expect(run([label, { ...control, kind: 'chrome', id: 'painted-panel' }])).toEqual(['overlap: label / painted-panel'])
+  expect(run([control, { ...label, owner: 2 }])).toEqual([])
+  expect(run([control, { ...label, ancestors: [2, 0] }])).toEqual([])
+  expect(run([control, { ...control, owner: 3, id: 'other-control' }])).toEqual(['overlap: textless-control / other-control'])
+})

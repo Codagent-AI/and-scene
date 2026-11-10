@@ -31,9 +31,10 @@ export async function fixture(directory, source) {
 export async function remove(directory) { await rm(directory, { recursive: true, force: true }) }
 export function assertCleaned(output) {
   if (!output.includes('cleanup: browser and preview stopped')) throw new Error(`cleanup missing\n${output}`)
+  if (!/chromium pid=\d+/.test(output)) throw new Error(`Chromium PID missing\n${output}`)
   for (const match of output.matchAll(/pid=(\d+)/g)) {
     let alive = false
     try { process.kill(Number(match[1]), 0); alive = true } catch { /* expected ESRCH */ }
-    if (alive) throw new Error(`preview ${match[1]} still running`)
+    if (alive) throw new Error(`subprocess ${match[1]} still running`)
   }
 }

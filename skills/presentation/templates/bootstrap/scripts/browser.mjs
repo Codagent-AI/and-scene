@@ -18,9 +18,9 @@ export async function withBrowser(run, { viewport = { width: 1440, height: 900 }
   const preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', HOST, '--port', String(port), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] })
   let serverError
   preview.on('error', error => { serverError = error })
-  let browser
+  let browserServer
   const stop = async () => {
-    if (browser) await browser.close()
+    if (browserServer) await browserServer.close()
     if (preview.exitCode === null && preview.signalCode === null) {
       preview.kill('SIGTERM')
       await Promise.race([once(preview, 'exit'), new Promise(resolve => setTimeout(resolve, 3000))])
@@ -39,7 +39,9 @@ export async function withBrowser(run, { viewport = { width: 1440, height: 900 }
     }
     if (!ready) throw new Error('preview: readiness timeout')
     console.log(`preview ${base} pid=${preview.pid}`)
-    browser = await chromium.launch({ headless: true })
+    browserServer = await chromium.launchServer({ headless: true })
+    console.log(`chromium pid=${browserServer.process().pid}`)
+    const browser = await chromium.connect(browserServer.wsEndpoint())
     const page = await browser.newPage({ viewport })
     page.setDefaultTimeout(5000)
     return await run(page, base)
@@ -50,7 +52,7 @@ export async function withBrowser(run, { viewport = { width: 1440, height: 900 }
     console.log('cleanup: browser and preview stopped')
   }
 }
-export async function visitSteps(page, url, visit) {
+export async function visitSteps(page, url, visit, { mode } = {}) {
   let index = 0
   const errors = []
   page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()) })
@@ -61,6 +63,15 @@ export async function visitSteps(page, url, visit) {
     await host.waitFor()
     const count = Number(await host.getAttribute('data-step-count'))
     if (!Number.isInteger(count) || count < 1) throw new Error('invalid data-step-count')
+    const initialMode = await host.getAttribute('data-presentation-mode')
+    if (mode && initialMode !== mode) {
+      // Verify the declared starting mode before revealing narration for metadata checks.
+      await page.waitForTimeout(SETTLE_MS)
+      if (errors.length) throw new Error(errors.join('; '))
+      console.log(`initial mode ${initialMode}: pass`)
+      await page.keyboard.press('p')
+      await page.waitForFunction(expected => document.querySelector('[data-presentation]')?.getAttribute('data-presentation-mode') === expected, mode)
+    }
     for (index = 0; index < count; index++) {
       if (index) {
         await page.keyboard.press('ArrowRight')

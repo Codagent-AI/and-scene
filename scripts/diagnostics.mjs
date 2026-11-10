@@ -7,18 +7,24 @@ export function diagnose() {
     return style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0
   }
   const marked = element => element.closest('[data-presentation-allow-overlap]')
+  const chrome = '[data-presentation-header],[data-presentation-footer],[data-presentation-toc],[data-presentation-progress],[data-presentation-navigation],[data-presentation-attribution-slot]'
+  const control = element => element.closest('button,a,input,select,textarea,[role="button"],[role="slider"]')
+  const chromeControl = element => {
+    const candidate = control(element)
+    return candidate?.closest(chrome) ? candidate : null
+  }
   const elements = [...document.querySelectorAll('[data-presentation] *')].filter(element => {
     if (!visible(element) || marked(element)) return false
+    const candidate = chromeControl(element)
+    if (candidate) return candidate === element
     return [...element.childNodes].some(node => node.nodeType === 3 && node.textContent.trim())
   })
-  // Text ranges avoid treating a decorative container or transparent frame as text.
-  const bounds = element => {
-    const ranges = [...element.childNodes].filter(node => node.nodeType === 3 && node.textContent.trim()).flatMap(node => {
+  // Controls can collide even with no direct text; decorative containers still use text ranges.
+  const bounds = element => chromeControl(element) === element ? [element.getBoundingClientRect()] :
+    [...element.childNodes].filter(node => node.nodeType === 3 && node.textContent.trim()).flatMap(node => {
       const range = document.createRange(); range.selectNodeContents(node)
       return [...range.getClientRects()]
     })
-    return ranges
-  }
   for (let i = 0; i < elements.length; i++) for (let j = i + 1; j < elements.length; j++) {
     const a = elements[i], b = elements[j]
     if (a.contains(b) || b.contains(a)) continue

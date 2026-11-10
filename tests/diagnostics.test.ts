@@ -16,6 +16,20 @@ it('I-45 visible text collisions warn; hidden and marker-descendant collisions d
  expect(warnings).toContain('overlap: A / B')
  expect(warnings.join()).not.toMatch(/hidden|allowed/)
 })
+it('I-45 icon-only and nested-label chrome collide with captions; hidden, separated and exempt controls do not',()=>{
+ const fixture=(attribute='')=>`<footer data-presentation-footer><p>caption</p><button aria-label="Icon next" ${attribute}><svg><path d="M0 0" /></svg></button><button aria-label="Nested previous"><span>nested label</span></button></footer>`
+ setup(fixture())
+ expect(diagnose()).toContain('overlap: caption / Icon next')
+ expect(diagnose()).toContain('overlap: caption / Nested previous')
+ expect(diagnose().some((w:string)=>w.includes('nested label'))).toBe(false)
+ setup(fixture('style="display:none"'))
+ expect(diagnose().some((w:string)=>w.includes('Icon next'))).toBe(false)
+ setup(fixture('data-presentation-allow-overlap'))
+ expect(diagnose().some((w:string)=>w.includes('Icon next'))).toBe(false)
+ setup(fixture())
+ Object.defineProperty(document.querySelector('[aria-label="Icon next"]')!,'getBoundingClientRect',{value:()=>({left:300,right:400,top:0,bottom:20,width:100,height:20})})
+ expect(diagnose().some((w:string)=>w.includes('Icon next'))).toBe(false)
+})
 it('I-46 indistinct active progress and ToC warn; locally distinct treatments do not',()=>{
  setup('<nav data-presentation-progress><button data-presentation-active="true">one</button><button data-presentation-active="false">two</button></nav><nav data-presentation-toc><button data-presentation-active="true">ask</button><button data-presentation-active="false">build</button></nav>')
  expect(diagnose().filter((s:string)=>s.includes('indistinct'))).toHaveLength(2)

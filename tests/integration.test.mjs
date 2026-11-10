@@ -25,9 +25,16 @@ async function copyApp(name) {
  return dir
 }
 async function files(dir) { const entries=await readdir(dir,{withFileTypes:true});return (await Promise.all(entries.map(async e=>e.isDirectory()?(await files(join(dir,e.name))).map(f=>`${e.name}/${f}`):[e.name]))).flat() }
-function assertCleanup(output) {
+function assertCleanup(output, browserExpected = true) {
  const starts=[...output.matchAll(/preview host\/probe: .*; pid=(\d+)/g)].map(x=>x[1])
  for(const pid of starts) { assert.match(output,new RegExp(`preview cleaned: pid=${pid}`)); assert.throws(()=>process.kill(Number(pid),0)) }
+ const browsers=[...output.matchAll(/browser started: pid=(\d+)/g)].map(x=>x[1])
+ if(browserExpected) assert.ok(browsers.length>0,'expected an actual Chromium process')
+ for(const pid of browsers) {
+  assert.match(output,new RegExp(`browser cleaned: pid=${pid}; contexts=0; connected=false`))
+  assert.throws(()=>process.kill(Number(pid),0),{code:'ESRCH'},`Chromium process ${pid} must have exited`)
+ }
+ console.log(`ASSERT cleanup: ${browsers.length} Chromium process(es) exited, contexts closed, connections closed; ${starts.length} preview process(es) exited`)
 }
 test('INT-001 materialized bootstrap is complete, style-neutral and aligned outside caller cwd', {timeout:180000}, async t=>{
  const dir=await mkdtemp(join(tmpdir(),'and-scene-bootstrap-'));t.after(()=>rm(dir,{recursive:true,force:true}));assert.ok(!dir.startsWith(root));await cp(join(root,'skills/presentation/templates/bootstrap'),dir,{recursive:true})
@@ -70,7 +77,7 @@ export function resolvePresentation(path:string) { return presentations.find(p=>
  for(const [name,inject,pattern] of faults.filter(([name])=>!process.env.FAULT_CASE || name===process.env.FAULT_CASE)) await t.test(name,async()=>{
   const dir=await copyApp(`fault-${name}`);await inject(dir)
   const result=await command(dir,['npm','run','verify'])
-  assert.notEqual(result.code,0,result.output);assert.match(result.output,pattern);assert.doesNotMatch(result.output,/PASS verification/);assertCleanup(result.output)
+  assert.notEqual(result.code,0,result.output);assert.match(result.output,pattern);assert.doesNotMatch(result.output,/PASS verification/);assertCleanup(result.output,['console','pageerror','render','transition'].includes(name))
   console.log(`${name}: ${result.output}`)
  })
 })
@@ -78,7 +85,7 @@ test('INT-002 helper captures settled artifacts and step-specific advisory diagn
  const dir=await copyApp('inspection')
  const fixture=`import { Presentation } from '../../presentation-kit'
  import type { SceneProps, Step } from '../../presentation-kit'
- function Scene({payload}:SceneProps<number>){return <div><div style={{position:'absolute',left:40,top:40}}>collision A {payload}</div><div style={{position:'absolute',left:40,top:40}}>collision B</div><section data-presentation-allow-overlap><div style={{position:'absolute',left:400,top:40}}>allowed A</div><div style={{position:'absolute',left:400,top:40}}>allowed B</div></section><span style={{animation:'settle .2s linear'}}>settling</span></div>}
+ function Scene({payload}:SceneProps<number>){return <div><div style={{position:'absolute',left:40,top:40}}>collision A {payload}</div><div style={{position:'absolute',left:40,top:40}}>collision B</div><section data-presentation-allow-overlap><div style={{position:'absolute',left:400,top:40}}>allowed A</div><div style={{position:'absolute',left:400,top:40}}>allowed B</div></section><nav data-presentation-navigation style={{position:'absolute',left:40,top:40}}><button aria-label="Icon next"><svg width="24" height="24"><path d="M0 0 L20 20" /></svg></button></nav><section data-presentation-allow-overlap style={{position:'absolute',left:40,top:40}}><nav data-presentation-navigation><button aria-label="Exempt icon"><svg width="24" height="24" /></button></nav></section><span style={{animation:'settle .2s linear'}}>settling</span></div>}
  const steps:Step<number>[]=[0,1].map(i=>({id:'s'+i,era:'era'+i,title:'Title '+i,caption:'Caption '+i,Scene,payload:i,groupKey:'same'}))
  export default function Talk(){return <><style>{'@keyframes settle { from { opacity:0 } to { opacity:1 } } [data-presentation-attribution]{font-size:9px} [data-presentation-footer]{padding:20px} [data-presentation-toc]{position:absolute;top:20px;right:20px}'}</style><Presentation steps={steps} title="Fixture" /></>}`
  await writeFile(join(dir,'src/presentations/how-to-make-a-presentation/Talk.tsx'),fixture)
@@ -88,7 +95,8 @@ test('INT-002 helper captures settled artifacts and step-specific advisory diagn
   const png=await readFile(join(directory,r.file));assert.equal(png.subarray(1,4).toString(),'PNG')
   assert.ok(r.capturedAt-r.transitionObservedAt>=r.settle)
   assert.ok(r.warnings.some(w=>w.includes('overlap: collision A')&&w.includes('collision B')),JSON.stringify(r.warnings))
-  assert.ok(!r.warnings.some(w=>w.includes('allowed')),JSON.stringify(r.warnings))
+  assert.ok(!r.warnings.some(w=>w.includes('allowed')||w.includes('Exempt icon')),JSON.stringify(r.warnings))
+  assert.ok(r.warnings.some(w=>w.includes('collision A')&&w.includes('Icon next')),JSON.stringify(r.warnings))
   for(const kind of ['[data-presentation-progress]','[data-presentation-toc]']) assert.ok(r.warnings.some(w=>w.includes('indistinct active')&&w.includes(kind)),JSON.stringify(r.warnings))
   assert.ok(r.warnings.some(w=>w.includes('unpolished attribution')))
  }

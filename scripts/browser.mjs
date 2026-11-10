@@ -17,7 +17,7 @@ export async function withPreview(cwd, action) {
   await new Promise(resolve => socket.close(resolve))
   const url = `http://${HOST}:${port}`
   const server = spawn(process.execPath, [resolve(cwd, 'node_modules/vite/bin/vite.js'), 'preview', '--host', HOST, '--port', String(port), '--strictPort'], { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
-  let browser, output = ''
+  let browser, browserServer, output = ''
   server.stdout.on('data', chunk => { output += chunk })
   server.stderr.on('data', chunk => { output += chunk })
   try {
@@ -29,17 +29,26 @@ export async function withPreview(cwd, action) {
       await new Promise(resolve => setTimeout(resolve, 100))
     }
     console.log(`preview host/probe: ${url}; pid=${server.pid}`)
-    browser = await chromium.launch({ headless: true })
+    browserServer = await chromium.launchServer({ headless: true })
+    console.log(`browser started: pid=${browserServer.process().pid}`)
+    browser = await chromium.connect(browserServer.wsEndpoint())
     return await action(browser, url)
   } finally {
-    await browser?.close()
-    if (server.exitCode === null) {
-      const stopped = once(server, 'exit')
-      server.kill('SIGTERM')
-      const timer = setTimeout(() => server.kill('SIGKILL'), 3000)
-      await stopped; clearTimeout(timer)
+    try {
+      try { await browser?.close() }
+      finally {
+        await browserServer?.close()
+        if (browserServer) console.log(`browser cleaned: pid=${browserServer.process().pid}; contexts=${browser?.contexts().length ?? 0}; connected=${browser?.isConnected() ?? false}`)
+      }
+    } finally {
+      if (server.exitCode === null) {
+        const stopped = once(server, 'exit')
+        server.kill('SIGTERM')
+        const timer = setTimeout(() => server.kill('SIGKILL'), 3000)
+        await stopped; clearTimeout(timer)
+      }
+      console.log(`preview cleaned: pid=${server.pid}`)
     }
-    console.log(`preview cleaned: pid=${server.pid}`)
   }
 }
 export function captureErrors(page) {

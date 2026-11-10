@@ -28,7 +28,10 @@ it('I-32 opening conversation adds you prompt skill arrow question above', () =>
  expect(diagram(1).map(x=>x.id)).toEqual(['you','prompt'])
  const two=diagram(2)
  expect(two.find(x=>x.id==='conversation')!.text).toBe('⟷')
- expect(two.find(x=>x.id==='question')!.y).toBeLessThan(two.find(x=>x.id==='conversation')!.y)
+ const chip=two.find(x=>x.id==='question')!,arrow=two.find(x=>x.id==='conversation')!
+ expect(chip.y+chip.h).toBeLessThanOrEqual(arrow.y)
+ expect(chip.x+chip.w/2).toBe(arrow.x+arrow.w/2)
+ expect(chip.x).toBeLessThan(arrow.x+arrow.w);expect(chip.x+chip.w).toBeGreaterThan(arrow.x)
  expect(two.find(x=>x.id==='skill')).toBeTruthy()
  const {container}=render(<SampleScene payload={{beat:2}} />)
  expect(container.querySelector(`[data-presentation-entity="${entity('question')}"]`)!.textContent).toBe('one question at a time')
@@ -38,7 +41,15 @@ it('I-33 cards accumulate with fields and morph labels on links', () => {
  const four=diagram(4)
  expect(four.filter(x=>x.kind==='card')).toHaveLength(3)
  four.filter(x=>x.kind==='card').forEach(x=> {expect(x.detail).toBe('title · caption · visual');expect(x.text).not.toContain('morph')})
- expect(four.filter(x=>x.kind==='link').map(x=>x.text)).toEqual(['morph →','morph →'])
+ const links=four.filter(x=>x.kind==='link')
+ expect(links.map(x=>x.text)).toEqual(['topic → idea','idea → payoff'])
+ for(const [i,link] of links.entries()) {
+  expect(link.from).toBe(`card-${i+1}`);expect(link.to).toBe(`card-${i+2}`)
+  const source=four.find(x=>x.id===link.from)!,target=four.find(x=>x.id===link.to)!
+  expect(link.x).toBeGreaterThanOrEqual(source.x+source.w);expect(link.x+link.w).toBeLessThanOrEqual(target.x)
+ }
+ const {container}=render(<SampleScene payload={{beat:4}} />)
+ for(const link of links) expect(container.querySelector(`[data-presentation-entity="${entity(link.id)}"]`)!.textContent).toBe(link.text)
  expect(four.find(x=>x.id==='tray')!.y).toBeGreaterThan(four.find(x=>x.id==='you')!.y)
 })
 it('I-34 ghost card and depth control docked on you', () => {
@@ -57,6 +68,13 @@ it('I-36 verify follows cards in tray with build render pass', () => {
  expect(verify.y).toBe(card.y);expect(verify.x).toBeGreaterThan(card.x+card.w)
  expect(verify.x+verify.w).toBeLessThan(tray.x+tray.w)
  expect(verify.text).toBe('✓ pass');expect(verify.detail).toBe('build + render')
+ expect(diagram(6).some(x=>x.id==='verify-link')).toBe(false)
+ const link=seven.find(x=>x.id==='verify-link')!
+ expect(link.from).toBe(card.id);expect(link.to).toBe(verify.id)
+ expect(link.text).toBe('→');expect(link.x).toBe(card.x+card.w);expect(link.x+link.w).toBe(verify.x)
+ expect(link.y).toBeGreaterThanOrEqual(card.y);expect(link.y+link.h).toBeLessThanOrEqual(card.y+card.h)
+ const {container}=render(<SampleScene payload={{beat:7}} />)
+ expect(container.querySelector(`[data-presentation-entity="${entity('verify-link')}"]`)!.textContent).toBe('→')
 })
 it('I-37 modify reaches edited card and final reveal surrounds retained diagram', () => {
  const {container,rerender}=render(<SampleScene payload={{beat:8}} />)

@@ -11,7 +11,7 @@ export function usePresentationNav(count: number, initialMode: Mode = 'browse') 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target
-      if (event.altKey || event.metaKey || event.ctrlKey || (target instanceof Element && target.closest('button,a,input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="slider"]'))) return
+      if (event.altKey || event.metaKey || event.ctrlKey || (target instanceof Element && target.closest('summary,button,a,input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="slider"]'))) return
       if (['ArrowRight', ' ', 'PageDown'].includes(event.key)) { event.preventDefault(); next() }
       if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); prev() }
       if (event.key.toLowerCase() === 'p') toggleMode()

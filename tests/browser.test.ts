@@ -80,3 +80,54 @@ it.each([false, true])('cleans up a signalled preview (visitor rejects: %s)', as
     if (rejects) throw new Error('visitor failed')
   })).rejects.toThrow(rejects ? 'visitor failed' : 'preview terminated unexpectedly')
 }, 10000)
+
+it('keeps native disclosure activation and supports click Present then keyboard delivery', async () => {
+  await withPreview(async (browser, url) => {
+    const page = await browser.newPage()
+    await page.goto(url + '/how-to-make-a-presentation')
+    const root = page.locator('[data-presentation-root]')
+    await root.waitFor()
+    await page.locator('header').evaluate(header => {
+      const details = document.createElement('details')
+      details.innerHTML = '<summary>More information</summary>Extra information'
+      header.prepend(details)
+    })
+    await page.locator('summary').focus()
+    await page.keyboard.press('Space')
+    expect(await page.locator('details').getAttribute('open')).not.toBeNull()
+    expect(await root.getAttribute('data-step-index')).toBe('0')
+    await page.getByRole('button', { name: 'Toggle presentation mode' }).click()
+    for (const key of ['ArrowRight', 'PageDown', 'Space']) await page.keyboard.press(key)
+    expect(await root.getAttribute('data-step-index')).toBe('3')
+    expect(await root.getAttribute('data-presentation-mode')).toBe('present')
+    await page.keyboard.press('p')
+    expect(await root.getAttribute('data-step-index')).toBe('3')
+  })
+})
+
+it('retains a departing entity until its shared presence exit completes', async () => {
+  await withPreview(async (browser, url) => {
+    const page = await browser.newPage()
+    await page.goto(url + '/how-to-make-a-presentation')
+    await page.getByRole('button', { name: 'Step 2: The skill interviews you' }).click()
+    const departing = page.locator('[data-entity="skill"]')
+    await departing.waitFor()
+    const you = await page.locator('[data-entity="you"]').elementHandle()
+    await page.waitForTimeout(900)
+    await page.getByRole('button', { name: 'Previous step' }).click()
+    expect(await departing.count()).toBe(1)
+    await departing.waitFor({ state: 'detached' })
+    expect(await you!.evaluate(element => element === document.querySelector('[data-entity="you"]'))).toBe(true)
+  })
+})
+
+it('contains a failed production chunk with visible recovery guidance', async () => {
+  await withPreview(async (browser, url) => {
+    const page = await browser.newPage()
+    await page.route('**/assets/Talk-*.js', route => route.abort())
+    await page.goto(url + '/how-to-make-a-presentation')
+    await page.getByRole('alert').waitFor()
+    expect(await page.getByRole('alert').textContent()).toContain('Reload')
+    expect(await page.getByRole('link', { name: 'Back to presentations' }).getAttribute('href')).toBe('/')
+  })
+})

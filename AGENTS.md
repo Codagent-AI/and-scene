@@ -1,8 +1,8 @@
 # And Scene
 
 Implement the `create-and-scene` OpenSpec change in this repository and verify
-both behavior and visual composition before reporting completion. The target
-application, skill, scene kit, and scripts intentionally do not exist yet.
+both behavior and visual composition before reporting completion. The application, public skill, scene kit, templates,
+and verification scripts are implemented in this repository.
 
 ## Source of Truth
 

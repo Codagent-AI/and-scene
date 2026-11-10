@@ -174,6 +174,8 @@ describe('contracts', () => {
    for (let beat = 1; beat <= 9; beat++) {
      rerender(<StoryScene payload={beat} />)
      expect(container.querySelector('[data-story-entity="you"]')).toBe(first)
+     expect(!!container.querySelector('[data-story-connector="conversation"]')).toBe(beat >= 2)
+     expect(!!container.querySelector('[data-story-connector="modify"]')).toBe(beat >= 8)
      for (const node of nodes) {
        const element = container.querySelector(`[data-story-entity="${node.id}"]`) as HTMLElement | null
        expect(!!element).toBe(node.beat <= beat)

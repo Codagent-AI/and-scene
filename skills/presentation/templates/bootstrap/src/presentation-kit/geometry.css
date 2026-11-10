@@ -1,1 +1,2 @@
 @media(max-width: 1000px) { [data-presentation-toc] { display: none !important; } }
+[data-presentation-mode="present"] [data-presentation-title] { white-space: nowrap; }

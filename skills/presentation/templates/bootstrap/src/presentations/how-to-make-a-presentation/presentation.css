@@ -36,3 +36,10 @@
 .field-guide .story-reveal b { position: absolute; bottom: -7px; right: 18px; font: 9px monospace; letter-spacing: .12em; background: #f3efe5; padding: 0 8px; }
 .field-guide [data-presentation-mode="present"] [data-presentation-header] { min-height: 130px; }
 @media(max-width: 600px) { .field-guide [data-presentation-header] { padding: 64px 24px 24px; gap: 14px; min-height: 150px; } .field-guide [data-presentation-caption] { font-size: 13px; } .field-guide [data-presentation-progress] { gap: 3px; } .field-guide [data-presentation-progress] button { width: 24px; height: 24px; } }
+
+.field-guide [data-presentation-mode="present"] [data-presentation-title] { font-size: clamp(16px, 3vw, 42px); }
+
+.field-guide .story-connectors { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.field-guide .story-connectors > path { fill: none; stroke: #8b977e; stroke-width: 1.5px; }
+.field-guide .story-connectors marker path { fill: #8b977e; }
+.field-guide .story-connectors [data-story-connector="modify"] { stroke: #96723d; stroke-dasharray: 4 3; }

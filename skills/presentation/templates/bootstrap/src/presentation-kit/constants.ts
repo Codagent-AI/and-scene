@@ -5,4 +5,4 @@ export const EASE = [0.22, 1, 0.36, 1] as const
 export const LAYOUT_T = { duration: 0.45, ease: EASE }
 export const ENTER_DELAY = 0.45
 export const ENTER_T = { duration: 0.25, delay: ENTER_DELAY }
-export const STAGE_LAYOUT = { browse: { horizontal: 48, vertical: 290 }, present: { horizontal: 32, vertical: 160 } }
+export const STAGE_LAYOUT = { browse: { horizontal: 48, vertical: 390 }, present: { horizontal: 32, vertical: 160 } }

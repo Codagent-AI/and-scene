@@ -41,7 +41,7 @@ export async function withPreview(run) {
       await exited
     }
   }
-  if (!shutdownRequested || (server.signalCode !== 'SIGTERM' && server.exitCode !== 0)) throw new Error('preview terminated unexpectedly')
+  if (!shutdownRequested || (server.signalCode !== 'SIGTERM' && server.exitCode !== 0 && server.exitCode !== 143)) throw new Error(`preview terminated unexpectedly (code ${server.exitCode}, signal ${server.signalCode}, shutdown ${shutdownRequested})`)
 }
 export async function walk(page, url, slug, inspect) {
   let index = 0

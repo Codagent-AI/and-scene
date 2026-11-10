@@ -19,5 +19,7 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  // Entry modules and typed step modules intentionally colocate metadata with components.
+  { files: ['src/main.tsx', 'src/presentation-kit/chrome/Toc.tsx', 'src/presentations/**/steps/*.tsx'], rules: { 'react-refresh/only-export-components': 'off' } },
   { files: ['tests/**/*.{ts,tsx}', 'src/presentation-kit/nodes/Node.tsx'], rules: { 'react-refresh/only-export-components': 'off' } },
 ])

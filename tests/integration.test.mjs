@@ -1,8 +1,9 @@
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { cp, mkdir, readFile, writeFile, readdir, rm, symlink, access } from 'node:fs/promises'
+import { cp, mkdir, readFile, writeFile, readdir, rm, symlink, access, mkdtemp } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { spawn } from 'node:child_process'
+import { tmpdir } from 'node:os'
 import { inspect } from '../scripts/inspect-presentation.mjs'
 const root = resolve(import.meta.dirname, '..'), work = join(root, '.test-work')
 await mkdir(work, { recursive: true })
@@ -28,8 +29,8 @@ function assertCleanup(output) {
  const starts=[...output.matchAll(/preview host\/probe: .*; pid=(\d+)/g)].map(x=>x[1])
  for(const pid of starts) { assert.match(output,new RegExp(`preview cleaned: pid=${pid}`)); assert.throws(()=>process.kill(Number(pid),0)) }
 }
-test('INT-001 materialized bootstrap is complete, style-neutral and aligned outside caller cwd', {timeout:180000}, async()=>{
- const dir=join(work,'bootstrap');await cp(join(root,'skills/presentation/templates/bootstrap'),dir,{recursive:true})
+test('INT-001 materialized bootstrap is complete, style-neutral and aligned outside caller cwd', {timeout:180000}, async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'and-scene-bootstrap-'));t.after(()=>rm(dir,{recursive:true,force:true}));assert.ok(!dir.startsWith(root));await cp(join(root,'skills/presentation/templates/bootstrap'),dir,{recursive:true})
  const install=await command(dir,['npm','ci','--ignore-scripts']);assert.equal(install.code,0,install.output)
  const pkg=JSON.parse(await readFile(join(dir,'package.json'),'utf8'))
  for(const dep of ['react','react-dom','motion','lucide-react','vite','@vitejs/plugin-react','typescript','@types/react','@types/react-dom','@types/node','eslint','@eslint/js','typescript-eslint','eslint-plugin-react-hooks','eslint-plugin-react-refresh','globals','playwright']) assert.ok(pkg.dependencies?.[dep]||pkg.devDependencies?.[dep],dep)
@@ -55,7 +56,10 @@ test('E2E-001 reference presentation passes production verification', {timeout:1
 test('E2E-002 verification faults are actionable and clean up previews', {timeout:300000}, async t=>{
  const faults=[
   ['build',async d=>writeFile(join(d,'src/broken.ts'),'const broken: number = "wrong"\n'),/FAIL build:/],
-  ['missing',async d=>writeFile(join(d,'src/presentations/index.ts'),'export const presentations = []\nexport function resolvePresentation(_path:string) { return undefined }\n'),/FAIL sample:/],
+  ['missing',async d=>{await rm(join(d,'src/presentations/how-to-make-a-presentation'),{recursive:true});await writeFile(join(d,'src/presentations/index.ts'),`import type { ComponentType } from 'react'
+export const presentations: {slug:string;title:string;load:()=>Promise<{default:ComponentType}>}[] = []
+export function resolvePresentation(path:string) { return presentations.find(p=>p.slug===path.slice(1)) }
+`)},/FAIL sample:/],
   ['order',async d=>{const p=join(d,'src/presentations/how-to-make-a-presentation/outline.json');const x=JSON.parse(await readFile(p,'utf8'));x.reverse();await writeFile(p,JSON.stringify(x))},/FAIL sample.*step 0/],
   ['malformed',async d=>{const p=join(d,'src/presentations/how-to-make-a-presentation/outline.json');const x=JSON.parse(await readFile(p,'utf8'));x.pop();await writeFile(p,JSON.stringify(x))},/FAIL sample.*count/],
   ['console',async d=>{const p=join(d,'src/presentations/how-to-make-a-presentation/steps/index.tsx');await writeFile(p,(await readFile(p,'utf8')).replace('return <SceneLayer>','if (beat === 3) console.error("injected console fault")\n  return <SceneLayer>'))},/FAIL render step 2: console:/],
@@ -63,7 +67,7 @@ test('E2E-002 verification faults are actionable and clean up previews', {timeou
   ['render',async d=>{const p=join(d,'src/presentations/how-to-make-a-presentation/steps/index.tsx');await writeFile(p,(await readFile(p,'utf8')).replace('return <SceneLayer>','if (beat === 1) throw new Error("injected render fault")\n  return <SceneLayer>'))},/FAIL render step 0:/],
   ['transition',async d=>{const p=join(d,'src/presentation-kit/usePresentationNav.ts');await writeFile(p,(await readFile(p,'utf8')).replace('clamp(n + 1, count)','clamp(n, count)'))},/FAIL transition step 1:/],
  ]
- for(const [name,inject,pattern] of faults) await t.test(name,async()=>{
+ for(const [name,inject,pattern] of faults.filter(([name])=>!process.env.FAULT_CASE || name===process.env.FAULT_CASE)) await t.test(name,async()=>{
   const dir=await copyApp(`fault-${name}`);await inject(dir)
   const result=await command(dir,['npm','run','verify'])
   assert.notEqual(result.code,0,result.output);assert.match(result.output,pattern);assert.doesNotMatch(result.output,/PASS verification/);assertCleanup(result.output)

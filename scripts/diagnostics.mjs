@@ -9,14 +9,14 @@ export function inspectDocument() {
   const describe = e => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ''}: ${(e.getAttribute('aria-label') ?? e.textContent.trim()).slice(0, 48)}`
   const exempt = element => element.closest('[data-allow-overlap="true"]')
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
-  const texts = []
+  const bounds = []
   while (walker.nextNode()) {
     const node = walker.currentNode
     const parent = node.parentElement
     if (!node.textContent.trim() || !parent || (parent.closest('script,style') || exempt(parent)) || !visible(parent)) continue
     const range = document.createRange()
     range.selectNodeContents(node)
-    for (const rect of range.getClientRects()) if (rect.width && rect.height) texts.push({ parent, rect })
+    for (const rect of range.getClientRects()) if (rect.width && rect.height) bounds.push({ parent, rect })
   }
   // Include control hit areas, not just their labels. Region containers are
   // excluded so normal layout whitespace is not mistaken for a visible control.
@@ -27,10 +27,10 @@ export function inspectDocument() {
     if (region.matches(controls)) chrome.add(region)
     for (const control of region.querySelectorAll(controls)) chrome.add(control)
   }
-  for (const parent of chrome) if (visible(parent) && !exempt(parent)) texts.push({ parent, rect: parent.getBoundingClientRect() })
+  for (const parent of chrome) if (visible(parent) && !exempt(parent)) bounds.push({ parent, rect: parent.getBoundingClientRect() })
   const overlaps = new Set()
-  for (let i = 0; i < texts.length; i++) for (let j = i + 1; j < texts.length; j++) {
-    const a = texts[i], b = texts[j]
+  for (let i = 0; i < bounds.length; i++) for (let j = i + 1; j < bounds.length; j++) {
+    const a = bounds[i], b = bounds[j]
     if (a.parent.contains(b.parent) || b.parent.contains(a.parent)) continue
     const x = Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left)
     const y = Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top)

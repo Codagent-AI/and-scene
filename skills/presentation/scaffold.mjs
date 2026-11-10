@@ -101,10 +101,6 @@ export async function scaffold(
       if (!(await exists(join(target, file))))
         await cp(join(bootstrapDirectory, file), join(target, file))
     }
-    await copyMissing(
-      join(bootstrapDirectory, 'src/host'),
-      join(target, 'src/host'),
-    )
     if (!(await exists(join(target, 'src/main.tsx'))))
       await cp(
         join(bootstrapDirectory, 'src/main.tsx'),
@@ -121,6 +117,8 @@ export async function scaffold(
       join(bootstrapDirectory, 'src/presentations'),
       join(target, 'src/presentations'),
     )
+  }
+  if (missing.includes('build') || missing.includes('index')) {
     await copyMissing(
       join(bootstrapDirectory, 'src/host'),
       join(target, 'src/host'),

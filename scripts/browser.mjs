@@ -17,6 +17,7 @@ export async function withPreview(run) {
   const url = `http://127.0.0.1:${port}`
   const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'pipe' })
   let browser
+  let shutdownRequested = false
   let serverError
   server.on('error', error => { serverError = error })
   try {
@@ -35,11 +36,12 @@ export async function withPreview(run) {
     await browser?.close()
     if (server.exitCode === null && server.signalCode === null) {
       const exited = new Promise(resolve => server.once('exit', resolve))
+      shutdownRequested = true
       server.kill('SIGTERM')
       await exited
     }
   }
-  if (server.signalCode !== 'SIGTERM') throw new Error('preview terminated unexpectedly')
+  if (!shutdownRequested || (server.signalCode !== 'SIGTERM' && server.exitCode !== 0)) throw new Error('preview terminated unexpectedly')
 }
 export async function walk(page, url, slug, inspect) {
   let index = 0

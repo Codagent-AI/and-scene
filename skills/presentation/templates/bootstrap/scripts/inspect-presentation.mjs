@@ -34,11 +34,13 @@ try {
       const warnings = diagnose(await page.evaluate(collectDiagnostics), index)
       warnings.forEach((warning) => console.warn(`ADVISORY ${warning}`))
       const file = `step-${String(index + 1).padStart(2, '0')}.png`
+      const elapsedBeforeCapture = Date.now() - transitioned
       await page.screenshot({ path: resolve(directory, file), fullPage: true })
       report.push({
         index,
         file,
         settle,
+        elapsedBeforeCapture,
         elapsed: Date.now() - transitioned,
         warnings,
       })

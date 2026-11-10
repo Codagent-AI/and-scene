@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 import { chromium } from 'playwright'
 
 export const HOST = '127.0.0.1'
-export const SETTLE_MS = 900
+export const SETTLE_MS = 1500
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 export async function runBuild(cwd = process.cwd()) {
   await new Promise((resolveBuild, reject) => {
@@ -51,6 +51,7 @@ export async function withPreview(cwd, callback) {
     output += data
   })
   let browser
+  let browserPid
   try {
     let ready = false
     for (let attempt = 0; attempt < 100; attempt++) {
@@ -66,9 +67,15 @@ export async function withPreview(cwd, callback) {
     if (!ready) throw new Error(`preview readiness failed at ${url}: ${output}`)
     console.log(`preview ${url} pid=${server.pid}`)
     browser = await chromium.launch({ headless: true })
+    const session = await browser.newBrowserCDPSession()
+    const { processInfo } = await session.send('SystemInfo.getProcessInfo')
+    browserPid = processInfo.find((process) => process.type === 'browser').id
+    await session.detach()
+    console.log(`browser started pid=${browserPid}`)
     return await callback(browser, url)
   } finally {
     await browser?.close()
+    if (browserPid) console.log(`browser cleaned pid=${browserPid}`)
     if (server.exitCode === null) {
       const exited = new Promise((resolveExit) =>
         server.once('exit', resolveExit),

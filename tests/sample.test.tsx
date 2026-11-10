@@ -4,6 +4,7 @@ import { STEPS } from '../src/presentations/how-to-make-a-presentation/steps'
 import { ReferenceScene } from '../src/presentations/how-to-make-a-presentation/steps/Scene'
 import { stateAt } from '../src/presentations/how-to-make-a-presentation/entities'
 import expected from '../scripts/reference-outline.json'
+import { ENTER_DELAY, ENTER_T } from '../src/presentation-kit/constants'
 import { validateOutline } from '../scripts/validation.mjs'
 
 const ids = (beat: number) =>
@@ -103,7 +104,23 @@ describe('reference scene', () => {
         ?.getAttribute('data-check-state'),
     ).toBe('checking')
     await act(async () => {
-      vi.advanceTimersByTime(400)
+      vi.advanceTimersByTime((ENTER_DELAY + ENTER_T) * 1000)
+    })
+    expect(
+      container
+        .querySelector('[data-check-state]')
+        ?.getAttribute('data-check-state'),
+    ).toBe('checking')
+    await act(async () => {
+      vi.advanceTimersByTime(349)
+    })
+    expect(
+      container
+        .querySelector('[data-check-state]')
+        ?.getAttribute('data-check-state'),
+    ).toBe('checking')
+    await act(async () => {
+      vi.advanceTimersByTime(1)
     })
     expect(
       container

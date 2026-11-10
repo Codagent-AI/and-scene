@@ -14,6 +14,8 @@ import {
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
+import { chromium } from 'playwright'
+import { withPreview, expectIndex } from '../scripts/browser.mjs'
 import {
   scaffold,
   bootstrapDirectory,
@@ -84,13 +86,72 @@ async function files(directory) {
   return result.sort()
 }
 function assertCleaned(output) {
-  const pids = [
+  const previews = [
     ...output.matchAll(/preview http:\/\/127\.0\.0\.1:\d+ pid=(\d+)/g),
   ].map((match) => Number(match[1]))
-  for (const pid of pids) {
-    assert.match(output, new RegExp(`preview cleaned pid=${pid}`))
-    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
+  const browsers = [...output.matchAll(/browser started pid=(\d+)/g)].map(
+    (match) => Number(match[1]),
+  )
+  assert.equal(
+    browsers.length,
+    previews.length,
+    'every ready preview launches an observed Chromium process',
+  )
+  for (const [kind, pids] of [
+    ['preview', previews],
+    ['browser', browsers],
+  ]) {
+    for (const pid of pids) {
+      assert.match(output, new RegExp(`${kind} cleaned pid=${pid}`))
+      assert.throws(
+        () => process.kill(pid, 0),
+        { code: 'ESRCH' },
+        `${kind} process ${pid} must have terminated`,
+      )
+      console.log(`cleanup verified: ${kind} pid=${pid} exited`)
+    }
   }
+}
+
+async function redMarkerBounds(page, png) {
+  return page.evaluate(async (encoded) => {
+    const bytes = Uint8Array.from(atob(encoded), (character) =>
+      character.charCodeAt(0),
+    )
+    const bitmap = await createImageBitmap(
+      new Blob([bytes], { type: 'image/png' }),
+    )
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+    const context = canvas.getContext('2d')
+    context.drawImage(bitmap, 0, 0)
+    const image = context.getImageData(0, 0, bitmap.width, bitmap.height)
+    const bounds = {
+      left: bitmap.width,
+      right: -1,
+      top: bitmap.height,
+      bottom: -1,
+      count: 0,
+    }
+    for (let y = 0; y < bitmap.height; y++) {
+      for (let x = 0; x < bitmap.width; x++) {
+        const index = (y * bitmap.width + x) * 4
+        if (
+          image.data[index] === 255 &&
+          image.data[index + 1] === 0 &&
+          image.data[index + 2] === 0 &&
+          image.data[index + 3] === 255
+        ) {
+          bounds.left = Math.min(bounds.left, x)
+          bounds.right = Math.max(bounds.right, x)
+          bounds.top = Math.min(bounds.top, y)
+          bounds.bottom = Math.max(bounds.bottom, y)
+          bounds.count++
+        }
+      }
+    }
+    bitmap.close()
+    return bounds
+  }, png.toString('base64'))
 }
 
 test(
@@ -254,7 +315,7 @@ function Scene({ payload }: SceneProps<number>) {
  const [settled, setSettled] = useState(false)
  useEffect(() => { setSettled(false); const timer = setTimeout(() => setSettled(true), 300); return () => clearTimeout(timer) }, [payload])
  return <div>
-   <span data-animated="" style={{position:'absolute',left:10,top:50,transform:'translateX(90px)',transition:'transform .2s'}}>settled</span>
+   <span data-animated="" style={{position:'absolute',left:10,top:50,width:20,height:20,background:'#ff0000',transform:'translateX('+((settled ? payload+1 : payload)*90)+'px)',transition:'transform .4s linear'}} />
    <span style={{position:'absolute',left:100,top:120}}>{settled ? 'collision A settled' : 'moving A'}</span><span style={{position:'absolute',left:100,top:120}}>collision B</span>
    <div data-presentation-allow-overlap="true"><span style={{position:'absolute',left:100,top:180}}>allowed A</span><span style={{position:'absolute',left:100,top:180}}>allowed B</span></div>
    <span style={{position:'absolute',left:20,top:230}}>state {payload}</span>
@@ -291,17 +352,59 @@ export default function Talk(){ return <Presentation steps={steps} title="Fixtur
       )
       const report = JSON.parse(await readFile(join(artifacts, 'report.json')))
       assert.equal(report.length, 3)
-      for (let i = 0; i < 3; i++) {
-        assert.equal(report[i].file, `step-0${i + 1}.png`)
-        assert.ok(report[i].elapsed >= report[i].settle)
-        const png = await readFile(join(artifacts, report[i].file))
-        assert.equal(png.readUInt32BE(16), 1440)
-        assert.equal(png.readUInt32BE(20), 900)
-        assert.ok(
-          report[i].warnings.every((warning) =>
-            warning.startsWith(`step ${i}:`),
-          ),
-        )
+      const decoder = await chromium.launch({ headless: true })
+      try {
+        const page = await decoder.newPage()
+        for (let i = 0; i < 3; i++) {
+          assert.equal(report[i].file, `step-0${i + 1}.png`)
+          assert.ok(report[i].elapsedBeforeCapture >= report[i].settle)
+          assert.ok(report[i].elapsed >= report[i].elapsedBeforeCapture)
+          const png = await readFile(join(artifacts, report[i].file))
+          assert.equal(png.readUInt32BE(16), 1440)
+          assert.equal(png.readUInt32BE(20), 900)
+          // The canvas is centered in the stage beside the 180px wide ToC.
+          const canvasLeft = 180 + (1440 - 180 - 880) / 2
+          const targetLeft = canvasLeft + 10 + (i + 1) * 90
+          const bounds = await redMarkerBounds(page, png)
+          assert.equal(
+            bounds.left,
+            targetLeft,
+            `step ${i} marker starts at its final position`,
+          )
+          assert.equal(
+            bounds.right,
+            targetLeft + 19,
+            `step ${i} marker ends at its final position`,
+          )
+          assert.ok(
+            bounds.count >= 380 && bounds.count <= 400,
+            `step ${i} contains the solid 20px marker`,
+          )
+          assert.ok(
+            bounds.left > targetLeft - 90 + 19,
+            `step ${i} clears the preceding marker position`,
+          )
+          assert.ok(
+            report[i].warnings.some((warning) =>
+              warning.includes('collision A settled'),
+            ),
+            `step ${i} diagnostics observe its settled text`,
+          )
+          assert.ok(
+            !report[i].warnings.some((warning) => warning.includes('moving A')),
+            `step ${i} diagnostics omit its moving text`,
+          )
+          console.log(
+            `settled PNG step ${i}: red bounds=${JSON.stringify(bounds)}, expectedLeft=${targetLeft}, waitBeforeCapture=${report[i].elapsedBeforeCapture}ms`,
+          )
+          assert.ok(
+            report[i].warnings.every((warning) =>
+              warning.startsWith(`step ${i}:`),
+            ),
+          )
+        }
+      } finally {
+        await decoder.close()
       }
       assertCleaned(result.output)
     })
@@ -328,6 +431,57 @@ test(
     assert.match(result.output, /http:\/\/127\.0\.0\.1:/)
     assert.doesNotMatch(result.output, /localhost/)
     assertCleaned(result.output)
+    await withPreview(repository, async (browser, url) => {
+      const page = await browser.newPage()
+      await page.goto(`${url}/how-to-make-a-presentation`)
+      await expectIndex(page, 0)
+      for (let index = 1; index <= 6; index++) {
+        await page.keyboard.press('ArrowRight')
+        await expectIndex(page, index)
+      }
+      await page.waitForFunction(() => {
+        const check = document.querySelector('[data-check-state]')
+        const wrapper = check?.closest('[data-presentation-appear]')
+        return wrapper && getComputedStyle(wrapper).opacity === '1'
+      })
+      const visibleAt = Date.now()
+      assert.equal(
+        await page
+          .locator('[data-check-state]')
+          .getAttribute('data-check-state'),
+        'checking',
+        'checking remains visible after entry completes',
+      )
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector('[data-check-state]')
+            ?.getAttribute('data-check-state') === 'passed',
+      )
+      const observation = await page
+        .locator('[data-check-state]')
+        .evaluate((check) => ({
+          opacity: getComputedStyle(check.closest('[data-presentation-appear]'))
+            .opacity,
+          color: getComputedStyle(check).color,
+          text: check.parentElement.textContent,
+        }))
+      assert.equal(observation.opacity, '1', 'passed checks are visible')
+      assert.match(observation.text, /build ✓render ✓/)
+      const [red, green, blue] = observation.color.match(/\d+/g).map(Number)
+      assert.ok(
+        green > red && green > blue,
+        'passed checks have a green treatment',
+      )
+      const visibleCheckingMs = Date.now() - visibleAt
+      assert.ok(
+        visibleCheckingMs >= 200,
+        `checking is observable for ${visibleCheckingMs}ms after full entry`,
+      )
+      console.log(
+        `I-31 visible check sequence: checking opacity=1, passed opacity=${observation.opacity}, visibleCheckingMs=${visibleCheckingMs}, color=${observation.color}`,
+      )
+    })
   },
 )
 

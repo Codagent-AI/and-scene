@@ -10,11 +10,15 @@ import {
 } from '../../../presentation-kit'
 import type { SceneProps } from '../../../presentation-kit'
 import { stateAt } from '../entities'
+import { ENTER_DELAY, ENTER_T } from '../../../presentation-kit/constants'
 
 function VerifyChecks() {
   const [passed, setPassed] = useState(false)
   useEffect(() => {
-    const timer = setTimeout(() => setPassed(true), 350)
+    const timer = setTimeout(
+      () => setPassed(true),
+      (ENTER_DELAY + ENTER_T) * 1000 + 350,
+    )
     return () => clearTimeout(timer)
   }, [])
   return (

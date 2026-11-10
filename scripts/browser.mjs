@@ -23,7 +23,7 @@ export async function withPreview(run) {
     let ready = false
     for (let attempt = 0; attempt < 100; attempt++) {
       if (serverError) throw serverError
-      if (server.exitCode !== null) throw new Error('preview exited before ready')
+      if (server.exitCode !== null || server.signalCode !== null) throw new Error('preview exited before ready')
       try { ready = (await fetch(url)).ok } catch { /* Preview may still be starting. */ }
       if (ready) break
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -33,9 +33,13 @@ export async function withPreview(run) {
     await run(browser, url)
   } finally {
     await browser?.close()
-    server.kill('SIGTERM')
-    if (server.exitCode === null) await new Promise(resolve => server.once('exit', resolve))
+    if (server.exitCode === null && server.signalCode === null) {
+      const exited = new Promise(resolve => server.once('exit', resolve))
+      server.kill('SIGTERM')
+      await exited
+    }
   }
+  if (server.signalCode !== 'SIGTERM') throw new Error('preview terminated unexpectedly')
 }
 export async function walk(page, url, slug, inspect) {
   let index = 0
@@ -53,6 +57,7 @@ export async function walk(page, url, slug, inspect) {
       await page.waitForTimeout(900)
       if (errors.length) throw new Error(errors.join('; '))
       await inspect(page, index, count)
+      if (errors.length) throw new Error(errors.join('; '))
       if (index < count - 1) await page.keyboard.press('ArrowRight')
     }
   } catch (error) {

@@ -13,7 +13,7 @@ async function copyApp(check: (target: string) => Promise<void>) {
     await check(target)
   } finally { await rm(target, { recursive: true, force: true }) }
 }
-test.each(['build', 'missing sample', 'console', 'transition'])('verification process fails actionably on %s', async fault => {
+test.each(['build', 'missing sample', 'console', 'transition', 'title', 'caption'])('verification process fails actionably on %s', async fault => {
   await copyApp(async target => {
     if (fault === 'build') await writeFile(join(target, 'src/broken.ts'), 'const value: string = 42; export { value }')
     if (fault === 'missing sample') await writeFile(join(target, 'src/presentations/index.ts'), "export const presentations: {slug:string; title:string; load:()=>Promise<{default:import('react').ComponentType}>}[] = []")
@@ -21,6 +21,11 @@ test.each(['build', 'missing sample', 'console', 'transition'])('verification pr
       const path = join(target, 'index.html')
       const script = fault === 'console' ? 'console.error("injected fault")' : 'window.addEventListener("keydown",e=>e.stopImmediatePropagation(),true)'
       await writeFile(path, (await readFile(path, 'utf8')).replace('</body>', `<script>${script}</script></body>`))
+    }
+    if (fault === 'title' || fault === 'caption') {
+      const path = join(target, 'src/presentations/how-to-make-a-presentation/steps.ts')
+      const original = await readFile(path, 'utf8')
+      await writeFile(path, original.replace(fault === 'title' ? 'The deck grows' : 'Same shapes, new beats.', 'Malformed outline'))
     }
     let output = ''
     try { await run('npm', ['run', 'verify'], { cwd: target }) } catch (error) {
@@ -30,7 +35,7 @@ test.each(['build', 'missing sample', 'console', 'transition'])('verification pr
     }
     expect(output).toContain('FAIL verification:')
     expect(output).not.toContain('PASS build, registered reference outline')
-    expect(output).toContain(fault === 'build' ? 'build: exited' : fault === 'missing sample' ? 'reference sample must be registered' : fault === 'console' ? 'render step 0:' : 'render step 1:')
+    expect(output).toContain(fault === 'build' ? 'build: exited' : fault === 'missing sample' ? 'reference sample must be registered' : fault === 'console' ? 'render step 0:' : fault === 'title' || fault === 'caption' ? 'render step 3:' : 'render step 1:')
   })
 }, 30000)
 test('inspection writes settled per-step artifacts and diagnoses only unmarked overlap', async () => {

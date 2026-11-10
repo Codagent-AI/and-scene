@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { chromium } from 'playwright'
-import { walk } from '../scripts/browser.mjs'
+import { walk, withPreview } from '../scripts/browser.mjs'
 async function fixture(html: string, check: (page: import('playwright').Page) => Promise<void>) {
   const browser = await chromium.launch()
   try {
@@ -27,3 +27,26 @@ it('reports the step when keyboard navigation stops advancing', async () => {
     await expect(walk(page, 'http://127.0.0.1:49999', 'fixture', async () => {})).rejects.toThrow('render step 1:')
   })
 }, 10000)
+
+it('waits for entering content to settle before inspecting every step', async () => {
+  await fixture(`${root}<script>
+    const main=document.querySelector('main');
+    const settle=()=>setTimeout(()=>main.dataset.settled='true',600);
+    settle();onkeydown=()=>{main.dataset.stepIndex='1';main.dataset.settled='false';settle()}
+  </script>`, async page => {
+    await walk(page, 'http://127.0.0.1:49999', 'fixture', async () => {
+      expect(await page.locator('main').getAttribute('data-settled')).toBe('true')
+    })
+  })
+})
+it('closes the browser and preview when the visitor fails', async () => {
+  let previewUrl = ''
+  let launched: import('playwright').Browser | undefined
+  await expect(withPreview(async (browser: import('playwright').Browser, url: string) => {
+    previewUrl = url
+    launched = browser
+    throw new Error('visitor failed')
+  })).rejects.toThrow('visitor failed')
+  expect(launched?.isConnected()).toBe(false)
+  await expect(fetch(previewUrl)).rejects.toThrow()
+})

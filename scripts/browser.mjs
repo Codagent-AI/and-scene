@@ -47,7 +47,7 @@ export async function withPreview(run) {
   }
   if (!shutdownRequested || (server.signalCode !== 'SIGTERM' && server.exitCode !== 0 && server.exitCode !== 143)) throw new Error(`preview terminated unexpectedly (code ${server.exitCode}, signal ${server.signalCode}, shutdown ${shutdownRequested})`)
 }
-/** 
+/**
  * @param {import('playwright').Page} page
  * @param {string} url
  * @param {string} slug

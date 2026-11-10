@@ -3,6 +3,17 @@ import assert from 'node:assert/strict'
 import { build, withPreview, walk } from './browser.mjs'
 try {
   await build()
+  const slug = process.argv[2]
+  if (slug) {
+    assert.match(slug, /^[a-z0-9-]+$/, 'presentation slug')
+    await withPreview(async (browser, url) => {
+      const page = await browser.newPage()
+      await page.goto(url)
+      assert.equal(await page.locator(`a[href="/${slug}"]`).count(), 1, 'presentation must be registered')
+      await walk(page, url, slug, async (_page, index) => console.log(`PASS step ${index}`))
+    })
+    console.log(`PASS rendered presentation ${slug}`)
+  } else {
   const spec = await readFile(new URL('../openspec/changes/create-and-scene/specs/presentation-verification/spec.md', import.meta.url), 'utf8')
   const expected = spec.split('\n').filter(line => /^\| [1-9] \|/.test(line)).map(line => {
     const cells = line.split('|').map(cell => cell.trim())
@@ -21,6 +32,7 @@ try {
     })
   })
   console.log('PASS build, registered reference outline, and all rendered steps')
+  }
 } catch (error) {
   console.error(`FAIL verification: ${error.message}`)
   process.exitCode = 1

@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import Talk from '../src/presentations/how-to-make-a-presentation/Talk'
 import { STEPS } from '../src/presentations/how-to-make-a-presentation/steps'
 import { presentations } from '../src/presentations'
+vi.stubGlobal('ResizeObserver', class {
+  observe() {}
+  disconnect() {}
+})
 afterEach(cleanup)
 it('registers the nine ordered narrative beats with a shared scene', () => {
   expect(presentations[0].slug).toBe('how-to-make-a-presentation')

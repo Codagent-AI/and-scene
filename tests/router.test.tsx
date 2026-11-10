@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { Router } from '../src/Router'
+vi.stubGlobal('ResizeObserver', class {
+  observe() {}
+  disconnect() {}
+})
 afterEach(cleanup)
 it('lists explicit registered routes on the landing and unknown paths', () => {
   render(<Router pathname="/unknown" />)

@@ -69,10 +69,10 @@ it.each(['console', 'pageerror'])('rejects a %s error during the final inspectio
 
 it.each([false, true])('cleans up a signalled preview (visitor rejects: %s)', async rejects => {
   await expect(withPreview(async (_browser, url) => {
-    const { stdout } = await promisify(execFile)('pgrep', ['-fl', '-P', String(process.pid)])
-    const child = stdout.split('\n').find(line => line.includes('vite.js preview'))
+    const { stdout } = await promisify(execFile)('pgrep', ['-f', '-P', String(process.pid), 'vite.js preview'])
+    const child = stdout.trim()
     expect(child).toBeTruthy()
-    process.kill(Number(child!.trim().split(/\s/)[0]), 'SIGKILL')
+    process.kill(Number(child), 'SIGKILL')
     for (let attempt = 0; attempt < 100; attempt++) {
       try { await fetch(url) } catch { break }
       await new Promise(resolve => setTimeout(resolve, 10))
@@ -131,3 +131,47 @@ it('contains a failed production chunk with visible recovery guidance', async ()
     expect(await page.getByRole('link', { name: 'Back to presentations' }).getAttribute('href')).toBe('/')
   })
 })
+
+it('fits short mobile layouts, preserves key swipes and reveals every declared explanation', async () => {
+  await withPreview(async (browser, url) => {
+    const page = await browser.newPage({ viewport: { width: 320, height: 568 }, hasTouch: true })
+    await page.goto(url + '/how-to-make-a-presentation')
+    const root = page.locator('[data-presentation-root]')
+    await root.waitFor()
+    const session = await page.context().newCDPSession(page)
+    const key = await page.locator('.scene-key').boundingBox()
+    expect(key).not.toBeNull()
+    for (const [start, end, expected] of [[.85, .15, '1'], [.15, .85, '0']] as const) {
+      await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: key!.x + key!.width * start, y: key!.y + 8 }] })
+      await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: key!.x + key!.width * end, y: key!.y + 8 }] })
+      await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+      expect(await root.getAttribute('data-step-index')).toBe(expected)
+    }
+    for (let index = 0; index < 9; index++) {
+      for (const note of await page.locator('.scene-key [data-from]').all()) {
+        expect(await note.isVisible()).toBe(Number(await note.getAttribute('data-from')) <= index + 1)
+      }
+      if (index < 8) await page.keyboard.press('ArrowRight')
+    }
+    for (const viewport of [{ width: 320, height: 568 }, { width: 600, height: 600 }, { width: 640, height: 667 }, { width: 650, height: 700 }, { width: 600, height: 400 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport)
+      for (const mode of ['browse', 'present']) {
+        if (await root.getAttribute('data-presentation-mode') !== mode) await page.keyboard.press('p')
+        await page.waitForTimeout(200)
+        const bounds = await page.evaluate(() => {
+          const rect = (selector: string) => {
+            const r = document.querySelector(selector)!.getBoundingClientRect()
+            return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }
+          }
+          return { stage: rect('[data-presentation-stage]'), canvas: rect('[data-presentation-canvas]'), key: rect('.scene-key'), footer: document.querySelector('footer') ? rect('footer') : null }
+        })
+        expect(bounds.canvas.top).toBeGreaterThanOrEqual(bounds.stage.top - 1)
+        expect(bounds.canvas.bottom).toBeLessThanOrEqual(bounds.stage.bottom + 1)
+        expect(bounds.canvas.left).toBeGreaterThanOrEqual(0)
+        expect(bounds.canvas.right).toBeLessThanOrEqual(viewport.width + 1)
+        expect(bounds.key.bottom).toBeLessThanOrEqual(bounds.stage.top + 1)
+        if (bounds.footer) expect(bounds.canvas.bottom).toBeLessThanOrEqual(bounds.footer.top + 1)
+      }
+    }
+  })
+}, 30000)

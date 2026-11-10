@@ -6,6 +6,10 @@ import { Presentation } from '../src/presentation-kit/Presentation'
 import { fitScale } from '../src/presentation-kit/constants'
 import type { Step, SceneProps } from '../src/presentation-kit/types'
 
+vi.stubGlobal('ResizeObserver', class {
+  observe() {}
+  disconnect() {}
+})
 afterEach(cleanup)
 const mounted = vi.fn()
 function Scene({ payload }: SceneProps<{ label: string }>) {

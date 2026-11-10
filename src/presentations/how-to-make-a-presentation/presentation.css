@@ -57,8 +57,14 @@
 
 .scene-key { display: none; }
 @media (max-width: 650px) {
-  .how-to .scene-key { display: grid; gap: 3px; position: absolute; top: 114px; left: 20px; right: 20px; font-size: 12px; line-height: 1.4; }
-  .how-to [data-presentation-stage] { top: 280px !important; }
+  .how-to .scene-key { display: grid; gap: 3px; order: 4; width: 100%; touch-action: pan-y; font-size: 12px; line-height: 1.4; }
+
+  .how-to [data-presentation-root] { display: flex; flex-direction: column; height: auto !important; min-height: 100dvh; overflow: visible !important; }
+  .how-to [data-presentation-header], .how-to [data-presentation-stage], .how-to [data-presentation-footer], .how-to [data-presentation-attribution] { position: relative !important; inset: auto !important; flex-shrink: 0; }
+  .how-to [data-presentation-stage] { height: 180px; flex-grow: 1; }
+  .how-to [data-presentation-footer] { padding-top: 16px; }
+  .how-to [data-presentation-attribution] { align-self: flex-end; }
+
   .how-to .scene-key [data-from] { display: none; }
   .how-to:has([data-step-index="1"]) .scene-key [data-from="2"], .how-to:has([data-step-index="2"]) .scene-key [data-from="2"], .how-to:has([data-step-index="3"]) .scene-key [data-from="2"], .how-to:has([data-step-index="4"]) .scene-key [data-from="2"], .how-to:has([data-step-index="5"]) .scene-key [data-from="2"], .how-to:has([data-step-index="6"]) .scene-key [data-from="2"], .how-to:has([data-step-index="7"]) .scene-key [data-from="2"], .how-to:has([data-step-index="8"]) .scene-key [data-from="2"] { display: block; }
   .how-to:has([data-step-index="2"]) .scene-key [data-from="3"], .how-to:has([data-step-index="3"]) .scene-key [data-from="3"], .how-to:has([data-step-index="4"]) .scene-key [data-from="3"], .how-to:has([data-step-index="5"]) .scene-key [data-from="3"], .how-to:has([data-step-index="6"]) .scene-key [data-from="3"], .how-to:has([data-step-index="7"]) .scene-key [data-from="3"], .how-to:has([data-step-index="8"]) .scene-key [data-from="3"] { display: block; }

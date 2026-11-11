@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cp, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -53,20 +53,6 @@ test('E2E-001: reference presentation passes production verification', { timeout
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
-async function replaceInSample(cwd, from, to) {
-  const folder = resolve(cwd, 'src/presentations/how-to-make-a-presentation')
-  for (const entry of await readdir(folder, { recursive: true, withFileTypes: true })) {
-    if (!entry.isFile() || !/\.tsx?$/.test(entry.name)) continue
-    const path = resolve(entry.parentPath || entry.path, entry.name)
-    const source = await readFile(path, 'utf8')
-    if (source.includes(from)) {
-      await writeFile(path, source.replace(from, to))
-      return
-    }
-  }
-  throw new Error(`Fault injection could not find ${from}`)
-}
-
 async function injectBrowserFault(cwd, action) {
   // Observe the public step hook, so each fault happens deterministically at step 1.
   const script = `let fired = false; new MutationObserver(() => { if (!fired && document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === '1') { fired = true; ${action} } }).observe(document.body, {subtree:true, childList:true, attributes:true});`
@@ -86,7 +72,15 @@ test('E2E-002: verification failures are actionable and clean up preview process
       const file = resolve(cwd, 'src/presentations/index.ts')
       await writeFile(file, (await readFile(file, 'utf8')).split('\n').filter((line) => !line.includes("slug: 'how-to-make-a-presentation'")).join('\n'))
     }, /FAIL sample/],
-    ['malformed sample', async (cwd) => replaceInSample(cwd, 'You have a topic', 'Incorrect first title'), /FAIL sample step 0/],
+    ['out-of-order sample', async (cwd) => {
+      const file = resolve(cwd, 'src/presentations/how-to-make-a-presentation/steps/index.ts')
+      const lines = (await readFile(file, 'utf8')).split('\n')
+      const first = lines.findIndex(line => line.includes('id: "beat-1"'))
+      const second = lines.findIndex(line => line.includes('id: "beat-2"'))
+      assert.ok(first >= 0 && second >= 0, 'reference steps found for order fault')
+      ;[lines[first], lines[second]] = [lines[second], lines[first]]
+      await writeFile(file, lines.join('\n'))
+    }, /FAIL sample step 0/],
     ['console error', async (cwd) => injectBrowserFault(cwd, "console.error('injected console error')"), /FAIL render step 1:.*injected console error/],
     ['uncaught page error', async (cwd) => injectBrowserFault(cwd, "setTimeout(() => { throw new Error('injected page error') }, 0)"), /FAIL render step 1:.*injected page error/],
     ['scene render error', async (cwd) => {

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Box } from '../src/presentation-kit/nodes/Box'
@@ -6,12 +7,11 @@ import { Stage } from '../src/presentation-kit/Stage'
 import { EASE, ENTER_DELAY, ENTER_T, LAYOUT_T } from '../src/presentation-kit/constants'
 import type { Step } from '../src/presentation-kit/types'
 const captures = vi.hoisted(() => ({ motions: [] as Record<string, unknown>[], presence: [] as Record<string, unknown>[], groups: [] as Record<string, unknown>[] }))
-vi.mock('motion/react', async () => {
-  const React = await import('react')
+vi.mock('motion/react', () => {
   return {
-    motion: { div: ({ children, ...props }: Record<string, unknown> & { children?: React.ReactNode }) => { captures.motions.push(props); return <div>{children}</div> } },
-    AnimatePresence: ({ children, ...props }: Record<string, unknown> & { children?: React.ReactNode }) => { captures.presence.push(props); return children },
-    LayoutGroup: ({ children, ...props }: Record<string, unknown> & { children?: React.ReactNode }) => { captures.groups.push(props); return children },
+    motion: { div: ({ children, ...props }: Record<string, unknown> & { children?: ReactNode }) => { captures.motions.push(props); return <div>{children}</div> } },
+    AnimatePresence: ({ children, ...props }: Record<string, unknown> & { children?: ReactNode }) => { captures.presence.push(props); return children },
+    LayoutGroup: ({ children, ...props }: Record<string, unknown> & { children?: ReactNode }) => { captures.groups.push(props); return children },
   }
 })
 

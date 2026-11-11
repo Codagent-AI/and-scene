@@ -1,13 +1,13 @@
 import { AnimatePresence, motion } from 'motion/react'
-import type { SceneProps, Step } from '../../../presentation-kit/types'
+import type { SceneProps } from '../../../presentation-kit/types'
 import { EASE, ENTER_DELAY, LAYOUT_T } from '../../../presentation-kit/constants'
 import { entities } from '../entities'
 
-interface Payload {
+export interface Payload {
   showResult: boolean
 }
 
-function Scene({ payload }: SceneProps<Payload>) {
+export function Scene({ payload }: SceneProps<Payload>) {
   return (
     <>
       <motion.div
@@ -40,23 +40,3 @@ function Scene({ payload }: SceneProps<Payload>) {
   )
 }
 
-export const STEPS: Step<Payload>[] = [
-  {
-    id: 'the-question',
-    era: 'beginning',
-    title: 'Start with the question',
-    caption: 'Replace this caption with the first beat of your story.',
-    groupKey: 'example',
-    Scene,
-    payload: { showResult: false },
-  },
-  {
-    id: 'the-change',
-    era: 'beginning',
-    title: 'Show what changes',
-    caption: 'Keep the topic in place while the next part of the explanation appears.',
-    groupKey: 'example',
-    Scene,
-    payload: { showResult: true },
-  },
-]

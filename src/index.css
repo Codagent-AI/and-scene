@@ -1,0 +1,9 @@
+body { margin: 0; }
+.landing { min-height: 100vh; box-sizing: border-box; padding: 65px clamp(24px, 8vw, 140px); background: #f5f1e8; color: #252d29; font: 18px/1.6 Georgia, serif; }
+.landing .eyebrow, .landing a span, .landing a b, .landing footer { font: 11px/1.5 ui-monospace, monospace; letter-spacing: .12em; }
+.landing h1 { font-size: clamp(52px, 7vw, 104px); line-height: 1; letter-spacing: -.055em; font-weight: 400; margin: 45px 0 25px; }
+.landing h1 em { color: #ab4b36; }
+.presentation-list { max-width: 620px; margin: 42px 0 75px; }
+.presentation-list a { display: block; padding: 25px 0; border-top: 1px solid #9b9d91; border-bottom: 1px solid #9b9d91; color: inherit; text-decoration: none; }
+.presentation-list h2 { font-size: 26px; line-height: 1.3; font-weight: 400; max-width: 420px; }
+.presentation-list a b { color: #91432f; }

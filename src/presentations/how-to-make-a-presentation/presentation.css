@@ -1,0 +1,69 @@
+.sample-presentation { --ink: #263b33; --muted: #59685b; --paper: #f4f1e7; --accent: #a64731; color: var(--ink); background: var(--paper); font: 16px/1.5 Georgia, 'Times New Roman', serif; }
+.sample-presentation * { box-sizing: border-box; }
+.sample-presentation [data-presentation-header] { max-width: 690px; }
+.sample-presentation [data-presentation-marker] { color: var(--accent); text-transform: uppercase; font: 11px/1.5 ui-monospace, monospace; letter-spacing: .13em; }
+.sample-presentation [data-presentation-name] { margin-top: 8px; color: var(--muted); font: 12px/1.5 ui-monospace, monospace; }
+.sample-presentation h1 { font-size: clamp(26px, 3.6vw, 45px); font-weight: 400; letter-spacing: -.035em; line-height: 1.12; margin: 8px 0 0; }
+.sample-presentation [data-presentation-footer] { max-width: 900px; margin: 0 auto; }
+.sample-presentation [data-presentation-caption] { max-width: 740px; min-height: 54px; font-size: clamp(16px, 1.8vw, 21px); line-height: 1.45; margin: 0 0 20px; }
+.sample-presentation button { font: 12px/1.2 ui-monospace, monospace; border: 1px solid #a1ab9b; color: var(--ink); background: transparent; padding: 9px 12px; border-radius: 3px; cursor: pointer; }
+.sample-presentation button:hover { background: #e5e8d9; }
+.sample-presentation button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.sample-presentation button:disabled { opacity: .45; cursor: default; }
+.sample-presentation [data-presentation-controls] { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.sample-presentation [data-presentation-progress-list] { display: flex; gap: 6px; }
+.sample-presentation [data-presentation-progress] { padding: 8px; min-width: 31px; }
+.sample-presentation [data-active="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 700; }
+.sample-presentation [data-presentation-toc] { display: flex; gap: 4px; }
+.sample-presentation [data-presentation-toc-entry] { padding: 6px 8px; font-size: 10px; }
+.sample-presentation [data-presentation-attribution] { font: 12px/1.3 ui-monospace, monospace; color: var(--muted); text-decoration: none; border-bottom: 1px solid #a1ab9b; padding-bottom: 2px; }
+.sample-presentation [data-presentation-mode-toggle] { border: 0; padding: 0; font-size: 11px; }
+.sample-presentation .scene-node { position: relative; display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--ink); }
+.sample-presentation [data-presentation-node="Box"] { border: 1.5px solid #64776a; background: #faf8f1; border-radius: 6px; font-size: 20px; }
+.sample-presentation .scene-node svg { width: 18px; height: 18px; margin-bottom: 2px; }
+.sample-presentation .scene-node small { display: block; font: 9px/1.4 ui-monospace, monospace; color: var(--muted); letter-spacing: .01em; margin-top: 4px; }
+.sample-presentation .scene-node:has(svg) { font-size: 17px; }
+.sample-presentation .accent { background: #dce5d4; }
+.sample-presentation [data-presentation-node="Arrow"] { font-size: 34px; line-height: 1; }
+.sample-presentation [data-entity-name="conversation"] span { width: 100%; display: block; font-family: sans-serif; transform: scaleX(7); text-align: center; }
+.sample-presentation .prompt { font-style: italic; font-size: 15px; align-items: flex-start; color: var(--accent); }
+.sample-presentation .chip { border: 1px solid #b4baab; border-radius: 20px; font: 10px/1 ui-monospace, monospace; background: var(--paper); }
+.sample-presentation .tray { border-bottom: 1px solid #a7b29f; justify-content: flex-start; align-items: flex-start; font: 9px/1.2 ui-monospace, monospace; letter-spacing: .11em; color: var(--muted); }
+.sample-presentation .card { font-size: 15px; align-items: flex-start; padding: 12px; border-top: 4px solid #899a80; box-shadow: 0 3px 0 #e1e3d6; }
+.sample-presentation .card small { font-size: 9px; margin-top: 15px; }
+.sample-presentation .ghost { border-style: dashed; background: transparent; font-size: 22px; }
+.sample-presentation .ghost small { font-size: 8px; }
+.sample-presentation .depth { align-items: flex-start; font: 9px/1 ui-monospace, monospace; border-left: 1px solid #64776a; padding-left: 10px; }
+.sample-presentation .socket { flex-direction: row; gap: 10px; border-radius: 0 0 6px 6px; font: 12px/1 ui-monospace, monospace; background: #e1e7d7; }
+.sample-presentation .socket small { margin: 0; font-size: 8px; }
+.sample-presentation .verify { background: #d9e9d4; border-color: #62845d; font-size: 25px; color: #356043; }
+.sample-presentation .verify small { font-size: 8px; }
+.sample-presentation .modify { color: var(--accent); justify-content: flex-start; }
+.sample-presentation .modify svg { width: 114px; height: 103px; margin: 0; }
+.sample-presentation .modify small { color: var(--accent); font-size: 9px; }
+.sample-presentation .edited { color: var(--accent); font: 9px/1 ui-monospace, monospace; align-items: flex-start; }
+.sample-presentation .refined { border-color: var(--accent); }
+.sample-presentation .reveal { border: 1px solid var(--accent); border-radius: 12px; color: var(--accent); pointer-events: none; justify-content: flex-end; font: 8px/1 ui-monospace, monospace; letter-spacing: .1em; padding-bottom: 7px; }
+@media (max-width: 600px) {
+  .sample-presentation [data-presentation-name] { font-size: 9px; }
+  .sample-presentation [data-presentation-header] { top: 18px !important; }
+  .sample-presentation [data-presentation-progress-list] { gap: 3px; }
+  .sample-presentation [data-presentation-progress] { min-width: 20px; padding: 6px 2px; font-size: 9px; }
+  .sample-presentation [data-presentation-prev], .sample-presentation [data-presentation-next] { padding: 6px; font-size: 9px; }
+  .sample-presentation [data-presentation-controls] { gap: 5px; }
+  .sample-presentation [data-presentation-caption] { min-height: 85px; margin-bottom: 12px; }
+  /* The 880 x 380 canvas scales to ~0.38 here, so design-size text is enlarged and secondary detail is dropped to keep labels legible. */
+  .sample-presentation .scene-node small { display: none; }
+  .sample-presentation .scene-node { font-size: 20px; line-height: 1.1; white-space: nowrap; overflow: visible; }
+  .sample-presentation [data-presentation-node="Box"] { font-size: 22px; }
+  .sample-presentation .scene-node:has(svg) { font-size: 20px; }
+  .sample-presentation .prompt { font-size: 20px; }
+  .sample-presentation .chip { font: 18px/1 Georgia, serif; }
+  .sample-presentation .tray { font: 16px/1 ui-monospace, monospace; letter-spacing: 0; }
+  .sample-presentation .card { font-size: 18px; white-space: normal; }
+  .sample-presentation .depth { font: 18px/1 ui-monospace, monospace; }
+  .sample-presentation .socket { font: 18px/1 ui-monospace, monospace; }
+  .sample-presentation .edited { font: 18px/1 ui-monospace, monospace; padding-top: 6px; }
+  .sample-presentation .reveal { font: 18px/1 ui-monospace, monospace; letter-spacing: 0; padding-bottom: 2px; }
+  .sample-presentation .modify small { display: block; font: 16px/1 Georgia, serif; }
+}

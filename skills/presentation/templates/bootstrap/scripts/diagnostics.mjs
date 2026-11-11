@@ -28,7 +28,7 @@ export function collectDiagnostics() {
     const node = walker.currentNode
     const element = node.parentElement
     const style = getComputedStyle(element)
-    if (!node.textContent.trim() || style.visibility === 'hidden' || element.closest('svg')) continue
+    if (!node.textContent.trim() || style.visibility === 'hidden') continue
     if (!element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) continue
     const range = document.createRange()
     range.selectNodeContents(node)

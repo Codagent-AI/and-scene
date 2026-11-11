@@ -4,6 +4,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile, readdir, stat } f
 import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
+import { tmpdir } from 'node:os'
 import { inspectPresentation } from '../scripts/inspect-presentation.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -51,7 +52,9 @@ function assertStopped(output) {
 }
 
 test('INT-001 materialized bootstrap builds renders outside caller cwd and remains complete style-neutral and aligned', { timeout: 180000 }, async () => {
-  const cwd = await temporary()
+  const cwd = await mkdtemp(join(tmpdir(), 'and-scene-bootstrap-'))
+  assert.ok(!cwd.startsWith(root + '/'))
+  console.log(`materialized bootstrap outside source repository: ${cwd}`)
   try {
     await cp(template, cwd, { recursive: true })
     const pkg = JSON.parse(await readFile(resolve(cwd, 'package.json'), 'utf8'))
@@ -69,6 +72,7 @@ test('INT-001 materialized bootstrap builds renders outside caller cwd and remai
     await compare('src/presentation-kit')
     await compare('scripts')
     await must(['npm', 'ci', '--offline', '--no-audit', '--no-fund'], cwd)
+    await must(['npm', 'run', 'lint'], cwd)
     // The script location is absolute and cwd is the materialized target, outside the source files.
     const output = await must(['npm', 'run', 'verify'], cwd)
     assert.match(output, /render PASS step 0/)
@@ -77,6 +81,11 @@ test('INT-001 materialized bootstrap builds renders outside caller cwd and remai
     assertStopped(output)
     assert.ok(await stat(resolve(cwd, 'src/presentations/index.ts')))
     assert.ok(await stat(resolve(cwd, 'src/presentation-kit/Presentation.tsx')))
+    await cp(new URL('../skills/presentation/templates/presentation/', import.meta.url), resolve(cwd, 'src/presentations/template-demo'), { recursive: true })
+    await edit(cwd, 'src/presentations/index.ts', text => text + "\npresentations.push({ slug: 'template-demo', title: 'Template demo', load: () => import('./template-demo/Talk') })\n")
+    const generated = await must(['node', 'scripts/verify.mjs', 'template-demo'], cwd)
+    assert.match(generated, /render PASS step 0/)
+    assertStopped(generated)
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
@@ -96,6 +105,9 @@ function Scene({ payload }: SceneProps<number>) {
   return <div data-entity-id="fixture:shared-parent" data-presentation-allow-overlap={payload === 1 ? '' : undefined}>
     <span style={{ position: 'absolute', left: 50, top: 50 }}>collision-alpha</span>
     <span style={{ position: 'absolute', left: 50, top: 50 }}>collision-beta</span>
+    <svg width="200" height="50" style={{ position: 'absolute', left: 500, top: 50 }}>
+      <text x="10" y="20">svg-alpha</text><text x="10" y="20">svg-beta</text>
+    </svg>
     <div style={{ position: 'absolute', width: 50, height: 50, left: 300, top: 100, background: settled ? 'rgb(0, 255, 0)' : 'rgb(255, 0, 0)' }} />
   </div>
 }
@@ -109,6 +121,8 @@ export default function Talk() { return <><style>{'[data-presentation-attributio
     assert.ok(Date.now() - start >= 1600)
     assert.ok(captures[0].warnings.some(warning => /step 0: overlap collision-alpha \/ collision-beta/.test(warning)))
     assert.ok(!captures[1].warnings.some(warning => /overlap collision/.test(warning)))
+    assert.ok(captures[0].warnings.some(warning => /overlap svg-alpha \/ svg-beta/.test(warning)))
+    assert.ok(!captures[1].warnings.some(warning => /overlap svg-alpha/.test(warning)))
     for (const capture of captures) {
       assert.ok(capture.warnings.some(warning => /indistinct active progress/.test(warning)))
       assert.ok(capture.warnings.some(warning => /indistinct active toc/.test(warning)))

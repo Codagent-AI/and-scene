@@ -6,6 +6,7 @@ import { steps } from '../src/presentations/how-to-make-a-presentation/steps'
 import { entity, cardPosition, positions } from '../src/presentations/how-to-make-a-presentation/entities'
 import { presentations, findPresentation } from '../src/presentations'
 import { Router } from '../src/Router'
+import Talk from '../src/presentations/how-to-make-a-presentation/Talk'
 import { reference, validateReference } from '../scripts/reference.mjs'
 
 const css = readFileSync('src/presentations/how-to-make-a-presentation/presentation.css', 'utf8')
@@ -105,4 +106,17 @@ it('I-36 rejects absent count malformed title caption era and ordering', () => {
     reference.map((step, i) => i ? step : { ...step, era: 'wrong' })]) {
     expect(() => validateReference(invalid)).toThrow(/sample:/)
   }
+})
+
+it('I-13 presentation CSS distinguishes active chrome and keeps attribution legible', () => {
+  const view = render(<><style>{css}</style><Talk /></>)
+  const active = view.container.querySelector('[data-presentation-progress-entry][data-active="true"]')!
+  const inactive = view.container.querySelector('[data-presentation-progress-entry][data-active="false"]')!
+  expect(getComputedStyle(active).backgroundColor).not.toBe(getComputedStyle(inactive).backgroundColor)
+  const activeEra = view.container.querySelector('[data-presentation-toc-entry][data-active="true"]')!
+  const inactiveEra = view.container.querySelector('[data-presentation-toc-entry][data-active="false"]')!
+  expect(getComputedStyle(activeEra).color).not.toBe(getComputedStyle(inactiveEra).color)
+  const attribution = view.container.querySelector('[data-presentation-attribution]')!
+  expect(parseFloat(getComputedStyle(attribution).fontSize)).toBeGreaterThanOrEqual(11)
+  expect(getComputedStyle(attribution).color).toBe('rgb(174, 181, 200)')
 })

@@ -150,8 +150,8 @@ describe('chrome and input', () => {
     expect(result.current.index).toBe(3)
     for (const value of ['ArrowLeft', 'PageUp']) act(() => key(value))
     expect(result.current.index).toBe(1)
-    const view = render(<><button>control</button><a href="#">link</a><input /><select /><textarea /><div contentEditable /><div role="slider" /></>)
-    for (const control of view.container.children) {
+    const view = render(<><button>control</button><a href="#">link</a><input /><select /><textarea /><div contentEditable /><div role="slider" /><div role="combobox" tabIndex={0} /><details><summary>Disclosure</summary></details></>)
+    for (const control of view.container.querySelectorAll('button,a,input,select,textarea,[contenteditable],[role],summary')) {
       for (const value of ['ArrowRight', 'ArrowLeft', ' ', 'PageDown', 'PageUp', 'p']) act(() => key(value, control))
       expect(result.current.index).toBe(1)
       expect(result.current.mode).toBe('browse')

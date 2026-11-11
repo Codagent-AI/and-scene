@@ -1,10 +1,12 @@
 import { lazy, Suspense } from 'react'
 import Landing from './Landing'
 import { findPresentation, presentations } from './presentations'
-const components = new Map(presentations.map(entry => [entry.slug, lazy(entry.load)]))
+
+const views = new Map(presentations.map(entry => {
+  const Talk = lazy(entry.load)
+  return [entry.slug, <Suspense key={entry.slug} fallback={<p role="status">Loading presentation…</p>}><Talk /></Suspense>]
+}))
 export function Router({ pathname = window.location.pathname }: { pathname?: string }) {
   const entry = findPresentation(pathname)
-  if (!entry) return <Landing />
-  const Talk = components.get(entry.slug)!
-  return <Suspense fallback={<p role="status">Loading presentation…</p>}><Talk /></Suspense>
+  return entry ? views.get(entry.slug) : <Landing />
 }

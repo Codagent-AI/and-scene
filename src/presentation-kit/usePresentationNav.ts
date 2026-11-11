@@ -2,10 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TouchEvent } from 'react'
 import type { Mode } from './types'
 
+const controlRoles = [
+  'button', 'checkbox', 'combobox', 'grid', 'gridcell', 'link', 'listbox', 'menu', 'menubar',
+  'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option', 'radio', 'radiogroup',
+  'scrollbar', 'searchbox', 'slider', 'spinbutton', 'switch', 'tab', 'tablist',
+  'textbox', 'toolbar', 'tree', 'treegrid', 'treeitem',
+]
+const controlSelector = [
+  'button', 'a', 'input', 'select', 'textarea', 'summary', 'audio[controls]', 'video[controls]',
+  '[contenteditable]:not([contenteditable="false"])',
+  ...controlRoles.map(role => `[role="${role}"]`),
+].join(',')
 export function isInteractive(target: EventTarget | null) {
-  return target instanceof Element && !!target.closest(
-    'button,a,input,select,textarea,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="slider"],[role="textbox"]',
-  )
+  return target instanceof Element && !!target.closest(controlSelector)
 }
 export function usePresentationNav(count: number, initialMode: Mode = 'browse') {
   const [index, setIndex] = useState(0)

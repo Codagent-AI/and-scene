@@ -1,0 +1,55 @@
+.skill-presentation { background: #111523; color: #f4efe6; font-family: "Instrument Sans", system-ui, sans-serif; }
+.skill-presentation button, .skill-presentation a { font: inherit; }
+.skill-presentation button { cursor: pointer; color: #aeb5c8; background: transparent; border: 1px solid transparent; border-radius: 7px; padding: 5px 10px; font-size: 12px; }
+.skill-presentation button:focus-visible, .skill-presentation a:focus-visible { outline: 2px solid #f2b389; outline-offset: 3px; }
+.skill-presentation button:disabled { opacity: .3; cursor: default; }
+.skill-presentation [data-presentation-header] { font-size: 13px; color: #b1b8c9; letter-spacing: .02em; }
+.skill-presentation [data-presentation-name] { max-width: calc(100% - 100px); }
+.skill-presentation [data-presentation-toc] { display: flex; gap: 14px; }
+.skill-presentation [data-presentation-toc-entry][data-active="true"] { color: #f5b68c; border-bottom-color: #f5b68c; border-radius: 0; }
+.skill-presentation [data-presentation-mode] { border-color: #4b5165; color: #f5b68c; }
+.skill-presentation [data-presentation-footer] { max-width: 960px; margin: 0 auto; }
+.skill-presentation [data-presentation-marker] { color: #edaa7c; font-size: 11px; letter-spacing: .18em; }
+.skill-presentation [data-presentation-title] { font-family: "Instrument Serif", Georgia, serif; font-size: clamp(24px, 3vw, 38px); font-weight: 400; margin: 8px 0; }
+.skill-presentation [data-presentation-caption] { font-size: 14px; line-height: 1.6; color: #aeb5c8; margin: 8px 0 16px; max-width: 780px; min-height: 45px; }
+.skill-presentation [data-presentation-navigation] { display: flex; align-items: center; justify-content: space-between; }
+.skill-presentation [data-presentation-progress] { display: flex; gap: 4px; }
+.skill-presentation [data-presentation-progress-entry] { font-size: 10px; width: 25px; padding: 4px 0; }
+.skill-presentation [data-presentation-progress-entry][data-active="true"] { background: #edaa7c; color: #111523; }
+.skill-presentation [data-presentation-attribution] { font-size: 12px; color: #aeb5c8; text-decoration: none; }
+.skill-presentation .node { position: absolute; box-sizing: border-box; }
+.skill-presentation .you, .skill-presentation .kit { display: flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid #d99a76; border-radius: 12px; color: #f5b68c; background: #24212a; font-size: 16px; }
+.skill-presentation .you svg, .skill-presentation .skill svg { width: 20px; }
+.skill-presentation .skill { display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #929bd4; border-radius: 12px; background: #242a40; color: #d1d6ff; }
+.skill-presentation .prompt { color: #aeb5c8; font-size: 12px; font-style: italic; }
+.skill-presentation .conversation { color: #8290b3; font-size: 18px; letter-spacing: -1px; white-space: nowrap; }
+.skill-presentation .question { color: #bbc3e4; font-size: 11px; text-align: center; }
+.skill-presentation .tray { background: #191e30; border-radius: 14px; }
+.skill-presentation .step-card { padding: 12px; border: 1px solid #58617f; background: #252d45; border-radius: 9px; display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
+.skill-presentation .step-card strong { font-size: 10px; color: #f1b28b; margin-bottom: 3px; }
+.skill-presentation .step-card span:last-child { font-size: 10px; color: #aeb5c8; }
+.skill-presentation .morph { text-align: center; font-size: 17px; color: #8a96b8; }
+.skill-presentation .morph small { display: block; font-size: 7px; }
+.skill-presentation .ghost { border: 1px dashed #64708b; border-radius: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #aeb5c8; font-size: 22px; }
+.skill-presentation .ghost span { font-size: 10px; }
+.skill-presentation .depth { font-size: 11px; color: #f5b68c; }
+.skill-presentation .kit { font-size: 12px; border-radius: 0 0 9px 9px; }
+.skill-presentation .kit svg { width: 16px; }
+.skill-presentation .verify-link { color: #93c7ad; font-size: 20px; }
+.skill-presentation .verify { padding: 10px; border: 1px solid #6f9c89; border-radius: 9px; display: flex; flex-direction: column; gap: 7px; font-size: 12px; background: #1e3632; }
+.skill-presentation .verify > span { font-size: 10px; }
+.skill-presentation .pass { color: #9ce4bc; display: flex; align-items: center; gap: 4px; }
+.skill-presentation .modify svg { width: 100%; height: 100%; overflow: visible; }
+.skill-presentation .modify path { stroke: #d7a780; stroke-width: 1.5; fill: none; }
+.skill-presentation .modify span { position: absolute; left: 120px; top: 20px; color: #e6b98f; font-size: 11px; }
+.skill-presentation .edited { color: #f5b68c; font-size: 10px; }
+.skill-presentation .reveal { pointer-events: none; border: 1px solid #d5a17b; border-radius: 18px; }
+.skill-presentation .reveal > span { position: absolute; top: -7px; right: 28px; padding: 0 10px; background: #111523; color: #f5b68c; font-size: 10px; letter-spacing: .12em; }
+@media (max-width: 600px) {
+  .skill-presentation [data-presentation-header] { font-size: 11px; }
+  .skill-presentation [data-presentation-footer] { bottom: 48px !important; }
+  .skill-presentation [data-presentation-caption] { font-size: 12px; min-height: 58px; }
+  .skill-presentation [data-presentation-progress] { gap: 1px; }
+  .skill-presentation [data-presentation-progress-entry] { width: 17px; }
+  .skill-presentation [data-presentation-prev], .skill-presentation [data-presentation-next] { padding: 4px 2px; font-size: 10px; }
+}

@@ -84,4 +84,14 @@ describe('reference sample', () => {
       expect(e.x + e.width).toBeLessThanOrEqual(880); expect(e.y + e.height).toBeLessThanOrEqual(380)
     }
   })
+  it('keeps narrow-viewport scene labels enlarged and drops secondary detail text', async () => {
+    const { readFile } = await import('node:fs/promises')
+    const css = await readFile('src/presentations/how-to-make-a-presentation/presentation.css', 'utf8')
+    const narrow = css.slice(css.indexOf('@media (max-width: 600px)'))
+    expect(narrow).toMatch(/\.scene-node small \{ display: none; \}/)
+    for (const tone of ['tray', 'depth', 'socket', 'edited', 'reveal', 'chip']) {
+      const rule = narrow.match(new RegExp(`\\.${tone} \\{[^}]*font: (\\d+)px`))
+      expect(Number(rule?.[1]), tone).toBeGreaterThanOrEqual(16)
+    }
+  })
 })

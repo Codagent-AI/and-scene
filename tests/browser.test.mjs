@@ -84,6 +84,17 @@ test('E2E-001: reference presentation passes production verification', { timeout
           assert.ok(Math.abs((stage.top + stage.bottom) - (area.top + area.bottom)) < 1, 'canvas centered vertically')
           assert.ok(Math.abs(stage.width / stage.height - 880 / 380) < .001, 'uniform fixed-canvas aspect ratio')
           console.log(`PASS rendered bounds ${viewport.width}x${viewport.height} ${mode}: ${JSON.stringify(stage)}`)
+          if (viewport.width === 390 && mode === 'browse') {
+            // The scaled canvas must keep visible scene labels at a readable rendered size.
+            const smallest = await page.evaluate(() => {
+              const scale = document.querySelector('[data-presentation-stage]').getBoundingClientRect().width / 880
+              const sizes = [...document.querySelectorAll('[data-presentation-stage] [data-entity-name] span, [data-presentation-stage] [data-entity-name] small')]
+                .filter(el => el.getClientRects().length && el.textContent.trim().length > 1)
+                .map(el => parseFloat(getComputedStyle(el).fontSize) * scale)
+              return Math.min(...sizes)
+            })
+            assert.ok(smallest >= 6, `scene labels render at ${smallest}px at 390px width`)
+          }
         }
       }
       assert.deepEqual(errors, [])

@@ -52,4 +52,18 @@
   .sample-presentation [data-presentation-prev], .sample-presentation [data-presentation-next] { padding: 6px; font-size: 9px; }
   .sample-presentation [data-presentation-controls] { gap: 5px; }
   .sample-presentation [data-presentation-caption] { min-height: 85px; margin-bottom: 12px; }
+  /* The 880 x 380 canvas scales to ~0.38 here, so design-size text is enlarged and secondary detail is dropped to keep labels legible. */
+  .sample-presentation .scene-node small { display: none; }
+  .sample-presentation .scene-node { font-size: 20px; line-height: 1.1; white-space: nowrap; overflow: visible; }
+  .sample-presentation [data-presentation-node="Box"] { font-size: 22px; }
+  .sample-presentation .scene-node:has(svg) { font-size: 20px; }
+  .sample-presentation .prompt { font-size: 20px; }
+  .sample-presentation .chip { font: 18px/1 Georgia, serif; }
+  .sample-presentation .tray { font: 16px/1 ui-monospace, monospace; letter-spacing: 0; }
+  .sample-presentation .card { font-size: 18px; white-space: normal; }
+  .sample-presentation .depth { font: 18px/1 ui-monospace, monospace; }
+  .sample-presentation .socket { font: 18px/1 ui-monospace, monospace; }
+  .sample-presentation .edited { font: 18px/1 ui-monospace, monospace; padding-top: 6px; }
+  .sample-presentation .reveal { font: 18px/1 ui-monospace, monospace; letter-spacing: 0; padding-bottom: 2px; }
+  .sample-presentation .modify small { display: block; font: 16px/1 Georgia, serif; }
 }

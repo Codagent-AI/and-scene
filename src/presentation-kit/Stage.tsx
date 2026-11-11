@@ -16,8 +16,8 @@ export function Stage<T>({ step, mode, width = DESIGN_W, height = DESIGN_H }: { 
   const instance = useId()
   // Both the group and component identity participate in React reconciliation.
   const Scene = step.Scene
-  return <div data-presentation-stage-viewport="" style={{ position: 'absolute', inset: `${STAGE_LAYOUT[mode].top}px 0 ${STAGE_LAYOUT[mode].bottom}px`, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
-    <div data-presentation-stage="" style={{ position: 'relative', width, height, transform: `scale(${scale})`, transformOrigin: 'center', flexShrink: 0 }}>
+  return <div data-presentation-stage-viewport="" style={{ position: 'absolute', inset: `${STAGE_LAYOUT[mode].top}px 0 ${STAGE_LAYOUT[mode].bottom}px`, overflow: 'hidden' }}>
+    <div data-presentation-stage="" style={{ position: 'absolute', left: '50%', top: '50%', width, height, transform: `translate(-50%, -50%) scale(${scale})`, transformOrigin: 'center', flexShrink: 0 }}>
       <LayoutGroup id={instance}>
         <AnimatePresence initial={false} mode="sync">
           <motion.div key={JSON.stringify([step.groupKey ?? step.id, sceneId(Scene)])} data-presentation-scene="" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: LAYOUT_T, ease: EASE }} style={{ position: 'absolute', inset: 0 }}>

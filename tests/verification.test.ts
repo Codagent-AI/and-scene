@@ -27,9 +27,11 @@ describe('inspection diagnostics', () => {
   it('reports overlapping distinct text and excludes same-owner or explicitly allowed subtree pairs', () => {
     const text = [{ owner: 1, label: 'one', rect }, { owner: 2, label: 'two', rect }]
     expect(diagnose({ text, attribution: polished })).toEqual(['overlap: one / two'])
-    expect(diagnose({ text: text.map((item) => ({ ...item, allowed: 42 })), attribution: polished })).toEqual([])
+    expect(diagnose({ text: text.map((item) => ({ ...item, allowed: [42] })), attribution: polished })).toEqual([])
     expect(diagnose({ text: text.map((item) => ({ ...item, owner: 1 })), attribution: polished })).toEqual([])
-    expect(diagnose({ text: [{ ...text[0], allowed: 42 }, text[1]], attribution: polished })).toEqual(['overlap: one / two'])
+    expect(diagnose({ text: [{ ...text[0], allowed: [42] }, text[1]], attribution: polished })).toEqual(['overlap: one / two'])
+    expect(diagnose({ text: [{ ...text[0], allowed: [7, 42] }, { ...text[1], allowed: [42] }], attribution: polished })).toEqual([])
+    expect(diagnose({ text: [{ ...text[0], allowed: [7] }, { ...text[1], allowed: [42] }], attribution: polished })).toEqual(['overlap: one / two'])
     expect(rectanglesOverlap(rect, { left: 30, top: 0, right: 60, bottom: 20 })).toBe(false)
     expect(rectanglesOverlap(rect, { left: 29.5, top: 0, right: 60, bottom: 20 })).toBe(false)
   })
@@ -37,6 +39,7 @@ describe('inspection diagnostics', () => {
     for (const kind of ['progress', 'toc']) {
       const chrome = [{ kind, active: true, appearance: 'same' }, { kind, active: false, appearance: 'same' }]
       expect(diagnose({ chrome, attribution: polished })[0]).toContain(`indistinct active ${kind}`)
+      expect(diagnose({ chrome: [{ kind, active: false, appearance: 'other' }, { kind, active: true, appearance: 'same' }, { kind, active: false, appearance: 'same' }], attribution: polished })[0]).toContain(`indistinct active ${kind}`)
       chrome[0].appearance = 'different'
       expect(diagnose({ chrome, attribution: polished })).toEqual([])
     }

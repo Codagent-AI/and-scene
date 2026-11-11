@@ -1,10 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cp, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
+import { withPreview, openPresentation } from '../scripts/browser.mjs'
 import { REFERENCE_STEPS } from '../scripts/reference.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -33,7 +34,15 @@ async function run(cwd, args) {
   return { code, output }
 }
 
-function assertPreviewCleaned(output) {
+function assertResourcesCleaned(output) {
+  const previews = [...output.matchAll(/preview: .* pid=(\d+)/g)]
+  const browsers = [...output.matchAll(/^browser: pid=(\d+)/gm)]
+  assert.equal(browsers.length, previews.length, 'each ready preview launched a tracked browser')
+  for (const match of browsers) {
+    const pid = Number(match[1])
+    assert.match(output, new RegExp(`cleanup: browser pid=${pid} stopped connected=false`))
+    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' }, 'Chromium process has exited')
+  }
   for (const match of output.matchAll(/preview: .* pid=(\d+)/g)) {
     const pid = Number(match[1])
     assert.match(output, new RegExp(`cleanup: preview pid=${pid} stopped`))
@@ -49,7 +58,38 @@ test('E2E-001: reference presentation passes production verification', { timeout
     for (let index = 0; index < 9; index++) assert.match(output, new RegExp(`PASS step ${index}/8`))
     assert.match(output, /PASS verify how-to-make-a-presentation/)
     assert.match(output, /preview: http:\/\/127\.0\.0\.1:\d+ \(readiness http:\/\/127\.0\.0\.1:\d+\)/)
-    assertPreviewCleaned(output)
+    assertResourcesCleaned(output)
+    let liveBrowser, livePid
+    // Reuse the production build for real rendered-bounds regression checks.
+    await withPreview(cwd, async ({ browser, origin, browserPid }) => {
+      liveBrowser = browser; livePid = browserPid
+      const { page, errors } = await openPresentation(browser, origin, 'how-to-make-a-presentation')
+      for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 390, height: 480 }]) {
+        await page.setViewportSize(viewport)
+        for (const mode of ['browse', 'present']) {
+          await page.locator('[data-presentation-mode-toggle]').evaluate((button, expected) => {
+            if (document.querySelector('[data-presentation]').getAttribute('data-presentation-mode') !== expected) button.click()
+          }, mode)
+          await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+          const geometry = await page.evaluate(() => {
+            const canvas = document.querySelector('[data-presentation-stage]')
+            const stage = canvas.getBoundingClientRect()
+            const area = canvas.parentElement.getBoundingClientRect()
+            return { stage: { left: stage.left, right: stage.right, top: stage.top, bottom: stage.bottom, width: stage.width, height: stage.height }, area: { left: area.left, right: area.right, top: area.top, bottom: area.bottom } }
+          })
+          const { stage, area } = geometry
+          assert.ok(stage.left >= area.left - 1 && stage.right <= area.right + 1, JSON.stringify({ viewport, mode, geometry }))
+          assert.ok(stage.top >= area.top - 1 && stage.bottom <= area.bottom + 1, JSON.stringify({ viewport, mode, geometry }))
+          assert.ok(Math.abs((stage.left + stage.right) - (area.left + area.right)) < 1, 'canvas centered horizontally')
+          assert.ok(Math.abs((stage.top + stage.bottom) - (area.top + area.bottom)) < 1, 'canvas centered vertically')
+          assert.ok(Math.abs(stage.width / stage.height - 880 / 380) < .001, 'uniform fixed-canvas aspect ratio')
+          console.log(`PASS rendered bounds ${viewport.width}x${viewport.height} ${mode}: ${JSON.stringify(stage)}`)
+        }
+      }
+      assert.deepEqual(errors, [])
+    })
+    assert.equal(liveBrowser.isConnected(), false)
+    assert.throws(() => process.kill(livePid, 0), { code: 'ESRCH' })
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
@@ -105,7 +145,7 @@ export default function Talk() { return <Presentation steps={steps} title="Broke
         assert.notEqual(code, 0, output)
         assert.match(output, diagnostic)
         assert.doesNotMatch(output, /PASS verify/)
-        assertPreviewCleaned(output)
+        assertResourcesCleaned(output)
       } finally { await rm(cwd, { recursive: true, force: true }) }
     })
   }
@@ -119,6 +159,18 @@ function Scene({ payload }: { payload: number }) {
   return <div data-presentation-allow-overlap={payload === 1 ? '' : undefined}>
     <span style={{ position: 'absolute', left: 40, top: 60 }}>Collision alpha</span>
     <span style={{ position: 'absolute', left: 40, top: 60 }}>Collision beta</span>
+    <svg width="880" height="380" style={{ position: 'absolute', inset: 0 }}>
+      <title>Metadata title</title><desc>Metadata description</desc>
+      <text x="40" y="120">SVG alpha</text><text x="40" y="120">SVG beta</text>
+      <foreignObject x="40" y="145" width="240" height="60">
+        <div style={{ position: 'absolute', top: 0, left: 0 }}>Foreign alpha</div>
+        <div style={{ position: 'absolute', top: 0, left: 0 }}>Foreign beta</div>
+      </foreignObject>
+    </svg>
+    <div data-presentation-allow-overlap="">
+      <div data-presentation-allow-overlap=""><span style={{ position: 'absolute', left: 400, top: 230 }}>Nested alpha</span></div>
+      <span style={{ position: 'absolute', left: 400, top: 230 }}>Nested beta</span>
+    </div>
   </div>
 }
 const steps = [0, 1].map(payload => ({ id: String(payload), era: String(payload), title: 'Inspection fixture', caption: 'Advisory warning fixture.', Scene, payload, groupKey: 'fixture' }))
@@ -130,7 +182,12 @@ export default function InspectionFixture() { return <Presentation steps={steps}
     const { code, output } = await run(cwd, ['run', 'inspect', '--', 'inspection-fixture'])
     assert.equal(code, 0, output)
     assert.match(output, /WARN step 0: overlap:.*Collision alpha.*Collision beta/)
-    assert.doesNotMatch(output, /WARN step 1: overlap:.*Collision alpha.*Collision beta/)
+    for (const label of ['Collision', 'SVG', 'Foreign']) {
+      assert.match(output, new RegExp(`WARN step 0: overlap:.*${label} alpha.*${label} beta`))
+      assert.doesNotMatch(output, new RegExp(`WARN step 1: overlap:.*${label} alpha.*${label} beta`))
+    }
+    assert.doesNotMatch(output, /overlap:.*Nested alpha.*Nested beta/)
+    assert.doesNotMatch(output, /overlap:.*Metadata/)
     for (const index of [0, 1]) {
       assert.match(output, new RegExp(`WARN step ${index}: indistinct active progress`))
       assert.match(output, new RegExp(`WARN step ${index}: indistinct active toc`))
@@ -145,6 +202,6 @@ export default function InspectionFixture() { return <Presentation steps={steps}
       assert.ok(capture.captureAt - capture.transitionAt >= capture.settleMs)
       assert.deepEqual((await readFile(resolve(folder, capture.filename))).subarray(0, 8), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
     }
-    assertPreviewCleaned(output)
+    assertResourcesCleaned(output)
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })

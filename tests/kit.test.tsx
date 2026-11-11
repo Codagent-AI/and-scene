@@ -205,7 +205,7 @@ describe('I-20 keyboard navigation', () => {
   })
   it('preserves native and semantic control keys, editable targets, and modified shortcuts', () => {
     const { result } = renderHook(() => usePresentationNav(4))
-    const controls = ['button', 'a', 'input', 'textarea', 'select', 'div[contenteditable]', 'div[role=slider]', 'div[role=button]', 'div[role=tab]']
+    const controls = ['button', 'a', 'input', 'textarea', 'select', 'summary', 'div[role=checkbox]', 'div[role=radio]', 'div[role=switch]', 'div[role=menuitemcheckbox]', 'div[role=menuitemradio]', 'div[role=treeitem]', 'div[contenteditable]', 'div[role=slider]', 'div[role=button]', 'div[role=tab]']
     controls.forEach(selector => {
       const [tag, attribute] = selector.replace(']', '').split('[')
       const control = document.createElement(tag)
@@ -214,7 +214,11 @@ describe('I-20 keyboard navigation', () => {
       control.appendChild(child)
       document.body.appendChild(control)
       expect(isInteractive(child)).toBe(true)
-      for (const key of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) fireEvent.keyDown(child, { key })
+      for (const key of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) {
+        const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+        fireEvent(child, event)
+        expect(event.defaultPrevented).toBe(false)
+      }
       expect(result.current.index).toBe(0)
       expect(result.current.mode).toBe('browse')
       control.remove()
@@ -329,10 +333,13 @@ describe('I-24 fit scaling', () => {
     const transform = canvas.style.transform
     expect(canvas.style.width).toBe('880px')
     expect(canvas.style.height).toBe('380px')
-    expect(transform).toMatch(/^scale\([\d.]+\)$/)
+    expect(transform).toMatch(/^translate\(-50%, -50%\) scale\([\d.]+\)$/)
+    expect(canvas.style.position).toBe('absolute')
+    expect(canvas.style.left).toBe('50%')
+    expect(canvas.style.top).toBe('50%')
     stage.rerender(<Stage step={steps[1]} mode="browse" />)
     expect(canvas.style.transform).toBe(transform)
     stage.rerender(<Stage step={steps[1]} mode="present" />)
-    expect(canvas.style.transform).toBe(`scale(${fitScale(390, 844, 'present')})`)
+    expect(canvas.style.transform).toBe(`translate(-50%, -50%) scale(${fitScale(390, 844, 'present')})`)
   })
 })

@@ -5,7 +5,7 @@ export function clampIndex(index: number, count: number) {
   return Math.max(0, Math.min(Math.max(0, count - 1), index))
 }
 export function isInteractive(target: EventTarget | null) {
-  return target instanceof Element && !!target.closest('button,a,input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="slider"],[role="textbox"],[role="combobox"],[role="listbox"],[role="menuitem"],[role="tab"],[role="spinbutton"]')
+  return target instanceof Element && !!target.closest('button,a,input,textarea,select,summary,[role="checkbox"],[role="radio"],[role="switch"],[role="menuitemcheckbox"],[role="menuitemradio"],[role="treeitem"],[contenteditable]:not([contenteditable="false"]),[role="button"],[role="slider"],[role="textbox"],[role="combobox"],[role="listbox"],[role="menuitem"],[role="tab"],[role="spinbutton"]')
 }
 export function usePresentationNav(count: number, initialMode: Mode = 'browse') {
   const [position, setPosition] = useState(0)

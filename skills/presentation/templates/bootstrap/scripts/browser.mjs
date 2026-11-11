@@ -33,7 +33,8 @@ export async function withPreview(cwd, callback) {
   child.stdout.on('data', (chunk) => { serverOutput += chunk })
   child.stderr.on('data', (chunk) => { serverOutput += chunk })
   let browser
-  const stop = () => { child.kill('SIGTERM'); void browser?.close() }
+  let browserServer
+  const stop = () => { child.kill('SIGTERM'); void browserServer?.close() }
   process.once('SIGTERM', stop)
   process.once('SIGINT', stop)
   try {
@@ -48,20 +49,31 @@ export async function withPreview(cwd, callback) {
     }
     if (!ready) throw new Error(`preview: ${spawnError?.message || serverOutput || 'readiness timeout'}`)
     console.log(`preview: ${origin} (readiness ${origin}) pid=${child.pid}`)
-    browser = await chromium.launch({ headless: true })
-    return await callback({ browser, origin })
+    browserServer = await chromium.launchServer({ headless: true, host: HOST })
+    const browserPid = browserServer.process().pid
+    console.log(`browser: pid=${browserPid}`)
+    browser = await chromium.connect(browserServer.wsEndpoint())
+    return await callback({ browser, origin, browserPid })
   } finally {
     process.removeListener('SIGTERM', stop)
     process.removeListener('SIGINT', stop)
-    await browser?.close()
-    if (child.exitCode === null) {
-      const exited = once(child, 'exit')
-      child.kill('SIGTERM')
-      const force = setTimeout(() => child.kill('SIGKILL'), 3000)
-      await exited
-      clearTimeout(force)
+    try {
+      await browser?.close()
+    } finally {
+      try {
+        await browserServer?.close()
+        if (browserServer) console.log(`cleanup: browser pid=${browserServer.process().pid} stopped connected=${browser?.isConnected() ?? false}`)
+      } finally {
+        if (child.exitCode === null) {
+          const exited = once(child, 'exit')
+          child.kill('SIGTERM')
+          const force = setTimeout(() => child.kill('SIGKILL'), 3000)
+          await exited
+          clearTimeout(force)
+        }
+        console.log(`cleanup: preview pid=${child.pid} stopped`)
+      }
     }
-    console.log(`cleanup: preview pid=${child.pid} stopped`)
   }
 }
 

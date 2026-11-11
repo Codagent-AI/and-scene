@@ -8,15 +8,14 @@ export function diagnose({ text = [], chrome = [], attribution = null }) {
     for (let j = i + 1; j < text.length; j++) {
       const a = text[i]
       const b = text[j]
-      if (a.owner === b.owner || (a.allowed && a.allowed === b.allowed)) continue
+      if (a.owner === b.owner || (a.allowed?.some(marker => b.allowed?.includes(marker)))) continue
       if (rectanglesOverlap(a.rect, b.rect)) warnings.push(`overlap: ${a.label} / ${b.label}`)
     }
   }
   for (const kind of ['progress', 'toc']) {
     const controls = chrome.filter((control) => control.kind === kind)
-    const active = controls.find((control) => control.active)
-    const inactive = controls.find((control) => !control.active)
-    if (active && inactive && active.appearance === inactive.appearance) warnings.push(`indistinct active ${kind}: style [data-presentation-${kind === 'toc' ? 'toc-entry' : 'progress'}][data-active]`)
+    const indistinct = controls.some(active => active.active && controls.some(inactive => !inactive.active && active.appearance === inactive.appearance))
+    if (indistinct) warnings.push(`indistinct active ${kind}: style [data-presentation-${kind === 'toc' ? 'toc-entry' : 'progress'}][data-active]`)
   }
   if (!attribution || attribution.fontSize < 12 || attribution.browserDefault) warnings.push('attribution: style [data-presentation-attribution] for a legible, intentional link')
   return warnings
@@ -33,8 +32,11 @@ export function collectDiagnostics() {
     return ids.get(node)
   }
   const allowed = (node) => {
-    const subtree = node.closest('[data-presentation-allow-overlap]')
-    return subtree ? id(subtree) : null
+    const markers = []
+    for (let ancestor = node; ancestor; ancestor = ancestor.parentElement) {
+      if (ancestor.hasAttribute('data-presentation-allow-overlap')) markers.push(id(ancestor))
+    }
+    return markers
   }
   const visible = (node) => {
     const rect = node.getBoundingClientRect()
@@ -52,7 +54,7 @@ export function collectDiagnostics() {
   let node
   while ((node = walker.nextNode())) {
     const parent = node.parentElement
-    if (!node.textContent.trim() || !parent || !visible(parent) || parent.closest('script,style,svg')) continue
+    if (!node.textContent.trim() || !parent || !visible(parent) || parent.closest('script,style,title,desc')) continue
     const range = document.createRange()
     range.selectNodeContents(node)
     for (const rect of range.getClientRects()) {

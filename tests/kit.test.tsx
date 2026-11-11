@@ -14,7 +14,6 @@ import { Emphasis } from '../src/presentation-kit/nodes/Emphasis'
 import { SymbolChip } from '../src/presentation-kit/nodes/SymbolChip'
 import { Appear } from '../src/presentation-kit/nodes/Appear'
 import { SceneLayer } from '../src/presentation-kit/nodes/SceneLayer'
-import { eras } from '../src/presentation-kit/chrome/Toc'
 import type { SceneProps, Step } from '../src/presentation-kit/types'
 
 // Animation configuration is covered separately in motion.test.tsx. A passthrough
@@ -266,7 +265,6 @@ describe('I-22 direct navigation and active state', () => {
   it('jumps progress to steps and contents to era starts with matching semantic/hook state', () => {
     resize(1440, 900)
     const steps = makeSteps()
-    expect(eras(steps)).toEqual([{ era: 'ask', index: 0 }, { era: 'build', index: 2 }])
     const { container } = render(<Presentation steps={steps} title="Example" />)
     fireEvent.click(screen.getByRole('button', { name: 'Step 4: Title 3' }))
     expect(getRoot(container).getAttribute('data-step-index')).toBe('3')

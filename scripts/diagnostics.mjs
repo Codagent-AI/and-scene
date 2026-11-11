@@ -32,6 +32,10 @@ export function collectDiagnostics() {
     if (!ids.has(node)) ids.set(node, ++nextId)
     return ids.get(node)
   }
+  const allowed = (node) => {
+    const subtree = node.closest('[data-presentation-allow-overlap]')
+    return subtree ? id(subtree) : null
+  }
   const visible = (node) => {
     const rect = node.getBoundingClientRect()
     if (rect.width <= 0 || rect.height <= 0) return false
@@ -52,7 +56,7 @@ export function collectDiagnostics() {
     const range = document.createRange()
     range.selectNodeContents(node)
     for (const rect of range.getClientRects()) {
-      if (rect.width > 0 && rect.height > 0) text.push({ owner: id(parent), label: `${parent.tagName.toLowerCase()} "${node.textContent.trim().slice(0, 60)}"`, rect: rectData(rect), allowed: parent.closest('[data-presentation-allow-overlap]') ? id(parent.closest('[data-presentation-allow-overlap]')) : null })
+      if (rect.width > 0 && rect.height > 0) text.push({ owner: id(parent), label: `${parent.tagName.toLowerCase()} "${node.textContent.trim().slice(0, 60)}"`, rect: rectData(rect), allowed: allowed(parent) })
     }
   }
   // Include chrome hit areas, while retaining their text's owner to avoid self-collisions.
@@ -64,7 +68,7 @@ export function collectDiagnostics() {
     for (let i = text.length - 1; i >= 0; i--) {
       if (text[i].owner === owner || [...control.querySelectorAll('*')].some((child) => id(child) === text[i].owner)) text.splice(i, 1)
     }
-    text.push({ owner, label: `chrome "${label}"`, rect: rectData(control.getBoundingClientRect()), allowed: control.closest('[data-presentation-allow-overlap]') ? id(control.closest('[data-presentation-allow-overlap]')) : null })
+    text.push({ owner, label: `chrome "${label}"`, rect: rectData(control.getBoundingClientRect()), allowed: allowed(control) })
   }
   for (const [kind, selector] of [['progress', '[data-presentation-progress]'], ['toc', '[data-presentation-toc-entry]']]) {
     for (const control of root.querySelectorAll(selector)) {

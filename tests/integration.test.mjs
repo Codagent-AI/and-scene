@@ -5,6 +5,7 @@ import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
+import { withBrowser } from '../scripts/browser.mjs'
 import { inspectPresentation } from '../scripts/inspect-presentation.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -48,6 +49,37 @@ function assertStopped(output) {
   for (const pid of started) {
     assert.ok(output.includes(`preview stopped pid=${pid}`), output)
     assert.throws(() => process.kill(Number(pid), 0), { code: 'ESRCH' })
+  }
+}
+
+async function assertBrowserResourcesClosed(cwd, fail) {
+  let browser
+  let context
+  let page
+  let contextClosed = false
+  try {
+    const operation = withBrowser(async (createdPage, url) => {
+      page = createdPage
+      context = page.context()
+      browser = context.browser()
+      context.on('close', () => { contextClosed = true })
+      assert.equal(browser.isConnected(), true)
+      assert.equal(page.isClosed(), false)
+      assert.ok(browser.contexts().includes(context))
+      await page.goto(url)
+      if (fail) throw new Error('injected cleanup failure')
+    }, { cwd })
+    if (fail) await assert.rejects(operation, /injected cleanup failure/)
+    else await operation
+    assert.equal(browser.isConnected(), false, 'owned Browser disconnects')
+    assert.equal(page.isClosed(), true, 'owned Page closes')
+    assert.equal(contextClosed, true, 'owned BrowserContext emits close')
+    assert.deepEqual(context.pages(), [], 'closed context retains no pages')
+    assert.deepEqual(browser.contexts(), [], 'closed browser retains no contexts')
+    console.log(`browser resources verified closed after ${fail ? 'action failure' : 'success'}`)
+  } finally {
+    // Keep the regression test itself safe if the production close call is removed.
+    await browser?.close()
   }
 }
 
@@ -108,11 +140,17 @@ function Scene({ payload }: SceneProps<number>) {
     <svg width="200" height="50" style={{ position: 'absolute', left: 500, top: 50 }}>
       <text x="10" y="20">svg-alpha</text><text x="10" y="20">svg-beta</text>
     </svg>
+    <div data-presentation-navigation="" style={{ position: 'absolute', inset: 0 }}>
+      <button aria-label="icon-alpha" style={{ position: 'absolute', left: 500, top: 120, width: 40, height: 40 }}><svg width="12" height="12"><circle cx="6" cy="6" r="5" /></svg></button>
+      <button aria-label="icon-beta" style={{ position: 'absolute', left: 520, top: 120, width: 40, height: 40 }}><svg width="12" height="12"><circle cx="6" cy="6" r="5" /></svg></button>
+      <button aria-label="padded-control" style={{ position: 'absolute', left: 50, top: 130, width: 160, height: 50 }}><span style={{ position: 'absolute', left: 5, top: 5 }}>control-label</span></button>
+      <span style={{ position: 'absolute', left: 180, top: 166 }}>padded-target</span>
+    </div>
     <div style={{ position: 'absolute', width: 50, height: 50, left: 300, top: 100, background: settled ? 'rgb(0, 255, 0)' : 'rgb(255, 0, 0)' }} />
   </div>
 }
 const steps: Step<number>[] = [0,1].map(payload => ({ id: String(payload), era: String(payload), title: 'Step ' + payload, caption: 'Diagnostic caption.', Scene, payload, groupKey: 'fixture' }))
-export default function Talk() { return <><style>{'[data-presentation-attribution] { font-size: 8px }'}</style><Presentation steps={steps} title="Diagnostic fixture" /></> }
+export default function Talk() { return <><style>{'[data-presentation-attribution] { font-size: 8px } [data-presentation-progress-entry], [data-presentation-toc-entry] { border: 0; border-color: blue } [data-active=\"true\"] { border-color: red }'}</style><Presentation steps={steps} title="Diagnostic fixture" /></> }
 `)
     await must(['npm', 'run', 'build'], cwd)
     const start = Date.now()
@@ -123,6 +161,10 @@ export default function Talk() { return <><style>{'[data-presentation-attributio
     assert.ok(!captures[1].warnings.some(warning => /overlap collision/.test(warning)))
     assert.ok(captures[0].warnings.some(warning => /overlap svg-alpha \/ svg-beta/.test(warning)))
     assert.ok(!captures[1].warnings.some(warning => /overlap svg-alpha/.test(warning)))
+    assert.ok(captures[0].warnings.some(warning => /overlap chrome icon-alpha \/ chrome icon-beta/.test(warning)))
+    assert.ok(captures[0].warnings.some(warning => /overlap padded-target \/ chrome padded-control/.test(warning)))
+    assert.ok(!captures[1].warnings.some(warning => /overlap.*(?:icon-alpha|padded-control)/.test(warning)))
+    assert.ok(!captures[0].warnings.some(warning => /overlap control-label \/ chrome padded-control/.test(warning)))
     for (const capture of captures) {
       assert.ok(capture.warnings.some(warning => /indistinct active progress/.test(warning)))
       assert.ok(capture.warnings.some(warning => /indistinct active toc/.test(warning)))
@@ -134,7 +176,6 @@ export default function Talk() { return <><style>{'[data-presentation-attributio
       assert.equal(png.readUInt32BE(20), 900)
     }
     // Decode through Chromium's canvas, asserting the captured late-state green marker.
-    const { withBrowser } = await import('../scripts/browser.mjs')
     await withBrowser(async page => {
       for (const capture of captures) {
         const png = await readFile(capture.path)
@@ -163,6 +204,7 @@ test('E2E-001 reference production verification builds and renders all nine orde
   assert.match(output, /PASS build, sample, render/)
   assert.match(output, /http:\/\/127\.0\.0\.1:/)
   assertStopped(output)
+  await assertBrowserResourcesClosed(root, false)
 })
 
 test('E2E-002 injected build sample console page render and transition faults fail actionably and clean up previews', { timeout: 540000 }, async () => {
@@ -185,6 +227,7 @@ test('E2E-002 injected build sample console page render and transition faults fa
       assert.match(result.output, fault.expected, fault.name)
       assert.doesNotMatch(result.output, /PASS build, sample, render/)
       if (fault.name !== 'build') assertStopped(result.output)
+      if (fault.name === 'console') await assertBrowserResourcesClosed(cwd, true)
     } finally { await rm(cwd, { recursive: true, force: true }) }
   }
 })

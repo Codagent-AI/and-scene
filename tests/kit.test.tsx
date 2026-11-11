@@ -13,7 +13,7 @@ import { Appear } from '../src/presentation-kit/nodes/Appear'
 import { SceneLayer } from '../src/presentation-kit/nodes/SceneLayer'
 import { usePresentationNav } from '../src/presentation-kit/usePresentationNav'
 import { fitScale } from '../src/presentation-kit/useFitScale'
-import { DESIGN_H, DESIGN_W, ENTER_DELAY, ENTER_T, LAYOUT_T } from '../src/presentation-kit/constants'
+import { DESIGN_H, DESIGN_W, ENTER_DELAY, ENTER_T, LAYOUT_T, STAGE_LAYOUT } from '../src/presentation-kit/constants'
 import type { SceneProps, Step } from '../src/presentation-kit/types'
 
 vi.mock('motion/react', async () => {
@@ -133,7 +133,16 @@ describe('chrome and input', () => {
     expect(view.container.querySelector('[data-presentation-navigation]')).toBeNull()
     act(() => key('ArrowRight'))
     const node = view.container.querySelector('[data-entity-id]')
+    const stage = view.container.querySelector<HTMLElement>('[data-presentation-stage]')!
+    const canvas = view.container.querySelector<HTMLElement>('[data-presentation-canvas]')!
+    expect([stage.style.top, stage.style.bottom, stage.style.left, stage.style.right]).toEqual(['32px', '104px', '24px', '24px'])
+    const presentScale = Math.min((window.innerWidth - 48) / 880, (window.innerHeight - 136) / 380)
+    expect(Number(canvas.dataset.scale)).toBeCloseTo(presentScale)
     act(() => key('p'))
+    expect([stage.style.top, stage.style.bottom, stage.style.left, stage.style.right]).toEqual(['112px', '206px', '32px', '32px'])
+    const browseScale = Math.min((window.innerWidth - 64) / 880, (window.innerHeight - 318) / 380)
+    expect(Number(canvas.dataset.scale)).toBeCloseTo(browseScale)
+    expect(Number(canvas.dataset.scale)).not.toBe(presentScale)
     expect(screen.getByText('Caption B')).toBeTruthy()
     expect(view.container.querySelector('[data-entity-id]')).toBe(node)
     expect(view.container.querySelector('[data-presentation-toc]')).toBeTruthy()
@@ -145,7 +154,7 @@ describe('chrome and input', () => {
     act(() => { window.innerWidth = 1024; fireEvent(window, new Event('resize')) })
   })
   it('I-24 handles all navigation keys once and ignores focused controls', () => {
-    const { result, unmount } = renderHook(() => usePresentationNav(8))
+    const { result } = renderHook(() => usePresentationNav(8))
     for (const value of ['ArrowRight', ' ', 'PageDown']) act(() => key(value))
     expect(result.current.index).toBe(3)
     for (const value of ['ArrowLeft', 'PageUp']) act(() => key(value))
@@ -158,9 +167,27 @@ describe('chrome and input', () => {
     }
     act(() => fireEvent.keyDown(window, { key: 'ArrowRight', ctrlKey: true }))
     expect(result.current.index).toBe(1)
-    unmount()
-    act(() => key('ArrowRight'))
-    expect(result.current.index).toBe(1)
+  })
+  it('I-24 removes the exact keyboard listener and stops preventing keys after unmount', () => {
+    const add = vi.spyOn(window, 'addEventListener')
+    const remove = vi.spyOn(window, 'removeEventListener')
+    try {
+      const { unmount } = renderHook(() => usePresentationNav(3))
+      const registrations = add.mock.calls.filter(([type]) => type === 'keydown')
+      expect(registrations).toHaveLength(1)
+      const handler = registrations[0][1]
+      const before = new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true })
+      act(() => { window.dispatchEvent(before) })
+      expect(before.defaultPrevented).toBe(true)
+      unmount()
+      expect(remove).toHaveBeenCalledWith('keydown', handler)
+      const after = new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true })
+      window.dispatchEvent(after)
+      expect(after.defaultPrevented).toBe(false)
+    } finally {
+      add.mockRestore()
+      remove.mockRestore()
+    }
   })
   it('I-25 clamps all boundaries and handles directional touch without vertical or tiny gestures', () => {
     const { result } = renderHook(() => usePresentationNav(2))
@@ -195,12 +222,24 @@ describe('chrome and input', () => {
   })
 })
 describe('I-27 fixed canvas scaling', () => {
+  it('reserves the specified chrome geometry in each mode', () => {
+    expect(STAGE_LAYOUT).toEqual({
+      browse: { top: 112, bottom: 206, side: 32 },
+      present: { top: 32, bottom: 104, side: 24 },
+    })
+    expect(fitScale(1440, 900, 'browse')).toBeCloseTo(582 / 380)
+    expect(fitScale(1440, 900, 'present')).toBeCloseTo(1392 / 880)
+    expect(fitScale(1440, 900, 'browse')).not.toBe(fitScale(1440, 900, 'present'))
+  })
   it.each([[1440, 900], [390, 844], [800, 350], [0, 0]])('fits both modes at %ix%i', (width, height) => {
     for (const mode of ['browse', 'present'] as const) {
       const scale = fitScale(width, height, mode)
       expect(scale).toBeGreaterThanOrEqual(0)
-      expect(DESIGN_W * scale).toBeLessThanOrEqual(width)
-      expect(DESIGN_H * scale).toBeLessThanOrEqual(height)
+      const availableWidth = Math.max(0, width - (mode === 'browse' ? 64 : 48))
+      const availableHeight = Math.max(0, height - (mode === 'browse' ? 318 : 136))
+      expect(scale).toBeCloseTo(Math.min(availableWidth / 880, availableHeight / 380))
+      expect(DESIGN_W * scale).toBeLessThanOrEqual(availableWidth)
+      expect(DESIGN_H * scale).toBeLessThanOrEqual(availableHeight)
     }
   })
   it('keeps uniform canvas dimensions through step changes and updates on resize', () => {

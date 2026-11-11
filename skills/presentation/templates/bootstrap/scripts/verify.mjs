@@ -2,11 +2,10 @@ import { pathToFileURL } from 'node:url'
 import { run, withBrowser, watchErrors, stepTo } from './browser.mjs'
 import { referenceSlug, referenceTitle, validateReference } from './reference.mjs'
 
-export async function verify({ cwd = process.cwd(), slug = referenceSlug, build = true, canonical = slug === referenceSlug } = {}) {
-  if (build) {
-    try { await run('npm', ['run', 'build'], cwd) }
-    catch (error) { throw new Error(`build: ${error.message}`) }
-  }
+export async function verify({ cwd = process.cwd(), slug = referenceSlug } = {}) {
+  const canonical = slug === referenceSlug
+  try { await run('npm', ['run', 'build'], cwd) }
+  catch (error) { throw new Error(`build: ${error.message}`) }
   await withBrowser(async (page, url) => {
     const checkErrors = watchErrors(page)
     await page.goto(url)

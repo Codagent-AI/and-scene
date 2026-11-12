@@ -18,16 +18,26 @@ export async function verify({ root = process.cwd(), slug = REFERENCE_SLUG, buil
       const errors = []
       page.on('console', (message) => { if (message.type() === 'error') errors.push(`console: ${message.text()}`) })
       page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`))
-      await page.goto(`${baseURL}/${slug}`)
-      const count = await readStepCount(page)
-      if (slug === REFERENCE_SLUG && count !== 9) throw new Error(`expected nine sample steps, found ${count}`)
+      const renderCheck = async (action) => {
+        try { return await action() }
+        catch (error) {
+          if (!errors.length) throw error
+          phase = 'render'
+          const missing = await page.locator('[data-step-index]').count() === 0
+          throw new Error(`${errors.join('\n')}${missing ? '\npresentation step hooks missing after render failure' : ''}`, { cause: error })
+        }
+      }
+      phase = 'render'
+      await renderCheck(() => page.goto(`${baseURL}/${slug}`))
+      const count = await renderCheck(() => readStepCount(page))
+      if (slug === REFERENCE_SLUG && count !== 9) { phase = 'sample'; throw new Error(`expected nine sample steps, found ${count}`) }
       phase = 'render'
       const metadata = []
       for (index = 0; index < count; index += 1) {
         if (index > 0) {
           phase = 'transition'
           await page.keyboard.press('ArrowRight')
-          await waitForStep(page, index)
+          await renderCheck(() => waitForStep(page, index))
         }
         phase = 'render'
         await page.waitForTimeout(SETTLE_MS)

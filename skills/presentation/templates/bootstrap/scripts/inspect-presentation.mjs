@@ -1,3 +1,4 @@
+/* global document */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -21,12 +22,19 @@ export async function inspect({ root = process.cwd(), slug, build = true, settle
     for (let index = 0; index < count; index += 1) {
       const started = Date.now()
       if (index) { await page.keyboard.press('ArrowRight'); await waitForStep(page, index) }
+      const waitStarted = Date.now()
       await page.waitForTimeout(settleMs)
+      // CSS and Web Animations may outlast the configured interval. Ignore
+      // decorative infinite loops, but never capture a finite transition midway.
+      await page.waitForFunction(() => document.getAnimations().every((animation) =>
+        animation.effect?.getComputedTiming().iterations === Infinity ||
+        !(animation.pending || animation.playState === 'running')), undefined, { timeout: Math.max(5000, settleMs) })
       const snapshot = await page.evaluate(collectSnapshot)
       const warnings = diagnose(snapshot)
       const filename = `step-${String(index + 1).padStart(2, '0')}.png`
+      const captureStarted = Date.now()
       await page.screenshot({ path: resolve(directory, filename), fullPage: true })
-      results.push({ index, filename, settleMs, elapsedMs: Date.now() - started, warnings, composition: snapshot.composition })
+      results.push({ index, filename, settleMs, waitedMs: captureStarted - waitStarted, elapsedMs: Date.now() - started, warnings, composition: snapshot.composition })
       for (const warning of warnings) console.warn(`WARN step ${index}: ${warning}`)
       console.log(`Captured step ${index}: ${resolve(directory, filename)}`)
     }

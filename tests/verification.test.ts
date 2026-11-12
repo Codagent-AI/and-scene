@@ -37,6 +37,26 @@ describe('advisory visual diagnostics', () => {
     texts[1].x = 10
     expect(diagnose(input)).toEqual([])
   })
+  it('exempts only shared allowed subtrees and a control containing its own label', () => {
+    const first = { name: 'marked', owner: 1, ancestors: [10], allowedScopes: [10], x: 0, y: 0, width: 100, height: 30 }
+    const second = { name: 'other', owner: 2, ancestors: [10], allowedScopes: [10], x: 80, y: 0, width: 100, height: 30 }
+    const input = { texts: [first, second], controls: [], attribution: { fontSize: 14, color: 'black', decoration: 'none', fontFamily: 'Arial' } }
+    expect(diagnose(input)).toEqual([])
+    second.ancestors = [20]; second.allowedScopes = []
+    expect(diagnose(input)).toEqual(['overlap: marked / other'])
+    second.allowedScopes = [20]
+    expect(diagnose(input)).toEqual(['overlap: marked / other'])
+    // Both nested markers still share the outer allow-overlap ancestor.
+    second.allowedScopes = [20, 10]
+    expect(diagnose(input)).toEqual([])
+    second.allowedScopes = []; first.allowedScopes = []
+    second.ancestors = [1]
+    expect(diagnose(input)).toEqual([])
+    second.ancestors = []; second.owner = 1
+    expect(diagnose(input)).toEqual([])
+    second.owner = 2
+    expect(diagnose(input)).toEqual(['overlap: marked / other'])
+  })
   it('distinguishes active chrome and classifies missing, small, default, and polished attribution', () => {
     const input = { texts: [], controls: [{ group: 'progress', name: 'active', active: true, appearance: 'same' }, { group: 'progress', name: 'inactive', active: false, appearance: 'same' }], attribution: null as null | { fontSize: number, color: string, decoration: string, fontFamily: string } }
     expect(diagnose(input).join(' ')).toContain('indistinct active chrome')

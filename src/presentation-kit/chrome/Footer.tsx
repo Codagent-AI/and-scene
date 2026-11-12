@@ -1,0 +1,4 @@
+import type { StepMeta } from '../types'
+export function Footer({ steps, index, jump, next, prev }: { steps: readonly StepMeta[]; index: number; jump: (n: number) => void; next: () => void; prev: () => void }) {
+  return <footer data-presentation-footer=""><p data-presentation-caption="">{steps[index].caption}</p><nav aria-label="Step navigation" data-presentation-navigation=""><button onClick={prev} disabled={index === 0} aria-label="Previous step">Previous</button><div data-presentation-progress="">{steps.map((step, i) => <button key={step.id} data-presentation-progress-item="" data-presentation-active={i === index ? 'true' : 'false'} aria-current={i === index ? 'step' : undefined} aria-label={`Step ${i + 1}: ${step.title}`} onClick={() => jump(i)}>{i + 1}</button>)}</div><button onClick={next} disabled={index === steps.length - 1} aria-label="Next step">Next</button></nav></footer>
+}

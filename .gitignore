@@ -24,7 +24,5 @@ validator_logs
 *.sln
 *.sw?
 
-node_modules/
-dist/
 artifacts/
 *.tsbuildinfo

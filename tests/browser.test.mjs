@@ -33,7 +33,7 @@ async function noPreview(output) {
   for (const port of ports) await assert.rejects(fetch(`http://127.0.0.1:${port}`))
 }
 function fixture({ fault = '', diagnostics = false } = {}) {
-  return `import React, { useEffect, useState } from 'react'; import { createRoot } from 'react-dom/client';
+  return `import { useEffect, useState } from 'react'; import { createRoot } from 'react-dom/client';
 const metadata=${JSON.stringify(fault === 'order' ? [...REFERENCE_STEPS].reverse() : REFERENCE_STEPS)};
 function App(){const [index,setIndex]=useState(0); useEffect(()=>{const listener=(event:KeyboardEvent)=>{if(event.key==='ArrowRight')setIndex(i=>Math.min(i+1,8))}; ${fault === 'transition' ? '' : "window.addEventListener('keydown',listener);"} return ()=>window.removeEventListener('keydown',listener)},[]);
 useEffect(()=>{if(index===1){${fault === 'console' ? "console.error('injected console failure')" : fault === 'page' ? "setTimeout(()=>{throw new Error('injected page failure')},0)" : ''}}},[index]);

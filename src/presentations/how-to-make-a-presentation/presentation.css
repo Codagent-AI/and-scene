@@ -1,0 +1,52 @@
+.how-to-presentation { color: #f3eee4; background: #171c1a; min-height: 100vh; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.sample-scene { color: #eee8dc; }
+.sample-scene [data-entity] { position: absolute; }
+.sample-scene .actor { display: flex; align-items: center; justify-content: center; gap: 17px; border: 1px solid #75836c; border-radius: 12px; background: #252e27; font-size: 22px; font-weight: 600; }
+.actor-mark { color: #c5dc98; }
+.sample-scene .skill { background: #d0dea8; color: #202a20; border-color: #d0dea8; }
+.skill .actor-mark { color: #35462c; font-size: 28px; }
+.prompt-bubble { color: #a6b1a0; font-size: 15px; text-align: center; font-style: italic; }
+.conversation-arrow { fill: none; stroke: #97a787; stroke-width: 1.5; }
+.question-chip { color: #c7d4bd; background: #263023; border: 1px solid #48583d; border-radius: 20px; text-align: center; font-size: 12px; line-height: 25px; }
+.step-tray { border-bottom: 2px solid #4c5b43; }
+.step-tray > span { position: absolute; left: 16px; top: -13px; font-size: 9px; letter-spacing: 2px; color: #8d9b80; }
+.sample-scene .step-card { background: #ede8db; color: #29302a; border: 1px solid #ede8db; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; }
+.card-number { color: #67755b; font-size: 10px; letter-spacing: 1px; }
+.step-card strong { font-size: 13px; margin: 3px 0 8px; font-weight: 650; }
+.card-parts { font-size: 9px; color: #5a6655; white-space: nowrap; }
+.morph-link { text-align: center; color: #a6bd89; font-size: 18px; line-height: 18px; }
+.morph-link small { display: block; font-size: 8px; color: #9da992; }
+.ghost-card { border: 1px dashed #71825f; border-radius: 8px; color: #a1b08f; font-size: 24px; text-align: center; padding-top: 15px; }
+.ghost-card small { display: block; font-size: 10px; }
+.depth-control { border: 1px solid #637252; border-top: 0; border-radius: 0 0 8px 8px; color: #bfd39f; background: #222b20; font-size: 11px; text-align: center; line-height: 29px; }
+.kit-socket { border: 1px solid #768c5c; border-top: 3px solid #b3cb8a; border-radius: 0 0 9px 9px; color: #c6d9a6; text-align: center; line-height: 29px; font-size: 12px; background: #283221; }
+.verify-link { font-size: 19px; color: #a7be89; }
+.verify-node { display: flex; flex-direction: column; justify-content: center; gap: 5px; text-align: center; border: 1px solid #6f9269; background: #25392c; border-radius: 8px; }
+.verify-node strong { font-size: 14px; font-weight: 600; }
+.verify-node > span { font-size: 9px; color: #b0bda8; }
+.verify-node .pass-check { font-size: 12px; color: #b5e3a1; }
+.modify-arc { stroke: #d5b789; stroke-width: 1.5; stroke-dasharray: 4 4; fill: none; }
+.modify-label { font-size: 10px; color: #ddc397; background: #171c1a; text-align: center; }
+.edit-flag { position: absolute; right: 7px; top: -9px; background: #e2c797; color: #363321; font-size: 8px; border-radius: 4px; padding: 1px 5px; }
+.reveal-frame { border: 1px solid #98b678; border-radius: 15px; pointer-events: none; }
+.reveal-label { background: #171c1a; color: #c0d79e; font-size: 10px; letter-spacing: 1.6px; text-align: center; }
+.how-to-presentation [data-presentation-header] { color: #acb5a5; font-size: 12px; letter-spacing: .5px; height: 96px; }
+.how-to-presentation [data-presentation-title] { color: #f3eee4; font-weight: 500; line-height: 1.2; letter-spacing: -1px; position: absolute; top: 52px; left: 24px; right: 24px; text-align: center; margin: 0; font-size: 30px; }
+.how-to-presentation [data-presentation-caption] { color: #a8b4a1; font-size: 15px; line-height: 1.7; max-width: 660px; margin: 12px auto 20px; }
+.how-to-presentation button { border: 1px solid #49583f; color: #b8c5ad; background: #20291f; border-radius: 7px; padding: 7px 12px; cursor: pointer; }
+.how-to-presentation button:hover { border-color: #a3bd81; color: #e5efd7; }
+.how-to-presentation button:disabled { opacity: .35; cursor: default; }
+.how-to-presentation [data-presentation-toc] { color: #829178; font-size: 11px; }
+.how-to-presentation [data-presentation-attribution] { color: #91a97a; font-size: 12px; text-decoration: none; letter-spacing: .2px; }
+.how-to-presentation [data-presentation-attribution]:hover { color: #d2e5b3; }
+@media(max-width: 600px) { .how-to-presentation [data-presentation-caption] { font-size: 13px; } }
+.how-to-presentation [data-presentation-name] { position: absolute; top: 21px; left: 28px; font-size: 11px; max-width: calc(100% - 150px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.how-to-presentation [data-presentation-marker] { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); text-transform: uppercase; letter-spacing: 2px; font-size: 10px; }
+.how-to-presentation [data-presentation-footer] { padding: 0 24px; text-align: center; }
+.how-to-presentation [data-presentation-controls], .how-to-presentation [data-presentation-progress-list] { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.how-to-presentation [data-presentation-progress] { width: 25px; height: 25px; padding: 0; border-radius: 50%; font-size: 10px; }
+.how-to-presentation [data-presentation-prev], .how-to-presentation [data-presentation-next] { font-size: 11px; }
+.how-to-presentation [data-presentation-toc] { display: flex; flex-direction: column; gap: 9px; }
+.how-to-presentation [data-presentation-toc-entry] { text-align: left; background: transparent; border-color: transparent; padding: 8px 12px; }
+.how-to-presentation [data-active="true"] { background: #c5dca2; color: #1e2a1b; border-color: #c5dca2; font-weight: 700; }
+@media(max-width: 700px) { .how-to-presentation [data-presentation-name] { display: none; } .how-to-presentation [data-presentation-marker] { left: 24px; transform: none; } .how-to-presentation [data-presentation-title] { font-size: 24px; } .how-to-presentation [data-presentation-controls], .how-to-presentation [data-presentation-progress-list] { gap: 4px; } .how-to-presentation [data-presentation-progress] { width: 20px; height: 20px; font-size: 9px; } .how-to-presentation [data-presentation-prev], .how-to-presentation [data-presentation-next] { padding: 5px; } }

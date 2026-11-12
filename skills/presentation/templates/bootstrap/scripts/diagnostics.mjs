@@ -42,6 +42,29 @@ export function collectDiagnostics() {
     if (width > 1 && height > 1) overlaps.add(`overlap: ${label(a.element)} / ${label(b.element)}`)
   }
   warnings.push(...overlaps)
+  // Text inside a scaled canvas renders at font-size times the cumulative transform scale.
+  const MIN_READABLE_PX = 6
+  const scaleOf = (element) => {
+    let scale = 1
+    for (let ancestor = element; ancestor; ancestor = ancestor.parentElement) {
+      const match = /^matrix\(([^)]+)\)$/.exec(getComputedStyle(ancestor).transform ?? '')
+      if (!match) continue
+      const [a, b, c, d] = match[1].split(',').map(Number)
+      const factor = Math.sqrt(Math.abs(a * d - b * c))
+      if (factor > 0) scale *= factor
+    }
+    return scale
+  }
+  const small = new Map()
+  for (const { element } of boxes) {
+    if (element.matches(controlSelector)) continue
+    const size = parseFloat(getComputedStyle(element).fontSize) * scaleOf(element)
+    if (size < MIN_READABLE_PX) small.set(element, size)
+  }
+  if (small.size) {
+    const [element, size] = [...small].sort((x, y) => x[1] - y[1])[0]
+    warnings.push(`text too small: ${small.size} text element(s) render below ${MIN_READABLE_PX}px (smallest ${size.toFixed(1)}px ${label(element)}); the scaled canvas is unreadable at this viewport`)
+  }
   const signature = (element) => {
     const css = getComputedStyle(element)
     return ['color', 'backgroundColor', 'borderColor', 'borderWidth', 'fontWeight', 'opacity', 'textDecorationLine', 'boxShadow', 'transform'].map((key) => css[key]).join('|')

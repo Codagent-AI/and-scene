@@ -48,3 +48,20 @@ describe('inspection advisory classification', () => {
     expect(collectDiagnostics()).toEqual([])
   })
 })
+
+describe('scaled text readability advisory', () => {
+  const scaled = (scale: number, size: number) => {
+    document.body.innerHTML = `<div style="transform:matrix(${scale},0,0,${scale},0,0)"><span style="font-size:${size}px">tiny label</span></div>`
+    geometry()
+  }
+  it('warns when canvas scaling renders text below the readable floor', () => {
+    scaled(0.4, 12)
+    expect(collectDiagnostics().some((s: string) => s.startsWith('text too small:') && s.includes('span[tiny label]'))).toBe(true)
+  })
+  it('stays silent when scaled text remains readable', () => {
+    scaled(1, 9)
+    expect(collectDiagnostics().some((s: string) => s.startsWith('text too small:'))).toBe(false)
+    scaled(0.8, 12)
+    expect(collectDiagnostics().some((s: string) => s.startsWith('text too small:'))).toBe(false)
+  })
+})

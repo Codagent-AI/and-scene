@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Mode, Step } from './types'
 import { usePresentationNav } from './usePresentationNav'
-import { useFitScale, useViewport } from './useFitScale'
+import { fitScale, useViewport } from './useFitScale'
 import { Stage } from './Stage'
 import { Header } from './chrome/Header'
 import { Footer } from './chrome/Footer'
@@ -9,8 +9,7 @@ import { Toc } from './chrome/Toc'
 export interface PresentationProps<T> { steps: readonly Step<T>[]; title: string; initialMode?: Mode; className?: string; brand?: ReactNode; attribution?: ReactNode }
 export function Presentation<T>({ steps, title, initialMode = 'browse', className, brand, attribution }: PresentationProps<T>) {
   const nav = usePresentationNav(steps.length, initialMode)
-  const scale = useFitScale(nav.mode)
-  const { width } = useViewport()
+  const { width, height } = useViewport(), scale = fitScale(width, height, nav.mode)
   if (!steps.length) return <p role="alert">This presentation has no steps.</p>
   const step = steps[nav.index]
   return <main className={className} aria-label={title} data-presentation-root="" data-presentation="" data-presentation-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.index}>

@@ -18,6 +18,18 @@ describe('inspection advisory classification', () => {
     geometry()
     expect(collectDiagnostics().filter((s: string) => s.startsWith('overlap:'))).toEqual([])
   })
+  it('reports direct text mixed with inline markup and icon-only control collisions', () => {
+    document.body.innerHTML = '<p>mixed direct text <strong>inline label</strong></p><span>colliding text</span><button aria-label="icon control"><svg/></button>'
+    geometry()
+    const warnings = collectDiagnostics()
+    expect(warnings.some((s: string) => s.includes('p[mixed direct text inline label] / span[colliding text]'))).toBe(true)
+    expect(warnings.some((s: string) => s.includes('button[icon control]') && s.includes('span[colliding text]'))).toBe(true)
+  })
+  it('ignores mixed text and icon controls beneath hidden or explicitly allowed ancestors', () => {
+    document.body.innerHTML = '<div hidden><p>hidden direct <strong>inline</strong></p><button aria-label="hidden icon"><svg/></button></div><div style="opacity:0"><button aria-label="transparent icon"><svg/></button></div><div data-presentation-allow-overlap><p>allowed direct <strong>inline</strong></p><button aria-label="allowed icon"><svg/></button></div><span>visible</span>'
+    geometry()
+    expect(collectDiagnostics().filter((s: string) => s.startsWith('overlap:'))).toEqual([])
+  })
   it('warns for indistinct active chrome and stops warning when styled distinctly', () => {
     document.body.innerHTML = '<nav data-presentation-progress><button aria-current="step">first</button><button>second</button></nav>'
     geometry()

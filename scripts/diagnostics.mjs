@@ -4,23 +4,44 @@ export function collectDiagnostics() {
   const warnings = []
   const visible = (element) => {
     const rect = element.getBoundingClientRect()
-    const css = getComputedStyle(element)
-    return rect.width > 0 && rect.height > 0 && css.visibility !== 'hidden' && css.display !== 'none' && Number(css.opacity) !== 0
+    if (rect.width <= 0 || rect.height <= 0) return false
+    for (let ancestor = element; ancestor; ancestor = ancestor.parentElement) {
+      const css = getComputedStyle(ancestor)
+      if (css.visibility === 'hidden' || css.visibility === 'collapse' || css.display === 'none' || css.opacity === '0') return false
+    }
+    return true
   }
-  const label = (element) => `${element.tagName.toLowerCase()}[${(element.textContent || element.getAttribute('aria-label') || '').trim().slice(0, 70)}]`
-  const leaves = [...document.querySelectorAll('body *')].filter((element) => visible(element) && !element.closest('[data-presentation-allow-overlap]') && !['SCRIPT', 'STYLE', 'SVG', 'PATH'].includes(element.tagName) && [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim()) && ![...element.children].some((child) => child.textContent.trim()))
-  const boxes = leaves.map((element) => {
-    const range = document.createRange()
-    range.selectNodeContents(element)
-    return { element, rect: range.getBoundingClientRect() }
-  })
+  const label = (element) => `${element.tagName.toLowerCase()}[${(element.textContent?.trim() || element.getAttribute('aria-label') || '').trim().slice(0, 70)}]`
+  const controlSelector = 'button,a[href],input,select,textarea,summary,[role="button"],[role="tab"],[role="checkbox"],[role="switch"],[role="slider"]'
+  const boxes = []
+  for (const element of document.querySelectorAll('body *')) {
+    if (!visible(element) || element.closest('[data-presentation-allow-overlap]') || element.closest('script,style,svg')) continue
+    // A control's entire hit area is chrome, including icon-only controls. Avoid
+    // counting its own nested text again as a separate collision candidate.
+    const control = element.closest(controlSelector)
+    if (control) {
+      if (control === element) boxes.push({ element, rect: element.getBoundingClientRect() })
+      continue
+    }
+    // Measure each direct text node, including text mixed with inline markup.
+    // Individual line rectangles avoid treating wrapped-line whitespace as text.
+    for (const node of element.childNodes) {
+      if (node.nodeType !== Node.TEXT_NODE || !node.textContent.trim()) continue
+      const range = document.createRange()
+      range.selectNodeContents(node)
+      const rects = typeof range.getClientRects === 'function' ? [...range.getClientRects()] : [range.getBoundingClientRect()]
+      for (const rect of rects) if (rect.width > 0 && rect.height > 0) boxes.push({ element, rect })
+    }
+  }
+  const overlaps = new Set()
   for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
     const a = boxes[i], b = boxes[j]
     if (a.element.contains(b.element) || b.element.contains(a.element)) continue
     const width = Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left)
     const height = Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top)
-    if (width > 1 && height > 1) warnings.push(`overlap: ${label(a.element)} / ${label(b.element)}`)
+    if (width > 1 && height > 1) overlaps.add(`overlap: ${label(a.element)} / ${label(b.element)}`)
   }
+  warnings.push(...overlaps)
   const signature = (element) => {
     const css = getComputedStyle(element)
     return ['color', 'backgroundColor', 'borderColor', 'borderWidth', 'fontWeight', 'opacity', 'textDecorationLine', 'boxShadow', 'transform'].map((key) => css[key]).join('|')

@@ -1,3 +1,4 @@
+/* global document */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { cp, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
@@ -5,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { REFERENCE_STEPS } from '../scripts/reference.mjs'
+import { withPreview, visitSteps } from '../scripts/browser.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 async function run(cwd, args, { fail = false, timeout = 180000 } = {}) {
@@ -37,7 +39,7 @@ function fixture({ fault = '', diagnostics = false } = {}) {
 const metadata=${JSON.stringify(fault === 'order' ? [...REFERENCE_STEPS].reverse() : REFERENCE_STEPS)};
 function App(){const [index,setIndex]=useState(0); useEffect(()=>{const listener=(event:KeyboardEvent)=>{if(event.key==='ArrowRight')setIndex(i=>Math.min(i+1,8))}; ${fault === 'transition' ? '' : "window.addEventListener('keydown',listener);"} return ()=>window.removeEventListener('keydown',listener)},[]);
 useEffect(()=>{if(index===1){${fault === 'console' ? "console.error('injected console failure')" : fault === 'page' ? "setTimeout(()=>{throw new Error('injected page failure')},0)" : ''}}},[index]);
-return <main data-step-count="9" data-step-index={index} style={{fontFamily:'Arial'}}><a href="/how-to-make-a-presentation">Sample</a><div data-presentation-era>{metadata[index][0]}</div><h1 data-presentation-title>{metadata[index][1]}</h1><p data-presentation-caption>{metadata[index][2]}</p>${diagnostics ? `<div style={{position:'absolute',top:300,left:50}}><span style={{position:'absolute',width:200}}>unmarked first collision</span><span style={{position:'absolute',width:200}}>unmarked second collision</span></div><div data-presentation-allow-overlap style={{position:'absolute',top:400,left:50}}><span style={{position:'absolute',width:200}}>allowed first collision</span><span style={{position:'absolute',width:200}}>allowed second collision</span></div><nav data-presentation-progress><button aria-current="step">current</button><button>other</button></nav><nav data-presentation-toc><button aria-current="step">current era</button><button>other era</button></nav><a data-presentation-attribution href="https://github.com/Codagent-AI/and-scene" style={{fontSize:8}}>made by and-scene</a>` : '<a data-presentation-attribution href="https://github.com/Codagent-AI/and-scene" style={{fontSize:14,color:"black",textDecoration:"none"}}>made by and-scene</a>'}</main>}
+return <main data-step-count="9" data-step-index={index} style={{fontFamily:'Arial'}}><a href="/how-to-make-a-presentation">Sample</a><div data-presentation-era>{metadata[index][0]}</div><h1 data-presentation-title>{metadata[index][1]}</h1><p data-presentation-caption>{metadata[index][2]}</p>${diagnostics ? `<div style={{position:'absolute',top:300,left:50}}><span style={{position:'absolute',width:200}}>unmarked first collision</span><span style={{position:'absolute',width:200}}>unmarked second collision</span></div><div data-presentation-allow-overlap style={{position:'absolute',top:400,left:50}}><span style={{position:'absolute',width:200}}>allowed first collision</span><span style={{position:'absolute',width:200}}>allowed second collision</span></div><div style={{position:'absolute',top:450,left:50}}><p style={{margin:0,width:220}}>mixed direct text <strong>inline label</strong></p><span style={{position:'absolute',top:0,left:0}}>mixed collision</span></div><div style={{position:'absolute',top:500,left:50}}><button aria-label="icon collision" style={{width:40,height:40}}><svg width="20" height="20"><circle cx="10" cy="10" r="8"/></svg></button><span style={{position:'absolute',top:0,left:0}}>icon overlap text</span></div><nav data-presentation-progress><button aria-current="step">current</button><button>other</button></nav><nav data-presentation-toc><button aria-current="step">current era</button><button>other era</button></nav><a data-presentation-attribution href="https://github.com/Codagent-AI/and-scene" style={{fontSize:8}}>made by and-scene</a>` : '<a data-presentation-attribution href="https://github.com/Codagent-AI/and-scene" style={{fontSize:14,color:"black",textDecoration:"none"}}>made by and-scene</a>'}</main>}
 createRoot(document.getElementById('root')!).render(<App/>);`
 }
 async function compareTree(actual, expected) {
@@ -94,6 +96,8 @@ test('INT-002 inspection writes settled screenshots and step-specific advisory d
       if (index) assert.ok(step.capturedAt - report[index-1].capturedAt >= step.settle)
       assert.ok(step.warnings.some((s) => s.includes('overlap:') && s.includes('unmarked')))
       assert.ok(!step.warnings.some((s) => s.includes('allowed first')))
+      assert.ok(step.warnings.some((s) => s.includes('p[mixed direct text inline label]') && s.includes('mixed collision')))
+      assert.ok(step.warnings.some((s) => s.includes('button[icon collision]') && s.includes('icon overlap text')))
       assert.ok(step.warnings.some((s) => s.includes('active navigation indistinct')))
       assert.ok(step.warnings.some((s) => s.includes('attribution unpolished')))
     }
@@ -111,6 +115,29 @@ test('E2E-001 reference passes production verification with all nine steps and I
     assert.match(output, /host=127\.0\.0\.1 readiness=http:\/\/127\.0\.0\.1:\d+ browser=http:\/\/127\.0\.0\.1:/)
     for (let i = 0; i < 9; i++) assert.match(output, new RegExp(`render: step ${i}/8 passed`))
     await noPreview(output)
+    await withPreview(async ({page, origin}) => {
+      for (const viewport of [{width:1440,height:680}, {width:390,height:844}]) {
+        await page.setViewportSize(viewport)
+        let scale
+        await visitSteps(page, `${origin}/how-to-make-a-presentation`, async ({step}) => {
+          const layout = await page.evaluate(() => {
+            const rect = (selector) => {
+              const box = document.querySelector(selector).getBoundingClientRect()
+              return {top:box.top,bottom:box.bottom,left:box.left,right:box.right}
+            }
+            return {canvas:rect('[data-presentation-canvas]'), header:rect('[data-presentation-header]'), footer:rect('[data-presentation-footer]'), transform:document.querySelector('[data-presentation-canvas]').style.transform, height:document.documentElement.scrollHeight}
+          })
+          assert.ok(layout.canvas.top >= layout.header.bottom - 1, JSON.stringify(layout))
+          assert.ok(layout.canvas.bottom <= layout.footer.top + 1, JSON.stringify(layout))
+          assert.ok(layout.canvas.left >= 0 && layout.canvas.right <= viewport.width + 1, JSON.stringify(layout))
+          assert.ok(layout.footer.bottom <= viewport.height + 1, JSON.stringify(layout))
+          assert.ok(layout.height <= viewport.height + 1, JSON.stringify(layout))
+          if (step === 0) scale = layout.transform
+          else assert.equal(layout.transform, scale, 'scale must remain constant within browse mode')
+          console.log(`I-17 fitted ${viewport.width}x${viewport.height} step ${step}: ${layout.transform}`)
+        })
+      }
+    }, {cwd:dir, viewport:{width:1440,height:680}})
   } finally { await rm(dir, { recursive: true, force: true }) }
 })
 

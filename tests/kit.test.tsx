@@ -183,5 +183,7 @@ describe('kit contract', () => {
     fireEvent.click(screen.getByLabelText('Next step'));expect(screen.getByText('Caption 2')).toBeTruthy()
     expect(screen.getByLabelText('Next step').hasAttribute('disabled')).toBe(true)
     fireEvent.click(screen.getByLabelText('Previous step'));expect(screen.getByText('Caption 1')).toBeTruthy()
+    expect(document.querySelector('[data-presentation-caption]')?.textContent).toBe('Caption 1')
+    expect(document.querySelector('[data-presentation-caption]')).toBeVisible()
   })
 })

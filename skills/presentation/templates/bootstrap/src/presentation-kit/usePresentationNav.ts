@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react'
 import type { Mode } from './types'
 
-const controls = 'button,a,input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="slider"],[role="textbox"]'
+const widgetRoles = ['button', 'checkbox', 'combobox', 'grid', 'gridcell', 'listbox', 'link', 'menu', 'menubar', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option', 'radio', 'radiogroup', 'scrollbar', 'searchbox', 'slider', 'spinbutton', 'switch', 'tab', 'tablist', 'textbox', 'toolbar', 'tree', 'treegrid', 'treeitem']
+const controls = ['button', 'a', 'area[href]', 'input', 'textarea', 'select', 'summary', 'audio[controls]', 'video[controls]', '[tabindex]', ...widgetRoles.map(role => `[role~="${role}"]`)].join(',')
+function ownsKeys(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false
+  if (target.closest(controls)) return true
+  // The nearest declaration decides editability: false overrides an editable ancestor.
+  const editable = target.closest('[contenteditable]')
+  return editable !== null && editable.getAttribute('contenteditable')?.toLowerCase() !== 'false'
+}
 export function usePresentationNav(count: number, initialMode: Mode = 'browse') {
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState<Mode>(initialMode)
@@ -9,7 +17,7 @@ export function usePresentationNav(count: number, initialMode: Mode = 'browse') 
   useEffect(() => {
     const clamp = (n: number) => Math.max(0, Math.min(count - 1, n))
     const key = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || (event.target instanceof Element && event.target.closest(controls))) return
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || ownsKeys(event.target) || ownsKeys(document.activeElement)) return
       if (['ArrowRight', ' ', 'PageDown'].includes(event.key)) { event.preventDefault(); setIndex(n => clamp(n + 1)) }
       if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); setIndex(n => clamp(n - 1)) }
       if (event.key.toLowerCase() === 'p') { event.preventDefault(); setMode(m => m === 'browse' ? 'present' : 'browse') }

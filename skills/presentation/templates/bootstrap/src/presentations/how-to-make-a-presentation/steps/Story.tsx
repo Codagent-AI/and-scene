@@ -2,9 +2,9 @@ import { AnimatePresence } from "motion/react";
 import { Box } from "../../../presentation-kit/nodes/Box";
 import { Appear } from "../../../presentation-kit/nodes/Appear";
 import { SceneLayer } from "../../../presentation-kit/nodes/SceneLayer";
-import type { SceneProps, Step } from "../../../presentation-kit/types";
-import { entitiesAt, sampleMeta } from "../entities";
-function Story({ payload }: SceneProps<number>) {
+import type { SceneProps } from "../../../presentation-kit/types";
+import { entitiesAt } from "../entities";
+export default function Story({ payload }: SceneProps<number>) {
   return (
     <SceneLayer>
       {
@@ -53,9 +53,3 @@ function Story({ payload }: SceneProps<number>) {
     </SceneLayer>
   );
 }
-export const STEPS: Step<number>[] = sampleMeta.map((s, i) => ({
-  ...s,
-  Scene: Story,
-  groupKey: "story",
-  payload: i,
-}));

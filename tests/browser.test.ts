@@ -133,7 +133,7 @@ it("INT-002 helper captures settled steps and advisory diagnostics with overlap 
   await writeFile(
     join(dir, "src/presentations/how-to-make-a-presentation/Talk.tsx"),
     `import { Presentation } from '../../presentation-kit/Presentation'
-function Fixture(){return <><span style={{position:'absolute',left:20,top:20}}>UNMARKED_A</span><span style={{position:'absolute',left:20,top:20}}>UNMARKED_B</span><div data-presentation-allow-overlap=""><span style={{position:'absolute',left:20,top:70}}>ALLOWED_A</span><span style={{position:'absolute',left:20,top:70}}>ALLOWED_B</span></div></>}
+function Fixture(){return <><span style={{position:'absolute',left:20,top:20}}>UNMARKED_A</span><span style={{position:'absolute',left:20,top:20}}>UNMARKED_B</span><div style={{opacity:0}}><span style={{position:'absolute',left:20,top:120}}>HIDDEN_A</span><span style={{position:'absolute',left:20,top:120}}>HIDDEN_B</span></div><div data-presentation-allow-overlap=""><span style={{position:'absolute',left:20,top:70}}>ALLOWED_A</span><span style={{position:'absolute',left:20,top:70}}>ALLOWED_B</span></div></>}
 const steps=[0,1].map(i=>({id:String(i),era:String(i),title:'Fixture '+i,caption:'Caption '+i,Scene:Fixture,payload:undefined,groupKey:'fixture'}))
 export default function Talk(){return <><style>{'[data-presentation-attribution]{font-size:8px}'}</style><Presentation title="Fixture" steps={steps}/></>}`,
   );
@@ -147,6 +147,7 @@ export default function Talk(){return <><style>{'[data-presentation-attribution]
   expect(r.code, r.output).toBe(0);
   expect(r.output).toContain("UNMARKED_A");
   expect(r.output).not.toContain("ALLOWED_A / ALLOWED_B");
+  expect(r.output).not.toContain("HIDDEN_A / HIDDEN_B");
   expect(r.output).toContain("indistinct active progress");
   expect(r.output).toContain("indistinct active toc");
   expect(r.output).toContain("data-presentation-attribution");
@@ -187,7 +188,7 @@ it("E2E-002 representative phase failures are nonzero actionable and clean previ
       await writeFile(join(dir, "src/presentations/how-to-make-a-presentation/Talk.tsx"), `
 import { Presentation } from '../../presentation-kit/Presentation'
 import type { SceneProps } from '../../presentation-kit/types'
-import { STEPS as base } from './steps/Story'
+import { STEPS as base } from './steps'
 function Fault({payload}:SceneProps<number>) {
  if(payload===3) { ${injected} }
  const Scene=base[0].Scene

@@ -110,7 +110,8 @@ export async function visitSteps(
   { onStep = async () => {}, settle = 850, checkCanonical } = {},
 ) {
   let index = 0;
-  const checkErrors = monitorErrors(page, () => index);
+  let errorStep = 0;
+  const checkErrors = monitorErrors(page, () => errorStep);
   await page.goto(`${url}/${slug}`);
   const host = page.locator("[data-step-count]");
   try {
@@ -124,6 +125,7 @@ export async function visitSteps(
     throw new Error("sample: invalid step count");
   const metadata = [];
   for (index = 0; index < count; index++) {
+    errorStep = index;
     try {
       await page.waitForFunction(
         (i) =>
@@ -152,7 +154,10 @@ export async function visitSteps(
     );
     await onStep(index);
     console.log(`render: step ${index} passed`);
-    if (index < count - 1) await page.keyboard.press("ArrowRight");
+    if (index < count - 1) {
+      errorStep = index + 1;
+      await page.keyboard.press("ArrowRight");
+    }
   }
   checkErrors();
   if (checkCanonical) checkCanonical(metadata);

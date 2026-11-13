@@ -25,15 +25,13 @@ export function diagnostics({ texts, active, attribution }, step) {
 }
 export function collectDiagnostics() {
   const visible = (el) => {
-    const s = getComputedStyle(el),
-      r = el.getBoundingClientRect();
-    return (
-      s.display !== "none" &&
-      s.visibility !== "hidden" &&
-      Number(s.opacity) > 0 &&
-      r.width > 0 &&
-      r.height > 0
-    );
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return false;
+    for (let ancestor = el; ancestor; ancestor = ancestor.parentElement) {
+      const style = getComputedStyle(ancestor);
+      if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+    }
+    return true;
   };
   const texts = [];
   const walker = document.createTreeWalker(

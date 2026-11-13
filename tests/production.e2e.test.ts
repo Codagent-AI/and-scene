@@ -1,24 +1,10 @@
 // @vitest-environment node
 import { afterAll, expect, it } from 'vitest'
-import { cp, mkdtemp, readFile, writeFile, symlink, rm } from 'node:fs/promises'
+import { readFile, writeFile, rm } from 'node:fs/promises'
 import path from 'node:path'
-import { tmpdir } from 'node:os'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-const exec=promisify(execFile)
+import { copyApp, assertCleanup, exec } from './support/app'
 const temporary:string[]=[]
 afterAll(async()=>{await Promise.all(temporary.map(dir=>rm(dir,{recursive:true,force:true})))})
-async function copyApp() {
- const dir=await mkdtemp(path.join(tmpdir(),'and-scene-fault-'));temporary.push(dir)
- for(const file of ['src','scripts','package.json','package-lock.json','index.html','vite.config.ts','tsconfig.json','tsconfig.app.json','tsconfig.node.json'])await cp(file,path.join(dir,file),{recursive:true})
- await symlink(path.resolve('node_modules'),path.join(dir,'node_modules'),'dir');return dir
-}
-function assertCleanup(output:string) {
- for(const match of output.matchAll(/preview: http:\/\/127\.0\.0\.1:\d+ pid=(\d+)/g)) {
-  expect(output).toContain(`cleanup: preview pid=${match[1]} stopped`)
-  expect(()=>process.kill(Number(match[1]),0)).toThrow()
- }
-}
 it('E2E-001 reference presentation passes production verification',async()=>{
  const {stdout}=await exec('npm',['run','verify'],{timeout:180000,maxBuffer:4e6});console.log(stdout)
  expect(stdout).toContain('PASS:');expect(stdout).not.toContain('FAIL:')
@@ -35,7 +21,7 @@ it('E2E-002 verification failures name phases and steps and clean up processes',
   {name:'stalled transition',file:'src/presentation-kit/usePresentationNav.ts',edit:(s:string)=>s.replace('go(old => old + 1)','go(old => old)'),message:/step 1:/},
  ]
  for(const fault of faults) {
-  const root=await copyApp();const file=path.join(root,fault.file)
+  const root=await copyApp('fault');temporary.push(root);const file=path.join(root,fault.file)
   const original=await readFile(file,'utf8'),changed=fault.edit(original);expect(changed).not.toBe(original);await writeFile(file,changed)
   let failure:{code?:number;stdout?:string;stderr?:string}|undefined
   try {await exec('npm',['run','verify'],{cwd:root,timeout:180000,maxBuffer:4e6})}catch(error){failure=error as typeof failure}

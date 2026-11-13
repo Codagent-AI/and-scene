@@ -1,17 +1,12 @@
 // @vitest-environment node
 import { afterAll, expect, it } from 'vitest'
-import { cp, mkdtemp, readFile, writeFile, symlink, rm } from 'node:fs/promises'
+import { readFile, writeFile, rm } from 'node:fs/promises'
 import path from 'node:path'
-import { tmpdir } from 'node:os'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-const exec=promisify(execFile)
+import { copyApp, assertCleanup, exec } from './support/app'
 let root:string
 afterAll(async()=>{if(root)await rm(root,{recursive:true,force:true})})
 it('INT-002 screenshots settle and warnings remain specific, exemptible and advisory',async()=>{
- root=await mkdtemp(path.join(tmpdir(),'and-scene-inspection-'))
- for(const file of ['src','scripts','package.json','index.html','vite.config.ts','tsconfig.json','tsconfig.app.json','tsconfig.node.json'])await cp(file,path.join(root,file),{recursive:true})
- await symlink(path.resolve('node_modules'),path.join(root,'node_modules'),'dir')
+ root=await copyApp('inspection')
  await writeFile(path.join(root,'src/presentations/how-to-make-a-presentation/Talk.tsx'),`
 import { Presentation } from '../../presentation-kit/Presentation'
 import type {Step, SceneProps} from '../../presentation-kit/types'
@@ -48,5 +43,5 @@ export default function Talk(){return <Presentation steps={steps} title="Fixture
   expect(step.warnings.join('\n')).toContain(`step ${step.index}: unpolished attribution`)
  }
  expect(stdout).toContain('advisory only')
- for(const match of stdout.matchAll(/pid=(\d+) stopped/g))expect(()=>process.kill(Number(match[1]),0)).toThrow()
+ assertCleanup(stdout)
 })

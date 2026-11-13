@@ -1,0 +1,39 @@
+.how-to { --ink:#e7e4da; --muted:#a5aaa7; --accent:#e4ff79; background:#111a1a; color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,sans-serif; }
+.how-to * {box-sizing:border-box}
+.how-to [data-presentation-header] {position:absolute;top:28px;left:32px;right:160px;font-size:12px;letter-spacing:.06em;color:var(--muted)}
+.how-to [data-presentation-mode-toggle] {position:absolute;right:32px;top:22px;background:transparent;border:1px solid #43504b;color:var(--ink);padding:9px 15px;border-radius:20px;cursor:pointer}
+.how-to [data-presentation-footer] {position:absolute;bottom:36px;left:max(32px,calc((100% - 880px)/2));right:32px;max-width:850px}
+.how-to [data-presentation-marker] {font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.how-to h1 {font-size:clamp(23px,3vw,36px);line-height:1.1;letter-spacing:-.035em;margin:8px 0}
+.how-to [data-presentation-caption] {max-width:720px;font-size:14px;line-height:1.55;color:var(--muted);margin:8px 0 14px;min-height:44px}
+.how-to [data-presentation-controls] {display:flex;gap:18px;align-items:center}
+.how-to [data-presentation-controls] button {cursor:pointer;color:var(--ink);border:1px solid #43504b;background:transparent;width:28px;height:28px;border-radius:50%;font-size:11px}
+.how-to [data-presentation-controls] button:disabled {opacity:.3;cursor:default}
+.how-to [data-presentation-progress] {display:flex;gap:8px}
+.how-to [data-presentation-progress] [data-presentation-active=true] {background:var(--accent);color:#111a1a;border-color:var(--accent);font-weight:800}
+.how-to [data-presentation-toc] {position:absolute;top:70px;left:32px;display:flex;gap:18px}
+.how-to [data-presentation-toc] button {background:none;border:0;color:var(--muted);font-size:11px;padding:4px 0;cursor:pointer}
+.how-to [data-presentation-toc] [data-presentation-active=true] {color:var(--accent);border-bottom:2px solid var(--accent)}
+.how-to [data-presentation-attribution] {font-size:12px;text-decoration:none;color:var(--muted);letter-spacing:.03em}
+.how-to [data-presentation-mode=present] [data-presentation-footer] {bottom:38px}
+.how-to [data-presentation-mode=present] h1 {white-space:nowrap}
+.how-to .entity {position:relative;display:flex;align-items:center;justify-content:center;font-size:14px;letter-spacing:.02em}
+.how-to .person,.how-to .skill {border:1px solid #7e8d82;border-radius:14px;background:#1d2a25;font-size:23px;font-weight:600}
+.how-to .skill {background:var(--accent);color:#182117;border-color:var(--accent)}
+.how-to .prompt {border:1px solid #43504b;border-radius:18px;padding-left:12px;color:var(--ink);font-size:15px;justify-content:flex-start}
+.how-to .connection {font-size:13px;color:#8a9d90;letter-spacing:.12em}
+.how-to .question {color:var(--accent);font-size:11px;justify-content:flex-start}
+.how-to .tray {border-bottom:1px solid #46554b;align-items:flex-start;justify-content:flex-start;font-size:9px;letter-spacing:.16em;color:var(--muted);padding-left:18px}
+.how-to .card {background:#223028;border:1px solid #596b59;border-radius:8px;display:flex;flex-direction:column;gap:8px;font-size:11px}
+.how-to .card small {font-size:10px;color:var(--muted)}
+.how-to .morph {font-size:9px;color:var(--muted)}
+.how-to .ghost {border:1px dashed #647361;border-radius:5px;color:var(--muted)}
+.how-to .depth {font-size:10px;color:var(--accent);border-bottom:1px dashed #65765c}
+.how-to .socket {border:1px solid #788f63;border-radius:0 0 8px 8px;color:var(--accent);font-size:11px;background:#1c2a20}
+.how-to .verify {border:1px solid #7edda0;border-radius:8px;color:#9df5b9;background:#1a3025;font-size:10px}
+.how-to .modify {color:var(--accent);font-size:12px;letter-spacing:.1em;border-bottom:1px dashed #93ac61;border-radius:0 0 40% 40%}
+.how-to .edited {font-size:8px;letter-spacing:.14em;color:var(--accent)}
+.how-to .reveal {border:1px solid var(--accent);border-radius:20px;color:var(--accent);font-size:9px;align-items:flex-end;justify-content:flex-end;padding:0 18px 10px;pointer-events:none}
+@media(max-width:760px){.how-to [data-presentation-toc]{display:none}.how-to [data-presentation-header]{left:20px;font-size:10px;max-width:55%}.how-to [data-presentation-mode-toggle]{right:20px}.how-to [data-presentation-footer]{left:20px;right:20px}.how-to [data-presentation-caption]{font-size:12px}.how-to [data-presentation-progress]{gap:5px}.how-to [data-presentation-controls]{gap:10px}.how-to [data-presentation-controls] button{width:24px;height:24px}}
+
+.how-to .arc {color:var(--accent);pointer-events:none}

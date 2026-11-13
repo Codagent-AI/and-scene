@@ -72,6 +72,17 @@ export async function inspectPage(page, step) {
         ancestors.push(id(parent));
       return { element: id(el), ancestors };
     };
+    const measured = (el, rect, kind, name) => ({
+      ...identity(el),
+      kind,
+      name,
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      visible: true,
+      allow: !!el.closest("[data-presentation-allow-overlap]"),
+    });
     const walker = document.createTreeWalker(
       document.querySelector("[data-presentation-root]"),
       NodeFilter.SHOW_TEXT,
@@ -88,17 +99,14 @@ export async function inspectPage(page, step) {
       const range = document.createRange();
       range.selectNodeContents(text);
       const rect = range.getBoundingClientRect();
-      texts.push({
-        ...identity(el),
-        kind: "text",
-        name: `${el.getAttribute("data-presentation-entity") || el.tagName}: ${text.textContent.trim().slice(0, 50)}`,
-        x: rect.x,
-        y: rect.y,
-        width: rect.width,
-        height: rect.height,
-        visible: true,
-        allow: !!el.closest("[data-presentation-allow-overlap]"),
-      });
+      texts.push(
+        measured(
+          el,
+          rect,
+          "text",
+          `${el.getAttribute("data-presentation-entity") || el.tagName}: ${text.textContent.trim().slice(0, 50)}`,
+        ),
+      );
     }
     const chromeBodies = [
       ...document.querySelectorAll(
@@ -121,17 +129,12 @@ export async function inspectPage(page, step) {
       .filter(visible)
       .map((el) => {
         const rect = el.getBoundingClientRect();
-        return {
-          ...identity(el),
-          kind: "chrome",
-          name: `chrome ${el.getAttribute("aria-label") || el.textContent.trim() || el.tagName}`,
-          x: rect.x,
-          y: rect.y,
-          width: rect.width,
-          height: rect.height,
-          visible: true,
-          allow: !!el.closest("[data-presentation-allow-overlap]"),
-        };
+        return measured(
+          el,
+          rect,
+          "chrome",
+          `chrome ${el.getAttribute("aria-label") || el.textContent.trim() || el.tagName}`,
+        );
       });
     const chrome = [
       ...document.querySelectorAll(

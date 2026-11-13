@@ -174,6 +174,8 @@ describe("scene contracts", () => {
       "menu",
       "tree",
       "radiogroup",
+      "application",
+      "toolbar",
     ]) {
       const el = document.createElement("div");
       el.setAttribute("role", role);

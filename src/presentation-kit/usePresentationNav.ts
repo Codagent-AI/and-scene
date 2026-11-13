@@ -23,7 +23,7 @@ export function usePresentationNav(
     const interactive = (target: EventTarget | null) =>
       target instanceof Element &&
       !!target.closest(
-        'button,a,input,select,textarea,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="link"],[role="slider"],[role="grid"],[role="treegrid"],[role="tree"],[role="listbox"],[role="menu"],[role="menubar"],[role="tablist"],[role="radiogroup"],[role="spinbutton"],[role="combobox"],[role="textbox"],[role="searchbox"],[role="scrollbar"],[role="tab"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"],[role="option"],[role="radio"],[role="switch"],[role="checkbox"],[role="treeitem"],[role="gridcell"],[role="row"]',
+        'button,a,input,select,textarea,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="link"],[role="slider"],[role="application"],[role="toolbar"],[role="grid"],[role="treegrid"],[role="tree"],[role="listbox"],[role="menu"],[role="menubar"],[role="tablist"],[role="radiogroup"],[role="spinbutton"],[role="combobox"],[role="textbox"],[role="searchbox"],[role="scrollbar"],[role="tab"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"],[role="option"],[role="radio"],[role="switch"],[role="checkbox"],[role="treeitem"],[role="gridcell"],[role="row"]',
       );
     const key = (e: KeyboardEvent) => {
       if (interactive(e.target) || e.altKey || e.ctrlKey || e.metaKey) return;

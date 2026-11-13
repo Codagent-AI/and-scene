@@ -1,29 +1,213 @@
-import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { useState } from 'react'
-import { Presentation } from '../src/presentation-kit/Presentation'
-import { fitScale } from '../src/presentation-kit/useFitScale'
-import type { Step, SceneProps } from '../src/presentation-kit/types'
-import { Box } from '../src/presentation-kit/nodes/Box'
-import { ENTER_DELAY, LAYOUT_T } from '../src/presentation-kit/constants'
-function Scene({ payload }: SceneProps<{ text: string }>) { const [instance] = useState(Math.random); return <Box id="stable" data-instance={instance}>{payload.text}</Box> }
-const steps: Step<{ text: string }>[] = ['a','b','c'].map((id, i) => ({ id, era: i < 2 ? 'first' : 'last', title: id, caption: `Caption ${id}`, Scene, groupKey: 'shared', payload: { text: id } }))
-afterEach(cleanup)
-const host = () => document.querySelector('[data-step-index]')!
-const index = () => Number(host().getAttribute('data-step-index'))
-describe('scene contracts', () => {
- it('I-13 ordered metadata and numbering', () => { render(<Presentation steps={[steps[2],steps[0]]} title="Test"/>); expect(screen.getByText('Caption c')).toBeTruthy(); expect(host().getAttribute('data-step-count')).toBe('2'); expect(document.querySelector('[data-presentation-marker]')?.textContent).toContain('1'); fireEvent.click(screen.getByLabelText('Next step')); expect(screen.getByText('Caption a')).toBeTruthy() })
- it('I-16 grouped scene persists and changed identity remounts', () => { const {rerender}=render(<Presentation steps={steps} title="Test"/>); const before=document.querySelector('[data-instance]')?.getAttribute('data-instance'); fireEvent.keyDown(window,{key:'ArrowRight'}); expect(document.querySelector('[data-instance]')?.getAttribute('data-instance')).toBe(before); rerender(<Presentation steps={steps.map(s=>({...s,groupKey:'changed'}))} title="Test"/>); expect([...document.querySelectorAll('[data-instance]')].at(-1)?.getAttribute('data-instance')).not.toBe(before) })
- it('I-18 primitive forwards hooks and identity',()=>{render(<Box id="box" className="custom" style={{left:42}} data-custom="yes">Node</Box>); const el=screen.getByText('Node');expect(el.getAttribute('data-presentation-node')).toBe('box');expect(el.className).toContain('custom');expect(el.style.left).toBe('42px')})
- it('I-15 newcomer timing follows layout duration',()=>{ expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T.duration) })
- it('I-19 default attribution and opt-in brand',()=>{const {rerender}=render(<Presentation steps={steps} title="Test"/>); const a=screen.getByText('made by and-scene');expect(a.getAttribute('href')).toBe('https://github.com/Codagent-AI/and-scene');expect(a.hasAttribute('data-presentation-attribution')).toBe(true);expect(document.querySelector('[data-presentation-brand]')?.textContent).toBe('');rerender(<Presentation steps={steps} title="Test" brand={<a href="/">Host</a>}/>);expect(screen.getByText('Host')).toBeTruthy()})
- it('I-20 modes and I-21 position preservation',()=>{render(<Presentation steps={steps} title="Test" initialMode="present"/>);expect(screen.queryByText('Caption a')).toBeNull();expect(screen.queryByLabelText('Next step')).toBeNull();fireEvent.keyDown(window,{key:'ArrowRight'});fireEvent.keyDown(window,{key:'p'});expect(index()).toBe(1);expect(screen.getByText('Caption b')).toBeTruthy();expect(screen.getByLabelText('Next step')).toBeTruthy()})
- it('I-22 keyboard navigation and focused controls',()=>{render(<Presentation steps={steps} title="Test"/>);for(const key of ['ArrowRight',' ','PageDown']){fireEvent.keyDown(window,{key});expect(index()).toBeGreaterThan(0);fireEvent.keyDown(window,{key:'ArrowLeft'})}fireEvent.keyDown(window,{key:'PageDown'});fireEvent.keyDown(window,{key:'PageUp'});expect(index()).toBe(0);for(const tag of ['button','a','input','select','textarea','div']){const el=document.createElement(tag);if(tag==='div')el.setAttribute('contenteditable','true');document.body.append(el);fireEvent.keyDown(el,{key:'ArrowRight'});expect(index()).toBe(0);el.remove()}})
- it('I-23 touch direction thresholds and cleanup',()=>{const {unmount}=render(<Presentation steps={steps} title="Test"/>);const swipe=(x:number,y=0)=>{fireEvent.touchStart(window,{touches:[{clientX:200,clientY:100}]});fireEvent.touchEnd(window,{changedTouches:[{clientX:200+x,clientY:100+y}]})};swipe(-90);expect(index()).toBe(1);swipe(90);expect(index()).toBe(0);swipe(-10);swipe(-90,200);expect(index()).toBe(0);unmount();fireEvent.keyDown(window,{key:'ArrowRight'})})
- it('I-24 direct jumps and I-25 active semantics',()=>{render(<Presentation steps={steps} title="Test"/>);fireEvent.click(screen.getByLabelText('Go to step 2'));expect(index()).toBe(1);expect(screen.getByLabelText('Go to step 2').getAttribute('aria-current')).toBe('step');fireEvent.click(screen.getByRole('button',{name:'last'}));expect(index()).toBe(2);expect(screen.getByRole('button',{name:'last'}).getAttribute('data-presentation-active')).toBe('true');fireEvent.click(screen.getByRole('button',{name:'first'}));expect(index()).toBe(0)})
- it('I-26 boundaries clamp without wrapping',()=>{render(<Presentation steps={steps} title="Test"/>);fireEvent.keyDown(window,{key:'ArrowLeft'});expect(index()).toBe(0);for(let i=0;i<6;i++)fireEvent.keyDown(window,{key:'ArrowRight'});expect(index()).toBe(2);fireEvent.click(screen.getByLabelText('Next step'));expect(index()).toBe(2)})
- it('I-27 uniform fit uses fixed dimensions and mode geometry',()=>{expect(fitScale(880,380)).toBe(1);expect(fitScale(440,380)).toBe(.5);expect(fitScale(880,190)).toBe(.5);expect(fitScale(220,95)).toBe(.25);expect(fitScale(0,0)).toBeGreaterThan(0)})
-})
-it('I-22 empty contenteditable retains keyboard behavior',()=>{render(<Presentation steps={steps} title="Test"/>);const el=document.createElement('div');el.setAttribute('contenteditable','');document.body.append(el);fireEvent.keyDown(el,{key:'ArrowRight'});expect(index()).toBe(0);el.remove()})
-it('I-27 resize changes a uniform transform and mode geometry without step reflow',()=>{Object.defineProperty(window,'innerWidth',{value:1000,writable:true});Object.defineProperty(window,'innerHeight',{value:800,writable:true});render(<Presentation steps={steps} title="Test"/>);const canvas=()=>document.querySelector<HTMLElement>('[data-presentation-canvas]')!;const before=canvas().style.transform;fireEvent.keyDown(window,{key:'ArrowRight'});expect(canvas().style.transform).toBe(before);window.innerWidth=500;fireEvent(window,new Event('resize'));expect(canvas().style.transform).not.toBe(before);expect(canvas().style.width).toBe('880px');expect(canvas().style.height).toBe('380px');const browse=document.querySelector<HTMLElement>('[data-presentation-stage]')!.style.inset;fireEvent.keyDown(window,{key:'p'});expect(document.querySelector<HTMLElement>('[data-presentation-stage]')!.style.inset).not.toBe(browse)})
-it('I-20 ToC is only present at wide viewport sizes even without presentation CSS',()=>{window.innerWidth=500;render(<Presentation steps={steps} title="Test"/>);expect(screen.queryByRole('navigation',{name:'Sections'})).toBeNull();window.innerWidth=1200;fireEvent(window,new Event('resize'));expect(screen.getByRole('navigation',{name:'Sections'})).toBeTruthy()})
+import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
+import { Presentation } from "../src/presentation-kit/Presentation";
+import { fitScale } from "../src/presentation-kit/useFitScale";
+import type { Step, SceneProps } from "../src/presentation-kit/types";
+import { Box } from "../src/presentation-kit/nodes/Box";
+import { ENTER_DELAY, LAYOUT_T } from "../src/presentation-kit/constants";
+function Scene({ payload }: SceneProps<{ text: string }>) {
+  const [instance] = useState(Math.random);
+  return (
+    <Box id="stable" data-instance={instance}>
+      {payload.text}
+    </Box>
+  );
+}
+const steps: Step<{ text: string }>[] = ["a", "b", "c"].map((id, i) => ({
+  id,
+  era: i < 2 ? "first" : "last",
+  title: id,
+  caption: `Caption ${id}`,
+  Scene,
+  groupKey: "shared",
+  payload: { text: id },
+}));
+afterEach(cleanup);
+const host = () => document.querySelector("[data-step-index]")!;
+const index = () => Number(host().getAttribute("data-step-index"));
+describe("scene contracts", () => {
+  it("I-13 ordered metadata and numbering", () => {
+    render(<Presentation steps={[steps[2], steps[0]]} title="Test" />);
+    expect(screen.getByText("Caption c")).toBeTruthy();
+    expect(host().getAttribute("data-step-count")).toBe("2");
+    expect(
+      document.querySelector("[data-presentation-marker]")?.textContent,
+    ).toContain("1");
+    fireEvent.click(screen.getByLabelText("Next step"));
+    expect(screen.getByText("Caption a")).toBeTruthy();
+  });
+  it("I-16 grouped scene persists and changed identity remounts", () => {
+    const { rerender } = render(<Presentation steps={steps} title="Test" />);
+    const before = document
+      .querySelector("[data-instance]")
+      ?.getAttribute("data-instance");
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(
+      document.querySelector("[data-instance]")?.getAttribute("data-instance"),
+    ).toBe(before);
+    rerender(
+      <Presentation
+        steps={steps.map((s) => ({ ...s, groupKey: "changed" }))}
+        title="Test"
+      />,
+    );
+    expect(
+      [...document.querySelectorAll("[data-instance]")]
+        .at(-1)
+        ?.getAttribute("data-instance"),
+    ).not.toBe(before);
+  });
+  it("I-18 primitive forwards hooks and identity", () => {
+    render(
+      <Box id="box" className="custom" style={{ left: 42 }} data-custom="yes">
+        Node
+      </Box>,
+    );
+    const el = screen.getByText("Node");
+    expect(el.getAttribute("data-presentation-node")).toBe("box");
+    expect(el.className).toContain("custom");
+    expect(el.style.left).toBe("42px");
+  });
+  it("I-15 newcomer timing follows layout duration", () => {
+    expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T.duration);
+  });
+  it("I-19 default attribution and opt-in brand", () => {
+    const { rerender } = render(<Presentation steps={steps} title="Test" />);
+    const a = screen.getByText("made by and-scene");
+    expect(a.getAttribute("href")).toBe(
+      "https://github.com/Codagent-AI/and-scene",
+    );
+    expect(a.hasAttribute("data-presentation-attribution")).toBe(true);
+    expect(
+      document.querySelector("[data-presentation-brand]")?.textContent,
+    ).toBe("");
+    rerender(
+      <Presentation steps={steps} title="Test" brand={<a href="/">Host</a>} />,
+    );
+    expect(screen.getByText("Host")).toBeTruthy();
+  });
+  it("I-20 modes and I-21 position preservation", () => {
+    render(<Presentation steps={steps} title="Test" initialMode="present" />);
+    expect(screen.queryByText("Caption a")).toBeNull();
+    expect(screen.queryByLabelText("Next step")).toBeNull();
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    fireEvent.keyDown(window, { key: "p" });
+    expect(index()).toBe(1);
+    expect(screen.getByText("Caption b")).toBeTruthy();
+    expect(screen.getByLabelText("Next step")).toBeTruthy();
+  });
+  it("I-22 keyboard navigation and focused controls", () => {
+    render(<Presentation steps={steps} title="Test" />);
+    for (const key of ["ArrowRight", " ", "PageDown"]) {
+      fireEvent.keyDown(window, { key });
+      expect(index()).toBeGreaterThan(0);
+      fireEvent.keyDown(window, { key: "ArrowLeft" });
+    }
+    fireEvent.keyDown(window, { key: "PageDown" });
+    fireEvent.keyDown(window, { key: "PageUp" });
+    expect(index()).toBe(0);
+    for (const tag of ["button", "a", "input", "select", "textarea", "div"]) {
+      const el = document.createElement(tag);
+      if (tag === "div") el.setAttribute("contenteditable", "true");
+      document.body.append(el);
+      fireEvent.keyDown(el, { key: "ArrowRight" });
+      expect(index()).toBe(0);
+      el.remove();
+    }
+  });
+  it("I-23 touch direction thresholds and cleanup", () => {
+    const { unmount } = render(<Presentation steps={steps} title="Test" />);
+    const swipe = (x: number, y = 0) => {
+      fireEvent.touchStart(window, {
+        touches: [{ clientX: 200, clientY: 100 }],
+      });
+      fireEvent.touchEnd(window, {
+        changedTouches: [{ clientX: 200 + x, clientY: 100 + y }],
+      });
+    };
+    swipe(-90);
+    expect(index()).toBe(1);
+    swipe(90);
+    expect(index()).toBe(0);
+    swipe(-10);
+    swipe(-90, 200);
+    expect(index()).toBe(0);
+    unmount();
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+  });
+  it("I-24 direct jumps and I-25 active semantics", () => {
+    render(<Presentation steps={steps} title="Test" />);
+    fireEvent.click(screen.getByLabelText("Go to step 2"));
+    expect(index()).toBe(1);
+    expect(
+      screen.getByLabelText("Go to step 2").getAttribute("aria-current"),
+    ).toBe("step");
+    fireEvent.click(screen.getByRole("button", { name: "last" }));
+    expect(index()).toBe(2);
+    expect(
+      screen
+        .getByRole("button", { name: "last" })
+        .getAttribute("data-presentation-active"),
+    ).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "first" }));
+    expect(index()).toBe(0);
+  });
+  it("I-26 boundaries clamp without wrapping", () => {
+    render(<Presentation steps={steps} title="Test" />);
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(index()).toBe(0);
+    for (let i = 0; i < 6; i++)
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(index()).toBe(2);
+    fireEvent.click(screen.getByLabelText("Next step"));
+    expect(index()).toBe(2);
+  });
+  it("I-27 uniform fit uses fixed dimensions and mode geometry", () => {
+    expect(fitScale(880, 380)).toBe(1);
+    expect(fitScale(440, 380)).toBe(0.5);
+    expect(fitScale(880, 190)).toBe(0.5);
+    expect(fitScale(220, 95)).toBe(0.25);
+    expect(fitScale(0, 0)).toBeGreaterThan(0);
+  });
+});
+it("I-22 empty contenteditable retains keyboard behavior", () => {
+  render(<Presentation steps={steps} title="Test" />);
+  const el = document.createElement("div");
+  el.setAttribute("contenteditable", "");
+  document.body.append(el);
+  fireEvent.keyDown(el, { key: "ArrowRight" });
+  expect(index()).toBe(0);
+  el.remove();
+});
+it("I-27 resize changes a uniform transform and mode geometry without step reflow", () => {
+  Object.defineProperty(window, "innerWidth", { value: 1000, writable: true });
+  Object.defineProperty(window, "innerHeight", { value: 800, writable: true });
+  render(<Presentation steps={steps} title="Test" />);
+  const canvas = () =>
+    document.querySelector<HTMLElement>("[data-presentation-canvas]")!;
+  const before = canvas().style.transform;
+  fireEvent.keyDown(window, { key: "ArrowRight" });
+  expect(canvas().style.transform).toBe(before);
+  window.innerWidth = 500;
+  fireEvent(window, new Event("resize"));
+  expect(canvas().style.transform).not.toBe(before);
+  expect(canvas().style.width).toBe("880px");
+  expect(canvas().style.height).toBe("380px");
+  const browse = document.querySelector<HTMLElement>(
+    "[data-presentation-stage]",
+  )!.style.inset;
+  fireEvent.keyDown(window, { key: "p" });
+  expect(
+    document.querySelector<HTMLElement>("[data-presentation-stage]")!.style
+      .inset,
+  ).not.toBe(browse);
+});
+it("I-20 ToC is only present at wide viewport sizes even without presentation CSS", () => {
+  window.innerWidth = 500;
+  render(<Presentation steps={steps} title="Test" />);
+  expect(screen.queryByRole("navigation", { name: "Sections" })).toBeNull();
+  window.innerWidth = 1200;
+  fireEvent(window, new Event("resize"));
+  expect(screen.getByRole("navigation", { name: "Sections" })).toBeTruthy();
+});

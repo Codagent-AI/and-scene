@@ -1,1 +1,10 @@
-{"extends":"../tsconfig.app.json","compilerOptions":{"tsBuildInfoFile":"../node_modules/.tmp/contracts.tsbuildinfo","strict":true,"noUnusedLocals":false,"noUnusedParameters":false},"include":["type-contract.tsx"]}
+{
+  "extends": "../tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../node_modules/.tmp/contracts.tsbuildinfo",
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["type-contract.tsx"]
+}

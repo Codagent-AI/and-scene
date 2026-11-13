@@ -165,6 +165,25 @@ describe("scene contracts", () => {
       el.remove();
     }
   });
+  it("keeps arrow keys for focused composite ARIA widgets", () => {
+    render(<Presentation steps={steps} title="Test" />);
+    for (const role of [
+      "grid",
+      "listbox",
+      "tablist",
+      "menu",
+      "tree",
+      "radiogroup",
+    ]) {
+      const el = document.createElement("div");
+      el.setAttribute("role", role);
+      el.tabIndex = 0;
+      document.body.append(el);
+      fireEvent.keyDown(el, { key: "ArrowRight" });
+      expect(index()).toBe(0);
+      el.remove();
+    }
+  });
   it("I-23 touch direction thresholds and cleanup", () => {
     const { unmount } = render(<Presentation steps={steps} title="Test" />);
     const swipe = (x: number, y = 0) => {
@@ -243,6 +262,11 @@ it("I-27 resize changes a uniform transform and mode geometry without step reflo
   expect(canvas().style.transform).not.toBe(before);
   expect(canvas().style.width).toBe("880px");
   expect(canvas().style.height).toBe("380px");
+  // centered from the stage midpoint so a canvas wider than the viewport is not pushed off-screen
+  expect(canvas().style.position).toBe("absolute");
+  expect(canvas().style.left).toBe("50%");
+  expect(canvas().style.top).toBe("50%");
+  expect(canvas().style.transform).toMatch(/^translate\(-50%, -50%\) scale\(/);
   const browse = document.querySelector<HTMLElement>(
     "[data-presentation-stage]",
   )!.style.inset;

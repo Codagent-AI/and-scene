@@ -29,10 +29,12 @@ export function Stage<T>({ step, mode }: { step: Step<T>; mode: Mode }) {
       <div
         data-presentation-canvas=""
         style={{
-          position: "relative",
+          position: "absolute",
+          left: "50%",
+          top: "50%",
           width: DESIGN_W,
           height: DESIGN_H,
-          transform: `scale(${scale})`,
+          transform: `translate(-50%, -50%) scale(${scale})`,
           flexShrink: 0,
         }}
       >

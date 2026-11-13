@@ -6,8 +6,12 @@ afterEach(() => {
   Reflect.deleteProperty(Range.prototype, "getBoundingClientRect");
 });
 function geometry() {
-  const rect = (el: Element) => {
-    const [x, y, width, height] = (el.getAttribute("data-rect") || "0,0,1,1")
+  const rect = (el: Element, override?: string) => {
+    const [x, y, width, height] = (
+      override ||
+      el.getAttribute("data-rect") ||
+      "0,0,1,1"
+    )
       .split(",")
       .map(Number);
     return new DOMRect(x, y, width, height);
@@ -25,7 +29,10 @@ function geometry() {
   Object.defineProperty(Range.prototype, "getBoundingClientRect", {
     configurable: true,
     value: function (this: Range) {
-      return rect(this.startContainer.parentElement!);
+      const node = this.startContainer;
+      const el = node instanceof Element ? node : node.parentElement!;
+      const content = el.getAttribute("data-content-rect");
+      return content ? rect(el, content) : rect(el);
     },
   });
 }
@@ -53,4 +60,22 @@ it("I-54 detects chrome against chrome while I-55 exemptions and hidden ancestor
   expect(warnings[0]).toContain("first icon");
   expect(warnings[0]).toContain("second icon");
   expect(warnings.join()).not.toMatch(/allowed icon|hidden icon/);
+});
+it("measures plain text chrome by its text extent, not its full-width block", async () => {
+  geometry();
+  document.body.innerHTML =
+    '<main data-presentation-root><header><div data-presentation-title data-rect="0,0,1000,30" data-content-rect="0,0,200,30">Title</div><button data-presentation-mode-toggle aria-label="Switch" data-rect="900,0,80,30">Present</button></header></main>';
+  const warnings = (await inspectPage(page, 1)).filter((s: string) =>
+    s.includes("overlap"),
+  );
+  expect(warnings).toEqual([]);
+});
+it("still reports painted or control chrome that collides by its box", async () => {
+  geometry();
+  document.body.innerHTML =
+    '<main data-presentation-root><div data-presentation-caption style="background:#fff" data-rect="0,0,1000,30" data-content-rect="0,0,200,30">Caption</div><button data-presentation-mode-toggle aria-label="Switch" data-rect="900,0,80,30"></button></main>';
+  const warnings = (await inspectPage(page, 1)).filter((s: string) =>
+    s.includes("overlap"),
+  );
+  expect(warnings.some((w: string) => w.includes("Switch"))).toBe(true);
 });

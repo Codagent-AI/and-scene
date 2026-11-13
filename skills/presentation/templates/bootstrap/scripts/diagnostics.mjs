@@ -108,6 +108,21 @@ export async function inspectPage(page, step) {
         ),
       );
     }
+    // Controls and painted chrome collide by their box. Plain text chrome
+    // (e.g. a title block that spans the header) collides by its text extent.
+    const chromeBounds = (el) => {
+      const box = el.getBoundingClientRect();
+      const s = getComputedStyle(el);
+      const painted =
+        !["", "transparent", "rgba(0, 0, 0, 0)"].includes(s.backgroundColor) ||
+        (parseFloat(s.borderTopWidth) > 0 && s.borderTopStyle !== "none") ||
+        !["", "none"].includes(s.boxShadow.replace(/currentcolor/i, "").trim());
+      if (painted || el.matches("button,a,[role='button']")) return box;
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const content = range.getBoundingClientRect();
+      return content.width > 0 && content.height > 0 ? content : box;
+    };
     const chromeBodies = [
       ...document.querySelectorAll(
         [
@@ -128,7 +143,7 @@ export async function inspectPage(page, step) {
     ]
       .filter(visible)
       .map((el) => {
-        const rect = el.getBoundingClientRect();
+        const rect = chromeBounds(el);
         return measured(
           el,
           rect,

@@ -23,7 +23,13 @@ const bootstrap = join(scratch, "materialized");
 async function run(cwd, args, label, expected = 0, probe = {}) {
   const env = { ...process.env };
   if (probe.resources || probe.captures) {
-    env.NODE_OPTIONS = `${env.NODE_OPTIONS || ""} --import=${pathToFileURL(join(root, "tests/browser-probe.mjs")).href}`;
+    let probePath = join(root, "tests/browser-probe.mjs");
+    if (probe.captures) {
+      // Resolve Playwright from the independently installed materialized app.
+      probePath = join(cwd, ".capture-probe.mjs");
+      await cp(join(root, "tests/browser-probe.mjs"), probePath);
+    }
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS || ""} --import=${pathToFileURL(probePath).href}`;
     if (probe.resources) {
       env.AND_SCENE_RESOURCE_LOG = join(logs, `${label}.resources.jsonl`);
       await rm(env.AND_SCENE_RESOURCE_LOG, { force: true });

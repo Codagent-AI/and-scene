@@ -6,6 +6,11 @@ import {
   SampleScene,
 } from "../src/presentations/how-to-make-a-presentation/steps";
 import outline from "../scripts/reference-outline.json";
+import { readFileSync } from "node:fs";
+const sampleCSS = readFileSync(
+  "src/presentations/how-to-make-a-presentation/presentation.css",
+  "utf8",
+);
 afterEach(cleanup);
 it("I-37 canonical reference metadata matches all normative fields", () => {
   expect(
@@ -65,7 +70,11 @@ it("I-43 kit socket names shared kit below unframed tray", () => {
   expect(plug.x + plug.w).toBeLessThanOrEqual(edge.x + edge.w);
   expect(plug.x).toBeGreaterThanOrEqual(socket.x);
   expect(plug.x + plug.w).toBeLessThanOrEqual(socket.x + socket.w);
-  const { container } = render(<SampleScene payload={STATES[5]} />);
+  const { container } = render(
+    <div className="how-to-presentation">
+      <SampleScene payload={STATES[5]} />
+    </div>,
+  );
   expect(
     container
       .querySelector('[data-presentation-entity="how-to-make:tray-edge"]')
@@ -76,6 +85,34 @@ it("I-43 kit socket names shared kit below unframed tray", () => {
       .querySelector('[data-presentation-entity="how-to-make:kit-plug"]')
       ?.classList.contains("plug"),
   ).toBe(true);
+  const style = document.createElement("style");
+  style.textContent = sampleCSS;
+  document.head.append(style);
+  try {
+    const edgeStyle = getComputedStyle(
+      container.querySelector(
+        '[data-presentation-entity="how-to-make:tray-edge"]',
+      )!,
+    );
+    const plugStyle = getComputedStyle(
+      container.querySelector(
+        '[data-presentation-entity="how-to-make:kit-plug"]',
+      )!,
+    );
+    expect([edgeStyle.borderTopWidth, edgeStyle.borderTopStyle]).toEqual([
+      "2px",
+      "solid",
+    ]);
+    expect([plugStyle.borderLeftWidth, plugStyle.borderLeftStyle]).toEqual([
+      "2px",
+      "solid",
+    ]);
+    expect(edgeStyle.borderLeftStyle).not.toBe("solid");
+    expect(edgeStyle.borderRightStyle).not.toBe("solid");
+    expect(edgeStyle.borderBottomStyle).not.toBe("solid");
+  } finally {
+    style.remove();
+  }
   for (const old of STATES[4].entities)
     expect(es.find((e) => e.id === old.id)).toBe(old);
 });

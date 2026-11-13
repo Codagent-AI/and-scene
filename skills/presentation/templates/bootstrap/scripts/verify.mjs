@@ -1,5 +1,4 @@
 import { fileURLToPath } from 'node:url'
-import path from 'node:path'
 import { command, withBrowser, captureErrors, waitStep } from './browser.mjs'
 import { REFERENCE, validateReference } from './reference.mjs'
 export async function verify(root, slug) {
@@ -28,8 +27,9 @@ export async function verify(root, slug) {
    }
    if(!slug)validateReference({title:await page.locator('[data-presentation-name]').textContent(),steps})
   } catch(error){
-   try { assertClean() } catch(browserError) { error=browserError }
-   throw new Error(`render/reference step ${index}: ${error.message}`,{cause:error})
+   let failure=error
+   try { assertClean() } catch(browserError) { failure=browserError }
+   throw new Error(`render/reference step ${index}: ${failure.message}`,{cause:error})
   }
  })
  console.log('PASS: build, registration, metadata and every step rendered')

@@ -20,5 +20,5 @@ export default defineConfig([
     },
   },
   { files: ['scripts/**/*.mjs', 'skills/presentation/scripts/*.mjs'], extends: [js.configs.recommended], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
-  { files: ['tests/**/*.{ts,tsx}', '**/steps/index.tsx'], rules: { 'react-refresh/only-export-components': 'off' } },
+  { files: ['tests/**/*.{ts,tsx}', '**/steps/index.tsx', '**/main.tsx'], rules: { 'react-refresh/only-export-components': 'off' } },
 ])

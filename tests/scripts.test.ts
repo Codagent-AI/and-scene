@@ -1,5 +1,8 @@
+// @vitest-environment node
 import { EventEmitter } from 'node:events'
-import { captureErrors } from '../scripts/browser.mjs'
+import path from 'node:path'
+import { captureErrors, viteBin } from '../scripts/browser.mjs'
+import { installArgs } from '../skills/presentation/scripts/scaffold.mjs'
 import { expect, it } from 'vitest'
 import { REFERENCE, validateReference } from '../scripts/reference.mjs'
 import { diagnostics, overlaps } from '../scripts/diagnostics.mjs'
@@ -43,4 +46,11 @@ it('I-47 chrome surfaces collide with text and controls while their own labels a
  expect(diagnostics({...state,texts:[{label:'scene text',rect}]},4)).toContain('step 4: overlap: scene text ↔ icon only')
  expect(diagnostics({...state,texts:[],surfaces:[...state.surfaces,{label:'other control',rect,owner:2}]},4)).toContain('step 4: overlap: icon only ↔ other control')
  expect(diagnostics({...state,texts:[{label:'allowed',rect,allowed:true}]},4)).toEqual([])
+})
+
+it('F-001 preview resolves vite from hoisted workspace dependencies and installs stay inside the app', () => {
+ const nested=path.join(process.cwd(),'tests/missing-workspace-app')
+ expect(viteBin(nested)).toBe(path.join(process.cwd(),'node_modules/vite/bin/vite.js'))
+ expect(installArgs(true)).toEqual(['ci','--workspaces=false'])
+ expect(installArgs(false)).toEqual(['install','--workspaces=false'])
 })

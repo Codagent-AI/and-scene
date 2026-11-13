@@ -18,6 +18,7 @@ export function anchorFor(file) {
  if(file.startsWith('src/presentations/')||file==='src/Landing.tsx'||file==='src/main.tsx')return 'index'
  return 'build'
 }
+export const installArgs=fresh=>[fresh?'ci':'install','--workspaces=false']
 export async function scaffold(target,{missing=['build','kit','index'],confirmed=false,install=true,verifySlug}={}) {
  if(missing.some(anchor=>!['build','kit','index'].includes(anchor)))throw new Error('scaffold: unknown anchor')
  const nonempty=await exists(target)&&(await readdir(target)).length>0
@@ -40,7 +41,7 @@ export async function scaffold(target,{missing=['build','kit','index'],confirmed
  const merged={...required,...previous,scripts:{...required.scripts,...previous.scripts},dependencies:{...required.dependencies,...previous.dependencies},devDependencies:{...required.devDependencies,...previous.devDependencies}}
  await writeFile(manifest,JSON.stringify(merged,null,2)+'\n')
  if(fresh)await copyFile(path.join(templateRoot,'package-lock.json'),path.join(target,'package-lock.json'))
- if(install){const child=spawn('npm',[fresh?'ci':'install'],{cwd:target,stdio:'inherit'});const [code]=await once(child,'exit');if(code!==0)throw new Error(`scaffold: dependency installation exited ${code}`)}
+ if(install){const child=spawn('npm',installArgs(fresh),{cwd:target,stdio:'inherit'});const [code]=await once(child,'exit');if(code!==0)throw new Error(`scaffold: dependency installation exited ${code}`)}
  return {target,copied,preserved}
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)) {

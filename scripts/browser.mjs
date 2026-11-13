@@ -4,6 +4,7 @@ import { once } from 'node:events'
 import { chromium } from 'playwright'
 import { setTimeout as delay } from 'node:timers/promises'
 import path from 'node:path'
+import { createRequire } from 'node:module'
 export const HOST = '127.0.0.1'
 export const SETTLE_MS = 900
 export async function command(cmd, args, root) {
@@ -11,11 +12,15 @@ export async function command(cmd, args, root) {
  const [code] = await once(child,'exit')
  if (code !== 0) throw new Error(`build: ${cmd} ${args.join(' ')} exited ${code}`)
 }
+export function viteBin(root) {
+ const require=createRequire(path.join(root,'package.json'))
+ return path.join(path.dirname(require.resolve('vite/package.json')),'bin/vite.js')
+}
 export async function startPreview(root) {
  const socket=createServer(); socket.listen(0,HOST); await once(socket,'listening')
  const port=socket.address().port; await new Promise(resolve=>socket.close(resolve))
  const url=`http://${HOST}:${port}`
- const child=spawn(process.execPath,[path.join(root,'node_modules/vite/bin/vite.js'),'preview','--host',HOST,'--port',String(port),'--strictPort'],{cwd:root,stdio:['ignore','pipe','pipe']})
+ const child=spawn(process.execPath,[viteBin(root),'preview','--host',HOST,'--port',String(port),'--strictPort'],{cwd:root,stdio:['ignore','pipe','pipe']})
  let output=''; child.stdout.on('data',chunk=>{output+=chunk});child.stderr.on('data',chunk=>{output+=chunk})
  const stop=async()=>{if(child.exitCode!==null || child.signalCode!==null)return; const exited=once(child,'exit');child.kill('SIGTERM');await exited}
  try {

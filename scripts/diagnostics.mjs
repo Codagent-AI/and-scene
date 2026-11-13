@@ -9,6 +9,15 @@ export function overlapWarnings(items, step) {
         b.visible &&
         !a.allow &&
         !b.allow &&
+        // A control contains its own label/icon; that is not a collision.
+        !(
+          (a.kind === "chrome" || b.kind === "chrome") &&
+          a.element !== undefined &&
+          b.element !== undefined &&
+          (a.element === b.element ||
+            a.ancestors?.includes(b.element) ||
+            b.ancestors?.includes(a.element))
+        ) &&
         Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > 1 &&
         Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > 1
       )
@@ -52,6 +61,17 @@ export async function inspectPage(page, step) {
       return true;
     };
     const texts = [];
+    const elementIds = new Map();
+    const id = (el) => {
+      if (!elementIds.has(el)) elementIds.set(el, elementIds.size);
+      return elementIds.get(el);
+    };
+    const identity = (el) => {
+      const ancestors = [];
+      for (let parent = el.parentElement; parent; parent = parent.parentElement)
+        ancestors.push(id(parent));
+      return { element: id(el), ancestors };
+    };
     const walker = document.createTreeWalker(
       document.querySelector("[data-presentation-root]"),
       NodeFilter.SHOW_TEXT,
@@ -69,6 +89,8 @@ export async function inspectPage(page, step) {
       range.selectNodeContents(text);
       const rect = range.getBoundingClientRect();
       texts.push({
+        ...identity(el),
+        kind: "text",
         name: `${el.getAttribute("data-presentation-entity") || el.tagName}: ${text.textContent.trim().slice(0, 50)}`,
         x: rect.x,
         y: rect.y,
@@ -78,6 +100,39 @@ export async function inspectPage(page, step) {
         allow: !!el.closest("[data-presentation-allow-overlap]"),
       });
     }
+    const chromeBodies = [
+      ...document.querySelectorAll(
+        [
+          "[data-presentation-title]",
+          "[data-presentation-present-title]",
+          "[data-presentation-marker]",
+          "[data-presentation-caption]",
+          "[data-presentation-brand]",
+          "[data-presentation-mode-toggle]",
+          "[data-presentation-attribution]",
+          "[data-presentation-toc] button",
+          "[data-presentation-controls] button",
+          '[data-presentation-controls] [role="button"]',
+          "[data-presentation-header] button",
+          "[data-presentation-footer] button",
+        ].join(","),
+      ),
+    ]
+      .filter(visible)
+      .map((el) => {
+        const rect = el.getBoundingClientRect();
+        return {
+          ...identity(el),
+          kind: "chrome",
+          name: `chrome ${el.getAttribute("aria-label") || el.textContent.trim() || el.tagName}`,
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+          visible: true,
+          allow: !!el.closest("[data-presentation-allow-overlap]"),
+        };
+      });
     const chrome = [
       ...document.querySelectorAll(
         "[data-presentation-progress-entry],[data-presentation-toc-entry]",
@@ -107,7 +162,7 @@ export async function inspectPage(page, step) {
     const a = document.querySelector("[data-presentation-attribution]");
     const s = a && visible(a) ? getComputedStyle(a) : null;
     return {
-      texts,
+      texts: [...texts, ...chromeBodies],
       chrome,
       attribution: s
         ? {

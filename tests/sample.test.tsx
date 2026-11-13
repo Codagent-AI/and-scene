@@ -55,12 +55,29 @@ it("I-43 kit socket names shared kit below unframed tray", () => {
       es.find((e) => e.id === "card-1")!.h!,
   );
   expect(es.some((e) => e.kind === "frame")).toBe(false);
+  const edge = es.find((e) => e.id === "tray-edge")!;
+  expect(edge, "a rendered, unframed bottom edge must exist").toBeTruthy();
   const plug = es.find((e) => e.id === "kit-plug")!;
-  expect(plug).toBeTruthy();
-  expect(plug.y).toBeLessThanOrEqual(282);
-  expect(plug.y + plug.h!).toBeGreaterThanOrEqual(
-    es.find((e) => e.id === "kit")!.y,
-  );
+  const socket = es.find((e) => e.id === "kit")!;
+  expect(plug.y).toBe(edge.y + edge.h!);
+  expect(plug.y + plug.h!).toBe(socket.y);
+  expect(plug.x).toBeGreaterThanOrEqual(edge.x);
+  expect(plug.x + plug.w).toBeLessThanOrEqual(edge.x + edge.w);
+  expect(plug.x).toBeGreaterThanOrEqual(socket.x);
+  expect(plug.x + plug.w).toBeLessThanOrEqual(socket.x + socket.w);
+  const { container } = render(<SampleScene payload={STATES[5]} />);
+  expect(
+    container
+      .querySelector('[data-presentation-entity="how-to-make:tray-edge"]')
+      ?.classList.contains("tray-edge"),
+  ).toBe(true);
+  expect(
+    container
+      .querySelector('[data-presentation-entity="how-to-make:kit-plug"]')
+      ?.classList.contains("plug"),
+  ).toBe(true);
+  for (const old of STATES[4].entities)
+    expect(es.find((e) => e.id === old.id)).toBe(old);
 });
 it("I-44 verification follows cards in the same row with build/render pass", () => {
   const es = STATES[6].entities;

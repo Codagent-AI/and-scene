@@ -69,6 +69,16 @@ const additions: Entity[][] = [
       text: "THE STORY · your answers, made tangible",
     },
     {
+      id: "tray-edge",
+      kind: "arrow",
+      x: 65,
+      y: 290,
+      w: 749,
+      h: 2,
+      text: "",
+      tone: "tray-edge",
+    },
+    {
       id: "card-1",
       kind: "box",
       x: 65,
@@ -117,7 +127,16 @@ const additions: Entity[][] = [
     { id: "depth", kind: "chip", x: 65, y: 25, w: 180, text: "partial ↔ full" },
   ],
   [
-    { id: "kit-plug", kind: "arrow", x: 414, y: 278, w: 16, h: 28, text: "│" },
+    {
+      id: "kit-plug",
+      kind: "arrow",
+      x: 421,
+      y: 292,
+      w: 2,
+      h: 11,
+      text: "",
+      tone: "plug",
+    },
     {
       id: "kit",
       kind: "box",

@@ -214,9 +214,27 @@
     font-size: 15px;
   }
 }
-@media (max-width:700px) {
-  .how-to-presentation [data-presentation-controls] { gap:8px; }
-  .how-to-presentation [data-presentation-progress] { gap:3px; }
-  .how-to-presentation [data-presentation-controls] button { width:22px; height:26px; font-size:10px; }
-  .how-to-presentation [data-presentation-progress] button { width:20px; }
+@media (max-width: 700px) {
+  .how-to-presentation [data-presentation-controls] {
+    gap: 8px;
+  }
+  .how-to-presentation [data-presentation-progress] {
+    gap: 3px;
+  }
+  .how-to-presentation [data-presentation-controls] button {
+    width: 22px;
+    height: 26px;
+    font-size: 10px;
+  }
+  .how-to-presentation [data-presentation-progress] button {
+    width: 20px;
+  }
+}
+
+/* One open bottom edge, not a frame around the tray. */
+.how-to-presentation .tray-edge {
+  border-top: 2px solid #9faa9d;
+}
+.how-to-presentation .plug {
+  border-left: 2px solid #899a7a;
 }

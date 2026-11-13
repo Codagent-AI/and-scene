@@ -1,0 +1,5 @@
+[data-presentation-header] { display: flex; align-items: center; }
+[data-presentation-mode-toggle] { margin-left: auto; }
+[data-presentation-toc] { position: absolute; left: 24px; top: 100px; display: flex; flex-direction: column; }
+[data-presentation-controls], [data-presentation-progress] { display: flex; align-items: center; }
+@media (max-width: 1199px) { [data-presentation-toc] { display: none; } }

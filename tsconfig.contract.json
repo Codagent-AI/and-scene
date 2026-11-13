@@ -1,0 +1,1 @@
+{ "extends": "./tsconfig.app.json", "compilerOptions": { "strict": true, "tsBuildInfoFile": "./node_modules/.tmp/contract.tsbuildinfo" }, "include": ["tests/types.typecheck.tsx", "src/presentation-kit"] }

@@ -1,8 +1,10 @@
 export function overlaps(a,b) {return Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>1 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>1}
 export function diagnostics(state,index) {
  const warnings=[]
- for(let i=0;i<state.texts.length;i++)for(let j=i+1;j<state.texts.length;j++) {
-  const a=state.texts[i],b=state.texts[j]
+ const items=[...state.texts,...(state.surfaces??[])]
+ for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++) {
+  const a=items[i],b=items[j]
+  if(a.owner!==undefined&&a.owner===b.owner)continue
   if(!a.allowed&&!b.allowed&&overlaps(a.rect,b.rect))warnings.push(`step ${index}: overlap: ${a.label} ↔ ${b.label}`)
  }
  for(const item of state.chrome)if(JSON.stringify(item.active)===JSON.stringify(item.inactive))warnings.push(`step ${index}: indistinct active ${item.name}; style [data-active="true"]`)
@@ -27,6 +29,12 @@ export function collectVisualState() {
  }
  const texts=[]
  const root=document.querySelector('[data-presentation-root]')
+ const controls=[...root.querySelectorAll('[data-presentation-header] button, [data-presentation-header] a, [data-presentation-footer] button, [data-presentation-footer] a, [data-presentation-toc] button, [data-presentation-toc] a, [data-presentation-attribution]')]
+ const owner=element=>controls.findIndex(control=>control===element||control.contains(element))
+ const surfaces=controls.filter(visible).map(element=>{
+  const rect=element.getBoundingClientRect()
+  return {label:`chrome: ${element.getAttribute('aria-label')??element.textContent.trim()}`,rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},owner:owner(element),allowed:!!element.closest('[data-presentation-allow-overlap]')}
+ })
  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT)
  while(walker.nextNode()) {
   const node=walker.currentNode,element=node.parentElement
@@ -34,7 +42,7 @@ export function collectVisualState() {
   if(element.closest('[data-presentation-scene][data-active="false"]'))continue
   const range=document.createRange();range.selectNodeContents(node)
   const rect=range.getBoundingClientRect()
-  if(rect.width&&rect.height)texts.push({label:`${element.closest('[data-presentation-entity]')?.getAttribute('data-presentation-entity')??element.tagName}: ${node.textContent.trim().slice(0,55)}`,rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},allowed:!!element.closest('[data-presentation-allow-overlap]')})
+  if(rect.width&&rect.height)texts.push({label:`${element.closest('[data-presentation-entity]')?.getAttribute('data-presentation-entity')??element.tagName}: ${node.textContent.trim().slice(0,55)}`,rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},owner:owner(element)<0?undefined:owner(element),allowed:!!element.closest('[data-presentation-allow-overlap]')})
  }
  const chrome=[]
  for(const [name,selector] of [['progress','[data-presentation-progress]'],['toc','[data-presentation-toc]']]) {
@@ -42,5 +50,5 @@ export function collectVisualState() {
   if(active&&inactive&&visible(active)&&visible(inactive))chrome.push({name,active:styleOf(active),inactive:styleOf(inactive)})
  }
  const attribution=document.querySelector('[data-presentation-attribution]')
- return {texts,chrome,attribution:attribution&&visible(attribution)?{style:styleOf(attribution)}:null}
+ return {texts,surfaces,chrome,attribution:attribution&&visible(attribution)?{style:styleOf(attribution)}:null}
 }

@@ -15,12 +15,15 @@ function Scene({payload}:SceneProps<number>) { return <div data-fixture-beat={pa
  <span style={{position:'absolute',left:20,top:30}}>collision one</span><span style={{position:'absolute',left:20,top:30}}>collision two</span>
  <div data-presentation-allow-overlap=""><span style={{position:'absolute',left:320,top:30}}>allowed one</span><span style={{position:'absolute',left:320,top:30}}>allowed two</span></div>
  <div style={{opacity:0}}><span style={{position:'absolute',left:20,top:30}}>hidden one</span><span style={{position:'absolute',left:20,top:30}}>hidden two</span></div>
+ <span style={{position:'absolute',left:25,top:130}}>chrome collision</span>
+ <span data-presentation-allow-overlap="" style={{position:'absolute',left:225,top:130}}>allowed chrome collision</span>
  <span className="settle-probe" style={{position:'absolute',left:20,top:100}}>settled {payload}</span>
  </div> }
 const steps:Step<number>[]=[0,1,2].map(i=>({id:String(i),era:'era '+i,title:'Fixture '+i,caption:'Fixture caption '+i,Scene,payload:i,groupKey:'fixture'}))
-export default function Talk(){return <Presentation steps={steps} title="Fixture"/>}
+export default function Talk(){return <Presentation steps={steps} title="Fixture" brand={<><button aria-label="Icon only" style={{position:'fixed',left:40,top:210,width:100,height:45}}><svg width="20" height="20"><path d="M 1 1 L 18 10 L 1 18 Z"/></svg></button><button aria-label="Allowed icon" data-presentation-allow-overlap="" style={{position:'fixed',left:240,top:210,width:100,height:45}}><svg width="20" height="20"><circle cx="10" cy="10" r="8"/></svg></button></>}/>}
 `)
  await writeFile(path.join(root,'src/presentations/how-to-make-a-presentation/fixture.css'),`
+ [data-presentation-canvas] {transform:none !important;left:0 !important;top:0 !important;}
  [data-presentation-root] { font-family: sans-serif; }
  [data-presentation-progress] button, [data-presentation-toc] button {color:#111;background:#eee;border:1px solid #aaa;font-weight:400;}
  [data-presentation-root]:has([data-fixture-beat="1"]) [data-presentation-attribution] {font-size:9px;}
@@ -38,6 +41,7 @@ export default function Talk(){return <Presentation steps={steps} title="Fixture
   const image=await readFile(path.join(artifact,step.file));expect(image.subarray(1,4).toString()).toBe('PNG');expect(image.readUInt32BE(16)).toBe(1440)
   expect(step.warnings.join('\n')).toMatch(new RegExp('step '+step.index+': overlap:.*collision'))
   expect(step.warnings.join('\n')).not.toMatch(/overlap:.*(allowed|hidden)/)
+  expect(step.warnings.join('\n')).toMatch(/overlap:.*chrome collision.*Icon only/)
   expect(step.warnings.join('\n')).toContain(`step ${step.index}: indistinct active progress`)
   expect(step.warnings.join('\n')).toContain(`step ${step.index}: indistinct active toc`)
   expect(step.warnings.join('\n')).toContain(`step ${step.index}: unpolished attribution`)

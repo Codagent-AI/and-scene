@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterAll, expect, it } from 'vitest'
-import { mkdtemp, readFile, readdir, rm, writeFile, access } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, readdir, rm, writeFile, access } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
@@ -40,4 +40,21 @@ it('INT-001 partial scaffold preserves anchors and refuses unconfirmed non-empty
  expect(again.copied).toEqual([]);expect(again.preserved).toContain('src/presentations/index.ts')
  await expect(scaffold(directory,{missing:['invalid'],confirmed:true,install:false})).rejects.toThrow(/unknown anchor/)
  expect(anchorFor('src/presentation-kit/Box.tsx')).toBe('kit');expect(anchorFor('src/main.tsx')).toBe('index')
+})
+
+it('INT-001 kit-only partial scaffold preserves an existing registry and verifies its selected route',async()=>{
+ const directory=await mkdtemp(path.join(tmpdir(),'and-scene-existing-index-'));temporary.push(directory)
+ for(const file of ['src','package.json','package-lock.json','index.html','vite.config.ts','tsconfig.json','tsconfig.app.json','tsconfig.node.json'])await cp(file,path.join(directory,file),{recursive:true})
+ await rm(path.join(directory,'src/presentation-kit'),{recursive:true})
+ const manifest=JSON.parse(await readFile(path.join(directory,'package.json'),'utf8'));delete manifest.scripts.verify
+ await writeFile(path.join(directory,'package.json'),JSON.stringify(manifest))
+ const registry=await readFile(path.join(directory,'src/presentations/index.ts'),'utf8')
+ await expect(scaffold(directory,{missing:['kit'],confirmed:true,install:false})).rejects.toThrow(/registered route.*verifySlug/)
+ await expect(scaffold(directory,{missing:['kit'],confirmed:true,install:false,verifySlug:'bad;command'})).rejects.toThrow(/invalid verification slug/)
+ await expect(access(path.join(directory,'src/presentation-kit'))).rejects.toThrow()
+ await scaffold(directory,{missing:['kit'],confirmed:true,verifySlug:'how-to-make-a-presentation'})
+ expect(await readFile(path.join(directory,'src/presentations/index.ts'),'utf8')).toBe(registry)
+ expect(await readdir(path.join(directory,'src/presentations'))).not.toContain('getting-started')
+ const {stdout}=await exec('npm',['run','verify'],{cwd:directory,timeout:120000,maxBuffer:4e6});console.log(stdout)
+ expect(stdout).toContain('PASS:');expect(stdout).toContain('render: step 8 OK')
 })

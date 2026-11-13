@@ -39,6 +39,7 @@ it('I-44 browser error capture rejects console errors and page errors while igno
 it('I-47 chrome surfaces collide with text and controls while their own labels are exempt',()=>{
  const state={texts:[{label:'own label',rect,owner:1}],surfaces:[{label:'icon only',rect,owner:1}],chrome:[],attribution:{style}}
  expect(diagnostics(state,4)).toEqual([])
+ expect(diagnostics({...state,texts:[...state.texts,{label:'second label',rect,owner:1}]},4)).toContain('step 4: overlap: own label ↔ second label')
  expect(diagnostics({...state,texts:[{label:'scene text',rect}]},4)).toContain('step 4: overlap: scene text ↔ icon only')
  expect(diagnostics({...state,texts:[],surfaces:[...state.surfaces,{label:'other control',rect,owner:2}]},4)).toContain('step 4: overlap: icon only ↔ other control')
  expect(diagnostics({...state,texts:[{label:'allowed',rect,allowed:true}]},4)).toEqual([])

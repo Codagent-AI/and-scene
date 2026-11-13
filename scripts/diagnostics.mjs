@@ -4,7 +4,7 @@ export function diagnostics(state,index) {
  const items=[...state.texts,...(state.surfaces??[])]
  for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++) {
   const a=items[i],b=items[j]
-  if(a.owner!==undefined&&a.owner===b.owner)continue
+  if(a.owner!==undefined&&a.owner===b.owner&&j>=state.texts.length)continue
   if(!a.allowed&&!b.allowed&&overlaps(a.rect,b.rect))warnings.push(`step ${index}: overlap: ${a.label} ↔ ${b.label}`)
  }
  for(const item of state.chrome)if(JSON.stringify(item.active)===JSON.stringify(item.inactive))warnings.push(`step ${index}: indistinct active ${item.name}; style [data-active="true"]`)

@@ -30,7 +30,7 @@ export function collectVisualState() {
  const texts=[]
  const root=document.querySelector('[data-presentation-root]')
  const controls=[...root.querySelectorAll('[data-presentation-header] button, [data-presentation-header] a, [data-presentation-footer] button, [data-presentation-footer] a, [data-presentation-toc] button, [data-presentation-toc] a, [data-presentation-attribution]')]
- const owner=element=>controls.findIndex(control=>control===element||control.contains(element))
+ const owner=element=>{const index=controls.findIndex(control=>control===element||control.contains(element));return index<0?undefined:index}
  const surfaces=controls.filter(visible).map(element=>{
   const rect=element.getBoundingClientRect()
   return {label:`chrome: ${element.getAttribute('aria-label')??element.textContent.trim()}`,rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},owner:owner(element),allowed:!!element.closest('[data-presentation-allow-overlap]')}
@@ -42,7 +42,7 @@ export function collectVisualState() {
   if(element.closest('[data-presentation-scene][data-active="false"]'))continue
   const range=document.createRange();range.selectNodeContents(node)
   const rect=range.getBoundingClientRect()
-  if(rect.width&&rect.height)texts.push({label:`${element.closest('[data-presentation-entity]')?.getAttribute('data-presentation-entity')??element.tagName}: ${node.textContent.trim().slice(0,55)}`,rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},owner:owner(element)<0?undefined:owner(element),allowed:!!element.closest('[data-presentation-allow-overlap]')})
+  if(rect.width&&rect.height)texts.push({label:`${element.closest('[data-presentation-entity]')?.getAttribute('data-presentation-entity')??element.tagName}: ${node.textContent.trim().slice(0,55)}`,rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},owner:owner(element),allowed:!!element.closest('[data-presentation-allow-overlap]')})
  }
  const chrome=[]
  for(const [name,selector] of [['progress','[data-presentation-progress]'],['toc','[data-presentation-toc]']]) {

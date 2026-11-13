@@ -31,7 +31,7 @@ export function parseOptions(args) {
   return {
     slug:
       value("--presentation") ||
-      args.find((a) => !a.startsWith("-") && args.indexOf(a) === 0) ||
+      (!args[0]?.startsWith("-") && args[0]) ||
       REFERENCE_SLUG,
     width: Number(value("--width") || 1440),
     height: Number(value("--height") || 900),

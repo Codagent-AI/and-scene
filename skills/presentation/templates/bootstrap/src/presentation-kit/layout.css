@@ -1,0 +1,11 @@
+/* Behavioral chrome geometry only; visual treatments belong to the author. */
+[data-presentation-toc] {
+  position: absolute;
+  top: 70px;
+  left: 24px;
+}
+@media (max-width: 700px) {
+  [data-presentation-toc] {
+    display: none;
+  }
+}

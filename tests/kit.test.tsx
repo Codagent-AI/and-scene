@@ -1,11 +1,24 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  renderHook,
+  act,
+} from "@testing-library/react";
 import { useState } from "react";
 import { Presentation } from "../src/presentation-kit/Presentation";
 import { fitScale } from "../src/presentation-kit/useFitScale";
 import type { Step, SceneProps } from "../src/presentation-kit/types";
 import { Box } from "../src/presentation-kit/nodes/Box";
 import { ENTER_DELAY, LAYOUT_T } from "../src/presentation-kit/constants";
+import { usePresentationNav } from "../src/presentation-kit/usePresentationNav";
+import { useFitScale } from "../src/presentation-kit/useFitScale";
+function OtherScene({ payload }: SceneProps<{ text: string }>) {
+  const [instance] = useState(Math.random);
+  return <div data-other-instance={instance}>other:{payload.text}</div>;
+}
 function Scene({ payload }: SceneProps<{ text: string }>) {
   const [instance] = useState(Math.random);
   return (
@@ -28,34 +41,70 @@ const host = () => document.querySelector("[data-step-index]")!;
 const index = () => Number(host().getAttribute("data-step-index"));
 describe("scene contracts", () => {
   it("I-13 ordered metadata and numbering", () => {
-    render(<Presentation steps={[steps[2], steps[0]]} title="Test" />);
-    expect(screen.getByText("Caption c")).toBeTruthy();
-    expect(host().getAttribute("data-step-count")).toBe("2");
-    expect(
-      document.querySelector("[data-presentation-marker]")?.textContent,
-    ).toContain("1");
+    const { rerender } = render(
+      <Presentation steps={[steps[2], steps[0]]} title="Test" />,
+    );
+    const assertStep = (
+      number: string,
+      total: string,
+      era: string,
+      text: string,
+    ) => {
+      expect(
+        document.querySelector("[data-presentation-marker]")?.textContent,
+      ).toBe(`${number} / ${total} · ${era}`);
+      expect(
+        document.querySelector("[data-presentation-step-title]")?.textContent,
+      ).toBe(text);
+      expect(screen.getByText(`Caption ${text}`)).toBeTruthy();
+      expect(document.querySelector("[data-instance]")?.textContent).toBe(text);
+    };
+    assertStep("01", "02", "last", "c");
     fireEvent.click(screen.getByLabelText("Next step"));
-    expect(screen.getByText("Caption a")).toBeTruthy();
+    assertStep("02", "02", "first", "a");
+    const inserted = {
+      ...steps[0],
+      id: "inserted",
+      era: "added",
+      title: "inserted",
+      caption: "Caption inserted",
+      payload: { text: "inserted" },
+    };
+    rerender(
+      <Presentation steps={[steps[2], inserted, steps[0]]} title="Test" />,
+    );
+    assertStep("02", "03", "added", "inserted");
+    fireEvent.click(screen.getByLabelText("Next step"));
+    assertStep("03", "03", "first", "a");
+    rerender(<Presentation steps={[steps[2], steps[0]]} title="Test" />);
+    assertStep("02", "02", "first", "a");
   });
   it("I-16 grouped scene persists and changed identity remounts", () => {
     const { rerender } = render(<Presentation steps={steps} title="Test" />);
-    const before = document
-      .querySelector("[data-instance]")
-      ?.getAttribute("data-instance");
+    const scene = () =>
+      [...document.querySelectorAll("[data-instance]")].at(-1)!;
+    const before = scene().getAttribute("data-instance");
+    expect(scene().textContent).toBe("a");
     fireEvent.keyDown(window, { key: "ArrowRight" });
-    expect(
-      document.querySelector("[data-instance]")?.getAttribute("data-instance"),
-    ).toBe(before);
+    expect(scene().getAttribute("data-instance")).toBe(before);
+    expect(scene().textContent).toBe("b");
+    const changed = steps.map((s) => ({ ...s, groupKey: "changed" }));
+    rerender(<Presentation steps={changed} title="Test" />);
+    expect(scene().getAttribute("data-instance")).not.toBe(before);
+    expect(scene().textContent).toBe("b");
     rerender(
       <Presentation
-        steps={steps.map((s) => ({ ...s, groupKey: "changed" }))}
+        steps={changed.map((s) => ({ ...s, Scene: OtherScene }))}
         title="Test"
       />,
     );
+    expect(document.querySelector("[data-other-instance]")?.textContent).toBe(
+      "other:b",
+    );
     expect(
-      [...document.querySelectorAll("[data-instance]")]
-        .at(-1)
-        ?.getAttribute("data-instance"),
+      document
+        .querySelector("[data-other-instance]")
+        ?.getAttribute("data-other-instance"),
     ).not.toBe(before);
   });
   it("I-18 primitive forwards hooks and identity", () => {
@@ -210,4 +259,61 @@ it("I-20 ToC is only present at wide viewport sizes even without presentation CS
   window.innerWidth = 1200;
   fireEvent(window, new Event("resize"));
   expect(screen.getByRole("navigation", { name: "Sections" })).toBeTruthy();
+});
+
+it("I-22 I-23 keyboard and every touch listener are removed with their original callbacks", () => {
+  const add = vi.spyOn(window, "addEventListener"),
+    remove = vi.spyOn(window, "removeEventListener");
+  const { unmount } = renderHook(() => usePresentationNav(3));
+  const registrations = add.mock.calls.filter(([type]) =>
+    ["keydown", "touchstart", "touchend", "touchcancel"].includes(type),
+  );
+  expect(registrations.map(([type]) => type).sort()).toEqual([
+    "keydown",
+    "touchcancel",
+    "touchend",
+    "touchstart",
+  ]);
+  unmount();
+  for (const [type, callback] of registrations)
+    expect(remove).toHaveBeenCalledWith(type, callback);
+  add.mockRestore();
+  remove.mockRestore();
+});
+it("I-27 resize subscription removes its original listener on unmount", () => {
+  const add = vi.spyOn(window, "addEventListener"),
+    remove = vi.spyOn(window, "removeEventListener");
+  const { unmount } = renderHook(() => useFitScale("browse"));
+  const registrations = add.mock.calls.filter(([type]) => type === "resize");
+  expect(registrations).toHaveLength(1);
+  unmount();
+  expect(remove).toHaveBeenCalledWith("resize", registrations[0][1]);
+  add.mockRestore();
+  remove.mockRestore();
+});
+it("I-26 swipe and out-of-range direct navigation clamp at both boundaries", () => {
+  const { result } = renderHook(() => usePresentationNav(3));
+  const swipe = (dx: number) => {
+    fireEvent.touchStart(window, { touches: [{ clientX: 200, clientY: 0 }] });
+    fireEvent.touchEnd(window, {
+      changedTouches: [{ clientX: 200 + dx, clientY: 0 }],
+    });
+  };
+  act(() => result.current.go(-99));
+  expect(result.current.index).toBe(0);
+  swipe(90);
+  expect(result.current.index).toBe(0);
+  act(() => result.current.go(99));
+  expect(result.current.index).toBe(2);
+  swipe(-90);
+  expect(result.current.index).toBe(2);
+  act(() => result.current.go(1));
+  expect(result.current.index).toBe(1);
+  act(() => result.current.prev());
+  act(() => result.current.prev());
+  expect(result.current.index).toBe(0);
+  act(() => result.current.next());
+  act(() => result.current.next());
+  act(() => result.current.next());
+  expect(result.current.index).toBe(2);
 });

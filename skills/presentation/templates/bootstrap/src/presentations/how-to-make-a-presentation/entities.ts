@@ -9,6 +9,7 @@ export interface Entity {
   h: number;
   kind: string;
   from: number;
+  connects?: readonly [string, string];
 }
 const entities: Entity[] = [
   {
@@ -150,6 +151,17 @@ const entities: Entity[] = [
     h: 34,
     kind: "socket",
     from: 5,
+  },
+  {
+    id: "verify-link",
+    label: "→",
+    x: 650,
+    y: 201,
+    w: 23,
+    h: 20,
+    kind: "connection",
+    from: 6,
+    connects: ["card3", "verify"],
   },
   {
     id: "verify",

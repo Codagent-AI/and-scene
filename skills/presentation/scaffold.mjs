@@ -93,28 +93,36 @@ export async function scaffold(
     );
   await mkdir(target, { recursive: true });
   const bootstrap = join(templates, "bootstrap");
-  if (!anchors.build) await copyMissing(bootstrap, target);
-  else {
-    if (!anchors.kit) {
-      await mkdir(join(target, "src"), { recursive: true });
-      await copyMissing(
-        join(bootstrap, "src", "presentation-kit"),
-        join(target, "src", "presentation-kit"),
-      );
+  if (!anchors.build) {
+    // Build assets are separate from the kit, registry and entry-point anchors.
+    for (const item of await readdir(bootstrap, { withFileTypes: true })) {
+      if (["src", "scripts"].includes(item.name)) continue;
+      const from = join(bootstrap, item.name),
+        to = join(target, item.name);
+      if (item.isDirectory()) await copyMissing(from, to);
+      else if (!(await exists(to))) await cp(from, to);
     }
-    if (!anchors.index) {
-      await mkdir(join(target, "src", "presentations"), { recursive: true });
-      await copyMissing(
-        join(bootstrap, "src", "presentations"),
-        join(target, "src", "presentations"),
-      );
-      for (const file of ["Router.tsx", "Landing.tsx"])
-        if (!(await exists(join(target, "src", file))))
-          await cp(join(bootstrap, "src", file), join(target, "src", file));
-    }
-    await mkdir(join(target, "scripts"), { recursive: true });
-    await copyMissing(join(bootstrap, "scripts"), join(target, "scripts"));
   }
+  if (!anchors.kit)
+    await copyMissing(
+      join(bootstrap, "src", "presentation-kit"),
+      join(target, "src", "presentation-kit"),
+    );
+  if (!anchors.index) {
+    await copyMissing(
+      join(bootstrap, "src", "presentations"),
+      join(target, "src", "presentations"),
+    );
+    for (const file of ["Router.tsx", "Landing.tsx"])
+      if (!(await exists(join(target, "src", file))))
+        await cp(join(bootstrap, "src", file), join(target, "src", file));
+  }
+  if (!anchors.kit && !anchors.index) {
+    for (const file of ["main.tsx", "index.css"])
+      if (!(await exists(join(target, "src", file))))
+        await cp(join(bootstrap, "src", file), join(target, "src", file));
+  }
+  await copyMissing(join(bootstrap, "scripts"), join(target, "scripts"));
   const pkg = await json(join(target, "package.json")),
     base = await json(join(bootstrap, "package.json"));
   for (const field of ["dependencies", "devDependencies", "scripts"])

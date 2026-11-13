@@ -1,4 +1,7 @@
-import { expect, it } from "vitest";
+import { render, cleanup } from "@testing-library/react";
+import Story from "../src/presentations/how-to-make-a-presentation/steps/Story";
+afterEach(cleanup);
+import { expect, it, afterEach } from "vitest";
 import {
   entitiesAt,
   sampleMeta,
@@ -36,4 +39,23 @@ it("I-30 I-31 I-32 I-33 sample accumulates with fixed identity and geometry", ()
   expect(entitiesAt(7).some((e) => e.id === "modify")).toBe(true);
   expect(entitiesAt(7).find((e) => e.id === "modify-link")?.y).toBe(104);
   expect(entitiesAt(8).some((e) => e.id === "reveal")).toBe(true);
+});
+
+it("I-33 verification is chained from the last card in the tray row", () => {
+  expect(entitiesAt(5).some((e) => e.id === "verify-link")).toBe(false);
+  const entities = entitiesAt(6),
+    card = entities.find((e) => e.id === "card3")!,
+    verify = entities.find((e) => e.id === "verify")!,
+    link = entities.find((e) => e.id === "verify-link")!;
+  expect(link).toBeTruthy();
+  expect(link.connects).toEqual(["card3", "verify"]);
+  expect(link.label).toBe("→");
+  render(<Story payload={6} />);
+  const rendered = document.querySelector('[data-entity="verify-link"]');
+  expect(rendered?.textContent).toBe("→");
+  expect(rendered?.getAttribute("data-connects")).toBe("card3 verify");
+  expect(link.x).toBe(card.x + card.w);
+  expect(link.x + link.w).toBe(verify.x);
+  expect(link.y + link.h / 2).toBe(card.y + card.h / 2);
+  expect(link.y + link.h / 2).toBe(verify.y + verify.h / 2);
 });

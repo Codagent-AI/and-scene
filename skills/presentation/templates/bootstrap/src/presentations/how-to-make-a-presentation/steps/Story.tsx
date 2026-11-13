@@ -23,6 +23,7 @@ export default function Story({ payload }: SceneProps<number>) {
               <Box
                 id={`how-to:${e.id}`}
                 data-entity={e.id}
+                data-connects={e.connects?.join(" ")}
                 className={`entity ${e.kind}`}
                 style={{ width: "100%", height: "100%" }}
               >

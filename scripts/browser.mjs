@@ -79,15 +79,18 @@ export async function withBrowser(
     const page = await browser.newPage({ viewport });
     return await run(page, url);
   } finally {
-    if (browser) await browser.close();
-    if (child.exitCode === null && child.signalCode === null) {
-      const exited = new Promise((resolve) => child.once("exit", resolve));
-      child.kill("SIGTERM");
-      const killer = setTimeout(() => child.kill("SIGKILL"), 2000);
-      await exited;
-      clearTimeout(killer);
+    try {
+      if (browser) await browser.close();
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) {
+        const exited = new Promise((resolve) => child.once("exit", resolve));
+        child.kill("SIGTERM");
+        const killer = setTimeout(() => child.kill("SIGKILL"), 2000);
+        await exited;
+        clearTimeout(killer);
+      }
+      console.log("preview: cleaned up");
     }
-    console.log("preview: cleaned up");
   }
 }
 export function monitorErrors(page, getStep) {

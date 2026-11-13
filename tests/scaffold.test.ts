@@ -1,12 +1,14 @@
 import { expect, it } from "vitest";
-import { mkdtemp, writeFile, mkdir, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, rm, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   detect,
   resolveTarget,
   scaffold,
+  templates,
 } from "../skills/presentation/scaffold.mjs";
+import { renamedApp, tree } from "./fixtures/renamed-app.mjs";
 it("I-2 I-3 contract anchors and standalone monorepo resolution", async () => {
   const dir = await mkdtemp(join(tmpdir(), "anchors-"));
   try {
@@ -17,24 +19,15 @@ it("I-2 I-3 contract anchors and standalone monorepo resolution", async () => {
       JSON.stringify({ workspaces: ["apps/*"] }),
     );
     expect(await resolveTarget(dir)).toBe(join(dir, "presentations"));
-    await mkdir(join(dir, "src"));
-    await writeFile(
-      join(dir, "src", "renamed.tsx"),
-      "export type Step<T> = {}; export type Scene<T> = {}; export function Presentation() {} usePresentationNav useFitScale caption",
-    );
-    await writeFile(
-      join(dir, "src", "catalog.ts"),
-      'export const catalog = [{ slug: "x", title: "x", load: () => import("./x") }]',
-    );
-    await writeFile(
-      join(dir, "package.json"),
-      JSON.stringify({
-        scripts: { build: "tsc -b && vite build" },
-        dependencies: { vite: "1", react: "1", typescript: "1" },
-      }),
-    );
+    await renamedApp(join(templates, "bootstrap"), dir);
+    const pkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8"));
+    pkg.workspaces = ["apps/*"];
+    await writeFile(join(dir, "package.json"), JSON.stringify(pkg));
     expect(await detect(dir)).toEqual({ build: true, kit: true, index: true });
     expect(await resolveTarget(dir)).toBe(dir);
+    const before = await tree(dir);
+    expect((await scaffold(dir, { install: false })).reused).toBe(true);
+    expect(await tree(dir)).toEqual(before);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -59,6 +52,23 @@ it("I-2 I-3 scaffold refuses unconfirmed nonempty writes and preserves partial a
         .build,
     ).toBe("tsc -b && vite build");
     expect((await detect(dir)).kit).toBe(true);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+it("I-2 missing build preserves functional renamed kit index and entry anchors without alternatives", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "only-build-"));
+  try {
+    await renamedApp(join(templates, "bootstrap"), dir);
+    const pkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8"));
+    delete pkg.scripts.build;
+    await writeFile(join(dir, "package.json"), JSON.stringify(pkg));
+    const before = await tree(join(dir, "src"));
+    expect(await detect(dir)).toEqual({ build: false, kit: true, index: true });
+    await scaffold(dir, { confirm: true, install: false });
+    expect(await tree(join(dir, "src"))).toEqual(before);
+    expect(await detect(dir)).toEqual({ build: true, kit: true, index: true });
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

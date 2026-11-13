@@ -24,7 +24,7 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
-    languageOptions: { globals: globals.browser },
+    languageOptions: { globals: globals.browser, parserOptions: { tsconfigRootDir: import.meta.dirname } },
     rules: {
       "react-refresh/only-export-components": [
         "warn",
@@ -34,5 +34,9 @@ export default defineConfig([
         },
       ],
     },
+  },
+  {
+    files: ['tests/**', '**/steps/**/*.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
   },
 ]);

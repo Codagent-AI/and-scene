@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import type { HTMLMotionProps } from "motion/react";
 import type { LucideIcon } from "lucide-react";
 import { EASE, LAYOUT_T } from "../constants";
-export type NodeProps = HTMLMotionProps<"div"> & {
+export type NodeProps = Omit<HTMLMotionProps<"div">, "children"> & {
+  children?: ReactNode;
   id: string;
   Icon?: LucideIcon;
 };

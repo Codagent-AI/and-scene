@@ -1,3 +1,4 @@
+import { Box } from "../src/presentation-kit/nodes/Box";
 import { Presentation } from "../src/presentation-kit/Presentation";
 import type { Step, SceneProps } from "../src/presentation-kit/types";
 const Scene = ({ payload }: SceneProps<{ count: number }>) => (
@@ -15,10 +16,12 @@ const steps: Step<{ count: number }>[] = [
   },
 ];
 export const typedBoundary = <Presentation title="Typed" steps={steps} />;
-// @ts-expect-error payload count must remain a number across the host boundary
 export const invalidBoundary = (
   <Presentation<{ count: number }>
     title="Invalid"
+    // @ts-expect-error payload count must remain a number across the host boundary
     steps={[{ ...steps[0], payload: { count: "wrong" } }]}
   />
 );
+
+export const typedPrimitive = <Box id="typed-node">Text and optional icon</Box>;

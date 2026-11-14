@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, it, expect } from 'vitest'
-import { cp, mkdir, readFile, writeFile, rm, readdir, symlink } from 'node:fs/promises'
+import { cp, mkdir, readFile, writeFile, rm, readdir, symlink, mkdtemp } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
 import { inspectPresentation } from '../../scripts/inspect-presentation.mjs'
@@ -8,8 +9,9 @@ import { visualDiagnostics } from '../../scripts/diagnostics.mjs'
 import { bootstrapPath } from '../../skills/presentation/scaffold-plan.mjs'
 const root = process.cwd(), work = resolve(root, '.test-work/integration')
 let counter = 0
+const externalDirectories = new Set()
 const run = (cmd, args, cwd) => new Promise((done, reject) => {
-  const child = spawn(cmd, args, { cwd, env: process.env })
+  const child = spawn(cmd, args, { cwd, env: { ...process.env, ...(args[0] === 'run' ? { NODE_ENV: 'production' } : {}) } })
   let output = ''
   child.stdout.on('data', chunk => { output += chunk })
   child.stderr.on('data', chunk => { output += chunk })
@@ -36,11 +38,13 @@ async function assertStopped(output) {
   }
 }
 beforeAll(async () => { await mkdir(work, { recursive: true }) })
-afterAll(async () => { await rm(work, { recursive: true, force: true }) })
+afterAll(async () => { await rm(work, { recursive: true, force: true }); for (const directory of externalDirectories) await rm(directory, { recursive: true, force: true }) })
 
 describe('production contracts', () => {
   it('INT-001 materialized bootstrap builds verifies and matches canonical kit/scripts outside source cwd', async () => {
-    const directory = resolve(work, 'bootstrap')
+    const directory = await mkdtemp(resolve(tmpdir(), 'and-scene-bootstrap-'))
+    externalDirectories.add(directory)
+    expect(directory.startsWith(root)).toBe(false)
     await cp(bootstrapPath, directory, { recursive: true })
     // Actual lock-based installation, using the local npm cache when available.
     const install = await run('npm', ['ci', '--ignore-scripts', '--prefer-offline'], directory)

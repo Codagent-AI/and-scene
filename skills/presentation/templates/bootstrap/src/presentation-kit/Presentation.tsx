@@ -18,13 +18,15 @@ export function Presentation<T>({ steps, title, initialMode = 'browse', brand, a
   }, [])
   const step = steps[nav.index]
   const geometry = STAGE_LAYOUT[nav.mode]
+  const browse = nav.mode === 'browse'
+  const showToc = browse && wide
   return <main aria-label={title} data-presentation-root="" data-presentation-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.index} data-step-id={step.id} data-step-era={step.era} data-step-title={step.title} data-step-caption={step.caption} onTouchStart={nav.onTouchStart} onTouchEnd={nav.onTouchEnd} onTouchCancel={nav.onTouchCancel} style={{ position: 'relative', height: '100dvh', display: 'grid', gridTemplateRows: `${geometry.header}px minmax(0, 1fr) ${geometry.footer}px`, overflow: 'hidden' }}>
     <div><Header step={step} index={nav.index} count={steps.length} mode={nav.mode} brand={brand} toggle={nav.toggle} />
-      {nav.mode === 'browse' && <h1 data-presentation-title="">{step.title}</h1>}
+      {browse && <h1 data-presentation-title="">{step.title}</h1>}
     </div>
-    <div style={{ display: 'grid', minHeight: 0, gridTemplateColumns: nav.mode === 'browse' && wide ? '140px minmax(0, 1fr)' : 'minmax(0, 1fr)' }}>{nav.mode === 'browse' && wide && <div aria-hidden="true" />}<Stage step={step} /></div>
+    <div style={{ display: 'grid', minHeight: 0, gridTemplateColumns: showToc ? '140px minmax(0, 1fr)' : 'minmax(0, 1fr)' }}>{showToc && <div aria-hidden="true" />}<Stage step={step} /></div>
     <Footer {...nav} step={step} steps={steps} />
-    {nav.mode === 'browse' && wide && <div style={{ position: 'absolute', left: 0, top: geometry.header }}><Toc steps={steps} index={nav.index} jump={nav.jump} /></div>}
+    {showToc && <div style={{ position: 'absolute', left: 0, top: geometry.header }}><Toc steps={steps} index={nav.index} jump={nav.jump} /></div>}
     {attribution !== false && <a data-presentation-attribution="" style={{ position: 'absolute', right: 0, bottom: 0 }} href={attribution.href}>{attribution.label}</a>}
   </main>
 }

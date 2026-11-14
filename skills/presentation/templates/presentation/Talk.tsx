@@ -1,15 +1,4 @@
-import { Presentation } from '../../presentation-kit'
-import { introStep } from './steps/intro'
-
-/** Replace with all steps for the talk; keep order stable for navigation. */
-const STEPS = [introStep]
-
-export default function Talk() {
-  return (
-    <Presentation
-      steps={STEPS}
-      title="{{PRESENTATION_TITLE}}"
-      initialMode="browse"
-    />
-  )
-}
+import { Presentation } from '../../presentation-kit/Presentation'
+import { STEPS } from './steps'
+// Import your own presentation.css here. The kit supplies no visual defaults.
+export default function Talk() { return <Presentation title="Your topic" steps={STEPS} initialMode="browse" /> }

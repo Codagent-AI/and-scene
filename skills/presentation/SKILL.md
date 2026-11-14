@@ -136,8 +136,10 @@ Review the first, last, and dense/key screenshots or equivalent browser views,
 plus narrow views where responsive-sensitive. Check important content fits the
 canvas, intentional overlaps remain readable, and captions, navigation, ToC,
 and progress do not collide with scene content. Review every referenced warning:
-fix accidental text/chrome collisions, indistinct active navigation, and missing,
-undersized or browser-default attribution. Only mark a genuinely intentional,
+fix accidental text/chrome collisions, indistinct active navigation, missing,
+undersized or browser-default attribution, and small-text warnings (scene text is
+scaled with the 880x380 canvas, so size diagram text in design pixels for the
+narrow viewport, not just the desktop one). Only mark a genuinely intentional,
 readable overlapping subtree `data-presentation-allow-overlap="true"`; do not use
 blanket exemptions to hide defects. Rerun affected capture/checks after fixes.
 Warnings are advisory, not automated proof of visual coherence.

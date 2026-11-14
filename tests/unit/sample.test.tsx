@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'
@@ -43,5 +44,13 @@ describe('sample and registry', () => {
     expect(entities.kit.y).toBe(entities.tray.y + entities.tray.h)
     expect(container.querySelector('.story-tray')).toHaveAttribute('data-presentation-node', 'box')
     expect(container.querySelector('.story-reveal')).toHaveAttribute('data-presentation-node', 'frame')
+  })
+  it('keeps scene text legible when the 880 x 380 canvas is fitted to a 390px-wide viewport', () => {
+    const css = readFileSync('src/presentations/how-to-make-a-presentation/presentation.css', 'utf8')
+    const sceneRules = [...css.matchAll(/([^{}]*\.(?:story-|tray-label|morph-link|modify-arc|visual-line)[^{}]*)\{([^}]*)\}/g)]
+    const sizes = sceneRules.flatMap(([, selector, body]) => [...body.matchAll(/font-size:\s*([\d.]+)px/g)].map(match => [selector.trim(), Number(match[1])] as const))
+    expect(sizes.length).toBeGreaterThan(10)
+    // 390px / 880px canvas scale is about 0.443; 20px design text stays near 9px rendered.
+    for (const [selector, size] of sizes) expect(size, selector).toBeGreaterThanOrEqual(20)
   })
 })

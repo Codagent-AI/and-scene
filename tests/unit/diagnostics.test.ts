@@ -12,7 +12,10 @@ function setup(content: string) {
   const original = window.getComputedStyle
   vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) => {
     const s = original(element, pseudo)
-    return new Proxy(s, { get(target, key) { return key === 'opacity' && !target.opacity ? '1' : Reflect.get(target, key) } })
+    return new Proxy(s, { get(target, key) {
+      if (key === 'transform') return (element as Element).getAttribute('data-transform') ?? ''
+      return key === 'opacity' && !target.opacity ? '1' : Reflect.get(target, key)
+    } })
   })
 }
 describe('visual diagnostic logic', () => {
@@ -47,5 +50,12 @@ describe('visual diagnostic logic', () => {
     expect(visualDiagnostics().join('\n')).toContain('unpolished attribution')
     link.style.color = 'rgb(90,100,90)'
     expect(visualDiagnostics()).toEqual([])
+  })
+  it('warns about text whose rendered size, after canvas scaling, is too small to read', () => {
+    setup('<div data-transform="matrix(0.5, 0, 0, 0.5, 0, 0)"><span style="font-size:12px">tiny card</span><span data-x="40" style="font-size:18px">readable card</span></div><span data-x="80" style="font-size:7px">unscaled tiny</span>')
+    const warnings = visualDiagnostics().join('\n')
+    expect(warnings).toContain('step 3: small text: tiny card renders at 6.0px')
+    expect(warnings).toContain('small text: unscaled tiny renders at 7.0px')
+    expect(warnings).not.toContain('readable card')
   })
 })

@@ -14,15 +14,15 @@ import type { SceneProps } from '../../../presentation-kit/types'
 import type { StoryPayload } from './index'
 export function StoryScene({ payload: { beat } }: SceneProps<StoryPayload>) {
   const content: Record<EntityId, React.ReactNode> = {
-    you: <><UserRound size={21} /><strong>you</strong></>, prompt: <>“I have a topic…”</>,
-    skill: <><Sparkles size={20} /><strong>the skill</strong></>, question: <>One question at a time</>,
-    conversation: null, tray: <span className="tray-label">YOUR STORY / ONE EVOLVING SCENE</span>,
-    card1: <><b>01 / the idea</b><span>Title</span><span>Caption</span><span className="visual-line">▣ Visual</span></>,
-    card2: <><b>02 / the next beat</b><span>Title</span><span>Caption</span><span className="visual-line">▣ Visual</span></>,
-    card3: <><b>03 / the payoff</b><span>Title</span><span>Caption</span><span className="visual-line">▣ Visual</span></>,
+    you: <><UserRound size={24} /><strong>you</strong></>, prompt: <>“I have a topic…”</>,
+    skill: <><Sparkles size={24} /><strong>the skill</strong></>, question: <>One question at a time</>,
+    conversation: null, tray: <span className="tray-label">ONE EVOLVING SCENE</span>,
+    card1: <><span>Title</span><span>Caption</span><span className="visual-line">▣ Visual</span></>,
+    card2: <><span>Title</span><span>Caption</span><span className="visual-line">▣ Visual</span></>,
+    card3: <><span>Title</span><span>Caption</span><span className="visual-line">▣ Visual</span></>,
     link1: null, link2: null, ghost: <><span>…</span><small>your call</small></>, depth: <>partial ⟷ full</>,
-    kit: <><Boxes size={18} /> shared scene kit · boxes, arrows, motion</>,
-    verify: <><Check size={22} /><b>PASS</b><small>build + render</small></>, verifyLink: null,
+    kit: <><Boxes size={22} /> shared scene kit · boxes, arrows, motion</>,
+    verify: <><Check size={26} /><b>PASS</b></>, verifyLink: null,
     modify: null, edited: <>↺ edited</>, reveal: <span>AND SCENE — YOU’RE LOOKING AT ONE</span>,
   }
   return <SceneLayer><AnimatePresence>{(Object.keys(entities) as EntityId[]).filter(id => entities[id].from <= beat).map(id => {
@@ -30,10 +30,10 @@ export function StoryScene({ payload: { beat } }: SceneProps<StoryPayload>) {
     const style = { position: 'absolute' as const, left: entity.x, top: entity.y, width: entity.w, height: entity.h }
     const shared = { id: entityId(id), className: `story-${id}`, style }
     let node
-    if (id === 'conversation') node = <Arrow {...shared} viewBox="0 0 416 20" d="M 0 10 H 416" both />
-    else if (id === 'link1' || id === 'link2') node = <div style={style} className="morph-link"><Arrow id={entityId(id)} viewBox="0 0 46 20" d="M 0 10 H 46" /><small>morphs</small></div>
-    else if (id === 'verifyLink') node = <Arrow {...shared} viewBox="0 0 30 20" d="M 0 10 H 30" />
-    else if (id === 'modify') node = <div style={style} className="modify-arc"><Arrow id={entityId(id)} viewBox="0 0 365 66" d="M 0 0 C 15 65 320 -5 320 66" /><span>ask → edit in place</span></div>
+    if (id === 'conversation') node = <Arrow {...shared} viewBox="0 0 480 20" d="M 0 10 H 480" both />
+    else if (id === 'link1' || id === 'link2') node = <div style={style} className="morph-link"><Arrow id={entityId(id)} viewBox="0 0 80 20" d="M 0 10 H 80" /><small>morphs</small></div>
+    else if (id === 'verifyLink') node = <Arrow {...shared} viewBox="0 0 34 20" d="M 0 10 H 34" />
+    else if (id === 'modify') node = <div style={style} className="modify-arc"><Arrow id={entityId(id)} viewBox="0 0 280 56" d="M 0 0 C 12 54 232 -4 280 56" /><span>ask → edit in place</span></div>
     else if (id === 'reveal') node = <Frame {...shared}>{content[id]}</Frame>
     else if (id === 'edited') node = <Emphasis {...shared}>{content[id]}</Emphasis>
     else if (id === 'prompt' || id === 'question') node = <Label {...shared}>{content[id]}</Label>

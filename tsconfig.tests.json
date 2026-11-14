@@ -1,0 +1,1 @@
+{ "extends": "./tsconfig.app.json", "compilerOptions": { "tsBuildInfoFile": "./node_modules/.tmp/tests.tsbuildinfo", "allowJs": true, "checkJs": false, "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"] }, "include": ["src", "tests/unit", "tests/setup.ts"] }

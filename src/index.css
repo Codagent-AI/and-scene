@@ -1,32 +1,11 @@
-:root {
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  color: #f8f3e6;
-  background: #0d0c0b;
-  font-synthesis: none;
-  line-height: 1.5;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  min-width: 320px;
-  min-height: 100vh;
-  margin: 0;
-  background:
-    radial-gradient(circle at 20% 10%, rgba(199, 167, 85, 0.16), transparent 28rem),
-    linear-gradient(135deg, #0d0c0b 0%, #161412 58%, #0d0c0b 100%);
-}
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
+body { margin: 0; }
+.landing { box-sizing: border-box; min-height: 100dvh; padding: 8vh 9vw; background: #151c1a; color: #f3f0e4; font-family: ui-sans-serif, system-ui, sans-serif; }
+.landing .eyebrow { letter-spacing: .2em; font-size: 12px; color: #c8ed85; }
+.landing h1 { font-size: clamp(42px, 7vw, 96px); font-weight: 450; letter-spacing: -.06em; margin: 50px 0 16px; }
+.landing p { color: #bbc4b8; }
+.presentation-list { max-width: 820px; margin: 64px 0; }
+.presentation-list a { display: block; padding: 28px; border: 1px solid #5b685a; border-radius: 6px; color: inherit; text-decoration: none; }
+.presentation-list a:hover { border-color: #c8ed85; }
+.presentation-list span, .landing footer { font-size: 12px; letter-spacing: .1em; }
+.presentation-list h2 { font-size: 27px; font-weight: 450; }
+.presentation-list b { color: #c8ed85; font-size: 14px; }

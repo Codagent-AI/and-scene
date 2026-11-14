@@ -21,7 +21,9 @@ export function visualDiagnostics() {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   while (walker.nextNode()) {
     const text = walker.currentNode, node = text.parentElement
-    if (!text.textContent.trim() || node.closest('button,a,svg,script,style') || !visible(node) || exempt(node)) continue
+    if (!text.textContent.trim() || node.closest('button,a,script,style,defs,title,desc') || !visible(node) || exempt(node)) continue
+    // SVG text/tspan/textPath renders glyphs; SVG metadata and geometry do not.
+    if (node.namespaceURI === 'http://www.w3.org/2000/svg' && !node.closest('text')) continue
     const range = document.createRange(); range.selectNodeContents(text)
     for (const rect of range.getClientRects()) if (rect.width && rect.height) candidates.push({ node, rect, label: text.textContent.trim().slice(0, 70) })
   }

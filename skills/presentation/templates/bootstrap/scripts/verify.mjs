@@ -25,7 +25,7 @@ export async function verify({ cwd = projectRoot, slug = SAMPLE_SLUG, build = tr
           }
           console.log(`PASS step ${index} / ${count - 1}`)
         }
-      } catch (error) { throw new Error(`render step ${index}: ${error.message}`, { cause: error }) }
+      } catch (error) { throw new Error(`render step ${index}: ${errors.length ? errors.join('; ') : error.message}`, { cause: error }) }
     })
     console.log(`PASS verification: ${slug}`)
   } catch (error) { throw new Error(`FAIL ${phase}: ${error.message}`, { cause: error }) }

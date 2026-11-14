@@ -22,6 +22,15 @@ describe('visual diagnostic logic', () => {
     expect(warnings).toContain('step 3: overlap: alpha / beta')
     expect(warnings).not.toMatch(/allowed|hidden/)
   })
+  it('I-53 includes SVG text and tspans in mixed HTML/SVG collisions, excluding metadata and explicit exemptions', () => {
+    setup(`<span>HTML label</span><svg><text>SVG label</text><text><tspan>SVG tspan</tspan></text>
+      <title>metadata title</title><desc>metadata description</desc><defs><text>unused definition</text></defs>
+      <text style="display:none">hidden SVG</text><g data-presentation-allow-overlap="true"><text>allowed SVG</text></g></svg>`)
+    const warnings = visualDiagnostics().join('\n')
+    expect(warnings).toContain('step 3: overlap: HTML label / SVG label')
+    expect(warnings).toContain('step 3: overlap: SVG label / SVG tspan')
+    expect(warnings).not.toMatch(/metadata|unused definition|hidden SVG|allowed SVG/)
+  })
   it('I-54 warns for identical active chrome and accepts distinct local styling', () => {
     setup('<button data-presentation-progress-step data-presentation-active="true">1</button><button data-x="30" data-presentation-progress-step data-presentation-active="false">2</button>')
     expect(visualDiagnostics().join('\n')).toContain('indistinct active progress-step')

@@ -63,6 +63,9 @@ export default function Talk() {
  <nav data-presentation-progress="" style={{position:'absolute',top:200}}><button data-presentation-active="true">active</button><button data-presentation-active="false">inactive</button></nav>
  <nav data-presentation-toc="" style={{position:'absolute',top:250}}><button data-presentation-active="true">era one</button><button data-presentation-active="false">era two</button></nav>
  <div data-presentation-attribution="" style={{position:'absolute',top:300}}><a style={{fontSize:9}} href="https://github.com/Codagent-AI/and-scene">made by and-scene</a></div>
+ <span style={{position:'absolute',left:40,top:400}}>icon collision</span><nav data-presentation-navigation=""><button aria-label="Icon next" style={{position:'absolute',left:40,top:400,width:32,height:32}}><svg width="16" height="16" aria-hidden="true"><path d="M0 0L16 8L0 16" /></svg></button></nav>
+ <span style={{position:'absolute',left:40,top:460}}>progress collision</span><nav data-presentation-progress=""><span aria-label="Graphical step" data-presentation-active="true" style={{position:'absolute',left:40,top:460,width:24,height:24,background:'purple'}} /></nav>
+ <nav data-presentation-navigation="" data-presentation-allow-overlap=""><button aria-label="intentional icon" style={{position:'absolute',left:40,top:520,width:32,height:32}}><svg width="16" height="16" /></button><span style={{position:'absolute',left:40,top:520}}>intentional chrome</span></nav>
  </main>
 }`
 test('INT-002 screenshots are settled predictable artifacts and diagnostics stay advisory', { timeout: 180000 }, async () => {
@@ -78,9 +81,11 @@ test('INT-002 screenshots are settled predictable artifacts and diagnostics stay
       const png = await readFile(path.join(dir, item.file)); assert.equal(png.subarray(1, 4).toString(), 'PNG'); assert.equal(png.readUInt32BE(16), 1440); assert.equal(png.readUInt32BE(20), 900)
       assert.ok(item.warnings.some(w => w.includes(`step ${step}: overlap: settled ${step} / collision`)))
       assert.ok(item.warnings.some(w => w.includes(`step ${step}: indistinct active progress`))); assert.ok(item.warnings.some(w => w.includes(`step ${step}: indistinct active toc`))); assert.ok(item.warnings.some(w => w.includes(`step ${step}: unpolished attribution`)))
+      assert.ok(item.warnings.some(w => w.includes(`step ${step}: overlap:`) && w.includes('icon collision') && w.includes('Icon next')))
+      assert.ok(item.warnings.some(w => w.includes(`step ${step}: overlap:`) && w.includes('progress collision') && w.includes('Graphical step')))
       assert.ok(item.warnings.every(w => !w.includes('intentional') && !w.includes('not-ready')))
     }
-    console.log('INT-002: 2 settled desktop PNGs, collisions, subtree exemptions, active progress/ToC, attribution, advisory exit PASS')
+    console.log('INT-002: 2 settled desktop PNGs, text/icon/graphical chrome collisions, subtree exemptions, active progress/ToC, attribution, advisory exit PASS')
   } finally { await rm(target, { recursive: true, force: true }) }
 })
 test('E2E-001 reference presentation passes production verification', { timeout: 180000 }, async () => {

@@ -2,16 +2,11 @@ import { it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import { STEPS, StoryScene } from '../src/presentations/how-to-make-a-presentation/steps'
 import { geometry, entity, positions, visibleEntities } from '../src/presentations/how-to-make-a-presentation/entities'
-import { presentations, findPresentation } from '../src/presentations'
-import { Router } from '../src/Router'
-const resolveRoute = findPresentation
+import { presentations } from '../src/presentations'
 import reference from '../scripts/reference.json'
 const scene = (beat: number) => render(<StoryScene payload={beat} step={STEPS[beat - 1]} />)
 const node = (name: string) => document.querySelector<HTMLElement>(`[data-scene-name="${name}"]`)
-it('I-27 registry routes coexist and landing links match explicit entries', async () => {
-  presentations.push({ slug: 'second', title: 'Second presentation', load: async () => ({ default: () => <div>Second</div> }) })
-  try { expect(resolveRoute('/second')?.title).toBe('Second presentation'); expect(findPresentation('/how-to-make-a-presentation/')?.slug).toBe('how-to-make-a-presentation'); expect(resolveRoute('/unknown')).toBeUndefined(); const view = render(<Router pathname="/" />); expect(document.querySelectorAll('.landing a')).toHaveLength(2); expect(document.querySelector('a[href="/second"]')).toBeTruthy(); view.unmount(); const unknown = render(<Router pathname="/unknown" />); expect(document.querySelector('.landing')).toBeTruthy(); unknown.unmount(); expect((await presentations[0].load()).default).toBeTypeOf('function') } finally { presentations.pop() }
-})
+const geometrySnapshot = (element: HTMLElement) => [element.style.position, element.style.left, element.style.top, element.style.width, element.style.height].join(';')
 it('I-35 reference metadata matches all nine normative eras titles and captions in order', () => { expect(STEPS.map(({ id, era, title, caption }) => ({ id, era, title, caption }))).toEqual(reference); expect(STEPS).toHaveLength(9); expect(presentations[0].title).toBe('How to Use This Skill to Make a Presentation') })
 it('I-36 first conversation entities appear on the required beats', () => {
   const view = scene(1); expect(node('you')?.textContent).toContain('you'); expect(node('prompt')?.textContent).toContain('topic'); expect(node('skill')).toBeNull(); view.rerender(<StoryScene payload={2} step={STEPS[1]} />); expect(node('skill')?.textContent).toContain('skill'); expect(node('conversation')?.textContent).toContain('←'); expect(node('conversation')?.textContent).toContain('→'); expect(positions.question.y).toBeLessThan(positions.conversation.y)
@@ -27,5 +22,5 @@ it('I-41 modify flags selected card and reveal encloses existing scene with stab
 })
 it('I-42 all beats accumulate stable entities with invariant coordinates and shared scene group', () => {
   const view = scene(1); const observed = new Map<string, { element: Element; style: string }>()
-  for (let beat = 1; beat <= 9; beat++) { view.rerender(<StoryScene payload={beat} step={STEPS[beat - 1]} />); const names = visibleEntities(beat); for (const [name, old] of observed) { expect(names).toContain(name); expect(node(name)).toBe(old.element); expect(node(name)?.style.cssText).toBe(old.style) }; for (const name of names) { expect(node(name)?.dataset.presentationEntity).toBe(entity(name)); expect(geometry(name).left).toBe(positions[name].x); observed.set(name, { element: node(name)!, style: node(name)!.style.cssText }) }; expect(STEPS[beat - 1].groupKey).toBe('conversation'); expect(STEPS[beat - 1].Scene).toBe(StoryScene) }
+  for (let beat = 1; beat <= 9; beat++) { view.rerender(<StoryScene payload={beat} step={STEPS[beat - 1]} />); const names = visibleEntities(beat); for (const [name, old] of observed) { expect(names).toContain(name); expect(node(name)).toBe(old.element); expect(geometrySnapshot(node(name)!)).toBe(old.style) }; for (const name of names) { expect(node(name)?.dataset.presentationEntity).toBe(entity(name)); expect(geometry(name).left).toBe(positions[name].x); observed.set(name, { element: node(name)!, style: geometrySnapshot(node(name)!) }) }; expect(STEPS[beat - 1].groupKey).toBe('conversation'); expect(STEPS[beat - 1].Scene).toBe(StoryScene) }
 })

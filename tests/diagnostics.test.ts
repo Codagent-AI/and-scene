@@ -17,3 +17,15 @@ it('I-51 distinct active chrome and legible local attribution avoid polish warni
   const root = document.querySelector('main')!; root.insertAdjacentHTML('beforeend', '<nav data-presentation-progress><button style="background:rgb(90,40,140);color:rgb(255,255,255)" data-presentation-active="true">Active</button><button data-presentation-active="false">Other</button></nav>'); for (const e of root.querySelectorAll('button')) rect(e, e.textContent === 'Active' ? 100 : 300, 100)
   expect(diagnose().join('\n')).not.toContain('indistinct'); expect(diagnose().join('\n')).not.toContain('attribution')
 })
+it('I-50 icon-only navigation and graphical progress collide as atomic chrome targets', () => {
+  const root = document.querySelector('main')!
+  root.insertAdjacentHTML('beforeend', '<span id="icon-content">icon content</span><nav data-presentation-navigation><button aria-label="Icon next"><svg aria-hidden="true"><path /></svg></button></nav><span id="progress-content">progress content</span><nav data-presentation-progress><span data-presentation-active="true" aria-label="Graphical step"></span></nav><nav data-presentation-navigation data-presentation-allow-overlap><button aria-label="Allowed icon"><svg /></button><span>allowed chrome</span></nav><nav data-presentation-navigation style="opacity:0"><button aria-label="Hidden icon"><svg /></button></nav>')
+  for (const e of root.querySelectorAll('button,svg,#icon-content,[data-presentation-allow-overlap] span')) rect(e)
+  rect(root.querySelector('#progress-content')!, 200, 0)
+  rect(root.querySelector('[aria-label="Graphical step"]')!, 200, 0, 24, 24)
+  const overlaps = diagnose().filter((w: string) => w.includes('overlap:'))
+  expect(overlaps).toHaveLength(2)
+  expect(overlaps.some((w: string) => w.includes('step 2:') && w.includes('icon content') && w.includes('Icon next'))).toBe(true)
+  expect(overlaps.some((w: string) => w.includes('step 2:') && w.includes('progress content') && w.includes('Graphical step'))).toBe(true)
+  expect(overlaps.join('\n')).not.toMatch(/Allowed icon|allowed chrome|Hidden icon/)
+})

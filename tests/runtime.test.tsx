@@ -22,7 +22,7 @@ describe('runtime contracts', () => {
   })
   it('I-1 active metadata and diagram follow ordered step state', () => {
     present(); expect(screen.getByRole('heading').textContent).toBe('Title 0'); expect(screen.getByText('Caption paragraph 0.')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Next', exact: true })); expect(screen.getByRole('heading').textContent).toBe('Title 1'); expect(document.querySelector('[data-presentation-entity]')?.textContent).toBe('1')
+    fireEvent.click(screen.getByRole('button', { name: 'Next', exact: true })); expect(screen.getByRole('heading').textContent).toBe('Title 1'); expect(document.querySelector('[data-presentation-label-active="true"]')?.textContent).toBe('1')
   })
   it('I-2 numbering derives from inserted removed and reordered arrays', () => {
     for (const reordered of [[steps[2], ...steps], [steps[2], steps[0]], [steps[1], steps[0], steps[2]]]) {
@@ -83,9 +83,31 @@ describe('runtime contracts', () => {
     present(); fireEvent.click(screen.getByRole('button', { name: 'Step 2: Title 1' })); expect(document.querySelector('main')?.dataset.stepIndex).toBe('1'); fireEvent.click(screen.getByRole('button', { name: 'end', exact: true })); expect(document.querySelector('main')?.dataset.stepIndex).toBe('2'); fireEvent.click(screen.getByRole('button', { name: 'start', exact: true })); expect(document.querySelector('main')?.dataset.stepIndex).toBe('0'); expect(eras(steps)).toEqual([{ era: 'start', index: 0 }, { era: 'end', index: 2 }])
   })
   it('I-17 active progress and ToC semantics track sequential and direct navigation', () => { window.innerWidth = 1440; present(); fireEvent.click(screen.getByRole('button', { name: 'Next', exact: true })); const active = screen.getByRole('button', { name: 'Step 2: Title 1' }); expect(active.getAttribute('aria-current')).toBe('step'); expect(active.dataset.presentationActive).toBe('true'); expect(screen.getByRole('button', { name: 'start', exact: true }).getAttribute('aria-current')).toBe('step'); fireEvent.click(screen.getByRole('button', { name: 'end', exact: true })); expect(active.getAttribute('aria-current')).toBeNull(); expect(active.dataset.presentationActive).toBe('false') })
-  it('I-18 focused interactive elements keep keys without double deck navigation', () => {
-    present(); const controls = ['button', 'a', 'input', 'select', 'textarea', 'summary', 'div', 'custom-role', 'custom-tabindex']
-    for (const tag of controls) { const e = document.createElement(tag); if (tag === 'custom-role') e.setAttribute('role', 'combobox'); if (tag === 'custom-tabindex') e.setAttribute('tabindex', '0'); if (tag === 'div') e.setAttribute('contenteditable', 'true'); document.body.append(e); e.focus(); for (const key of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) fireEvent.keyDown(e, { key }); expect(document.querySelector('main')?.dataset.stepIndex).toBe('0'); expect(document.querySelector('main')?.dataset.presentationMode).toBe('browse'); e.remove() }
+  it('I-18 every focused control keeps each key without changing the middle step or mode', () => {
+    present()
+    for (const kind of ['button', 'a', 'input', 'select', 'textarea', 'summary', 'editable', 'combobox', 'tabindex']) {
+      const e = document.createElement(['editable', 'combobox', 'tabindex'].includes(kind) ? 'div' : kind)
+      if (kind === 'a') e.setAttribute('href', '#control')
+      if (kind === 'editable') { e.setAttribute('contenteditable', 'true'); e.tabIndex = 0 }
+      if (kind === 'combobox') { e.setAttribute('role', 'combobox'); e.tabIndex = -1 }
+      if (kind === 'tabindex') e.tabIndex = 0
+      const host = kind === 'summary' ? document.createElement('details') : e
+      if (host !== e) host.append(e)
+      document.body.append(host)
+      e.addEventListener('keydown', event => { e.dataset.lastKey = event.key })
+      for (const key of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p', 'P']) {
+        fireEvent.click(screen.getByRole('button', { name: 'Step 2: Title 1' }))
+        e.focus()
+        expect(document.activeElement, `${kind} must really be focused`).toBe(e)
+        const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+        fireEvent(e, event)
+        expect(document.querySelector('main')?.dataset.stepIndex, `${kind}: ${key}`).toBe('1')
+        expect(document.querySelector('main')?.dataset.presentationMode, `${kind}: ${key}`).toBe('browse')
+        expect(e.dataset.lastKey).toBe(key)
+        expect(event.defaultPrevented).toBe(false)
+      }
+      host.remove()
+    }
   })
   it('I-19 boundaries clamp for repeated next previous and direct jumps', () => {
     const { result } = renderHook(() => usePresentationNav(3)); act(() => { result.current.prev(); result.current.prev() }); expect(result.current.index).toBe(0); act(() => result.current.go(99)); expect(result.current.index).toBe(2); act(() => { result.current.next(); result.current.next() }); expect(result.current.index).toBe(2); act(() => result.current.go(-10)); expect(result.current.index).toBe(0); expect(clamp(2, 0)).toBe(0)

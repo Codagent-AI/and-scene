@@ -17,7 +17,7 @@ const content = {
 }
 function SceneEntity({ name, beat }: { name: EntityName; beat: number }) {
   const Node = name === 'reveal' ? Frame : name.startsWith('link') || name === 'conversation' || name === 'modify' ? Arrow : ['question', 'depth'].includes(name) ? Label : Box
-  return <Node entityId={entity(name)} className={`entity ${name}${name === 'card2' && beat >= 8 ? ' edited' : ''}`} style={geometry(name)} data-scene-name={name}>{content[name]}{name === 'card2' && beat >= 8 && <span className="edited-label">edited</span>}</Node>
+  return <Node entityId={entity(name)} className={`entity ${name}${name === 'card2' && beat >= 8 ? ' edited' : ''}`} style={geometry(name)} emphasis={name === 'card2' ? { borderColor: beat >= 8 ? '#bb8a52' : '#d4c8dc' } : undefined} data-scene-name={name}>{content[name]}{name === 'card2' && beat >= 8 && <span className="edited-label">edited</span>}</Node>
 }
 export function StoryScene({ payload }: SceneProps<number>) {
   return <SceneLayer><AnimatePresence>{visibleEntities(payload).map(name => <Appear key={name} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}><SceneEntity name={name} beat={payload} /></Appear>)}</AnimatePresence></SceneLayer>

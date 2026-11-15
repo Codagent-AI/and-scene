@@ -1,11 +1,12 @@
-import { motion, type HTMLMotionProps } from 'motion/react'
+import { motion, type HTMLMotionProps, type TargetAndTransition } from 'motion/react'
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
+import { AnimatedLabel } from './AnimatedLabel'
 import { ENTER_T, LAYOUT_T } from '../constants'
-export type NodeProps = Omit<HTMLMotionProps<'div'>, 'children'> & { entityId: string; Icon?: LucideIcon; children?: ReactNode }
+export type NodeProps = Omit<HTMLMotionProps<'div'>, 'children'> & { entityId: string; Icon?: LucideIcon; children?: ReactNode; label?: string; emphasis?: TargetAndTransition }
 function node(kind: string) {
-  return function Node({ entityId, Icon, children, ...props }: NodeProps) {
-    return <motion.div layout layoutId={entityId} transition={{ layout: LAYOUT_T }} exit={{ opacity: 0, transition: { duration: 0.2 } }} data-presentation-node={kind} data-presentation-entity={entityId} {...props}>{Icon && <Icon aria-hidden="true" />}{children}</motion.div>
+  return function Node({ entityId, Icon, children, label, emphasis, ...props }: NodeProps) {
+    return <motion.div layout layoutId={entityId} animate={emphasis} transition={{ ...LAYOUT_T, layout: LAYOUT_T }} exit={{ opacity: 0, transition: { duration: 0.2 } }} data-presentation-node={kind} data-presentation-entity={entityId} {...props}>{Icon && <Icon aria-hidden="true" />}{label !== undefined ? <><AnimatedLabel text={label} />{children}</> : typeof children === 'string' || typeof children === 'number' ? <AnimatedLabel text={String(children)} /> : children}</motion.div>
   }
 }
 export const Box = node('box')

@@ -4,8 +4,17 @@ export function diagnose() {
   const step = root?.getAttribute('data-step-index') ?? '?'
   const warnings = []
   const visible = element => { const r = element.getBoundingClientRect(); if (r.width <= 0 || r.height <= 0) return false; for (let e = element; e; e = e.parentElement) { const s = getComputedStyle(e); if (s.visibility === 'hidden' || s.display === 'none' || s.opacity === '0') return false } return true }
-  const describe = e => e.getAttribute('data-presentation-entity') ?? e.getAttribute('aria-label') ?? e.textContent.trim().slice(0, 55)
-  const candidates = [...(root ?? document).querySelectorAll('*')].filter(e => !e.closest('[data-presentation-allow-overlap]') && visible(e) && [...e.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()))
+  const describe = e => e.getAttribute('data-presentation-entity') ?? e.getAttribute('aria-label') ?? (e.textContent.trim().slice(0, 55) || e.id || e.getAttribute('role') || e.tagName.toLowerCase())
+  const chrome = '[data-presentation-header],[data-presentation-footer],[data-presentation-navigation],[data-presentation-progress],[data-presentation-toc],[data-presentation-attribution],[data-presentation-mode-toggle]'
+  const controls = 'button,a,input,select,textarea,[role="button"],[role="link"],[role="progressbar"],[data-presentation-active]'
+  const candidates = [...(root ?? document).querySelectorAll('*')].filter(e => {
+    if (e.closest('[data-presentation-allow-overlap]') || !visible(e)) return false
+    // Treat a chrome control as one collision target, including its icon/text.
+    const owner = e.parentElement?.closest(controls)
+    if (owner?.closest(chrome)) return false
+    const text = [...e.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim())
+    return text || (e.closest(chrome) && e.matches(`${controls},svg,img,canvas,[role="img"]`))
+  })
   for (let i = 0; i < candidates.length; i++) for (let j = i + 1; j < candidates.length; j++) {
     const a = candidates[i], b = candidates[j]
     if (a.contains(b) || b.contains(a)) continue

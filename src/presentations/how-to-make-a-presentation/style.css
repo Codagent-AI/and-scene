@@ -37,7 +37,6 @@
 .skill-story .modify-curve { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 4 3; }
 .skill-story .modify marker path { fill: currentColor; }
 .skill-story .modify > span { position: absolute; top: 30px; right: 5px; background: #f4f1e9; padding: 2px 5px; }
-.skill-story .edited { border-color: #bb8a52; }
 .skill-story .edited-label { position: absolute; right: 8px; top: -14px; background: #f4f1e9; padding: 1px 5px; }
 .skill-story .reveal { border: 1px solid #ac94bd; border-radius: 20px; align-items: flex-end; padding-bottom: 7px; font-size: 11px; color: #8a6c9c; pointer-events: none; }
 @media (max-width: 600px) {

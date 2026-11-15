@@ -10,6 +10,7 @@ export function visualDiagnostics() {
     return s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity) > 0 && r.width > 0 && r.height > 0
   }
   const label = el => el.getAttribute('data-presentation-entity') || el.getAttribute('aria-label') || el.textContent.trim().slice(0, 50) || el.tagName
+  const overlaps = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2
   const allowed = el => !!el.closest('[data-presentation-allow-overlap]')
   // Text ranges avoid treating a large enclosing frame as text occupying its entire box.
   const texts = []
@@ -23,17 +24,27 @@ export function visualDiagnostics() {
   for (let i = 0; i < texts.length; i++) for (let j = i + 1; j < texts.length; j++) {
     const a = texts[i], b = texts[j]
     if (a.el === b.el) continue
-    if (Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left) > 2 && Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top) > 2) warnings.push(`overlap: ${label(a.el)} / ${label(b.el)}`)
+    if (overlaps(a.rect, b.rect)) warnings.push(`overlap: ${label(a.el)} / ${label(b.el)}`)
   }
   const controls = [...document.querySelectorAll('button,[data-presentation-attribution]')].filter(el => visible(el) && !allowed(el))
   for (const text of texts) for (const control of controls) {
     if (control.contains(text.el) || text.el.contains(control)) continue
     const a = text.rect, b = control.getBoundingClientRect()
-    if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2) warnings.push(`overlap: ${label(text.el)} / ${label(control)}`)
+    if (overlaps(a, b)) warnings.push(`overlap: ${label(text.el)} / ${label(control)}`)
   }
+  for (let i = 0; i < controls.length; i++) for (let j = i + 1; j < controls.length; j++) {
+    const a = controls[i], b = controls[j]
+    if (a.contains(b) || b.contains(a)) continue
+    if (overlaps(a.getBoundingClientRect(), b.getBoundingClientRect())) warnings.push(`overlap: ${label(a)} / ${label(b)}`)
+  }
+  const paintColor = color => color === 'transparent' || /^rgba\(.*,[\s]*0(?:\.0+)?\)$/.test(color) ? 'transparent' : color
   const signature = el => {
     const s = getComputedStyle(el)
-    return [s.color, s.backgroundColor, s.borderColor, s.borderWidth, s.fontWeight, s.textDecorationLine, s.boxShadow, s.outline, s.opacity, s.transform].join('|')
+    const stroke = (width, style, color) => parseFloat(width) > 0 && !['none', 'hidden', ''].includes(style) && paintColor(color) !== 'transparent' ? [width, style, color] : null
+    const borders = ['Top', 'Right', 'Bottom', 'Left'].map(side => stroke(s[`border${side}Width`], s[`border${side}Style`], s[`border${side}Color`]))
+    const outline = stroke(s.outlineWidth, s.outlineStyle, s.outlineColor)
+    const decoration = s.textDecorationLine === 'none' || !s.textDecorationLine ? null : [s.textDecorationLine, s.textDecorationColor, s.textDecorationStyle]
+    return JSON.stringify([paintColor(s.color), paintColor(s.backgroundColor), borders, s.fontWeight, s.fontSize, decoration, s.boxShadow, outline, s.opacity, s.transform])
   }
   for (const hook of ['progress-entry', 'toc-entry']) {
     const controls = [...document.querySelectorAll(`[data-presentation-${hook}]`)].filter(visible)

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 const repository = fileURLToPath(new URL('../', import.meta.url))
 const evidence = process.env.EVIDENCE_DIR
+const evidencePrefix = process.env.EVIDENCE_PREFIX ?? ''
 async function command(cwd, args, name, timeout = 120000) {
   const child = spawn('npm', args, { cwd, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] })
   let output = ''
@@ -15,7 +16,7 @@ async function command(cwd, args, name, timeout = 120000) {
   const timer = setTimeout(() => child.kill('SIGTERM'), timeout)
   const code = await new Promise((resolveCode, reject) => { child.on('exit', resolveCode); child.on('error', reject) })
   clearTimeout(timer)
-  if (evidence) await writeFile(join(evidence, `${name}.log`), `Command: npm ${args.join(' ')}\nCwd: ${cwd}\n${output}\nExit: ${code}\n`)
+  if (evidence) await writeFile(join(evidence, `${evidencePrefix}${name}.log`), `Command: npm ${args.join(' ')}\nCwd: ${cwd}\n${output}\nExit: ${code}\n`)
   return { code, output }
 }
 async function files(dir, prefix = '') {
@@ -60,22 +61,32 @@ test('INT-001 materialized bootstrap is complete, portable, aligned and style-ne
     const result = await command(cwd, ['run', 'verify'], 'INT-001')
     assert.equal(result.code, 0, result.output); assert.match(result.output, /PASS: build, sample, render \(starter\)/)
     assert.match(result.output, /127\.0\.0\.1/); assert.match(result.output, /render: step 0 clean/)
-    if (evidence) await writeFile(join(evidence, 'INT-001-assertions.log'), 'INT-001 PASS: external temporary materialization; npm ci from lock; all anchors/dependencies; byte parity for kit/scripts; style-neutral dependency/source checks; starter production build and render.\n')
+    if (evidence) await writeFile(join(evidence, `${evidencePrefix}INT-001-assertions.log`), 'INT-001 PASS: external temporary materialization; npm ci from lock; all anchors/dependencies; byte parity for kit/scripts; style-neutral dependency/source checks; starter production build and render.\n')
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
 test('INT-002 inspection captures settled artifacts and advisory diagnostics with overlap exemptions', { timeout: 120000 }, async () => {
   const cwd = await checkout('and-scene-inspection-')
   try {
-    await writeFile(join(cwd, 'src/presentations/how-to-make-a-presentation/Talk.tsx'), `import { Presentation } from '../../presentation-kit/Presentation'
+    await writeFile(join(cwd, 'src/presentations/how-to-make-a-presentation/Talk.tsx'), `import { useLayoutEffect, useRef } from 'react'
+import { Presentation } from '../../presentation-kit/Presentation'
 import type { Step, SceneProps } from '../../presentation-kit/types'
-function Scene({ payload }: SceneProps<number>) { return <div>
+function Scene({ payload }: SceneProps<number>) {
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const animation = ref.current!.animate([{transform:'translateX(0px)'},{transform:'translateX(12px)'}], {duration:400,fill:'forwards'})
+    animation.id = 'inspection-transition-'+payload
+    return () => animation.cancel()
+  }, [payload])
+  return <div ref={ref}>
   <div style={{position:'absolute',left:100,top:100}}>collision-alpha-{payload}</div>
   <div style={{position:'absolute',left:100,top:100}}>collision-beta-{payload}</div>
+  <button aria-label="icon-previous" style={{position:'absolute',left:650,top:100,width:32,height:32}}><svg aria-hidden="true"><path d="M0 0L10 10"/></svg></button>
+  <button aria-label="icon-next" style={{position:'absolute',left:650,top:100,width:32,height:32}}><svg aria-hidden="true"><path d="M0 0L10 10"/></svg></button>
   <div data-presentation-allow-overlap="" style={{position:'absolute',left:400,top:100}}><span>intentional-one</span><span style={{position:'absolute',left:0}}>intentional-two</span></div>
 </div> }
 const steps: Step<number>[] = [0,1,2].map(i=>({id:String(i),era:'era-'+i,title:'Fixture '+i,caption:'Fixture caption '+i,Scene,payload:i,groupKey:'fixture'}))
-export default function Talk(){return <><style>{'[data-presentation-attribution]{font-size:8px} [data-presentation-progress-entry],[data-presentation-toc-entry]{color:black;background:white;font-weight:400;border:0;outline:0;box-shadow:none;opacity:1;transform:none}'}</style><Presentation title="Inspection fixture" steps={steps}/></>}
+export default function Talk(){return <><style>{'[data-presentation-attribution]{font-size:8px} [data-presentation-progress-entry],[data-presentation-toc-entry]{color:black;background:white;font-weight:400;border:0;outline:0;box-shadow:none;opacity:1;transform:none} [data-presentation-active="true"]{border-color:red;outline-color:red} [data-presentation-active="false"]{border-color:blue;outline-color:blue}'}</style><Presentation title="Inspection fixture" steps={steps}/></>}
 `)
     const result = await command(cwd, ['run', 'inspect', '--', 'how-to-make-a-presentation'], 'INT-002')
     assert.equal(result.code, 0, result.output)
@@ -87,6 +98,14 @@ export default function Talk(){return <><style>{'[data-presentation-attribution]
       assert.equal(item.index, i); assert.equal(item.screenshot, `step-0${i + 1}.png`); assert.equal(item.settle, 850)
       const png = await readFile(join(directory, item.screenshot))
       assert.equal(png.readUInt32BE(16), 1440); assert.equal(png.readUInt32BE(20), 900)
+      assert.ok(item.captureStartedAt - item.transitionObservedAt >= item.settle, `step ${i}: capture before configured post-transition delay`)
+      const animation = item.animations.find(a => a.id === `inspection-transition-${i}`)
+      assert.ok(animation, `step ${i}: actual fixture transition missing`)
+      assert.equal(animation.duration, 400)
+      assert.equal(animation.playState, 'finished', `step ${i}: transition not settled before capture`)
+      assert.ok(animation.currentTime >= animation.duration)
+      assert.ok(item.captureStartedAt >= animation.startTime + animation.duration)
+      assert.ok(item.warnings.some(w => w.includes('icon-previous') && w.includes('icon-next')))
       if (i > 0) assert.ok(item.capturedAt - report[i-1].capturedAt >= 850)
       assert.ok(item.warnings.some(w => w.includes(`collision-alpha-${i}`) && w.includes(`collision-beta-${i}`)))
       assert.ok(!item.warnings.some(w => w.includes('intentional-one') || w.includes('intentional-two')))
@@ -95,7 +114,7 @@ export default function Talk(){return <><style>{'[data-presentation-attribution]
       assert.ok(item.warnings.some(w => w.includes('unpolished attribution') && w.includes('[data-presentation-attribution]')))
       assert.match(result.output, new RegExp('ADVISORY step '+i+':'))
     }
-    if (evidence) await writeFile(join(evidence, 'INT-002-assertions.log'), 'INT-002 PASS: three 1440x900 PNGs, ordered predictable paths, >=850ms capture intervals, per-step text/chrome warnings, explicit subtree exemptions, active progress/contents warnings, small-attribution hook guidance, advisory success exit.\n'+JSON.stringify(report,null,2))
+    if (evidence) await writeFile(join(evidence, `${evidencePrefix}INT-002-assertions.log`), 'INT-002 PASS: three 1440x900 PNGs, ordered predictable paths, >=850ms after each observed step transition; real 400ms Web Animations transitions finished before capture (start/current/duration/playState recorded), per-step text/text, text/chrome and icon-only chrome/chrome warnings, explicit subtree exemptions, active progress/contents warnings, small-attribution hook guidance, advisory success exit.\n'+JSON.stringify(report,null,2))
   } finally { await rm(cwd, { recursive: true, force: true }) }
 })
 
@@ -117,6 +136,7 @@ const cases = [
   ['build', async cwd => replace(cwd, talk, 'export default', 'const invalid: string = 1; console.log(invalid)\nexport default'), /build: npm run build exited/],
   ['missing', async cwd => writeFile(join(cwd, 'src/presentations/index.ts'), "import type { ComponentType } from 'react'\nexport const presentations: {slug:string;title:string;load:()=>Promise<{default:ComponentType}>}[] = []\n"), /render: step 0/],
   ['order', async cwd => { const p = join(cwd, 'src/presentations/how-to-make-a-presentation/outline.json'); const rows = JSON.parse(await readFile(p)); [rows[0],rows[1]] = [rows[1],rows[0]]; await writeFile(p, JSON.stringify(rows)) }, /sample: step 0 title/],
+  ['count', async cwd => { const p = join(cwd, 'src/presentations/how-to-make-a-presentation/outline.json'); const rows = JSON.parse(await readFile(p)); rows.pop(); await writeFile(p, JSON.stringify(rows)) }, /render: step 0: sample: invalid step count 8, expected 9/],
   ['console', async cwd => replace(cwd, scene, 'return <SceneLayer>', "if (beat === 2) console.error('injected console fault')\n  return <SceneLayer>"), /render: step 1:.*injected console fault/],
   ['runtime', async cwd => replace(cwd, scene, 'return <SceneLayer>', "if (beat === 2) throw new Error('injected render fault')\n  return <SceneLayer>"), /render: step 1/],
   ['pageerror', async cwd => replace(cwd, scene, 'return <SceneLayer>', "if (beat === 2) setTimeout(() => { throw new Error('injected uncaught fault') }, 20)\n  return <SceneLayer>"), /render: step 1:.*injected uncaught fault/],

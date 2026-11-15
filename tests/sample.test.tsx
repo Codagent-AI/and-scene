@@ -1,6 +1,7 @@
-import { it, expect } from 'vitest'
-import { render } from '@testing-library/react'
+import { it, expect, vi } from 'vitest'
+import { act, render } from '@testing-library/react'
 import { STEPS } from '../src/presentations/how-to-make-a-presentation/steps'
+import { Verification } from '../src/presentations/how-to-make-a-presentation/steps/Verification'
 import { Scene } from '../src/presentations/how-to-make-a-presentation/steps/Scene'
 import { diagram, entity } from '../src/presentations/how-to-make-a-presentation/entities'
 import { presentations } from '../src/presentations'
@@ -58,5 +59,36 @@ it('I-27 presentation CSS locally styles active chrome, readable attribution and
   expect(css).toMatch(/\[data-presentation-attribution\][^{]*\{[^}]*font-size:\s*12px/)
   expect(css).toMatch(/\.diagram-ghost[^}]*dashed/)
   expect(css).toMatch(/\.diagram-verify[^}]*background:\s*#264d40/)
+  expect(css).toContain('.diagram-verify:has([data-sample-verification="checking"]) { background: #e8eadd; color: #52665b; }')
   for (const step of STEPS) expect(step.caption.length).toBeGreaterThan(0)
+})
+
+it('I-34 checks visibly resolve to a green pass and persist across continuing beats', () => {
+  vi.useFakeTimers()
+  try {
+    const view = render(<Scene payload={7} />)
+    const result = () => view.container.querySelector('[data-sample-verification]')!
+    expect(result()).toHaveAttribute('data-sample-verification', 'checking')
+    expect(result()).toHaveTextContent('build · render …')
+    expect(result()).not.toHaveTextContent('✓')
+    act(() => vi.advanceTimersByTime(500))
+    expect(result()).toHaveAttribute('data-sample-verification', 'checking')
+    act(() => vi.advanceTimersByTime(300))
+    expect(result()).toHaveAttribute('data-sample-verification', 'passed')
+    expect(result()).toHaveTextContent('✓ build + render')
+    const completed = result()
+    view.rerender(<Scene payload={8} />)
+    expect(result()).toBe(completed)
+    expect(result()).toHaveAttribute('data-sample-verification', 'passed')
+    view.unmount()
+  } finally { vi.useRealTimers() }
+})
+it('I-34 checking timer is cleaned up when its node departs', () => {
+  vi.useFakeTimers()
+  try {
+    const view = render(<Verification />)
+    expect(vi.getTimerCount()).toBe(1)
+    view.unmount()
+    expect(vi.getTimerCount()).toBe(0)
+  } finally { vi.useRealTimers() }
 })

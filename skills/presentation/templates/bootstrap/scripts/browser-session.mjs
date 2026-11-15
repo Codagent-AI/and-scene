@@ -73,9 +73,10 @@ export async function visitSteps(page, url, onStep, { expectedCount, settle = SE
     for (index = 0; index < count; index++) {
       if (index > 0) await page.keyboard.press('ArrowRight')
       await page.waitForFunction(i => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(i), index, { timeout: 3000 })
+      const transitionObservedAt = await page.evaluate(() => performance.now())
       await page.waitForTimeout(settle)
       if (errors.length) throw new Error(errors.join('; '))
-      await onStep(index, root)
+      await onStep(index, root, { transitionObservedAt })
       console.log(`render: step ${index} clean`)
     }
   } catch (error) {

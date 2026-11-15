@@ -11,12 +11,20 @@ export async function inspect({ cwd = process.cwd(), slug = process.argv[2], set
   const report = []
   await withPreview(async (browser, base) => {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-    await visitSteps(page, `${base}/${slug}`, async i => {
+    await visitSteps(page, `${base}/${slug}`, async (i, _root, { transitionObservedAt }) => {
       const warnings = await page.evaluate(visualDiagnostics)
       const filename = `step-${String(i + 1).padStart(2, '0')}.png`
+      const capture = await page.evaluate(() => ({
+        captureStartedAt: performance.now(),
+        animations: document.getAnimations().map(animation => ({
+          id: animation.id, playState: animation.playState,
+          startTime: animation.startTime, currentTime: animation.currentTime,
+          duration: animation.effect?.getComputedTiming().duration,
+        })),
+      }))
       await page.screenshot({ path: resolve(output, filename), fullPage: true })
       for (const warning of warnings) console.log(`ADVISORY step ${i}: ${warning}`)
-      report.push({ index: i, screenshot: filename, settle, capturedAt: Date.now(), warnings })
+      report.push({ index: i, screenshot: filename, settle, transitionObservedAt, ...capture, capturedAt: Date.now(), warnings })
     }, { settle })
   }, { cwd })
   await writeFile(resolve(output, 'report.json'), JSON.stringify(report, null, 2))

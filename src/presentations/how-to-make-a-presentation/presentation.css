@@ -32,6 +32,7 @@
 .how-to .diagram-depth { font-size: 11px; border-left: 2px solid #264d40; }
 .how-to .diagram-socket { border: 1px solid #91a187; border-top: 3px solid #264d40; background: #d9e4cc; font-size: 10px; border-radius: 0 0 8px 8px; }
 .how-to .diagram-verify { background: #264d40; color: #e6ffc9; border-radius: 6px; font-size: 11px; }
+.how-to .diagram-verify:has([data-sample-verification="checking"]) { background: #e8eadd; color: #52665b; }
 .how-to .diagram-modify { color: #ac542c; border-right: 2px dashed #ac542c; border-top: 2px dashed #ac542c; border-radius: 0 25px 0 0; font: italic 14px Georgia, serif; }
 .how-to .diagram-reveal { border: 1px solid #ac542c; border-radius: 14px; align-items: flex-end; justify-content: flex-end; padding: 4px 12px; font-size: 9px; letter-spacing: .13em; color: #ac542c; pointer-events: none; }
 .how-to [data-presentation-mode="present"] [data-presentation-footer] { bottom: 40px; }

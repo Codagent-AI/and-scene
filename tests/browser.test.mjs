@@ -9,6 +9,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { materialize, templateRoot } from '../skills/presentation/scripts/materialize.mjs'
 import { record } from './evidence.mjs'
 import { inspect } from '../scripts/inspect-presentation.mjs'
+import { withPreview, traverse } from '../scripts/browser.mjs'
 const root = resolve(import.meta.dirname, '..')
 const work = join(root,'.test-work')
 await mkdir(work,{recursive:true})
@@ -154,6 +155,39 @@ test('E2E-001 reference presentation passes production verification', {timeout:1
     assert.match(present.output,/PASS: build/)
     await assertResourcesClosed(name, present)
   }
+  // Reuse the root production build for composition regressions. This is part
+  // of the existing E2E-001 flow, and is not executed in acceptance-fix sessions.
+  await withPreview(root, async (browser, url) => {
+    for (const viewport of [{width:1440,height:900},{width:390,height:844}]) {
+      for (const mode of ['browse','present']) {
+        const page = await browser.newPage({viewport})
+        await traverse(page, `${url}/how-to-make-a-presentation`, {onStep:async index=>{
+          if (mode === 'present' && index === 0) {
+            await page.keyboard.press('p')
+            await page.waitForTimeout(1000)
+          }
+          const metrics = await page.evaluate(()=>{
+            const canvas=document.querySelector('[data-presentation-canvas]')
+            const scale=canvas.getBoundingClientRect().width / parseFloat(canvas.style.width)
+            const annotations=[...document.querySelectorAll('.prompt,.question,.card-number,.step-card strong,.step-card small,.morph small,.depth,.kit,.kit small,.verify strong,.verify small,.modify span,.edited,.reveal span')]
+            const connector=document.querySelector('.conversation')?.getBoundingClientRect()
+            const you=document.querySelector('.person').getBoundingClientRect()
+            const skill=document.querySelector('.skill')?.getBoundingClientRect()
+            const overflowing=[...document.querySelectorAll('.step-card small span,.morph small')].filter(el=>{
+              const range=document.createRange();range.selectNodeContents(el)
+              const text=range.getBoundingClientRect(),box=el.getBoundingClientRect()
+              return text.left < box.left-1 || text.right > box.right+1 || text.bottom > box.bottom+1
+            }).map(el=>el.textContent)
+            return {minimumFont:Math.min(...annotations.map(el=>parseFloat(getComputedStyle(el).fontSize)*scale)),clearConnector:!connector||(connector.left>you.right&&connector.right<skill.left),overflowing}
+          })
+          assert.ok(metrics.minimumFont>=12,`step ${index}, ${mode}, ${viewport.width}: scene annotations readable`)
+          assert.equal(metrics.clearConnector,true,`step ${index}: connector stays between nodes`)
+          assert.deepEqual(metrics.overflowing,[],`step ${index}: card/link text fits its authored bounds`)
+        }})
+        await page.close()
+      }
+    }
+  })
   await record([39,42,43], '`scripts/verify.mjs`; `scripts/browser.mjs`; `src/presentations/how-to-make-a-presentation/`; `tests/browser.test.mjs`', refs(['E2E-001','E2E-001-cleanup','E2E-001-present-slug','E2E-001-present-slug-cleanup','E2E-001-present-canonical','E2E-001-present-canonical-cleanup']) + ' — E2E-001 npm run verify: whole build, ordered canonical metadata, route, IPv4 preview and all nine indices passed, including generic-slug and canonical verification of an initially-present presentation; Chromium process and preview PID/port cleanup asserted. Build failure will be recorded by E2E-002. Composition source: I-34-reinspection.log.')
 })
 test('E2E-002 verification faults report failure phase step and clean preview processes', {timeout:240000}, async t=>{

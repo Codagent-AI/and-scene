@@ -222,8 +222,8 @@ describe('sample and registry', () => {
     for (let i = 2; i <= 9; i++) for (const id of visibleEntities(i-1)) expect(visibleEntities(i)).toContain(id)
     const { rerender } = render(<Story payload={1} />); const you = screen.getByText('you'); const initial = you.getAttribute('style')
     for (let beat = 2; beat <= 9; beat++) { rerender(<Story payload={beat} />); expect(screen.getByText('you')).toBe(you); expect(you.getAttribute('style')).toBe(initial) }
-    expect(positions.verify.top).toBe(210); expect(positions.kit.top).toBe(positions.tray.top + positions.tray.height)
-    expect(screen.getByText('↑ edited in place').style.top).toBe('192px');
-    expect(document.querySelector('[data-presentation-node="frame"]')).toBeTruthy(); expect(screen.getByText('build + render ✓')).toBeTruthy()
+    expect(positions.verify.top).toBe(226); expect(positions.kit.top).toBe(positions.tray.top + positions.tray.height)
+    expect(screen.getByText('edited ↓').style.top).toBe('196px');
+    expect(document.querySelector('[data-presentation-node="frame"]')).toBeTruthy(); expect(screen.getByLabelText('build + render passed')).toBeTruthy()
   })
 })

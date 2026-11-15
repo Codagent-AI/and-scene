@@ -16,35 +16,37 @@
 .workshop [data-presentation-attribution] { color: #adbfad; font-size: 13px; text-decoration: none; letter-spacing: .025em; }
 .workshop [data-presentation-attribution]:hover { color: #c2f3ad; text-decoration: underline; }
 .workshop [data-presentation-mode="present"] [data-presentation-footer] { text-align: center; }
-.workshop [data-presentation-node] { box-sizing: border-box; }
-.workshop .person, .workshop .skill { border: 1px solid #b4dba5; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 23px; background: #24372e; }
+.workshop [data-presentation-node] { box-sizing: border-box; font-size: 15px; line-height: 20px; }
+.workshop .person, .workshop .skill { border: 1px solid #b4dba5; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 6px; font-size: 19px; line-height: 22px; background: #24372e; }
+.workshop .person svg, .workshop .skill svg { width: 20px; height: 20px; flex-shrink: 0; }
 .workshop .skill { background: #c2f3ad; color: #16251b; }
-.workshop .prompt { border: 1px solid #516a59; border-radius: 15px 15px 15px 2px; background: #1d2b24; padding: 6px 0; color: #c8d0cb; font: 13px ui-monospace, monospace; text-align: center; }
-.workshop .question { color: #a8c4b1; text-align: center; font: 13px ui-monospace, monospace; }
-.workshop .conversation { color: #8aa68b; text-align: center; font: 23px ui-monospace, monospace; letter-spacing: -2px; }
+.workshop .prompt { border: 1px solid #516a59; border-radius: 15px 15px 15px 2px; background: #1d2b24; padding: 5px 0; color: #c8d0cb; font: 15px/24px ui-monospace, monospace; text-align: center; }
+.workshop .question { color: #a8c4b1; text-align: center; font: 15px/38px ui-monospace, monospace; }
+.workshop .conversation { color: #8aa68b; }
+.workshop .conversation svg, .workshop .verify-link svg { display: block; width: 100%; height: 100%; overflow: hidden; }
 .workshop .tray { border-top: 1px solid #41554a; pointer-events: none; }
-.workshop .tray > span { display: block; margin-top: 9px; color: #819b89; font-size: 10px; letter-spacing: .12em; }
-.workshop .step-card { background: #20312b; border: 1px solid #66816c; border-radius: 8px; padding: 10px 12px; }
-.workshop .card-number { color: #95b597; display: block; font: 10px ui-monospace, monospace; margin-bottom: 4px; }
-.workshop .step-card strong { font-size: 14px; font-weight: 500; display: block; }
-.workshop .step-card small { font-size: 9px; color: #a8bcad; display: block; margin-top: 6px; }
-.workshop .morph { text-align: center; color: #9ed48b; font-size: 19px; }
-.workshop .morph small { display: block; font-size: 8px; color: #9cae9e; }
-.workshop .ghost { display: flex; align-items: center; justify-content: center; flex-direction: column; border: 1px dashed #78927d; border-radius: 8px; font-size: 24px; color: #a1b9a5; }
-.workshop .ghost small { font-size: 9px; margin-top: 4px; }
-.workshop .depth { color: #bde0af; font: 12px ui-monospace, monospace; text-align: center; }
-.workshop .kit { border-top: 3px solid #acd494; border-radius: 0 0 8px 8px; background: #2b3e2d; display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 13px; }
-.workshop .kit svg { width: 17px; }
-.workshop .kit small { font-size: 9px; color: #a0b294; }
-.workshop .verify { background: #bcf1a7; color: #183521; border-radius: 8px; padding: 10px; display: grid; grid-template-columns: 24px 1fr; align-items: center; gap: 3px; }
-.workshop .verify strong { font-size: 15px; }
-.workshop .verify small { grid-column: 1 / -1; font-size: 11px; text-align: center; }
-.workshop .verify-link { color: #bce8a5; font-size: 19px; }
+.workshop .tray > span { display: block; margin-top: 8px; color: #819b89; font-size: 15px; line-height: 20px; }
+.workshop .step-card { background: #20312b; border: 1px solid #66816c; border-radius: 8px; padding: 4px; }
+.workshop .card-number { color: #95b597; display: block; font: 15px/18px ui-monospace, monospace; }
+.workshop .step-card strong { font-size: 15px; line-height: 20px; font-weight: 500; display: block; margin: 4px 0; }
+.workshop .step-card small { font-size: 15px; line-height: 22px; color: #a8bcad; display: block; margin-top: 4px; }
+.workshop .step-card small span, .workshop .verify small span { display: block; }
+.workshop .morph { text-align: center; color: #9ed48b; font-size: 19px; line-height: 24px; }
+.workshop .morph small { display: block; font-size: 15px; line-height: 20px; color: #9cae9e; }
+.workshop .ghost { display: flex; align-items: center; justify-content: center; border: 1px dashed #78927d; border-radius: 8px; font-size: 24px; color: #a1b9a5; }
+.workshop .depth { color: #bde0af; font: 15px/32px ui-monospace, monospace; text-align: center; }
+.workshop .kit { border-top: 3px solid #acd494; border-radius: 0 0 8px 8px; background: #2b3e2d; display: grid; grid-template-columns: 20px 1fr; align-content: center; align-items: center; gap: 2px 6px; padding: 6px; font-size: 15px; }
+.workshop .kit svg { width: 20px; height: 20px; }
+.workshop .kit small { grid-column: 1 / -1; font-size: 15px; line-height: 20px; color: #a0b294; text-align: center; }
+.workshop .verify { background: #bcf1a7; color: #183521; border-radius: 8px; padding: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.workshop .verify strong { font-size: 15px; line-height: 20px; }
+.workshop .verify small { font-size: 15px; line-height: 20px; text-align: center; }
+.workshop .verify-link { color: #bce8a5; }
 .workshop .modify { color: #e2b787; }
-.workshop .modify span { position: absolute; top: 54px; left: -3px; font: 10px ui-monospace, monospace; background: #17231e; padding: 3px; }
-.workshop .edited { color: #e2b787; font: 11px ui-monospace, monospace; }
+.workshop .modify span { position: absolute; top: 32px; left: 0; font: 15px/20px ui-sans-serif, sans-serif; }
+.workshop .edited { color: #e2b787; font: 15px/20px ui-monospace, monospace; }
 .workshop .reveal { border: 1px solid #93be83; border-radius: 18px; pointer-events: none; }
-.workshop .reveal span { position: absolute; right: 24px; bottom: 10px; color: #bbdfaa; font-size: 10px; letter-spacing: .12em; }
+.workshop .reveal span { position: absolute; right: 12px; bottom: 8px; color: #bbdfaa; font-size: 15px; line-height: 20px; }
 @media (max-width: 650px) {
   .workshop [data-presentation-caption] { font-size: 14px; min-height: 84px; line-height: 1.4; margin-bottom: 16px; }
   .workshop [data-presentation-progress] { gap: 3px; }

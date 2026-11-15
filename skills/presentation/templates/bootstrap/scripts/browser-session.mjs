@@ -6,6 +6,20 @@ import { chromium } from 'playwright'
 
 export const HOST = '127.0.0.1'
 export const SETTLE_MS = 850
+export const ANIMATION_LIMIT_MS = 10000
+// Runs in the page: waits for finite running animations, which may outlast the settle interval, to finish.
+export async function settleFiniteAnimations(limit) {
+  const finite = () => document.getAnimations().filter(a => a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming().endTime ?? Infinity))
+  const deadline = performance.now() + limit
+  for (let pending = finite(); pending.length && performance.now() < deadline; pending = finite()) {
+    let timer
+    await Promise.race([
+      Promise.all(pending.map(a => a.finished.catch(() => undefined))),
+      new Promise(r => { timer = setTimeout(r, Math.max(0, deadline - performance.now())) }),
+    ])
+    clearTimeout(timer)
+  }
+}
 export function build(cwd = process.cwd()) {
   return new Promise((resolveBuild, reject) => {
     const child = spawn('npm', ['run', 'build'], { cwd, stdio: 'inherit' })

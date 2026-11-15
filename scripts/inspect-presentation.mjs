@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { build, visitSteps, withPreview, SETTLE_MS } from './browser-session.mjs'
+import { build, visitSteps, withPreview, settleFiniteAnimations, ANIMATION_LIMIT_MS, SETTLE_MS } from './browser-session.mjs'
 import { visualDiagnostics } from './visual-diagnostics.mjs'
 export async function inspect({ cwd = process.cwd(), slug = process.argv[2], settle = SETTLE_MS } = {}) {
   if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error('inspection: provide a registered presentation slug')
@@ -12,6 +12,7 @@ export async function inspect({ cwd = process.cwd(), slug = process.argv[2], set
   await withPreview(async (browser, base) => {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
     await visitSteps(page, `${base}/${slug}`, async (i, _root, { transitionObservedAt }) => {
+      await page.evaluate(settleFiniteAnimations, ANIMATION_LIMIT_MS)
       const warnings = await page.evaluate(visualDiagnostics)
       const filename = `step-${String(i + 1).padStart(2, '0')}.png`
       const capture = await page.evaluate(() => ({

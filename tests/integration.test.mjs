@@ -76,7 +76,9 @@ function Scene({ payload }: SceneProps<number>) {
   useLayoutEffect(() => {
     const animation = ref.current!.animate([{transform:'translateX(0px)'},{transform:'translateX(12px)'}], {duration:400,fill:'forwards'})
     animation.id = 'inspection-transition-'+payload
-    return () => animation.cancel()
+    const long = ref.current!.animate([{opacity:1},{opacity:0.99}], {duration:1800,fill:'forwards'})
+    long.id = 'inspection-long-'+payload
+    return () => { animation.cancel(); long.cancel() }
   }, [payload])
   return <div ref={ref}>
   <div style={{position:'absolute',left:100,top:100}}>collision-alpha-{payload}</div>
@@ -105,6 +107,9 @@ export default function Talk(){return <><style>{'[data-presentation-attribution]
       assert.equal(animation.playState, 'finished', `step ${i}: transition not settled before capture`)
       assert.ok(animation.currentTime >= animation.duration)
       assert.ok(item.captureStartedAt >= animation.startTime + animation.duration)
+      const long = item.animations.find(a => a.id === `inspection-long-${i}`)
+      assert.ok(long, `step ${i}: long fixture animation missing`)
+      assert.equal(long.playState, 'finished', `step ${i}: animation longer than the settle interval captured mid-flight`)
       assert.ok(item.warnings.some(w => w.includes('icon-previous') && w.includes('icon-next')))
       if (i > 0) assert.ok(item.capturedAt - report[i-1].capturedAt >= 850)
       assert.ok(item.warnings.some(w => w.includes(`collision-alpha-${i}`) && w.includes(`collision-beta-${i}`)))

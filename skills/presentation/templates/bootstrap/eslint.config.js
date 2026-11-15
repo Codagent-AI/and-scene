@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'skills/presentation/templates/bootstrap', '.presentation-artifacts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -15,8 +15,10 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
+    rules: { 'react-refresh/only-export-components': ['error', { extraHOCs: ['node'], allowExportNames: ['STEPS'] }] },
     languageOptions: {
       globals: globals.browser,
     },
   },
+  { files: ['tests/**/*.{ts,tsx}'], rules: { 'react-refresh/only-export-components': 'off' } },
 ])

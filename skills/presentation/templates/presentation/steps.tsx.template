@@ -1,0 +1,11 @@
+import type { SceneProps, Step } from '../../presentation-kit/types'
+import { Box } from '../../presentation-kit/nodes/Box'
+import { SceneLayer } from '../../presentation-kit/nodes/SceneLayer'
+import { entities } from './entities'
+interface Payload { label: string }
+function Scene({ payload }: SceneProps<Payload>) {
+  return <SceneLayer><Box id={entities.topic} style={{ position: 'absolute', left: 100, top: 100 }}>{payload.label}</Box></SceneLayer>
+}
+export const STEPS: Step<Payload>[] = [
+  { id: 'start', era: 'the beginning', title: '{{title}}', caption: '{{caption}}', Scene, groupKey: '{{slug}}', payload: { label: '{{topic}}' } },
+]

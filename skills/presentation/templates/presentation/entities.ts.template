@@ -1,0 +1,2 @@
+// Replace the namespace and define stable identities once for the whole scene.
+export const entities = { topic: '{{slug}}:topic' } as const

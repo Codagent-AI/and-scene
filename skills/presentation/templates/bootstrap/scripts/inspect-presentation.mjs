@@ -22,7 +22,7 @@ export async function inspect({ cwd = process.cwd(), slug, settle = 900, viewpor
       const warnings = await page.evaluate(diagnose)
       warnings.forEach(w => console.warn(`ADVISORY: ${w}`))
       const file = `step-${String(step + 1).padStart(2, '0')}.png`
-      await page.screenshot({ path: path.join(dir, file), fullPage: true })
+      await page.screenshot({ path: path.join(dir, file), fullPage: false })
       report.push({ step, file, settle, elapsedBeforeCapture: Date.now() - transitionReady, warnings })
       console.log(`capture: step ${step}: ${file}`)
       if (step < count - 1) await page.keyboard.press('ArrowRight')

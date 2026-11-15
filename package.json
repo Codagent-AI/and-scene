@@ -8,11 +8,12 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "npm run test:types && vitest run",
     "test:integration": "node --test --test-concurrency=1 tests/integration.test.mjs",
     "test:all": "npm test && npm run test:integration",
     "verify": "node scripts/verify.mjs",
-    "inspect": "node scripts/inspect-presentation.mjs"
+    "inspect": "node scripts/inspect-presentation.mjs",
+    "test:types": "tsc -p tsconfig.contract.json --noEmit"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

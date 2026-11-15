@@ -10,10 +10,10 @@ const content = {
   tray: null, card1: <><small>01 / THE START</small><strong>A clear idea</strong><span>title · caption · visual</span></>,
   card2: <><small>02 / THE NEXT BEAT</small><strong>A new connection</strong><span>title · caption · visual</span></>,
   card3: <><small>03 / THE PAYOFF</small><strong>It comes together</strong><span>title · caption · visual</span></>,
-  link1: <span>morph →</span>, link2: <span>morph →</span>, ghost: <span>…</span>, depth: <span>your depth: partial ↔ full</span>,
+  link1: <span>morph →</span>, link2: <span>morph →</span>, link3: <span>→</span>, ghost: <span>…</span>, depth: <span>your depth: partial ↔ full</span>,
   kit: <><Blocks size={17} /><span>shared scene kit · shapes + motion</span></>,
   verify: <><Check size={22} /><strong>verified</strong><span>build + render</span></>,
-  modify: <span>↙ modify in place</span>, reveal: <span>This is one. Made with and-scene.</span>,
+  modify: <><svg viewBox="0 0 450 99" data-modify-from="conversation" data-modify-to="card2" aria-label="Modify arc from conversation to edited card"><defs><marker id="modify-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" /></marker></defs><path className="modify-curve" d="M390 0 C390 80 0 50 0 99" markerEnd="url(#modify-arrow)" /></svg><span>modify in place</span></>, reveal: <span>This is one. Made with and-scene.</span>,
 }
 function SceneEntity({ name, beat }: { name: EntityName; beat: number }) {
   const Node = name === 'reveal' ? Frame : name.startsWith('link') || name === 'conversation' || name === 'modify' ? Arrow : ['question', 'depth'].includes(name) ? Label : Box

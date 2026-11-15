@@ -5,7 +5,7 @@ export const bootstrapDirectory = fileURLToPath(new URL('./templates/bootstrap/'
 export async function materialize(target) {
   await mkdir(target, { recursive: true })
   if ((await readdir(target)).length) throw new Error('Full materialization requires an empty resolved target; integrate missing anchors separately after confirmation')
-  await cp(bootstrapDirectory, target, { recursive: true, force: false, errorOnExist: true })
+  for (const name of await readdir(bootstrapDirectory)) await cp(path.join(bootstrapDirectory, name), path.join(target, name), { recursive: true, force: false, errorOnExist: true })
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (!process.argv[2]) { console.error('Usage: materialize.mjs <empty-resolved-target>'); process.exitCode = 1 }

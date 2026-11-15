@@ -1,0 +1,7 @@
+body { margin: 0; }
+.landing { min-height: 100dvh; box-sizing: border-box; background: #111a19; color: #e9eee8; font-family: ui-sans-serif, system-ui, sans-serif; padding: 10vh 8vw; }
+.landing > p { color: #a7baab; letter-spacing: .06em; }
+.landing h1 { font-size: clamp(42px, 7vw, 86px); letter-spacing: -.06em; line-height: 1; font-weight: 500; }
+.landing nav { max-width: 650px; margin-top: 70px; }
+.landing a { display: flex; justify-content: space-between; color: #c2f3ad; text-decoration: none; padding: 25px 0; border-top: 1px solid #53604f; line-height: 1.5; }
+.landing a:hover { color: #fff; }

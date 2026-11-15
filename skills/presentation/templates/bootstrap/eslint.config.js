@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', '.test-work', 'skills/presentation/templates']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -19,4 +19,5 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  { files: ['tests/**', 'src/presentations/**/steps/**'], rules: { 'react-refresh/only-export-components': 'off' } },
 ])

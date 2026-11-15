@@ -1,8 +1,10 @@
+import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { resolve } from 'node:path'
 import { chromium } from 'playwright'
 import { setTimeout as delay } from 'node:timers/promises'
+export const ROOT = fileURLToPath(new URL('../', import.meta.url))
 export const HOST = '127.0.0.1'
 export const SETTLE_MS = 1000
 export async function command(file, args, cwd = process.cwd()) {

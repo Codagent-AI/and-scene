@@ -1,9 +1,8 @@
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
-import { command, traverse, withPreview, SETTLE_MS } from './browser.mjs'
+import { pathToFileURL } from 'node:url'
+import { ROOT, command, traverse, withPreview, SETTLE_MS } from './browser.mjs'
 import { diagnose } from './diagnostics.mjs'
-export const ROOT = fileURLToPath(new URL('../', import.meta.url))
 export async function inspect({ slug, cwd = ROOT, build = true, settleMs = SETTLE_MS, viewport = { width: 1440, height: 900 } } = {}) {
   if (!slug || !/^[a-z0-9-]+$/.test(slug)) throw new Error('Provide a registered presentation slug')
   if (build) await command('npm', ['run', 'build'], cwd)

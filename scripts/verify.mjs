@@ -1,8 +1,7 @@
 import { readFile } from 'node:fs/promises'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
-import { command, traverse, withPreview } from './browser.mjs'
-export const ROOT = fileURLToPath(new URL('../', import.meta.url))
+import { ROOT, command, traverse, withPreview } from './browser.mjs'
 import { validateSample } from './sample-validation.mjs'
 export async function verify({ cwd = ROOT, slug, build = true } = {}) {
   let phase = 'build'

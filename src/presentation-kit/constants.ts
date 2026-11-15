@@ -5,7 +5,10 @@ export const LAYOUT_T = { duration: 0.55, ease: EASE }
 export const ENTER_DELAY = LAYOUT_T.duration
 export const ENTER_T = { duration: 0.25, delay: ENTER_DELAY }
 export const SETTLE_MS = 900
+// A fit has no positive floor: it must not overflow the available pixels.
 export const MIN_SCALE = 0
+export const COMPACT_VIEWPORT_H = 500
+export const COMPACT_STAGE_RATIO = { browse: 0.4, present: 0.6 } as const
 export const STAGE_LAYOUT = {
   browse: { top: 110, bottom: 185, left: 24, right: 24 },
   present: { top: 60, bottom: 95, left: 16, right: 16 },

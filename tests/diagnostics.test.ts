@@ -29,3 +29,11 @@ it('I-50 icon-only navigation and graphical progress collide as atomic chrome ta
   expect(overlaps.some((w: string) => w.includes('step 2:') && w.includes('progress content') && w.includes('Graphical step'))).toBe(true)
   expect(overlaps.join('\n')).not.toMatch(/Allowed icon|allowed chrome|Hidden icon/)
 })
+it('R3 zero-size canvas warns instead of silently disappearing from diagnostics', () => {
+  const canvas = document.createElement('div'); canvas.setAttribute('data-presentation-canvas', '')
+  document.querySelector('main')!.append(canvas)
+  rect(canvas, 0, 0, 0, 0)
+  expect(diagnose()).toContain('step 2: zero-size canvas; provide a positive viewport and inspect stage fit')
+  rect(canvas, 0, 0, 200, 80)
+  expect(diagnose().some((warning: string) => warning.includes('zero-size canvas'))).toBe(false)
+})

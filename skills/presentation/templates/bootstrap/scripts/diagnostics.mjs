@@ -3,6 +3,8 @@ export function diagnose() {
   const root = document.querySelector('[data-presentation-root]')
   const step = root?.getAttribute('data-step-index') ?? '?'
   const warnings = []
+  const canvas = root?.querySelector('[data-presentation-canvas]')
+  if (canvas) { const box = canvas.getBoundingClientRect(); if (box.width <= 0 || box.height <= 0) warnings.push(`step ${step}: zero-size canvas; provide a positive viewport and inspect stage fit`) }
   const visible = element => { const r = element.getBoundingClientRect(); if (r.width <= 0 || r.height <= 0) return false; for (let e = element; e; e = e.parentElement) { const s = getComputedStyle(e); if (s.visibility === 'hidden' || s.display === 'none' || s.opacity === '0') return false } return true }
   const describe = e => e.getAttribute('data-presentation-entity') ?? e.getAttribute('aria-label') ?? (e.textContent.trim().slice(0, 55) || e.id || e.getAttribute('role') || e.tagName.toLowerCase())
   const chrome = '[data-presentation-header],[data-presentation-footer],[data-presentation-navigation],[data-presentation-progress],[data-presentation-toc],[data-presentation-attribution],[data-presentation-mode-toggle]'

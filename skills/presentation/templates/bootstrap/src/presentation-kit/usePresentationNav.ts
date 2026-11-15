@@ -6,7 +6,7 @@ export function clampIndex(index: number, count: number) {
   return Math.max(0, Math.min(Math.max(0, count - 1), Math.trunc(index)))
 }
 export function ownsKeys(target: EventTarget | null) {
-  return target instanceof Element && !!target.closest('button,a,input,textarea,select,summary,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="textbox"],[role="slider"],[role="combobox"],[role="menuitem"],[role="tab"]')
+  return target instanceof Element && !!target.closest('button,a,input,textarea,select,summary,audio[controls],video[controls],[tabindex],[contenteditable]:not([contenteditable="false"]),[role="button"],[role="link"],[role="listbox"],[role="option"],[role="spinbutton"],[role="switch"],[role="checkbox"],[role="radio"],[role="treeitem"],[role="textbox"],[role="slider"],[role="combobox"],[role="menuitem"],[role="tab"]')
 }
 export function swipeDirection(dx: number, dy: number) {
   return Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 1 : -1) : 0

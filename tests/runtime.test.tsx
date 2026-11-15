@@ -47,7 +47,9 @@ describe('runtime contracts', () => {
     view.rerender(<Stage step={{ ...step, groupKey: 'other' }} scale={1} />)
     expect(mount).toHaveBeenCalledTimes(2)
     await waitFor(() => expect(unmount).toHaveBeenCalledTimes(1))
+    const priorHost = screen.getByTestId('persist').closest('[data-presentation-scene]')
     view.rerender(<Stage step={{ ...step, groupKey: 'other', Scene }} scale={1} />)
+    expect(screen.getByTestId('payload').closest('[data-presentation-scene]')).not.toBe(priorHost)
     await waitFor(() => expect(unmount).toHaveBeenCalledTimes(2))
     expect(screen.getByTestId('payload')).toBeInTheDocument()
   })
@@ -94,6 +96,11 @@ describe('runtime contracts', () => {
       const child = document.createElement('span'); el.append(child); document.body.append(el)
       act(() => key('ArrowRight', child)); expect(result.current.index).toBe(1)
       el.remove()
+    }
+    for (const attributes of [{ role: 'listbox' }, { role: 'switch' }, { tabindex: '0' }, { tabindex: '-1' }]) {
+      const control = document.createElement('div')
+      for (const [name, value] of Object.entries(attributes)) control.setAttribute(name, value)
+      document.body.append(control); act(() => key('ArrowRight', control)); expect(result.current.index).toBe(1); control.remove()
     }
     act(() => fireEvent.keyDown(window, { key: 'ArrowRight', ctrlKey: true })); expect(result.current.index).toBe(1)
     const remove = vi.spyOn(window, 'removeEventListener'); unmount(); expect(remove).toHaveBeenCalledWith('keydown', expect.any(Function)); remove.mockRestore()

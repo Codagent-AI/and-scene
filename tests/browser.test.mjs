@@ -104,10 +104,13 @@ test('E2E-002 verification faults report failure phase step and clean preview pr
     ['missing',async d=>{const p=join(d,'src/presentations/index.ts');await writeFile(p,`import type {ComponentType} from 'react';export interface PresentationEntry {slug:string;title:string;load:()=>Promise<{default:ComponentType}>};export const presentations:PresentationEntry[]=[]`)},/FAIL \[render\]/],
     ['order',async d=>{const p=join(d,'src/presentations/how-to-make-a-presentation/outline.json');const o=JSON.parse(await readFile(p,'utf8'));[o[0],o[1]]=[o[1],o[0]];await writeFile(p,JSON.stringify(o))},/step 0:.*incorrect id/],
     ['console',async d=>{const p=join(d,'src/presentations/how-to-make-a-presentation/steps/Story.tsx');await writeFile(p,(await readFile(p,'utf8')).replace('const pieces:',`if (beat === 3) console.error('injected console failure')\n  const pieces:`))},/step 2: console: injected console failure/],
+    ['first-page',async d=>{const p=join(d,'src/presentations/how-to-make-a-presentation/steps/Story.tsx');await writeFile(p,(await readFile(p,'utf8')).replace('const pieces:',`if (beat === 1) throw new Error('injected initial render failure')\n  const pieces:`))},/step 0: page: injected initial render failure/],
     ['page',async d=>{const p=join(d,'src/presentations/how-to-make-a-presentation/steps/Story.tsx');await writeFile(p,(await readFile(p,'utf8')).replace('const pieces:',`if (beat === 3) throw new Error('injected render failure')\n  const pieces:`))},/step 2: page: injected render failure/],
     ['transition',async d=>{const p=join(d,'src/presentation-kit/Presentation.tsx');await writeFile(p,(await readFile(p,'utf8')).replace('data-step-index={nav.index}','data-step-index={0}'))},/step 1:/],
   ]
-  for(const [name,inject,expected] of faults) await t.test(name,async()=>{
+  const selected = process.env.VERIFY_FAULTS ? faults.filter(([name])=>process.env.VERIFY_FAULTS.split(',').includes(name)) : faults
+  let passed = 0
+  for(const [name,inject,expected] of selected) await t.test(name,async()=>{
     const dir=await copyApp(`fault-${name}`);await inject(dir)
     const result=await logged(`E2E-002-${name}`,['npm','run','verify'],dir)
     assert.notEqual(result.code,0,result.output);assert.match(result.output,expected);assert.doesNotMatch(result.output,/PASS: build/)
@@ -116,6 +119,8 @@ test('E2E-002 verification faults report failure phase step and clean preview pr
       assert.match(result.output,/preview stopped/)
       await delay(30);await assert.rejects(fetch(`http://127.0.0.1:${port}`))
     }
+    passed++
   })
-  await record([33,38,41,44,45], '`scripts/verify.mjs`; `scripts/browser.mjs`; `tests/browser.test.mjs`', '`E2E-002-build.log`, `E2E-002-missing.log`, `E2E-002-order.log`, `E2E-002-console.log`, `E2E-002-page.log`, `E2E-002-transition.log` — E2E-002 named fault subtests assert nonzero failure phase/step and server cleanup; E2E-001.log proves success. I-33 procedure inspected in I-33-inspection.log.')
+  assert.equal(passed, selected.length, 'all selected fault checks passed')
+  if (!process.env.VERIFY_FAULTS) await record([33,38,41,44,45], '`scripts/verify.mjs`; `scripts/browser.mjs`; `tests/browser.test.mjs`', '`E2E-002-build.log`, `E2E-002-missing.log`, `E2E-002-order.log`, `E2E-002-console.log`, `E2E-002-page.log`, `E2E-002-transition.log` — E2E-002 named fault subtests assert nonzero failure phase/step and server cleanup; E2E-001.log proves success. I-33 procedure inspected in I-33-inspection.log.')
 })

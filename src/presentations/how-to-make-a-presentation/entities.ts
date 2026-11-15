@@ -7,7 +7,7 @@ export const positions = {
   conversation: { left: 206, top: 85, width: 345, height: 24 },
   tray: { left: 65, top: 176, width: 690, height: 118 },
   depth: { left: 57, top: 134, width: 150, height: 28 },
-  kit: { left: 280, top: 297, width: 260, height: 42 },
+  kit: { left: 280, top: 294, width: 260, height: 42 },
   verify: { left: 650, top: 210, width: 130, height: 65 },
   reveal: { left: 30, top: 5, width: 800, height: 356 },
 } as const

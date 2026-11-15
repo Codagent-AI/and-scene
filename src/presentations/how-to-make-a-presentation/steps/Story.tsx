@@ -31,7 +31,7 @@ export function Story({ payload: beat }: { payload: number }) {
   add('verify-link', <Arrow id={entity('verify-link')} className="verify-link" style={{ position: 'absolute', left: 635, top: 234 }}>→</Arrow>)
   add('verify', <Box id={entity('verify')} style={at('verify')} className="verify" Icon={Check}><strong>verify</strong><small>build + render ✓</small></Box>)
   add('modify', <Arrow id={entity('modify')} className="modify" style={{ position: 'absolute', left: 745, top: 75, width: 48, height: 120 }}><svg width="48" height="120" viewBox="0 0 48 120" aria-hidden="true"><path d="M0 4 Q42 4 42 42 L42 108 L28 100 M42 108 L48 94" fill="none" stroke="currentColor" strokeWidth="2" /></svg><span>modify</span></Arrow>)
-  add('edited', <SymbolChip id={entity('edited')} className="edited" style={{ position: 'absolute', left: 414, top: 295 }}>↑ edited in place</SymbolChip>)
+  add('edited', <SymbolChip id={entity('edited')} className="edited" style={{ position: 'absolute', left: 414, top: 192 }}>↑ edited in place</SymbolChip>)
   add('reveal', <Frame id={entity('reveal')} style={at('reveal')} className="reveal"><span>AND SCENE. / THIS IS ONE.</span></Frame>)
   return <SceneLayer><AnimatePresence>{visibleEntities(beat).map(name => <Appear key={name} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>{pieces[name]}</Appear>)}</AnimatePresence></SceneLayer>
 }

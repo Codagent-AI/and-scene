@@ -8,7 +8,7 @@ import { validateSteps } from '../src/presentation-kit/types'
 import type { Step, SceneProps } from '../src/presentation-kit/types'
 import { usePresentationNav } from '../src/presentation-kit/usePresentationNav'
 import { fitScale, useFitScale } from '../src/presentation-kit/useFitScale'
-import { DESIGN_H, DESIGN_W, ENTER_DELAY, ENTER_T, LAYOUT_T } from '../src/presentation-kit/constants'
+import { DESIGN_H, DESIGN_W, ENTER_DELAY, ENTER_T, LAYOUT_T, enterMotion } from '../src/presentation-kit/constants'
 import { Box } from '../src/presentation-kit/nodes/Box'
 import { Label } from '../src/presentation-kit/nodes/Label'
 import { Arrow } from '../src/presentation-kit/nodes/Arrow'
@@ -16,10 +16,10 @@ import { Frame } from '../src/presentation-kit/nodes/Frame'
 import { Emphasis } from '../src/presentation-kit/nodes/Emphasis'
 import { SymbolChip } from '../src/presentation-kit/nodes/SymbolChip'
 import { SceneLayer } from '../src/presentation-kit/nodes/SceneLayer'
-import { Appear, enterMotion } from '../src/presentation-kit/nodes/Appear'
+import { Appear } from '../src/presentation-kit/nodes/Appear'
 import { Router } from '../src/Router'
 import { resolveRoute } from '../src/routes'
-import { eraEntries } from '../src/presentation-kit/chrome/Toc'
+import { eraEntries } from '../src/presentation-kit/eras'
 import { STEPS, Story } from '../src/presentations/how-to-make-a-presentation/steps/Story'
 import { positions, visibleEntities } from '../src/presentations/how-to-make-a-presentation/entities'
 import { UserRound } from 'lucide-react'
@@ -201,7 +201,8 @@ describe('sample and registry', () => {
     for (let i = 2; i <= 9; i++) for (const id of visibleEntities(i-1)) expect(visibleEntities(i)).toContain(id)
     const { rerender } = render(<Story payload={1} />); const you = screen.getByText('you'); const initial = you.getAttribute('style')
     for (let beat = 2; beat <= 9; beat++) { rerender(<Story payload={beat} />); expect(screen.getByText('you')).toBe(you); expect(you.getAttribute('style')).toBe(initial) }
-    expect(positions.verify.top).toBe(210); expect(positions.kit.top).toBe(297)
+    expect(positions.verify.top).toBe(210); expect(positions.kit.top).toBe(positions.tray.top + positions.tray.height)
+    expect(screen.getByText('↑ edited in place').style.top).toBe('192px');
     expect(document.querySelector('[data-presentation-node="frame"]')).toBeTruthy(); expect(screen.getByText('build + render ✓')).toBeTruthy()
   })
 })

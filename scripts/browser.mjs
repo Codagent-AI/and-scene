@@ -64,7 +64,8 @@ export async function traverse(page, url, { settleMs = SETTLE_MS, onStep = async
   page.on('pageerror', error => errors.push(`step ${observedStep}: page: ${error.message}`))
   await page.goto(url)
   const root = page.locator('[data-presentation]')
-  await root.waitFor({ timeout: 5000 })
+  try { await root.waitFor({ timeout: 5000 }) }
+  catch (error) { throw new Error(`step 0: ${errors.length ? errors.join('\n') : `missing presentation route: ${url}: ${error.message}`}`, { cause: error }) }
   const count = Number(await root.getAttribute('data-step-count'))
   if (!Number.isInteger(count) || count < 1 || (expectedCount && count !== expectedCount)) throw new Error(`sample: invalid step count ${count}`)
   for (index = 0; index < count; index++) {

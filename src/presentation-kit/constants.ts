@@ -10,3 +10,5 @@ export const STAGE_LAYOUT = {
   browse: { top: 110, bottom: 220, side: 24 },
   present: { top: 80, bottom: 110, side: 24 },
 } as const
+
+export const enterMotion = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { delay: ENTER_DELAY, duration: ENTER_T } }

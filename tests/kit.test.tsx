@@ -1,6 +1,7 @@
+import { AnimatePresence } from 'motion/react'
 import { StrictMode, useEffect } from 'react'
 import { describe, expect, test, vi } from 'vitest'
-import { fireEvent, render, renderHook, act, screen } from '@testing-library/react'
+import { fireEvent, render, renderHook, act, screen, waitFor } from '@testing-library/react'
 import { Presentation } from '../src/presentation-kit/Presentation'
 import { Stage } from '../src/presentation-kit/Stage'
 import { sceneKey } from '../src/presentation-kit/sceneKey'
@@ -54,11 +55,22 @@ describe('scene contracts', () => {
     key('ArrowRight'); expect(document.querySelector('[data-presentation-node="box"]')).toBe(entity)
     expect((entity as HTMLElement).style.left).toBe('20px'); expect(entity?.textContent).toBe('state 20')
   })
-  test('I-5 newcomer delay follows layout and exit is configured', () => {
+  test('I-5 newcomer waits for layout and removed entity fades before unmount', async () => {
     expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T); expect(ENTER_T).toBeGreaterThan(0)
     expect(enterMotion.initial.opacity).toBe(0); expect(enterMotion.animate.opacity).toBe(1); expect(enterMotion.exit.opacity).toBe(0)
-    const { container } = render(<Appear><span>new</span></Appear>)
-    expect(container.querySelector('[data-presentation-appear]')).toBeTruthy()
+    const completed = vi.fn()
+    const { rerender } = render(<AnimatePresence><Appear key="entity" onAnimationComplete={completed}><span>new</span></Appear></AnimatePresence>)
+    const element = document.querySelector('[data-presentation-appear]') as HTMLElement
+    expect(element.style.opacity).toBe('0')
+    await new Promise(resolve => setTimeout(resolve, 250))
+    expect(element.style.opacity).toBe('0')
+    await waitFor(() => expect(element.style.opacity).toBe('1'), { timeout: 2000 })
+    completed.mockClear()
+    rerender(<AnimatePresence>{null}</AnimatePresence>)
+    expect(element.isConnected).toBe(true)
+    await waitFor(() => { const opacity = Number(element.style.opacity); expect(opacity).toBeGreaterThan(0); expect(opacity).toBeLessThan(1) }, { timeout: 2000, interval: 10 })
+    await waitFor(() => expect(element.isConnected).toBe(false), { timeout: 2000 })
+    expect(completed.mock.calls[0][0]).toEqual({ opacity: 0 })
   })
   test('I-6 grouped scene retains mounted instance and distinguishes component or group changes', () => {
     let mounts = 0, unmounts = 0
@@ -149,12 +161,21 @@ describe('navigation and scaling', () => {
     swipe(100, 4); expect(root().getAttribute('data-step-index')).toBe('0')
     swipe(-10, 0); swipe(-50, 120); expect(root().getAttribute('data-step-index')).toBe('0')
   })
-  test('I-19 focused controls keep navigation and mode keys', () => {
+  test('I-19 native ARIA editable and tabindex controls retain their keys', () => {
     show()
-    for (const tag of ['button', 'a', 'input', 'select', 'textarea', 'div']) {
-      const control = document.createElement(tag); if (tag === 'div') control.setAttribute('contenteditable', 'true'); document.body.append(control)
-      for (const k of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) key(k, control)
-      expect(root().getAttribute('data-step-index')).toBe('0'); expect(root().getAttribute('data-presentation-mode')).toBe('browse'); control.remove()
+    const fixtures = ['<button>button</button>', '<a href="#">link</a>', '<input />', '<select><option>x</option></select>', '<textarea></textarea>', '<details><summary><span>summary</span></summary></details>', '<video controls></video>', '<audio controls></audio>', '<iframe></iframe>', '<div contenteditable="true"><span>editable</span></div>', '<div tabindex="0">focusable</div>', '<div tabindex="-1">programmatic</div>',
+      ...['button','link','checkbox','radio','combobox','listbox','option','menu','menubar','menuitem','menuitemcheckbox','menuitemradio','slider','spinbutton','scrollbar','tab','tablist','textbox','searchbox','switch','tree','treeitem','grid','gridcell','treegrid'].map(role => `<div role="${role}"><span>${role}</span></div>`)]
+    for (const html of fixtures) {
+      const host = document.createElement('section'); host.innerHTML = html; document.body.append(host)
+      const control = host.querySelector('span') || host.querySelector('summary') || host.firstElementChild!
+      const ownHandler = vi.fn(); control.addEventListener('keydown', ownHandler)
+      for (const k of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) {
+        const event = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })
+        act(() => { control.dispatchEvent(event) })
+        expect(event.defaultPrevented, html).toBe(false)
+      }
+      expect(ownHandler).toHaveBeenCalledTimes(6)
+      expect(root().getAttribute('data-step-index'), html).toBe('0'); expect(root().getAttribute('data-presentation-mode'), html).toBe('browse'); host.remove()
     }
   })
   test('I-20 all navigation actions clamp at boundaries', () => {

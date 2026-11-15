@@ -8,7 +8,7 @@ export function diagnose() {
     }
     return !!el.getClientRects().length
   }
-  const name = el => el.getAttribute('data-presentation-node') || el.getAttribute('aria-label') || el.textContent.trim().slice(0, 65)
+  const name = el => el.getAttribute('data-presentation-node') || el.getAttribute('aria-label') || el.textContent.trim().slice(0, 65) || el.tagName.toLowerCase()
   const walker = document.createTreeWalker(document.querySelector('[data-presentation]'), NodeFilter.SHOW_TEXT)
   const text = []
   while (walker.nextNode()) {
@@ -19,16 +19,16 @@ export function diagnose() {
     range.selectNodeContents(node)
     for (const rect of range.getClientRects()) if (rect.width && rect.height) text.push({ el, rect })
   }
-  for (let i = 0; i < text.length; i++) for (let j = i + 1; j < text.length; j++) {
-    const a = text[i], b = text[j]
+  const controls = [...document.querySelectorAll('[data-presentation-controls] button,[data-presentation-progress-step],[data-presentation-toc-entry],[data-presentation-mode-toggle],[data-presentation-prev],[data-presentation-next],[data-presentation-attribution]')]
+    .filter(el => visible(el) && !el.closest('[data-presentation-allow-overlap]'))
+    .map(el => ({ el, rect: el.getBoundingClientRect(), surface: true }))
+  const items = [...text, ...controls]
+  for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+    const a = items[i], b = items[j]
     if (a.el === b.el) continue
+    // A control's text/icon belongs to its surface; unrelated chrome still collides.
+    if ((a.surface || b.surface) && (a.el.contains(b.el) || b.el.contains(a.el))) continue
     if (Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left) > 2 && Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top) > 2) warnings.push(`overlap: ${name(a.el)} / ${name(b.el)}`)
-  }
-  // Include empty chrome surfaces (e.g. progress dots), not just their text.
-  for (const control of document.querySelectorAll('[data-presentation-controls] button,[data-presentation-toc-entry],[data-presentation-mode-toggle]')) {
-    if (!visible(control) || control.closest('[data-presentation-allow-overlap]')) continue
-    const r = control.getBoundingClientRect()
-    for (const t of text) if (!control.contains(t.el) && t.el.closest('[data-presentation-canvas]') && Math.min(r.right, t.rect.right) - Math.max(r.left, t.rect.left) > 2 && Math.min(r.bottom, t.rect.bottom) - Math.max(r.top, t.rect.top) > 2) warnings.push(`overlap: ${name(control)} / ${name(t.el)}`)
   }
   for (const hook of ['data-presentation-progress-step', 'data-presentation-toc-entry']) {
     const active = document.querySelector(`[${hook}][data-presentation-active="true"]`)

@@ -28,7 +28,8 @@ export async function withPreview(cwd, action) {
   let output = ''
   server.stdout.on('data', b => { output += b })
   server.stderr.on('data', b => { output += b })
-  let browser
+  let browser, browserServer
+  console.log(`preview resource ${JSON.stringify({ pid: server.pid, port })}`)
   const stop = () => server.kill('SIGTERM')
   process.once('SIGINT', stop)
   process.once('SIGTERM', stop)
@@ -36,24 +37,44 @@ export async function withPreview(cwd, action) {
     let ready = false
     for (let i = 0; i < 100; i++) {
       if (server.exitCode !== null) throw new Error(`preview exited: ${output}`)
-      try { ready = (await fetch(url)).ok } catch { /* wait for server */ }
+      try { ready = (await fetch(`${url}/index.html`, { headers: { Accept: 'text/html' } })).ok } catch { /* wait for server */ }
       if (ready) break
       await delay(50)
     }
     if (!ready) throw new Error(`preview readiness timeout: ${output}`)
     console.log(`preview ${url}`)
-    browser = await chromium.launch({ headless: true })
+    browserServer = await chromium.launchServer({ headless: true })
+    browser = await chromium.connect(browserServer.wsEndpoint())
     return await action(browser, url)
   } finally {
-    await browser?.close()
-    if (server.exitCode === null) {
-      const exited = new Promise(ok => server.once('exit', ok))
-      stop()
-      await exited
+    try {
+      if (browserServer) {
+        const processIds = [browserServer.process().pid]
+        if (browser?.isConnected()) {
+          const session = await browser.newBrowserCDPSession()
+          try {
+            const { processInfo } = await session.send('SystemInfo.getProcessInfo')
+            processIds.push(...processInfo.map(info => info.id))
+          } finally { await session.detach() }
+        }
+        console.log(`browser resources ${JSON.stringify([...new Set(processIds)])}`)
+      }
+    } finally {
+      try { await browser?.close() }
+      finally {
+        try { await browserServer?.close() }
+        finally {
+          if (server.exitCode === null && server.signalCode === null) {
+            const exited = new Promise(ok => server.once('exit', ok))
+            stop()
+            await exited
+          }
+          process.removeListener('SIGINT', stop)
+          process.removeListener('SIGTERM', stop)
+          console.log(`preview stopped ${port}`)
+        }
+      }
     }
-    process.removeListener('SIGINT', stop)
-    process.removeListener('SIGTERM', stop)
-    console.log(`preview stopped ${port}`)
   }
 }
 export async function traverse(page, url, { settleMs = SETTLE_MS, onStep = async () => {}, expectedCount } = {}) {

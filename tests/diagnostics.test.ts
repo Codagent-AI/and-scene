@@ -7,6 +7,7 @@ function setup(html: string) {
   document.head.innerHTML = '<style>* { opacity: 1; } a { color: rgb(70,100,70); font-family: sans-serif; font-size: 14px; }</style>'
   document.body.innerHTML = `<main data-presentation>${html}</main>`
   vi.spyOn(Element.prototype,'getClientRects').mockImplementation(function(this: Element) { return [rect(Number(this.getAttribute('data-x') || 0))] as unknown as DOMRectList })
+  vi.spyOn(Element.prototype,'getBoundingClientRect').mockImplementation(function(this: Element) { return rect(Number(this.getAttribute('data-x') || 0)) as DOMRect })
   vi.spyOn(Range.prototype,'getClientRects').mockImplementation(function(this: Range) { const el = this.startContainer.parentElement!; return [rect(Number(el.getAttribute('data-x') || 0))] as unknown as DOMRectList })
 }
 afterEach(() => { vi.restoreAllMocks(); document.head.innerHTML=''; document.body.innerHTML='' })
@@ -32,4 +33,13 @@ test('I-49 attribution missing default undersized and polished classifications',
 test('I-37 visibly distinct active chrome and locally polished attribution clear warnings', () => {
   setup('<button data-x="100" data-presentation-progress-step data-presentation-active="true" style="background:#bcefaa;font-weight:700">1</button><button data-x="200" data-presentation-progress-step data-presentation-active="false">2</button><a data-x="300" data-presentation-attribution>made by and-scene</a>')
   expect(diagnose()).toEqual([])
+})
+
+test('I-47 icon-only chrome collides with captions and other controls; own labels and allowed surfaces are exempt', () => {
+  setup('<p data-x="100" data-presentation-caption>caption</p><button data-x="100" data-presentation-next aria-label="icon-next"><svg></svg></button><button data-x="300" data-presentation-prev aria-label="icon-prev"><svg></svg></button><button data-x="300" data-presentation-mode-toggle aria-label="icon-mode"><svg></svg></button><div data-presentation-allow-overlap><button data-x="100" data-presentation-next aria-label="allowed-icon"></button></div><button data-x="500" data-presentation-toc-entry><span data-x="500">own label</span></button>')
+  const warnings = diagnose().filter((s: string) => s.startsWith('overlap:'))
+  expect(warnings.some((s: string) => s.includes('caption') && s.includes('icon-next'))).toBe(true)
+  expect(warnings.some((s: string) => s.includes('icon-prev') && s.includes('icon-mode'))).toBe(true)
+  expect(warnings.join(' ')).not.toContain('allowed-icon')
+  expect(warnings.join(' ')).not.toContain('own label')
 })

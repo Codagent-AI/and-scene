@@ -2,8 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import type { TouchEvent } from 'react'
 import type { Mode } from './types'
 export const clamp = (index: number, count: number) => Math.max(0, Math.min(count - 1, index))
+const interactiveRoles = ['button', 'link', 'checkbox', 'radio', 'combobox', 'listbox', 'option', 'menu', 'menubar', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'slider', 'spinbutton', 'scrollbar', 'tab', 'tablist', 'textbox', 'searchbox', 'switch', 'tree', 'treeitem', 'grid', 'gridcell', 'treegrid']
+const interactiveSelector = [
+  'button', 'a', 'input', 'select', 'textarea', 'summary', 'audio[controls]', 'video[controls]', 'iframe', 'object', 'embed',
+  '[tabindex]', '[contenteditable]:not([contenteditable="false"])',
+  ...interactiveRoles.map(role => `[role="${role}"]`),
+].join(',')
 export function isInteractive(target: EventTarget | null) {
-  return target instanceof Element && !!target.closest('button,a,input,select,textarea,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="slider"],[role="tab"],[role="textbox"]')
+  return target instanceof Element && !!target.closest(interactiveSelector)
 }
 export function usePresentationNav(count: number, initialMode: Mode = 'browse') {
   const [index, setIndex] = useState(0)

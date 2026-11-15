@@ -15,7 +15,12 @@ export async function verify({ cwd = ROOT, slug, build = true } = {}) {
       const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
       const actual = []
       await traverse(page, `${url}/${route}`, { expectedCount: expected?.length, onStep: async (index, root) => {
-        if (expected && await root.getAttribute('aria-label') !== 'How to Use This Skill to Make a Presentation') throw new Error('sample: incorrect presentation title')
+        if (!expected) return
+        if (await root.getAttribute('data-presentation-mode') === 'present') {
+          await page.keyboard.press('p')
+          await page.waitForFunction(() => document.querySelector('[data-presentation]')?.getAttribute('data-presentation-mode') === 'browse')
+        }
+        if (await root.getAttribute('aria-label') !== 'How to Use This Skill to Make a Presentation') throw new Error('sample: incorrect presentation title')
         actual.push({ id: await root.getAttribute('data-step-id'), era: await root.getAttribute('data-step-era'), title: await page.locator('[data-presentation-title]').innerText(), caption: await page.locator('[data-presentation-caption]').innerText() })
         if (expected) validateSample(actual, expected.slice(0, index + 1))
       } })

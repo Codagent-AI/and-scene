@@ -1,0 +1,31 @@
+import { it, expect } from 'vitest'
+import { render } from '@testing-library/react'
+import { STEPS, StoryScene } from '../src/presentations/how-to-make-a-presentation/steps'
+import { geometry, entity, positions, visibleEntities } from '../src/presentations/how-to-make-a-presentation/entities'
+import { presentations, findPresentation } from '../src/presentations'
+import { Router } from '../src/Router'
+const resolveRoute = findPresentation
+import reference from '../scripts/reference.json'
+const scene = (beat: number) => render(<StoryScene payload={beat} step={STEPS[beat - 1]} />)
+const node = (name: string) => document.querySelector<HTMLElement>(`[data-scene-name="${name}"]`)
+it('I-27 registry routes coexist and landing links match explicit entries', async () => {
+  presentations.push({ slug: 'second', title: 'Second presentation', load: async () => ({ default: () => <div>Second</div> }) })
+  try { expect(resolveRoute('/second')?.title).toBe('Second presentation'); expect(findPresentation('/how-to-make-a-presentation/')?.slug).toBe('how-to-make-a-presentation'); expect(resolveRoute('/unknown')).toBeUndefined(); const view = render(<Router pathname="/" />); expect(document.querySelectorAll('.landing a')).toHaveLength(2); expect(document.querySelector('a[href="/second"]')).toBeTruthy(); view.unmount(); const unknown = render(<Router pathname="/unknown" />); expect(document.querySelector('.landing')).toBeTruthy(); unknown.unmount(); expect((await presentations[0].load()).default).toBeTypeOf('function') } finally { presentations.pop() }
+})
+it('I-35 reference metadata matches all nine normative eras titles and captions in order', () => { expect(STEPS.map(({ id, era, title, caption }) => ({ id, era, title, caption }))).toEqual(reference); expect(STEPS).toHaveLength(9); expect(presentations[0].title).toBe('How to Use This Skill to Make a Presentation') })
+it('I-36 first conversation entities appear on the required beats', () => {
+  const view = scene(1); expect(node('you')?.textContent).toContain('you'); expect(node('prompt')?.textContent).toContain('topic'); expect(node('skill')).toBeNull(); view.rerender(<StoryScene payload={2} step={STEPS[1]} />); expect(node('skill')?.textContent).toContain('skill'); expect(node('conversation')?.textContent).toContain('←'); expect(node('conversation')?.textContent).toContain('→'); expect(positions.question.y).toBeLessThan(positions.conversation.y)
+})
+it('I-37 tray cards carry parts and morph annotations stay on links while existing geometry stays put', () => {
+  const view = scene(3); expect(node('tray')).toBeTruthy(); expect(node('card1')?.textContent).toContain('title · caption · visual'); expect(node('card2')).toBeNull(); const first = node('card1'); const style = first?.style.left; view.rerender(<StoryScene payload={4} step={STEPS[3]} />); expect(node('card1')).toBe(first); expect(node('card1')?.style.left).toBe(style); expect(node('card2')).toBeTruthy(); expect(node('card3')).toBeTruthy(); expect(node('link1')?.textContent).toContain('morph'); expect(node('card1')?.textContent).not.toContain('morph')
+})
+it('I-38 depth beat introduces ghost and docked partial full control', () => { scene(5); expect(node('ghost')).toBeTruthy(); expect(node('depth')?.textContent).toContain('partial ↔ full'); expect(positions.depth.x).toBe(positions.you.x + positions.you.w + 15) })
+it('I-39 scene kit socket attaches at unframed tray bottom', () => { scene(6); expect(node('kit')?.textContent).toContain('shared scene kit'); expect(positions.kit.y).toBe(positions.tray.y + positions.tray.h); expect(document.querySelector('[data-presentation-node="frame"]')).toBeNull() })
+it('I-40 verify occupies same pipeline row after cards and displays successful build render check', () => { scene(7); expect(node('verify')?.textContent).toContain('verified'); expect(node('verify')?.textContent).toContain('build + render'); expect(node('verify')?.querySelector('svg')).toBeTruthy(); expect(positions.verify.x).toBeGreaterThan(positions.card3.x + positions.card3.w); expect(Math.abs(positions.verify.y - positions.card3.y)).toBeLessThan(5) })
+it('I-41 modify flags selected card and reveal encloses existing scene with stable nodes', () => {
+  const view = scene(8); expect(node('modify')?.textContent).toContain('modify'); expect(node('card2')?.className).toContain('edited'); expect(node('card2')?.textContent).toContain('edited'); expect(positions.modify.x).toBeGreaterThan(positions.card3.x); const you = node('you'); view.rerender(<StoryScene payload={9} step={STEPS[8]} />); expect(node('you')).toBe(you); expect(node('reveal')?.textContent).toContain('This is one'); for (const name of visibleEntities(8)) { const p = positions[name]; expect(p.x).toBeGreaterThan(positions.reveal.x); expect(p.y).toBeGreaterThan(positions.reveal.y); expect(p.x + p.w).toBeLessThan(positions.reveal.x + positions.reveal.w); expect(p.y + p.h).toBeLessThan(positions.reveal.y + positions.reveal.h) }
+})
+it('I-42 all beats accumulate stable entities with invariant coordinates and shared scene group', () => {
+  const view = scene(1); const observed = new Map<string, { element: Element; style: string }>()
+  for (let beat = 1; beat <= 9; beat++) { view.rerender(<StoryScene payload={beat} step={STEPS[beat - 1]} />); const names = visibleEntities(beat); for (const [name, old] of observed) { expect(names).toContain(name); expect(node(name)).toBe(old.element); expect(node(name)?.style.cssText).toBe(old.style) }; for (const name of names) { expect(node(name)?.dataset.presentationEntity).toBe(entity(name)); expect(geometry(name).left).toBe(positions[name].x); observed.set(name, { element: node(name)!, style: node(name)!.style.cssText }) }; expect(STEPS[beat - 1].groupKey).toBe('conversation'); expect(STEPS[beat - 1].Scene).toBe(StoryScene) }
+})

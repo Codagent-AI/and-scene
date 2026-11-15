@@ -17,11 +17,21 @@ export function diagnose() {
     const text = [...e.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim())
     return text || (e.closest(chrome) && e.matches(`${controls},svg,img,canvas,[role="img"]`))
   })
+  const measured = new Map(candidates.map(element => {
+    if ((element.closest(chrome) && element.matches(controls)) || element.matches('svg,img,canvas,[role="img"]')) return [element, [element.getBoundingClientRect()]]
+    const fragments = [...element.childNodes].filter(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()).flatMap(text => {
+      const range = document.createRange()
+      range.selectNodeContents(text)
+      return [...range.getClientRects()].filter(box => box.width > 0 && box.height > 0)
+    })
+    return [element, fragments]
+  }))
+  const boxes = element => measured.get(element)
   for (let i = 0; i < candidates.length; i++) for (let j = i + 1; j < candidates.length; j++) {
     const a = candidates[i], b = candidates[j]
     if (a.contains(b) || b.contains(a)) continue
-    const x = a.getBoundingClientRect(), y = b.getBoundingClientRect()
-    if (Math.min(x.right, y.right) - Math.max(x.left, y.left) > 2 && Math.min(x.bottom, y.bottom) - Math.max(x.top, y.top) > 2) warnings.push(`step ${step}: overlap: ${describe(a)} / ${describe(b)}`)
+    const intersects = boxes(a).some(x => boxes(b).some(y => Math.min(x.right, y.right) - Math.max(x.left, y.left) > 2 && Math.min(x.bottom, y.bottom) - Math.max(x.top, y.top) > 2))
+    if (intersects) warnings.push(`step ${step}: overlap: ${describe(a)} / ${describe(b)}`)
   }
   for (const hook of ['progress', 'toc']) {
     const container = root?.querySelector(`[data-presentation-${hook}]`)

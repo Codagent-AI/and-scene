@@ -4,6 +4,8 @@ import { mkdtemp, cp, readFile, writeFile, readdir, rm, symlink, stat } from 'no
 import path from 'node:path'
 import os from 'node:os'
 import { spawn } from 'node:child_process'
+import { withBrowser } from '../scripts/browser.mjs'
+import { diagnose } from '../scripts/diagnostics.mjs'
 import { materialize, bootstrapDirectory } from '../skills/presentation/materialize.mjs'
 const ROOT = process.cwd()
 const npmCLI = process.env.npm_execpath ?? '/usr/lib/node_modules/npm/bin/npm-cli.js'
@@ -90,6 +92,39 @@ test('INT-002 screenshots are settled predictable artifacts and diagnostics stay
 })
 test('E2E-001 reference presentation passes production verification', { timeout: 180000 }, async () => {
   const output = await command(ROOT, [npmCLI, 'run', 'verify']); for (let i = 0; i < 9; i++) assert.ok(output.includes(`render: step ${i}/8 PASS`)); assert.match(output, /PASS: build, reference sample, render/); assert.match(output, /http:\/\/127\.0\.0\.1:/); assertCleanup(output)
+  // Reuse the built output for a real viewport-change regression, without another build.
+  await withBrowser(ROOT, async (page, url) => {
+    await page.goto(`${url}/how-to-make-a-presentation`, { waitUntil: 'networkidle' })
+    for (let step = 0; step < 9; step++) {
+      await page.waitForFunction(index => document.querySelector('[data-presentation-root]')?.getAttribute('data-step-index') === String(index), step)
+      await page.waitForTimeout(900)
+      for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+        await page.setViewportSize(viewport)
+        await page.waitForFunction(() => {
+          const stage = document.querySelector('[data-presentation-stage]')
+          const canvas = document.querySelector('[data-presentation-canvas]')
+          if (!stage || !canvas) return false
+          const fit = Math.min(stage.clientWidth / canvas.offsetWidth, stage.clientHeight / canvas.offsetHeight)
+          return Math.abs(canvas.getBoundingClientRect().width - canvas.offsetWidth * fit) < 0.5
+        })
+        const title = await page.locator('[data-presentation-title]').textContent()
+        const warnings = await page.evaluate(diagnose)
+        assert.ok(!warnings.some(warning => warning.includes('overlap:') && warning.includes('Toggle presentation mode') && warning.includes(title)), `step ${step}: phantom title/toggle collision at ${viewport.width}`)
+        if (viewport.width === 390) {
+          const sizes = await page.evaluate(() => {
+            const canvas = document.querySelector('[data-presentation-canvas]')
+            const scale = canvas.getBoundingClientRect().width / canvas.offsetWidth
+            const labels = canvas.querySelectorAll('[data-scene-name="you"] strong,[data-scene-name="prompt"] span,[data-scene-name="question"] span,.card-parts > span,[data-scene-name="card1"] strong,[data-scene-name="card2"] strong,[data-scene-name="card3"] strong,[data-scene-name="depth"] span,[data-scene-name="kit"] span,[data-scene-name="verify"] span,[data-scene-name="reveal"] span')
+            return [...labels].map(label => ({ text: label.textContent, pixels: parseFloat(getComputedStyle(label).fontSize) * scale }))
+          })
+          assert.ok(sizes.length > 0)
+          for (const label of sizes) assert.ok(label.pixels >= 12, `step ${step}: ${label.text} is only ${label.pixels}px`)
+        }
+      }
+      if (step < 8) await page.keyboard.press('ArrowRight')
+    }
+  })
+
 })
 test('E2E-002 verification failures identify phase and step and clean preview processes', { timeout: 300000 }, async () => {
   const cases = [

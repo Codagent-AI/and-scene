@@ -16,29 +16,31 @@
 .skill-story [data-presentation-attribution] a { font-size: 12px; color: #73667d; text-decoration: none; letter-spacing: .02em; }
 .skill-story [data-presentation-attribution] a:hover { text-decoration: underline; }
 .skill-story [data-presentation-mode='present'] [data-presentation-footer] { text-align: center; }
-.skill-story .entity { box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; }
-.skill-story .you, .skill-story .skill { border: 1.5px solid #8a759b; background: #fbf9f4; border-radius: 14px; font-size: 21px; box-shadow: 0 5px 0 #e7e0eb; }
+.skill-story .entity { box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 18px; line-height: 1.2; text-align: center; }
+.skill-story .you, .skill-story .skill { border: 1.5px solid #8a759b; background: #fbf9f4; border-radius: 14px; font-size: 24px; box-shadow: 0 5px 0 #e7e0eb; }
 .skill-story .skill { background: #e9ddf6; border-color: #a081c0; }
-.skill-story .prompt { font-size: 11px; color: #7b6a88; background: #fffdfa; border: 1px solid #d4c8dc; border-radius: 12px; }
+.skill-story .prompt { font-size: 18px; color: #7b6a88; background: #fffdfa; border: 1px solid #d4c8dc; border-radius: 12px; }
 .skill-story .conversation { color: #9672ae; font-size: 22px; overflow: hidden; }
-.skill-story .question { font-size: 11px; color: #7c558c; background: #eee5f4; border: 1px solid #d6c2e0; border-radius: 20px; }
+.skill-story .question { font-size: 18px; color: #7c558c; background: #eee5f4; border: 1px solid #d6c2e0; border-radius: 20px; }
 .skill-story .tray { background: #e9e4ee; border-radius: 14px; }
-.skill-story .card1, .skill-story .card2, .skill-story .card3 { background: #fffdfa; border: 1px solid #d4c8dc; border-radius: 9px; flex-direction: column; gap: 7px; }
-.skill-story .entity small { color: #9883a3; font-size: 9px; letter-spacing: .07em; }
-.skill-story .card1 span, .skill-story .card2 span, .skill-story .card3 span { font-size: 10px; color: #8c7c99; }
-.skill-story .link1, .skill-story .link2, .skill-story .link3 { color: #9074a5; font-size: 10px; }
+.skill-story .card1, .skill-story .card2, .skill-story .card3 { background: #fffdfa; border: 1px solid #d4c8dc; border-radius: 9px; flex-direction: column; gap: 7px; padding: 6px 4px; }
+.skill-story .entity small { color: #9883a3; font-size: 16px; letter-spacing: .07em; }
+.skill-story .card-parts { display: grid; width: 100%; color: #8c7c99; font-size: 18px; }
+.skill-story .link1, .skill-story .link2, .skill-story .link3 { color: #9074a5; font-size: 18px; }
+.skill-story .link1, .skill-story .link2 { flex-direction: column; gap: 4px; }
+.skill-story .morph-label { writing-mode: vertical-rl; text-orientation: upright; font-size: 16px; }
 .skill-story .ghost { border: 1px dashed #b9a6c4; color: #ab95b8; border-radius: 8px; font-size: 25px; }
-.skill-story .depth { font-size: 10px; color: #80618d; background: #e7ddec; border-radius: 0 0 8px 8px; }
-.skill-story .kit { background: #ded2e9; border-radius: 0 0 12px 12px; color: #705083; font-size: 12px; }
-.skill-story .verify { color: #347a52; flex-direction: column; gap: 4px; font-size: 11px; }
-.skill-story .verify span { font-size: 9px; }
-.skill-story .modify { color: #a37442; font-size: 12px; }
+.skill-story .depth { flex-direction: column; gap: 0; font-size: 18px; color: #80618d; background: #e7ddec; border-radius: 0 0 8px 8px; }
+.skill-story .kit { background: #ded2e9; border-radius: 0 0 12px 12px; color: #705083; font-size: 18px; }
+.skill-story .verify { color: #347a52; flex-direction: column; gap: 4px; font-size: 18px; }
+.skill-story .verify span { font-size: 18px; }
+.skill-story .modify { color: #a37442; font-size: 18px; }
 .skill-story .modify svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .skill-story .modify-curve { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 4 3; }
 .skill-story .modify marker path { fill: currentColor; }
-.skill-story .modify > span { position: absolute; top: 30px; right: 5px; background: #f4f1e9; padding: 2px 5px; }
+.skill-story .modify > span { position: absolute; top: 66px; right: 0; background: #f4f1e9; padding: 2px 5px; }
 .skill-story .edited-label { position: absolute; right: 8px; top: -14px; background: #f4f1e9; padding: 1px 5px; }
-.skill-story .reveal { border: 1px solid #ac94bd; border-radius: 20px; align-items: flex-end; padding-bottom: 7px; font-size: 11px; color: #8a6c9c; pointer-events: none; }
+.skill-story .reveal { border: 1px solid #ac94bd; border-radius: 20px; align-items: flex-end; padding-bottom: 10px; font-size: 18px; color: #8a6c9c; pointer-events: none; }
 @media (max-width: 600px) {
   .skill-story [data-presentation-header] { padding: 22px 20px; }
   .skill-story [data-presentation-title] { max-width: 75%; font-size: 23px; }

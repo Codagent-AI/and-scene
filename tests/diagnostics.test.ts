@@ -1,6 +1,17 @@
-import { beforeEach, it, expect } from 'vitest'
+import { afterEach, beforeEach, it, expect, vi } from 'vitest'
 import { diagnose } from '../scripts/diagnostics.mjs'
 function rect(element: Element, x = 0, y = 0, width = 100, height = 20) { element.getBoundingClientRect = () => ({ x, y, width, height, top: y, left: x, right: x + width, bottom: y + height, toJSON() {} }) }
+const createRange = document.createRange.bind(document)
+const textBoxes = new Map<Node, DOMRect[]>()
+afterEach(() => vi.restoreAllMocks())
+beforeEach(() => {
+  textBoxes.clear()
+  vi.spyOn(document, 'createRange').mockImplementation(() => {
+    const range = createRange()
+    Object.defineProperty(range, 'getClientRects', { value: () => textBoxes.get(range.startContainer) ?? [range.startContainer.parentElement!.getBoundingClientRect()] })
+    return range
+  })
+})
 beforeEach(() => { document.body.innerHTML = '<main data-presentation-root data-step-index="2"><div data-presentation-attribution><a style="color: rgb(70, 70, 70); font-size: 12px" href="#">made by and-scene</a></div></main>'; for (const e of document.querySelectorAll('*')) rect(e, 500, 500) })
 it('I-50 visible collisions identify step and texts while marked subtrees and hidden elements are exempt', () => {
   const root = document.querySelector('main')!; root.insertAdjacentHTML('beforeend', '<span>A</span><span>B</span><div data-presentation-allow-overlap><span>allowed one</span><span>allowed two</span></div><span style="visibility:hidden">hidden</span>')
@@ -36,4 +47,19 @@ it('R3 zero-size canvas warns instead of silently disappearing from diagnostics'
   expect(diagnose()).toContain('step 2: zero-size canvas; provide a positive viewport and inspect stage fit')
   rect(canvas, 0, 0, 200, 80)
   expect(diagnose().some((warning: string) => warning.includes('zero-size canvas'))).toBe(false)
+})
+
+it('A-002 measures visible text fragments rather than the full heading layout box', () => {
+  const root = document.querySelector('main')!
+  root.insertAdjacentHTML('beforeend', '<header data-presentation-header><h1>A heading with wrapped text</h1><button aria-label="Toggle presentation mode">Present</button></header>')
+  const heading = root.querySelector('h1')!, toggle = root.querySelector('button')!
+  rect(heading, 0, 0, 1400, 44)
+  rect(toggle, 1280, 22, 100, 24)
+  const text = heading.firstChild!
+  textBoxes.set(text, [new DOMRect(0, 0, 1000, 18), new DOMRect(0, 22, 200, 18)])
+  const titleToggleWarning = (w: string) => w.includes('A heading with wrapped text') && w.includes('Toggle presentation mode')
+  expect(diagnose().some(titleToggleWarning)).toBe(false)
+  // A real wrapped-line collision must still be reported, not blanket-exempted.
+  textBoxes.set(text, [new DOMRect(0, 0, 1000, 18), new DOMRect(1260, 22, 120, 18)])
+  expect(diagnose().some(titleToggleWarning)).toBe(true)
 })

@@ -12,17 +12,17 @@ export async function preview(cwd = process.cwd()) {
   const port = await new Promise((resolve, reject) => { const probe = createServer(); probe.on('error', reject); probe.listen(0, '127.0.0.1', () => { const port = probe.address().port; probe.close(() => resolve(port)) }) })
   const url = `http://127.0.0.1:${port}`
   const child = spawn(process.execPath, [path.join(cwd, 'node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
-  const done = new Promise(resolve => child.once('exit', resolve))
+  const done = new Promise(resolve => { child.once('exit', resolve); child.once('error', resolve) })
   let output = ''
   child.stdout.on('data', d => { output += d })
   child.stderr.on('data', d => { output += d })
   let spawnError
   child.on('error', error => { spawnError = error })
   const stop = async () => {
-    if (child.exitCode !== null) return
+    if (child.pid === undefined || child.exitCode !== null || child.signalCode !== null) return
     child.kill('SIGTERM')
     await Promise.race([done, delay(2000, undefined, { ref: false })])
-    if (child.exitCode === null) { child.kill('SIGKILL'); await done }
+    if (child.exitCode === null && child.signalCode === null) { child.kill('SIGKILL'); await Promise.race([done, delay(2000, undefined, { ref: false })]) }
   }
   try {
     for (let i = 0; i < 100; i++) {

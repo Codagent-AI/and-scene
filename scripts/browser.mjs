@@ -36,12 +36,22 @@ export async function preview(cwd = process.cwd()) {
 export async function withBrowser(cwd, callback, viewport = { width: 1440, height: 900 }) {
   const server = await preview(cwd)
   let browser
+  let failed = false
   try {
     browser = await chromium.launch({ headless: true })
     const page = await browser.newPage({ viewport })
     page.setDefaultTimeout(7000)
     return await callback(page, server.url)
-  } finally { if (browser) await browser.close(); await server.stop(); console.log('cleanup: browser and preview stopped') }
+  } catch (error) { failed = true; throw error }
+  finally {
+    let cleanupError
+    try { if (browser) await browser.close() }
+    catch (error) { cleanupError = new Error(`cleanup: browser close failed: ${error?.message ?? error}`, { cause: error }); console.warn(cleanupError.message) }
+    try { await server.stop() }
+    catch (error) { cleanupError ??= new Error(`cleanup: preview stop failed: ${error?.message ?? error}`, { cause: error }); console.warn(`cleanup: preview stop failed: ${error?.message ?? error}`) }
+    if (cleanupError && !failed) throw cleanupError
+    if (!cleanupError) console.log('cleanup: browser and preview stopped')
+  }
 }
 export const isMain = url => process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(url)
 export function argument(name, fallback) { const index = process.argv.indexOf(name); return index < 0 ? fallback : process.argv[index + 1] }

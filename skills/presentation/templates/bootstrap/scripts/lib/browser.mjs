@@ -25,6 +25,9 @@ export async function withBrowser(root, callback, viewport = { width: 1440, heig
   const port = await freePort()
   const baseURL = `http://${HOST}:${port}`
   const server = spawn(process.execPath, [join(root, 'node_modules/vite/bin/vite.js'), 'preview', '--host', HOST, '--port', String(port), '--strictPort'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
+  // Subscribe at spawn time so cleanup cannot miss a signal exit.
+  const exited = new Promise(resolve => { server.once('exit', resolve); server.once('error', resolve) })
+  const isAlive = () => server.exitCode === null && server.signalCode === null
   let output = ''
   let spawnError
   server.on('error', error => { spawnError = error })
@@ -38,7 +41,7 @@ export async function withBrowser(root, callback, viewport = { width: 1440, heig
   try {
     let ready = false
     for (let i = 0; i < 150; i++) {
-      if (spawnError || server.exitCode !== null) throw new Error(`preview: ${spawnError ?? output}`)
+      if (spawnError || !isAlive()) throw new Error(`preview: ${spawnError ?? `exited (${server.signalCode ?? server.exitCode}): ${output}`}`)
       try { const response = await fetch(baseURL); if (response.ok) { ready = true; break } } catch { /* wait for preview */ }
       await delay(100)
     }
@@ -49,8 +52,7 @@ export async function withBrowser(root, callback, viewport = { width: 1440, heig
     return await callback(page, baseURL)
   } finally {
     try { await browser?.close() } finally {
-      if (server.exitCode === null) {
-        const exited = new Promise(resolve => server.once('exit', resolve))
+      if (!spawnError && isAlive()) {
         stop()
         const timer = setTimeout(() => server.kill('SIGKILL'), 3000)
         await exited

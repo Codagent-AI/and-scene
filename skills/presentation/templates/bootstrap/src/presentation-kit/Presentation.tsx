@@ -12,7 +12,13 @@ export function Presentation<T>({ steps, title, initialMode = 'browse', brand, a
   const viewport = useViewport()
   if (!steps.length) throw new Error('Presentation needs at least one step')
   const step = steps[nav.index]
-  return <main aria-label={title} data-presentation="" data-presentation-mode={nav.mode} data-step-era={step.era} data-step-count={steps.length} data-step-index={nav.index} {...nav.touch} style={{ position: 'relative', width: '100%', height: '100dvh', overflow: 'hidden' }}>
+  return <main aria-label={title} data-presentation="" data-presentation-mode={nav.mode} data-step-era={step.era} data-step-count={steps.length} data-step-index={nav.index} {...nav.touch} onClick={event => {
+    // Pointer chrome actions return keyboard navigation to the scene. Keyboard
+    // activation retains focus so controls continue to own their keys.
+    if (event.detail <= 0 || !(event.target instanceof Element)) return
+    const button = event.target.closest('button')
+    if (button?.closest('[data-presentation-header],[data-presentation-footer],[data-presentation-toc]')) button.blur()
+  }} style={{ position: 'relative', width: '100%', height: '100dvh', overflow: 'hidden' }}>
     <Header step={step} index={nav.index} mode={nav.mode} brand={brand} toggleMode={nav.toggleMode} />
     {nav.mode === 'browse' && viewport.width >= 1000 && <Toc steps={steps} index={nav.index} jump={nav.jump} />}
     <Stage step={step} mode={nav.mode} width={width} height={height} />

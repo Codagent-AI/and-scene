@@ -141,6 +141,36 @@ describe('runtime contracts', () => {
     act(() => key(' '))
     expect(result.current.index).toBe(1)
   })
+  it('R3 pointer chrome actions release focus for arrows and mode shortcuts', () => {
+    window.innerWidth = 1200
+    render(<Presentation steps={steps} title="test" />)
+    const pointerClick = (button: HTMLElement) => {
+      button.focus()
+      fireEvent.click(button, { detail: 1 })
+      expect(document.activeElement).not.toBe(button)
+    }
+    const bodyKey = (value: string) => key(value, document.activeElement ?? window)
+    pointerClick(screen.getByRole('button', { name: 'Step 2: B' }))
+    bodyKey('ArrowRight'); expect(root().getAttribute('data-step-index')).toBe('2')
+    pointerClick(screen.getByRole('button', { name: 'one' }))
+    bodyKey('PageDown'); expect(root().getAttribute('data-step-index')).toBe('1')
+    pointerClick(screen.getByRole('button', { name: 'Next →' }))
+    bodyKey('ArrowLeft'); expect(root().getAttribute('data-step-index')).toBe('1')
+    pointerClick(screen.getByRole('button', { name: '← Previous' }))
+    bodyKey('p'); expect(root().getAttribute('data-presentation-mode')).toBe('present')
+    pointerClick(screen.getByRole('button', { name: 'Switch to browse mode' }))
+    bodyKey('p'); expect(root().getAttribute('data-presentation-mode')).toBe('present')
+  })
+  it('R3 keyboard chrome activation retains focus and controls keep their keys', () => {
+    render(<Presentation steps={steps} title="test" />)
+    const button = screen.getByRole('button', { name: 'Step 2: B' })
+    button.focus()
+    fireEvent.click(button, { detail: 0 })
+    expect(document.activeElement).toBe(button)
+    key('ArrowRight', button); key('p', button)
+    expect(root().getAttribute('data-step-index')).toBe('1')
+    expect(root().getAttribute('data-presentation-mode')).toBe('browse')
+  })
   it('I-22 touch left right taps vertical gestures and cancellation', () => {
     render(<Presentation steps={steps} title="test" />)
     function swipe(x: number, y: number) {

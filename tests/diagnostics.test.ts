@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { JSDOM } from 'jsdom'
 import { describe, it, expect, vi } from 'vitest'
-import { warningsFor, collectDiagnostics } from '../scripts/diagnostics.mjs'
+import { warningsFor, collectDiagnostics, textInkBounds } from '../scripts/diagnostics.mjs'
 import { failure, validateReference } from '../scripts/verify.mjs'
 import { settle, stopProcess, closeBrowser } from '../scripts/browser.mjs'
 import { EventEmitter } from 'node:events'
@@ -81,6 +81,51 @@ describe('diagnostics and verifier contracts', () => {
       expect(warningsFor(collectDiagnostics(), 4).some((warning: string) => warning.includes('small diagram text'))).toBe(false)
       label.setAttribute('style', 'display:none; font-size:10px')
       expect(collectDiagnostics().legibility).toEqual([])
+    } finally { vi.restoreAllMocks(); vi.unstubAllGlobals(); dom.window.close() }
+  })
+  it('F-002 separates glyph ink from overlapping font boxes while preserving real collisions', () => {
+    const ink = { fontAscent: 34, fontDescent: 11, ascent: 24, descent: 7 }
+    const first = { label: 'STEP 01', rect: { x: 0, y: 0, width: 140, height: 45 }, ink }
+    const second = { label: 'title', rect: { x: 0, y: 39.4, width: 140, height: 45 }, ink }
+    expect(first.rect.y + first.rect.height).toBeGreaterThan(second.rect.y)
+    expect(textInkBounds(first)).toEqual({ x: 0, y: 10, width: 140, height: 31 })
+    expect(warningsFor({ ...data(), texts: [first, second] }, 2)).toEqual([])
+    const collision = { ...second, rect: { ...second.rect, y: 20 } }
+    expect(warningsFor({ ...data(), texts: [first, collision] }, 2)).toEqual(['step 2: overlap "STEP 01" / "title"'])
+    // Do not trim button boxes or silently exempt text when metrics are unavailable.
+    expect(warningsFor({ ...data(), texts: [first, { label: 'control', rect: { x: 0, y: 20, width: 140, height: 20 } }] }, 2).join()).toContain('control')
+    expect(textInkBounds({ ...first, ink: undefined })).toEqual(first.rect)
+    expect(textInkBounds({ ...first, ink: {} })).toEqual(first.rect)
+    expect(textInkBounds({ ...first, ink: { ...ink, fontAscent: NaN } })).toEqual(first.rect)
+    expect(textInkBounds({ ...first, ink: { ...ink, fontAscent: 0, fontDescent: 0 } })).toEqual(first.rect)
+    const scaled = [first, second].map(t => ({ ...t, rect: { ...t.rect, y: t.rect.y * 0.38, height: t.rect.height * 0.38 } }))
+    expect(warningsFor({ ...data(), texts: scaled }, 2)).toEqual([])
+  })
+  it('F-002 collects actual font metrics for stacked text without suppressing genuine collisions', () => {
+    const dom = new JSDOM('<main data-presentation-root style="transform:matrix(1,0,0,1,0,0)"><span style="font-size:32px; font-family:monospace">STEP 01</span><span style="font-size:32px; font-family:monospace">title</span></main>')
+    const { document, Element, HTMLCanvasElement } = dom.window
+    vi.stubGlobal('document', document); vi.stubGlobal('NodeFilter', dom.window.NodeFilter); vi.stubGlobal('getComputedStyle', dom.window.getComputedStyle.bind(dom.window))
+    vi.stubGlobal('DOMMatrixReadOnly', class { is2D = true; a = 1; b = 0; c = 0; d = 1 })
+    const ink = { fontBoundingBoxAscent: 34, fontBoundingBoxDescent: 11, actualBoundingBoxAscent: 24, actualBoundingBoxDescent: 7 }
+    const context = { font: '', measureText: vi.fn(() => ink) }
+    const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as unknown as CanvasRenderingContext2D)
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, width: 140, height: 45, top: 0, left: 0, right: 140, bottom: 45, toJSON() {} })
+    let titleY = 39.4
+    const range = document.createRange()
+    vi.spyOn(document, 'createRange').mockReturnValue(Object.assign(range, { getClientRects: () => [{ x: 0, y: range.startContainer.textContent === 'title' ? titleY : 0, width: 140, height: 45 }] }))
+    try {
+      const stacked = collectDiagnostics()
+      expect(stacked.texts).toHaveLength(2)
+      expect(stacked.texts.every((t: { ink?: object }) => t.ink)).toBe(true)
+      expect(context.measureText).toHaveBeenCalledWith('STEP 01')
+      expect(context.font).toContain('32px')
+      expect(warningsFor({ ...stacked, attribution: good }, 2)).toEqual([])
+      titleY = 20
+      expect(warningsFor({ ...collectDiagnostics(), attribution: good }, 2).join()).toContain('overlap "STEP 01" / "title"')
+      getContext.mockReturnValueOnce(null)
+      const fallback = collectDiagnostics()
+      expect(fallback.texts.every((t: { ink?: object }) => !t.ink)).toBe(true)
+      expect(warningsFor({ ...fallback, attribution: good }, 2).join()).toContain('overlap')
     } finally { vi.restoreAllMocks(); vi.unstubAllGlobals(); dom.window.close() }
   })
   it('I-44 active styles and attribution diagnostics cover defective and polished states', () => {

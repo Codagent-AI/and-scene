@@ -94,6 +94,8 @@ import './fixture.css'
 function Diagram({ payload }: SceneProps<number>) { return <div data-fixture-beat={payload}>
 <div style={{ position: 'absolute', left: 20, top: 40 }}><span>collision-A</span></div><div style={{ position: 'absolute', left: 20, top: 40 }}><span>collision-B</span></div>
 <div data-presentation-allow-overlap="true"><span style={{ position: 'absolute', left: 300, top: 40 }}>allowed-A</span><span style={{ position: 'absolute', left: 300, top: 40 }}>allowed-B</span></div>
+<div style={{ position: 'absolute', left: 500, top: 70, display: 'flex', flexDirection: 'column', gap: 1, fontFamily: 'ui-monospace, monospace', fontSize: 32, lineHeight: 1.2 }}>
+<b aria-label="stack-step">STEP 01</b><span aria-label="stack-title">title</span><span aria-label="stack-caption">caption</span><span aria-label="stack-visual">visual</span></div>
 <div style={{ position: 'absolute', left: 0, top: 0, width: 20, height: 20, animation: 'arrive 0.25s forwards' }} /></div> }
 const steps: Step<number>[] = [0, 1].map(i => ({ id: String(i), era: 'section'+i, title: 'Diagnostic '+i, caption: 'Caption '+i, groupKey: 'fixture', Scene: Diagram, payload: i }))
 export default function Talk() { return <Presentation steps={steps} title="Diagnostic fixture" /> }`)
@@ -114,6 +116,7 @@ export default function Talk() { return <Presentation steps={steps} title="Diagn
       assert.deepEqual([...decoded.data.subarray(pixel, pixel + 3)], [0, 128, 0], 'captured animation must be settled green')
       assert.ok(entry.warnings.some(w => w.includes(`step ${index}`) && w.includes('collision-A') && w.includes('collision-B')))
       assert.ok(!entry.warnings.some(w => /allowed-[AB]/.test(w)))
+      assert.ok(!entry.warnings.some(w => w.includes('overlap') && /stack-(step|title|caption|visual)/.test(w)), 'ordinary stacked glyphs must not warn')
       for (const name of ['progress', 'toc']) assert.ok(entry.warnings.some(w => w.includes(`indistinct active ${name}`)), entry.warnings.join('\n'))
       assert.ok(entry.warnings.some(w => w.includes('[data-presentation-attribution]')))
     }

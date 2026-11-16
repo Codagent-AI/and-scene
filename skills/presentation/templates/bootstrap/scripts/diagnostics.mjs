@@ -14,6 +14,28 @@ export function collectDiagnostics() {
     const r = el.getBoundingClientRect()
     return { label: describe(el), rect: { x: r.x, y: r.y, width: r.width, height: r.height } }
   })
+  // Range rectangles include font line-box slack, not just painted glyphs.
+  // Keep the measurement here so this browser-serialized function is self-contained.
+  let context
+  const glyphMetrics = (el, text) => {
+    const style = getComputedStyle(el)
+    if (el.namespaceURI !== 'http://www.w3.org/1999/xhtml' || (style.writingMode && style.writingMode !== 'horizontal-tb')) return
+    for (let ancestor = el; ancestor; ancestor = ancestor.parentElement) {
+      const transform = getComputedStyle(ancestor).transform
+      if (!transform || transform === 'none') continue
+      if (typeof DOMMatrixReadOnly === 'undefined') return
+      const matrix = new DOMMatrixReadOnly(transform)
+      if (!matrix.is2D || matrix.b !== 0 || matrix.c !== 0 || matrix.a <= 0 || matrix.d <= 0) return
+    }
+    if (context === undefined) context = document.createElement('canvas').getContext('2d')
+    if (!context) return
+    context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+    if (style.textTransform === 'uppercase') text = text.toLocaleUpperCase()
+    if (style.textTransform === 'lowercase') text = text.toLocaleLowerCase()
+    const m = context.measureText(text)
+    const ink = { fontAscent: m.fontBoundingBoxAscent, fontDescent: m.fontBoundingBoxDescent, ascent: m.actualBoundingBoxAscent, descent: m.actualBoundingBoxDescent }
+    if (Object.values(ink).every(Number.isFinite) && ink.fontAscent + ink.fontDescent > 0 && ink.ascent + ink.descent > 0) return ink
+  }
   const legibility = [], measured = new Set()
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   while (walker.nextNode()) {
@@ -27,7 +49,8 @@ export function collectDiagnostics() {
     }
     if (el.closest(controlSelector) || el.closest('[data-presentation-allow-overlap="true"]')) continue
     const range = document.createRange(); range.selectNodeContents(node)
-    for (const rect of range.getClientRects()) if (rect.width && rect.height) texts.push({ label: describe(el), rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height } })
+    const ink = glyphMetrics(el, node.textContent)
+    for (const rect of range.getClientRects()) if (rect.width && rect.height) texts.push({ label: describe(el), rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }, ...(ink ? { ink } : {}) })
   }
   const signature = el => {
     const s = getComputedStyle(el)
@@ -43,10 +66,18 @@ export function collectDiagnostics() {
   const s = link && getComputedStyle(link)
   return { texts, chrome, legibility, attribution: link && visible(link) ? { fontSize: parseFloat(s.fontSize), color: s.color, fontFamily: s.fontFamily, text: link.textContent, href: link.getAttribute('href') } : null }
 }
+export function textInkBounds(text) {
+  const { rect, ink } = text
+  if (!ink || ![ink.fontAscent, ink.fontDescent, ink.ascent, ink.descent].every(Number.isFinite)) return rect
+  const fontHeight = ink.fontAscent + ink.fontDescent, inkHeight = ink.ascent + ink.descent
+  if (fontHeight <= 0 || inkHeight <= 0) return rect
+  const scale = rect.height / fontHeight
+  return { ...rect, y: rect.y + (ink.fontAscent - ink.ascent) * scale, height: inkHeight * scale }
+}
 export function warningsFor(data, step) {
   const warnings = []
   for (let i = 0; i < data.texts.length; i++) for (let j = i + 1; j < data.texts.length; j++) {
-    const a = data.texts[i], b = data.texts[j], r = a.rect, s = b.rect
+    const a = data.texts[i], b = data.texts[j], r = textInkBounds(a), s = textInkBounds(b)
     if (Math.min(r.x + r.width, s.x + s.width) - Math.max(r.x, s.x) > 1 && Math.min(r.y + r.height, s.y + s.height) - Math.max(r.y, s.y) > 1)
       warnings.push(`step ${step}: overlap "${a.label}" / "${b.label}"`)
   }

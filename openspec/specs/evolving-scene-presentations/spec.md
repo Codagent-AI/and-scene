@@ -1,8 +1,10 @@
 # evolving-scene-presentations Specification
 
 ## Purpose
-Define the evolving-scene presentation model: one shared diagrammatic canvas rendered through an ordered list of named steps, where entities persist and morph across steps via stable identities (`layoutId`), each step carrying its own narration and diagram state, with browse/present modes and consistent navigation chrome.
+TBD - created by archiving change create-and-scene. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Scene step model
 A presentation SHALL be one scene rendered through an ordered list of named steps. Each step SHALL have a stable identity, a section/era label, a presenter title (one-liner), a browse caption (paragraph), and a diagram state shown while it is active.
 
@@ -133,7 +135,7 @@ Navigation SHALL clamp at both ends with no wrap-around.
 - **THEN** it stays on the last step
 
 ### Requirement: Fixed-canvas fit scaling
-The diagram SHALL be composed in a fixed design canvas and scaled uniformly to fit the available viewport, so the composition does not reflow and entity morphs stay clean across viewport sizes. The default design canvas SHALL match the current reference presentation's dimensions (880 × 380), with per-mode fit geometry analogous to the reference's browse and present layouts.
+The diagram SHALL be composed in a fixed design canvas and scaled uniformly to fit the available viewport, so the composition does not reflow and entity morphs stay clean across viewport sizes. The default design canvas SHALL be 880 × 380, with per-mode fit geometry for the browse and present layouts.
 
 #### Scenario: Uniform scaling on resize
 - **WHEN** the viewport size changes
@@ -141,4 +143,4 @@ The diagram SHALL be composed in a fixed design canvas and scaled uniformly to f
 
 #### Scenario: Default canvas dimensions
 - **WHEN** a presentation does not override the design canvas
-- **THEN** it uses the reference dimensions of 880 × 380
+- **THEN** it uses the default dimensions of 880 × 380

@@ -1,139 +1,25 @@
+import { useId } from 'react'
 import type { ReactNode } from 'react'
-import { Footer } from './chrome/Footer'
-import { Header } from './chrome/Header'
-import { Toc } from './chrome/Toc'
 import { Stage } from './Stage'
-import { stepMarker } from './stepMarker'
+import { Header } from './chrome/Header'
+import { Footer } from './chrome/Footer'
+import { Toc } from './chrome/Toc'
 import { usePresentationNav } from './usePresentationNav'
+import { useViewport } from './useFitScale'
+import { STAGE_LAYOUT } from './constants'
 import type { Mode, Step } from './types'
-
-export interface PresentationProps<P extends Record<string, unknown> = Record<string, unknown>> {
-  steps: Step<P>[]
-  initialMode?: Mode
-  title?: string
-  /** Optional header brand. Omitted by default; pass a logo or title node to add one. */
-  brand?: ReactNode
-  /** Home link target for the header brand and the last-step footer button. */
-  homeHref?: string
-  /** Accessible label for the home link. */
-  homeLabel?: string
-  /** Full-bleed layer rendered behind the content. */
-  background?: ReactNode
-  /**
-   * Full-bleed layer rendered *above* the content (e.g. a CRT/scanline overlay).
-   * Unlike `background`, it paints over the chrome. Pointer events pass through,
-   * so it never intercepts clicks. Use `background` for true backdrops.
-   */
-  overlay?: ReactNode
-  /**
-   * Override the per-step marker (top-right). Defaults to a zero-padded count.
-   * A callback (not a per-step field) so hosts can number relationally — e.g.
-   * skip chrome cards and count only body steps.
-   */
-  marker?: (index: number, steps: Step<P>[]) => string
-  /** Small bottom-right attribution link. Defaults to and-scene; pass `null` for an intentional opt-out. */
-  attribution?: ReactNode
-  /** Attribution target; defaults to the and-scene GitHub repository. */
-  attributionHref?: string
-}
-
-export function Presentation<P extends Record<string, unknown> = Record<string, unknown>>({
-  steps,
-  initialMode = 'browse',
-  title = 'Presentation',
-  brand,
-  homeHref = '/',
-  homeLabel,
-  background,
-  overlay,
-  marker,
-  attribution = 'made by and-scene',
-  attributionHref = 'https://github.com/Codagent-AI/and-scene',
-}: PresentationProps<P>) {
-  const { step, setStep, next, prev, last, mode } = usePresentationNav(steps.length, initialMode)
-  // An empty deck has no current step; render a clear placeholder instead of
-  // crashing on `steps[step].title`. (Hooks above run unconditionally first.)
-  if (steps.length === 0) {
-    return (
-      <div
-        data-presentation={title}
-        data-presentation-empty
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        No steps to present.
-      </div>
-    )
-  }
-  const current = steps[step]
-  const markerText = (marker ?? ((i) => stepMarker(i)))(step, steps)
-
-  return (
-    <div
-      data-presentation={title}
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        userSelect: 'none',
-        overflow: 'hidden',
-      }}
-    >
-      {background && (
-        <div
-          data-presentation-background
-          style={{ position: 'absolute', inset: 0, zIndex: 0 }}
-        >
-          {background}
-        </div>
-      )}
-      <div data-presentation-content style={{ position: 'relative', zIndex: 10, minHeight: '100vh' }}>
-        <Stage step={current} mode={mode} />
-        <Header
-          marker={markerText}
-          title={current.title}
-          brand={brand}
-          homeHref={homeHref}
-          homeLabel={homeLabel}
-        />
-        {mode === 'browse' && <Toc steps={steps} step={step} onSelect={setStep} />}
-        <Footer
-          steps={steps}
-          step={step}
-          last={last}
-          mode={mode}
-          homeHref={homeHref}
-          onPrev={prev}
-          onNext={next}
-          onSelect={setStep}
-        />
-      </div>
-      {overlay && (
-        <div
-          data-presentation-overlay
-          style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 50 }}
-        >
-          {overlay}
-        </div>
-      )}
-      {attribution && (
-        <a
-          href={attributionHref}
-          data-presentation-attribution
-          style={{
-            position: 'absolute',
-            right: 16,
-            bottom: 8,
-            zIndex: 60,
-            fontSize: 12,
-          }}
-        >
-          {attribution}
-        </a>
-      )}
-    </div>
-  )
+export function Presentation<T>({ steps, title, initialMode = 'browse', brand, attribution, canvas }: { steps: Step<T>[]; title: string; initialMode?: Mode; brand?: ReactNode; attribution?: ReactNode; canvas?: { width: number; height: number } }) {
+  const nav = usePresentationNav(steps.length, initialMode)
+  const namespace = useId()
+  const [width] = useViewport()
+  if (!steps.length) throw new Error('Presentation requires at least one step')
+  const geometry = STAGE_LAYOUT[nav.mode]
+  return <main data-presentation="" data-presentation-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.index} onTouchStart={nav.onTouchStart} onTouchEnd={nav.onTouchEnd} style={{ minHeight: '100dvh', position: 'relative' }}>
+    <Header step={steps[nav.index]} index={nav.index} mode={nav.mode} title={title} brand={brand} />
+    <button style={{ position: 'absolute', right: 24, top: 24 }} data-presentation-mode-toggle="" onClick={nav.toggle} aria-label="Toggle presentation mode">{nav.mode === 'browse' ? 'Present ↗' : 'Browse ↙'}</button>
+    {nav.mode === 'browse' && width >= 1100 && <Toc steps={steps} index={nav.index} go={nav.go} />}
+    <div data-presentation-stage-slot="" style={{ position: 'absolute', top: geometry.top, bottom: geometry.bottom, left: geometry.horizontal + (width >= 1100 ? geometry.toc : 0), right: geometry.horizontal, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Stage step={steps[nav.index]} mode={nav.mode} namespace={namespace} width={canvas?.width} height={canvas?.height} /></div>
+    <Footer steps={steps} index={nav.index} mode={nav.mode} go={nav.go} prev={nav.prev} next={nav.next} />
+    <div data-presentation-attribution-slot="" style={{ position: 'absolute', bottom: 18, right: 24 }}>{attribution ?? <a data-presentation-attribution="" href="https://github.com/Codagent-AI/and-scene">made by and-scene</a>}</div>
+  </main>
 }

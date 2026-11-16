@@ -1,0 +1,10 @@
+/* Host landing only. Presentation styling lives with each presentation. */
+body { margin: 0; }
+.landing { min-height: 100vh; box-sizing: border-box; padding: 9vw; background: #f4f0e8; color: #182d29; font-family: system-ui, sans-serif; }
+.landing .eyebrow { letter-spacing: .18em; font-size: 12px; }
+.landing h1 { font-family: Georgia, serif; font-size: clamp(50px, 8vw, 100px); font-weight: 400; margin: 40px 0 20px; }
+.presentation-list { max-width: 650px; margin-top: 60px; }
+.presentation-list a { display: block; color: inherit; text-decoration: none; border-top: 1px solid #afbbb3; padding: 28px 0; }
+.presentation-list span { font-size: 11px; letter-spacing: .16em; }
+.presentation-list h2 { font-family: Georgia, serif; font-size: 30px; font-weight: 400; }
+.presentation-list strong { font-size: 13px; }

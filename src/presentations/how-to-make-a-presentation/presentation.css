@@ -1,0 +1,70 @@
+.field-guide { background: #f4f0e8; color: #233c35; font-family: 'Avenir Next', 'Segoe UI', sans-serif; }
+.field-guide * { box-sizing: border-box; }
+.field-guide [data-presentation-header] { position: absolute; top: 25px !important; left: 48px !important; right: 150px; }
+.field-guide [data-presentation-marker] { color: #537369; text-transform: uppercase; letter-spacing: .18em; font-size: 11px; font-weight: 700; }
+.field-guide [data-presentation-title] { position: absolute; top: 0; left: 220px; margin: 0; font-size: 11px; letter-spacing: .03em; color: #64756c; }
+.field-guide h1 { font-family: Georgia, serif; font-weight: 400; font-size: clamp(28px, 3.5vw, 44px); letter-spacing: -.035em; margin: 14px 0 0; line-height: 1.1; }
+.field-guide button { font: inherit; cursor: pointer; }
+.field-guide button:focus-visible, .field-guide a:focus-visible { outline: 3px solid #b16c39; outline-offset: 4px; }
+.field-guide [data-presentation-mode-toggle] { position: absolute; right: 32px !important; top: 27px !important; border: 1px solid #b5c0b4; border-radius: 30px; padding: 8px 15px; color: #294f40; background: transparent; font-size: 12px; }
+.field-guide [data-presentation-toc] { position: absolute; top: 33% !important; left: 48px !important; width: 155px !important; display: grid; gap: 15px; }
+.field-guide [data-presentation-toc-entry] { text-align: left; border: 0; background: transparent; color: #768077; padding: 7px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .09em; border-left: 2px solid #cbd1c7; }
+.field-guide [data-presentation-toc-entry][data-presentation-active="true"] { color: #234d3b; font-weight: 800; border-color: #346c50; background: #e3e8dc; }
+.field-guide [data-presentation-footer] { position: absolute; bottom: 58px !important; left: max(48px, calc((100vw - 650px) / 2)) !important; right: max(48px, calc((100vw - 650px) / 2)) !important; }
+.field-guide [data-presentation-caption] { font-family: Georgia, serif; font-size: 19px; line-height: 1.55; min-height: 60px; margin: 0 0 22px; }
+.field-guide [data-presentation-navigation] { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.field-guide [data-presentation-progress] { display: flex; gap: 9px; }
+.field-guide [data-presentation-navigation] button { width: 29px; height: 29px; background: transparent; border: 1px solid #b8c4b6; border-radius: 50%; font-size: 11px; color: #3c594b; padding: 0; }
+.field-guide [data-presentation-navigation] button[data-presentation-active="true"] { background: #2b5741; border-color: #2b5741; color: #fffdf4; font-weight: 700; }
+.field-guide [data-presentation-navigation] button:disabled { opacity: .35; cursor: default; }
+.field-guide [data-presentation-attribution] { color: #4c6655; font: 12px 'Segoe UI', sans-serif; text-underline-offset: 4px; text-decoration-color: #a1b19e; }
+.field-guide [data-presentation-present-title] { text-align: center; font-family: Georgia, serif; font-size: 20px; margin: 0; }
+.field-guide [data-presentation-layer] { font-size: 36px; line-height: 1.2; }
+.field-guide .actor { display: flex; justify-content: center; align-items: center; gap: 10px; border: 1.5px solid #365d49; border-radius: 11px; background: #fffdf5; font-size: 40px; box-shadow: 0 4px 0 #dde0d2; }
+.field-guide .actor svg { width: 48px; height: 48px; flex-shrink: 0; }
+.field-guide .skill { background: #dce8d5; }
+.field-guide .prompt { display: flex; flex-direction: column; justify-content: center; gap: 8px; border-radius: 0 14px 14px 14px; border: 1px solid #c9cfc1; padding: 12px; background: #fffdf5; font-family: Georgia, serif; font-size: 40px; }
+.field-guide small { font-family: 'Segoe UI', sans-serif; font-size: 36px; font-weight: 600; letter-spacing: .04em; }
+.field-guide .conversation { text-align: center; font-size: 72px; line-height: 70px; color: #59765d; }
+.field-guide .conversation svg, .field-guide .verify-link svg { display: block; width: 100%; height: 100%; }
+.field-guide .question { text-align: center; display: flex; flex-direction: column; justify-content: center; font-size: 36px; letter-spacing: 0; color: #5b6e56; }
+.field-guide .tray { border-bottom: 2px solid #b6c4ad; pointer-events: none; }
+.field-guide .tray > span { font-size: 36px; letter-spacing: .04em; color: #4f6848; }
+.field-guide .step-card { border: 1px solid #91aa89; border-radius: 6px; background: #fffef6; padding: 12px 6px; display: flex; flex-direction: column; gap: 10px; }
+.field-guide .step-card strong { font-family: Georgia, serif; font-weight: 400; font-size: 38px; }
+.field-guide .step-card > span { font-size: 36px; color: #456541; }
+.field-guide .card-parts { white-space: pre-line; }
+.field-guide .morph { text-align: center; display: flex; flex-direction: column; gap: 1px; color: #4f6848; }
+.field-guide .morph > span { font-size: 48px; line-height: 58px; }
+.field-guide .morph small { font-family: monospace; font-size: 36px; font-weight: 400; letter-spacing: 0; min-width: 0; max-width: 100%; white-space: nowrap; overflow-wrap: normal; word-break: normal; }
+.field-guide .ghost { border: 1px dashed #a2b496; border-radius: 6px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 8px; color: #557146; }
+.field-guide .ghost > span { font-size: 42px; max-width: 100%; }
+.field-guide .depth { border-radius: 20px; background: #e3e8da; font-size: 36px; padding: 7px 15px; display: flex; justify-content: space-between; }
+.field-guide .kit { background: #dce5ce; border: 1px solid #97ad85; border-radius: 0 0 7px 7px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px; font-size: 36px; }
+.field-guide .kit > span { flex: 1; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.field-guide .kit svg { width: 40px; height: 40px; flex-shrink: 0; }
+.field-guide .verify { background: #e2edda; border: 1px solid #88a97a; border-radius: 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 10px; color: #2e633a; }
+.field-guide .verify svg { width: 48px; height: 48px; }
+.field-guide .verify strong { font-family: Georgia, serif; font-size: 38px; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.field-guide .verify span { font-size: 36px; text-align: center; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.field-guide .verify-checks { white-space: pre-line; }
+.field-guide .verify-link { text-align: center; color: #456541; font-size: 36px; }
+.field-guide .edited { border: 2px solid #b37a40; }
+.field-guide .edited em { position: absolute; top: 8px; right: 6px; text-align: center; font-size: 36px; color: #976335; font-style: normal; }
+.field-guide .modify { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.field-guide .modify path { fill: none; stroke: #af7744; stroke-width: 1.5; stroke-dasharray: 4 3; }
+.field-guide .modify text { font-size: 36px; fill: #976335; }
+.field-guide .reveal { border: 1px solid #829b72; border-radius: 16px; pointer-events: none; }
+.field-guide .reveal > span { position: absolute; bottom: -16px; right: 22px; background: #f4f0e8; padding: 0 9px; color: #557146; font-size: 36px; letter-spacing: .02em; }
+@media (max-width: 1099px) { .field-guide [data-presentation-title] { display: none; } }
+@media (max-width: 600px) {
+  .field-guide [data-presentation-header] { left: 24px !important; right: 24px !important; top: 24px !important; }
+  .field-guide [data-presentation-marker] { font-size: 9px; }
+  .field-guide h1 { max-width: 100%; margin-top: 30px; font-size: 28px; }
+  .field-guide [data-presentation-mode-toggle] { right: 20px !important; top: 18px !important; padding: 6px 10px; font-size: 10px; }
+  .field-guide [data-presentation-footer] { left: 24px !important; right: 24px !important; bottom: 60px !important; }
+  .field-guide [data-presentation-caption] { font-size: 16px; line-height: 1.45; margin-bottom: 18px; }
+  .field-guide [data-presentation-progress] { gap: 5px; }
+  .field-guide [data-presentation-navigation] { gap: 8px; }
+  .field-guide [data-presentation-navigation] button { width: 22px; height: 22px; font-size: 9px; }
+}

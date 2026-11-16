@@ -43,8 +43,9 @@ async function evidence(id, output, rows, code) {
     const unitRows = ['I-33', 'I-37', 'I-39', 'I-40', 'I-42', 'I-43', 'I-44']
     const regression = ['I-3', 'I-4', 'I-17', 'I-35', 'I-36', 'I-39', 'I-40'].includes(row) ? ` Audit regression tests ${row} in \`audit-targeted-unit.log\` and assertions in this named browser test.` : ''
     const extra = unitRows.includes(row) ? ` Targeted test ${row} in \`${row}-unit.log\`.` : ''
+    const priorFaults = id === 'E2E-002' && process.env.AND_SCENE_FAULTS ? ' Original passing build, missing, order, console, page, render and transition subtests in `audit-targeted-browser.log`; this log reruns only repaired metadata fixtures.' : ''
     const dependency = row === 'I-32' ? ' Successful whole-app build in E2E-001, `E2E-001.log`.' : row === 'I-41' ? ' Root/template script parity in INT-001, `INT-001.log`.' : row === 'I-38' ? ' Public hook component assertion I-1, `I-1-unit.log`.' : ''
-    await run(ROOT, ['node', 'scripts/record-evidence.mjs', row, code, `${id} assertions in \`${name}\`; node --test tests/integration.test.mjs.${extra}${dependency}${regression}`])
+    await run(ROOT, ['node', 'scripts/record-evidence.mjs', row, code, `${id} assertions in \`${name}\`; node --test tests/integration.test.mjs.${extra}${dependency}${regression}${priorFaults}`])
   }
 }
 async function assertCleaned(output) {
@@ -147,24 +148,23 @@ export default function Talk() { return <Presentation title="Transition contract
 })
 async function injectMetadataError(dir, step, kind) {
   const path = resolve(dir, 'src/presentations/how-to-make-a-presentation/Talk.tsx')
-  const fault = kind === 'console' ? 'console.error("late metadata console failure")' : 'queueMicrotask(() => { throw new Error("late metadata page failure") })'
+  const fault = kind === 'console' ? 'console.error("late metadata console failure")' : 'throw new Error("late metadata page failure")'
   const effect = `useEffect(() => {
-    const root = document.querySelector('[data-presentation-root]')!, marker = document.querySelector('[data-presentation-marker]')!
-    const descriptor = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent')!
-    let changedAt = performance.now(), fired = false
-    const observer = new MutationObserver(() => { changedAt = performance.now() })
-    observer.observe(root, { attributes: true, attributeFilter: ['data-step-index'] })
-    Object.defineProperty(marker, 'textContent', {
-      configurable: true,
-      get() {
-        if (!fired && root.getAttribute('data-step-index') === '${step}' && performance.now() - changedAt > 750) { fired = true; ${fault} }
-        return descriptor.get!.call(this)
-      },
-      set(value) { descriptor.set!.call(this, value) },
-    })
-    return () => { observer.disconnect(); Reflect.deleteProperty(marker, 'textContent') }
+    const onMetadata = () => {
+      if (document.querySelector('[data-presentation-root]')!.getAttribute('data-step-index') === '${step}') { ${fault} }
+    }
+    window.addEventListener('and-scene-metadata-read', onMetadata)
+    return () => window.removeEventListener('and-scene-metadata-read', onMetadata)
   }, [])`
   await writeFile(path, "import { useEffect } from 'react'\n" + (await readFile(path, 'utf8')).replace('  return <div', `  ${effect}\n  return <div`))
+  // Emit a test event from the real browser during the metadata interval; keep
+  // all verifier assertions intact. Playwright's isolated world cannot observe
+  // a main-world element's own-property textContent getter.
+  const verifier = resolve(dir, 'scripts/verify.mjs')
+  const markerRead = "        const marker = await page.locator('[data-presentation-marker]').textContent() ?? ''"
+  const source = await readFile(verifier, 'utf8')
+  assert.ok(source.includes(markerRead), 'metadata injection point must exist')
+  await writeFile(verifier, source.replace(markerRead, markerRead + "\n        await page.evaluate(() => window.dispatchEvent(new Event('and-scene-metadata-read')))"))
 }
 test('E2E-002 actionable verification failures and cleanup', { timeout: 300000 }, async t => {
   const faults = [
@@ -179,8 +179,10 @@ test('E2E-002 actionable verification failures and cleanup', { timeout: 300000 }
     ['metadata-page-final', dir => injectMetadataError(dir, 8, 'pageerror'), /FAIL render step 8.*late metadata page failure/],
     ['transition', async dir => { const p = resolve(dir, 'src/presentation-kit/usePresentationNav.ts'); await writeFile(p, (await readFile(p, 'utf8')).replace('i + 1, count', 'i, count')) }, /FAIL render step 1.*transition step 1/],
   ]
+  const selected = faults.filter(([name]) => !process.env.AND_SCENE_FAULTS || process.env.AND_SCENE_FAULTS.split(',').includes(name))
+  assert.ok(selected.length, 'fault selection must include at least one case')
   let output = '', failures = 0
-  for (const [name, inject, expected] of faults) await t.test(name, async () => {
+  for (const [name, inject, expected] of selected) await t.test(name, async () => {
     const dir = await isolatedCopy()
     try {
       await inject(dir)
@@ -191,5 +193,5 @@ test('E2E-002 actionable verification failures and cleanup', { timeout: 300000 }
     } catch (error) { failures++; throw error } finally { await rm(dir, { recursive: true, force: true }) }
   })
   assert.equal(failures, 0, 'verification fault checks must all pass')
-  await evidence('E2E-002', output + '\nASSERTIONS PASS: build/missing/order/console/page/render/transition faults fail with phase/step; no false success; browser and preview processes cleaned, including metadata-window faults.\n', 'I-32,I-37,I-39,I-40', 'scripts/verify.mjs; scripts/browser.mjs; tests/integration.test.mjs')
+  await evidence('E2E-002', output + `\nASSERTIONS PASS: ${selected.map(([name]) => name).join(', ')} faults fail with phase/step; no false success; browser and preview processes cleaned. Other passing fault cases are named in audit-targeted-browser.log.\n`, 'I-32,I-37,I-39,I-40', 'scripts/verify.mjs; scripts/browser.mjs; tests/integration.test.mjs')
 })

@@ -46,6 +46,7 @@ describe('sample and registry', () => {
   it('I-35 accumulating cards depth and socket attachment without tray frame', () => {
     expect(entitiesAt(4).map(e => e.id)).toEqual(expect.arrayContaining(['card1', 'card2', 'card3', 'link1', 'link2']))
     expect(entitiesAt(5).map(e => e.id)).toEqual(expect.arrayContaining(['ghost', 'depth']))
+    for (let beat = 5; beat <= 9; beat++) expect(renderToStaticMarkup(<SampleScene payload={{ beat }} step={STEPS[beat - 1]} />)).toContain('… next beat')
     const tray = entities.find(e => e.id === 'tray')!, kit = entities.find(e => e.id === 'kit')!
     expect(kit.y).toBe(tray.y + tray.h)
     const html = renderToStaticMarkup(<SampleScene payload={{ beat: 6 }} step={STEPS[5]} />)
@@ -54,7 +55,10 @@ describe('sample and registry', () => {
   it('I-36 verify modify and reveal preserve every identity and coordinate', () => {
     const html = (beat: number) => renderToStaticMarkup(<SampleScene payload={{ beat }} step={STEPS[beat - 1]} />)
     for (const text of ['verify', 'build ✓', 'render ✓']) expect(html(7)).toContain(text)
-    expect(entities.find(e => e.id === 'verify')!.y).toBe(entities.find(e => e.id === 'card1')!.y)
+    const ghost = entities.find(e => e.id === 'ghost')!, verify = entities.find(e => e.id === 'verify')!
+    expect(ghost.x + ghost.w).toBeLessThan(verify.x)
+    expect(verify.y).toBe(entities.find(e => e.id === 'card1')!.y)
+    for (const beat of [7, 8, 9]) { expect(html(beat)).toContain('… next beat'); expect(html(beat)).not.toContain('data-presentation-allow-overlap') }
     for (const text of ['modify', 'edited in place']) expect(html(8)).toContain(text)
     expect(html(9)).toContain('THIS IS ONE OF THOSE PRESENTATIONS')
     for (let beat = 2; beat <= 9; beat++) for (const entity of entitiesAt(beat - 1)) expect(entitiesAt(beat).find(e => e.id === entity.id)).toEqual(entity)

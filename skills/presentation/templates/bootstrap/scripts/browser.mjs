@@ -21,6 +21,10 @@ export async function stopProcess(child) {
   const timer = setTimeout(() => child.kill('SIGKILL'), 2000)
   try { await exited } finally { clearTimeout(timer) }
 }
+export async function closeBrowser(browser, server) {
+  try { if (browser) await browser.close() }
+  finally { if (server) await server.close() }
+}
 export async function withPreview(run, { root = ROOT, viewport = { width: 1440, height: 900 } } = {}) {
   const probe = createServer()
   probe.listen(0, HOST)
@@ -31,7 +35,7 @@ export async function withPreview(run, { root = ROOT, viewport = { width: 1440, 
   const child = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--host', HOST, '--port', String(port), '--strictPort'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
   let serverOutput = ''
   child.stdout.on('data', d => { serverOutput += d }); child.stderr.on('data', d => { serverOutput += d })
-  let browser
+  let browser, browserServer
   try {
     let ready = false
     for (let i = 0; i < 100; i++) {
@@ -42,12 +46,17 @@ export async function withPreview(run, { root = ROOT, viewport = { width: 1440, 
     }
     if (!ready) throw new Error(`preview readiness timeout ${base}: ${serverOutput}`)
     console.log(`preview host/probe/browser ${base}; pid ${child.pid}`)
-    browser = await chromium.launch({ headless: true })
+    browserServer = await chromium.launchServer({ headless: true, host: HOST })
+    console.log(`browser started ${browserServer.process().pid}`)
+    browser = await chromium.connect(browserServer.wsEndpoint())
     const page = await browser.newPage({ viewport })
     page.setDefaultTimeout(5000)
     return await run(page, base)
   } finally {
-    try { if (browser) await browser.close() } finally { await stopProcess(child); console.log(`preview cleaned ${child.pid}`) }
+    try {
+      await closeBrowser(browser, browserServer)
+      if (browserServer) console.log(`browser cleaned ${browserServer.process().pid}`)
+    } finally { await stopProcess(child); console.log(`preview cleaned ${child.pid}`) }
   }
 }
 export async function settle(page, ms = SETTLE_MS) { await page.waitForTimeout(ms) }

@@ -54,8 +54,10 @@ describe('scene kit', () => {
     expect(container.querySelector('[data-presentation-appear]')).toBeNull()
     rerender(<Stage step={{ ...two, groupKey: 'other' }} mode="browse" />)
     expect(mounts).toBe(2); expect(unmounts).toBe(1)
+    const previousHost = container.querySelector('[data-presentation-scene]')
     rerender(<Stage step={{ ...two, groupKey: 'other', Scene }} mode="browse" />)
     expect(unmounts).toBe(2)
+    expect(container.querySelector('[data-presentation-scene]')).not.toBe(previousHost)
   })
   it('I-5 overlapping coordinates and stacking survive grouped updates', () => {
     function Overlap({ payload }: SceneProps<{ value: number }>) { return <SceneLayer><Box entityId="a" style={{ position: 'absolute', left: 10, top: 10, zIndex: 1 }}>a</Box><Box entityId="b" style={{ position: 'absolute', left: 10, top: 10, zIndex: 2 }}>{payload.value}</Box></SceneLayer> }
@@ -155,7 +157,8 @@ describe('scene kit', () => {
     const { container, rerender } = render(<Stage step={steps[0]} mode="browse" />)
     const canvas = container.querySelector('[data-presentation-canvas]') as HTMLElement
     expect(canvas.style.width).toBe('880px'); expect(canvas.style.height).toBe('380px')
-    const transform = canvas.style.transform; expect(transform).toMatch(/^scale\([\d.]+\)$/)
+    const transform = canvas.style.transform; expect(transform).toMatch(/^translate\(-50%, -50%\) scale\([\d.]+\)$/)
+    expect(canvas.style.position).toBe('absolute'); expect(canvas.style.left).toBe('50%'); expect(canvas.style.top).toBe('50%')
     rerender(<Stage step={steps[1]} mode="browse" />); expect(canvas.style.transform).toBe(transform)
   })
 })

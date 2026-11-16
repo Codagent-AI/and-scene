@@ -3,7 +3,7 @@ import { JSDOM } from 'jsdom'
 import { describe, it, expect, vi } from 'vitest'
 import { warningsFor, collectDiagnostics } from '../scripts/diagnostics.mjs'
 import { failure, validateReference } from '../scripts/verify.mjs'
-import { settle, stopProcess } from '../scripts/browser.mjs'
+import { settle, stopProcess, closeBrowser } from '../scripts/browser.mjs'
 import { EventEmitter } from 'node:events'
 import reference from '../scripts/reference.json'
 const text = (label: string, x: number) => ({ label, rect: { x, y: 0, width: 20, height: 20 } })
@@ -25,6 +25,18 @@ describe('diagnostics and verifier contracts', () => {
     await stopProcess(child)
     expect(child.kill).toHaveBeenCalledWith('SIGTERM')
     await stopProcess({ exitCode: 0, signalCode: null, kill: () => { throw new Error('should not kill') } })
+  })
+  it('I-40 browser connection and server close after success and close failure', async () => {
+    const events: string[] = []
+    const server = { close: vi.fn(async () => { events.push('server closed') }) }
+    const browser = { close: vi.fn(async () => { events.push('connection closed') }) }
+    await closeBrowser(browser, server)
+    expect(events).toEqual(['connection closed', 'server closed'])
+    browser.close.mockRejectedValueOnce(new Error('connection close fault'))
+    await expect(closeBrowser(browser, server)).rejects.toThrow('connection close fault')
+    expect(server.close).toHaveBeenCalledTimes(2)
+    await closeBrowser(undefined, server)
+    expect(server.close).toHaveBeenCalledTimes(3)
   })
   it('I-42 settle sequencing waits configured interval before capture', async () => {
     const events: string[] = []

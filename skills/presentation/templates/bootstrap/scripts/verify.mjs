@@ -10,7 +10,14 @@ export function validateReference(actual, expected) {
 }
 export function failure(phase, index, message) { return `FAIL ${phase}${index === undefined ? '' : ` step ${index}`}: ${message}` }
 export async function verify({ route = 'how-to-make-a-presentation', first = false, build = true, root = ROOT } = {}) {
-  let phase = 'build', index
+  let phase = 'build', index, activeStep = 0
+  const errors = []
+  const assertNoErrors = () => {
+    if (!errors.length) return
+    phase = 'render'
+    index = errors[0].step
+    throw new Error(errors.map(error => error.message).join('; '))
+  }
   try {
     if (build) await command('npm', ['run', 'build'], root)
     phase = 'sample'
@@ -19,9 +26,8 @@ export async function verify({ route = 'how-to-make-a-presentation', first = fal
     if (isReference && !(await readFile(resolve(root, 'src/presentations/index.ts'), 'utf8')).includes(route)) throw new Error('reference sample is not registered')
     phase = 'render'; index = 0
     await withPreview(async (page, base) => {
-      const errors = []
-      page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
-      page.on('pageerror', error => errors.push(error.message))
+      page.on('console', message => { if (message.type() === 'error') errors.push({ step: activeStep, message: message.text() }) })
+      page.on('pageerror', error => errors.push({ step: activeStep, message: error.message }))
       await page.goto(`${base}/${route}`)
       const rootHook = await browseRoot(page)
       const count = Number(await rootHook.getAttribute('data-step-count'))
@@ -29,18 +35,22 @@ export async function verify({ route = 'how-to-make-a-presentation', first = fal
       if (expected && count !== expected.length) throw new Error(`sample count expected ${expected.length}, got ${count}`)
       const actual = []
       for (index = 0; index < (first ? 1 : count); index++) {
+        activeStep = index
         await stepTo(page, index)
         await settle(page)
-        if (errors.length) throw new Error(errors.join('; '))
+        assertNoErrors()
         const title = await page.locator('[data-presentation-title]').textContent() ?? ''
         const caption = await page.locator('[data-presentation-caption]').textContent() ?? ''
         const marker = await page.locator('[data-presentation-marker]').textContent() ?? ''
+        assertNoErrors()
         const era = marker.split(' · ')[1]
         actual.push({ title, caption, era })
         if (expected) { phase = 'sample'; validateReference([actual[index]], [expected[index]]); phase = 'render' }
         console.log(`PASS step ${index}: ${title}`)
       }
     }, { root })
+    // withPreview has closed Chromium: no later page event can escape this gate.
+    assertNoErrors()
     console.log(`PASS verification ${route}`)
     return true
   } catch (error) { console.error(failure(phase, index, error.message)); return false }

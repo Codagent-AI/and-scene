@@ -65,7 +65,7 @@ export const entities: readonly Entity[] = [
     "from": 3,
     "x": 75,
     "y": 195,
-    "w": 130,
+    "w": 115,
     "h": 92,
     "label": "01",
     "kind": "card"
@@ -73,9 +73,9 @@ export const entities: readonly Entity[] = [
   {
     "id": "link1",
     "from": 4,
-    "x": 209,
+    "x": 194,
     "y": 229,
-    "w": 65,
+    "w": 45,
     "h": 30,
     "label": "morph →",
     "kind": "arrow"
@@ -83,9 +83,9 @@ export const entities: readonly Entity[] = [
   {
     "id": "card2",
     "from": 4,
-    "x": 280,
+    "x": 245,
     "y": 195,
-    "w": 130,
+    "w": 115,
     "h": 92,
     "label": "02",
     "kind": "card"
@@ -93,9 +93,9 @@ export const entities: readonly Entity[] = [
   {
     "id": "link2",
     "from": 4,
-    "x": 414,
+    "x": 364,
     "y": 229,
-    "w": 65,
+    "w": 45,
     "h": 30,
     "label": "morph →",
     "kind": "arrow"
@@ -103,9 +103,9 @@ export const entities: readonly Entity[] = [
   {
     "id": "card3",
     "from": 4,
-    "x": 485,
+    "x": 415,
     "y": 195,
-    "w": 130,
+    "w": 115,
     "h": 92,
     "label": "03",
     "kind": "card"
@@ -113,9 +113,9 @@ export const entities: readonly Entity[] = [
   {
     "id": "ghost",
     "from": 5,
-    "x": 690,
+    "x": 550,
     "y": 195,
-    "w": 110,
+    "w": 95,
     "h": 92,
     "label": "… next beat",
     "kind": "ghost"
@@ -143,9 +143,9 @@ export const entities: readonly Entity[] = [
   {
     "id": "verify",
     "from": 7,
-    "x": 690,
+    "x": 710,
     "y": 195,
-    "w": 110,
+    "w": 95,
     "h": 92,
     "label": "verify",
     "kind": "verify"
@@ -153,9 +153,9 @@ export const entities: readonly Entity[] = [
   {
     "id": "verify-link",
     "from": 7,
-    "x": 619,
+    "x": 650,
     "y": 229,
-    "w": 65,
+    "w": 55,
     "h": 30,
     "label": "check →",
     "kind": "arrow"
@@ -173,7 +173,7 @@ export const entities: readonly Entity[] = [
   {
     "id": "flag",
     "from": 8,
-    "x": 486,
+    "x": 416,
     "y": 175,
     "w": 104,
     "h": 18,

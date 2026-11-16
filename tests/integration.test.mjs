@@ -41,16 +41,19 @@ async function evidence(id, output, rows, code) {
   await writeFile(resolve(EVIDENCE, name), output)
   for (const row of rows.split(',')) {
     const unitRows = ['I-33', 'I-37', 'I-39', 'I-40', 'I-42', 'I-43', 'I-44']
+    const regression = ['I-3', 'I-4', 'I-17', 'I-35', 'I-36', 'I-39', 'I-40'].includes(row) ? ` Audit regression tests ${row} in \`audit-targeted-unit.log\` and assertions in this named browser test.` : ''
     const extra = unitRows.includes(row) ? ` Targeted test ${row} in \`${row}-unit.log\`.` : ''
     const dependency = row === 'I-32' ? ' Successful whole-app build in E2E-001, `E2E-001.log`.' : row === 'I-41' ? ' Root/template script parity in INT-001, `INT-001.log`.' : row === 'I-38' ? ' Public hook component assertion I-1, `I-1-unit.log`.' : ''
-    await run(ROOT, ['node', 'scripts/record-evidence.mjs', row, code, `${id} assertions in \`${name}\`; node --test tests/integration.test.mjs.${extra}${dependency}`])
+    await run(ROOT, ['node', 'scripts/record-evidence.mjs', row, code, `${id} assertions in \`${name}\`; node --test tests/integration.test.mjs.${extra}${dependency}${regression}`])
   }
 }
 async function assertCleaned(output) {
-  const started = [...output.matchAll(/; pid (\d+)/g)].map(m => m[1])
-  for (const pid of started) {
-    assert.ok(output.includes(`preview cleaned ${pid}`), output)
-    assert.throws(() => process.kill(Number(pid), 0), { code: 'ESRCH' })
+  const previews = [...output.matchAll(/; pid (\d+)/g)].map(m => m[1])
+  const browsers = [...output.matchAll(/browser started (\d+)/g)].map(m => m[1])
+  assert.equal(browsers.length, previews.length, 'each ready preview in these cases must launch Chromium')
+  for (const [kind, pids] of [['preview', previews], ['browser', browsers]]) for (const pid of pids) {
+    assert.ok(output.includes(`${kind} cleaned ${pid}`), output)
+    assert.throws(() => process.kill(Number(pid), 0), { code: 'ESRCH' }, `${kind} process ${pid} must terminate`)
   }
 }
 test('INT-001 materialized bootstrap complete style-neutral and relocatable', { timeout: 240000 }, async () => {
@@ -118,13 +121,51 @@ export default function Talk() { return <Presentation steps={steps} title="Diagn
   } finally { await rm(dir, { recursive: true, force: true }) }
 })
 test('E2E-001 reference passes whole-app production verification', { timeout: 120000 }, async () => {
-  const output = await run(ROOT, ['npm', 'run', 'verify'])
-  for (let i = 0; i < 9; i++) assert.match(output, new RegExp(`PASS step ${i}:`))
-  assert.match(output, /127\.0\.0\.1/); assert.doesNotMatch(output, /http:\/\/localhost/)
-  assert.match(output, /PASS verification how-to-make-a-presentation/)
-  await assertCleaned(output)
-  await evidence('E2E-001', output + '\nASSERTIONS PASS: build, canonical outline, route, all nine public indices, IPv4 endpoints, zero exit, cleanup.\n', 'I-33,I-38', 'scripts/verify.mjs; scripts/browser.mjs; src/presentations/; tests/integration.test.mjs')
+  const dir = await isolatedCopy()
+  try {
+    await mkdir(resolve(dir, 'src/presentations/transition-contract'), { recursive: true })
+    await writeFile(resolve(dir, 'src/presentations/transition-contract/Talk.tsx'), `import { Box, Presentation } from '../../presentation-kit'
+import type { SceneProps, Step } from '../../presentation-kit'
+function A({ payload }: SceneProps<number>) { return <Box entityId="fixture:continuing" data-test-scene="a" style={{ position: 'absolute', top: 30, left: payload, width: 60, height: 40 }}>A:{payload}</Box> }
+function B({ payload }: SceneProps<number>) { return <Box entityId="fixture:continuing" data-test-scene="b" style={{ position: 'absolute', top: 30, left: payload, width: 60, height: 40 }}>B:{payload}</Box> }
+const steps: Step<number>[] = [
+  { id: 'one', era: 'test', title: 'One', caption: 'One', groupKey: 'shared', Scene: A, payload: 80 },
+  { id: 'two', era: 'test', title: 'Two', caption: 'Two', groupKey: 'shared', Scene: A, payload: 300 },
+  { id: 'three', era: 'test', title: 'Three', caption: 'Three', groupKey: 'shared', Scene: B, payload: 600 },
+]
+export default function Talk() { return <Presentation title="Transition contract" steps={steps} /> }`)
+    const registry = resolve(dir, 'src/presentations/index.ts')
+    await writeFile(registry, (await readFile(registry, 'utf8')).replace('export const presentations = [', "export const presentations = [\n  { slug: 'transition-contract', title: 'Transition contract', load: () => import('./transition-contract/Talk') },"))
+    let output = await run(dir, ['npm', 'run', 'verify'])
+    for (let i = 0; i < 9; i++) assert.match(output, new RegExp(`PASS step ${i}:`))
+    assert.match(output, /127\.0\.0\.1/); assert.doesNotMatch(output, /http:\/\/localhost/)
+    assert.match(output, /PASS verification how-to-make-a-presentation/)
+    output += await run(dir, ['node', resolve(ROOT, 'tests/scene-browser.mjs'), dir])
+    await assertCleaned(output)
+    await evidence('E2E-001', output + '\nASSERTIONS PASS: canonical build/outline/render, real layout and Scene cross-fade, ghost visibility, narrow/short painted bounds, IPv4, zero exit, browser/preview process cleanup.\n', 'I-3,I-4,I-17,I-33,I-35,I-36,I-38', 'src/presentation-kit/Stage.tsx; src/presentations/; scripts/verify.mjs; tests/scene-browser.mjs; tests/integration.test.mjs')
+  } finally { await rm(dir, { recursive: true, force: true }) }
 })
+async function injectMetadataError(dir, step, kind) {
+  const path = resolve(dir, 'src/presentations/how-to-make-a-presentation/Talk.tsx')
+  const fault = kind === 'console' ? 'console.error("late metadata console failure")' : 'queueMicrotask(() => { throw new Error("late metadata page failure") })'
+  const effect = `useEffect(() => {
+    const root = document.querySelector('[data-presentation-root]')!, marker = document.querySelector('[data-presentation-marker]')!
+    const descriptor = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent')!
+    let changedAt = performance.now(), fired = false
+    const observer = new MutationObserver(() => { changedAt = performance.now() })
+    observer.observe(root, { attributes: true, attributeFilter: ['data-step-index'] })
+    Object.defineProperty(marker, 'textContent', {
+      configurable: true,
+      get() {
+        if (!fired && root.getAttribute('data-step-index') === '${step}' && performance.now() - changedAt > 750) { fired = true; ${fault} }
+        return descriptor.get!.call(this)
+      },
+      set(value) { descriptor.set!.call(this, value) },
+    })
+    return () => { observer.disconnect(); Reflect.deleteProperty(marker, 'textContent') }
+  }, [])`
+  await writeFile(path, "import { useEffect } from 'react'\n" + (await readFile(path, 'utf8')).replace('  return <div', `  ${effect}\n  return <div`))
+}
 test('E2E-002 actionable verification failures and cleanup', { timeout: 300000 }, async t => {
   const faults = [
     ['build', async dir => writeFile(resolve(dir, 'src/broken.ts'), 'const broken: number = "wrong"; export { broken }'), /FAIL build/],
@@ -133,6 +174,9 @@ test('E2E-002 actionable verification failures and cleanup', { timeout: 300000 }
     ['console', async dir => { const p = resolve(dir, 'src/presentations/how-to-make-a-presentation/steps/Scene.tsx'); await writeFile(p, (await readFile(p, 'utf8')).replace('return <SceneLayer', 'if (payload.beat === 3) console.error("injected console failure")\n  return <SceneLayer')) }, /FAIL render step 2.*injected console failure/],
     ['page', async dir => { const p = resolve(dir, 'src/presentations/how-to-make-a-presentation/steps/Scene.tsx'); await writeFile(p, (await readFile(p, 'utf8')).replace('return <SceneLayer', 'if (payload.beat === 3) setTimeout(() => { throw new Error("injected page failure") }, 10)\n  return <SceneLayer')) }, /FAIL render step 2.*injected page failure/],
     ['render', async dir => { const p = resolve(dir, 'src/presentations/how-to-make-a-presentation/steps/Scene.tsx'); await writeFile(p, (await readFile(p, 'utf8')).replace('return <SceneLayer', 'if (payload.beat === 3) throw new Error("injected render failure")\n  return <SceneLayer')) }, /FAIL render step 2/],
+    ['metadata-console-middle', dir => injectMetadataError(dir, 2, 'console'), /FAIL render step 2.*late metadata console failure/],
+    ['metadata-console-final', dir => injectMetadataError(dir, 8, 'console'), /FAIL render step 8.*late metadata console failure/],
+    ['metadata-page-final', dir => injectMetadataError(dir, 8, 'pageerror'), /FAIL render step 8.*late metadata page failure/],
     ['transition', async dir => { const p = resolve(dir, 'src/presentation-kit/usePresentationNav.ts'); await writeFile(p, (await readFile(p, 'utf8')).replace('i + 1, count', 'i, count')) }, /FAIL render step 1.*transition step 1/],
   ]
   let output = '', failures = 0
@@ -147,5 +191,5 @@ test('E2E-002 actionable verification failures and cleanup', { timeout: 300000 }
     } catch (error) { failures++; throw error } finally { await rm(dir, { recursive: true, force: true }) }
   })
   assert.equal(failures, 0, 'verification fault checks must all pass')
-  await evidence('E2E-002', output + '\nASSERTIONS PASS: build/missing/order/console/page/render/transition faults fail with phase/step; no false success; preview processes cleaned.\n', 'I-32,I-37,I-39,I-40', 'scripts/verify.mjs; scripts/browser.mjs; tests/integration.test.mjs')
+  await evidence('E2E-002', output + '\nASSERTIONS PASS: build/missing/order/console/page/render/transition faults fail with phase/step; no false success; browser and preview processes cleaned, including metadata-window faults.\n', 'I-32,I-37,I-39,I-40', 'scripts/verify.mjs; scripts/browser.mjs; tests/integration.test.mjs')
 })

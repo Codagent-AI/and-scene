@@ -67,10 +67,12 @@ export async function walkSteps(page, url, route, visit, { first = false, settle
         await page.keyboard.press('ArrowRight')
         await page.waitForFunction(i => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(i), index, { timeout: 2500 })
       }
+      const stepObservedAt = Date.now()
+      const settleStartedAt = Date.now()
       await page.waitForTimeout(settle)
       if (Number(await page.locator('[data-step-index]').getAttribute('data-step-index')) !== index) throw new Error('Unexpected step index')
       if (errors.length) throw new Error(errors.join('; '))
-      await visit(page, index, count)
+      await visit(page, index, count, { stepObservedAt, settleStartedAt })
       console.log(`STEP ${index} OK`)
     }
     if (errors.length) throw new Error(errors.join('; '))

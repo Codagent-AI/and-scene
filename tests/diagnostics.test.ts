@@ -11,6 +11,16 @@ describe('diagnostic contracts',()=>{
     expect(warnings.some((w:string)=>w.includes('Allowed')||w.includes('Hidden'))).toBe(false)
     document.body.innerHTML='';vi.restoreAllMocks()
   })
+  it('I-47 nested parent and positioned child text collide unless explicitly allowed',()=>{
+    document.body.innerHTML='<div>Parent<span style="position:absolute">Child</span></div><footer data-presentation-footer><span>Own chrome content</span></footer>'
+    vi.spyOn(Element.prototype,'getBoundingClientRect').mockImplementation(()=>rect())
+    Object.defineProperty(Range.prototype,'getClientRects',{configurable:true,value:()=>[rect()]})
+    expect(collectDiagnostics().some((w:string)=>w.includes('ParentChild')&&w.includes('span:Child'))).toBe(true)
+    expect(collectDiagnostics().some((w:string)=>w.includes('overlap span:Own chrome content / footer:'))).toBe(false)
+    document.querySelector('div')!.setAttribute('data-presentation-allow-overlap','true')
+    expect(collectDiagnostics().some((w:string)=>w.includes('ParentChild')||w.includes('span:Child'))).toBe(false)
+    document.body.innerHTML='';vi.restoreAllMocks()
+  })
   it('I-48 active differences and missing tiny default attribution',()=>{
     vi.spyOn(Element.prototype,'getBoundingClientRect').mockImplementation(()=>rect())
     document.body.innerHTML='<button data-presentation-progress-entry data-presentation-active="true">1</button><button data-presentation-progress-entry>2</button>'

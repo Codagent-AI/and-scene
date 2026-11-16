@@ -9,12 +9,13 @@ export async function inspect({ route, cwd = process.cwd(), build = true, settle
   await mkdir(output, { recursive: true })
   const report = []
   await withBrowser(async (page, url) => {
-    await walkSteps(page, url, route, async (page, index) => {
+    await walkSteps(page, url, route, async (page, index, _count, timing) => {
       const warnings = await page.evaluate(collectDiagnostics)
       const file = `step-${String(index + 1).padStart(2,'0')}.png`
+      const captureStartedAt = Date.now()
       await page.screenshot({ path: resolve(output, file), fullPage: true })
       for (const warning of warnings) console.warn(`ADVISORY step ${index}: ${warning}`)
-      report.push({ index, file, settle, capturedAt: Date.now(), warnings })
+      report.push({ index, file, settle, ...timing, captureStartedAt, capturedAt: Date.now(), warnings })
     }, { settle })
   }, { cwd, viewport })
   await writeFile(resolve(output,'report.json'), JSON.stringify(report,null,2)+'\n')

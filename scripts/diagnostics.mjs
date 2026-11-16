@@ -10,15 +10,17 @@ export function collectDiagnostics() {
     const text = walker.currentNode, e = text.parentElement
     if (!text.textContent.trim() || !e || e.closest('script,style') || !visible(e) || allowed(e)) continue
     const range = document.createRange(); range.selectNodeContents(text)
-    for (const rect of range.getClientRects()) if (rect.width && rect.height) rectangles.push({ e, rect })
+    for (const rect of range.getClientRects()) if (rect.width && rect.height) rectangles.push({ e, rect, kind: 'text' })
   }
   for (const e of document.querySelectorAll('[data-presentation-header],[data-presentation-footer],[data-presentation-toc],[data-presentation-attribution]')) {
-    if (visible(e) && !allowed(e)) rectangles.push({ e, rect: e.getBoundingClientRect() })
+    if (visible(e) && !allowed(e)) rectangles.push({ e, rect: e.getBoundingClientRect(), kind: 'chrome' })
   }
   const seen = new Set()
   for (let i = 0; i < rectangles.length; i++) for (let j = i + 1; j < rectangles.length; j++) {
     const a = rectangles[i], b = rectangles[j]
-    if (a.e === b.e || a.e.contains(b.e) || b.e.contains(a.e)) continue
+    // A chrome rectangle contains its own text by design. Distinct text ranges
+    // still need comparison, including parent text overlapping positioned children.
+    if ((a.kind === 'chrome' && a.e.contains(b.e)) || (b.kind === 'chrome' && b.e.contains(a.e))) continue
     const x = Math.min(a.rect.right,b.rect.right)-Math.max(a.rect.left,b.rect.left), y = Math.min(a.rect.bottom,b.rect.bottom)-Math.max(a.rect.top,b.rect.top)
     if (x > 1 && y > 1) {
       const message = `overlap ${describe(a.e)} / ${describe(b.e)}`

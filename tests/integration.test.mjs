@@ -16,7 +16,7 @@ async function run(cwd, args, name, success = true) {
     let output='';child.stdout.on('data',c=>{output+=c});child.stderr.on('data',c=>{output+=c})
     child.on('error',reject);child.on('close',code=>resolve({code,output}))
   })
-  await writeFile(join(evidence,`${name}.log`),`Command: ${args.join(' ')}\nCWD: ${cwd}\nExit: ${result.code}\nDuration: ${Date.now()-start}ms\n${result.output}`)
+  await writeFile(join(evidence,`${process.env.EVIDENCE_PREFIX ?? ''}${name}.log`),`Command: ${args.join(' ')}\nCWD: ${cwd}\nExit: ${result.code}\nDuration: ${Date.now()-start}ms\n${result.output}`)
   assert.equal(result.code===0,success,`${name}: ${result.output}`)
   return result.output
 }
@@ -64,8 +64,30 @@ test('INT-001 materialized bootstrap is independent complete aligned and style n
       assert.ok(!/#[0-9a-f]{3,8}\b|fontFamily:|background:|boxShadow:|border:|tailwind|--theme/i.test(text),file)
     }
     await run(dir,['npm','ci','--no-audit','--no-fund'],'INT-001-install')
+    const example=await readFile(join(dir,'src/presentations/example/Talk.tsx'),'utf8')
+    const registryPath=join(dir,'src/presentations/index.ts')
+    const initialRegistry=await readFile(registryPath,'utf8')
+    async function addPresentation(slug, label){
+      const folder=join(dir,'src/presentations',slug);await mkdir(folder)
+      await writeFile(join(folder,'Talk.tsx'),example.replaceAll('example:',`${slug}:`).replaceAll('One scene',label))
+      const registry=await readFile(registryPath,'utf8')
+      await writeFile(registryPath,registry.replace('= [',`= [{slug:'${slug}',title:'${label}',load:()=>import('./${slug}/Talk')},`))
+    }
+    await addPresentation('second','Second independent scene')
+    const second=await readFile(join(dir,'src/presentations/second/Talk.tsx'),'utf8')
+    const twoEntryRegistry=await readFile(registryPath,'utf8')
+    await addPresentation('third','Third independent scene')
+    assert.equal(await readFile(join(dir,'src/presentations/example/Talk.tsx'),'utf8'),example)
+    assert.equal(await readFile(join(dir,'src/presentations/second/Talk.tsx'),'utf8'),second)
+    assert.ok((await readFile(registryPath,'utf8')).includes(twoEntryRegistry.split('= [')[1]))
+    assert.ok(twoEntryRegistry.includes(initialRegistry.split('= [')[1]))
     const output=await run(dir,['npm','run','verify'],'INT-001-verify')
     assert.match(output,/PASS/);assert.match(output,/STEP 1 OK/);await cleaned(output)
+    for(const slug of ['second','third']){
+      const routeOutput=await run(dir,[process.execPath,'scripts/verify.mjs','--route',slug,'--first','--skip-build'],`INT-001-route-${slug}`)
+      assert.match(routeOutput,/STEP 0 OK/);await cleaned(routeOutput)
+    }
+    await writeFile(join(evidence,'resolution-INT-001-coexistence.log'),'PASS I-26: adding a third distinct presentation leaves both earlier Talk.tsx files byte-identical and both prior registry entries intact; materialized example, second, and third routes build and render via independent lazy modules.\n')
     await assert.rejects(materialize(dir),/empty target/)
     await writeFile(join(evidence,'INT-001-contracts.log'),'PASS INT-001: canonical/template byte parity, script parity, complete dependency set, contract anchors, no kit styling defaults, skill-relative materialization, nonempty target rejection, local production build/render and cleanup.\n')
   } finally {await rm(dir,{recursive:true,force:true})}
@@ -82,22 +104,56 @@ test('INT-002 screenshots settle and diagnostics are advisory with subtree exemp
   const dir=await copyApp()
   try {
     const fixture=join(dir,'src/presentations/diagnostic-fixture');await mkdir(fixture,{recursive:true})
-    await writeFile(join(fixture,'Talk.tsx'),`import { Presentation, type SceneProps, type Step } from '../../presentation-kit'
-function Scene({payload}:SceneProps<number>){return <><span style={{position:'absolute',left:50,top:50}}>Collision A</span><span style={{position:'absolute',left:50,top:50}}>Collision B</span><div data-presentation-allow-overlap="true"><span style={{position:'absolute',left:250,top:50}}>Allowed A</span><span style={{position:'absolute',left:250,top:50}}>Allowed B</span></div><span style={{position:'absolute',left:500,top:100}}>Beat {payload}</span></>}
-const steps:Step<number>[]=[0,1].map(i=>({id:String(i),era:'section '+i,title:'Test '+i,caption:'Capture fixture.',Scene,payload:i,groupKey:'fixture'}))
-export default function Talk(){return <Presentation title="Fixture" steps={steps}/>}`)
+    await cp(join(root,'tests/fixtures/DiagnosticTalk.tsx'),join(fixture,'Talk.tsx'))
     await writeFile(join(dir,'src/presentations/index.ts'),(await readFile(join(dir,'src/presentations/index.ts'),'utf8')).replace('= [{','= [{ slug: \'diagnostic-fixture\', title: \'Diagnostic fixture\', load: () => import(\'./diagnostic-fixture/Talk\') },{'))
-    const output=await run(dir,['npm','run','inspect','--','diagnostic-fixture'],'INT-002')
+    // Instrument the browser dependency in the test driver, not the production helper.
+    await writeFile(join(dir,'inspection-driver.mjs'),`import { chromium } from 'playwright'
+import { writeFile } from 'node:fs/promises'
+import { inspect } from './scripts/inspect-presentation.mjs'
+const telemetry=[]
+const launch=chromium.launch.bind(chromium)
+chromium.launch=async options=>{const browser=await launch(options);const create=browser.newPage.bind(browser);browser.newPage=async(...args)=>{const page=await create(...args);page.on('console',message=>{if(message.text().startsWith('MOTION '))telemetry.push(JSON.parse(message.text().slice(7)))});return page};return browser}
+await inspect({route:'diagnostic-fixture'})
+await writeFile('motion-telemetry.json',JSON.stringify(telemetry,null,2))
+`)
+    const output=await run(dir,[process.execPath,'inspection-driver.mjs'],'INT-002')
     assert.match(output,/CAPTURED 2 steps/);assert.match(output,/ADVISORY step 0: overlap.*Collision A.*Collision B/)
     assert.match(output,/ADVISORY step 1: indistinct active progress-entry/);assert.match(output,/indistinct active toc-entry/)
     assert.match(output,/unpolished attribution/);assert.ok(!output.includes('overlap span:Allowed'))
     const report=JSON.parse(await readFile(join(dir,'.inspection/diagnostic-fixture/report.json'),'utf8'))
     assert.deepEqual(report.map(s=>s.file),['step-01.png','step-02.png'])
-    assert.ok(report[1].capturedAt-report[0].capturedAt>=850)
+    const telemetry=JSON.parse(await readFile(join(dir,'motion-telemetry.json'),'utf8'))
+    assert.equal(telemetry.length,2)
+    for(const row of report){
+      const motion=telemetry.find(m=>m.index===row.index)
+      assert.ok(row.captureStartedAt-row.settleStartedAt>=row.settle,`step ${row.index} captured before settle elapsed`)
+      assert.ok(row.settleStartedAt>=row.stepObservedAt)
+      assert.ok(row.captureStartedAt-motion.transitionAt>=row.settle,`step ${row.index} captured too soon after actual Scene transition`)
+      assert.ok(row.capturedAt>=row.captureStartedAt)
+      assert.ok(motion.frames.at(-1).at<=row.captureStartedAt)
+    }
+    const before=telemetry[0].frames.at(-1),next=telemetry[1],frames=next.frames,final=frames.at(-1)
+    assert.ok(next.sameEntity&&next.sameWrapper,'continuing entity and wrapper must persist')
+    assert.ok(frames.every(f=>f.continuingOpacity===1),'continuing entity must never fade as a newcomer')
+    for(const field of ['left','width','height']){
+      assert.ok(final[field]>before[field]+5,`${field} target must change`)
+      assert.ok(frames.some(f=>f[field]>before[field]+1&&f[field]<final[field]-1),`${field} must morph through intermediate geometry`)
+    }
+    assert.ok(frames.some(f=>f.departOpacity>0&&f.departOpacity<1),'departure must visibly fade')
+    assert.equal(final.departOpacity,null,'departure must be removed after its exit')
+    assert.equal(frames[0].newOpacity,0)
+    const firstVisible=frames.find(f=>f.newOpacity>0)
+    assert.ok(firstVisible.at-next.transitionAt>=448,'newcomer must wait for layout duration (480ms with one frame tolerance)')
+    const moving=frames.filter(f=>Math.abs(f.left-final.left)>.5).at(-1)
+    assert.ok(firstVisible.at>=moving.at,'newcomer must not appear before continuing geometry settles')
+    assert.equal(final.newOpacity,1)
+    assert.match(output,/Nested parent.*Nested child/)
+    assert.ok(!output.includes('overlap div:Allowed')&&!output.includes('/ span:Allowed'))
+    await cp(join(dir,'motion-telemetry.json'),join(evidence,'resolution-motion-telemetry.json'))
     for(const row of report) {assert.equal(row.settle,850);assert.ok((await stat(join(dir,'.inspection/diagnostic-fixture',row.file))).size>1000);assert.ok(row.warnings.some(w=>w.includes('overlap')))}
     await cleaned(output)
-    await cp(join(dir,'.inspection/diagnostic-fixture/report.json'),join(evidence,'INT-002-report.json'))
-    await writeFile(join(evidence,'INT-002-assertions.log'),'PASS INT-002: predictable PNGs per step, settle>=850ms before screenshots, step-specific overlap/active/attribution warnings, allowed subtree exempt, advisory exit zero, cleanup.\n')
+    await cp(join(dir,'.inspection/diagnostic-fixture/report.json'),join(evidence,'resolution-INT-002-report.json'))
+    await writeFile(join(evidence,'INT-002-assertions.log'),'PASS INT-002: each capture starts >=850ms after its own Scene transition and settle start; real Motion interpolates continuing geometry without fading, delays new entities until continuing motion settles, and fades/removes departures; sibling and unmarked nested collisions warn, marked nested collisions are exempt; artifacts, advisory exit, active/attribution warnings and cleanup pass.\n')
   } finally {await rm(dir,{recursive:true,force:true})}
 })
 const faults=[

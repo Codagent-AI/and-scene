@@ -50,10 +50,11 @@ describe('runtime contracts', () => {
     rerender(<Stage step={{ ...first, id: 'B', payload: 'changed' }} mode="browse" />)
     expect(mounts).toBe(1); expect(unmounts).toBe(0)
     expect(screen.getByText('changed')).toBeTruthy()
-    rerender(<Stage step={{ ...first, Scene }} mode="browse" />)
-    expect(unmounts).toBe(1)
     rerender(<Stage step={{ ...first, groupKey: 'other' }} mode="browse" />)
-    expect(mounts).toBe(2)
+    expect(mounts).toBe(2) // Same Scene, changed group: a distinct instance must mount.
+    const groupedHost = [...document.querySelectorAll('[data-presentation-scene]')].at(-1)
+    rerender(<Stage step={{ ...first, groupKey: 'other', Scene }} mode="browse" />)
+    expect([...document.querySelectorAll('[data-presentation-scene]')].at(-1)).not.toBe(groupedHost) // Changed Scene gets a presence host so the old scene can exit.
     unmount()
     expect(unmounts).toBe(2)
   })

@@ -4,21 +4,23 @@ import { Appear } from '../../../presentation-kit/nodes/Appear'
 import { SceneLayer } from '../../../presentation-kit/nodes/SceneLayer'
 import { entity, visibleEntities } from '../entities'
 import type { SceneProps } from '../../../presentation-kit/types'
+function card(number: number) {
+  return <><b>{number} · Title</b><span>Caption</span><small>Visual</small></>
+}
+function morphLink() {
+  return <><svg aria-hidden="true" width="96" height="24" viewBox="0 0 96 24"><path d="M2 12H94 M85 3L94 12L85 21" stroke="currentColor" fill="none" strokeWidth="3" /></svg><small>morph</small></>
+}
 const content: Record<string, React.ReactNode> = {
-  you: <><span className="node-eyebrow">THE AUTHOR</span><strong>you</strong></>,
-  prompt: <><span className="node-eyebrow">A STARTING POINT</span><strong>“I have a topic…”</strong></>,
-  exchange: <svg aria-label="two-way exchange" viewBox="0 0 120 30" width="120" height="30"><path d="M2 15H118 M12 5L2 15L12 25 M108 5L118 15L108 25" stroke="currentColor" fill="none" strokeWidth="1.5" /></svg>, question: 'one question',
-  skill: <><span className="node-eyebrow">YOUR COLLABORATOR</span><strong>the skill ✳</strong></>,
-  tray: null,
-  'card-1': <><b>01 / the opening</b><span>title · caption</span><small>+ a visual</small></>,
-  'card-2': <><b>02 / the idea</b><span>title · caption</span><small>+ a visual</small></>,
-  'card-3': <><b>03 / the payoff</b><span>title · caption</span><small>+ a visual</small></>,
-  'morph-1': <><span>→</span><small>morph</small></>, 'morph-2': <><span>→</span><small>morph</small></>,
-  ghost: '+ your next beat', depth: 'partial ⟷ full', kit: '⊞ shared scene kit · shapes + motion',
-  'verify-link': <svg viewBox="0 0 16 20" width="16" height="20" aria-label="then verify"><path d="M0 10H15 M10 5L15 10L10 15" stroke="currentColor" fill="none" /></svg>,
-  verify: <><b>✓ verified</b><small>build + render</small></>,
-  modify: <><span className="modify-line">↘</span><small>ask → edit in place</small></>,
-  edited: '↻ refined', reveal: <span>AND SCENE / THIS IS THE OUTPUT</span>,
+  you: <strong>you</strong>, prompt: <strong>a topic</strong>,
+  exchange: <svg aria-label="two-way exchange" viewBox="0 0 120 30" width="120" height="30"><path d="M2 15H118 M12 5L2 15L12 25 M108 5L118 15L108 25" stroke="currentColor" fill="none" strokeWidth="3" /></svg>,
+  question: 'question', skill: <strong>skill</strong>, tray: null,
+  'card-1': card(1), 'card-2': card(2), 'card-3': card(3),
+  'morph-1': morphLink(), 'morph-2': morphLink(),
+  ghost: 'next?', depth: 'partial ↔ full', kit: 'shared scene kit',
+  'verify-link': <svg viewBox="0 0 20 24" width="20" height="24" aria-label="then verify"><path d="M2 12H18 M11 5L18 12L11 19" stroke="currentColor" fill="none" strokeWidth="3" /></svg>,
+  verify: <><b>verify</b><svg className="pass-mark" aria-label="build and render passed" width="40" height="40" viewBox="0 0 40 40"><path d="M8 20L16 28L32 12" stroke="currentColor" fill="none" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg></>,
+  modify: <><svg aria-hidden="true" viewBox="0 0 240 90" width="240" height="90"><path d="M236 2C236 45 10 30 10 86 M2 76L10 86L18 76" stroke="currentColor" fill="none" strokeWidth="3" strokeDasharray="7 5" /></svg><small>edit</small></>,
+  edited: 'edited', reveal: <span>output</span>,
 }
 export function ReferenceScene({ payload: beat }: SceneProps<number>) {
   return <SceneLayer><AnimatePresence>

@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process'
 import { resolve, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { withPreview, watchErrors, assertClean } from '../scripts/browser.mjs'
+import { withPreview, watchErrors, assertClean, SETTLE_MS } from '../scripts/browser.mjs'
 import { inspectPresentation } from '../scripts/inspect-presentation.mjs'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const temp = resolve(root, '.test-tmp/integration')
@@ -163,7 +163,7 @@ test('E2E-001 reference passes npm run verify production gate', { timeout: 30000
           await page.evaluate(() => document.activeElement.blur())
         }
         let current = 0
-        for (const index of [0, 3, 8]) {
+        for (const index of [0, 3, 7, 8]) {
           while (current < index) { await page.keyboard.press('ArrowRight'); current++ }
           await page.waitForFunction(({ index, mode }) => {
             const root = document.querySelector('[data-presentation]')
@@ -184,6 +184,33 @@ test('E2E-001 reference passes npm run verify production gate', { timeout: 30000
           assert.ok(geometry.y >= -0.5 && geometry.bottom <= viewport.height+0.5, JSON.stringify(geometry))
           assert.ok(Math.abs(geometry.width/880 - geometry.height/380) < 0.0001)
           console.log('E2E-001 contained canvas: ' + JSON.stringify({ viewport, mode, index, ...geometry }))
+          if (viewport.width === 390 && viewport.height === 844) {
+            await page.waitForTimeout(SETTLE_MS)
+            const labels = await page.locator('[data-presentation-canvas]').evaluate(canvas => {
+              const canvasRect = canvas.getBoundingClientRect()
+              const scale = canvasRect.width / canvas.offsetWidth
+              const walker = document.createTreeWalker(canvas, NodeFilter.SHOW_TEXT)
+              const result = []
+              while (walker.nextNode()) {
+                const node = walker.currentNode
+                const parent = node.parentElement
+                if (!node.textContent.trim() || !parent.checkVisibility({ opacityProperty:true, visibilityProperty:true })) continue
+                const range = document.createRange(); range.selectNodeContents(node)
+                const r = range.getBoundingClientRect()
+                const owner = parent.closest('[data-entity-id]').getBoundingClientRect()
+                result.push({ text:node.textContent.trim(), size:parseFloat(getComputedStyle(parent).fontSize)*scale,
+                  contained:r.left >= canvasRect.left-1 && r.right <= canvasRect.right+1 && r.top >= canvasRect.top-1 && r.bottom <= canvasRect.bottom+1,
+                  fitsEntity:r.left >= owner.left-1 && r.right <= owner.right+1 && r.top >= owner.top-1 && r.bottom <= owner.bottom+1 })
+              }
+              return result
+            })
+            assert.ok(labels.length >= 2, 'visible labels must be measured after entry settles')
+            for (const label of labels) {
+              assert.ok(label.size >= 12, 'undersized rendered label: ' + JSON.stringify(label))
+              assert.ok(label.contained && label.fitsEntity, 'label overflow: ' + JSON.stringify(label))
+            }
+            console.log('E2E-001 readable narrow labels: ' + JSON.stringify({ mode, index, minimumSize:Math.min(...labels.map(label => label.size)), count:labels.length }))
+          }
         }
       }
     }

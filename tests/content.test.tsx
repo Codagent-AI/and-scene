@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { fitScale } from '../src/presentation-kit/useFitScale'
+import { DESIGN_W, DESIGN_H } from '../src/presentation-kit/constants'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { expect, it } from 'vitest'
 import { Router } from '../src/Router'
@@ -30,7 +34,7 @@ it('I-28 accumulated entities preserve coordinates and grouped scene identity', 
   for (let beat = 1; beat <= 9; beat++) {
     for (const p of visibleEntities(beat)) {
       if (seen.has(p.name)) expect(p).toEqual(seen.get(p.name))
-      seen.set(p.name, p)
+      seen.set(p.name, { ...p })
     }
     expect(STEPS[beat - 1].groupKey).toBe('conversation')
     expect(STEPS[beat - 1].Scene).toBe(ReferenceScene)
@@ -52,4 +56,55 @@ it('I-29 missing malformed reordered altered reference metadata fails validation
   expect(() => validateReference([...reference].reverse())).toThrow(/step 0/)
   expect(() => validateReference(reference.map((r: string[], i: number) => i === 2 ? [r[0], r[1], 'wrong caption'] : r))).toThrow(/step 2/)
   expect(() => validateReference(reference)).not.toThrow()
+})
+
+it('A-1 actual scene CSS keeps first dense and final labels at least 12px after narrow fit', () => {
+  const style = document.createElement('style')
+  style.textContent = readFileSync(resolve('src/presentations/how-to-make-a-presentation/presentation.css'), 'utf8')
+  document.head.append(style)
+  try {
+    const scale = fitScale(390, 844, 'browse')
+    const { rerender, container } = render(<div className="reference-presentation"><ReferenceScene payload={1} /></div>)
+    for (const beat of [1, 8, 9]) {
+      rerender(<div className="reference-presentation"><ReferenceScene payload={beat} /></div>)
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
+      let count = 0
+      while (walker.nextNode()) {
+        const node = walker.currentNode
+        if (!node.textContent?.trim()) continue
+        const font = parseFloat(getComputedStyle(node.parentElement!).fontSize)
+        expect(Number.isFinite(font), node.textContent).toBe(true)
+        expect(font * scale, node.textContent).toBeGreaterThanOrEqual(12)
+        count++
+      }
+      expect(count).toBeGreaterThan(0)
+    }
+  } finally { style.remove() }
+})
+it('A-1 larger labels preserve the fixed cumulative scene and required card and pipeline content', () => {
+  for (const p of placements) {
+    expect(p.x).toBeGreaterThanOrEqual(0); expect(p.y).toBeGreaterThanOrEqual(0)
+    expect(p.x + p.w).toBeLessThanOrEqual(DESIGN_W)
+    expect(p.y + p.h).toBeLessThanOrEqual(DESIGN_H)
+  }
+  const tray = placements.find(p => p.name === 'tray')!
+  const kit = placements.find(p => p.name === 'kit')!
+  const last = placements.find(p => p.name === 'card-3')!
+  const verify = placements.find(p => p.name === 'verify')!
+  const link = placements.find(p => p.name === 'verify-link')!
+  expect(kit.y).toBe(tray.y + tray.h)
+  expect(link.x).toBe(last.x + last.w)
+  expect(link.x + link.w).toBe(verify.x)
+  expect(verify.y).toBeGreaterThanOrEqual(tray.y)
+  expect(verify.y + verify.h).toBeLessThanOrEqual(tray.y + tray.h)
+  render(<ReferenceScene payload={9} />)
+  for (const name of ['card-1', 'card-2', 'card-3']) {
+    const card = document.querySelector(`[data-entity-id="${entity(name)}"]`)!
+    for (const part of ['Title', 'Caption', 'Visual']) expect(card.textContent).toContain(part)
+  }
+  expect(screen.getByLabelText('build and render passed')).toBeTruthy()
+  expect(screen.getByText('partial ↔ full')).toBeTruthy()
+  expect(screen.getByText('shared scene kit')).toBeTruthy()
+  expect(screen.getByText('edited')).toBeTruthy()
+  expect(screen.getByText('output')).toBeTruthy()
 })

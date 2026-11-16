@@ -5,6 +5,7 @@ import { visitSteps, watchErrors, withPreview, SETTLE_MS } from './browser.mjs'
 import { collectVisualData, visualWarnings } from './diagnostics.mjs'
 export async function inspectPresentation(slug, { cwd = process.cwd(), viewport = { width: 1440, height: 900 }, settle = SETTLE_MS } = {}) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug ?? '')) throw new Error('inspection: provide a registered kebab-case slug')
+  if (!Number.isInteger(viewport.width) || !Number.isInteger(viewport.height) || viewport.width < 1 || viewport.height < 1) throw new Error('inspection: viewport must be positive integers')
   const directory = resolve(cwd, 'artifacts/inspection', slug, `${viewport.width}x${viewport.height}`)
   await mkdir(directory, { recursive: true })
   const report = []

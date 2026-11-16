@@ -1,5 +1,11 @@
 import { readFile } from 'node:fs/promises'
 import { command, walkSteps, withBrowser } from './browser.mjs'
+export function parseVerifyArgs(args) {
+  const index = args.indexOf('--route')
+  const route = index === -1 ? undefined : args[index + 1]
+  if (index !== -1 && (!route || route.startsWith('--') || !/^[a-z0-9-]+$/.test(route))) throw new Error('--route requires a slug matching [a-z0-9-]+')
+  return { route, first: args.includes('--first'), build: !args.includes('--skip-build') }
+}
 export function validateOutline(actual, expected) {
   if (actual.length !== expected.length) throw new Error(`Expected ${expected.length} steps, got ${actual.length}`)
   expected.forEach((step, i) => {
@@ -38,6 +44,7 @@ export async function verify({ cwd = process.cwd(), route, first = false, build 
   } catch (error) { throw new Error(`FAIL ${phase}: ${error.message}`, { cause: error }) }
 }
 if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href) {
-  const args = process.argv.slice(2)
-  verify({ route: args.includes('--route') ? args[args.indexOf('--route') + 1] : undefined, first: args.includes('--first'), build: !args.includes('--skip-build') }).catch(error => { console.error(error.message); process.exitCode = 1 })
+  try {
+    verify(parseVerifyArgs(process.argv.slice(2))).catch(error => { console.error(error.message); process.exitCode = 1 })
+  } catch (error) { console.error(error.message); process.exitCode = 2 }
 }

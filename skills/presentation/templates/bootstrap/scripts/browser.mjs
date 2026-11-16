@@ -29,9 +29,14 @@ export async function withBrowser(run, { cwd = process.cwd(), viewport = { width
   async function cleanup() {
     if (cleaned) return
     cleaned = true
-    await browser?.close()
-    if (child.exitCode === null) { child.kill('SIGTERM'); await closed }
-    console.log(`CLEANUP preview ${port}`)
+    try {
+      await browser?.close()
+    } catch (error) {
+      console.warn(`Browser close failed: ${error.message}`)
+    } finally {
+      if (child.exitCode === null) { child.kill('SIGTERM'); await closed }
+      console.log(`CLEANUP preview ${port}`)
+    }
   }
   const interrupt = () => { void cleanup().finally(() => process.exit(130)) }
   process.once('SIGINT', interrupt); process.once('SIGTERM', interrupt)
@@ -47,8 +52,9 @@ export async function withBrowser(run, { cwd = process.cwd(), viewport = { width
     const page = await browser.newPage({ viewport })
     return await run(page, url)
   } finally {
-    await cleanup()
-    process.removeListener('SIGINT', interrupt); process.removeListener('SIGTERM', interrupt)
+    try { await cleanup() } finally {
+      process.removeListener('SIGINT', interrupt); process.removeListener('SIGTERM', interrupt)
+    }
   }
 }
 export async function walkSteps(page, url, route, visit, { first = false, settle = SETTLE_MS } = {}) {

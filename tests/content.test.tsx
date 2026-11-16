@@ -37,12 +37,14 @@ it('I-28 accumulated entities preserve coordinates and grouped scene identity', 
   }
   expect(visibleEntities(1).map(p => p.name)).toEqual(['you', 'prompt'])
   expect(visibleEntities(9)).toHaveLength(placements.length)
+  expect(visibleEntities(6).some(p => p.name === 'verify-link')).toBe(false)
+  expect(visibleEntities(7).some(p => p.name === 'verify-link')).toBe(true)
   expect(new Set(placements.map(p => entity(p.name))).size).toBe(placements.length)
   const { rerender } = render(<ReferenceScene payload={1} />)
   const original = document.querySelector(`[data-entity-id="${entity('you')}"]`)
   rerender(<ReferenceScene payload={9} />)
   expect(document.querySelector(`[data-entity-id="${entity('you')}"]`)).toBe(original)
-  for (const name of ['ghost', 'depth', 'kit', 'verify', 'modify', 'edited', 'reveal']) expect(document.querySelector(`[data-entity-id="${entity(name)}"]`)).toBeTruthy()
+  for (const name of ['ghost', 'depth', 'kit', 'verify-link', 'verify', 'modify', 'edited', 'reveal']) expect(document.querySelector(`[data-entity-id="${entity(name)}"]`)).toBeTruthy()
 })
 it('I-29 missing malformed reordered altered reference metadata fails validation', () => {
   expect(() => validateReference(undefined)).toThrow(/missing or malformed/)

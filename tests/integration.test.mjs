@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { resolve, join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const temp = resolve(root, '.test-tmp/integration')
@@ -45,10 +46,12 @@ async function allFiles(directory) {
   const nested = await Promise.all(entries.map(async e => e.isDirectory() ? (await allFiles(join(directory, e.name))).map(f => `${e.name}/${f}`) : [e.name]))
   return nested.flat()
 }
-test('INT-001 materialized bootstrap complete style-neutral cwd-independent and aligned', { timeout: 240000 }, async () => {
-  const target = join(fixtures, 'bootstrap')
+test('INT-001 materialized bootstrap complete style-neutral cwd-independent and aligned', { timeout: 240000 }, async t => {
+  const outside = await mkdtemp(join(tmpdir(), 'and-scene-bootstrap-'))
+  t.after(async () => { await rm(outside, { recursive: true, force: true }) })
+  const target = join(outside, 'app')
   const materializer = join(root, 'skills/presentation/scripts/materialize.mjs')
-  await succeeds(fixtures, process.execPath, [materializer, target])
+  await succeeds(outside, process.execPath, [materializer, target])
   const manifest = JSON.parse(await readFile(join(target, 'package.json'), 'utf8'))
   for (const dep of ['react','react-dom','motion','lucide-react']) assert.ok(manifest.dependencies[dep], dep)
   for (const dep of ['vite','@vitejs/plugin-react','typescript','@types/react','@types/react-dom','@types/node','eslint','@eslint/js','globals','typescript-eslint','eslint-plugin-react-hooks','eslint-plugin-react-refresh','playwright']) assert.ok(manifest.devDependencies[dep], dep)
@@ -63,7 +66,7 @@ test('INT-001 materialized bootstrap complete style-neutral cwd-independent and 
   const output = await succeeds(target, 'npm', ['run','verify','--','example'])
   assert.match(output, /PASS verify example/)
   await assertPreviewClosed(output)
-  const refusal = await command(fixtures, process.execPath, [materializer, target])
+  const refusal = await command(outside, process.execPath, [materializer, target])
   assert.notEqual(refusal.code, 0)
   assert.match(refusal.output, /non-empty/)
   assert.equal(await readFile(join(target, 'src/index.css'), 'utf8'), css)
@@ -77,7 +80,7 @@ test('INT-002 settled screenshots advisory collision exemptions active and attri
 import { Presentation } from '../../presentation-kit/Presentation'
 import type { SceneProps, Step } from '../../presentation-kit/types'
 import './fixture.css'
-function Diagram({ payload }: SceneProps<number>) { return <div data-variant={payload} data-presentation-allow-overlap={payload === 1 ? '' : undefined}><span style={{position:'absolute',left:40,top:40}}>Alpha collision</span><span style={{position:'absolute',left:40,top:40}}>Beta collision</span></div> }
+function Diagram({ payload }: SceneProps<number>) { return <div data-variant={payload} data-presentation-allow-overlap={payload === 1 ? '' : undefined}><span style={{position:'absolute',left:40,top:40,whiteSpace:'pre',fontFamily:'monospace'}}>Alpha collision{payload === 1 ? '                              ' : ''}</span><span style={{position:'absolute',left:40,top:40,whiteSpace:'pre',fontFamily:'monospace'}}>{payload === 1 ? '                              ' : ''}Beta collision</span></div> }
 const steps: Step<number>[] = [0,1,2].map(i => ({ id: String(i), era: i === 2 ? 'last' : 'first', title: 'Diagnostic '+i, caption: 'Fixture caption.', Scene: Diagram, groupKey: 'fixture', payload: i }))
 export default function Talk() { return <Presentation steps={steps} title="Diagnostic" /> }
 `)
@@ -140,7 +143,9 @@ test('E2E-002 verification faults name phase and step and clean preview', { time
     ['render', async target => { const p=join(target,'src/presentations/how-to-make-a-presentation/steps/Scene.tsx'); await writeFile(p,(await readFile(p,'utf8')).replace('return <SceneLayer>', 'if (beat === 2) throw new Error("injected render fault")\n  return <SceneLayer>')) }, /FAIL render: step 1: injected render fault/],
     ['transition', async target => { const p=join(target,'src/presentation-kit/usePresentationNav.ts'); await writeFile(p,(await readFile(p,'utf8')).replace('clamp(n + 1, count)','clamp(n, count)')) }, /FAIL render: step 1: transition: step 1 did not advance/],
   ]
-  for (const [name, mutate, expected] of faults) await t.test(name, async () => {
+  const selected = process.env.VERIFY_FAULT ? faults.filter(([name]) => name === process.env.VERIFY_FAULT) : faults
+  assert.ok(selected.length, 'VERIFY_FAULT must identify a known fault')
+  for (const [name, mutate, expected] of selected) await t.test(name, async () => {
     const target = await copyApp(`fault-${name}`)
     await mutate(target)
     const result = await command(target, 'npm', ['run','verify'])

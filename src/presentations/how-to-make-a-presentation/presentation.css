@@ -31,11 +31,13 @@
 .reference-presentation [class*="card-"] small { color: #58736b; font-size: 11px; margin-top: 4px; }
 .reference-presentation .exchange, .reference-presentation .question, .reference-presentation [class*="morph-"], .reference-presentation .modify, .reference-presentation .edited { border: 0; padding: 0; background: transparent; text-align: center; align-items: center; }
 .reference-presentation .question { font: 11px ui-monospace, monospace; color: #a54e2c; }
+.reference-presentation [class*="morph-"] { gap: 6px; }
 .reference-presentation [class*="morph-"] span { font-size: 23px; line-height: 1; }
 .reference-presentation [class*="morph-"] small { font-size: 8px; }
 .reference-presentation .ghost { border-style: dashed; background: transparent; font-size: 10px; text-align: center; padding: 4px; color: #5e7468; }
 .reference-presentation .depth { border-radius: 15px; font: 10px ui-monospace, monospace; text-align: center; padding: 4px; }
 .reference-presentation .kit { border-top: 0; border-radius: 0 0 8px 8px; font: 11px ui-monospace, monospace; background: #d7e2cf; text-align: center; }
+.reference-presentation .verify-link { padding: 0; border: 0; background: transparent; }
 .reference-presentation .verify { border-color: #5e8d62; background: #cddfbb; padding: 5px 8px; font-size: 12px; }
 .reference-presentation .verify small { font-size: 9px; margin-top: 3px; }
 .reference-presentation .modify { color: #ad502e; border-top: 1.5px dashed #ad502e; border-right: 1.5px dashed #ad502e; border-radius: 0 35px 0 0; flex-direction: row; justify-content: end; gap: 9px; }

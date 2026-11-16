@@ -15,6 +15,7 @@ export const placements = [
   { name: 'ghost', at: 5, x: 612, y: 202, w: 124, h: 30 },
   { name: 'depth', at: 5, x: 60, y: 111, w: 125, h: 26 },
   { name: 'kit', at: 6, x: 284, y: 301, w: 270, h: 38 },
+  { name: 'verify-link', at: 7, x: 596, y: 254, w: 16, h: 20 },
   { name: 'verify', at: 7, x: 612, y: 243, w: 124, h: 42 },
   { name: 'modify', at: 8, x: 322, y: 130, w: 322, h: 50 },
   { name: 'edited', at: 8, x: 270, y: 178, w: 136, h: 20 },

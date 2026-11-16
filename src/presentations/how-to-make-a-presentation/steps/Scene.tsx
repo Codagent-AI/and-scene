@@ -15,6 +15,7 @@ const content: Record<string, React.ReactNode> = {
   'card-3': <><b>03 / the payoff</b><span>title · caption</span><small>+ a visual</small></>,
   'morph-1': <><span>→</span><small>morph</small></>, 'morph-2': <><span>→</span><small>morph</small></>,
   ghost: '+ your next beat', depth: 'partial ⟷ full', kit: '⊞ shared scene kit · shapes + motion',
+  'verify-link': <svg viewBox="0 0 16 20" width="16" height="20" aria-label="then verify"><path d="M0 10H15 M10 5L15 10L10 15" stroke="currentColor" fill="none" /></svg>,
   verify: <><b>✓ verified</b><small>build + render</small></>,
   modify: <><span className="modify-line">↘</span><small>ask → edit in place</small></>,
   edited: '↻ refined', reveal: <span>AND SCENE / THIS IS THE OUTPUT</span>,

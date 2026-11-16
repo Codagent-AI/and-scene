@@ -36,8 +36,14 @@ export async function withBrowser(root, callback, viewport = { width: 1440, heig
   let browser
   console.log(`preview: ${baseURL} pid=${server.pid}`)
   const stop = () => server.kill('SIGTERM')
-  process.once('SIGTERM', stop)
-  process.once('SIGINT', stop)
+  const onSignal = signal => {
+    stop()
+    process.exit(signal === 'SIGINT' ? 130 : 143)
+  }
+  const onTerm = () => onSignal('SIGTERM')
+  const onInt = () => onSignal('SIGINT')
+  process.once('SIGTERM', onTerm)
+  process.once('SIGINT', onInt)
   try {
     let ready = false
     for (let i = 0; i < 150; i++) {
@@ -58,8 +64,8 @@ export async function withBrowser(root, callback, viewport = { width: 1440, heig
         await exited
         clearTimeout(timer)
       }
-      process.removeListener('SIGTERM', stop)
-      process.removeListener('SIGINT', stop)
+      process.removeListener('SIGTERM', onTerm)
+      process.removeListener('SIGINT', onInt)
       console.log(`preview: stopped pid=${server.pid}`)
     }
   }

@@ -70,3 +70,28 @@ describe('R1 preview exit lifecycle', () => {
     expect(server.kill).not.toHaveBeenCalled()
   })
 })
+
+
+describe('R2 signal termination', () => {
+  it.each([['SIGINT', 130], ['SIGTERM', 143]] as const)('stops the preview and exits immediately on %s', async (signal, code) => {
+    const server = preview()
+    const previous = process.listeners(signal)
+    const exiting = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never)
+    await withBrowser('/app', async () => {
+      const handler = process.listeners(signal).find(listener => !previous.includes(listener))!
+      expect(handler).toBeTypeOf('function')
+      handler()
+      expect(server.kill).toHaveBeenCalledWith('SIGTERM')
+      expect(exiting).toHaveBeenCalledWith(code)
+      expect(server.kill.mock.invocationCallOrder[0]).toBeLessThan(exiting.mock.invocationCallOrder[0])
+    })
+    expect(process.listeners(signal)).toEqual(previous)
+  })
+  it('removes both signal handlers after an ordinary completion', async () => {
+    preview()
+    const int = process.listeners('SIGINT'), term = process.listeners('SIGTERM')
+    await withBrowser('/app', async () => undefined)
+    expect(process.listeners('SIGINT')).toEqual(int)
+    expect(process.listeners('SIGTERM')).toEqual(term)
+  })
+})

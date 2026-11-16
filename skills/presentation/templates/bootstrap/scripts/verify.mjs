@@ -26,5 +26,5 @@ export async function verify({ cwd = process.cwd(), slug = referenceSlug, build 
   console.log(`PASS verify ${slug}: build, registration, outline, all steps`)
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  verify({ slug: process.argv[2] ?? referenceSlug }).catch(error => { console.error(`FAIL ${error.message}`); process.exitCode = 1 })
+  verify({ slug: process.argv.slice(2).at(-1) ?? referenceSlug }).catch(error => { console.error(`FAIL ${error.message}`); process.exitCode = 1 })
 }

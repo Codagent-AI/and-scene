@@ -9,8 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "tsc -p tsconfig.tests.json --noEmit && vitest run",
-    "test:integration": "node --test tests/integration.test.mjs",
-    "verify": "node scripts/verify.mjs",
+    "test:integration": "npm run verify",
+    "verify": "node scripts/verify.mjs example",
     "inspect": "node scripts/inspect-presentation.mjs"
   },
   "dependencies": {

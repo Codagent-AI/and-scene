@@ -1,3 +1,4 @@
+import { useInstantLayoutTransition } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TouchEvent } from 'react'
 import type { Mode } from './types'
@@ -12,7 +13,13 @@ export function usePresentationNav(count: number, initialMode: Mode = 'browse') 
   const go = useCallback((n: number) => setPosition(clamp(n, count)), [count])
   const next = useCallback(() => setPosition(n => clamp(n + 1, count)), [count])
   const prev = useCallback(() => setPosition(n => clamp(n - 1, count)), [count])
-  const toggle = useCallback(() => setMode(m => m === 'browse' ? 'present' : 'browse'), [])
+  const snapLayout = useInstantLayoutTransition()
+  const toggle = useCallback(() => {
+    // Discard projection snapshots for this commit; keep the scene instance and step.
+    // Call separately so the mode still changes when no projection root exists yet.
+    snapLayout()
+    setMode(m => m === 'browse' ? 'present' : 'browse')
+  }, [snapLayout])
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey || isInteractive(event.target)) return

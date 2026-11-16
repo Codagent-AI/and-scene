@@ -15,14 +15,16 @@ import { SceneLayer } from '../src/presentation-kit/nodes/SceneLayer'
 import { Appear } from '../src/presentation-kit/nodes/Appear'
 import type { Step, SceneProps } from '../src/presentation-kit/types'
 import { GuideScene } from '../src/presentations/how-to-make-a-presentation/steps/Scene'
+import { readFileSync } from 'node:fs'
 import { positions, entity } from '../src/presentations/how-to-make-a-presentation/entities'
+const guideCSS = readFileSync('src/presentations/how-to-make-a-presentation/presentation.css', 'utf8')
 
 vi.mock('motion/react', async () => {
   const { createElement, Fragment } = await import('react')
   const element = (tag: string) => function Motion({ layoutId, layout, initial, animate, exit, transition, children, ...props }: Record<string, unknown>) {
     return createElement(tag, { ...props, 'data-motion': JSON.stringify({ layoutId, layout, initial, animate, exit, transition }) }, children as import('react').ReactNode)
   }
-  return { motion: { div: element('div'), svg: element('svg') }, LayoutGroup: ({ children }: { children: import('react').ReactNode }) => createElement(Fragment, null, children), AnimatePresence: ({ children }: { children: import('react').ReactNode }) => createElement(Fragment, null, children) }
+  return { useInstantLayoutTransition: () => () => {}, motion: { div: element('div'), svg: element('svg') }, LayoutGroup: ({ children }: { children: import('react').ReactNode }) => createElement(Fragment, null, children), AnimatePresence: ({ children }: { children: import('react').ReactNode }) => createElement(Fragment, null, children) }
 })
 function Scene({ payload }: SceneProps<number>) { return <Box entityId="stable" style={{ position: 'absolute', left: payload, top: 20 }}>payload {payload}</Box> }
 const steps: Step<number>[] = [0, 1, 2].map(i => ({ id: `id-${i}`, era: i < 2 ? 'start' : 'end', title: `Title ${i}`, caption: `Caption ${i}`, Scene, groupKey: 'story', payload: i }))
@@ -82,7 +84,8 @@ describe('I-16 grouped persistence', () => {
     const { container, rerender } = render(<GuideScene payload={1} />)
     const you = container.querySelector('[data-entity="you"]')!
     const wrapper = you.parentElement!
-    expect(motionData(you).initial).toBeUndefined()
+    expect(motionData(wrapper).initial).toEqual({ opacity: 0 })
+    expect(motionData(wrapper).animate).toEqual({ opacity: 1 })
     rerender(<GuideScene payload={2} />)
     expect(container.querySelector('[data-entity="you"]')?.parentElement).toBe(wrapper)
   })
@@ -213,10 +216,18 @@ describe('I-29 sample early beats', () => {
   it('accumulates conversation and cards at stable coordinates over beats 1–5', () => {
     const { container, rerender }=render(<GuideScene payload={1} />)
     const seen=new Map<string,Element>()
-    const expected=[['you','prompt'],['skill','conversation','question'],['tray','card1'],['card2','card3','morph1','morph2'],['ghost','depth']]
+    const expected=[['you','prompt'],['skill','conversation','question'],['tray','card1','morph1'],['card2','card3','morph2'],['ghost','depth']]
     for (let beat=1;beat<=5;beat++) {
       rerender(<GuideScene payload={beat} />)
       for (const name of expected[beat-1]) expect(container.querySelector(`[data-entity="${name}"]`)).toBeTruthy()
+      const morph = container.querySelector('[data-entity="morph1"]')
+      if (beat < 3) expect(morph).toBeNull()
+      if (beat === 3) {
+        expect(morph?.textContent).toContain('morph')
+        expect(container.querySelector('[data-entity="card1"]')?.contains(morph)).toBe(false)
+        expect(positions.morph1[0]).toBeGreaterThan(positions.card1[0] + positions.card1[2])
+        expect(positions.morph1[0] + positions.morph1[2]).toBeLessThanOrEqual(positions.card2[0])
+      }
       for (const [name,node] of seen) expect(container.querySelector(`[data-entity="${name}"]`)).toBe(node)
       container.querySelectorAll('[data-entity]').forEach(node=>{
         const name=node.getAttribute('data-entity')! as keyof typeof positions
@@ -231,15 +242,33 @@ describe('I-29 sample early beats', () => {
 })
 describe('I-30 sample later beats', () => {
   it('adds kit socket verification edit arc and final reveal without replacing accumulated entities', () => {
-    const { container, rerender }=render(<GuideScene payload={5} />)
+    const view = (beat: number) => <div className="field-guide"><style>{guideCSS}</style><GuideScene payload={beat} /></div>
+    const { container, rerender }=render(view(5))
     const you=container.querySelector('[data-entity="you"]'), card=container.querySelector('[data-entity="card2"]')
     for (let beat=6;beat<=9;beat++) {
-      rerender(<GuideScene payload={beat} />)
+      rerender(view(beat))
       expect(container.querySelector('[data-entity="you"]')).toBe(you); expect(container.querySelector('[data-entity="card2"]')).toBe(card)
       expect(container.querySelector('[data-entity="kit"]')?.textContent).toContain('shared scene kit')
       expect(positions.kit[1]).toBe(positions.tray[1]+positions.tray[3]-3)
-      if (beat>=7) { expect(container.querySelector('[data-entity="verify"]')?.textContent).toContain('build + render / pass'); expect(positions.verify[1]).toBe(positions.card1[1]); expect(positions.verify[0]).toBeGreaterThan(positions.card3[0]) }
-      if (beat>=8) { expect(container.querySelector('[data-entity="modify"]')).toBeTruthy(); expect(card?.classList.contains('edited')).toBe(true) }
+      const trayStyle = getComputedStyle(container.querySelector('[data-entity="tray"]')!)
+      for (const edge of [trayStyle.borderTopWidth, trayStyle.borderLeftWidth, trayStyle.borderRightWidth]) expect(parseFloat(edge) || 0).toBe(0)
+      expect(parseFloat(trayStyle.borderBottomWidth)).toBeGreaterThan(0)
+      if (beat>=7) {
+        const verify = container.querySelector('[data-entity="verify"]')!
+        expect(verify.querySelector('svg.lucide-check')).toBeTruthy()
+        const rgb = getComputedStyle(verify).color.match(/\d+/g)!.map(Number)
+        expect(rgb[1]).toBeGreaterThan(rgb[0]); expect(rgb[1]).toBeGreaterThan(rgb[2])
+        expect(container.querySelector('[data-entity="verify"]')?.textContent).toContain('build + render / pass'); expect(positions.verify[1]).toBe(positions.card1[1]); expect(positions.verify[0]).toBeGreaterThan(positions.card3[0]) }
+      if (beat>=8) {
+        const path = container.querySelector('[data-entity="modify"] path')!
+        expect(path.getAttribute('d')).toMatch(/^M [\d ]+ C [\d ]+ L [\d ]+$/)
+        const coords = path.getAttribute('d')!.match(/\d+/g)!.map(Number)
+        const [sx, sy] = coords, [ex, ey] = coords.slice(-2)
+        expect(sx).toBeGreaterThanOrEqual(positions.skill[0]); expect(sx).toBeLessThanOrEqual(positions.skill[0] + positions.skill[2])
+        expect(sy).toBeGreaterThanOrEqual(positions.skill[1] + positions.skill[3]); expect(sy).toBeLessThanOrEqual(positions.skill[1] + positions.skill[3] + 10)
+        expect(ex).toBeGreaterThan(positions.card2[0]); expect(ex).toBeLessThan(positions.card2[0] + positions.card2[2])
+        expect(ey).toBeLessThanOrEqual(positions.card2[1]); expect(ey).toBeGreaterThan(positions.card2[1] - 10)
+        expect(card?.classList.contains('edited')).toBe(true) }
       if (beat>=9) expect(container.querySelector('[data-entity="reveal"]')?.textContent).toContain("YOU'RE IN IT")
     }
   })

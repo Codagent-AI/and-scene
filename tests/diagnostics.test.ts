@@ -6,10 +6,11 @@ describe('I-37 capture sequencing', () => {
   it('waits the configured interval before capturing', async () => {
     vi.useFakeTimers()
     const screenshot = vi.fn()
-    const page = { waitForTimeout: (ms: number) => new Promise(r=>setTimeout(r,ms)), screenshot }
+    const page = { waitForTimeout: (ms: number) => new Promise(r=>setTimeout(r,ms)), screenshot, evaluate: vi.fn(async () => ({ sceneText: 'settled', capturedAt: 800 })) }
     const promise = captureSettled(page, 'step.png',800)
-    await vi.advanceTimersByTimeAsync(799); expect(screenshot).not.toHaveBeenCalled()
-    await vi.advanceTimersByTimeAsync(1); await promise
+    await vi.advanceTimersByTimeAsync(799); expect(screenshot).not.toHaveBeenCalled(); expect(page.evaluate).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1); expect(await promise).toEqual({sceneText:'settled',capturedAt:800})
+    expect(page.evaluate.mock.invocationCallOrder[0]).toBeLessThan(screenshot.mock.invocationCallOrder[0])
     expect(screenshot).toHaveBeenCalledWith({path:'step.png',fullPage:true})
     vi.useRealTimers()
   })

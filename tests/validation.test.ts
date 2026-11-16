@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validateCount, validateSample } from '../scripts/lib/validation.mjs'
+import { validateCount, validateSample, failurePhase, SampleValidationError } from '../scripts/lib/validation.mjs'
 import reference from '../scripts/lib/reference.json'
 import { STEPS } from '../src/presentations/how-to-make-a-presentation/steps'
 import { presentations } from '../src/presentations'
@@ -26,4 +26,12 @@ describe('I-31 sample validation failures', () => {
 describe('render count validation', () => {
   it.each([0,-1,NaN,1.5,1001])('rejects invalid public count %s', count => { expect(()=>validateCount(count)).toThrow('invalid data-step-count') })
   it('accepts valid counts', () => { expect(validateCount(9)).toBe(9) })
+})
+
+it('I-31 preserves sample phase through browser traversal error wrappers', () => {
+  let failure
+  try { validateSample([]) } catch (error) { failure = error }
+  expect(failure).toBeInstanceOf(SampleValidationError)
+  expect(failurePhase(new Error('render: step 0', { cause: failure }), 'render')).toBe('sample')
+  expect(failurePhase(new Error('runtime error'), 'render')).toBe('render')
 })

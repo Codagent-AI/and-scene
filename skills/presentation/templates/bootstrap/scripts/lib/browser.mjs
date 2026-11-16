@@ -82,6 +82,7 @@ export async function walkSteps(page, url, visit, settle = SETTLE_MS) {
       await page.waitForTimeout(settle)
       if (errors.length) throw new Error(errors.join('; '))
       await visit(page, active, count)
+      if (errors.length) throw new Error(errors.join('; '))
       console.log(`render: step ${active} / ${count - 1} passed`)
     }
     if (errors.length) throw new Error(errors.join('; '))

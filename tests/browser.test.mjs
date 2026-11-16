@@ -47,9 +47,17 @@ async function assertStopped(output) {
 test('INT-001 materialized bootstrap is complete style-neutral and independent of caller cwd', {timeout:180000},async()=>{
   const dir=await mkdtemp(join(tmpdir(),'and-scene-bootstrap-'))
   try {
-    // Absolute resolution from the installed skill directory, not process cwd.
     const skillDir=join(root,'skills/presentation')
-    await cp(join(skillDir,'templates/bootstrap'),dir,{recursive:true})
+    // Invoke the public resolver in another process whose cwd contains no templates.
+    const lookup=await run(process.execPath,[join(skillDir,'templates.mjs'),'bootstrap'],dir,'INT-001-lookup-bootstrap')
+    assert.equal(lookup.code,0,lookup.output)
+    assert.equal(resolve(lookup.output.trim()),join(skillDir,'templates/bootstrap'))
+    const presentation=await run(process.execPath,[join(skillDir,'templates.mjs'),'presentation'],dir,'INT-001-lookup-presentation')
+    assert.equal(presentation.code,0,presentation.output)
+    assert.equal(resolve(presentation.output.trim()),join(skillDir,'templates/presentation'))
+    const invalid=await run(process.execPath,[join(skillDir,'templates.mjs'),'unknown'],dir,'INT-001-lookup-invalid')
+    assert.notEqual(invalid.code,0); assert.match(invalid.output,/Expected bootstrap or presentation/)
+    await cp(lookup.output.trim(),dir,{recursive:true})
     const pkg=JSON.parse(await readFile(join(dir,'package.json'),'utf8'))
     for(const dep of ['react','react-dom','motion','lucide-react']) assert.ok(pkg.dependencies[dep],dep)
     for(const dep of ['vite','@vitejs/plugin-react','typescript','@types/react','@types/react-dom','@types/node','eslint','typescript-eslint','eslint-plugin-react-hooks','eslint-plugin-react-refresh','playwright']) assert.ok(pkg.devDependencies[dep],dep)
@@ -82,6 +90,9 @@ test('E2E-002 verification failure phases steps exit codes and subprocess cleanu
   const faults = {
     build: async dir=>writeFile(join(dir,'src/broken.ts'),'export const broken: number = "bad"'),
     missing: async dir=>{await rm(join(dir,'src/presentations/how-to-make-a-presentation/Talk.tsx'));await writeFile(join(dir,'src/presentations/index.ts'),`import type {ComponentType} from 'react'\nexport const presentations: {slug:string;title:string;load:()=>Promise<{default:ComponentType}>}[]=[]`)},
+    unregistered: async dir=>edit(dir,'src/presentations/index.ts',s=>s.replace(/  \{ slug: 'how-to-make-a-presentation'.*\n/, "  // how-to-make-a-presentation is mentioned but NOT registered.\n")),
+    title: async dir=>edit(dir,'src/presentations/how-to-make-a-presentation/outline.ts',s=>s.replace('You have a topic','Wrong title')),
+    caption: async dir=>edit(dir,'src/presentations/how-to-make-a-presentation/outline.ts',s=>s.replace('It starts with you, a topic, and mild overconfidence.','Wrong caption.')),
     order: async dir=>edit(dir,'src/presentations/how-to-make-a-presentation/steps/index.ts',s=>s.replace('OUTLINE.map','[...OUTLINE].reverse().map')),
     console: async dir=>edit(dir,'src/presentations/how-to-make-a-presentation/steps/Scene.tsx',s=>s.replace('return <SceneLayer>',`if (beat === 3) console.error('injected console fault')\n  return <SceneLayer>`)),
     page: async dir=>edit(dir,'src/presentations/how-to-make-a-presentation/steps/Scene.tsx',s=>s.replace('return <SceneLayer>',`if (beat === 3) setTimeout(() => { throw new Error('injected page fault') }, 0)\n  return <SceneLayer>`)),
@@ -95,8 +106,8 @@ test('E2E-002 verification failure phases steps exit codes and subprocess cleanu
       const result=await run('npm',['run','verify'],dir,`E2E-002-${fault}`)
       assert.notEqual(result.code,0,result.output); assert.doesNotMatch(result.output,/PASS: build,/)
       if(fault==='build') assert.match(result.output,/FAIL \[build\]/)
-      else if(fault==='missing') assert.match(result.output,/FAIL \[sample\].*missing or unregistered/)
-      else if(fault==='order') assert.match(result.output,/sample:.*step 0/)
+      else if(['missing','unregistered'].includes(fault)) assert.match(result.output,/FAIL \[sample\].*missing or unregistered/)
+      else if(['order','title','caption'].includes(fault)) assert.match(result.output,/FAIL \[sample\].*sample:.*step 0/)
       else assert.match(result.output,new RegExp(`FAIL \\[render\\].*step ${fault==='transition'?1:2}`))
       await assertStopped(result.output)
     } finally { await rm(dir,{recursive:true,force:true}) }
@@ -107,25 +118,33 @@ test('INT-002 screenshot helper captures settled steps and emits advisory diagno
   const dir=await cloneProject()
   try {
     await mkdir(join(dir,'src/presentations/probe'),{recursive:true})
-    await writeFile(join(dir,'src/presentations/probe/Talk.tsx'),`import {useEffect,useState} from 'react'
+    await writeFile(join(dir,'src/presentations/probe/Talk.tsx'),`import {useEffect,useState,useRef} from 'react'
 import {Presentation} from '../../presentation-kit/Presentation'
 import type {SceneProps,Step} from '../../presentation-kit/types'
 function Scene({payload}:SceneProps<number>) {
  const [settled,setSettled]=useState(0)
- useEffect(()=>{const timer=setTimeout(()=>setSettled(payload),650);return()=>clearTimeout(timer)},[payload])
- return <div><span data-entity="collision-a" style={{position:'absolute',left:20,top:20}}>collision-a</span><span data-entity="collision-b" style={{position:'absolute',left:20,top:20}}>collision-b</span><div data-presentation-allow-overlap="" style={{position:'absolute',left:200,top:80}}><span data-entity="allowed-a" style={{position:'absolute'}}>allowed-a</span><span data-entity="allowed-b" style={{position:'absolute'}}>allowed-b</span></div><span style={{position:'absolute',left:20,top:200}}>{settled===payload?'SETTLED':'MOVING'}-{payload}</span></div>
+ const status=useRef<HTMLSpanElement>(null)
+ useEffect(()=>{
+   const animation=status.current!.animate([{opacity:0.2},{opacity:1}],{duration:1100})
+   animation.finished.then(()=>setSettled(payload),()=>{})
+   return()=>animation.cancel()
+ },[payload])
+ return <div><span data-entity="collision-a" style={{position:'absolute',left:20,top:20}}>collision-a</span><span data-entity="collision-b" style={{position:'absolute',left:20,top:20}}>collision-b</span><div data-presentation-allow-overlap="" style={{position:'absolute',left:200,top:80}}><span data-entity="allowed-a" style={{position:'absolute'}}>allowed-a</span><span data-entity="allowed-b" style={{position:'absolute'}}>allowed-b</span></div><span ref={status} style={{position:'absolute',left:20,top:200}}>{settled===payload?'SETTLED':'MOVING'}-{payload}</span></div>
 }
 const steps:Step<number>[]=[1,2].map(i=>({id:String(i),era:i===1?'first':'second',title:'Probe '+i,caption:'Caption '+i,Scene,groupKey:'probe',payload:i}))
 export default function Talk(){return <><style>{'[data-presentation-attribution] {font-size:8px;color:rgb(0,0,238)} [data-presentation-footer] {position:absolute;bottom:80px} [data-presentation-toc]{position:absolute;top:130px}'}</style><Presentation steps={steps} title="Probe" /></>}
 `)
     await edit(dir,'src/presentations/index.ts',s=>s.replace('export const presentations: PresentationEntry[] = [',`export const presentations: PresentationEntry[] = [\n{slug:'probe',title:'Probe',load:()=>import('./probe/Talk')},`))
     const build=await run('npm',['run','build'],dir,'INT-002-build'); assert.equal(build.code,0,build.output)
-    const result=await inspectPresentation({root:dir,slug:'probe',build:false})
+    const result=await inspectPresentation({root:dir,slug:'probe',build:false,settle:1300})
     assert.equal(result.captures.length,2)
     for(const [index,capture] of result.captures.entries()) {
-      assert.equal(capture.index,index); assert.equal(capture.settledMs,800);assert.deepEqual(capture.viewport,{width:1440,height:900})
+      assert.equal(capture.index,index); assert.equal(capture.settledMs,1300);assert.deepEqual(capture.viewport,{width:1440,height:900})
       assert.match(capture.path,new RegExp(`step-0${index+1}\\.png$`)); assert.match(capture.sceneText,new RegExp(`SETTLED-${index+1}`));assert.doesNotMatch(capture.sceneText,/MOVING/)
       assert.ok((await readFile(capture.path)).length>1000)
+      // Snapshot metadata is measured before page.screenshot, after the 1100ms Web Animation.
+      // With a default 800ms wait substituted for configured 1300ms, step 2 is still MOVING.
+      assert.ok(capture.capturedAt>0)
       assert.ok(result.warnings.some(w=>w.includes(`step ${index}: overlap`) && w.includes('collision-a') && w.includes('collision-b')))
       assert.ok(result.warnings.some(w=>w.includes(`step ${index}: indistinct active progress`)))
       assert.ok(result.warnings.some(w=>w.includes(`step ${index}: indistinct active toc`)))

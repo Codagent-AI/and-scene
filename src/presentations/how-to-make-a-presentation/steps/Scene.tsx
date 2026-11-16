@@ -24,7 +24,7 @@ export function GuideScene({ payload: beat }: SceneProps<number>) {
       {beat >= 3 && <Item key="card1" name="card1" className="step-card"><small>01 / THE IDEA</small><strong>Every beat</strong><span>title · caption · visual</span></Item>}
       {beat >= 4 && <Item key="card2" name="card2" className={`step-card ${beat >= 8 ? 'edited' : ''}`}><small>02 / THE DETAIL</small><strong>Another beat</strong><span>title · caption · visual</span>{beat >= 8 && <em>edited in place ↺</em>}</Item>}
       {beat >= 4 && <Item key="card3" name="card3" className="step-card"><small>03 / THE PAYOFF</small><strong>The next beat</strong><span>title · caption · visual</span></Item>}
-      {beat >= 4 && <Item key="morph1" name="morph1" className="morph"><span>→</span><small>morph</small></Item>}
+      {beat >= 3 && <Item key="morph1" name="morph1" className="morph"><span>→</span><small>morph</small></Item>}
       {beat >= 4 && <Item key="morph2" name="morph2" className="morph"><span>→</span><small>morph</small></Item>}
       {beat >= 5 && <Item key="ghost" name="ghost" className="ghost"><span>···</span><small>your call</small></Item>}
       {beat >= 5 && <Item key="depth" name="depth" className="depth">partial <span>⟷</span> full</Item>}

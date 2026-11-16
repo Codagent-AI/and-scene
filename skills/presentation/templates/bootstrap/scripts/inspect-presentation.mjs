@@ -14,13 +14,12 @@ export async function inspectPresentation({ root = resolve(dirname(fileURLToPath
   const captures = []
   await withBrowser(root, async (page, base) => {
     await walkSteps(page, `${base}/${slug}`, async (page, index) => {
-      // walkSteps settles before diagnostics; captureSettled supplies the configurable final capture delay.
+      const path = join(output, `step-${String(index + 1).padStart(2, '0')}.png`)
+      const snapshot = await captureSettled(page, path, settle)
       const state = await page.evaluate(collectVisualState)
       warnings.push(...diagnose(state.elements, state.attribution, index))
-      const path = join(output, `step-${String(index + 1).padStart(2, '0')}.png`)
-      await captureSettled(page, path, settle)
-      captures.push({ index, path, settledMs: settle, viewport, sceneText: await page.locator('[data-presentation-scene]').innerText() })
-    })
+      captures.push({ index, path, settledMs: settle, viewport, ...snapshot })
+    }, 0)
   }, viewport)
   for (const warning of warnings) console.warn(`ADVISORY: ${warning}`)
   await writeFile(join(output, 'report.json'), JSON.stringify({ captures, warnings }, null, 2))

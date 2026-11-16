@@ -39,5 +39,11 @@ export function collectVisualState() {
 }
 export async function captureSettled(page, path, settle) {
   await page.waitForTimeout(settle)
+  // Observe the state at the capture boundary, never after the screenshot.
+  const snapshot = await page.evaluate(() => ({
+    sceneText: document.querySelector('[data-presentation-scene]')?.textContent ?? '',
+    capturedAt: performance.now(),
+  }))
   await page.screenshot({ path, fullPage: true })
+  return snapshot
 }

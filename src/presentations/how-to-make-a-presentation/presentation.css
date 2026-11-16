@@ -1,0 +1,45 @@
+.field-notes { color: #243b36; background: #f5f1e8; font-family: 'Trebuchet MS', sans-serif; }
+.field-notes button { font: inherit; cursor: pointer; color: inherit; background: transparent; border: 1px solid #bdc8bb; border-radius: 999px; padding: 8px 13px; }
+.field-notes button:focus-visible { outline: 3px solid #c75b37; outline-offset: 3px; }
+.field-notes button:disabled { opacity: .35; cursor: default; }
+.field-notes [data-presentation-header] { font-size: 12px; line-height: 1.8; letter-spacing: .06em; }
+.field-notes [data-presentation-marker] { text-transform: uppercase; color: #6a756b; }
+.field-notes [data-presentation-title] { margin-top: 6px; font-weight: bold; }
+.field-notes [data-presentation-step-title] { font: normal clamp(24px, 3.4vw, 38px)/1.15 Georgia, serif; margin: 0 0 10px; }
+.field-notes [data-presentation-caption] { max-width: 680px; font-size: 15px; line-height: 1.5; margin: 0 0 18px; }
+.field-notes [data-presentation-navigation] { display: flex; gap: 7px; align-items: center; }
+.field-notes [data-presentation-progress] { font-size: 12px; min-width: 29px; padding: 6px; }
+.field-notes [data-presentation-active='true'] { color: #fffaf1; background: #34574a; border-color: #34574a; font-weight: bold; }
+.field-notes [data-presentation-toc] { display: flex; flex-direction: column; gap: 8px; }
+.field-notes [data-presentation-toc-entry] { text-align: left; width: 125px; font-size: 12px; }
+.field-notes [data-presentation-attribution] { color: #435e51; font-size: 13px; text-decoration: none; border-bottom: 1px solid #9daf9f; padding-bottom: 2px; }
+.field-notes .scene-node { box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 17px; }
+.field-notes .person { border: 2px solid #34574a; border-radius: 18px; background: #e4eada; font: italic 28px Georgia, serif; }
+.field-notes .prompt { font: italic 16px Georgia, serif; color: #7a6855; }
+.field-notes .question { border-radius: 99px; background: #e7dfce; font-size: 13px; }
+.field-notes .tray { justify-content: flex-start; align-items: flex-start; border-bottom: 2px solid #aebbaa; font-size: 9px; letter-spacing: .15em; }
+.field-notes .tray > span { transform: translateY(-12px); }
+.field-notes .card { background: #fffdf6; border: 1px solid #6e8976; border-radius: 6px; box-shadow: 3px 4px 0 #dce2d3; font-family: Georgia, serif; }
+.field-notes .card small { margin-top: 12px; font: 10px 'Trebuchet MS', sans-serif; color: #6a756b; }
+.field-notes .ghost { border: 1px dashed #879a83; border-radius: 6px; color: #879a83; }
+.field-notes .depth { font-size: 11px; border-radius: 20px; color: #7e4c34; background: #f2dfc6; }
+.field-notes .socket { border: 1px solid #879a83; border-top: 4px solid #34574a; border-radius: 0 0 8px 8px; font-size: 12px; }
+.field-notes .verify { color: #28613d; border: 1px solid #65966a; background: #e2edda; border-radius: 6px; font-size: 15px; }
+.field-notes .verify small { margin-top: 12px; font-size: 10px; }
+.field-notes .modify { font-size: 12px; color: #a95132; }
+.field-notes .reveal { border: 2px solid #b65d38; border-radius: 24px; justify-content: flex-start; pointer-events: none; }
+.field-notes .reveal > span { position: absolute; bottom: -9px; background: #f5f1e8; padding: 0 12px; color: #a95132; font-size: 11px; letter-spacing: .1em; }
+.field-notes .conversation-line { position: absolute; left: 215px; top: 82px; color: #527561; font-size: 26px; white-space: nowrap; }
+.field-notes .card-links { position: absolute; top: 242px; left: 216px; display: flex; gap: 142px; color: #7e8d76; }
+.field-notes .card-links > span { width: 52px; text-align: center; font-size: 24px; }
+.field-notes .card-links small { display: block; font-size: 9px; }
+.field-notes .verify-link { position: absolute; left: 685px; top: 242px; }
+.field-notes .modify-arc { position: absolute; inset: 0; pointer-events: none; color: #b65d38; }
+.field-notes .edited { position: absolute; right: -10px; top: -10px; background: #b65d38; color: white; padding: 3px 7px; border-radius: 3px; font: 10px 'Trebuchet MS', sans-serif; }
+@media (max-width: 600px) {
+  .field-notes [data-presentation-title] { max-width: 230px; font-size: 11px; }
+  .field-notes [data-presentation-caption] { font-size: 13px; line-height: 1.4; }
+  .field-notes [data-presentation-navigation] { gap: 3px; }
+  .field-notes [data-presentation-progress] { min-width: 20px; font-size: 10px; padding: 5px; }
+  .field-notes [data-presentation-prev], .field-notes [data-presentation-next] { padding: 6px; }
+}

@@ -18,7 +18,7 @@ export const placements = [
   { name: 'verify-link', at: 7, x: 696, y: 272, w: 20, h: 24 },
   { name: 'verify', at: 7, x: 716, y: 244, w: 128, h: 84 },
   { name: 'modify', at: 8, x: 434, y: 108, w: 240, h: 90 },
-  { name: 'edited', at: 8, x: 288, y: 160, w: 156, h: 40 },
+  { name: 'edited', at: 8, x: 332, y: 140, w: 112, h: 40 },
   { name: 'reveal', at: 9, x: 12, y: 4, w: 856, h: 376 },
 ] as const
 export function visibleEntities(beat: number) { return placements.filter(p => p.at <= beat) }

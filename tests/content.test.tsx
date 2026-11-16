@@ -108,3 +108,16 @@ it('A-1 larger labels preserve the fixed cumulative scene and required card and 
   expect(screen.getByText('edited')).toBeTruthy()
   expect(screen.getByText('output')).toBeTruthy()
 })
+
+it('A-2 edited annotation clears card 2 and the depth control without reducing readable type space', () => {
+  const edited = placements.find(p => p.name === 'edited')!
+  const card = placements.find(p => p.name === 'card-2')!
+  const depth = placements.find(p => p.name === 'depth')!
+  // Reserve 12 design pixels, rather than allowing an underline/text box to touch the card.
+  expect(edited.y + edited.h + 12).toBeLessThanOrEqual(card.y)
+  expect(edited.x).toBeGreaterThanOrEqual(card.x)
+  expect(edited.x + edited.w).toBeLessThanOrEqual(card.x + card.w)
+  expect(edited.x).toBeGreaterThanOrEqual(depth.x + depth.w + 2)
+  expect(edited.h).toBeGreaterThanOrEqual(32 * 1.25)
+  expect(visibleEntities(8).find(p => p.name === 'edited')).toEqual(visibleEntities(9).find(p => p.name === 'edited'))
+})

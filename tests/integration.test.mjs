@@ -184,8 +184,8 @@ test('E2E-001 reference passes npm run verify production gate', { timeout: 30000
           assert.ok(geometry.y >= -0.5 && geometry.bottom <= viewport.height+0.5, JSON.stringify(geometry))
           assert.ok(Math.abs(geometry.width/880 - geometry.height/380) < 0.0001)
           console.log('E2E-001 contained canvas: ' + JSON.stringify({ viewport, mode, index, ...geometry }))
+          if ((viewport.width === 390 && viewport.height === 844) || index >= 7) await page.waitForTimeout(SETTLE_MS)
           if (viewport.width === 390 && viewport.height === 844) {
-            await page.waitForTimeout(SETTLE_MS)
             const labels = await page.locator('[data-presentation-canvas]').evaluate(canvas => {
               const canvasRect = canvas.getBoundingClientRect()
               const scale = canvasRect.width / canvas.offsetWidth
@@ -210,6 +210,22 @@ test('E2E-001 reference passes npm run verify production gate', { timeout: 30000
               assert.ok(label.contained && label.fitsEntity, 'label overflow: ' + JSON.stringify(label))
             }
             console.log('E2E-001 readable narrow labels: ' + JSON.stringify({ mode, index, minimumSize:Math.min(...labels.map(label => label.size)), count:labels.length }))
+          }
+          if (index >= 7) {
+            const annotation = await page.locator('[data-presentation-canvas]').evaluate(canvas => {
+              const label = canvas.querySelector('[data-entity-id="how-to:edited"]')
+              const card = canvas.querySelector('[data-entity-id="how-to:card-2"]').getBoundingClientRect()
+              const box = label.getBoundingClientRect()
+              const range = document.createRange(); range.selectNodeContents(label)
+              const text = range.getBoundingClientRect()
+              return { boxBottom:box.bottom, textBottom:text.bottom, cardTop:card.top,
+                scale:canvas.getBoundingClientRect().width/canvas.offsetWidth }
+            })
+            assert.ok(annotation.boxBottom < annotation.cardTop, 'annotation box intersects card border: ' + JSON.stringify(annotation))
+            assert.ok(annotation.textBottom < annotation.cardTop, 'edited text intersects card border: ' + JSON.stringify(annotation))
+            assert.ok(annotation.boxBottom + 12*annotation.scale <= annotation.cardTop+0.5, 'annotation lacks design clearance: ' + JSON.stringify(annotation))
+            assert.ok(annotation.textBottom + 12*annotation.scale <= annotation.cardTop+0.5, 'text lacks design clearance: ' + JSON.stringify(annotation))
+            console.log('E2E-001 edited annotation clearance: ' + JSON.stringify({ viewport, mode, index, ...annotation }))
           }
         }
       }

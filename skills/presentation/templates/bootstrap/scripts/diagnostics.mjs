@@ -14,10 +14,18 @@ export function collectDiagnostics() {
     const r = el.getBoundingClientRect()
     return { label: describe(el), rect: { x: r.x, y: r.y, width: r.width, height: r.height } }
   })
+  const legibility = [], measured = new Set()
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   while (walker.nextNode()) {
     const node = walker.currentNode, el = node.parentElement
-    if (!node.textContent.trim() || el.closest(controlSelector) || !visible(el) || el.closest('[data-presentation-allow-overlap="true"]')) continue
+    if (!node.textContent.trim() || !visible(el)) continue
+    const canvas = el.closest('[data-presentation-canvas]')
+    if (canvas && !measured.has(el)) {
+      measured.add(el)
+      const scale = canvas.offsetWidth ? canvas.getBoundingClientRect().width / canvas.offsetWidth : 1
+      legibility.push({ label: describe(el), fontSize: parseFloat(getComputedStyle(el).fontSize) * scale })
+    }
+    if (el.closest(controlSelector) || el.closest('[data-presentation-allow-overlap="true"]')) continue
     const range = document.createRange(); range.selectNodeContents(node)
     for (const rect of range.getClientRects()) if (rect.width && rect.height) texts.push({ label: describe(el), rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height } })
   }
@@ -33,7 +41,7 @@ export function collectDiagnostics() {
   })
   const link = root.querySelector('[data-presentation-attribution]')
   const s = link && getComputedStyle(link)
-  return { texts, chrome, attribution: link && visible(link) ? { fontSize: parseFloat(s.fontSize), color: s.color, fontFamily: s.fontFamily, text: link.textContent, href: link.getAttribute('href') } : null }
+  return { texts, chrome, legibility, attribution: link && visible(link) ? { fontSize: parseFloat(s.fontSize), color: s.color, fontFamily: s.fontFamily, text: link.textContent, href: link.getAttribute('href') } : null }
 }
 export function warningsFor(data, step) {
   const warnings = []
@@ -42,6 +50,7 @@ export function warningsFor(data, step) {
     if (Math.min(r.x + r.width, s.x + s.width) - Math.max(r.x, s.x) > 1 && Math.min(r.y + r.height, s.y + s.height) - Math.max(r.y, s.y) > 1)
       warnings.push(`step ${step}: overlap "${a.label}" / "${b.label}"`)
   }
+  for (const text of data.legibility ?? []) if (text.fontSize < 12) warnings.push(`step ${step}: small diagram text "${text.label}" (${text.fontSize.toFixed(1)}px rendered); enlarge presentation-owned type or adjust composition`)
   for (const c of data.chrome) if (c.inactive.some(s => s === c.active)) warnings.push(`step ${step}: indistinct active ${c.kind} chrome`)
   const a = data.attribution
   if (!a || a.fontSize < 12 || ['rgb(0, 0, 238)', 'rgb(85, 26, 139)'].includes(a.color) || /Times New Roman|^serif$/i.test(a.fontFamily)) warnings.push(`step ${step}: unpolished attribution; style [data-presentation-attribution]`)

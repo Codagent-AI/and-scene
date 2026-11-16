@@ -66,6 +66,23 @@ describe('diagnostics and verifier contracts', () => {
     expect(collectDiagnostics().texts).toEqual([{ label: 'Next', rect: { x: 5, y: 10, width: 40, height: 30 } }])
     vi.restoreAllMocks(); vi.unstubAllGlobals(); dom.window.close()
   })
+  it('F-001 diagnostics warn on scaled text even inside an allowed-overlap subtree', () => {
+    const dom = new JSDOM('<main data-presentation-root><div data-presentation-canvas><span data-presentation-allow-overlap="true" style="font-size:10px">caption</span></div></main>')
+    const { document, Element } = dom.window
+    vi.stubGlobal('document', document); vi.stubGlobal('NodeFilter', dom.window.NodeFilter); vi.stubGlobal('getComputedStyle', dom.window.getComputedStyle.bind(dom.window))
+    const canvas = document.querySelector('[data-presentation-canvas]')!, label = document.querySelector('span')!
+    Object.defineProperty(canvas, 'offsetWidth', { value: 880 })
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, width: 334, height: 144, top: 0, left: 0, right: 334, bottom: 144, toJSON() {} })
+    try {
+      const small = collectDiagnostics()
+      expect(small.legibility[0].fontSize).toBeCloseTo(10 * 334 / 880)
+      expect(warningsFor(small, 4).join()).toContain('step 4: small diagram text "caption" (3.8px rendered)')
+      label.setAttribute('style', 'font-size:32px')
+      expect(warningsFor(collectDiagnostics(), 4).some((warning: string) => warning.includes('small diagram text'))).toBe(false)
+      label.setAttribute('style', 'display:none; font-size:10px')
+      expect(collectDiagnostics().legibility).toEqual([])
+    } finally { vi.restoreAllMocks(); vi.unstubAllGlobals(); dom.window.close() }
+  })
   it('I-44 active styles and attribution diagnostics cover defective and polished states', () => {
     expect(warningsFor(data(), 0)).toEqual([])
     for (const kind of ['toc', 'progress']) {

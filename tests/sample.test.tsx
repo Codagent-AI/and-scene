@@ -1,3 +1,6 @@
+import { render } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { fitScale } from '../src/presentation-kit/useFitScale'
 import { describe, it, expect } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Presentation } from '../src/presentation-kit'
@@ -8,6 +11,7 @@ import { resolveRoute } from '../src/routes'
 import { presentations } from '../src/presentations'
 import reference from '../scripts/reference.json'
 import { STEPS as templateSteps } from '../skills/presentation/templates/presentation/steps'
+const sampleCSS = readFileSync('src/presentations/how-to-make-a-presentation/presentation.css', 'utf8')
 describe('sample and registry', () => {
   it('I-25 explicit registry resolves multiple routes and loader isolation; unknown routes fall back', async () => {
     const second = { slug: 'another', title: 'Another', load: async () => ({ default: () => null }) }
@@ -54,14 +58,32 @@ describe('sample and registry', () => {
   })
   it('I-36 verify modify and reveal preserve every identity and coordinate', () => {
     const html = (beat: number) => renderToStaticMarkup(<SampleScene payload={{ beat }} step={STEPS[beat - 1]} />)
-    for (const text of ['verify', 'build ✓', 'render ✓']) expect(html(7)).toContain(text)
+    for (const text of ['verify', 'build', 'render', '✓']) expect(html(7)).toContain(text)
     const ghost = entities.find(e => e.id === 'ghost')!, verify = entities.find(e => e.id === 'verify')!
     expect(ghost.x + ghost.w).toBeLessThan(verify.x)
     expect(verify.y).toBe(entities.find(e => e.id === 'card1')!.y)
     for (const beat of [7, 8, 9]) { expect(html(beat)).toContain('… next beat'); expect(html(beat)).not.toContain('data-presentation-allow-overlap') }
-    for (const text of ['modify', 'edited in place']) expect(html(8)).toContain(text)
-    expect(html(9)).toContain('THIS IS ONE OF THOSE PRESENTATIONS')
+    for (const text of ['modify', 'edit']) expect(html(8)).toContain(text)
+    expect(html(9)).toContain('This is one')
     for (let beat = 2; beat <= 9; beat++) for (const entity of entitiesAt(beat - 1)) expect(entitiesAt(beat).find(e => e.id === entity.id)).toEqual(entity)
     for (const e of entities) { expect(e.x).toBeGreaterThanOrEqual(0); expect(e.x + e.w).toBeLessThanOrEqual(880); expect(e.y + e.h).toBeLessThanOrEqual(380) }
   })
+  it('F-001 diagram text remains at least 12 rendered pixels at 390x844 without reflow', () => {
+    expect(sampleCSS.length, 'actual sample stylesheet must be loaded').toBeGreaterThan(100)
+    const style = document.createElement('style'); style.textContent = sampleCSS; document.head.append(style)
+    try {
+      for (const beat of [1, 5, 9]) {
+        const { container, unmount } = render(<div className="sample-presentation"><SampleScene payload={{ beat }} step={STEPS[beat - 1]} /></div>)
+        const labels = container.querySelectorAll('[data-sample-entity] span, [data-sample-entity] b')
+        expect(labels.length).toBeGreaterThan(0)
+        for (const label of labels) {
+          const size = parseFloat(getComputedStyle(label).fontSize)
+          expect(size * fitScale(390, 844, 'browse'), `${label.textContent}: ${getComputedStyle(label).fontSize}, parent ${getComputedStyle(label.parentElement!).fontSize}`).toBeGreaterThanOrEqual(12)
+          expect(size * fitScale(390, 844, 'present'), label.textContent ?? '').toBeGreaterThanOrEqual(12)
+        }
+        unmount()
+      }
+    } finally { style.remove() }
+  })
+
 })

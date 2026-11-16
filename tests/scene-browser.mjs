@@ -32,6 +32,29 @@ await withPreview(async (page, base) => {
   let ghost
   for (let index = 0; index < 9; index++) {
     await stepTo(page, index); await settle(page)
+    if ([0, 4, 8].includes(index)) {
+      await page.setViewportSize({ width: 390, height: 844 })
+      await settle(page)
+      const lines = await page.evaluate(() => {
+        const root = document.querySelector('[data-presentation-canvas]'), rows = []
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+        while (walker.nextNode()) {
+          const node = walker.currentNode
+          if (!node.textContent.trim()) continue
+          const range = document.createRange(); range.selectNodeContents(node)
+          for (const rect of range.getClientRects()) if (rect.width > 0 && rect.height > 0) rows.push({ text: node.textContent, height: rect.height, x: rect.x, right: rect.right })
+        }
+        return rows
+      })
+      assert.ok(lines.length > 0)
+      for (const line of lines) {
+        assert.ok(line.height >= 12, `unreadable diagram line at step ${index}: ${JSON.stringify(line)}`)
+        assert.ok(line.x >= 0 && line.right <= 390, `diagram text clipped at step ${index}: ${JSON.stringify(line)}`)
+      }
+      console.log(`ASSERT F-001: normal-size text line bounds at 390x844 step ${index}`)
+      await page.setViewportSize({ width: 1440, height: 900 })
+      await settle(page)
+    }
     if (index < 4) continue
     ghost ??= await page.locator('[data-sample-entity="ghost"]').elementHandle()
     assert.equal(await ghost.evaluate(el => el === document.querySelector('[data-sample-entity="ghost"]')), true)

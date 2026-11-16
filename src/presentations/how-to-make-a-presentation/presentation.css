@@ -19,20 +19,20 @@
 .sample-presentation [data-presentation-toc] { position: absolute; left: 4vw; top: 76px; display: flex; gap: 8px; }
 .sample-presentation [data-presentation-toc-entry] { padding: 7px 12px; border-radius: 20px; font: 11px ui-monospace, monospace; }
 .sample-presentation [data-presentation-attribution] { color: #445b4d; font: 12px ui-monospace, monospace; text-decoration: none; border-bottom: 1px solid #9ca897; padding-bottom: 3px; }
-.sample-presentation .entity { display: flex; align-items: center; justify-content: center; font: 13px ui-monospace, monospace; }
+.sample-presentation .entity { display: flex; align-items: center; justify-content: center; font-family: ui-monospace, monospace; font-size: 32px; line-height: 1.2; }
 .sample-presentation .entity-box { background: #26382f; color: #fff8e8; border-radius: 12px; font-weight: 700; }
 .sample-presentation .entity-label { color: #795c44; justify-content: flex-start; }
-.sample-presentation .entity-chip { font-size: 10px; border: 1px solid #aeb8a8; border-radius: 16px; background: #e8ecdf; }
-.sample-presentation .entity-arrow { color: #746d59; font-size: 10px; }
+.sample-presentation .entity-chip { border: 1px solid #aeb8a8; border-radius: 16px; background: #e8ecdf; }
+.sample-presentation .entity-arrow { color: #746d59; }
 .sample-presentation .entity-tray { background: #e5e8dc; border-radius: 14px; }
-.sample-presentation .entity-card { background: #fffdf5; border: 1px solid #aeb8a8; border-radius: 7px; flex-direction: column; gap: 4px; align-items: flex-start; padding: 10px 18px; font-size: 10px; }
-.sample-presentation .entity-card b { font-size: 11px; margin-bottom: 3px; }
-.sample-presentation .entity-ghost { border: 1px dashed #aeb8a8; border-radius: 7px; font-size: 10px; }
-.sample-presentation .entity-socket { background: #d2dfcb; border: 1px solid #96ac8d; border-radius: 0 0 10px 10px; font-size: 10px; }
-.sample-presentation .entity-verify { background: #d5e6cf; border: 1px solid #729568; border-radius: 7px; flex-direction: column; gap: 7px; font-size: 10px; color: #315c30; }
-.sample-presentation .entity-modify { border-top: 1px dashed #ad5835; border-right: 1px dashed #ad5835; border-radius: 0 18px 0 0; color: #ad5835; font-size: 10px; align-items: flex-start; padding-top: 5px; }
-.sample-presentation .entity-flag { background: #ae5735; color: #fff8e8; border-radius: 4px; font-size: 9px; }
-.sample-presentation .entity-frame { border: 1px solid #a95d3c; border-radius: 20px; align-items: flex-end; padding-bottom: 8px; font-size: 9px; letter-spacing: .12em; color: #965135; }
+.sample-presentation .entity-card { background: #fffdf5; border: 1px solid #aeb8a8; border-radius: 7px; flex-direction: column; gap: 1px; align-items: flex-start; padding: 6px; }
+.sample-presentation .entity-card b { margin: 0; }
+.sample-presentation .entity-ghost { border: 1px dashed #aeb8a8; border-radius: 7px; }
+.sample-presentation .entity-socket { background: #d2dfcb; border: 1px solid #96ac8d; border-radius: 0 0 10px 10px; }
+.sample-presentation .entity-verify { background: #d5e6cf; border: 1px solid #729568; border-radius: 7px; flex-direction: column; gap: 1px; padding: 6px; color: #315c30; }
+.sample-presentation .entity-modify { border-top: 1px dashed #ad5835; border-right: 1px dashed #ad5835; border-radius: 0 18px 0 0; color: #ad5835; align-items: flex-start; padding: 0; }
+.sample-presentation .entity-flag { background: #ae5735; color: #fff8e8; border-radius: 4px; }
+.sample-presentation .entity-frame { border: 1px solid #a95d3c; border-radius: 20px; color: #965135; }
 .sample-presentation [data-presentation-mode="present"] [data-presentation-footer] { bottom: 45px; }
 @media (max-width: 959px) { .sample-presentation [data-presentation-toc] { display: none; } }
 @media (max-width: 600px) {
@@ -42,3 +42,9 @@
   .sample-presentation [data-presentation-navigation], .sample-presentation [data-presentation-progress] { gap: 3px; }
   .sample-presentation [data-presentation-progress-entry] { width: 21px; height: 21px; }
 }
+
+/* Diagram type is 32 design pixels: about 12px after the 390px-wide fit.
+   These fixed slots and annotations preserve the same composition in both modes. */
+.sample-presentation .morph-label { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.sample-presentation .morph-glyph { position: absolute; top: 0; left: 50%; transform: translateX(-50%); }
+.sample-presentation .entity-frame > span { position: absolute; top: 0; right: 12px; }

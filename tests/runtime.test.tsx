@@ -154,7 +154,7 @@ describe('runtime contracts', () => {
     }
     viewport();render(<Presentation steps={steps} title="Test" />)
     const canvas=document.querySelector('[data-presentation-canvas]') as HTMLElement
-    expect(canvas.style.width).toBe('880px');expect(canvas.style.height).toBe('380px')
+    expect(canvas.style.flexShrink).toBe('0');expect(canvas.style.width).toBe('880px');expect(canvas.style.height).toBe('380px')
     const scale=canvas.style.transform;fireEvent.keyDown(window,{key:'ArrowRight'});expect(canvas.style.transform).toBe(scale)
     viewport(390,844);expect(canvas.style.transform).not.toBe(scale)
   })

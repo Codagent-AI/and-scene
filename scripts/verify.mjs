@@ -25,7 +25,7 @@ export async function verify({ cwd = process.cwd(), route, first = false, build 
       await walkSteps(page, url, selected, async (page, index, count) => {
         const title = await page.locator('[data-presentation-title]').innerText()
         const caption = await page.locator('[data-presentation-caption]').innerText()
-        const marker = await page.locator('[data-presentation-marker]').innerText()
+        const marker = await page.locator('[data-presentation-marker]').textContent()
         actual.push({ title, caption, era: marker.split(' / ')[1] })
         if (reference) {
           if (count !== reference.steps.length) throw new Error(`Sample count ${count} differs from ${reference.steps.length}`)

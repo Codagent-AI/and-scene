@@ -11,7 +11,7 @@ export async function verify({ cwd = process.cwd(), route, first = false, build 
   try {
     if (build) await command('npm', ['run', 'build'], cwd)
     phase = 'sample'
-    const config = JSON.parse(await readFile(new URL('./verify-config.json', `file://${cwd}/scripts/`), 'utf8'))
+    const config = JSON.parse(await readFile(`${cwd}/scripts/verify-config.json`, 'utf8'))
     const selected = route ?? config.route
     let reference
     if (!route && config.reference) {

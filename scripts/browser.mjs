@@ -123,7 +123,7 @@ export async function visitSteps(page, url, slug, { first = false, settle = DEFA
     assertClean()
     return count
   } catch (error) {
-    assertClean()
-    throw new Error(`step ${index}: ${error.message}`, { cause: error })
+    const details = [...new Set([...errors, error.message])]
+    throw new Error(`step ${index}: ${details.join('; ')}`, { cause: error })
   }
 }

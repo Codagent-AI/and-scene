@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
+import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 
 export const HOST = '127.0.0.1'
@@ -42,33 +43,56 @@ async function freePort() {
 export async function withPreview(run, { width = 1440, height = 900 } = {}) {
   const port = await freePort()
   const url = `http://${HOST}:${port}`
+  const controller = new AbortController()
+  const signal = controller.signal
   const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', HOST, '--port', String(port), '--strictPort'], { detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
   let serverError = ''
   server.stderr.on('data', chunk => { serverError += chunk })
   server.stdout.resume()
-  const serverExit = once(server, 'exit')
+  const serverExit = new Promise(resolve => {
+    server.once('exit', resolve)
+    server.once('error', error => { controller.abort(error); resolve() })
+  })
   let browser
   let browserServer
-  const shutdown = () => { try { process.kill(-server.pid, 'SIGTERM') } catch (error) { if (error.code !== 'ESRCH') throw error } }
-  process.once('SIGTERM', shutdown)
-  process.once('SIGINT', shutdown)
+  const shutdown = () => {
+    if (!server.pid) return
+    try { process.kill(-server.pid, 'SIGTERM') } catch (error) { if (error.code !== 'ESRCH') throw error }
+  }
+  const onTerm = () => controller.abort(new Error('Interrupted by SIGTERM'))
+  const onInt = () => controller.abort(new Error('Interrupted by SIGINT'))
+  process.once('SIGTERM', onTerm)
+  process.once('SIGINT', onInt)
+  let onAbort
   try {
     let ready = false
     for (let attempt = 0; attempt < 100; attempt++) {
+      signal.throwIfAborted()
       if (server.exitCode !== null) throw new Error(`Preview exited: ${serverError}`)
-      try { ready = (await fetch(url)).ok } catch { /* Preview is not listening yet. */ }
+      try { ready = (await fetch(url, { signal })).ok } catch { signal.throwIfAborted() /* Otherwise preview is not listening yet. */ }
       if (ready) break
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await delay(100, undefined, { signal })
     }
+    signal.throwIfAborted()
     if (!ready) throw new Error(`Preview readiness failed: ${url} ${serverError}`)
     console.log(`preview ready ${url} pid=${server.pid}; probe=${url}`)
-    browserServer = await chromium.launchServer({ headless: true, host: HOST })
+    browserServer = await chromium.launchServer({ headless: true, host: HOST, handleSIGINT: false, handleSIGTERM: false })
     console.log(`chromium started pid=${browserServer.process().pid}`)
+    signal.throwIfAborted()
     browser = await chromium.connect(browserServer.wsEndpoint())
+    signal.throwIfAborted()
     const page = await browser.newPage({ viewport: { width, height } })
+    signal.throwIfAborted()
     console.log(`browser viewport ${width}x${height}`)
-    return await run(page, url)
+    const interrupted = new Promise((_, reject) => {
+      onAbort = () => reject(signal.reason)
+      signal.addEventListener('abort', onAbort, { once: true })
+    })
+    return await Promise.race([Promise.resolve().then(() => run(page, url)), interrupted])
+  } catch (error) {
+    throw signal.aborted ? signal.reason : error
   } finally {
+    if (onAbort) signal.removeEventListener('abort', onAbort)
     try {
       try { await browser?.close() } finally {
         if (browserServer) {
@@ -77,10 +101,10 @@ export async function withPreview(run, { width = 1440, height = 900 } = {}) {
         }
       }
     } finally {
-      shutdown()
-      await serverExit
-      process.removeListener('SIGTERM', shutdown)
-      process.removeListener('SIGINT', shutdown)
+      try { shutdown(); await serverExit } finally {
+        process.removeListener('SIGTERM', onTerm)
+        process.removeListener('SIGINT', onInt)
+      }
       console.log(`preview stopped pid=${server.pid}`)
     }
   }

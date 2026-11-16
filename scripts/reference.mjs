@@ -17,3 +17,8 @@ export function validateOutline(rows) {
     if (JSON.stringify([row.era, row.title, row.caption]) !== JSON.stringify(OUTLINE[index])) throw new Error(`sample outline mismatch at step ${index}`)
   })
 }
+
+export function isRegistered(registry, slug) {
+  const escaped = slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`\\bslug\\s*:\\s*(['"])${escaped}\\1`).test(registry)
+}

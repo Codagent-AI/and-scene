@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { command, withPreview } from './browser-session.mjs'
-import { OUTLINE, SAMPLE_SLUG, validateOutline } from './reference.mjs'
+import { OUTLINE, SAMPLE_SLUG, validateOutline, isRegistered } from './reference.mjs'
 
 export function collectBrowserErrors(page, getStep) {
   const errors = []
@@ -47,7 +47,7 @@ export async function verify({ cwd = process.cwd(), slug = SAMPLE_SLUG, canonica
     await command('npm', ['run', 'build'], cwd)
     phase = 'sample'
     const registry = await readFile(resolve(cwd, 'src/presentations/index.ts'), 'utf8')
-    if (!registry.includes(slug)) throw new Error(`presentation ${slug} not registered`)
+    if (!isRegistered(registry, slug)) throw new Error(`presentation ${slug} not registered`)
     if (canonical) validateOutline(JSON.parse(await readFile(resolve(cwd, `src/presentations/${slug}/outline.json`), 'utf8')))
     phase = 'render'
     await withPreview((page, origin) => renderSteps(page, origin, slug, { canonical }), { cwd })

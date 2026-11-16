@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error Node scripts are deliberately portable JavaScript.
-import { OUTLINE, validateOutline } from '../scripts/reference.mjs'
+import { OUTLINE, validateOutline, isRegistered } from '../scripts/reference.mjs'
 // @ts-expect-error Node scripts are deliberately portable JavaScript.
 import { diagnose } from '../scripts/diagnostics.mjs'
 // @ts-expect-error Node scripts are deliberately portable JavaScript.
@@ -9,6 +9,10 @@ import { EventEmitter } from 'node:events'
 
 const outline = () => OUTLINE.map(([era, title, caption]: string[]) => ({ era, title, caption }))
 describe('reference validation', () => {
+  it('requires a registered slug field rather than a substring in an import path', () => {
+    expect(isRegistered("{slug: 'other', load: () => import('./wanted/Talk')}", 'wanted')).toBe(false)
+    expect(isRegistered("{slug: 'wanted', load: () => import('./wanted/Talk')}", 'wanted')).toBe(true)
+  })
   it('accepts exactly the normative ordered nine-step metadata', () => expect(() => validateOutline(outline())).not.toThrow())
   it('rejects missing and out-of-order sample metadata', () => {
     expect(() => validateOutline([])).toThrow('nine steps')

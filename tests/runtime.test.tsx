@@ -351,3 +351,31 @@ describe('R4 fallback text containers', () => {
     expect(container.querySelector('[data-entity="ghost"]')?.textContent).toBe('…?')
   })
 })
+
+
+describe('A-002 unbroken connector labels', () => {
+  it.each([390, 1440])('keeps morph on one line without shrinking or clipping at %dpx', width => {
+    resize(width, 900)
+    const view = (beat: number) => <div className="field-guide"><style>{guideCSS}</style><GuideScene payload={beat} /></div>
+    const { container, rerender } = render(view(3))
+    const first = container.querySelector('[data-entity="morph1"] small')
+    for (let beat = 3; beat <= 9; beat++) {
+      rerender(view(beat))
+      const labels = container.querySelectorAll('.morph small')
+      expect(labels).toHaveLength(beat === 3 ? 1 : 2)
+      expect(container.querySelector('[data-entity="morph1"] small')).toBe(first)
+      for (const label of labels) {
+        expect(label.textContent).toBe('morph')
+        const css = getComputedStyle(label)
+        expect(css.whiteSpace).toBe('nowrap')
+        expect(css.overflowWrap).toBe('normal')
+        expect(css.wordBreak).toBe('normal')
+        expect(css.fontFamily).toBe('monospace')
+        expect(css.fontWeight).toBe('400')
+        expect(parseFloat(css.fontSize)).toBeGreaterThanOrEqual(36)
+        expect(['', 'visible']).toContain(css.overflow)
+        expect(css.textOverflow).not.toBe('ellipsis')
+      }
+    }
+  })
+})

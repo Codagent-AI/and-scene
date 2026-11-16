@@ -91,9 +91,9 @@ test('E2E-001 reference production verification observes all nine steps on IPv4'
   // reusing the build above. This runs with E2E-001, never in the fast unit gate.
   await withBrowser(root, async (page, base) => {
     await walkSteps(page, `${base}/how-to-make-a-presentation`, async (page, step) => {
-      if (![0, 3, 8].includes(step)) return
+      if (![0, 2, 3, 8].includes(step)) return
       for (const font of ['default', 'wide fallback']) {
-        const override = font === 'default' ? null : await page.addStyleTag({ content: '.field-guide .kit, .field-guide .verify, .field-guide .verify strong, .field-guide .ghost, .field-guide .ghost small, .field-guide .morph small { font-family: "DejaVu Sans", monospace; }' })
+        const override = font === 'default' ? null : await page.addStyleTag({ content: '.field-guide .kit, .field-guide .verify, .field-guide .verify strong, .field-guide .ghost, .field-guide .ghost small { font-family: "DejaVu Sans", monospace; } .field-guide .morph small { font-family: "DejaVu Sans Mono", monospace; }' })
         try {
           const metrics = await page.evaluate(() => {
             const canvas = document.querySelector('[data-presentation-canvas]')
@@ -106,7 +106,7 @@ test('E2E-001 reference production verification observes all nine steps on IPv4'
                 const range = document.createRange(); range.selectNode(node)
                 const text = range.getBoundingClientRect()
                 const owner = element.closest('[data-entity]')
-                return { text: node.textContent.trim(), pixels: parseFloat(getComputedStyle(element).fontSize) * scale,
+                return { text: node.textContent.trim(), lineCount: [...range.getClientRects()].filter(box => box.width > 0 && box.height > 0).length, pixels: parseFloat(getComputedStyle(element).fontSize) * scale,
                   bounds: bounds(text), owner: owner ? bounds(owner.getBoundingClientRect()) : null, ownerId: owner?.getAttribute('data-entity'),
                   allowedOverlap: !!element.closest('[data-presentation-allow-overlap]') }
               }))
@@ -114,7 +114,9 @@ test('E2E-001 reference production verification observes all nine steps on IPv4'
           })
           assert.ok(Math.abs(metrics.scale - metrics.heightScale) < 0.001, 'canvas scales uniformly')
           assert.ok(metrics.labels.length > 0)
+          assert.equal(metrics.labels.filter(label => label.text === 'morph').length, step < 2 ? 0 : step === 2 ? 1 : 2, `step ${step}/${font}: morph labels present`)
           for (const label of metrics.labels) {
+            if (label.text === 'morph') assert.equal(label.lineCount, 1, `step ${step}/${font}: morph must remain one word on one line`)
             assert.ok(label.pixels >= 12, `step ${step}/${font}: undersized ${label.text}: ${label.pixels}px`)
             assert.ok(label.owner, `step ${step}/${font}: label has no entity owner: ${label.text}`)
             const fit = textContainment(label.bounds, label.owner, metrics.canvas, label.allowedOverlap)

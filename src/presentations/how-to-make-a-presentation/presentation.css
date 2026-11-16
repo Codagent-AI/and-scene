@@ -36,7 +36,7 @@
 .field-guide .card-parts { white-space: pre-line; }
 .field-guide .morph { text-align: center; display: flex; flex-direction: column; gap: 1px; color: #4f6848; }
 .field-guide .morph > span { font-size: 48px; line-height: 58px; }
-.field-guide .morph small { font-size: 36px; letter-spacing: 0; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.field-guide .morph small { font-family: monospace; font-size: 36px; font-weight: 400; letter-spacing: 0; min-width: 0; max-width: 100%; white-space: nowrap; overflow-wrap: normal; word-break: normal; }
 .field-guide .ghost { border: 1px dashed #a2b496; border-radius: 6px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 8px; color: #557146; }
 .field-guide .ghost > span { font-size: 42px; max-width: 100%; }
 .field-guide .depth { border-radius: 20px; background: #e3e8da; font-size: 36px; padding: 7px 15px; display: flex; justify-content: space-between; }

@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Appear, Arrow, Box, Frame, Label, SceneLayer, SymbolChip } from '../../../presentation-kit'
 import type { SceneProps } from '../../../presentation-kit'
@@ -11,7 +12,13 @@ export function Scene({ payload }: SceneProps<{ beat: number }>) {
         return <Appear key={entity.id} style={{ position: 'absolute', left: entity.x, top: entity.y, width: entity.w, height: entity.h, zIndex: entity.kind === 'frame' ? 0 : 1 }}>
           <Primitive id={`how-to:${entity.id}`} className={`entity entity-${entity.id}`} style={{ width: '100%', height: '100%' }}>
             {entity.text && <span data-sample-text="">{entity.text}</span>}
-            {entity.detail && <small>{entity.detail.split(/\s[·+]\s/).map(part => <span key={part} data-sample-text="">{part}</span>)}</small>}
+            {entity.detail?.length ? <>
+              {entity.text ? '\n' : null}
+              <small role="list">{entity.detail.map((part, index) => <Fragment key={part}>
+                {index > 0 ? '\n' : null}
+                <span role="listitem" data-sample-text="">{part}</span>
+              </Fragment>)}</small>
+            </> : null}
           </Primitive>
         </Appear>
       })}

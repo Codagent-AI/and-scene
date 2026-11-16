@@ -233,7 +233,7 @@ describe('sample and routing contracts', () => {
     expect(visibleEntities(1).map(e => e.id)).toEqual(['you', 'prompt'])
     expect(visibleEntities(2).map(e => e.id)).toEqual(expect.arrayContaining(['you', 'prompt', 'skill', 'conversation', 'question']))
     const card = visibleEntities(3).find(e => e.id === 'card-1')!
-    expect(card.detail).toBe('title · caption · visual')
+    expect(card.detail).toEqual(['title', 'caption', 'visual'])
     const morph = ENTITIES.find(e => e.id === 'morph-1')!
     expect(morph.x).toBeGreaterThanOrEqual(card.x + card.w)
     expect(morph.x + morph.w).toBeLessThanOrEqual(ENTITIES.find(e => e.id === 'card-2')!.x)
@@ -252,7 +252,7 @@ describe('sample and routing contracts', () => {
   it('I-43 build loop and reveal retain pipeline verification edit arc and outer frame', () => {
     const list = visibleEntities(9), byId = (id: string) => list.find(e => e.id === id)!
     expect(byId('verify').y).toBe(byId('card-1').y); expect(byId('verify').x).toBeGreaterThan(byId('card-3').x)
-    expect(byId('verify').detail).toBe('build + render'); expect(byId('verify').text).toContain('✓')
+    expect(byId('verify').detail).toEqual(['build', 'render']); expect(byId('verify').text).toContain('✓')
     expect(byId('flag').text).toBe('edited'); expect(byId('reveal').kind).toBe('frame')
     render(<Stage step={STEPS[8]} />)
     expect(screen.getByLabelText('Modify connects conversation to edited card')).toBeTruthy()

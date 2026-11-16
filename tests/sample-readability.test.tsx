@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { render } from '@testing-library/react'
+import { render, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { Scene } from '../src/presentations/how-to-make-a-presentation/steps/Scene'
 import { STEPS } from '../src/presentations/how-to-make-a-presentation/steps'
@@ -39,5 +39,21 @@ describe('F-001 fixed-canvas sample typography', () => {
     }
     const verify = view.container.querySelector('[data-presentation-entity="how-to:verify"]')!
     expect([...verify.querySelectorAll('small span')].map(span => span.textContent)).toEqual(['build', 'render'])
+  })
+})
+
+
+describe('R4 detail semantics independent of visual layout', () => {
+  it.each([false, true])('R4 fields retain list semantics and plain-text separators with styles=%s', styled => {
+    const view = render(<>{styled && <style>{css}</style>}<div className="how-to-presentation"><Scene payload={{ beat: 9 }} step={STEPS[8]} /></div></>)
+    for (const entity of ENTITIES) {
+      if (!entity.detail?.length) continue
+      const node = view.container.querySelector<HTMLElement>(`[data-presentation-entity="how-to:${entity.id}"]`)!
+      const list = within(node).getByRole('list')
+      const items = within(list).getAllByRole('listitem')
+      expect(items.map(item => item.textContent), entity.id).toEqual(entity.detail)
+      expect(list.textContent, entity.id).toBe(entity.detail.join('\n'))
+      expect(node.textContent, entity.id).toBe([entity.text, ...entity.detail].filter(Boolean).join('\n'))
+    }
   })
 })

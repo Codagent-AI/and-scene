@@ -116,8 +116,9 @@ describe('runtime contracts', () => {
     expect(result.current.index).toBe(3)
     for (const k of ['ArrowLeft', 'PageUp']) act(() => key(k))
     expect(result.current.index).toBe(1)
-    for (const tag of ['button', 'a', 'input', 'textarea', 'select', 'div']) {
+    for (const tag of ['button', 'summary', 'a', 'area', 'input', 'textarea', 'select', 'audio', 'video', 'div']) {
       const el = document.createElement(tag)
+      if (tag === 'audio' || tag === 'video') el.setAttribute('controls', '')
       if (tag === 'div') el.setAttribute('contenteditable', 'true')
       document.body.append(el)
       for (const k of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) act(() => key(k, el))
@@ -125,6 +126,19 @@ describe('runtime contracts', () => {
       el.remove()
     }
     act(() => fireEvent.keyDown(window, { key: 'ArrowRight', ctrlKey: true }))
+    expect(result.current.index).toBe(1)
+  })
+  it('I-21 summary descendants retain native Space default behavior', () => {
+    const { result } = renderHook(() => usePresentationNav(3))
+    const details = document.createElement('details')
+    details.innerHTML = '<summary><span>Disclosure</span></summary><p>Details</p>'
+    document.body.append(details)
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+    details.querySelector('span')!.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(false)
+    expect(result.current.index).toBe(0)
+    details.remove()
+    act(() => key(' '))
     expect(result.current.index).toBe(1)
   })
   it('I-22 touch left right taps vertical gestures and cancellation', () => {

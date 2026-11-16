@@ -16,17 +16,22 @@ export async function withPreview(work, { cwd = process.cwd(), viewport = { widt
   const port = await freePort()
   const origin = `http://127.0.0.1:${port}`
   const server = spawn(process.execPath, [resolve(cwd, 'node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
+  let launchError
+  let terminated = false
+  // Subscribe before readiness/work: exitCode stays null after a signal exit.
+  const exited = new Promise(resolve => {
+    server.once('exit', () => { terminated = true; resolve() })
+    server.once('error', error => { launchError = error; terminated = true; resolve() })
+  })
   let output = ''
   server.stdout.on('data', d => { output += d })
   server.stderr.on('data', d => { output += d })
-  let launchError
-  server.on('error', e => { launchError = e })
   let browser
   try {
     console.log(`preview: ${origin} pid=${server.pid}`)
     const deadline = Date.now() + 15000
     while (true) {
-      if (launchError || server.exitCode !== null) throw new Error(`preview: startup failed ${launchError ?? output}`)
+      if (terminated || server.exitCode !== null || server.signalCode != null) throw new Error(`preview: startup failed ${launchError ?? server.signalCode ?? server.exitCode ?? output}`)
       try { if ((await fetch(origin)).ok) break } catch { /* Wait for Vite readiness. */ }
       if (Date.now() >= deadline) throw new Error(`preview: readiness timeout at ${origin}: ${output}`)
       await new Promise(r => setTimeout(r, 80))
@@ -36,11 +41,10 @@ export async function withPreview(work, { cwd = process.cwd(), viewport = { widt
     return await work({ page, origin })
   } finally {
     try { await browser?.close() } finally {
-      if (server.exitCode === null && !launchError) {
-        const closed = once(server, 'exit')
+      if (!terminated && server.exitCode === null && server.signalCode == null) {
         server.kill('SIGTERM')
         const timer = setTimeout(() => server.kill('SIGKILL'), 2000)
-        try { await closed } finally { clearTimeout(timer) }
+        try { await exited } finally { clearTimeout(timer) }
       }
       console.log(`preview: cleaned ${origin}`)
     }
@@ -67,9 +71,10 @@ export async function visitSteps(page, slug, origin, { errors = [], capture = as
       if (index) await page.keyboard.press('ArrowRight')
       try { await page.waitForFunction(i => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === String(i), index, { timeout: 3000 }) }
       catch { throw new Error(`transition: step ${index} did not advance`) }
+      const transitionObservedAt = await page.evaluate(() => performance.now())
       await page.waitForTimeout(settle)
       assertClean(errors, index)
-      await capture(index, count)
+      await capture(index, count, { transitionObservedAt })
       console.log(`render: step ${index} / ${count} OK`)
     }
     return count

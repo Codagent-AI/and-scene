@@ -13,8 +13,8 @@ export function Stage<T>({ step, mode, width = DESIGN_W, height = DESIGN_H }: { 
   const scale = useFitScale(mode, width, height)
   const Scene = step.Scene
   const geometry = STAGE_LAYOUT[mode]
-  return <div data-presentation-stage="" style={{ position: 'absolute', top: geometry.top, bottom: geometry.bottom, left: geometry.side, right: geometry.side, display: 'grid', placeItems: 'center' }}>
-    <div data-presentation-canvas="" style={{ position: 'relative', width, height, flexShrink: 0, transform: `scale(${scale})` }}>
+  return <div data-presentation-stage="" style={{ position: 'absolute', top: geometry.top, bottom: geometry.bottom, left: geometry.side, right: geometry.side }}>
+    <div data-presentation-canvas="" style={{ position: 'absolute', left: '50%', top: '50%', width, height, transformOrigin: 'center', transform: `translate(-50%, -50%) scale(${scale})` }}>
       <LayoutGroup><AnimatePresence initial={false}>
         <motion.div key={`${step.groupKey === undefined ? `step:${step.id}` : `group:${step.groupKey}`}:${sceneId(Scene)}`} data-presentation-scene="" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: ENTER_T }} style={{ position: 'absolute', inset: 0 }}>
           <Scene payload={step.payload} />

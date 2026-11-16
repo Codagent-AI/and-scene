@@ -12,11 +12,12 @@ export async function inspectPresentation(slug, { cwd = process.cwd(), viewport 
     const errors = watchErrors(page)
     await page.goto(origin)
     if (await page.locator(`a[href="/${slug}"]`).count() !== 1) throw new Error(`inspection: unregistered route ${slug}`)
-    await visitSteps(page, slug, origin, { errors, settle, capture: async index => {
+    await visitSteps(page, slug, origin, { errors, settle, capture: async (index, _count, { transitionObservedAt }) => {
       const warnings = visualWarnings(await page.evaluate(collectVisualData))
       const file = `step-${String(index + 1).padStart(2, '0')}.png`
+      const captureState = await page.evaluate(() => ({ captureStartedAt: performance.now(), animationsPending: document.getAnimations().filter(a => a.playState === 'running' || a.pending).length }))
       await page.screenshot({ path: resolve(directory, file) })
-      report.push({ index, file, capturedAt: Date.now(), settle, warnings })
+      report.push({ index, file, capturedAt: Date.now(), transitionObservedAt, ...captureState, settle, warnings })
       for (const warning of warnings) console.warn(`WARN step ${index}: ${warning}`)
     } })
   }, { cwd, viewport })

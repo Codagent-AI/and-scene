@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Mode } from './types'
 export const clamp = (index: number, count: number) => Math.max(0, Math.min(count - 1, index))
 export function ownsKeys(target: EventTarget | null) {
-  return target instanceof Element && !!target.closest('button,a,input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="slider"],[role="tab"],[role="textbox"]')
+  return target instanceof Element && !!target.closest('button,summary,a,area,input,textarea,select,audio[controls],video[controls],[contenteditable]:not([contenteditable="false"]),[role="button"],[role="slider"],[role="tab"],[role="textbox"]')
 }
 export function usePresentationNav(count: number, initialMode: Mode = 'browse') {
   const [index, setIndex] = useState(0)

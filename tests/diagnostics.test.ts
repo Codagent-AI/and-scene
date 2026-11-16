@@ -45,11 +45,21 @@ describe('diagnostics and verifier contracts', () => {
     expect(collectDiagnostics().texts).toEqual([])
     vi.restoreAllMocks(); vi.unstubAllGlobals(); dom.window.close()
   })
+
+  it('I-43 chrome collision uses full control bounds without duplicate nested text', () => {
+    const dom = new JSDOM('<main data-presentation-root><button aria-label="Next">→</button><button style="display:none">hidden</button></main>')
+    const { document, Element } = dom.window
+    vi.stubGlobal('document', document); vi.stubGlobal('NodeFilter', dom.window.NodeFilter); vi.stubGlobal('getComputedStyle', dom.window.getComputedStyle.bind(dom.window))
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ x: 5, y: 10, width: 40, height: 30, top: 10, left: 5, right: 45, bottom: 40, toJSON() {} })
+    expect(collectDiagnostics().texts).toEqual([{ label: 'Next', rect: { x: 5, y: 10, width: 40, height: 30 } }])
+    vi.restoreAllMocks(); vi.unstubAllGlobals(); dom.window.close()
+  })
   it('I-44 active styles and attribution diagnostics cover defective and polished states', () => {
     expect(warningsFor(data(), 0)).toEqual([])
     for (const kind of ['toc', 'progress']) {
       expect(warningsFor({ ...data(), chrome: [{ kind, active: 'same', inactive: ['same'] }] }, 3).join()).toContain(`step 3: indistinct active ${kind}`)
       expect(warningsFor({ ...data(), chrome: [{ kind, active: 'different', inactive: ['same'] }] }, 3)).toEqual([])
+      expect(warningsFor({ ...data(), chrome: [{ kind, active: 'same', inactive: ['other', 'same'] }] }, 3).join()).toContain(`indistinct active ${kind}`)
     }
     for (const attribution of [null, { ...good, fontSize: 9 }, { ...good, color: 'rgb(0, 0, 238)' }, { ...good, fontFamily: '"Times New Roman"' }]) expect(warningsFor({ ...data(), attribution }, 1).join()).toContain('[data-presentation-attribution]')
   })

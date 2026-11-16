@@ -32,9 +32,9 @@ export async function verify({ route = 'how-to-make-a-presentation', first = fal
         await stepTo(page, index)
         await settle(page)
         if (errors.length) throw new Error(errors.join('; '))
-        const title = await page.locator('[data-presentation-title]').innerText()
-        const caption = await page.locator('[data-presentation-caption]').innerText()
-        const marker = await page.locator('[data-presentation-marker]').innerText()
+        const title = await page.locator('[data-presentation-title]').textContent() ?? ''
+        const caption = await page.locator('[data-presentation-caption]').textContent() ?? ''
+        const marker = await page.locator('[data-presentation-marker]').textContent() ?? ''
         const era = marker.split(' · ')[1]
         actual.push({ title, caption, era })
         if (expected) { phase = 'sample'; validateReference([actual[index]], [expected[index]]); phase = 'render' }

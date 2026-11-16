@@ -39,7 +39,12 @@ async function evidence(id, output, rows, code) {
   if (!EVIDENCE) return
   const name = `${id}.log`
   await writeFile(resolve(EVIDENCE, name), output)
-  await run(ROOT, ['node', 'scripts/record-evidence.mjs', rows, code, `${id} assertions in \`${name}\`; executed by node --test tests/integration.test.mjs.`])
+  for (const row of rows.split(',')) {
+    const unitRows = ['I-33', 'I-37', 'I-39', 'I-40', 'I-42', 'I-43', 'I-44']
+    const extra = unitRows.includes(row) ? ` Targeted test ${row} in \`${row}-unit.log\`.` : ''
+    const dependency = row === 'I-32' ? ' Successful whole-app build in E2E-001, `E2E-001.log`.' : row === 'I-41' ? ' Root/template script parity in INT-001, `INT-001.log`.' : row === 'I-38' ? ' Public hook component assertion I-1, `I-1-unit.log`.' : ''
+    await run(ROOT, ['node', 'scripts/record-evidence.mjs', row, code, `${id} assertions in \`${name}\`; node --test tests/integration.test.mjs.${extra}${dependency}`])
+  }
 }
 async function assertCleaned(output) {
   const started = [...output.matchAll(/; pid (\d+)/g)].map(m => m[1])

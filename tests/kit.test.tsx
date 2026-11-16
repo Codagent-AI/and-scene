@@ -23,6 +23,7 @@ describe('scene kit', () => {
   it('I-1 order-derived identity narration and active diagram', () => {
     const { container } = render(<Presentation steps={[steps[2], steps[0]]} title="test" />)
     expect(screen.getByRole('heading').textContent).toBe('Title 2')
+    expect(root(container).getAttribute('data-step-count')).toBe('2')
     expect(screen.getByText('A paragraph for 2.')).toBeTruthy()
     expect(container.querySelector('[data-presentation-marker]')!.textContent).toBe('01 / 02 · finish')
     expect(container.querySelector('[data-presentation-entity]')!.textContent).toBe('2')
@@ -30,15 +31,16 @@ describe('scene kit', () => {
     expect(screen.getByRole('heading').textContent).toBe('Title 0')
   })
   it('I-3 layout projection delayed entry and exit configuration', () => {
-    const { container, rerender } = render(<Box entityId="same" style={{ left: 10, width: 20 }}>old</Box>)
+    const { container, rerender } = render(<Box entityId="same" className="quiet" style={{ left: 10, width: 20 }}>old</Box>)
     const node = container.firstElementChild!
     expect(node.getAttribute('data-layout-id')).toBe('same')
     expect(JSON.parse(node.getAttribute('data-transition')!).opacity.delay).toBeGreaterThanOrEqual(LAYOUT_T)
     expect(ENTER_DELAY).toBe(LAYOUT_T)
     expect(JSON.parse(node.getAttribute('data-exit')!)).toEqual({ opacity: 0 })
-    rerender(<Box entityId="same" style={{ left: 30, width: 40 }}>new</Box>)
+    rerender(<Box entityId="same" className="emphasized" style={{ left: 30, width: 40 }}>new</Box>)
     expect(container.firstElementChild).toBe(node)
     expect(node.textContent).toBe('new'); expect((node as HTMLElement).style.left).toBe('30px')
+    expect((node as HTMLElement).style.width).toBe('40px'); expect(node.className).toBe('emphasized')
   })
   it('I-4 grouped instance payload and continuing entity persist; changed group or scene remounts', () => {
     let mounts = 0, unmounts = 0
@@ -104,7 +106,7 @@ describe('scene kit', () => {
     const { result } = renderHook(() => usePresentationNav(20))
     for (const [i, k] of ['ArrowRight', ' ', 'PageDown'].entries()) { act(() => key(k)); expect(result.current.index).toBe(i + 1) }
     for (const [i, k] of ['ArrowLeft', 'PageUp'].entries()) { act(() => key(k)); expect(result.current.index).toBe(2 - i) }
-    const { container } = render(<><input /><button>button</button><a href="#">link</a><textarea /><select /><div contentEditable suppressContentEditableWarning>edit</div><div role="slider" tabIndex={0} /></>)
+    const { container } = render(<><input /><button>button</button><a href="#">link</a><textarea /><select /><div contentEditable suppressContentEditableWarning>edit</div><div role="slider" tabIndex={0} /><div role="combobox" tabIndex={0} /></>)
     for (const control of container.children) for (const k of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) {
       (control as HTMLElement).focus(); const event = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })
       act(() => control.dispatchEvent(event)); expect(result.current.index).toBe(1); expect(event.defaultPrevented).toBe(false)

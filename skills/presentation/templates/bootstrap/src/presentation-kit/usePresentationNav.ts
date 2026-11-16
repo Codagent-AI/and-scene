@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TouchEvent } from 'react'
 import type { Mode } from './types'
 export function isInteractive(target: EventTarget | null) {
-  return target instanceof Element && !!target.closest('button,a,input,textarea,select,summary,[role="button"],[role="slider"],[role="textbox"],[contenteditable]:not([contenteditable="false"])')
+  return target instanceof Element && !!target.closest('button,a,input,textarea,select,summary,[tabindex],[role="button"],[role="slider"],[role="textbox"],[contenteditable]:not([contenteditable="false"])')
 }
 export function clampIndex(index: number, count: number) { return Math.max(0, Math.min(count - 1, index)) }
 export function usePresentationNav(count: number, initialMode: Mode = 'browse') {

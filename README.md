@@ -53,3 +53,11 @@ install a copied skill outside the source repository in OS temporary directories
 `.test-work/` directory; verification tests observe actual browser and preview
 process termination using Linux `/proc`. No hosted CI or publication workflow is
 included.
+
+Short viewports use compact chrome geometry, exposed as
+`data-presentation-compact="true"`. Presentation-owned CSS should tighten chrome
+to those reservations; entity coordinates and typography remain identical across
+viewport sizes. The reference sample uses explicit multiline labels with a minimum
+27px design font so its important diagram text stays at least 11px at the reported
+390×844 portrait and 844×390 landscape sizes. E2E-001 also covers those sizes in
+both modes with first/dense/final text measurements and collision diagnostics.

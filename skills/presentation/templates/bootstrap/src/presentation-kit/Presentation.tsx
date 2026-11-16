@@ -4,7 +4,6 @@ import { Footer } from './chrome/Footer'
 import { Toc } from './chrome/Toc'
 import { Stage } from './Stage'
 import { sceneKey } from './model'
-import { STAGE_LAYOUT } from './constants'
 import { useFitScale } from './useFitScale'
 import { usePresentationNav } from './usePresentationNav'
 import type { Mode, Step } from './types'
@@ -17,11 +16,11 @@ function PresentationBody<T>({ steps, title, initialMode, brand, attribution, de
   const nav = usePresentationNav(steps.length, initialMode)
   const fit = useFitScale(nav.mode, designWidth, designHeight)
   const step = steps[nav.index]
-  return <main aria-label={title} data-presentation-root="" data-presentation-mode={nav.mode} data-step-count={steps.length} data-step-index={nav.index} data-step-id={step.id} data-step-era={step.era} style={{ position: 'relative', minHeight: '100svh' }} onTouchStart={nav.onTouchStart} onTouchEnd={nav.onTouchEnd}>
-    <div style={{ height: STAGE_LAYOUT[nav.mode].header }}><Header step={step} index={nav.index} mode={nav.mode} brand={brand} toggle={nav.toggle} /></div>
+  return <main aria-label={title} data-presentation-root="" data-presentation-mode={nav.mode} data-presentation-compact={fit.compact ? 'true' : 'false'} data-step-count={steps.length} data-step-index={nav.index} data-step-id={step.id} data-step-era={step.era} style={{ position: 'relative', minHeight: '100svh' }} onTouchStart={nav.onTouchStart} onTouchEnd={nav.onTouchEnd}>
+    <div style={{ height: fit.layout.header }}><Header step={step} index={nav.index} mode={nav.mode} brand={brand} toggle={nav.toggle} /></div>
     {nav.mode === 'browse' && fit.wide && <Toc steps={steps} index={nav.index} jump={nav.jump} />}
     <Stage step={step} hostKey={sceneKey(steps, nav.index)} {...fit} width={designWidth} designHeight={designHeight} />
-    <Footer steps={steps} index={nav.index} mode={nav.mode} jump={nav.jump} next={nav.next} prev={nav.prev} />
+    <div data-presentation-footer-slot="" style={{ minHeight: fit.layout.footer }}><Footer steps={steps} index={nav.index} mode={nav.mode} jump={nav.jump} next={nav.next} prev={nav.prev} /></div>
     <div data-presentation-attribution-slot="" style={{ position: 'absolute', bottom: 8, right: 12 }}>{attribution ?? <a data-presentation-attribution="" href="https://github.com/Codagent-AI/and-scene">made by and-scene</a>}</div>
   </main>
 }

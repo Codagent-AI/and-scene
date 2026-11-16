@@ -261,7 +261,7 @@ it('I-28 sample accumulates stable entities coordinates and normative scene role
     previous = state
   }
   expect(sceneState(7).find(item => item.id === 'verify')?.y).toBe(sceneState(7).find(item => item.id === 'card-1')?.y)
-  expect(sceneState(6).find(item => item.id === 'kit')?.y).toBe(300)
+  expect(sceneState(6).find(item => item.id === 'kit')?.y).toBe(sceneState(6).find(item => item.id === 'card-1')!.y + sceneState(6).find(item => item.id === 'card-1')!.height)
   expect(entity('you')).toBe('how-to:you')
 })
 it('I-30 sample validator rejects missing malformed and reordered metadata', () => {

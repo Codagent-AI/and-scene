@@ -5,7 +5,8 @@ import { resolve, relative, sep, isAbsolute } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
-import { projectRoot } from '../scripts/browser.mjs'
+import { projectRoot, withBrowser, assertIndex, SETTLE_MS } from '../scripts/browser.mjs'
+import { collectDiagnostics } from '../scripts/diagnostics.mjs'
 import { observeBrowserProcesses } from './process-resources.mjs'
 
 const work = resolve(projectRoot, '.test-work')
@@ -135,6 +136,39 @@ test('E2E-001 reference presentation passes production verification', { timeout:
   assert.match(output,/PREVIEW http:\/\/127\.0\.0\.1:/)
   assert.match(output,/CLEANUP preview pid=/)
   assert.doesNotMatch(output,/localhost/)
+  // F-001 regression: reuse the production build; the real browser measures the
+  // rendered font scale and text bounds that jsdom cannot faithfully lay out.
+  await withBrowser(projectRoot, async (page, url) => {
+    for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 390, height: 390 }]) {
+      await page.setViewportSize(viewport)
+      for (const mode of ['browse', 'present']) {
+        await page.goto(`${url}/how-to-make-a-presentation`); await assertIndex(page, 0)
+        if (mode === 'present') await page.keyboard.press('p')
+        let current = 0
+        for (const target of [0, 4, 8]) {
+          while (current < target) { await page.keyboard.press('ArrowRight'); current++ }
+          await assertIndex(page, target); await page.waitForTimeout(SETTLE_MS)
+          const measurements = await page.evaluate(() => {
+            const canvas = document.querySelector('[data-presentation-canvas]')
+            const bounds = canvas.getBoundingClientRect()
+            const scale = bounds.width / 880
+            const texts = [...canvas.querySelectorAll('[data-presentation-node] span, [data-presentation-node] small')].map(element => {
+              const range = document.createRange(); range.selectNodeContents(element)
+              return { text: element.textContent, size: parseFloat(getComputedStyle(element).fontSize) * scale, rects: [...range.getClientRects()].map(rect => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom })) }
+            })
+            return { texts, bounds: { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom }, overflow: document.documentElement.scrollWidth > innerWidth || document.documentElement.scrollHeight > innerHeight + 2 }
+          })
+          assert.equal(measurements.overflow, false, `${viewport.width}x${viewport.height} ${mode} step ${target}: document overflow`)
+          for (const text of measurements.texts) {
+            assert.ok(text.size >= 11, `Unreadable ${text.text}: ${text.size}px`)
+            for (const rect of text.rects) assert.ok(rect.left >= measurements.bounds.left - 2 && rect.right <= measurements.bounds.right + 2 && rect.top >= measurements.bounds.top - 2 && rect.bottom <= measurements.bounds.bottom + 2, `Text outside fixed canvas: ${text.text}`)
+          }
+          const warnings = await page.evaluate(collectDiagnostics)
+          assert.deepEqual(warnings.filter(warning => warning.includes('overlap')), [], `${viewport.width}x${viewport.height} ${mode} step ${target}: text/chrome collision`)
+        }
+      }
+    }
+  })
 })
 
 test('E2E-002 verification faults are actionable and preview processes are cleaned', { timeout: 420000 }, async t => {

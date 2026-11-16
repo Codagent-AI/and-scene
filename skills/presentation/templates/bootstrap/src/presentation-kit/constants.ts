@@ -10,3 +10,13 @@ export const STAGE_LAYOUT = {
   present: { header: 72, footer: 100, toc: 0 },
 } as const
 export const WIDE_VIEWPORT = 1100
+// Geometry only: short viewports reserve less space for chrome, never reflow the scene.
+export const SHORT_VIEWPORT = 500
+export const COMPACT_STAGE_LAYOUT = {
+  browse: { header: 64, footer: 132, toc: 160 },
+  present: { header: 52, footer: 72, toc: 0 },
+} as const
+export const COMPACT_NARROW_STAGE_LAYOUT = {
+  browse: { header: 56, footer: 168, toc: 0 },
+  present: { header: 44, footer: 64, toc: 0 },
+} as const

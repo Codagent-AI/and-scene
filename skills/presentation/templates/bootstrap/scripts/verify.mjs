@@ -33,7 +33,6 @@ export async function verify({ route = 'how-to-make-a-presentation', first = fal
       const count = Number(await rootHook.getAttribute('data-step-count'))
       if (!Number.isInteger(count) || count < 1) throw new Error('invalid step count')
       if (expected && count !== expected.length) throw new Error(`sample count expected ${expected.length}, got ${count}`)
-      const actual = []
       for (index = 0; index < (first ? 1 : count); index++) {
         activeStep = index
         await stepTo(page, index)
@@ -44,8 +43,7 @@ export async function verify({ route = 'how-to-make-a-presentation', first = fal
         const marker = await page.locator('[data-presentation-marker]').textContent() ?? ''
         assertNoErrors()
         const era = marker.split(' · ')[1]
-        actual.push({ title, caption, era })
-        if (expected) { phase = 'sample'; validateReference([actual[index]], [expected[index]]); phase = 'render' }
+        if (expected) { phase = 'sample'; validateReference([{ title, caption, era }], [expected[index]]); phase = 'render' }
         console.log(`PASS step ${index}: ${title}`)
       }
     }, { root })

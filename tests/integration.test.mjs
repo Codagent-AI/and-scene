@@ -1,26 +1,43 @@
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
+import { resolve, relative, sep, isAbsolute } from 'node:path'
+import { tmpdir } from 'node:os'
+import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
 import { projectRoot } from '../scripts/browser.mjs'
+import { observeBrowserProcesses } from './process-resources.mjs'
 
 const work = resolve(projectRoot, '.test-work')
 await mkdir(work, { recursive: true })
 const directories = []
-async function temp(prefix) { const path = await mkdtemp(resolve(work, prefix)); directories.push(path); return path }
+async function temp(prefix, external = false) {
+  const path = await mkdtemp(resolve(external ? tmpdir() : work, prefix))
+  directories.push(path)
+  if (external) {
+    const location = relative(await realpath(projectRoot), await realpath(path))
+    assert.ok(location.startsWith('..' + sep) || isAbsolute(location), 'Bootstrap must be outside the source repository')
+    console.log(`ISOLATED bootstrap location: ${path}`)
+  }
+  return path
+}
 after(async () => { for (const path of directories) await rm(path, { force: true, recursive: true }) })
-async function run(cwd, bin, args, { expected = 0, timeout = 180000 } = {}) {
+async function run(cwd, bin, args, { expected = 0, timeout = 180000, checkResources = false } = {}) {
   return new Promise((accept, reject) => {
     const proc = spawn(bin, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
+    const verifyResources = checkResources ? observeBrowserProcesses(proc.pid) : null
     let output = ''
     const collect = data => { output += data; process.stdout.write(data) }
     proc.stdout.on('data', collect); proc.stderr.on('data', collect)
     const timer = setTimeout(() => { try { process.kill(-proc.pid, 'SIGTERM') } catch { /* exited */ } reject(new Error(`Timed out: ${args.join(' ')}`)) }, timeout)
     proc.on('error', error => { clearTimeout(timer); reject(error) })
-    proc.on('exit', code => {
+    proc.on('close', async code => {
       clearTimeout(timer)
-      try { if (expected === 0) assert.equal(code, 0, output); else assert.notEqual(code, 0, output); accept(output) } catch (error) { reject(error) }
+      try {
+        if (verifyResources) await verifyResources(output)
+        if (expected === 0) assert.equal(code, 0, output); else assert.notEqual(code, 0, output)
+        accept(output)
+      } catch (error) { reject(error) }
     })
   })
 }
@@ -38,9 +55,11 @@ async function copyApp(prefix) {
 }
 const sample = 'src/presentations/how-to-make-a-presentation'
 
-test('INT-001 materialized bootstrap builds and verifies outside its authoring cwd', { timeout: 240000 }, async () => {
-  const target = await temp('bootstrap-')
-  const snapshot = resolve(projectRoot, 'skills/presentation/templates/bootstrap')
+test('INT-001 materialized bootstrap builds and verifies outside the source repository', { timeout: 240000 }, async () => {
+  const bundle = await temp('and-scene-skill-', true)
+  await cp(resolve(projectRoot, 'skills/presentation'), bundle, { recursive: true })
+  const target = await temp('and-scene-bootstrap-', true)
+  const snapshot = resolve(bundle, 'templates/bootstrap')
   await cp(snapshot, target, { recursive: true })
   await parity(resolve(projectRoot,'src/presentation-kit'), resolve(target,'src/presentation-kit'))
   for (const script of ['verify.mjs','inspect-presentation.mjs','browser.mjs','diagnostics.mjs','reference.mjs']) assert.deepEqual(await readFile(resolve(projectRoot,'scripts',script)), await readFile(resolve(target,'scripts',script)))
@@ -59,15 +78,21 @@ test('INT-001 materialized bootstrap builds and verifies outside its authoring c
   const talkFile = resolve(target, 'src/presentations/demo/Talk.tsx')
   await writeFile(talkFile, (await readFile(talkFile, 'utf8')).replace('initialMode="browse"', 'initialMode="present"'))
   await run(target, 'npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'])
+  const localRequire = createRequire(resolve(target, 'package.json'))
+  for (const dependency of ['react', 'react-dom', 'motion', 'lucide-react', 'playwright', 'typescript']) {
+    const file = await realpath(localRequire.resolve(dependency))
+    assert.ok(file.startsWith(resolve(target, 'node_modules') + sep), `${dependency} must resolve inside the isolated installation: ${file}`)
+    console.log(`ISOLATED dependency ${dependency}: ${file}`)
+  }
   const log = await run(target, 'npm', ['run','verify','--','--route','demo'])
   assert.match(log, /PASS verify demo: 1 steps/)
   // Invoke the distributable copier from an unrelated cwd to prove relative template resolution.
-  const copied = await temp('copied-')
-  await run(target, process.execPath, [resolve(projectRoot,'skills/presentation/bootstrap.mjs'),'--target',copied,'--anchors','build,kit,index'])
+  const copied = await temp('and-scene-copied-', true)
+  await run(target, process.execPath, [resolve(bundle,'bootstrap.mjs'),'--target',copied,'--anchors','build,kit,index'])
   assert.ok((await readFile(resolve(copied,'src/presentation-kit/Presentation.tsx'))).length)
   const sentinel = resolve(copied, 'vite.config.ts')
   await writeFile(sentinel, 'existing custom build\n')
-  const refusal = await run(target, process.execPath, [resolve(projectRoot,'skills/presentation/bootstrap.mjs'),'--target',copied,'--anchors','build'], { expected: 1 })
+  const refusal = await run(target, process.execPath, [resolve(bundle,'bootstrap.mjs'),'--target',copied,'--anchors','build'], { expected: 1 })
   assert.match(refusal, /Refusing to overwrite/)
   assert.equal(await readFile(sentinel, 'utf8'), 'existing custom build\n')
 })
@@ -77,13 +102,14 @@ test('INT-002 screenshots settle and warnings remain advisory with scoped overla
   await mkdir(resolve(target,'src/presentations/diagnostic'), { recursive: true })
   const fixture = `import { Presentation } from '../../presentation-kit'
 import type { SceneProps, Step } from '../../presentation-kit'
-function Scene({payload}: SceneProps<number>) { return <div><span style={{position:'absolute',left:20,top:20}}>collision one</span><span style={{position:'absolute',left:20,top:20}}>collision two</span><div data-presentation-allow-overlap=""><span style={{position:'absolute',left:200,top:20}}>allowed one</span><span style={{position:'absolute',left:200,top:20}}>allowed two</span></div><span style={{position:'absolute',left:500,top:100,transition:'transform .3s',transform:'translateX('+payload*10+'px)'}}>Settled {payload}</span></div> }
+function Scene({payload}: SceneProps<number>) { return <div><span style={{position:'absolute',left:20,top:20}}>collision one</span><span style={{position:'absolute',left:20,top:20}}>collision two</span><div aria-hidden="true"><span style={{position:'absolute',left:350,top:20}}>painted one</span><span style={{position:'absolute',left:350,top:20}}>painted two</span></div><div aria-hidden="true" data-presentation-allow-overlap=""><span style={{position:'absolute',left:200,top:20}}>allowed one</span><span style={{position:'absolute',left:200,top:20}}>allowed two</span></div><span style={{position:'absolute',left:500,top:100,transition:'transform .3s',transform:'translateX('+payload*10+'px)'}}>Settled {payload}</span></div> }
 const steps: Step<number>[] = [0,1].map(i=>({id:String(i),era:'era'+i,title:'Fixture '+i,caption:'Caption '+i,Scene,payload:i,groupKey:'fixture'}))
 export default function Talk(){return <Presentation steps={steps} title="Diagnostics"/>}`
   await writeFile(resolve(target,'src/presentations/diagnostic/Talk.tsx'), fixture)
   await writeFile(resolve(target,'src/presentations/index.ts'), "export const presentations = [{slug:'diagnostic',title:'Diagnostic',load:()=>import('./diagnostic/Talk')}]\n")
   const output = await run(target,'npm',['run','inspect','--','diagnostic'])
   assert.match(output, /ADVISORY step 0: overlap/)
+  assert.match(output, /ADVISORY step 0: overlap span:painted one \/ span:painted two/)
   assert.doesNotMatch(output, /overlap[^\n]*allowed/)
   assert.match(output, /step 1: indistinct active progress/)
   assert.match(output, /step 1: indistinct active toc/)
@@ -103,7 +129,7 @@ export default function Talk(){return <Presentation steps={steps} title="Diagnos
 })
 
 test('E2E-001 reference presentation passes production verification', { timeout: 120000 }, async () => {
-  const output = await run(projectRoot,'npm',['run','verify'])
+  const output = await run(projectRoot,'npm',['run','verify'], { checkResources: true })
   assert.match(output,/PASS verify how-to-make-a-presentation: 9 steps/)
   for(let index=0; index<9; index++) assert.match(output,new RegExp(`STEP ${index} OK`))
   assert.match(output,/PREVIEW http:\/\/127\.0\.0\.1:/)
@@ -123,7 +149,7 @@ test('E2E-002 verification faults are actionable and preview processes are clean
   ]
   for (const [name, mutate, expected] of cases) await t.test(name, async () => {
     const target=await copyApp('fault-'); await mutate(target)
-    const output=await run(target,'npm',['run','verify'], {expected:1})
+    const output=await run(target,'npm',['run','verify'], {expected:1, checkResources:true})
     assert.match(output,expected); assert.doesNotMatch(output,/PASS verify/)
     const pid=output.match(/PREVIEW .* pid=(\d+)/)?.[1]
     if(pid) { assert.match(output,/CLEANUP preview pid=/); assert.throws(()=>process.kill(Number(pid),0), /ESRCH/) }

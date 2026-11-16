@@ -8,7 +8,7 @@ export function collectDiagnostics() {
       const style = getComputedStyle(ancestor)
       if (style.visibility === 'hidden' || style.display === 'none' || style.opacity === '0') return false
     }
-    return element.getClientRects().length > 0 && !element.closest('[aria-hidden="true"]')
+    return element.getClientRects().length > 0
   }
   const name = element => element.getAttribute('data-presentation-entity') || element.getAttribute('aria-label') || element.tagName.toLowerCase() + ':' + element.textContent.trim().slice(0, 45)
   const texts = []

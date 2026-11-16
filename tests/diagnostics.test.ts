@@ -16,9 +16,15 @@ function setup(marked = false) {
   })
 }
 afterEach(() => { vi.restoreAllMocks(); document.body.innerHTML = '' })
-it('I-36 collision detector reports unmarked overlap and exempts marked subtrees and hidden text', () => {
+it('I-36 collision detector reports painted aria-hidden overlap and exempts only marked or visually hidden text', () => {
   setup()
   expect(collectDiagnostics().some((warning: string) => /step 2: overlap/.test(warning))).toBe(true)
+  const subtree = document.querySelector('#first')!.parentElement!
+  subtree.setAttribute('aria-hidden', 'true')
+  expect(collectDiagnostics().some((warning: string) => /overlap span:First \/ span:Second/.test(warning))).toBe(true)
+  subtree.setAttribute('data-presentation-allow-overlap', '')
+  expect(collectDiagnostics().some((warning: string) => /overlap/.test(warning))).toBe(false)
+  subtree.removeAttribute('data-presentation-allow-overlap')
   document.querySelector('button')!.setAttribute('data-x', '0')
   expect(collectDiagnostics().some((warning: string) => /overlap.*button:1/.test(warning))).toBe(true)
   document.querySelector('button')!.removeAttribute('data-x')

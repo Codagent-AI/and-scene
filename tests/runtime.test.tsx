@@ -35,36 +35,46 @@ it('I-6 registry routing and landing preserve multiple entries with unknown fall
   render(<Router path="/how-to-make-a-presentation" />)
   expect(await screen.findByRole('main', { name: 'How to Use This Skill to Make a Presentation' })).toBeTruthy()
 })
-it('I-12 step metadata and position-derived numbering survive reorder insert remove', () => {
+it('I-12 each displayed number follows reorder insert and remove at every position', () => {
   for (const list of [steps, [...steps].reverse(), [steps[2], steps[0]], [{ ...steps[2], id: 'inserted' }, ...steps]]) {
     const view = render(<Presentation steps={list} title="Fixture" />)
-    expect(view.container.querySelector('[data-step-id]')?.getAttribute('data-step-id')).toBe(list[0].id)
-    expect(view.container.querySelector('[data-presentation-marker]')?.textContent).toBe(`01 / ${list[0].era}`)
-    expect(screen.getByRole('heading').textContent).toBe(list[0].title)
-    expect(view.container.querySelector('[data-presentation-caption]')?.textContent).toBe(list[0].caption)
-    expect(view.container.querySelector('[data-presentation-entity]')?.textContent).toBe(String(list[0].payload))
+    for (const [index, step] of list.entries()) {
+      if (index) fireEvent.keyDown(window, { key: 'ArrowRight' })
+      expect(view.container.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe(String(index))
+      expect(view.container.querySelector('[data-step-id]')?.getAttribute('data-step-id')).toBe(step.id)
+      expect(view.container.querySelector('[data-presentation-marker]')?.textContent).toBe(`${String(index + 1).padStart(2, '0')} / ${step.era}`)
+      expect(screen.getByRole('heading').textContent).toBe(step.title)
+      expect(view.container.querySelector('[data-presentation-caption]')?.textContent).toBe(step.caption)
+      expect(view.container.querySelector('[data-presentation-entity]')?.textContent).toBe(String(step.payload))
+      expect(screen.getByRole('button', { name: `Step ${index + 1}: ${step.title}` }).textContent).toBe(String(index + 1))
+    }
     view.unmount()
   }
 })
-it('I-15 grouped steps retain instance and component or group changes remount', () => {
-  let mounts = 0
-  let unmounts = 0
-  const Counted = ({ payload }: SceneProps<number>) => { useEffect(() => { mounts++; return () => { unmounts++ } }, []); return <p data-testid="payload">{payload}</p> }
-  const Other = ({ payload }: SceneProps<number>) => <p>{payload}</p>
+it.each(['group', 'component'] as const)('I-15 %s changes mount a fresh scene and retire the old instance before fixture teardown', async change => {
+  const first = { mounts: 0, unmounts: 0 }
+  const second = { mounts: 0, unmounts: 0 }
+  const Counted = ({ payload }: SceneProps<number>) => { useEffect(() => { first.mounts++; return () => { first.unmounts++ } }, []); return <p data-testid="first">{payload}</p> }
+  const Other = ({ payload }: SceneProps<number>) => { useEffect(() => { second.mounts++; return () => { second.unmounts++ } }, []); return <p data-testid="second">{payload}</p> }
   const grouped = steps.map(step => ({ ...step, Scene: Counted }))
-  const show = (list: Step<number>[], index: number) => <Stage step={list[index]} hostKey={sceneKey(list, index)} scale={1} height={380} inset={0} />
-  const view = render(show(grouped, 0))
-  view.rerender(show(grouped, 1))
-  expect(mounts).toBe(1); expect(unmounts).toBe(0)
-  expect(screen.getByTestId('payload').textContent).toBe('1')
-  const differentGroup = [grouped[0], { ...grouped[1], groupKey: 'different' }]
-  expect(sceneKey(differentGroup, 1)).not.toBe(sceneKey(differentGroup, 0))
-  const differentComponent = [grouped[0], { ...grouped[1], Scene: Other }]
-  expect(sceneKey(differentComponent, 1)).not.toBe(sceneKey(differentComponent, 0))
-  view.rerender(show(differentComponent, 1))
-  expect(view.container.querySelectorAll('[data-presentation-scene]').length).toBe(2)
-  view.unmount(); expect(unmounts).toBe(1)
-  expect(sceneKey([steps[0], { ...steps[1], groupKey: undefined }], 1)).toBe('b')
+  const show = (index: number) => <Stage step={grouped[index]} hostKey={sceneKey(grouped, index)} scale={1} height={380} inset={0} />
+  const view = render(show(0))
+  const original = screen.getByTestId('first')
+  view.rerender(show(1))
+  expect(first).toEqual({ mounts: 1, unmounts: 0 })
+  expect(screen.getByTestId('first')).toBe(original)
+  expect(original.textContent).toBe('1')
+  grouped[2] = change === 'group' ? { ...grouped[2], groupKey: 'different' } : { ...grouped[2], Scene: Other }
+  view.rerender(show(2))
+  // AnimatePresence must retire the old scene on its own, not because the test unmounted the stage.
+  await waitFor(() => expect(first.unmounts).toBe(1), { timeout: 2000 })
+  expect(original.isConnected).toBe(false)
+  const current = screen.getByTestId(change === 'group' ? 'first' : 'second')
+  expect(current).not.toBe(original)
+  expect(current.textContent).toBe('2')
+  expect(first.mounts).toBe(change === 'group' ? 2 : 1)
+  expect(second).toEqual({ mounts: change === 'component' ? 1 : 0, unmounts: 0 })
+  view.unmount()
 })
 it('I-14 persisting nodes update while newcomers delay and departures exit', async () => {
   expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
@@ -144,18 +154,30 @@ describe('I-22 keyboard inputs and focused-control protection', () => {
     act(() => result.current.jump(1)); act(() => fireEvent.keyDown(window, { key }))
     expect(result.current.index).toBe(['ArrowLeft', 'PageUp'].includes(key) ? 0 : 2)
   })
-  for (const tag of ['button', 'a', 'input', 'textarea', 'select', 'summary', 'div']) it(`preserves ${tag} keys`, () => {
+  function checkControlKeys(target: HTMLElement) {
     const { result } = renderHook(() => usePresentationNav(3))
+    act(() => result.current.jump(1))
+    target.focus()
+    expect(document.activeElement).toBe(target)
+    for (const key of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p', 'P']) {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+      act(() => { target.dispatchEvent(event) })
+      expect(result.current.index, `${target.tagName} retains ${key}`).toBe(1)
+      expect(result.current.mode, `${target.tagName} retains mode key ${key}`).toBe('browse')
+      expect(event.defaultPrevented, `${target.tagName} retains default action for ${key}`).toBe(false)
+    }
+  }
+  for (const tag of ['button', 'a', 'input', 'textarea', 'select', 'summary', 'div']) it(`preserves each ${tag} key without preventing its default`, () => {
     const target = document.createElement(tag)
-    if (tag === 'div') target.setAttribute('contenteditable', 'true')
-    document.body.append(target)
-    for (const key of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) act(() => fireEvent.keyDown(target, { key }))
-    expect(result.current.index).toBe(0); expect(result.current.mode).toBe('browse'); target.remove()
+    const container = tag === 'summary' ? document.createElement('details') : document.createElement('div')
+    if (tag === 'a') target.setAttribute('href', '#control')
+    if (tag === 'div') { target.setAttribute('contenteditable', 'true'); target.tabIndex = 0 }
+    container.append(target); document.body.append(container)
+    try { checkControlKeys(target) } finally { container.remove() }
   })
-  for (const role of ['slider', 'combobox', 'checkbox', 'tab', 'link', 'menuitem', 'spinbutton']) it(`preserves ARIA ${role} keys`, () => {
-    const { result } = renderHook(() => usePresentationNav(3))
-    const target = document.createElement('div'); target.setAttribute('role', role); document.body.append(target)
-    act(() => fireEvent.keyDown(target, { key: 'ArrowRight' })); expect(result.current.index).toBe(0); target.remove()
+  for (const role of ['slider', 'combobox', 'checkbox', 'tab', 'link', 'menuitem', 'spinbutton']) it(`preserves each ARIA ${role} key without preventing its default`, () => {
+    const target = document.createElement('div'); target.setAttribute('role', role); target.tabIndex = 0; document.body.append(target)
+    try { checkControlKeys(target) } finally { target.remove() }
   })
   it('ignores modified keys and cleans up listener', () => {
     const { result, unmount } = renderHook(() => usePresentationNav(3))
@@ -185,15 +207,27 @@ it('I-24 direct jumps expose active semantic state and era first steps', () => {
   expect(screen.getByRole('button', { name: 'Step 1: Title a' }).dataset.presentationActive).toBe('true')
   expect(screen.getByRole('button', { name: 'second' }).getAttribute('aria-current')).toBeNull()
 })
-it('I-25 boundaries clamp without wrapping and disable boundary controls', () => {
-  const { result } = renderHook(() => usePresentationNav(3))
-  act(() => { result.current.prev(); result.current.jump(-7) }); expect(result.current.index).toBe(0)
-  act(() => { result.current.jump(200); result.current.next() }); expect(result.current.index).toBe(2)
+it('I-25 each previous and next operation clamps independently at its boundary', () => {
+  const { result, unmount } = renderHook(() => usePresentationNav(3))
+  for (let attempt = 0; attempt < 3; attempt++) {
+    act(() => result.current.prev())
+    expect(result.current.index).toBe(0)
+  }
+  act(() => result.current.jump(-7)); expect(result.current.index).toBe(0)
+  act(() => result.current.jump(200)); expect(result.current.index).toBe(2)
+  for (let attempt = 0; attempt < 3; attempt++) {
+    act(() => result.current.next())
+    expect(result.current.index).toBe(2)
+  }
+  unmount()
   const view = render(<Presentation steps={steps} title="Fixture" />)
   expect((screen.getByRole('button', { name: 'Previous' }) as HTMLButtonElement).disabled).toBe(true)
+  fireEvent.keyDown(window, { key: 'ArrowLeft' })
+  expect(view.container.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('0')
   fireEvent.click(screen.getByRole('button', { name: 'Step 3: Title c' }))
   expect((screen.getByRole('button', { name: 'Next' }) as HTMLButtonElement).disabled).toBe(true)
-  view.unmount()
+  fireEvent.keyDown(window, { key: 'ArrowRight' })
+  expect(view.container.querySelector('[data-step-index]')?.getAttribute('data-step-index')).toBe('2')
 })
 it('I-26 fixed canvas uniformly scales on resize and remains stable across steps', () => {
   expect([DESIGN_W, DESIGN_H]).toEqual([880, 380])

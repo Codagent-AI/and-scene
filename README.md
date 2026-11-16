@@ -48,6 +48,8 @@ framework is required. Host branding is opt-in; bottom-right attribution is defa
 After kit or runtime-script edits run `node scripts/sync-templates.mjs` to refresh
 the distributable snapshot. INT-001 checks byte parity and builds that snapshot
 outside its authoring directory. INT-002 checks screenshot artifacts and warnings;
-E2E-001/002 exercise production verification and injected faults. Tests create and
-clean isolated workspaces under the ignored `.test-work/` directory. No hosted CI
-or publication workflow is included.
+E2E-001/002 exercise production verification and injected faults. Bootstrap tests
+install a copied skill outside the source repository in OS temporary directories. Other process tests create and clean workspaces under the ignored
+`.test-work/` directory; verification tests observe actual browser and preview
+process termination using Linux `/proc`. No hosted CI or publication workflow is
+included.

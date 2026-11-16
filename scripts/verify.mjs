@@ -15,6 +15,7 @@ export async function verify({ root = projectRoot, route, build = true } = {}) {
       page.on('pageerror', error => errors.push(error.message))
       const slug = route ?? referenceSlug
       await page.goto(url)
+      await page.locator('main').waitFor({ timeout: 5000 })
       if (await page.locator(`a[href="/${slug}"]`).count() !== 1) throw new Error(`Missing registered presentation: ${slug}`)
       await page.goto(`${url}/${slug}`)
       phase = 'render'

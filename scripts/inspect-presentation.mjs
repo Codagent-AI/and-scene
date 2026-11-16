@@ -9,6 +9,7 @@ export async function inspectPresentation({ root = projectRoot, slug, build = tr
   await mkdir(directory, { recursive: true })
   return withBrowser(root, async (page, url) => {
     await page.goto(url)
+    await page.locator('main').waitFor({ timeout: 5000 })
     if (await page.locator(`a[href="/${slug}"]`).count() !== 1) throw new Error(`Missing registered presentation: ${slug}`)
     await page.goto(`${url}/${slug}`); await assertIndex(page, 0)
     const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))

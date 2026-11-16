@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
 import { command, withBrowser, walkSteps } from './lib/browser.mjs'
-import { REFERENCE_SLUG, validateSample } from './lib/validation.mjs'
+import { REFERENCE_SLUG, validateSample, validateSampleStep } from './lib/validation.mjs'
 
 export async function verify({ root = resolve(dirname(fileURLToPath(import.meta.url)), '..'), slug = REFERENCE_SLUG } = {}) {
   let phase = 'build'
@@ -21,19 +21,13 @@ export async function verify({ root = resolve(dirname(fileURLToPath(import.meta.
         const marker = await page.locator('[data-presentation-marker]').textContent() ?? ''
         const era = marker.split(' / ').slice(1).join(' / ')
         steps.push({ title, caption, era })
-        if (slug === REFERENCE_SLUG) {
-          try { validateSample([...steps, ...Array(9 - steps.length).fill(null).map((_, j) => referenceStep(index + j + 1))]) }
-          catch (error) { throw new Error(`sample: ${error.message}`) }
-        }
+        if (slug === REFERENCE_SLUG) validateSampleStep({ title, caption, era }, index)
       })
       if (slug === REFERENCE_SLUG) validateSample(steps)
     })
     console.log(`PASS: build, ${slug}, all steps rendered`)
   } catch (error) { throw new Error(`FAIL [${phase}]: ${error.message}`, { cause: error }) }
 }
-// Validate each observed reference step as soon as it is reached so diagnostics retain its index.
-import reference from './lib/reference.json' with { type: 'json' }
-const referenceStep = index => { const [era, title, caption] = reference[index] ?? []; return { era, title, caption } }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const index = process.argv.indexOf('--slug')
   verify({ slug: index >= 0 ? process.argv[index + 1] : undefined }).catch(error => { console.error(error.message); process.exitCode = 1 })

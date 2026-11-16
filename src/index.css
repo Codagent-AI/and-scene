@@ -1,0 +1,9 @@
+body { margin: 0; }
+.landing { min-height: 100vh; box-sizing: border-box; background: #f4f1e9; color: #242b28; font-family: system-ui, sans-serif; padding: 8vh 9vw; }
+.landing .eyebrow, .landing a > span { font: 12px ui-monospace, monospace; text-transform: uppercase; letter-spacing: .12em; }
+.landing h1 { font: 500 clamp(48px, 7vw, 96px)/1.05 Georgia, serif; letter-spacing: -.045em; margin: 40px 0 28px; }
+.landing > p { max-width: 520px; line-height: 1.7; }
+.landing section { margin: 64px 0; max-width: 720px; }
+.landing a { color: inherit; text-decoration: none; display: block; border-top: 1px solid #b3b7ab; padding: 24px 0; }
+.landing h2 { font: 30px Georgia, serif; }
+.landing footer { font-size: 12px; }

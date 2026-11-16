@@ -234,7 +234,9 @@ describe('sample and routing contracts', () => {
     expect(visibleEntities(2).map(e => e.id)).toEqual(expect.arrayContaining(['you', 'prompt', 'skill', 'conversation', 'question']))
     const card = visibleEntities(3).find(e => e.id === 'card-1')!
     expect(card.detail).toBe('title · caption · visual')
-    expect(ENTITIES.find(e => e.id === 'morph-1')!.x).toBeGreaterThan(card.x + card.w)
+    const morph = ENTITIES.find(e => e.id === 'morph-1')!
+    expect(morph.x).toBeGreaterThanOrEqual(card.x + card.w)
+    expect(morph.x + morph.w).toBeLessThanOrEqual(ENTITIES.find(e => e.id === 'card-2')!.x)
     render(<Stage step={STEPS[2]} />)
     expect(document.querySelector('[data-presentation-entity="how-to:tray"]')).toBeTruthy()
   })

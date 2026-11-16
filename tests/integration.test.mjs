@@ -154,7 +154,45 @@ test('E2E-001 reference presentation passes production verification', { timeout:
   assert.match(result.text, /probe=http:\/\/127\.0\.0\.1:/)
   assert.match(result.text, /browser URL http:\/\/127\.0\.0\.1:/)
   await assertStopped(result.text)
-  await output('E2E-001', result.text)
+  // Use the build produced by verify; no second build or browser per step.
+  // This numeric legibility guard complements human composition review.
+  const { withPreview, visitSteps } = await import('../scripts/browser.mjs')
+  const readability = []
+  await withPreview(async (page, url) => {
+    for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+      await page.setViewportSize(viewport)
+      await visitSteps(page, url, 'how-to-make-a-presentation', { capture: async index => {
+        const measurements = await page.evaluate(() => {
+          const canvas = document.querySelector('[data-presentation-canvas]')
+          const canvasRect = canvas.getBoundingClientRect()
+          const scaleX = canvasRect.width / canvas.offsetWidth
+          const scaleY = canvasRect.height / canvas.offsetHeight
+          const labels = [...document.querySelectorAll('[data-sample-text]')].map(label => {
+            const entity = label.closest('[data-presentation-entity]')
+            const box = entity.getBoundingClientRect()
+            const range = document.createRange()
+            range.selectNodeContents(label)
+            const rects = [...range.getClientRects()]
+            return {
+              entity: entity.getAttribute('data-presentation-entity'),
+              text: label.textContent,
+              size: parseFloat(getComputedStyle(label).fontSize) * scaleY,
+              contained: rects.every(r => r.left >= box.left - 1.5 && r.right <= box.right + 1.5 && r.top >= box.top - 1.5 && r.bottom <= box.bottom + 1.5),
+            }
+          })
+          return { scaleX, scaleY, labels }
+        })
+        assert.ok(Math.abs(measurements.scaleX - measurements.scaleY) < 0.001, 'canvas must scale uniformly')
+        assert.ok(measurements.labels.length > 0)
+        for (const label of measurements.labels) {
+          assert.ok(label.size >= 12, `step ${index} ${viewport.width}px ${label.entity}: ${label.text} is only ${label.size}px`)
+          assert.ok(label.contained, `step ${index} ${viewport.width}px ${label.entity}: text escapes its authored bounds`)
+        }
+        readability.push({ index, viewport, minimumTextSize: Math.min(...measurements.labels.map(label => label.size)) })
+      } })
+    }
+  })
+  await output('E2E-001', result.text + '\nF-001 production text-size, uniform-scale, and clipping assertions:\n' + JSON.stringify(readability, null, 2))
 })
 test('E2E-002 verification faults are actionable and clean up processes', { timeout: 360000 }, async t => {
   const faults = {

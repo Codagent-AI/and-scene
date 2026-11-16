@@ -46,6 +46,22 @@ describe('inspection diagnostics', () => {
     expect(diagnose([attribution, text('scene'), text('caption', { allowOverlap: true }), text('hidden', { visible: false })])).toEqual([])
     expect(diagnose([attribution, text('scene'), text('adjacent', { left: 31 })])).toEqual([])
   })
+  it('reports text over icon-only controls and progress dots, and overlapping chrome bodies', () => {
+    const chrome = (name: string, props = {}) => ({ ...text(name), kind: 'chrome', ...props })
+    for (const control of ['icon-only next', 'empty progress dot']) {
+      expect(diagnose([attribution, text('diagram label'), chrome(control)])).toEqual([`overlap: diagram label / ${control}`])
+    }
+    expect(diagnose([attribution, chrome('previous control'), chrome('next control')])).toEqual(['overlap: previous control / next control'])
+    expect(diagnose([attribution, text('diagram label'), chrome('allowed control', { allowOverlap: true }), chrome('hidden control', { visible: false })])).toEqual([])
+  })
+  it('exempts controls from their own labels and nested chrome but detects unrelated scene text', () => {
+    const button = { ...text('next button'), kind: 'chrome', id: 2, ancestors: [1] }
+    const label = text('button label', { id: 3, ancestors: [2, 1] })
+    const navigation = { ...text('navigation'), kind: 'chrome', id: 1, ancestors: [] }
+    expect(diagnose([attribution, navigation, button, label])).toEqual([])
+    expect(diagnose([attribution, button, text('unrelated diagram', { id: 4, ancestors: [] })])).toEqual(['overlap: next button / unrelated diagram'])
+    expect(diagnose([attribution, button, text('direct button label', { id: 2, ancestors: [1] })])).toEqual([])
+  })
   it('reports indistinct active progress and toc while accepting distinct treatments', () => {
     for (const kind of ['progress', 'toc']) {
       const controls = [{ kind, name: 'current', visible: true, active: true, appearance: 'same' }, { kind, name: 'other', visible: true, active: false, appearance: 'same' }]

@@ -6,6 +6,7 @@ import { resolve, join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { withBrowser, walkSteps } from '../scripts/lib/browser.mjs'
+import { textContainment } from './helpers/text-containment.mjs'
 import { inspectPresentation } from '../scripts/inspect-presentation.mjs'
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..')
 const artifacts=join(root,'.artifacts','test-logs')
@@ -91,28 +92,38 @@ test('E2E-001 reference production verification observes all nine steps on IPv4'
   await withBrowser(root, async (page, base) => {
     await walkSteps(page, `${base}/how-to-make-a-presentation`, async (page, step) => {
       if (![0, 3, 8].includes(step)) return
-      const metrics = await page.evaluate(() => {
-        const canvas = document.querySelector('[data-presentation-canvas]')
-        const rect = canvas.getBoundingClientRect()
-        const scale = rect.width / parseFloat(canvas.style.width)
-        const labels = [...canvas.querySelectorAll('*')].flatMap(element => [...element.childNodes]
-          .filter(node => node.nodeType === 3 && node.textContent.trim())
-          .map(node => {
-            const range = document.createRange(); range.selectNode(node)
-            const text = range.getBoundingClientRect()
-            const owner = element.closest('[data-entity]')?.getBoundingClientRect()
-            return { text: node.textContent.trim(), pixels: parseFloat(getComputedStyle(element).fontSize) * scale,
-              fitsCanvas: text.left >= rect.left - 1 && text.right <= rect.right + 1 && text.top >= rect.top - 1 && text.bottom <= rect.bottom + 1,
-              fitsCard: !element.closest('.step-card') || (text.left >= owner.left - 1 && text.right <= owner.right + 1 && text.top >= owner.top - 1 && text.bottom <= owner.bottom + 1) }
-          }))
-        return { scale, heightScale: rect.height / parseFloat(canvas.style.height), labels }
-      })
-      assert.ok(Math.abs(metrics.scale - metrics.heightScale) < 0.001, 'canvas scales uniformly')
-      assert.ok(metrics.labels.length > 0)
-      for (const label of metrics.labels) {
-        assert.ok(label.pixels >= 12, `step ${step}: undersized ${label.text}: ${label.pixels}px`)
-        assert.ok(label.fitsCanvas, `step ${step}: text outside canvas: ${label.text}`)
-        assert.ok(label.fitsCard, `step ${step}: text outside its card: ${label.text}`)
+      for (const font of ['default', 'wide fallback']) {
+        const override = font === 'default' ? null : await page.addStyleTag({ content: '.field-guide .kit, .field-guide .verify, .field-guide .verify strong, .field-guide .ghost, .field-guide .ghost small, .field-guide .morph small { font-family: "DejaVu Sans", monospace; }' })
+        try {
+          const metrics = await page.evaluate(() => {
+            const canvas = document.querySelector('[data-presentation-canvas]')
+            const rect = canvas.getBoundingClientRect()
+            const scale = rect.width / parseFloat(canvas.style.width)
+            const bounds = box => ({ left: box.left, right: box.right, top: box.top, bottom: box.bottom })
+            const labels = [...canvas.querySelectorAll('*')].flatMap(element => [...element.childNodes]
+              .filter(node => node.nodeType === 3 && node.textContent.trim())
+              .map(node => {
+                const range = document.createRange(); range.selectNode(node)
+                const text = range.getBoundingClientRect()
+                const owner = element.closest('[data-entity]')
+                return { text: node.textContent.trim(), pixels: parseFloat(getComputedStyle(element).fontSize) * scale,
+                  bounds: bounds(text), owner: owner ? bounds(owner.getBoundingClientRect()) : null, ownerId: owner?.getAttribute('data-entity'),
+                  allowedOverlap: !!element.closest('[data-presentation-allow-overlap]') }
+              }))
+            return { scale, heightScale: rect.height / parseFloat(canvas.style.height), canvas: bounds(rect), labels }
+          })
+          assert.ok(Math.abs(metrics.scale - metrics.heightScale) < 0.001, 'canvas scales uniformly')
+          assert.ok(metrics.labels.length > 0)
+          for (const label of metrics.labels) {
+            assert.ok(label.pixels >= 12, `step ${step}/${font}: undersized ${label.text}: ${label.pixels}px`)
+            assert.ok(label.owner, `step ${step}/${font}: label has no entity owner: ${label.text}`)
+            const fit = textContainment(label.bounds, label.owner, metrics.canvas, label.allowedOverlap)
+            assert.ok(fit.fitsCanvas, `step ${step}/${font}: text outside canvas: ${label.text}`)
+            assert.ok(fit.fitsOwner, `step ${step}/${font}: text outside ${label.ownerId}: ${label.text}`)
+          }
+        } finally {
+          await override?.evaluate(element => element.remove())
+        }
       }
     })
   }, { width: 390, height: 900 })

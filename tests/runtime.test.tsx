@@ -259,7 +259,7 @@ describe('I-30 sample later beats', () => {
         expect(verify.querySelector('svg.lucide-check')).toBeTruthy()
         const rgb = getComputedStyle(verify).color.match(/\d+/g)!.map(Number)
         expect(rgb[1]).toBeGreaterThan(rgb[0]); expect(rgb[1]).toBeGreaterThan(rgb[2])
-        expect(container.querySelector('[data-entity="verify"]')?.textContent).toContain('build + render / pass'); expect(positions.verify[1]).toBe(positions.card1[1]); expect(positions.verify[0]).toBeGreaterThan(positions.card3[0]) }
+        expect(container.querySelector('[data-entity="verify"] .verify-checks')?.textContent?.split('\n')).toEqual(['build', 'render', 'pass']); expect(positions.verify[1]).toBe(positions.card1[1]); expect(positions.verify[0]).toBeGreaterThan(positions.card3[0]) }
       if (beat>=8) {
         const path = container.querySelector('[data-entity="modify"] path')!
         expect(path.getAttribute('d')).toMatch(/^M [\d ]+ C [\d ]+ L [\d ]+$/)
@@ -310,8 +310,44 @@ describe('A-001 reference scene readability', () => {
     expect(container.querySelector('[data-entity="card2"]')).toBe(card)
     expect(card.parentElement!.getAttribute('style')).toBe(coordinates)
     expect(canvas.style.width).toBe('880px')
-    expect(canvas.style.height).toBe('1200px')
-    expect(Number(canvas.style.transform.match(/[\d.]+/)![0])).toBeCloseTo(fitScale(390, 900, 'browse', 880, 1200), 5)
+    expect(canvas.style.height).toBe(`${CANVAS.height}px`)
+    expect(Number(canvas.style.transform.match(/[\d.]+/)![0])).toBeCloseTo(fitScale(390, 900, 'browse', CANVAS.width, CANVAS.height), 5)
     expect(DESIGN_W).toBe(880); expect(DESIGN_H).toBe(380)
+  })
+})
+
+
+describe('R4 fallback text containers', () => {
+  it('wraps verification and kit labels without shrinking the readable font size', () => {
+    const { container } = render(<div className="field-guide"><style>{guideCSS}</style><GuideScene payload={9} /></div>)
+    const checks = container.querySelector('.verify-checks')!
+    const kit = container.querySelector('[data-entity="kit"] > span')!
+    for (const label of [checks, kit]) {
+      const css = getComputedStyle(label)
+      expect(css.overflowWrap).toBe('anywhere')
+      expect(parseFloat(css.minWidth)).toBe(0)
+      expect(css.maxWidth).toBe('100%')
+      expect(parseFloat(css.fontSize)).toBeGreaterThanOrEqual(36)
+    }
+    expect(getComputedStyle(checks).whiteSpace).toBe('pre-line')
+    expect(checks.textContent?.split('\n')).toEqual(['build', 'render', 'pass'])
+    // Enough vertical room for four lines plus padding/borders in the kit;
+    // verify has room for the icon, heading, and wrapped check labels.
+    expect(positions.kit[3]).toBeGreaterThanOrEqual(4 * 36 * 1.2 + 24 + 2)
+    expect(positions.verify[2]).toBeGreaterThanOrEqual(160)
+    expect(positions.verify[3]).toBeGreaterThanOrEqual(48 + 2 * 38 * 1.2 + 4 * 36 * 1.2 + 12 + 20 + 2)
+  })
+  it('keeps graphic arrows within their entity viewports and marks only the intentional reveal label overlap', () => {
+    const { container } = render(<div className="field-guide"><style>{guideCSS}</style><GuideScene payload={9} /></div>)
+    for (const name of ['conversation', 'verifyLink'] as const) {
+      const svg = container.querySelector(`[data-entity="${name}"] > svg`)!
+      expect(Number(svg.getAttribute('width'))).toBeLessThanOrEqual(positions[name][2])
+      expect(Number(svg.getAttribute('height'))).toBeLessThanOrEqual(positions[name][3])
+      expect(getComputedStyle(svg).display).toBe('block')
+    }
+    const allowed = container.querySelectorAll('[data-presentation-allow-overlap]')
+    expect(allowed).toHaveLength(1)
+    expect(allowed[0].closest('[data-entity]')?.getAttribute('data-entity')).toBe('reveal')
+    expect(container.querySelector('[data-entity="ghost"]')?.textContent).toBe('…?')
   })
 })

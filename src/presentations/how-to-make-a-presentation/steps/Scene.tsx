@@ -18,7 +18,7 @@ export function GuideScene({ payload: beat }: SceneProps<number>) {
       <Item key="you" name="you" className="actor"><UserRound size={19} /><strong>you</strong></Item>
       <Item key="prompt" name="prompt" className="prompt"><small>THE STARTING POINT</small><span>“I have a topic…”</span></Item>
       {beat >= 2 && <Item key="skill" name="skill" className="actor skill"><Sparkles size={19} /><strong>skill</strong></Item>}
-      {beat >= 2 && <Item key="conversation" name="conversation" className="conversation">⟷</Item>}
+      {beat >= 2 && <Item key="conversation" name="conversation" className="conversation"><svg width="400" height="70" viewBox="0 0 400 70" role="img" aria-label="You and skill exchange questions"><path d="M 10 35 H 390 M 25 20 L 10 35 L 25 50 M 375 20 L 390 35 L 375 50" fill="none" stroke="currentColor" strokeWidth="4" /></svg></Item>}
       {beat >= 2 && <Item key="question" name="question" className="question"><span>one question</span><span>at a time</span></Item>}
       {beat >= 3 && <Item key="tray" name="tray" className="tray"><span>THE STORY TAKES SHAPE</span></Item>}
       {beat >= 3 && <Item key="card1" name="card1" className="step-card"><small>01</small><strong>Idea</strong><span className="card-parts">{'title\ncaption\nvisual'}</span></Item>}
@@ -26,13 +26,13 @@ export function GuideScene({ payload: beat }: SceneProps<number>) {
       {beat >= 4 && <Item key="card3" name="card3" className="step-card"><small>03</small><strong>Payoff</strong><span className="card-parts">{'title\ncaption\nvisual'}</span></Item>}
       {beat >= 3 && <Item key="morph1" name="morph1" className="morph"><span>→</span><small>morph</small></Item>}
       {beat >= 4 && <Item key="morph2" name="morph2" className="morph"><span>→</span><small>morph</small></Item>}
-      {beat >= 5 && <Item key="ghost" name="ghost" className="ghost"><span>···</span><small aria-label="Unspecified steps">?</small></Item>}
+      {beat >= 5 && <Item key="ghost" name="ghost" className="ghost"><span>…</span><small aria-label="Unspecified steps">?</small></Item>}
       {beat >= 5 && <Item key="depth" name="depth" className="depth">partial <span>⟷</span> full</Item>}
       {beat >= 6 && <Item key="kit" name="kit" className="kit"><Layers size={15} /><span>drawn with the shared scene kit</span></Item>}
-      {beat >= 7 && <Item key="verifyLink" name="verifyLink" className="verify-link">→</Item>}
-      {beat >= 7 && <Item key="verify" name="verify" className="verify"><Check size={22} /><strong>verify</strong><span>build + render / pass</span></Item>}
+      {beat >= 7 && <Item key="verifyLink" name="verifyLink" className="verify-link"><svg width="20" height="70" viewBox="0 0 20 70" role="img" aria-label="Then verify"><path d="M 1 35 H 18 M 11 28 L 18 35 L 11 42" fill="none" stroke="currentColor" strokeWidth="3" /></svg></Item>}
+      {beat >= 7 && <Item key="verify" name="verify" className="verify"><Check size={22} /><strong>verify</strong><span className="verify-checks">{'build\nrender\npass'}</span></Item>}
       {beat >= 8 && <motion.svg key="modify" data-entity="modify" className="modify" width={CANVAS.width} height={CANVAS.height} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} aria-label="Modify the existing step"><path d="M 735 310 C 840 420 840 590 335 600 L 335 644" /><text x="470" y="460">ask → edit → repeat</text></motion.svg>}
-      {beat >= 9 && <Item key="reveal" name="reveal" className="reveal"><span>AND THIS IS THE OUTPUT. YOU'RE IN IT.</span></Item>}
+      {beat >= 9 && <Item key="reveal" name="reveal" className="reveal"><span data-presentation-allow-overlap="">AND THIS IS THE OUTPUT. YOU'RE IN IT.</span></Item>}
     </AnimatePresence>
   </SceneLayer>
 }

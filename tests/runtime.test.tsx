@@ -99,6 +99,18 @@ describe('runtime contracts', () => {
     expect(screen.queryByRole('navigation', { name: 'Sections' })).toBeNull()
     expect(screen.getByText('Caption A.')).toBeTruthy()
   })
+  it('R5 ToC is unmounted below 1000px including narrow and middle widths', () => {
+    Object.defineProperty(window, 'innerWidth', { value: 390, writable: true })
+    const eras = ['the ask', 'the gathering', 'the build', 'the loop', 'the reveal']
+    const fiveEras = eras.map((era, index) => ({ ...steps[0], id: `era-${index}`, era }))
+    render(<Presentation steps={fiveEras} title="reference ToC" />)
+    for (const width of [390, 700, 800, 900, 999, 1000, 1440, 900, 390]) {
+      act(() => { window.innerWidth = width; fireEvent(window, new Event('resize')) })
+      const toc = document.querySelector('[data-presentation-toc]')
+      if (width < 1000) expect(toc, `width ${width}`).toBeNull()
+      else expect(toc?.querySelectorAll('button').length, `width ${width}`).toBe(5)
+    }
+  })
   it('I-20 mode changes retain middle step and change geometry without remount', () => {
     const mounted = vi.fn()
     function Persistent() { useEffect(mounted, []); return null }

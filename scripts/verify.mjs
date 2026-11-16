@@ -5,10 +5,11 @@ import { visitSteps, watchErrors, withPreview } from './browser.mjs'
 import { referenceSlug, referenceTitle, validateReference } from './reference.mjs'
 export async function verify({ cwd = process.cwd(), slug = referenceSlug, build = true } = {}) {
   if (build) {
-    const result = spawnSync('npm', ['run', 'build'], { cwd, encoding: 'utf8' })
-    process.stdout.write(result.stdout ?? '')
-    process.stderr.write(result.stderr ?? '')
-    if (result.status !== 0) throw new Error('build: npm run build failed')
+    const result = spawnSync('npm', ['run', 'build'], { cwd, stdio: 'inherit' })
+    if (result.error || result.status !== 0) {
+      const detail = result.error?.message ?? result.signal ?? `exit ${result.status}`
+      throw new Error(`build: npm run build failed (${detail})`, { cause: result.error })
+    }
   }
   await withPreview(async ({ page, origin }) => {
     const errors = watchErrors(page)

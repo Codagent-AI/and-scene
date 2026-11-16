@@ -5,6 +5,7 @@
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
     "types": ["vite/client"],
+    "strict": true,
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -21,5 +22,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "skills/presentation/scaffold.ts"]
+  "include": ["src"]
 }

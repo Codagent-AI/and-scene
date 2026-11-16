@@ -1,0 +1,59 @@
+.reference-presentation { color: #203b35; background: #f6f4ec; font-family: 'Avenir Next', Avenir, 'Segoe UI', sans-serif; }
+.reference-presentation * { box-sizing: border-box; }
+.reference-presentation [data-presentation-header] { padding: 28px 40px; }
+.reference-presentation [data-presentation-marker] { font: 11px ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; color: #58736b; }
+.reference-presentation h1 { font-size: clamp(22px, 3vw, 34px); font-weight: 500; letter-spacing: -.035em; margin: 10px 0 0; line-height: 1.15; }
+.reference-presentation button { font: inherit; color: inherit; cursor: pointer; border: 1px solid #c5cec2; background: transparent; border-radius: 6px; padding: 8px 12px; }
+.reference-presentation button:hover { background: #e4e9dd; }
+.reference-presentation button:focus-visible { outline: 3px solid #b45b2d; outline-offset: 3px; }
+.reference-presentation button:disabled { opacity: .35; cursor: default; }
+.reference-presentation [data-presentation-mode-toggle] { position: absolute; right: 40px; top: 28px; font-size: 12px; }
+.reference-presentation [data-presentation-toc] { position: absolute; right: 160px; top: 26px; display: flex; gap: 4px; z-index: 2; }
+.reference-presentation [data-presentation-toc] button { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; border: 0; text-align: right; padding: 5px 10px; }
+.reference-presentation [data-presentation-active="true"] { background: #203b35 !important; color: #fffdf4 !important; font-weight: 700; box-shadow: 0 0 0 2px #203b35; }
+.reference-presentation [data-presentation-footer] { padding: 0 40px; }
+.reference-presentation [data-presentation-caption] { font-size: 16px; line-height: 1.5; max-width: 670px; margin: 0 0 20px; min-height: 48px; }
+.reference-presentation [data-presentation-progress] { display: flex; gap: 8px; }
+.reference-presentation [data-presentation-progress] button { width: 30px; height: 30px; padding: 0; border-radius: 50%; font: 11px ui-monospace, monospace; }
+.reference-presentation [data-presentation-navigation] { position: absolute; right: 40px; bottom: 0; display: flex; gap: 8px; font-size: 12px; }
+.reference-presentation [data-presentation-attribution] a { color: #47685e; font-size: 12px; font-weight: 600; text-decoration: none; letter-spacing: .02em; }
+/* 32 design pixels remain above 12 CSS pixels at the 390px browse fit.
+   Keep this type budget and fixed coordinates shared by every viewport/beat. */
+.reference-presentation .entity { display: flex; flex-direction: column; justify-content: center; padding: 10px 12px; background: #f6f4ec; border: 2.5px solid #738f80; border-radius: 9px; font-size: 32px; line-height: 1.25; white-space: nowrap; }
+.reference-presentation .entity b, .reference-presentation .entity span, .reference-presentation .entity small { font-size: 32px; line-height: 1.25; }
+.reference-presentation .entity strong { font-size: 44px; line-height: 1.1; font-weight: 600; }
+.reference-presentation .you { background: #203b35; color: #f6f4ec; }
+.reference-presentation .skill { background: #dce8d9; }
+.reference-presentation .prompt { border-color: #bfa67c; background: #f5ecd9; }
+.reference-presentation .prompt strong { font-size: 36px; }
+.reference-presentation .tray { background: #e8ecdf; border: 0; border-bottom: 2.5px solid #bac8b4; border-radius: 0 0 12px 12px; }
+.reference-presentation [class*="card-"] { padding: 2px 10px; }
+.reference-presentation [class*="card-"] b { font-weight: 600; }
+.reference-presentation .exchange, .reference-presentation .question, .reference-presentation [class*="morph-"], .reference-presentation .modify, .reference-presentation .edited { border: 0; padding: 0; background: transparent; text-align: center; align-items: center; }
+.reference-presentation .question { color: #9b4529; }
+.reference-presentation [class*="morph-"] { gap: 8px; }
+.reference-presentation [class*="morph-"] svg { flex-shrink: 0; }
+.reference-presentation [class*="morph-"] small { font-family: ui-monospace, monospace; }
+.reference-presentation .ghost { border-style: dashed; background: transparent; text-align: center; padding: 0; }
+.reference-presentation .depth { border-radius: 20px; text-align: center; padding: 0 8px; }
+.reference-presentation .kit { border-top: 0; border-radius: 0 0 8px 8px; background: #d7e2cf; text-align: center; padding: 0; }
+.reference-presentation .verify-link { padding: 0; border: 0; background: transparent; }
+.reference-presentation .verify { border-color: #5e8d62; background: #cddfbb; padding: 0 6px; align-items: center; }
+.reference-presentation .verify b { font-weight: 600; }
+.reference-presentation .pass-mark { flex-shrink: 0; color: #255b31; }
+.reference-presentation .modify { color: #9b4529; }
+.reference-presentation .modify svg { position: absolute; inset: 0; }
+.reference-presentation .modify small { position: absolute; top: 20px; left: 72px; background: #f6f4ec; padding: 0 8px; }
+.reference-presentation .edited { color: #9b4529; font-weight: 600; border-bottom: 2.5px solid #9b4529; }
+.reference-presentation .reveal { pointer-events: none; background: transparent; border: 2.5px solid #a5744c; border-radius: 18px; padding: 0; }
+.reference-presentation .reveal span { position: absolute; top: 120px; right: -2.5px; width: 160px; background: #f6f4ec; padding: 2px 10px; border: 2.5px solid #a5744c; border-radius: 8px; text-align: center; font-weight: 600; color: #885834; }
+@media (max-width: 700px) {
+ .reference-presentation [data-presentation-header] { padding: 25px 22px; }
+ .reference-presentation [data-presentation-mode-toggle] { right: 20px; top: 20px; font-size: 10px; padding: 6px 8px; }
+ .reference-presentation h1 { max-width: 265px; font-size: 24px; }
+ .reference-presentation [data-presentation-footer] { padding: 0 22px; bottom: 55px !important; }
+ .reference-presentation [data-presentation-caption] { font-size: 14px; margin-bottom: 18px; min-height: 65px; }
+ .reference-presentation [data-presentation-progress] { gap: 5px; }
+ .reference-presentation [data-presentation-progress] button { width: 25px; height: 25px; }
+ .reference-presentation [data-presentation-navigation] { position: static; margin-top: 16px; justify-content: space-between; }
+}

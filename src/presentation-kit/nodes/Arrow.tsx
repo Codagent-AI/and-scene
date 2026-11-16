@@ -1,0 +1,2 @@
+import { Box, type NodeProps } from './Box'
+export function Arrow(props: NodeProps) { return <Box data-presentation-node="arrow" {...props} /> }

@@ -1,0 +1,2 @@
+import { Box, type NodeProps } from './Box'
+export function SymbolChip(props: NodeProps) { return <Box data-presentation-node="symbolchip" {...props} /> }

@@ -1,0 +1,1 @@
+export const entities = { anchor: 'YOUR_SLUG:anchor', extra: 'YOUR_SLUG:extra' } as const

@@ -16,7 +16,8 @@ import { Appear } from '../src/presentation-kit/nodes/Appear'
 import type { Step, SceneProps } from '../src/presentation-kit/types'
 import { GuideScene } from '../src/presentations/how-to-make-a-presentation/steps/Scene'
 import { readFileSync } from 'node:fs'
-import { positions, entity } from '../src/presentations/how-to-make-a-presentation/entities'
+import Talk from '../src/presentations/how-to-make-a-presentation/Talk'
+import { CANVAS, positions, entity } from '../src/presentations/how-to-make-a-presentation/entities'
 const guideCSS = readFileSync('src/presentations/how-to-make-a-presentation/presentation.css', 'utf8')
 
 vi.mock('motion/react', async () => {
@@ -236,7 +237,7 @@ describe('I-29 sample early beats', () => {
         seen.set(name,node)
       })
     }
-    expect(container.querySelector('[data-entity="card1"]')?.textContent).toContain('title · caption · visual')
+    expect(container.querySelector('[data-entity="card1"] .card-parts')?.textContent?.split('\n')).toEqual(['title', 'caption', 'visual'])
     expect(container.querySelector('[data-entity="morph1"]')?.textContent).toContain('morph')
   })
 })
@@ -271,5 +272,46 @@ describe('I-30 sample later beats', () => {
         expect(card?.classList.contains('edited')).toBe(true) }
       if (beat>=9) expect(container.querySelector('[data-entity="reveal"]')?.textContent).toContain("YOU'RE IN IT")
     }
+  })
+})
+
+
+describe('A-001 reference scene readability', () => {
+  it.each(['browse', 'present'] as const)('keeps every scene label at least 12 screen pixels at 390x900 across all nine beats in %s', mode => {
+    resize(390, 900)
+    const { container } = render(<><style>{guideCSS}</style><Talk /></>)
+    const canvas = container.querySelector('[data-presentation-canvas]') as HTMLElement
+    if (mode === 'present') fireEvent.click(screen.getByLabelText('Toggle presentation mode'))
+    const scale = fitScale(390, 900, mode, CANVAS.width, CANVAS.height)
+    expect(canvas.style.width).toBe(`${CANVAS.width}px`)
+    expect(canvas.style.height).toBe(`${CANVAS.height}px`)
+    expect(CANVAS.width * scale).toBeLessThanOrEqual(390)
+    expect(CANVAS.height * scale).toBeLessThanOrEqual(900 - STAGE_LAYOUT[mode].top - STAGE_LAYOUT[mode].bottom)
+    for (let beat = 1; beat <= 9; beat++) {
+      expect(index()).toBe(beat - 1)
+      const labels = [...canvas.querySelectorAll('*')].filter(el => [...el.childNodes].some(n => n.nodeType === 3 && n.textContent?.trim()))
+      expect(labels.length).toBeGreaterThan(0)
+      for (const label of labels) {
+        const font = parseFloat(getComputedStyle(label).fontSize)
+        expect(font * scale, `beat ${beat}: ${label.textContent}`).toBeGreaterThanOrEqual(12)
+      }
+      if (beat < 9) key('ArrowRight')
+    }
+  })
+  it('uses the same fixed composition and mounted entities when resized, without changing kit defaults', () => {
+    resize(1440, 900)
+    const { container } = render(<><style>{guideCSS}</style><Talk /></>)
+    for (let i = 0; i < 3; i++) key('ArrowRight')
+    const card = container.querySelector('[data-entity="card2"]')!
+    const coordinates = card.parentElement!.getAttribute('style')
+    const canvas = container.querySelector('[data-presentation-canvas]') as HTMLElement
+    resize(390, 900)
+    expect(index()).toBe(3)
+    expect(container.querySelector('[data-entity="card2"]')).toBe(card)
+    expect(card.parentElement!.getAttribute('style')).toBe(coordinates)
+    expect(canvas.style.width).toBe('880px')
+    expect(canvas.style.height).toBe('1200px')
+    expect(Number(canvas.style.transform.match(/[\d.]+/)![0])).toBeCloseTo(fitScale(390, 900, 'browse', 880, 1200), 5)
+    expect(DESIGN_W).toBe(880); expect(DESIGN_H).toBe(380)
   })
 })

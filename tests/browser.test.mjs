@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { resolve, join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
+import { withBrowser, walkSteps } from '../scripts/lib/browser.mjs'
 import { inspectPresentation } from '../scripts/inspect-presentation.mjs'
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..')
 const artifacts=join(root,'.artifacts','test-logs')
@@ -85,6 +86,36 @@ test('E2E-001 reference production verification observes all nine steps on IPv4'
   const source=await readFile(join(root,'scripts/lib/browser.mjs'),'utf8')
   assert.match(source,/listen\(0, HOST/); assert.match(source,/fetch\(baseURL\)/); assert.match(source,/'--host', HOST/)
   await assertStopped(result.output)
+  // A-001 regression: use actual production font metrics and bounding boxes,
+  // reusing the build above. This runs with E2E-001, never in the fast unit gate.
+  await withBrowser(root, async (page, base) => {
+    await walkSteps(page, `${base}/how-to-make-a-presentation`, async (page, step) => {
+      if (![0, 3, 8].includes(step)) return
+      const metrics = await page.evaluate(() => {
+        const canvas = document.querySelector('[data-presentation-canvas]')
+        const rect = canvas.getBoundingClientRect()
+        const scale = rect.width / parseFloat(canvas.style.width)
+        const labels = [...canvas.querySelectorAll('*')].flatMap(element => [...element.childNodes]
+          .filter(node => node.nodeType === 3 && node.textContent.trim())
+          .map(node => {
+            const range = document.createRange(); range.selectNode(node)
+            const text = range.getBoundingClientRect()
+            const owner = element.closest('[data-entity]')?.getBoundingClientRect()
+            return { text: node.textContent.trim(), pixels: parseFloat(getComputedStyle(element).fontSize) * scale,
+              fitsCanvas: text.left >= rect.left - 1 && text.right <= rect.right + 1 && text.top >= rect.top - 1 && text.bottom <= rect.bottom + 1,
+              fitsCard: !element.closest('.step-card') || (text.left >= owner.left - 1 && text.right <= owner.right + 1 && text.top >= owner.top - 1 && text.bottom <= owner.bottom + 1) }
+          }))
+        return { scale, heightScale: rect.height / parseFloat(canvas.style.height), labels }
+      })
+      assert.ok(Math.abs(metrics.scale - metrics.heightScale) < 0.001, 'canvas scales uniformly')
+      assert.ok(metrics.labels.length > 0)
+      for (const label of metrics.labels) {
+        assert.ok(label.pixels >= 12, `step ${step}: undersized ${label.text}: ${label.pixels}px`)
+        assert.ok(label.fitsCanvas, `step ${step}: text outside canvas: ${label.text}`)
+        assert.ok(label.fitsCard, `step ${step}: text outside its card: ${label.text}`)
+      }
+    })
+  }, { width: 390, height: 900 })
 })
 test('E2E-002 verification failure phases steps exit codes and subprocess cleanup', {timeout:300000},async t=>{
   const faults = {

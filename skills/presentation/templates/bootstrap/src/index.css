@@ -1,0 +1,3 @@
+/* Host geometry only. Presentations own their visual styles. */
+* { box-sizing: border-box; }
+body { margin: 0; }

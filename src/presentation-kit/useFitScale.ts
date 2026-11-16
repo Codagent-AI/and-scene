@@ -1,25 +1,19 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
-
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
-
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
-  const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
-    }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+import { useSyncExternalStore } from 'react'
+import { COMPACT_NARROW_STAGE_LAYOUT, COMPACT_STAGE_LAYOUT, DESIGN_H, DESIGN_W, MIN_SCALE, SHORT_VIEWPORT, STAGE_LAYOUT, WIDE_VIEWPORT } from './constants'
+import type { Mode } from './types'
+const subscribe = (fn: () => void) => { window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn) }
+const snapshot = () => `${window.innerWidth},${window.innerHeight}`
+export function fitGeometry(width: number, height: number, mode: Mode, designW = DESIGN_W, designH = DESIGN_H) {
+  const compact = height <= SHORT_VIEWPORT
+  const layouts = compact ? (width <= 600 ? COMPACT_NARROW_STAGE_LAYOUT : COMPACT_STAGE_LAYOUT) : STAGE_LAYOUT
+  const layout = layouts[mode]
+  const inset = width >= WIDE_VIEWPORT ? layout.toc : 0
+  const availableW = Math.max(0, width - inset)
+  const availableH = Math.max(0, height - layout.header - layout.footer)
+  return { compact, layout, scale: Math.max(MIN_SCALE, Math.min(1, availableW / designW, availableH / designH)), inset, height: availableH }
+}
+export function useFitScale(mode: Mode, designW = DESIGN_W, designH = DESIGN_H) {
+  const size = useSyncExternalStore(subscribe, snapshot, () => '1280,800')
+  const [width, height] = size.split(',').map(Number)
+  return { ...fitGeometry(width, height, mode, designW, designH), wide: width >= WIDE_VIEWPORT }
 }

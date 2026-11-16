@@ -1,0 +1,2 @@
+import { presentations } from './presentations'
+export function Landing() { return <main className="landing"><p className="eyebrow">AND SCENE / A LIVING DIAGRAM</p><h1>Ideas, in motion.</h1><p>One scene. A story that builds with every beat.</p><div className="presentation-list">{presentations.map(p => <a key={p.slug} href={`/${p.slug}`}><span>FIELD GUIDE</span><h2>{p.title}</h2><p>Follow the conversation from a first idea to a scene that tells its own story.</p><strong>Explore the presentation ↗</strong></a>)}</div></main> }

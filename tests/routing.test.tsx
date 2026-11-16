@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
-import { Router, resolveRoute } from '../src/Router'
+import { Router } from '../src/Router'
+import { resolveRoute } from '../src/routing'
 vi.mock('../src/presentations', () => ({ presentations: [
   {slug:'one',title:'First',load:async()=>({default:()=> <h1>First scene</h1>})},
   {slug:'two',title:'Second',load:async()=>({default:()=> <h1>Second scene</h1>})},

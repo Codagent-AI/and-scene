@@ -1,10 +1,11 @@
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
 import { dirname, resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const target = join(root, 'skills/presentation/templates/bootstrap')
 await mkdir(target, { recursive: true })
-for (const path of ['src/presentation-kit','scripts/lib','scripts/verify.mjs','scripts/inspect-presentation.mjs','src/main.tsx','src/Router.tsx','index.html','package.json','package-lock.json','tsconfig.json','tsconfig.app.json','tsconfig.node.json','vite.config.ts','eslint.config.js','.gitignore','vitest.config.ts']) {
+for (const path of ['src/presentation-kit', 'scripts/lib', 'src/presentations/example']) await rm(join(target, path), { recursive: true, force: true })
+for (const path of ['src/presentation-kit','scripts/lib','scripts/verify.mjs','scripts/inspect-presentation.mjs','src/main.tsx','src/Router.tsx','src/routing.ts','index.html','package.json','package-lock.json','tsconfig.json','tsconfig.app.json','tsconfig.node.json','vite.config.ts','eslint.config.js','.gitignore','vitest.config.ts']) {
   await mkdir(dirname(join(target,path)), { recursive: true })
   await cp(join(root,path),join(target,path),{ recursive:true })
 }

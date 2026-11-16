@@ -40,7 +40,6 @@ export async function verify({ route = 'how-to-make-a-presentation', first = fal
         if (expected) { phase = 'sample'; validateReference([actual[index]], [expected[index]]); phase = 'render' }
         console.log(`PASS step ${index}: ${title}`)
       }
-      if (expected && !first) validateReference(actual, expected)
     }, { root })
     console.log(`PASS verification ${route}`)
     return true

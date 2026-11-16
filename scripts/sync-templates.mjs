@@ -3,9 +3,8 @@ import { resolve } from 'node:path'
 import { ROOT } from './browser.mjs'
 const target = resolve(ROOT, 'skills/presentation/templates/bootstrap')
 await mkdir(target, { recursive: true })
-for (const name of ['src/presentation-kit', 'scripts']) {
-  if (name === 'src/presentation-kit') { await rm(resolve(target, name), { recursive: true, force: true }); await cp(resolve(ROOT, name), resolve(target, name), { recursive: true }) }
-}
+await rm(resolve(target, 'src/presentation-kit'), { recursive: true, force: true })
+await cp(resolve(ROOT, 'src/presentation-kit'), resolve(target, 'src/presentation-kit'), { recursive: true })
 for (const name of ['package.json', 'package-lock.json', 'index.html', 'public/favicon.svg', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'vite.config.ts', 'eslint.config.js', '.gitignore', 'src/main.tsx', 'src/Router.tsx', 'src/routes.ts', 'src/Landing.tsx', 'src/presentations/index.ts', 'scripts/browser.mjs', 'scripts/verify.mjs', 'scripts/inspect-presentation.mjs', 'scripts/diagnostics.mjs', 'scripts/reference.json']) {
   const dest = resolve(target, name); await mkdir(resolve(dest, '..'), { recursive: true }); await cp(resolve(ROOT, name), dest)
 }

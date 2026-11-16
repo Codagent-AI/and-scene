@@ -18,20 +18,24 @@ describe('verification and inspection logic', () => {
     expect(parseOptions(['example', '--settle', '0']).settle).toBe(0)
     for (const args of [['--settle', '-1'], ['--settle', 'x'], ['--width', '0'], ['--height', 'x'], ['--unknown'], ['../escape']]) expect(() => parseOptions(args)).toThrow()
   })
-  it('I-52 overlap diagnostics distinguish hidden allowed related and separate elements', () => {
+  it('I-52 overlap diagnostics report ancestor text and exempt only allowed or duplicate control labels', () => {
     const rect = { left: 0, top: 0, right: 100, bottom: 30 }
     const a = { key: 'a', label: 'first', ancestors: [], visible: true, allowed: false, rect }
     const b = { ...a, key: 'b', label: 'second' }
     expect(overlapWarnings([a, b])).toEqual(['overlap: first / second'])
     expect(overlapWarnings([a, { ...b, allowed: true }])).toEqual([])
     expect(overlapWarnings([a, { ...b, visible: false }])).toEqual([])
-    expect(overlapWarnings([a, { ...b, ancestors: ['a'] }])).toEqual([])
+    expect(overlapWarnings([a, { ...b, ancestors: ['a'] }])).toEqual(['overlap: first / second'])
+    expect(overlapWarnings([{ ...a, kind: 'chrome' }, { ...b, kind: 'text', ancestors: ['a'] }])).toEqual([])
+    expect(overlapWarnings([{ ...a, kind: 'text' }, { ...b, kind: 'text', ancestors: ['a'] }])).toEqual(['overlap: first / second'])
+    expect(overlapWarnings([a, { ...b, ancestors: ['a'], allowed: true }])).toEqual([])
+    expect(overlapWarnings([{ ...a, kind: 'chrome' }, { ...a, kind: 'text' }, { ...b, kind: 'text', ancestors: ['a'] }])).toEqual(['overlap: first / second'])
     expect(intersects(rect, { left: 100, top: 0, right: 200, bottom: 30 })).toBe(false)
   })
   it('I-53 chrome diagnostics cover indistinct active state and each attribution defect', () => {
     const good = { visible: true, size: 12, browserDefault: false }
-    expect(chromeWarnings({ groups: { progress: { active: 'a', inactive: 'b' } }, attribution: good })).toEqual([])
+    expect(chromeWarnings({ groups: { progress: { active: 'a', inactive: ['b', 'c'] } }, attribution: good })).toEqual([])
     for (const attribution of [null, { ...good, visible: false }, { ...good, size: 10 }, { ...good, browserDefault: true }]) expect(chromeWarnings({ groups: {}, attribution })[0]).toContain('[data-presentation-attribution] a')
-    expect(chromeWarnings({ groups: { progress: { active: 'same', inactive: 'same' }, 'toc-entry': { active: 'same', inactive: 'same' } }, attribution: good })).toEqual(['indistinct active progress', 'indistinct active toc-entry'])
+    expect(chromeWarnings({ groups: { progress: { active: 'same', inactive: ['different', 'same'] }, 'toc-entry': { active: 'same', inactive: ['different', 'same'] } }, attribution: good })).toEqual(['indistinct active progress', 'indistinct active toc-entry'])
   })
 })

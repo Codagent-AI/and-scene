@@ -48,6 +48,7 @@ export async function withPreview(run, { width = 1440, height = 900 } = {}) {
   server.stdout.resume()
   const serverExit = once(server, 'exit')
   let browser
+  let browserServer
   const shutdown = () => { try { process.kill(-server.pid, 'SIGTERM') } catch (error) { if (error.code !== 'ESRCH') throw error } }
   process.once('SIGTERM', shutdown)
   process.once('SIGINT', shutdown)
@@ -61,12 +62,21 @@ export async function withPreview(run, { width = 1440, height = 900 } = {}) {
     }
     if (!ready) throw new Error(`Preview readiness failed: ${url} ${serverError}`)
     console.log(`preview ready ${url} pid=${server.pid}; probe=${url}`)
-    browser = await chromium.launch({ headless: true })
+    browserServer = await chromium.launchServer({ headless: true, host: HOST })
+    console.log(`chromium started pid=${browserServer.process().pid}`)
+    browser = await chromium.connect(browserServer.wsEndpoint())
     const page = await browser.newPage({ viewport: { width, height } })
     console.log(`browser viewport ${width}x${height}`)
     return await run(page, url)
   } finally {
-    try { await browser?.close() } finally {
+    try {
+      try { await browser?.close() } finally {
+        if (browserServer) {
+          await browserServer.close()
+          console.log(`chromium stopped pid=${browserServer.process().pid}`)
+        }
+      }
+    } finally {
       shutdown()
       await serverExit
       process.removeListener('SIGTERM', shutdown)

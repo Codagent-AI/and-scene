@@ -162,8 +162,11 @@ describe('scene runtime contracts', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next step' })); expect(index()).toBe(2)
   })
   it('I-19 interactive targets retain keys and their defaults', () => {
-    render(<Presentation steps={steps} title="Focus" brand={<><a href="/">link</a><input aria-label="Input" /><textarea /><select /><div contentEditable suppressContentEditableWarning>edit</div></>} />)
-    for (const control of document.querySelectorAll('button,a,input,textarea,select,[contenteditable]')) for (const value of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) {
+    render(<Presentation steps={steps} title="Focus" brand={<><a href="/">link</a><input aria-label="Input" /><textarea /><select /><details><summary><span>Disclosure</span></summary><p>Details</p></details><div tabIndex={0}>Custom focus target</div><div contentEditable suppressContentEditableWarning>edit</div></>} />)
+    const summary = document.querySelector('summary')!
+    summary.focus()
+    expect(document.activeElement).toBe(summary)
+    for (const control of document.querySelectorAll('button,a,input,textarea,select,summary,summary span,[tabindex],[contenteditable]')) for (const value of ['ArrowRight', ' ', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) {
       const event = new KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true })
       fireEvent(control, event)
       expect(index()).toBe(0); expect(event.defaultPrevented).toBe(false); expect(root().getAttribute('data-presentation-mode')).toBe('browse')

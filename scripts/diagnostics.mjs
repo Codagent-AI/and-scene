@@ -1,11 +1,17 @@
 export function intersects(a, b) {
   return Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2
 }
+function ownLabel(control, text) {
+  return control.kind === 'chrome' && text.kind === 'text' && (control.key === text.key || text.ancestors.includes(control.key))
+}
 export function overlapWarnings(elements) {
   const warnings = []
   for (let i = 0; i < elements.length; i++) for (let j = i + 1; j < elements.length; j++) {
     const a = elements[i], b = elements[j]
-    if (!a.visible || !b.visible || a.allowed || b.allowed || a.ancestors.includes(b.key) || b.ancestors.includes(a.key)) continue
+    if (!a.visible || !b.visible || a.allowed || b.allowed) continue
+    // Bounds and label text describe the same control, not two visible objects.
+    // Keep every text/text comparison, including parent and descendant text.
+    if (ownLabel(a, b) || ownLabel(b, a)) continue
     if (intersects(a.rect, b.rect)) warnings.push(`overlap: ${a.label} / ${b.label}`)
   }
   return warnings
@@ -13,7 +19,7 @@ export function overlapWarnings(elements) {
 export function chromeWarnings({ groups, attribution }) {
   const warnings = []
   for (const [name, group] of Object.entries(groups)) {
-    if (group.active && group.inactive && group.active === group.inactive) warnings.push(`indistinct active ${name}`)
+    if (group.active && group.inactive.some(signature => signature === group.active)) warnings.push(`indistinct active ${name}`)
   }
   if (!attribution || !attribution.visible || attribution.size < 12 || attribution.browserDefault) warnings.push('unpolished attribution: style [data-presentation-attribution] a (legible size, intentional link treatment)')
   return warnings
@@ -33,14 +39,17 @@ export function measurePage() {
   const elements = []
   for (const el of all) {
     const ownText = [...el.childNodes].filter(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim())
-    const control = el.matches('button,a,input,select,textarea')
+    const control = el.matches('button,a,input,select,textarea,summary')
     if ((!ownText.length && !control) || !visible(el)) continue
     const ancestors = []
     for (let parent = el.parentElement; parent; parent = parent.parentElement) ancestors.push(keys.get(parent))
-    const rects = control ? [el.getBoundingClientRect()] : ownText.flatMap(n => {
-      const range = document.createRange(); range.selectNodeContents(n); return [...range.getClientRects()]
+    const measurements = ownText.flatMap(node => {
+      const range = document.createRange()
+      range.selectNodeContents(node)
+      return [...range.getClientRects()].map(rect => ({ rect, kind: 'text', text: node.textContent.trim() }))
     })
-    for (const r of rects) elements.push({ key: keys.get(el), label: `${el.tagName.toLowerCase()}${el.getAttribute('data-presentation-entity') ? `[${el.getAttribute('data-presentation-entity')}]` : ''} ${el.textContent.trim().slice(0, 55)}`, ancestors, allowed: Boolean(el.closest('[data-presentation-allow-overlap]')), visible: true, rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom } })
+    if (control) measurements.push({ rect: el.getBoundingClientRect(), kind: 'chrome', text: el.getAttribute('aria-label') || el.textContent.trim() })
+    for (const { rect: r, kind, text } of measurements) elements.push({ key: keys.get(el), kind, label: `${el.tagName.toLowerCase()}${el.getAttribute('data-presentation-entity') ? `[${el.getAttribute('data-presentation-entity')}]` : ''} ${text.slice(0, 55)}`, ancestors, allowed: Boolean(el.closest('[data-presentation-allow-overlap]')), visible: true, rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom } })
   }
   const signature = el => {
     const s = getComputedStyle(el)
@@ -50,8 +59,8 @@ export function measurePage() {
   for (const name of ['progress', 'toc-entry']) {
     const items = [...document.querySelectorAll(`[data-presentation-${name}]`)].filter(visible)
     const active = items.find(el => el.getAttribute('data-presentation-active') === 'true')
-    const inactive = items.find(el => el.getAttribute('data-presentation-active') !== 'true')
-    groups[name] = { active: active && signature(active), inactive: inactive && signature(inactive) }
+    const inactive = items.filter(el => el.getAttribute('data-presentation-active') !== 'true')
+    groups[name] = { active: active && signature(active), inactive: inactive.map(signature) }
   }
   const link = document.querySelector('[data-presentation-attribution] a')
   const style = link && getComputedStyle(link)

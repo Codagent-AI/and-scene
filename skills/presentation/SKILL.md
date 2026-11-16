@@ -47,16 +47,25 @@ In a non-empty project lacking scene kit or presentation index, **state the exac
 target and obtain the user's confirmation before writing**. Reuse confirmation
 already given for that target. Never replace a monorepo's root configuration.
 
-If no anchors exist, copy `templates/bootstrap/` into the selected empty target.
-You can run `node <absolute-skill-dir>/scripts/scaffold.mjs <absolute-target>`;
-this helper refuses to overwrite non-empty directories. It locates its snapshot
-relative to its own installed skill, so it works from any working directory.
-If all anchors exist, skip scaffolding. If some exist, add only the missing
-anchors from the snapshot: merge missing package dependencies and scripts, add
-kit files only if the kit is absent, and wire a missing registry/router to the
-existing app without replacing existing content. Inspect local equivalents before
-copying; do not invoke the full-copy helper on a partial project. Preserve all
-existing presentations and all functioning anchors.
+If all anchors exist, skip scaffolding. If the selected target is empty and has
+no anchors, copy `templates/bootstrap/` into it. You can run
+`node <absolute-skill-dir>/scripts/scaffold.mjs <absolute-target>` for this empty
+case only; the helper refuses non-empty directories. It locates the snapshot
+relative to its own installed skill, independent of the working directory.
+
+If the selected target is non-empty, merge **every missing anchor in place**
+after the target confirmation above, whether zero, one, or two anchors exist.
+In particular, a non-empty standalone project with no anchors receives all three
+anchors at its existing root; do not redirect it into a new subdirectory merely
+to obtain an empty target. Inspect every destination before copying: copy absent
+files, merge required dependencies and build/verification scripts into existing
+package metadata, and adapt configuration, source entry points, and router wiring
+without replacing unrelated content. Preserve existing package fields, scripts,
+source files, and documents; regenerate the lockfile with npm install after a
+package merge instead of copying the snapshot lockfile over it. Add kit files
+only when the kit is absent, and reuse any functioning build or registry anchor.
+Do not invoke the full-copy helper for a non-empty target. Preserve all existing
+presentations and functioning anchors.
 
 Ensure dependencies are actually installed; do not assume any are present.
 Runtime: react, react-dom, motion, lucide-react. Dev/build: vite,

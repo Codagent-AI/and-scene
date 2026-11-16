@@ -1,20 +1,28 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
+import { delimiter, join, resolve, sep } from 'node:path'
+import { tmpdir } from 'node:os'
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'node:net'
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const evidence = process.env.EVIDENCE_DIR
 const artifacts = join(root, 'node_modules/.integration')
+const within = (parent, path) => path === parent || path.startsWith(parent + sep)
 await mkdir(artifacts, { recursive: true })
 async function output(name, text) {
-  if (evidence) { await mkdir(evidence, { recursive: true }); await writeFile(join(evidence, `${name}.log`), text) }
+  if (evidence) { await mkdir(evidence, { recursive: true }); await writeFile(join(evidence, `${process.env.EVIDENCE_PREFIX ?? ''}${name}.log`), text) }
 }
 async function run(cwd, args, { ok = true } = {}) {
   return new Promise((resolveResult, reject) => {
-    const child = spawn('npm', args, { cwd, env: { ...process.env, NO_COLOR: '1' }, stdio: ['ignore', 'pipe', 'pipe'] })
+    const env = { ...process.env, NO_COLOR: '1' }
+    if (!within(root, resolve(cwd))) {
+      env.NODE_PATH = ''
+      env.PATH = env.PATH.split(delimiter).filter(path => !within(root, resolve(path))).join(delimiter)
+    }
+    const child = spawn('npm', args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] })
     let text = ''
     child.stdout.on('data', chunk => { text += chunk })
     child.stderr.on('data', chunk => { text += chunk })
@@ -39,6 +47,14 @@ async function files(dir) {
   return result
 }
 async function assertStopped(text) {
+  const browsers = [...text.matchAll(/chromium started pid=(\d+)/g)]
+  const previews = [...text.matchAll(/preview ready http:\/\/127\.0\.0\.1:(\d+) pid=(\d+)/g)]
+  assert.equal(browsers.length, previews.length, 'each preview run must expose its launched Chromium PID')
+  for (const [, pid] of browsers) {
+    assert.match(text, new RegExp(`chromium stopped pid=${pid}`))
+    assert.throws(() => process.kill(Number(pid), 0), { code: 'ESRCH' })
+    console.log(`OS cleanup verified: Chromium pid=${pid} no longer exists`)
+  }
   for (const match of text.matchAll(/preview ready http:\/\/127\.0\.0\.1:(\d+) pid=(\d+)/g)) {
     assert.match(text, new RegExp(`preview stopped pid=${match[2]}`))
     assert.throws(() => process.kill(Number(match[2]), 0), { code: 'ESRCH' })
@@ -48,8 +64,9 @@ async function assertStopped(text) {
   }
 }
 test('INT-001 materialized bootstrap is complete and style-neutral', { timeout: 240000 }, async () => {
-  const dir = await mkdtemp(join(artifacts, 'bootstrap-'))
+  const dir = await mkdtemp(join(tmpdir(), 'and-scene-bootstrap-'))
   try {
+    assert.ok(!within(await realpath(root), await realpath(dir)), 'bootstrap must be outside the source repository')
     const { scaffold, bootstrapDirectory } = await import('../skills/presentation/scripts/scaffold.mjs')
     assert.ok(bootstrapDirectory.startsWith(root))
     // Resolve template via installed skill module, independent of process.cwd().
@@ -68,6 +85,9 @@ test('INT-001 materialized bootstrap is complete and style-neutral', { timeout: 
     assert.equal(css.replace(/\/\*[\s\S]*?\*\//g, '').trim(), '')
     for (const file of kitFiles) assert.doesNotMatch(await readFile(join(dir, 'src/presentation-kit', file), 'utf8'), /(?:backgroundColor|fontFamily|boxShadow|borderRadius)\s*:/)
     const installed = await run(dir, ['ci', '--ignore-scripts'])
+    for (const dep of required) assert.ok(within(await realpath(dir), await realpath(join(dir, 'node_modules', dep))), `${dep} must be installed inside external app`)
+    const requireFromApp = createRequire(join(dir, 'package.json'))
+    for (const dep of ['react', 'react-dom', 'motion', 'lucide-react', 'vite', 'typescript', 'eslint', 'playwright']) assert.ok(within(await realpath(dir), await realpath(requireFromApp.resolve(dep))), `${dep} resolved outside external app`)
     const linted = await run(dir, ['run', 'lint'])
     const verified = await run(dir, ['run', 'verify', '--', '--settle', '30'])
     assert.match(verified.text, /PASS verification/)
@@ -77,7 +97,7 @@ test('INT-001 materialized bootstrap is complete and style-neutral', { timeout: 
     const arbitrarySlug = await run(dir, ['run', 'verify', '--', '--slug', 'how-to-make-a-presentation', '--settle', '30'])
     assert.match(arbitrarySlug.text, /PASS verification/)
     await assertStopped(arbitrarySlug.text)
-    await output('INT-001', `INT-001: all anchors and dependencies present; kit and four browser scripts byte-aligned; style-neutral CSS; caller-independent templates; non-empty overwrite rejected.\n${installed.text}\n${linted.text}\n${verified.text}\nArbitrary generated slug without repository reference metadata:\n${arbitrarySlug.text}`)
+    await output('INT-001', `INT-001: external app ${dir}; sanitized PATH and NODE_PATH; declared dependencies physically installed and runtime/build imports resolve inside app; all anchors and dependencies present; kit and four browser scripts byte-aligned; style-neutral CSS; caller-independent templates; non-empty overwrite rejected.\n${installed.text}\n${linted.text}\n${verified.text}\nArbitrary generated slug without repository reference metadata:\n${arbitrarySlug.text}`)
   } finally { await rm(dir, { recursive: true, force: true }) }
 })
 test('INT-002 screenshot helper captures settled artifacts and advisory diagnostics', { timeout: 180000 }, async () => {
@@ -91,12 +111,12 @@ import './test.css'
 function Scene({payload}: SceneProps<number>) {
   const [settled,setSettled] = useState(0)
   useEffect(() => { const timer=setTimeout(()=>setSettled(payload),80); return ()=>clearTimeout(timer) },[payload])
-  return <div data-settled={settled}><span className="collision a">unmarked A</span><span className="collision b">unmarked B</span><div data-presentation-allow-overlap=""><span className="allowed a">allowed A</span><span className="allowed b">allowed B</span></div></div>
+  return <div data-settled={settled}><span className="collision a">unmarked A</span><span className="collision b">unmarked B</span><div className="nested">parent text<span>descendant text</span></div><div className="normal">normal parent<span>normal child</span></div><button className="labelled"><span>control label</span></button><div data-presentation-allow-overlap=""><span className="allowed a">allowed A</span><span className="allowed b">allowed B</span><div className="allowed-nested">allowed parent<span>allowed descendant</span></div></div></div>
 }
-const steps: Step<number>[] = [0,1].map(i=>({id:String(i),era:String(i),title:'Diagnostic '+i,caption:'Diagnostic caption '+i,Scene,groupKey:'diagnostics',payload:i}))
+const steps: Step<number>[] = [0,1,2].map(i=>({id:String(i),era:String(i),title:'Diagnostic '+i,caption:'Diagnostic caption '+i,Scene,groupKey:'diagnostics',payload:i}))
 export default function Talk(){return <div className="diagnostic"><Presentation title="Diagnostic" steps={steps}/></div>}
 `)
-    await writeFile(join(dir, 'src/presentations/diagnostic/test.css'), `.collision,.allowed {position:absolute;left:120px;top:100px}.allowed {top:200px}.diagnostic [data-presentation-attribution] a {font-size:8px;color:rgb(0,0,238);text-decoration:underline}.diagnostic [data-presentation-progress], .diagnostic [data-presentation-toc-entry] {color:black;background:white;border:1px solid black;font-weight:400;box-shadow:none;opacity:1;transform:none;outline:none;text-decoration:none}`)
+    await writeFile(join(dir, 'src/presentations/diagnostic/test.css'), `.collision,.allowed {position:absolute;left:120px;top:100px}.allowed {top:200px}.diagnostic [data-presentation-attribution] a {font-size:8px;color:rgb(0,0,238);text-decoration:underline}.diagnostic [data-presentation-progress], .diagnostic [data-presentation-toc-entry] {color:black;background:white;border:1px solid black;font-weight:400;box-shadow:none;opacity:1;transform:none;outline:none;text-decoration:none}.nested,.normal {position:absolute;left:120px;top:145px}.nested span,.allowed-nested span {position:absolute;left:0;top:0}.normal {left:400px}.normal span {display:block}.labelled {position:absolute;left:400px;top:250px}.allowed-nested {position:absolute;left:120px;top:240px}.diagnostic [data-presentation-progress]:nth-of-type(2),.diagnostic [data-presentation-toc-entry]:first-child {background:black;color:white}`)
     const registry = join(dir, 'src/presentations/index.ts')
     await writeFile(registry, (await readFile(registry, 'utf8')).replace('export const presentations: PresentationEntry[] = [', `export const presentations: PresentationEntry[] = [\n{slug:'diagnostic',title:'Diagnostic',load:()=>import('./diagnostic/Talk')},`))
     // Capture-time instrumentation asserts settled DOM state without viewing images.
@@ -106,21 +126,23 @@ export default function Talk(){return <div className="diagnostic"><Presentation 
     assert.equal(result.code, 0)
     assert.match(result.text, /browser viewport 1440x900/)
     const report = JSON.parse(await readFile(join(dir, 'artifacts/inspection/diagnostic/1440x900/report.json'), 'utf8'))
-    assert.equal(report.length, 2)
-    assert.ok(report[1].capturedAt - report[0].capturedAt >= 200)
+    assert.equal(report.length, 3)
+    for (let i = 1; i < report.length; i++) assert.ok(report[i].capturedAt - report[i - 1].capturedAt >= 200)
     for (const step of report) {
       const png = await readFile(join(dir, step.file))
       assert.deepEqual([...png.subarray(0, 8)], [137,80,78,71,13,10,26,10])
       assert.equal(png.readUInt32BE(16), 1440); assert.equal(png.readUInt32BE(20), 900)
       assert.match(step.file, new RegExp(`step-0${step.index+1}\\.png$`))
       assert.ok(step.warnings.some(w=>w.includes('unmarked A') && w.includes('unmarked B')))
-      assert.ok(!step.warnings.some(w=>w.includes('allowed A') || w.includes('allowed B')))
-      assert.ok(step.warnings.some(w=>w.includes('indistinct active progress')))
-      assert.ok(step.warnings.some(w=>w.includes('indistinct active toc-entry')))
+      assert.ok(step.warnings.some(w=>w.includes('parent text') && w.includes('descendant text')), 'ancestor/descendant text collision must warn')
+      assert.ok(!step.warnings.some(w=>w.includes('allowed A') || w.includes('allowed B') || w.includes('allowed parent') || w.includes('allowed descendant')))
+      assert.ok(!step.warnings.some(w=>w.includes('normal parent') && w.includes('normal child')))
+      assert.ok(!step.warnings.some(w=>w.includes('control label')), 'a control and its own nested label must not be double-counted')
+      for (const name of ['progress', 'toc-entry']) assert.equal(step.warnings.some(w=>w.includes(`indistinct active ${name}`)), step.index !== 0, 'compare active with every inactive peer, not only the differently styled first control')
       assert.ok(step.warnings.some(w=>w.includes('unpolished attribution')))
     }
     await assertStopped(result.text)
-    await output('INT-002', `INT-002: two valid 1440x900 PNGs, configured settling verified against asynchronously updated fixture, warning-only zero exit, unmarked collisions reported, allowed subtree exempt, active progress/ToC and attribution diagnostics confirmed.\n${result.text}\n${JSON.stringify(report,null,2)}`)
+    await output('INT-002', `INT-002: three valid 1440x900 PNGs, configured settling verified against asynchronously updated fixture, warning-only zero exit, unmarked sibling and ancestor text collisions reported, allowed subtree exempt, ordinary nested control label deduplicated, heterogeneous active progress/ToC comparisons and attribution diagnostics confirmed.\n${result.text}\n${JSON.stringify(report,null,2)}`)
   } finally { await rm(dir, { recursive: true, force: true }) }
 })
 test('E2E-001 reference presentation passes production verification', { timeout: 180000 }, async () => {
@@ -158,7 +180,7 @@ test('E2E-002 verification faults are actionable and clean up processes', { time
       await assertStopped(result.text)
     } finally { await rm(dir,{recursive:true,force:true}) }
   })
-  await output('E2E-002', 'E2E-002: build, missing, order, console, pageerror, and transition subtests assert nonzero outcomes, failed phase, destination step, no false success, terminated preview PID, and released port. See E2E-002-<fault>.log for each command.\n')
+  await output('E2E-002', 'E2E-002: build, missing, order, console, pageerror, and transition subtests assert nonzero outcomes, failed phase, destination step, no false success, terminated Chromium and preview PIDs, and released port. See E2E-002-<fault>.log for each command.\n')
 })
 async function inject(dir, source) {
   const path=join(dir,'src/main.tsx')

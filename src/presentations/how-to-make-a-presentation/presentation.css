@@ -30,7 +30,6 @@
 .reference-presentation [class*="card-"] span { font-size: 12px; }
 .reference-presentation [class*="card-"] small { color: #58736b; font-size: 11px; margin-top: 4px; }
 .reference-presentation .exchange, .reference-presentation .question, .reference-presentation [class*="morph-"], .reference-presentation .modify, .reference-presentation .edited { border: 0; padding: 0; background: transparent; text-align: center; align-items: center; }
-.reference-presentation .exchange-line { font-size: 65px; line-height: .5; font-weight: 200; }
 .reference-presentation .question { font: 11px ui-monospace, monospace; color: #a54e2c; }
 .reference-presentation [class*="morph-"] span { font-size: 23px; line-height: 1; }
 .reference-presentation [class*="morph-"] small { font-size: 8px; }

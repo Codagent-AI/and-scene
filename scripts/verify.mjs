@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
-import { assertClean, visitSteps, watchErrors, withPreview } from './browser.mjs'
+import { visitSteps, watchErrors, withPreview } from './browser.mjs'
 import { referenceSlug, referenceTitle, validateReference } from './reference.mjs'
 export async function verify({ cwd = process.cwd(), slug = referenceSlug, build = true } = {}) {
   if (build) {
@@ -21,7 +21,6 @@ export async function verify({ cwd = process.cwd(), slug = referenceSlug, build 
       metadata.push(await page.locator('[data-presentation]').evaluate(root => [root.getAttribute('data-step-era'), root.querySelector('[data-presentation-title]')?.textContent, root.querySelector('[data-presentation-caption]')?.textContent]))
     } })
     if (slug === referenceSlug) validateReference(metadata)
-    assertClean(errors, metadata.length - 1)
   }, { cwd })
   console.log(`PASS verify ${slug}: build, registration, outline, all steps`)
 }

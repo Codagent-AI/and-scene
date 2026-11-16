@@ -113,11 +113,15 @@ it('A-2 edited annotation clears card 2 and the depth control without reducing r
   const edited = placements.find(p => p.name === 'edited')!
   const card = placements.find(p => p.name === 'card-2')!
   const depth = placements.find(p => p.name === 'depth')!
+  const modify = placements.find(p => p.name === 'modify')!
   // Reserve 12 design pixels, rather than allowing an underline/text box to touch the card.
   expect(edited.y + edited.h + 12).toBeLessThanOrEqual(card.y)
   expect(edited.x).toBeGreaterThanOrEqual(card.x)
   expect(edited.x + edited.w).toBeLessThanOrEqual(card.x + card.w)
   expect(edited.x).toBeGreaterThanOrEqual(depth.x + depth.w + 2)
   expect(edited.h).toBeGreaterThanOrEqual(32 * 1.25)
-  expect(visibleEntities(8).find(p => p.name === 'edited')).toEqual(visibleEntities(9).find(p => p.name === 'edited'))
+  // Scene.tsx's modify path stays at local x >= 10 until its arrowhead at local y=76.
+  // The shared 10px of SVG bounds is empty space; keep the flag clear of painted geometry.
+  expect(edited.x + edited.w).toBeLessThanOrEqual(modify.x + 10)
+  expect(edited.y + edited.h + 2).toBeLessThanOrEqual(modify.y + 76)
 })

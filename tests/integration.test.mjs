@@ -216,11 +216,15 @@ test('E2E-001 reference passes npm run verify production gate', { timeout: 30000
               const label = canvas.querySelector('[data-entity-id="how-to:edited"]')
               const card = canvas.querySelector('[data-entity-id="how-to:card-2"]').getBoundingClientRect()
               const box = label.getBoundingClientRect()
+              const depth = canvas.querySelector('[data-entity-id="how-to:depth"]').getBoundingClientRect()
               const range = document.createRange(); range.selectNodeContents(label)
               const text = range.getBoundingClientRect()
               return { boxBottom:box.bottom, textBottom:text.bottom, cardTop:card.top,
+                boxLeft:box.left, boxRight:box.right, textLeft:text.left, textRight:text.right, depthRight:depth.right,
                 scale:canvas.getBoundingClientRect().width/canvas.offsetWidth }
             })
+            assert.ok(annotation.textLeft >= annotation.depthRight, 'edited text spills into depth pill: ' + JSON.stringify(annotation))
+            assert.ok(annotation.textLeft >= annotation.boxLeft && annotation.textRight <= annotation.boxRight, 'edited text overflows its horizontal bounds: ' + JSON.stringify(annotation))
             assert.ok(annotation.boxBottom < annotation.cardTop, 'annotation box intersects card border: ' + JSON.stringify(annotation))
             assert.ok(annotation.textBottom < annotation.cardTop, 'edited text intersects card border: ' + JSON.stringify(annotation))
             assert.ok(annotation.boxBottom + 12*annotation.scale <= annotation.cardTop+0.5, 'annotation lacks design clearance: ' + JSON.stringify(annotation))

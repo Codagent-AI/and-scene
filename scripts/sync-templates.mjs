@@ -11,7 +11,7 @@ for (const file of ['src/presentation-kit', 'scripts', 'src/main.tsx', 'src/Rout
 await rm(resolve(root, 'scripts/sync-templates.mjs'))
 await rm(resolve(root, 'scripts/run-checks.mjs'))
 const htmlFile = resolve(root, 'index.html')
-await writeFile(htmlFile, (await readFile(htmlFile, 'utf8')).replace(/    <link rel="icon"[^>]+>\n/, ''))
+await writeFile(htmlFile, (await readFile(htmlFile, 'utf8')).replace(/ {4}<link rel="icon"[^>]+>\n/, ''))
 await mkdir(resolve(root, 'src/presentations'), { recursive: true })
 await writeFile(resolve(root, 'src/presentations/index.ts'), "import type { RegistryEntry } from '../presentation-kit/types'\nexport const presentations: RegistryEntry[] = []\n")
 await writeFile(resolve(root, 'src/index.css'), '/* Host geometry only. Presentations own their visual styles. */\n* { box-sizing: border-box; }\nbody { margin: 0; }\n')

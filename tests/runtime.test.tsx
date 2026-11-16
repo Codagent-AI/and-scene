@@ -36,7 +36,7 @@ it('I-6 registry routing and landing preserve multiple entries with unknown fall
   expect(await screen.findByRole('main', { name: 'How to Use This Skill to Make a Presentation' })).toBeTruthy()
 })
 it('I-12 step metadata and position-derived numbering survive reorder insert remove', () => {
-  for (const list of [steps, [...steps].reverse(), [steps[2], steps[0]], [steps[2], ...steps]]) {
+  for (const list of [steps, [...steps].reverse(), [steps[2], steps[0]], [{ ...steps[2], id: 'inserted' }, ...steps]]) {
     const view = render(<Presentation steps={list} title="Fixture" />)
     expect(view.container.querySelector('[data-step-id]')?.getAttribute('data-step-id')).toBe(list[0].id)
     expect(view.container.querySelector('[data-presentation-marker]')?.textContent).toBe(`01 / ${list[0].era}`)

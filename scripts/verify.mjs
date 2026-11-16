@@ -9,9 +9,7 @@ export async function verify({ root = resolve(dirname(fileURLToPath(import.meta.
   try {
     await command('npm', ['run', 'build'], root)
     phase = 'sample'
-    if (slug === REFERENCE_SLUG) {
-      if (!existsSync(join(root, 'src/presentations', slug, 'Talk.tsx'))) throw new SampleValidationError('reference sample missing or unregistered')
-    }
+    if (slug === REFERENCE_SLUG && !existsSync(join(root, 'src/presentations', slug, 'Talk.tsx'))) throw new SampleValidationError('reference sample missing or unregistered')
     phase = 'render'
     await withBrowser(root, async (page, base) => {
       if (slug === REFERENCE_SLUG) {

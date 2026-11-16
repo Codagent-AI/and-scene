@@ -24,3 +24,13 @@ describe('bootstrap materialization', () => {
     expect(await readFile(join(destination, 'existing.txt'), 'utf8')).toBe('preserve me')
   })
 })
+
+it('copies bootstrap entries into an existing empty target and preserves them on repeat', async () => {
+  const destination = await mkdtemp(join(tmpdir(), 'and-scene-empty-'))
+  temporary.push(destination)
+  await materializeBootstrap(destination)
+  const manifest = await readFile(join(destination, 'package.json'), 'utf8')
+  expect(JSON.parse(manifest).scripts.build).toBeTruthy()
+  await expect(materializeBootstrap(destination)).rejects.toThrow('Refusing to overwrite')
+  expect(await readFile(join(destination, 'package.json'), 'utf8')).toBe(manifest)
+})

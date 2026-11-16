@@ -11,7 +11,9 @@ export async function materializeBootstrap(destination) {
   if ((await readdir(target)).length) {
     throw new Error(`Refusing to overwrite non-empty scaffold target: ${target}`)
   }
-  await cp(bootstrapSource, target, { recursive: true, force: false, errorOnExist: true })
+  for (const entry of await readdir(bootstrapSource)) {
+    await cp(resolve(bootstrapSource, entry), resolve(target, entry), { recursive: true, force: false, errorOnExist: true })
+  }
   return target
 }
 

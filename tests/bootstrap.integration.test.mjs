@@ -58,6 +58,7 @@ test('INT-001: materialized bootstrap builds and renders from outside the reposi
       assert.equal(css, '', `bootstrap CSS stays style-neutral: ${relative}`)
     }
     await run('npm', ['ci', '--no-audit', '--no-fund'], target)
+    await run('npm', ['run', 'lint'], target)
     // Local verification performs its own whole-app build and production route smoke check.
     const output = await run('npm', ['run', 'verify', '--', '--slug', 'bootstrap-example'], target)
     assert.match(output, /pass/i)

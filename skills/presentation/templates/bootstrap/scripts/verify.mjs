@@ -20,7 +20,7 @@ export async function renderSteps(page, origin, slug, { canonical = false, settl
   try {
     await page.goto(`${origin}/${slug}`, { waitUntil: 'networkidle' })
     const chrome = page.locator('[data-step-count][data-step-index]').first()
-    await chrome.waitFor({ timeout: 8000 })
+    await chrome.waitFor({ state: 'attached', timeout: 8000 })
     const count = Number(await chrome.getAttribute('data-step-count'))
     if (!Number.isInteger(count) || count < 1 || (canonical && count !== 9)) throw new Error(`step count invalid: ${count}`)
     for (index = 0; index < count; index++) {

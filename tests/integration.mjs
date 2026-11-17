@@ -107,13 +107,16 @@ test('E2E-002 verification failures are actionable and cleaned up', { timeout: 3
     ['render', async dir=>{ const file=resolve(dir,'src/presentations/how-to-make-a-presentation/steps/Scene.tsx'); const text=await readFile(file,'utf8'); await writeFile(file,text.replace('return <SceneLayer>',`if (payload.beat === 2) throw new Error('injected render fault')\n  return <SceneLayer>`)) }, /FAIL (render|transition) phase step 1/],
     ['transition', async dir=>{ const file=resolve(dir,'src/presentation-kit/usePresentationNav.ts'); const text=await readFile(file,'utf8'); await writeFile(file,text.replace('i + 1, count','i + 0, count')) }, /FAIL transition phase step 1/],
   ]
+  let passed = 0
   for(const [name,inject,expected] of faults) await t.test(name,async()=>disposable(async dir=>{
     await inject(dir)
     const result=await command(dir,['run','verify']); await save(`E2E-002-${name}.log`,result.output)
     assert.notEqual(result.code,0,result.output); assert.match(result.output,expected); assert.ok(!result.output.includes('PASS build + sample + render verification')); assertCleanup(result.output)
+    passed++
     const coverage = { build: [40], missing: [46], order: [46], console: [49], page: [49], render: [49], transition: [49] }
     await recordRows(coverage[name], '`E2E-002-' + name + '.log` — E2E-002/' + name + ' fault: nonzero exit, phase/step context, no false success and cleanup asserted.', 'scripts/verify.mjs; scripts/browser.mjs; tests/integration.mjs')
   }))
+  assert.equal(passed, faults.length, 'all verification fault variants must pass')
   await save('E2E-002-contracts.txt', 'E2E-002 build/missing/order/console/page/render/transition variants all passed with nonzero exits, phase/step context, no false success and process cleanup.\n')
   await recordRows([50], '`E2E-001.log`, `E2E-002-contracts.txt` and per-fault E2E-002 logs — named success and failure/cleanup assertions.', 'scripts/verify.mjs; scripts/browser.mjs; tests/integration.mjs')
 })

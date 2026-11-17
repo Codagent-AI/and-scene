@@ -17,6 +17,8 @@ For modification, identify the target first. If unspecified or ambiguous, list e
 
 Resolve all template paths relative to **this SKILL.md's directory**, never the caller's working directory:
 
+For an executable path lookup, run `node <absolute-skill-directory>/resolve-template.mjs bootstrap` (or `presentation`) from any working directory. The helper resolves from its own location and prints the template directory.
+
 - `templates/bootstrap/`: complete self-contained Vite/React/TypeScript app.
 - `templates/presentation/`: presentation-local starter files to copy into a chosen app.
 

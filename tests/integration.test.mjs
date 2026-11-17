@@ -1,13 +1,13 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, cp, readFile, writeFile, readdir, rm, symlink, stat } from 'node:fs/promises'
+import { mkdtemp, cp, readFile, writeFile, readdir, rm, symlink, stat, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { spawn } from 'node:child_process'
 import { inspectPresentation } from '../scripts/inspect-presentation.mjs'
 const root = resolve(import.meta.dirname, '..')
 const selected = process.env.TEST_CASE
-function scenario(name, work) { test(name, { skip: selected && !name.includes(selected), timeout: 720000 }, work) }
+function scenario(name, work) { test(name, { skip: selected && !new RegExp(selected).test(name), timeout: 720000 }, work) }
 async function run(cwd, command, args, expected = 0) {
   const result = await new Promise((resolveResult, reject) => {
     const child = spawn(command, args, { cwd, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] })
@@ -26,13 +26,24 @@ async function run(cwd, command, args, expected = 0) {
 async function disposable(work, { bootstrap = false } = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'and-scene-'))
   try {
-    if (bootstrap) await cp(join(root, 'skills/presentation/templates/bootstrap'), directory, { recursive: true })
+    if (bootstrap) {
+      const skill = await mkdtemp(join(tmpdir(), 'and-scene-skill-'))
+      try {
+        await cp(join(root, 'skills/presentation'), skill, { recursive: true })
+        for (const name of ['bootstrap', 'presentation']) {
+          const lookup = await run(directory, process.execPath, [join(skill, 'resolve-template.mjs'), name])
+          assert.equal(resolve(lookup.output.trim()), join(skill, 'templates', name))
+          console.log(`PASS caller-independent template lookup: cwd=${directory} template=${name}`)
+          if (name === 'bootstrap') await cp(lookup.output.trim(), directory, { recursive: true })
+        }
+      } finally { await rm(skill, { recursive: true, force: true }) }
+    }
     else {
       for (const path of ['src', 'scripts', 'index.html', 'package.json', 'package-lock.json', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'eslint.config.js']) await cp(join(root, path), join(directory, path), { recursive: true })
       await symlink(join(root, 'node_modules'), join(directory, 'node_modules'), 'dir')
     }
     return await work(directory)
-  } finally { await rm(directory, { recursive: true, force: true }) }
+  } finally { await rm(directory, { recursive: true, force: true }); console.log(`PASS disposable cleanup: ${directory}`) }
 }
 async function compareTree(a, b) {
   const entries = await readdir(a, { withFileTypes: true })
@@ -51,11 +62,26 @@ scenario('INT-001 materialized bootstrap complete style-neutral and byte-aligned
     assert.ok(!JSON.stringify(pkg).toLowerCase().includes('tailwind'))
     for (const file of ['src/presentation-kit/Presentation.tsx', 'src/presentations/index.ts', 'vite.config.ts']) assert.ok((await stat(join(directory, file))).isFile())
     await compareTree(join(root, 'src/presentation-kit'), join(directory, 'src/presentation-kit'))
+    console.log('PASS byte parity: canonical kit and materialized bootstrap kit (every file)')
     await compareTree(join(root, 'scripts'), join(directory, 'scripts'))
+    console.log('PASS byte parity: root scripts and materialized bootstrap scripts (every file)')
     const css = await readFile(join(directory, 'src/index.css'), 'utf8')
     assert.ok(!/color|font|border|shadow|padding|margin|--/.test(css), 'bootstrap has no visual defaults')
-    await run(directory, 'npm', ['ci', '--no-audit', '--no-fund'])
+    await run(directory, 'npm', ['ci', '--prefer-offline', '--no-audit', '--no-fund'])
     await run(directory, 'npm', ['run', 'verify'])
+    await mkdir(join(directory, 'src/presentations/generated-probe'))
+    const probe = join(directory, 'src/presentations/generated-probe/Talk.tsx')
+    await cp(join(directory, 'src/presentations/starter/Talk.tsx'), probe)
+    const registry = join(directory, 'src/presentations/index.ts')
+    await writeFile(registry, (await readFile(registry, 'utf8')).replace("export const presentations = [", "export const presentations = [{ slug: 'generated-probe', title: 'Probe', load: () => import('./generated-probe/Talk') }, "))
+    const clean = await run(directory, 'npm', ['run', 'verify', '--', '--slug', 'generated-probe'])
+    assert.match(clean.output, /PASS verify generated-probe/)
+    assert.doesNotMatch(clean.output, /PASS verify starter/)
+    await writeFile(probe, (await readFile(probe, 'utf8')).replace('function Scene() {', 'function Scene() { console.error("generated target reached");'))
+    const broken = await run(directory, 'npm', ['run', 'verify', '--', '--slug', 'generated-probe'], 1)
+    assert.match(broken.output, /FAIL render: render step 0: console: generated target reached/)
+    assert.doesNotMatch(broken.output, /PASS verify/)
+    console.log('PASS documented skill command targets generated route and rejects its injected runtime error')
   }, { bootstrap: true })
 })
 scenario('E2E-001 reference passes complete production verification', async () => {
@@ -67,8 +93,9 @@ scenario('E2E-001 reference passes complete production verification', async () =
 scenario('E2E-002 verification failures identify phases steps and clean preview children', async () => {
   const faults = [
     ['build', 'src/main.tsx', s => s + '\nconst broken: number = "wrong"; console.log(broken)\n', /FAIL build/],
-    ['missing', 'src/presentations/index.ts', s => s.replace("slug: 'how-to-make-a-presentation'", "slug: 'removed'"), /FAIL render: sample: registered presentation missing/],
-    ['order', 'src/presentations/how-to-make-a-presentation/outline.json', s => JSON.stringify(JSON.parse(s).reverse()), /sample step 0: id/],
+    ['missing', 'src/presentations/index.ts', s => s.replace("slug: 'how-to-make-a-presentation'", "slug: 'removed'"), /FAIL sample: registered presentation missing/],
+    ['order', 'src/presentations/how-to-make-a-presentation/outline.json', s => JSON.stringify(JSON.parse(s).reverse()), /FAIL sample: step 0: id/],
+    ['count', 'src/presentations/how-to-make-a-presentation/outline.json', s => JSON.stringify(JSON.parse(s).slice(0, 8)), /FAIL sample: expected 9 steps, got 8/],
     ['console', 'src/presentations/how-to-make-a-presentation/steps/index.tsx', s => s.replace('  return <SceneLayer>', '  if (payload.beat === 2) console.error("injected console failure")\n  return <SceneLayer>'), /render step 2: console: injected console failure/],
     ['pageerror', 'src/presentations/how-to-make-a-presentation/steps/index.tsx', s => s.replace('  return <SceneLayer>', '  if (payload.beat === 3) setTimeout(() => { throw new Error("injected page failure") }, 30)\n  return <SceneLayer>'), /render step 3: pageerror: injected page failure/],
     ['render', 'src/presentations/how-to-make-a-presentation/steps/index.tsx', s => s.replace('  return <SceneLayer>', '  if (payload.beat === 3) throw new Error("injected render failure")\n  return <SceneLayer>'), /render step 3:.*injected render failure/],

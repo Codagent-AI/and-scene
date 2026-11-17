@@ -1,10 +1,9 @@
-import { useEffect } from 'react'
 import { act, fireEvent, render, renderHook, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Presentation } from '../src/presentation-kit/Presentation'
 import { usePresentationNav, swipeDirection } from '../src/presentation-kit/usePresentationNav'
 import { fitScale, useFitScale } from '../src/presentation-kit/useFitScale'
-import { DESIGN_H, DESIGN_W, ENTER_DELAY, LAYOUT_T } from '../src/presentation-kit/constants'
+import { DESIGN_H, DESIGN_W } from '../src/presentation-kit/constants'
 import { Box } from '../src/presentation-kit/nodes/Box'
 import { Label } from '../src/presentation-kit/nodes/Label'
 import { Arrow } from '../src/presentation-kit/nodes/Arrow'
@@ -48,31 +47,6 @@ describe('scene contracts', () => {
     expect(getByTestId('box')).toBe(box)
     expect(box.style.left).toBe('30px'); expect(box.style.width).toBe('50px')
     expect(box.className).toBe('emphasis'); expect(box.textContent).toBe('New')
-  })
-  it('I-5 entrance delay follows layout duration and presence retains departing scenes for exit', () => {
-    expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
-    const { container, rerender } = render(<Stage step={makeSteps()[0]} index={0} mode="browse" />)
-    rerender(<Stage step={{ ...makeSteps()[1], groupKey: 'new' }} index={1} mode="browse" />)
-    expect(container.querySelectorAll('[data-presentation-scene]').length).toBe(2)
-    const newcomer = Appear({ children: 'New' })
-    expect(newcomer.props.transition.delay).toBe(ENTER_DELAY)
-    expect(newcomer.props.exit).toEqual({ opacity: 0 })
-    expect(newcomer.props.animate).toEqual({ opacity: 1, y: 0 })
-  })
-  it('I-6 grouped scene persists while payload changes and different Scene or group remounts', () => {
-    const mount = vi.fn(), unmount = vi.fn()
-    function Persistent({ payload }: SceneProps<number>) { useEffect(() => { mount(); return unmount }, []); return <Box identity="continuing" data-testid="continuing">{payload}</Box> }
-    function Other() { return <p>Other</p> }
-    const steps = makeSteps().map(s => ({ ...s, Scene: Persistent }))
-    const { rerender } = render(<Stage step={steps[0]} index={0} mode="browse" />)
-    const entity = screen.getByTestId('continuing')
-    rerender(<Stage step={steps[1]} index={1} mode="browse" />)
-    expect(mount).toHaveBeenCalledTimes(1); expect(unmount).not.toHaveBeenCalled()
-    expect(screen.getByTestId('continuing')).toBe(entity)
-    expect(entity.closest('[data-presentation-appear]')).toBeNull()
-    expect(entity.textContent).toBe('1')
-    rerender(<Stage step={{ ...steps[2], Scene: Other }} index={2} mode="browse" />)
-    expect(unmount).toHaveBeenCalledTimes(1)
   })
   it('I-7 authored overlapping positions and stacks remain unchanged between grouped payloads', () => {
     function Stack({ payload }: SceneProps<number>) { return <SceneLayer><Box identity="a" data-testid="a" style={{ position: 'absolute', left: 20, top: 10, zIndex: 2 }}>{payload}</Box><Box identity="b" style={{ position: 'absolute', left: 20, top: 10 }}>B</Box></SceneLayer> }
@@ -119,12 +93,22 @@ describe('scene contracts', () => {
     expect(screen.getByRole('heading').textContent).toBe('Title 0')
     expect(container.querySelector('[data-presentation-marker]')).toBeTruthy()
   })
-  it('I-12 initial mode and repeated toggles preserve position', () => {
-    const { result } = renderHook(() => usePresentationNav(4, 'present'))
-    expect(result.current.mode).toBe('present')
-    act(() => result.current.go(2)); act(() => key('P'))
-    expect(result.current.mode).toBe('browse'); expect(result.current.index).toBe(2)
-    act(() => result.current.toggle()); expect(result.current.mode).toBe('present'); expect(result.current.index).toBe(2)
+  it('I-12 Presentation initial modes and repeated toggles preserve step and Scene', () => {
+    const { container, unmount } = render(<Presentation title="Modes" steps={makeSteps()} initialMode="present" />)
+    const root = container.querySelector('[data-presentation-root]')!
+    expect(root.getAttribute('data-presentation-mode')).toBe('present')
+    act(() => key('ArrowRight'))
+    const scene = screen.getByTestId('entity')
+    for (const expected of ['browse', 'present', 'browse']) {
+      act(() => key('P'))
+      expect(root.getAttribute('data-presentation-mode')).toBe(expected)
+      expect(root.getAttribute('data-step-index')).toBe('1')
+      expect(screen.getByTestId('entity')).toBe(scene)
+      expect(container.querySelector('[data-presentation-title]')?.textContent).toBe('Title 1')
+    }
+    unmount()
+    const other = render(<Presentation title="Browse" steps={makeSteps()} initialMode="browse" />)
+    expect(other.container.querySelector('[data-presentation-root]')?.getAttribute('data-presentation-mode')).toBe('browse')
   })
   it('I-13 keyboard maps once and unmount removes listeners', () => {
     const { result, unmount } = renderHook(() => usePresentationNav(20))

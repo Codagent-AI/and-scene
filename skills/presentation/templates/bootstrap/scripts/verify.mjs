@@ -2,11 +2,22 @@ import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { withPreview, sleep } from './browser.mjs'
+class VerificationFailure extends Error {
+  constructor(phase, message) { super(message); this.phase = phase }
+}
+export function parseVerifyArgs(args) {
+  // npm appends caller arguments after a scaffold's default --slug starter.
+  const position = args.lastIndexOf('--slug')
+  if (position < 0) return undefined
+  const slug = args[position + 1]
+  if (!slug || slug.startsWith('--')) throw new Error('--slug requires a registered slug')
+  return slug
+}
 export function validateSample(actual, expected) {
-  if (actual.length !== expected.length) throw new Error(`sample: expected ${expected.length} steps, got ${actual.length}`)
+  if (actual.length !== expected.length) throw new VerificationFailure('sample', `expected ${expected.length} steps, got ${actual.length}`)
   for (let index = 0; index < expected.length; index++) {
     for (const key of ['id', 'era', 'title', 'caption']) {
-      if (actual[index][key] !== expected[index][key]) throw new Error(`sample step ${index}: ${key} differs from canonical outline`)
+      if (actual[index][key] !== expected[index][key]) throw new VerificationFailure('sample', `step ${index}: ${key} differs from canonical outline`)
     }
   }
 }
@@ -32,10 +43,10 @@ export async function verify({ slug, cwd = process.cwd(), build = true } = {}) {
       page.on('console', message => { if (message.type() === 'error') errors.push(`console: ${message.text()}`) })
       page.on('pageerror', error => errors.push(`pageerror: ${error.message}`))
       await page.goto(`${url}/${slug}`)
-      try { await page.locator('[data-step-count]').waitFor({ timeout: 5000 }) } catch { browserFailure(errors, index); throw new Error('sample: registered presentation missing or unreachable') }
+      try { await page.locator('[data-step-count]').waitFor({ timeout: 5000 }) } catch { browserFailure(errors, index); throw new VerificationFailure(reference ? 'sample' : 'render', 'registered presentation missing or unreachable') }
       const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
-      if (!Number.isInteger(count) || count < 1) throw new Error('sample: invalid step count')
-      if (reference && count !== expected.length) throw new Error(`sample: expected ${expected.length} steps, got ${count}`)
+      if (!Number.isInteger(count) || count < 1) throw new VerificationFailure(reference ? 'sample' : 'render', 'invalid step count')
+      if (reference && count !== expected.length) throw new VerificationFailure('sample', `expected ${expected.length} steps, got ${count}`)
       const actual = []
       for (index = 0; index < count; index++) {
         if (index) await page.keyboard.press('ArrowRight')
@@ -55,12 +66,11 @@ export async function verify({ slug, cwd = process.cwd(), build = true } = {}) {
     console.log(`PASS verify ${slug}`)
     return true
   } catch (error) {
-    console.error(`FAIL ${phase}: ${error.message}`)
+    console.error(`FAIL ${error.phase ?? phase}: ${error.message}`)
     return false
   }
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const position = process.argv.indexOf('--slug')
-  if (position >= 0 && !process.argv[position + 1]) { console.error('FAIL arguments: --slug requires a registered slug'); process.exitCode = 1 }
-  else process.exitCode = await verify({ slug: position >= 0 ? process.argv[position + 1] : undefined }) ? 0 : 1
+  try { process.exitCode = await verify({ slug: parseVerifyArgs(process.argv.slice(2)) }) ? 0 : 1 }
+  catch (error) { console.error(`FAIL arguments: ${error.message}`); process.exitCode = 1 }
 }

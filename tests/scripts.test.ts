@@ -1,11 +1,15 @@
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { expect, it, vi } from 'vitest'
 // JavaScript script contracts are exercised directly; real browser checks are separate.
 // @ts-expect-error JavaScript script has no declaration file.
-import { validateSample, browserFailure } from '../scripts/verify.mjs'
+import { validateSample, browserFailure, parseVerifyArgs } from '../scripts/verify.mjs'
 // @ts-expect-error JavaScript script has no declaration file.
 import { captureStep, inspectPresentation } from '../scripts/inspect-presentation.mjs'
 // @ts-expect-error JavaScript script has no declaration file.
 import { inspectDOM } from '../scripts/diagnostics.mjs'
+// @ts-expect-error JavaScript helper has no declaration file.
+import { resolveTemplate } from '../skills/presentation/resolve-template.mjs'
 import reference from '../scripts/reference.json'
 it('I-39 sample validation rejects missing count order and altered metadata', () => {
   expect(() => validateSample(reference, reference)).not.toThrow()
@@ -52,4 +56,16 @@ it('I-47 diagnostic classifier distinguishes active styling and attribution poli
 })
 it('inspection rejects invalid slug without launching a browser', async () => {
   await expect(inspectPresentation('../escape')).rejects.toThrow('registered presentation slug')
+})
+
+it('I-29 explicit target overrides bootstrap default and missing values fail', () => {
+  expect(parseVerifyArgs([])).toBeUndefined()
+  expect(parseVerifyArgs(['--slug', 'starter'])).toBe('starter')
+  expect(parseVerifyArgs(['--slug', 'starter', '--slug', 'generated-probe'])).toBe('generated-probe')
+  expect(() => parseVerifyArgs(['--slug', 'starter', '--slug'])).toThrow('requires a registered slug')
+  expect(() => parseVerifyArgs(['--slug', '--other'])).toThrow('requires a registered slug')
+})
+it('I-24 template lookup is skill-relative and rejects unknown template names', () => {
+  for (const name of ['bootstrap', 'presentation']) expect(resolveTemplate(name)).toBe(resolve(dirname(fileURLToPath(import.meta.url)), '../skills/presentation/templates', name))
+  expect(() => resolveTemplate('../escape')).toThrow('Template must be')
 })

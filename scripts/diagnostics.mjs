@@ -67,10 +67,28 @@ export function readDiagnosticElements() {
   for (const container of [...chrome]) {
     for (const control of container.querySelectorAll('button,a,[role="button"]')) chrome.add(control)
   }
+  // Block-level chrome (header, title rows) spans the whole row even where nothing is
+  // drawn, so containers defer to the chrome they hold and text-bearing blocks are
+  // measured by their text, while controls and empty marks keep their own box.
+  const textBounds = (element) => {
+    const rects = []
+    const inner = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+    while (inner.nextNode()) {
+      if (!inner.currentNode.textContent.trim()) continue
+      const range = document.createRange()
+      range.selectNodeContents(inner.currentNode)
+      for (const rect of range.getClientRects()) if (rect.width && rect.height) rects.push(rect)
+    }
+    if (!rects.length) return null
+    return { left: Math.min(...rects.map((r) => r.left)), right: Math.max(...rects.map((r) => r.right)), top: Math.min(...rects.map((r) => r.top)), bottom: Math.max(...rects.map((r) => r.bottom)) }
+  }
   for (const element of chrome) {
     if (!visible(element)) continue
+    if ([...chrome].some((other) => other !== element && element.contains(other))) continue
+    const isControl = element.matches('button,a,[role="button"]')
+    const box = (!isControl && textBounds(element)) || bounds(element.getBoundingClientRect())
     elements.push({ kind: 'chrome', visible: true, allowOverlap: !!element.closest('[data-presentation-allow-overlap]'),
-      name: name(element), ...relationships(element), ...bounds(element.getBoundingClientRect()) })
+      name: name(element), ...relationships(element), ...box })
   }
   const signature = (element) => {
     const s = getComputedStyle(element)

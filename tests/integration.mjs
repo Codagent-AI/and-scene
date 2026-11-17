@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
+import { withPreview, openPresentation, waitStep, assertClean, SETTLE_MS } from '../scripts/browser.mjs'
 const root = fileURLToPath(new URL('../', import.meta.url))
 async function command(cwd, args) {
   const child = spawn('npm', args, { cwd, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] })
@@ -100,6 +101,45 @@ test('E2E-001 reference presentation passes production verification', { timeout:
   const result = await command(root,['run','verify']); await save('E2E-001.log',result.output); assert.equal(result.code,0,result.output)
   for(let i=0;i<9;i++) assert.match(result.output,new RegExp(`render PASS step ${i}/8`))
   assert.match(result.output,/preview http:\/\/127\.0\.0\.1:/); assert.match(result.output,/PASS build \+ sample \+ render/); assertCleanup(result.output)
+  // F-1: reuse the production build above, but measure the actual narrow
+  // browser text rather than treating canvas fit or a screenshot as readability.
+  const narrowMeasurements = []
+  await withPreview(root, async (browser, url) => {
+    const { page, count, errors } = await openPresentation(browser, url, 'how-to-make-a-presentation', { width: 390, height: 844 })
+    assert.equal(count, 9)
+    for (let index = 0; index < count; index++) {
+      await waitStep(page, index)
+      await page.waitForTimeout(SETTLE_MS)
+      assertClean(errors, index)
+      const labels = await page.evaluate(() => {
+        const canvas = document.querySelector('[data-presentation-canvas]')
+        const scale = canvas.getBoundingClientRect().width / parseFloat(getComputedStyle(canvas).width)
+        const walker = document.createTreeWalker(canvas, NodeFilter.SHOW_TEXT)
+        const result = []
+        while (walker.nextNode()) {
+          const node = walker.currentNode
+          if (!node.textContent.trim()) continue
+          const element = node.parentElement
+          const entity = element.closest('[data-entity]')
+          const range = document.createRange()
+          range.selectNodeContents(node)
+          const text = range.getBoundingClientRect(), box = entity.getBoundingClientRect()
+          result.push({ entity: entity.dataset.entity, text: node.textContent, fontPx: parseFloat(getComputedStyle(element).fontSize) * scale, rangeHeight: text.height, fits: text.left >= box.left - 1 && text.right <= box.right + 1 && text.top >= box.top - 1 && text.bottom <= box.bottom + 1 })
+        }
+        return result
+      })
+      narrowMeasurements.push({ index, labels })
+      await save('E2E-001-narrow-readability.json', JSON.stringify(narrowMeasurements, null, 2))
+      assert.ok(labels.length > 0, `narrow step ${index} has scene text`)
+      for (const label of labels) {
+        assert.ok(label.fontPx >= 12, `narrow step ${index}: ${label.entity}/${label.text} font ${label.fontPx}`)
+        assert.ok(label.rangeHeight >= 12, `narrow step ${index}: ${label.entity}/${label.text} range ${label.rangeHeight}`)
+        assert.ok(label.fits, `narrow step ${index}: ${label.entity}/${label.text} overflows its entity`)
+      }
+      if (index + 1 < count) await page.keyboard.press('ArrowRight')
+    }
+    await page.close()
+  })
   await recordRows([35,40,41,47,48], '`E2E-001.log` — E2E-001 reference presentation passes production verification: whole-app build, normative metadata, all nine indices, IPv4 preview, zero exit and cleanup.', 'scripts/verify.mjs; scripts/browser.mjs; tests/integration.mjs')
 })
 test('E2E-002 verification failures are actionable and cleaned up', { timeout: 360000 }, async t => {

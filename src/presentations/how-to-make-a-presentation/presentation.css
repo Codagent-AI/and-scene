@@ -16,25 +16,30 @@
 .skill-story [data-presentation-navigation], .skill-story [data-presentation-progress] { display: flex; justify-content: center; align-items: center; gap: 8px; }
 .skill-story [data-presentation-progress-entry] { padding: 4px; width: 25px; height: 25px; border-radius: 50%; font-size: 10px; }
 .skill-story [data-presentation-attribution] { font: 12px 'Trebuchet MS', sans-serif; text-decoration: none; color: #526d5b; letter-spacing: .03em; border-bottom: 1px solid #a3b5a5; }
-.skill-story .entity { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font-size: 14px; }
-.skill-story .entity small { font-size: 10px; color: #68796b; }
-.skill-story .entity-you, .skill-story .entity-skill { border: 1.5px solid #234c3b; border-radius: 12px; background: #fffdf6; font: 23px Georgia, serif; box-shadow: 0 4px 0 #e3e7dd; gap: 5px; }
+/* 32 design pixels remain above 12 CSS pixels at the 390px-wide fit.
+   These are presentation-owned sizes; the kit's canvas and scaling are unchanged. */
+.skill-story .entity { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font-size: 32px; line-height: 1.15; }
+.skill-story .entity > span, .skill-story .entity > small { white-space: nowrap; }
+.skill-story .entity small { font: 32px/1.15 'Trebuchet MS', sans-serif; color: #536650; }
+.skill-story .entity-you, .skill-story .entity-skill { border: 1.5px solid #234c3b; border-radius: 12px; background: #fffdf6; font: 40px/1.15 Georgia, serif; box-shadow: 0 4px 0 #e3e7dd; }
 .skill-story .entity-skill { background: #234c3b; color: #fffdf6; }
 .skill-story .entity-skill small { color: #d9e4d7; }
-.skill-story .entity-prompt { font-size: 12px; color: #677767; align-items: flex-start; }
-.skill-story .entity-question, .skill-story .entity-depth, .skill-story .modify-arc { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; fill: none; stroke: #bc6a41; stroke-width: 1.5px; pointer-events: none; }
-.skill-story .entity-edited { border-radius: 20px; background: #e6eadb; font-size: 10px; letter-spacing: .03em; }
-.skill-story .entity-conversation { color: #4e7059; font-size: 16px; }
+.skill-story .entity-prompt { position: relative; border-radius: 12px; background: #e6eadb; color: #3e5944; }
+.skill-story .entity-prompt::after { position: absolute; bottom: -5px; left: 24px; content: ''; width: 10px; height: 10px; background: #e6eadb; transform: rotate(45deg); }
+.skill-story .entity-question, .skill-story .entity-depth, .skill-story .entity-edited { border-radius: 20px; background: #e6eadb; }
+.skill-story .conversation-link { width: 100%; height: 100%; overflow: visible; fill: none; stroke: #4e7059; stroke-width: 2px; }
 .skill-story .entity-tray { background: #d7dece; border-radius: 0 0 8px 8px; }
-.skill-story .entity-card-1, .skill-story .entity-card-2, .skill-story .entity-card-3 { background: #fffdf6; border: 1px solid #bcc8b7; border-radius: 7px; font-size: 12px; box-shadow: 0 5px 0 #e0e5d8; }
-.skill-story .entity-link-1, .skill-story .entity-link-2 { color: #6a7a66; gap: 0; font-size: 22px; }
-.skill-story .entity-ghost { border: 1px dashed #98a48e; border-radius: 7px; color: #899580; font-size: 28px; }
-.skill-story .entity-kit { border: 1px solid #b3bfa8; border-top: 4px solid #9caa8a; border-radius: 0 0 10px 10px; background: #e7ecdf; font-size: 12px; gap: 2px; }
+.skill-story .entity-card-1, .skill-story .entity-card-2, .skill-story .entity-card-3 { background: #fffdf6; border: 1px solid #bcc8b7; border-radius: 7px; box-shadow: 0 5px 0 #e0e5d8; }
+.skill-story .entity-link-1, .skill-story .entity-link-2 { color: #4e7059; }
+.skill-story .entity-ghost { border: 1px dashed #98a48e; border-radius: 7px; color: #67795d; }
+.skill-story .entity-kit { border: 1px solid #b3bfa8; border-top: 3px solid #9caa8a; border-radius: 0 0 10px 10px; background: #e7ecdf; }
 .skill-story .entity-verify { background: #dce9d6; border: 1px solid #73966c; border-radius: 7px; color: #285c37; }
-.skill-story .entity-modify { position: relative; color: #9f512c; font-size: 13px; gap: 7px; }
+.skill-story .entity-verify small { color: #285c37; }
+.skill-story .entity-modify { position: relative; color: #9f512c; }
 .skill-story .modify-arc { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; fill: none; stroke: #bc6a41; stroke-width: 1.5px; pointer-events: none; }
 .skill-story .entity-edited { background: #f5dcc5; color: #9f512c; }
-.skill-story .entity-reveal { border: 1.5px solid #bc6a41; border-radius: 18px; justify-content: flex-end; padding-bottom: 10px; color: #9f512c; font-size: 10px; letter-spacing: .17em; pointer-events: none; }
+.skill-story .entity-reveal { position: relative; border: 1.5px solid #bc6a41; border-radius: 18px; color: #9f512c; pointer-events: none; }
+.skill-story .entity-reveal > span { position: absolute; top: 10px; right: 12px; }
 @media (max-width: 600px) {
   .skill-story [data-presentation-header] { padding: 16px; gap: 14px; }
   .skill-story [data-presentation-name] { font-size: 11px; max-width: 200px; }

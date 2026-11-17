@@ -16,9 +16,9 @@ export const entities = [
   { id: 'ghost', at: 5, x: 652, y: 192, w: 48, h: 132, label: '…' },
   { id: 'kit', at: 6, x: 270, y: 332, w: 300, h: 44, label: 'shared scene kit' },
   { id: 'verify-link', at: 7, x: 704, y: 242, w: 24, h: 32, label: '', description: 'then verify' },
-  { id: 'verify', at: 7, x: 732, y: 192, w: 120, h: 132, label: '✓ verify', detail: ['build', 'render'] },
+  { id: 'verify', at: 7, x: 732, y: 192, w: 120, h: 132, label: 'verify', detail: ['build', 'render'] },
   { id: 'modify', at: 8, x: 658, y: 66, w: 182, h: 104, label: 'modify' },
-  { id: 'edited', at: 8, x: 504, y: 148, w: 144, h: 40, label: 'edited ↙' },
+  { id: 'edited', at: 8, x: 504, y: 148, w: 144, h: 40, label: 'edited' },
   { id: 'reveal', at: 9, x: 12, y: 0, w: 856, h: 380, label: 'this scene' },
 ] as const
 export function visibleEntities(beat: number) { return entities.filter(entity => entity.at <= beat) }

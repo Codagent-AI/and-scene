@@ -107,8 +107,12 @@ test('E2E-001 reference presentation passes production verification', { timeout:
   await withPreview(root, async (browser, url) => {
     const { page, count, errors } = await openPresentation(browser, url, 'how-to-make-a-presentation', { width: 390, height: 844 })
     assert.equal(count, 9)
+    const fontSession = await page.context().newCDPSession(page)
+    await fontSession.send('DOM.enable')
+    await fontSession.send('CSS.enable')
     for (let index = 0; index < count; index++) {
       await waitStep(page, index)
+      await page.evaluate(() => document.fonts.ready.then(() => undefined))
       await page.waitForTimeout(SETTLE_MS)
       assertClean(errors, index)
       const labels = await page.evaluate(() => {
@@ -124,20 +128,29 @@ test('E2E-001 reference presentation passes production verification', { timeout:
           const range = document.createRange()
           range.selectNodeContents(node)
           const text = range.getBoundingClientRect(), box = entity.getBoundingClientRect()
-          result.push({ entity: entity.dataset.entity, text: node.textContent, fontPx: parseFloat(getComputedStyle(element).fontSize) * scale, rangeHeight: text.height, fits: text.left >= box.left - 1 && text.right <= box.right + 1 && text.top >= box.top - 1 && text.bottom <= box.bottom + 1 })
+          result.push({ entity: entity.dataset.entity, text: node.textContent, fontFamily: getComputedStyle(element).fontFamily, fontPx: parseFloat(getComputedStyle(element).fontSize) * scale, rangeHeight: text.height, fits: text.left >= box.left - 1 && text.right <= box.right + 1 && text.top >= box.top - 1 && text.bottom <= box.bottom + 1 })
         }
         return result
       })
+      const { root: documentNode } = await fontSession.send('DOM.getDocument')
+      const { nodeIds } = await fontSession.send('DOM.querySelectorAll', { nodeId: documentNode.nodeId, selector: '[data-presentation-canvas] [data-entity] > span, [data-presentation-canvas] [data-entity] > small' })
+      assert.equal(nodeIds.length, labels.length)
+      for (let i = 0; i < nodeIds.length; i++) {
+        const { fonts } = await fontSession.send('CSS.getPlatformFontsForNode', { nodeId: nodeIds[i] })
+        labels[i].resolvedFonts = fonts
+      }
       narrowMeasurements.push({ index, labels })
       await save('E2E-001-narrow-readability.json', JSON.stringify(narrowMeasurements, null, 2))
       assert.ok(labels.length > 0, `narrow step ${index} has scene text`)
       for (const label of labels) {
+        assert.ok(label.resolvedFonts.length > 0 && label.resolvedFonts.every(font => font.isCustomFont), `narrow step ${index}: unexpected font for ${label.entity}/${label.text}: ${JSON.stringify(label.resolvedFonts)}`)
         assert.ok(label.fontPx >= 12, `narrow step ${index}: ${label.entity}/${label.text} font ${label.fontPx}`)
         assert.ok(label.rangeHeight >= 12, `narrow step ${index}: ${label.entity}/${label.text} range ${label.rangeHeight}`)
         assert.ok(label.fits, `narrow step ${index}: ${label.entity}/${label.text} overflows its entity`)
       }
       if (index + 1 < count) await page.keyboard.press('ArrowRight')
     }
+    await fontSession.detach()
     await page.close()
   })
   await recordRows([35,40,41,47,48], '`E2E-001.log` — E2E-001 reference presentation passes production verification: whole-app build, normative metadata, all nine indices, IPv4 preview, zero exit and cleanup.', 'scripts/verify.mjs; scripts/browser.mjs; tests/integration.mjs')

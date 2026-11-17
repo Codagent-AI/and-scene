@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'And Scene Sans';
+  src: url('./fonts/LiberationSans-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
 .skill-story { color: #24322e; background: #f6f5ee; font-family: 'Trebuchet MS', sans-serif; }
 .skill-story * { box-sizing: border-box; }
 .skill-story [data-presentation-header] { height: 80px; padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #dbddd3; }
@@ -18,10 +25,10 @@
 .skill-story [data-presentation-attribution] { font: 12px 'Trebuchet MS', sans-serif; text-decoration: none; color: #526d5b; letter-spacing: .03em; border-bottom: 1px solid #a3b5a5; }
 /* 32 design pixels remain above 12 CSS pixels at the 390px-wide fit.
    These are presentation-owned sizes; the kit's canvas and scaling are unchanged. */
-.skill-story .entity { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font-size: 32px; line-height: 1.15; }
+.skill-story .entity { font-family: 'And Scene Sans', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font-size: 32px; line-height: 1.15; }
 .skill-story .entity > span, .skill-story .entity > small { white-space: nowrap; }
-.skill-story .entity small { font: 32px/1.15 'Trebuchet MS', sans-serif; color: #536650; }
-.skill-story .entity-you, .skill-story .entity-skill { border: 1.5px solid #234c3b; border-radius: 12px; background: #fffdf6; font: 40px/1.15 Georgia, serif; box-shadow: 0 4px 0 #e3e7dd; }
+.skill-story .entity small { font: 32px/1.15 'And Scene Sans', sans-serif; color: #536650; }
+.skill-story .entity-you, .skill-story .entity-skill { border: 1.5px solid #234c3b; border-radius: 12px; background: #fffdf6; font: 40px/1.15 'And Scene Sans', sans-serif; box-shadow: 0 4px 0 #e3e7dd; }
 .skill-story .entity-skill { background: #234c3b; color: #fffdf6; }
 .skill-story .entity-skill small { color: #d9e4d7; }
 .skill-story .entity-prompt { position: relative; border-radius: 12px; background: #e6eadb; color: #3e5944; }
@@ -49,3 +56,5 @@
   .skill-story [data-presentation-progress-entry] { width: 21px; height: 21px; }
   .skill-story [data-presentation-attribution] { font-size: 12px; }
 }
+
+.skill-story .scene-symbol { display: inline-block; width: 20px; height: 20px; margin-left: 4px; vertical-align: -1px; fill: none; stroke: currentColor; stroke-width: 2.5px; }

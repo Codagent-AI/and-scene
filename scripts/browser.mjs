@@ -64,11 +64,19 @@ export async function openPresentation(browser, url, slug, viewport = { width: 1
   const errors = []
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', error => errors.push(error.message))
-  await page.goto(`${url}/${slug}`)
-  await page.locator('[data-step-count]').waitFor({ timeout: 8000 })
-  const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
-  if (!Number.isInteger(count) || count < 1) throw new Error('render phase step 0: invalid step count')
-  return { page, count, errors }
+  try {
+    await page.goto(`${url}/${slug}`)
+    await page.locator('[data-step-count]').waitFor({ timeout: 8000 })
+    const count = Number(await page.locator('[data-step-count]').getAttribute('data-step-count'))
+    if (!Number.isInteger(count) || count < 1) throw new Error('invalid step count')
+    return { page, count, errors }
+  } catch (cause) {
+    const detail = cause instanceof Error ? cause.message : String(cause)
+    const failure = new Error(`render phase step 0: ${detail}${errors.length ? '; page errors: ' + errors.join('; ') : ''}`, { cause })
+    failure.pageErrors = [...errors]
+    try { await page.close() } catch (cleanupError) { failure.message += `; page cleanup failed: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}` }
+    throw failure
+  }
 }
 export async function waitStep(page, index) {
   try { await page.waitForFunction(index => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(index), index, { timeout: 3000 }) }

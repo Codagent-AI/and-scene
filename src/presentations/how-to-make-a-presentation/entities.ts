@@ -1,21 +1,21 @@
-/** Stable layoutId namespace — entities morph across steps when ids match. */
-export const ENTITIES = {
+export const entities = {
   you: 'you',
   prompt: 'prompt',
-  questionChip: 'question-chip',
-  convoArrow: 'convo-arrow',
   skill: 'skill',
-  stepCard1: 'step-card-1',
-  stepCard2: 'step-card-2',
-  stepCard3: 'step-card-3',
-  ghostCard: 'ghost-card',
-  depthChip: 'depth-chip',
+  question: 'question',
   tray: 'tray',
-  kitSocket: 'kit-socket',
-  verifyArrow: 'verify-arrow',
-  verifyNode: 'verify-node',
-  greenCheck: 'green-check',
-  editBadge: 'edit-badge',
+  tray_label: 'tray-label',
+  card_1: 'card-1',
+  card_2: 'card-2',
+  card_3: 'card-3',
+  morph: 'morph',
+  morph_2: 'morph-2',
+  ghost: 'ghost',
+  depth: 'depth',
+  kit: 'kit',
+  verify: 'verify',
+  verify_link: 'verify-link',
+  loop: 'loop',
+  edit: 'edit',
+  reveal: 'reveal',
 } as const
-
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]

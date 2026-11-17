@@ -1,26 +1,6 @@
-import { Sparkles } from 'lucide-react'
-import { Box, SceneLayer } from '../../../presentation-kit'
-import type { Step } from '../../../presentation-kit'
-import { ENTITIES } from '../entities'
-
-function IntroScene() {
-  return (
-    <SceneLayer>
-      <Box
-        layoutId={ENTITIES.hero}
-        Icon={Sparkles}
-        label="{{TITLE}}"
-        subtitle="{{SUBTITLE}}"
-        accent="cyan"
-      />
-    </SceneLayer>
-  )
-}
-
-export const introStep: Step = {
-  id: 'intro',
-  era: '{{ERA}}',
-  title: '{{STEP_TITLE}}',
-  caption: '{{STEP_CAPTION}}',
-  Scene: IntroScene,
-}
+import { Box, type SceneProps, type Step } from '../../../presentation-kit'
+import { entities } from '../entities'
+export type SceneData = { label: string }
+// eslint-disable-next-line react-refresh/only-export-components
+function Scene({ payload }: SceneProps<SceneData>) { return <Box id={entities.subject}>{payload.label}</Box> }
+export const intro: Step<SceneData> = { id: 'intro', era: 'introduction', title: 'Introduction', caption: 'Introduce the topic.', Scene, payload: { label: 'Topic' }, groupKey: 'main' }

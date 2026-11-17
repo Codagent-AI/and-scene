@@ -1,0 +1,15 @@
+{
+  "slug": "example",
+  "steps": [
+    {
+      "title": "First step",
+      "caption": "An example scene.",
+      "era": "example"
+    },
+    {
+      "title": "Second step",
+      "caption": "The scene changes.",
+      "era": "example"
+    }
+  ]
+}

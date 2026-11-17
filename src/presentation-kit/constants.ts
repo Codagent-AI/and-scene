@@ -1,0 +1,11 @@
+export const DESIGN_W = 880
+export const DESIGN_H = 380
+export const MIN_SCALE = 0
+export const EASE = [0.22, 1, 0.36, 1] as const
+export const LAYOUT_T = 0.5
+export const ENTER_DELAY = LAYOUT_T
+export const ENTER_T = 0.25
+export const STAGE_LAYOUT = {
+  browse: { top: 96, bottom: 210, side: 32 },
+  present: { top: 52, bottom: 110, side: 24 },
+} as const

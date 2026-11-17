@@ -19,7 +19,7 @@ export function visualDiagnostics() {
     if (!node.textContent.trim() || !visible(el) || el.closest('[data-presentation-allow-overlap]')) continue
     const range = document.createRange()
     range.selectNodeContents(node)
-    for (const rect of range.getClientRects()) if (rect.width && rect.height) texts.push({ el, rect })
+    for (const rect of range.getClientRects()) if (rect.width && rect.height) texts.push({ el, rect, node })
   }
   // Chrome's occupied control area matters even when its text does not intersect.
   const controls = '[data-presentation-progress-entry],[data-presentation-toc-entry],[data-presentation-prev],[data-presentation-next],[data-presentation-mode-toggle],[data-presentation-attribution]'
@@ -28,7 +28,10 @@ export function visualDiagnostics() {
   }
   for (let i = 0; i < texts.length; i++) for (let j = i + 1; j < texts.length; j++) {
     const a = texts[i], b = texts[j]
-    if (a.el === b.el || a.el.contains(b.el) || b.el.contains(a.el)) continue
+    if (a.node && a.node === b.node) continue
+    // A control's rectangle contains its own label by design. This does not
+    // exempt separate text ranges merely because their elements are nested.
+    if ((!a.node && b.node && a.el.contains(b.el)) || (!b.node && a.node && b.el.contains(a.el))) continue
     if (Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left) > 2 && Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top) > 2) warnings.push(`overlap: ${label(a.el)} / ${label(b.el)}`)
   }
   const signature = el => { const s = getComputedStyle(el); return [s.color, s.backgroundColor, s.borderColor, s.fontWeight, s.opacity, s.boxShadow, s.textDecorationLine].join('|') }

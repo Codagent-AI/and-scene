@@ -23,6 +23,8 @@ export async function withPreview(cwd, action) {
   server.stderr.on('data', data => { output += data })
   console.log(`preview ${url} pid=${server.pid}`)
   let browser
+  let browserServer
+  let browserProcess
   try {
     const deadline = Date.now() + 15000
     while (true) {
@@ -31,10 +33,19 @@ export async function withPreview(cwd, action) {
       if (Date.now() > deadline) throw new Error(`preview readiness phase: ${url} ${output}`)
       await new Promise(resolve => setTimeout(resolve, 100))
     }
-    browser = await chromium.launch({ headless: true })
+    browserServer = await chromium.launchServer({ headless: true })
+    browserProcess = browserServer.process()
+    console.log(`browser pid=${browserProcess.pid}`)
+    browser = await chromium.connect(browserServer.wsEndpoint())
     return await action(browser, url)
   } finally {
-    try { await browser?.close() } finally {
+    try {
+      try { await browser?.close() } finally { await browserServer?.close() }
+      if (browserProcess) {
+        if (browserProcess.exitCode === null && browserProcess.signalCode === null) await once(browserProcess, 'exit')
+        console.log(`browser cleaned pid=${browserProcess.pid}`)
+      }
+    } finally {
       if (server.exitCode === null) {
         const stopped = once(server, 'exit')
         server.kill('SIGTERM')

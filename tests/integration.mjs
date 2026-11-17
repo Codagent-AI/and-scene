@@ -31,8 +31,13 @@ async function compareTree(a, b) {
   for (const name of names) { const aa = join(a, name), bb = join(b, name); if ((await stat(aa)).isDirectory()) await compareTree(aa, bb); else assert.equal(await readFile(aa, 'utf8'), await readFile(bb, 'utf8'), `byte parity: ${name}`) }
 }
 function assertCleanup(output) {
-  const pids = [...output.matchAll(/preview http:\/\/127\.0\.0\.1:\d+ pid=(\d+)/g)].map(m => Number(m[1]))
-  for (const pid of pids) { assert.match(output, new RegExp(`preview cleaned pid=${pid}`)); assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' }) }
+  const previewPids = [...output.matchAll(/preview http:\/\/127\.0\.0\.1:\d+ pid=(\d+)/g)].map(m => Number(m[1]))
+  const browserPids = [...output.matchAll(/^browser pid=(\d+)$/gm)].map(m => Number(m[1]))
+  assert.equal(browserPids.length, previewPids.length, 'each launched preview check also exposes its browser process')
+  for (const [kind, pids] of [['preview', previewPids], ['browser', browserPids]]) for (const pid of pids) {
+    assert.match(output, new RegExp(`${kind} cleaned pid=${pid}`))
+    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' }, `${kind} process ${pid} must be gone`)
+  }
 }
 async function recordRows(numbers, evidence, code) {
   // Optional implementation evidence sink; normal project tests do not mutate specs.
@@ -65,7 +70,7 @@ test('INT-001 materialized bootstrap is complete and style-neutral', { timeout: 
     for (const file of ['browser.mjs','verify.mjs','inspect-presentation.mjs','diagnostics.mjs','validation.mjs']) assert.equal(await readFile(resolve(root,'scripts',file),'utf8'),await readFile(resolve(dir,'scripts',file),'utf8'))
     const css = await readFile(resolve(dir,'src/index.css'),'utf8'); assert.ok(!/[{}]/.test(css))
     for (const file of ['src/presentations/index.ts','src/main.tsx','src/presentation-kit/Presentation.tsx']) assert.ok((await stat(resolve(dir,file))).isFile())
-    await save('INT-001-contracts.txt', 'INT-001 materialized bootstrap: npm ci; local verify production route and clean server exit; lint; all dependency assertions; complete kit tree byte comparison; all shared browser script bytes aligned; neutral CSS and no framework dependency; all three anchor files present. PASS\n')
+    await save('INT-001-contracts.txt', 'INT-001 materialized bootstrap: npm ci; local verify production route and actual browser/preview PIDs terminated; lint; all dependency assertions; complete kit tree byte comparison; all shared browser script bytes aligned; neutral CSS and no framework dependency; all three anchor files present. PASS\n')
     await recordRows([8,26,27,28,29,35,56], '`INT-001-contracts.txt`, `INT-001-install.log`, `INT-001-verify.log` — INT-001 materialized bootstrap is complete and style-neutral.', 'skills/presentation/templates/bootstrap/; scripts/; tests/integration.mjs')
   }, true)
 })
@@ -73,7 +78,7 @@ test('INT-002 screenshot helper emits settled artifacts and advisory warnings', 
   await disposable(async dir => {
     const talk = `import { useState, useEffect } from 'react'
 import { Presentation } from '../../presentation-kit'
-function Scene() { return <div><span style={{position:'absolute',left:50,top:50}}>Collision A</span><span style={{position:'absolute',left:50,top:50}}>Collision B</span><button data-presentation-next aria-label="Empty chrome control" style={{position:'absolute',left:48,top:48,width:150,height:30}} /><div data-presentation-allow-overlap><span style={{position:'absolute',left:150,top:150}}>Allowed A</span><span style={{position:'absolute',left:150,top:150}}>Allowed B</span></div></div> }
+function Scene() { return <div><span style={{position:'absolute',left:50,top:50}}>Collision A</span><span style={{position:'absolute',left:50,top:50}}>Collision B</span><button data-presentation-next aria-label="Empty chrome control" style={{position:'absolute',left:48,top:48,width:150,height:30}} /><div aria-label="Nested parent owner" style={{position:'absolute',left:350,top:50}}>Nested parent<span aria-label="Nested child owner" style={{position:'absolute',left:0,top:0}}>Nested child</span></div><div data-presentation-allow-overlap><span style={{position:'absolute',left:150,top:150}}>Allowed A</span><span style={{position:'absolute',left:150,top:150}}>Allowed B</span></div></div> }
 export default function Talk() { const [ready,setReady]=useState(false); useEffect(()=>{ const id=setTimeout(()=>setReady(true),100); return ()=>clearTimeout(id) },[]); return <div style={{fontFamily:'Arial'}} data-ready={ready}><style>{'[data-presentation-attribution]{font-size:8px}'}</style><Presentation title="Fixture" steps={[{id:'a',era:'first',title:'First',caption:'Caption one',Scene,payload:undefined},{id:'b',era:'second',title:'Second',caption:'Caption two',Scene,payload:undefined}]} /></div> }
 `
     await writeFile(resolve(dir,'src/presentations/how-to-make-a-presentation/Talk.tsx'),talk)
@@ -84,7 +89,7 @@ export default function Talk() { const [ready,setReady]=useState(false); useEffe
     for (const row of report) {
       assert.ok(row.waitedMs>=900); assert.match(row.file,/artifacts\/inspection\/how-to-make-a-presentation\/1440x900\/step-0[12]\.png$/)
       const png=await readFile(row.file); assert.deepEqual([...png.subarray(0,8)],[137,80,78,71,13,10,26,10]); assert.equal(png.readUInt32BE(16),1440); assert.equal(png.readUInt32BE(20),900)
-      assert.ok(row.warnings.some(w=>w.includes('Collision A')&&w.includes('Empty chrome control'))); assert.ok(row.warnings.some(w=>w.includes('Collision A')&&w.includes('Collision B'))); assert.ok(!row.warnings.some(w=>w.includes('Allowed')))
+      assert.ok(row.warnings.some(w=>w.includes('Collision A')&&w.includes('Empty chrome control'))); assert.ok(row.warnings.some(w=>w.includes('Collision A')&&w.includes('Collision B'))); assert.ok(!row.warnings.some(w=>w.includes('Allowed'))); assert.ok(row.warnings.some(w=>w.includes('Nested parent owner')&&w.includes('Nested child owner')))
       assert.ok(row.warnings.some(w=>w.includes('indistinct active progress'))); assert.ok(row.warnings.some(w=>w.includes('indistinct active toc'))); assert.ok(row.warnings.some(w=>w.includes('unpolished attribution')))
     }
     await save('INT-002-report.json',JSON.stringify(report,null,2))
@@ -117,6 +122,6 @@ test('E2E-002 verification failures are actionable and cleaned up', { timeout: 3
     await recordRows(coverage[name], '`E2E-002-' + name + '.log` — E2E-002/' + name + ' fault: nonzero exit, phase/step context, no false success and cleanup asserted.', 'scripts/verify.mjs; scripts/browser.mjs; tests/integration.mjs')
   }))
   assert.equal(passed, faults.length, 'all verification fault variants must pass')
-  await save('E2E-002-contracts.txt', 'E2E-002 build/missing/order/console/page/render/transition variants all passed with nonzero exits, phase/step context, no false success and process cleanup.\n')
+  await save('E2E-002-contracts.txt', 'E2E-002 build/missing/order/console/page/render/transition variants all passed with nonzero exits, phase/step context, no false success and browser/preview PID termination asserted.\n')
   await recordRows([50], '`E2E-001.log`, `E2E-002-contracts.txt` and per-fault E2E-002 logs — named success and failure/cleanup assertions.', 'scripts/verify.mjs; scripts/browser.mjs; tests/integration.mjs')
 })

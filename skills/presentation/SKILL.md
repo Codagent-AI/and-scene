@@ -21,9 +21,9 @@ Inspect for three contract anchors, using actual behavior and exports rather tha
 
 1. A Vite + React + TypeScript build setup exposing a working `npm run build`.
 2. A reusable scene kit with typed Step/Scene payloads, stage/morph hosting, persistent grouped scenes, present/browse navigation/chrome, and fixed-canvas fit scaling.
-3. An explicit presentation registry connecting independently routed presentation folders to a landing/index view.
+3. A presentation index mapping presentations to independent routes so multiple presentations coexist. An explicit registry or dynamic discovery can satisfy this behavioral anchor.
 
-An app with all anchors is reused without re-scaffolding. If some anchors exist, preserve them and integrate only missing anchors and dependencies. Cosmetic differences are never a reason to replace a valid anchor. Inspect custom anchor interfaces and adapt imports to them.
+An app with all anchors is reused without re-scaffolding. If some anchors exist, preserve them and integrate only missing anchors and dependencies. Cosmetic differences are never a reason to replace a valid anchor. Preserve a functioning dynamically discovered index instead of converting it to an explicit array; the explicit registry is the supplied scaffold's implementation, not a detection prerequisite. Inspect custom anchor interfaces and adapt imports to them.
 
 Resolve the target before writes:
 
@@ -43,7 +43,7 @@ Use committed lock data and `npm ci` for an unchanged full bootstrap, or regener
 
 ## Generate or modify
 
-For create, select a unique kebab-case slug and make `src/presentations/<slug>/`. Use the presentation templates as a starting point, replacing `__SLUG__` and `__TITLE__`. Add `entities.ts`, typed scene-state data and `steps/`, `Talk.tsx`, and presentation-local CSS. Add one explicit `{ slug, title, load: () => import('./<slug>/Talk') }` registry entry. Preserve all existing entries. Set `presentation.config.json`'s default slug for a fresh bootstrap; leave an established app's reference configuration intact and pass the new slug explicitly to scripts.
+For create, select a unique kebab-case slug and make `src/presentations/<slug>/`. Use the presentation templates as a starting point, replacing `__SLUG__` and `__TITLE__`. Add `entities.ts`, typed scene-state data and `steps/`, `Talk.tsx`, and presentation-local CSS. For the supplied scaffold's explicit registry, add one `{ slug, title, load: () => import('./<slug>/Talk') }` entry. For an existing compatible index, follow its registration or dynamic-discovery convention instead. Preserve all existing entries and routes. Set `presentation.config.json`'s default slug for a fresh bootstrap; leave an established app's reference configuration intact and pass the new slug explicitly to scripts.
 
 Each step needs stable id, era, one-line presenter title, paragraph caption, and a diagram state. Numbering is array-derived. Use typed Step<T> and SceneProps<T> without boundary casts. Adjacent states of one diagram share groupKey and Scene so the component persists and only payload changes. Keep stable, presentation-namespaced layoutIds on continuing entities. Retain keyed Appear wrappers for continuing entities so they do not replay newcomer fades; AnimatePresence handles departing entities. New arrivals wait until continuing layout motion settles. Use absolute SceneLayer coordinates; preserve readable intentional stacking. Raw motion elements with stable layoutIds are valid when a generic primitive is unsuitable.
 

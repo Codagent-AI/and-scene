@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useEffect, useState } from 'react'
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Presentation, Stage, Box, Label, Arrow, Frame, Emphasis, SymbolChip, SceneLayer, Appear, ENTER_DELAY, ENTER_T, LAYOUT_T, DESIGN_W, DESIGN_H } from '../src/presentation-kit'
 import type { SceneProps, Step } from '../src/presentation-kit'
 import { Footer } from '../src/presentation-kit/chrome/Footer'
@@ -45,7 +45,29 @@ describe('scene contracts', () => {
     rerender(<Box id="entity" style={{ left: 20, width: 80 }} data-emphasis="strong">new</Box>)
     expect(screen.getByText('new')).toBe(el); expect(el.style.left).toBe('20px'); expect(el.style.width).toBe('80px'); expect(el.dataset.emphasis).toBe('strong')
   })
-  it('I-5 entry waits for continuing layout and has explicit departure animation', () => { expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T); expect(ENTER_T).toBeGreaterThan(0); const { container } = render(<Appear><span>new</span></Appear>); expect(container.querySelector('[data-presentation-appear]')).toBeTruthy() })
+  it('I-5 newcomer waits through continuing motion then enters and departing entity fades before removal', async () => {
+    function Transition({ show }: { show: boolean }) {
+      return <SceneLayer><Box id="continuing" style={{ position: 'absolute', left: show ? 100 : 0 }}>continuing</Box><AnimatePresence initial={false}>{show && <Appear key="arrival" data-testid="arrival">newcomer</Appear>}</AnimatePresence></SceneLayer>
+    }
+    expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
+    expect(ENTER_T).toBeGreaterThan(0)
+    const { rerender } = render(<Transition show={false} />)
+    const continuing = screen.getByText('continuing')
+    rerender(<Transition show />)
+    const arrival = screen.getByTestId('arrival')
+    expect(screen.getByText('continuing')).toBe(continuing)
+    expect(continuing.style.left).toBe('100px')
+    expect(arrival.style.opacity).toBe('0')
+    await act(() => new Promise(resolve => setTimeout(resolve, LAYOUT_T * 1000 - 100)))
+    expect(arrival.style.opacity).toBe('0')
+    await waitFor(() => { const opacity = Number(arrival.style.opacity); expect(opacity).toBeGreaterThan(0); expect(opacity).toBeLessThan(1) }, { timeout: 1500, interval: 10 })
+    await waitFor(() => expect(arrival.style.opacity).toBe('1'), { timeout: 1500 })
+    rerender(<Transition show={false} />)
+    expect(screen.getByTestId('arrival')).toBe(arrival)
+    await waitFor(() => { const opacity = Number(arrival.style.opacity); expect(opacity).toBeGreaterThan(0); expect(opacity).toBeLessThan(1); expect(arrival.isConnected).toBe(true) }, { timeout: 1000, interval: 10 })
+    await waitFor(() => expect(screen.queryByTestId('arrival')).toBeNull(), { timeout: 1500 })
+    expect(screen.getByText('continuing')).toBe(continuing)
+  })
   it('I-6 grouped scene preserves instance while group and component changes remount', async () => {
     let mounts = 0
     function Persistent({ payload }: SceneProps<{ text: string }>) { const [token] = useState(() => ++mounts); return <span>{token}:{payload.text}</span> }
@@ -99,6 +121,35 @@ describe('scene contracts', () => {
     presentation(); const el = document.createElement(tag); if (tag === 'div') el.setAttribute('contenteditable', 'true'); document.body.append(el)
     for (const k of [' ', 'ArrowRight', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) expect(key(k, el)).toBe(true)
     expect(host().getAttribute('data-step-index')).toBe('0'); expect(host().getAttribute('data-presentation-mode')).toBe('browse'); el.remove()
+  })
+  it('I-19 focused summary keeps Space and its own handler without deck navigation', () => {
+    presentation()
+    const details = document.createElement('details'), summary = document.createElement('summary')
+    summary.textContent = 'More detail'; details.append(summary); document.body.append(details); summary.focus()
+    const handler = vi.fn(); summary.addEventListener('keydown', handler)
+    expect(document.activeElement).toBe(summary)
+    expect(key(' ', summary)).toBe(true)
+    expect(handler).toHaveBeenCalledOnce()
+    expect(host().getAttribute('data-step-index')).toBe('0')
+    details.remove()
+  })
+  it.each(['checkbox','combobox','grid','gridcell','link','listbox','menu','menubar','menuitem','menuitemcheckbox','menuitemradio','option','radio','radiogroup','scrollbar','searchbox','slider','spinbutton','switch','tab','tablist','textbox','tree','treegrid','treeitem'])('I-19 ARIA %s and nested targets retain all navigation keys', role => {
+    presentation(); const control = document.createElement('div'), nested = document.createElement('span')
+    control.setAttribute('role', role); nested.setAttribute('role', 'presentation'); control.append(nested); document.body.append(control)
+    // Role ownership is detected even before the author adds keyboard focusability.
+    expect(ownsKeys(nested)).toBe(true)
+    control.tabIndex = 0; control.focus(); expect(document.activeElement).toBe(control)
+    for (const k of [' ', 'ArrowRight', 'PageDown', 'ArrowLeft', 'PageUp', 'p']) expect(key(k, control)).toBe(true)
+    expect(host().getAttribute('data-step-index')).toBe('0'); expect(host().getAttribute('data-presentation-mode')).toBe('browse')
+    control.remove()
+  })
+  it('I-19 native media controls and custom focusable widgets own their keys', () => {
+    presentation()
+    for (const tag of ['audio', 'video', 'div']) {
+      const control = document.createElement(tag)
+      if (tag === 'div') control.tabIndex = 0; else control.setAttribute('controls', '')
+      document.body.append(control); expect(key(' ', control)).toBe(true); expect(host().getAttribute('data-step-index')).toBe('0'); control.remove()
+    }
   })
   it('I-19 nested interactive targets and modified keys retain behavior', () => { presentation(); const button = document.createElement('button'), span = document.createElement('span'); button.append(span); document.body.append(button); expect(ownsKeys(span)).toBe(true); key('ArrowRight', span); fireEvent.keyDown(window, { key: 'ArrowRight', ctrlKey: true }); expect(host().getAttribute('data-step-index')).toBe('0'); button.remove() })
   it('I-20 both boundaries clamp and buttons disable', () => { presentation(); key('ArrowLeft'); expect(host().getAttribute('data-step-index')).toBe('0'); expect(screen.getByRole('button', { name: 'Previous step' }).hasAttribute('disabled')).toBe(true); for (let i = 0; i < 5; i++) key('ArrowRight'); expect(host().getAttribute('data-step-index')).toBe('2'); expect(screen.getByRole('button', { name: 'Next step' }).hasAttribute('disabled')).toBe(true); expect(clampIndex(-3, 3)).toBe(0); expect(clampIndex(8, 3)).toBe(2) })

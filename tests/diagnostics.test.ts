@@ -52,3 +52,23 @@ it('I-52 settle interval covers motion and rejects invalid configuration', async
   await expect(inspectPresentation({ settleMs: -1 })).rejects.toThrow('Invalid settle interval')
   await expect(inspectPresentation({ settleMs: NaN })).rejects.toThrow('Invalid settle interval')
 })
+
+it('I-53 separate parent and positioned child text collide unless explicitly marked', () => {
+  fixture()
+  const parent = document.createElement('div')
+  parent.setAttribute('aria-label', 'Parent text owner')
+  parent.append(document.createTextNode('Parent collision'))
+  const child = document.createElement('span')
+  child.setAttribute('aria-label', 'Child text owner')
+  child.style.cssText = 'position:absolute;left:0;top:0'
+  child.textContent = 'Child collision'; parent.append(child)
+  document.querySelector('[data-presentation]')!.append(parent)
+  expect(visualDiagnostics().some((w: string) => w.includes('Parent text owner') && w.includes('Child text owner'))).toBe(true)
+  parent.setAttribute('data-presentation-allow-overlap', '')
+  expect(visualDiagnostics().some((w: string) => w.includes('Parent text owner') || w.includes('Child text owner'))).toBe(false)
+})
+it('I-53 a control does not collide with its own nested label', () => {
+  fixture()
+  document.querySelector('[data-presentation]')!.innerHTML = '<button aria-label="Self control" data-presentation-prev><span aria-label="Self label">Back</span></button>'
+  expect(visualDiagnostics().some((w: string) => w.includes('overlap:'))).toBe(false)
+})

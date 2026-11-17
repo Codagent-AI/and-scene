@@ -1,0 +1,6 @@
+body { margin: 0; }
+.landing { padding: 12vh 8vw; color: #243b30; background: #f6f5ee; min-height: 76vh; font: 16px 'Trebuchet MS', sans-serif; }
+.landing h1 { font: 64px Georgia, serif; letter-spacing: -.04em; }
+.landing > p:first-child { font-size: 11px; letter-spacing: .2em; }
+.landing ul { list-style: none; padding: 32px 0; }
+.landing a { color: #285c37; text-underline-offset: 6px; }

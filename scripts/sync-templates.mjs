@@ -9,7 +9,7 @@ await rm(resolve(target, 'src/presentation-kit'), { recursive: true, force: true
 await cp(resolve(root, 'src/presentation-kit'), resolve(target, 'src/presentation-kit'), { recursive: true })
 for (const file of ['index.html', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'vite.config.ts', 'eslint.config.js', 'package-lock.json', '.gitignore']) await cp(resolve(root, file), resolve(target, file))
 for (const file of ['browser.mjs', 'verify.mjs', 'inspect-presentation.mjs', 'diagnostics.mjs', 'validation.mjs']) await cp(resolve(root, 'scripts', file), resolve(target, 'scripts', file))
-for (const file of ['main.tsx', 'Landing.tsx']) await cp(resolve(root, 'src', file), resolve(target, 'src', file))
+for (const file of ['main.tsx', 'Landing.tsx', 'PresentationErrorBoundary.tsx']) await cp(resolve(root, 'src', file), resolve(target, 'src', file))
 const pkg = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
 pkg.scripts.test = 'vitest run --passWithNoTests'
 delete pkg.scripts['test:integration']

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { fileURLToPath, URL } from 'node:url'
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import { Scene } from '../src/presentations/how-to-make-a-presentation/steps/Scene'
@@ -8,7 +9,7 @@ import { fitScale, stageGeometry } from '../src/presentation-kit/useFitScale'
 let stylesheet: HTMLStyleElement
 beforeEach(() => {
   stylesheet = document.createElement('style')
-  stylesheet.textContent = readFileSync('src/presentations/how-to-make-a-presentation/presentation.css', 'utf8')
+  stylesheet.textContent = readFileSync(fileURLToPath(new URL('../src/presentations/how-to-make-a-presentation/presentation.css', import.meta.url)), 'utf8')
   document.head.append(stylesheet)
 })
 afterEach(() => { cleanup(); stylesheet.remove() })

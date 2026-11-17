@@ -72,3 +72,8 @@ it('I-53 a control does not collide with its own nested label', () => {
   document.querySelector('[data-presentation]')!.innerHTML = '<button aria-label="Self control" data-presentation-prev><span aria-label="Self label">Back</span></button>'
   expect(visualDiagnostics().some((w: string) => w.includes('overlap:'))).toBe(false)
 })
+
+it('I-53 R3 missing presentation root returns an actionable advisory instead of throwing', () => {
+  document.body.innerHTML = '<main>Presentation unavailable</main>'
+  expect(visualDiagnostics()).toEqual(['missing root: data-presentation'])
+})

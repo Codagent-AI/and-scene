@@ -2,6 +2,7 @@
 export function visualDiagnostics() {
   const warnings = []
   const root = document.querySelector('[data-presentation]')
+  if (!root) return ['missing root: data-presentation']
   const label = el => el.getAttribute('data-entity') || el.getAttribute('aria-label') || el.tagName.toLowerCase() + ':' + el.textContent.trim().slice(0, 42)
   const visible = el => {
     const rect = el.getBoundingClientRect()

@@ -1,0 +1,5 @@
+import { Presentation, type Step } from '../../presentation-kit'
+import './style.css'
+function Scene({payload}: {payload: string}) { return <div>{payload}</div> }
+const steps: Step<string>[] = [{id:'first', era:'introduction', title:'First step', caption:'Describe this step.', Scene, payload:'Example', groupKey:'scene'}]
+export default function Talk() { return <Presentation title="Presentation" steps={steps} /> }

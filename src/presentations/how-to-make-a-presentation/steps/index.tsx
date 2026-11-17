@@ -5,14 +5,18 @@ import { SceneLayer } from '../../../presentation-kit/nodes/SceneLayer'
 import type { SceneProps, Step } from '../../../presentation-kit/types'
 import { identity, visibleEntities } from '../entities'
 import outline from '../outline.json'
+import { COMPACT_FONT_SIZE, compactCopy } from '../compact'
 export interface Beat { beat: number }
 export function EvolvingScene({ payload }: SceneProps<Beat>) {
   return <SceneLayer>
     <AnimatePresence>
       {visibleEntities(payload.beat).map(entity => <Appear key={entity.id} style={{ position: 'absolute', left: entity.x, top: entity.y, width: entity.width, height: entity.height }}>
-        <Box identity={identity(entity.id)} className={`entity entity-${entity.kind}`} data-entity-id={entity.id} style={{ width: '100%', height: '100%' }}>
-          <span className="entity-label">{entity.label}</span>
-          {entity.detail && <span className="entity-detail">{entity.detail}</span>}
+        <Box identity={identity(entity.id)} className={`entity entity-${entity.kind}`} data-entity-id={entity.id} role="img" aria-label={entity.id === 'conversation' ? 'Two-way conversation between you and skill' : [entity.label, entity.detail].filter(Boolean).join('. ')} style={{ width: '100%', height: '100%' }}>
+          <span className="entity-label entity-label-full" aria-hidden="true">{entity.label}</span>
+          {entity.detail && <span className="entity-detail entity-detail-full" aria-hidden="true">{entity.detail}</span>}
+          {compactCopy[entity.id] && <span className="entity-label entity-label-compact" aria-hidden="true" style={{ fontSize: COMPACT_FONT_SIZE }}>{compactCopy[entity.id].label}</span>}
+          {compactCopy[entity.id]?.detail && <span className="entity-detail entity-detail-compact" aria-hidden="true" style={{ fontSize: COMPACT_FONT_SIZE }}>{compactCopy[entity.id].detail}</span>}
+          {entity.id === 'conversation' && <svg className="conversation-compact" viewBox="0 0 270 24" aria-hidden="true"><path d="M3 12 H267 M12 3 L3 12 L12 21 M258 3 L267 12 L258 21" fill="none" stroke="currentColor" strokeWidth="3" /></svg>}
         </Box>
       </Appear>)}
       {payload.beat >= 7 && <Appear key="modify" className="modify-arc" style={{ position: 'absolute', left: 505, top: 118, width: 282, height: 47 }}>

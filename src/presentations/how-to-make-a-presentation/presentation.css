@@ -1,4 +1,4 @@
-.how-to { --ink: #173634; --muted: #526e68; --paper: #f4f1e9; --accent: #17674f; color: var(--ink); background: var(--paper); font-family: 'Segoe UI', system-ui, sans-serif; }
+.how-to { position: relative; --ink: #173634; --muted: #526e68; --paper: #f4f1e9; --accent: #17674f; color: var(--ink); background: var(--paper); font-family: 'Segoe UI', system-ui, sans-serif; }
 .how-to * { box-sizing: border-box; }
 .how-to button { font: inherit; cursor: pointer; color: inherit; }
 .how-to button:focus-visible, .how-to a:focus-visible { outline: 3px solid #be681c; outline-offset: 4px; }
@@ -54,3 +54,17 @@
 @media (max-width: 1000px) { .how-to [data-presentation-toc] { display: none; } .how-to [data-presentation-footer] { left: 8%; right: 8%; } }
 @media (max-width: 600px) { .how-to [data-presentation-name] { max-width: 185px; font-size: 11px; } .how-to [data-presentation-header] { top: 18px; gap: 10px; } .how-to [data-presentation-caption] { font-size: 12px; min-height: 58px; } .how-to [data-presentation-footer] { left: 6%; right: 6%; } .how-to [data-presentation-controls] { gap: 6px; } .how-to [data-presentation-progress] { gap: 2px; } }
 @media (max-height: 620px) { .how-to [data-presentation-caption] { font-size: 11px; margin-bottom: 8px; min-height: 34px; } .how-to [data-presentation-footer] { bottom: 32px; } }
+
+.entity-label-compact, .entity-detail-compact, .conversation-compact, .diagram-key { display: none; }
+@media (max-width: 600px) {
+  .how-to .entity-label-full, .how-to .entity-detail-full { display: none; }
+  .how-to .entity-label-compact, .how-to .entity-detail-compact { display: block; line-height: 1; }
+  .how-to .entity-detail-compact { margin-top: 4px; }
+  .how-to .entity-depth .entity-label-compact { line-height: 26px; }
+  .how-to .entity-flag .entity-label-compact { line-height: 20px; transform: translateY(-4px); }
+  .how-to .conversation-compact { display: block; width: 100%; height: 100%; }
+  .how-to .modify-arc text { display: none; }
+  .how-to .modify-arc path { stroke-width: 3px; }
+  .how-to .diagram-key { display: block; position: absolute; top: 96px; left: 6%; right: 6%; text-align: center; font-size: 12px; line-height: 1.5; color: var(--muted); }
+  .how-to .diagram-key span { display: block; }
+}

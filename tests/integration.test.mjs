@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { spawn } from 'node:child_process'
 import { inspectPresentation } from '../scripts/inspect-presentation.mjs'
+import { withPreview, sleep } from '../scripts/browser.mjs'
 const root = resolve(import.meta.dirname, '..')
 const selected = process.env.TEST_CASE
 function scenario(name, work) { test(name, { skip: selected && !new RegExp(selected).test(name), timeout: 720000 }, work) }
@@ -89,6 +90,52 @@ scenario('E2E-001 reference passes complete production verification', async () =
   assert.match(result.output, /PASS verify how-to-make-a-presentation/)
   assert.match(result.output, /127\.0\.0\.1/)
   assert.equal([...result.output.matchAll(/render step \d+: PASS/g)].length, 9)
+  // F-001: reuse the gate's production build; inspect actual scaled typography,
+  // not just unscaled CSS declarations or a fitScale calculation.
+  await withPreview(async ({ browser, url }) => {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+    await page.goto(`${url}/how-to-make-a-presentation`)
+    const checkCompact = async index => {
+      await page.waitForFunction(i => document.querySelector('[data-step-index]')?.getAttribute('data-step-index') === String(i), index)
+      await sleep(850)
+      const measurements = await page.evaluate(() => {
+        const canvas = document.querySelector('[data-presentation-canvas]')
+        const bounds = canvas.getBoundingClientRect()
+        const scale = bounds.width / 880
+        const key = document.querySelector('.diagram-key')
+        const chrome = [...document.querySelectorAll('[data-presentation-header], [data-presentation-footer], [data-presentation-attribution], .diagram-key')].map(node => node.getBoundingClientRect())
+        return {
+          uniform: Math.abs(scale - bounds.height / 380) < .001,
+          fits: bounds.left >= 0 && bounds.right <= 390 && bounds.top >= 0 && bounds.bottom <= 844,
+          keyVisible: key.checkVisibility(),
+          labels: [...document.querySelectorAll('.entity-label-compact, .entity-detail-compact')].filter(node => node.checkVisibility()).map(node => {
+            const rect = node.getBoundingClientRect()
+            return { text: node.textContent, font: parseFloat(getComputedStyle(node).fontSize) * scale,
+              visible: rect.left >= 0 && rect.right <= 390 && rect.top >= 0 && rect.bottom <= 844,
+              collidesWithChrome: chrome.some(c => Math.min(c.right, rect.right) > Math.max(c.left, rect.left) && Math.min(c.bottom, rect.bottom) > Math.max(c.top, rect.top)) }
+          }),
+        }
+      })
+      assert.ok(measurements.uniform && measurements.fits, `step ${index}: fixed canvas still fits uniformly`)
+      assert.ok(measurements.keyVisible, `step ${index}: abbreviation key is visible`)
+      assert.ok(measurements.labels.length >= 2)
+      for (const label of measurements.labels) {
+        assert.ok(label.font >= 11, `step ${index}: ${label.text} is only ${label.font}px`)
+        assert.ok(label.visible && !label.collidesWithChrome, `step ${index}: ${label.text} clips or collides with chrome`)
+      }
+    }
+    for (let index = 0; index < 9; index++) {
+      if (index) await page.keyboard.press('ArrowRight')
+      await checkCompact(index)
+    }
+    await page.keyboard.press('p')
+    await checkCompact(8)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    assert.equal(await page.locator('.diagram-key').isVisible(), false)
+    assert.equal(await page.locator('.entity-label-compact').first().isVisible(), false)
+    assert.equal(await page.locator('.entity-label-full').first().isVisible(), true)
+    console.log('PASS F-001: narrow production labels are readable without changing canvas geometry; desktop copy preserved')
+  }, { cwd: root })
 })
 scenario('E2E-002 verification failures identify phases steps and clean preview children', async () => {
   const faults = [

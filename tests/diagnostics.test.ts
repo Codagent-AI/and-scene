@@ -13,6 +13,14 @@ it('I-53 overlap diagnostics identify text and exempt only marked subtrees', () 
   document.querySelector('#b')?.setAttribute('data-presentation-allow-overlap', '')
   expect(visualDiagnostics().some((w: string) => w.includes('Collision B'))).toBe(false)
 })
+it('I-53 text crossing empty chrome bounds warns without a label collision', () => {
+  fixture()
+  const control = document.createElement('button')
+  control.setAttribute('data-presentation-prev', '')
+  control.setAttribute('aria-label', 'Empty chrome control')
+  document.querySelector('[data-presentation]')!.append(control)
+  expect(visualDiagnostics().some((w: string) => w.includes('Empty chrome control') && w.includes('Collision A'))).toBe(true)
+})
 it('I-54 active progress ToC and undersized default attribution warn', () => {
   fixture(); const warnings = visualDiagnostics(); expect(warnings).toContain('indistinct active progress: data-presentation-progress-entry'); expect(warnings).toContain('indistinct active toc: data-presentation-toc-entry'); expect(warnings).toContain('unpolished attribution: style data-presentation-attribution')
   for (const el of document.querySelectorAll<HTMLElement>('[data-presentation-active="true"]')) { el.style.backgroundColor = 'green'; el.style.fontWeight = '700' }

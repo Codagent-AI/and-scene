@@ -73,7 +73,7 @@ test('INT-002 screenshot helper emits settled artifacts and advisory warnings', 
   await disposable(async dir => {
     const talk = `import { useState, useEffect } from 'react'
 import { Presentation } from '../../presentation-kit'
-function Scene() { return <div><span style={{position:'absolute',left:50,top:50}}>Collision A</span><span style={{position:'absolute',left:50,top:50}}>Collision B</span><div data-presentation-allow-overlap><span style={{position:'absolute',left:150,top:150}}>Allowed A</span><span style={{position:'absolute',left:150,top:150}}>Allowed B</span></div></div> }
+function Scene() { return <div><span style={{position:'absolute',left:50,top:50}}>Collision A</span><span style={{position:'absolute',left:50,top:50}}>Collision B</span><button data-presentation-next aria-label="Empty chrome control" style={{position:'absolute',left:48,top:48,width:150,height:30}} /><div data-presentation-allow-overlap><span style={{position:'absolute',left:150,top:150}}>Allowed A</span><span style={{position:'absolute',left:150,top:150}}>Allowed B</span></div></div> }
 export default function Talk() { const [ready,setReady]=useState(false); useEffect(()=>{ const id=setTimeout(()=>setReady(true),100); return ()=>clearTimeout(id) },[]); return <div style={{fontFamily:'Arial'}} data-ready={ready}><style>{'[data-presentation-attribution]{font-size:8px}'}</style><Presentation title="Fixture" steps={[{id:'a',era:'first',title:'First',caption:'Caption one',Scene,payload:undefined},{id:'b',era:'second',title:'Second',caption:'Caption two',Scene,payload:undefined}]} /></div> }
 `
     await writeFile(resolve(dir,'src/presentations/how-to-make-a-presentation/Talk.tsx'),talk)
@@ -84,7 +84,7 @@ export default function Talk() { const [ready,setReady]=useState(false); useEffe
     for (const row of report) {
       assert.ok(row.waitedMs>=900); assert.match(row.file,/artifacts\/inspection\/how-to-make-a-presentation\/1440x900\/step-0[12]\.png$/)
       const png=await readFile(row.file); assert.deepEqual([...png.subarray(0,8)],[137,80,78,71,13,10,26,10]); assert.equal(png.readUInt32BE(16),1440); assert.equal(png.readUInt32BE(20),900)
-      assert.ok(row.warnings.some(w=>w.includes('Collision A')&&w.includes('Collision B'))); assert.ok(!row.warnings.some(w=>w.includes('Allowed')))
+      assert.ok(row.warnings.some(w=>w.includes('Collision A')&&w.includes('Empty chrome control'))); assert.ok(row.warnings.some(w=>w.includes('Collision A')&&w.includes('Collision B'))); assert.ok(!row.warnings.some(w=>w.includes('Allowed')))
       assert.ok(row.warnings.some(w=>w.includes('indistinct active progress'))); assert.ok(row.warnings.some(w=>w.includes('indistinct active toc'))); assert.ok(row.warnings.some(w=>w.includes('unpolished attribution')))
     }
     await save('INT-002-report.json',JSON.stringify(report,null,2))

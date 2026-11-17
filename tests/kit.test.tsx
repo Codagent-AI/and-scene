@@ -60,6 +60,14 @@ describe('scene contracts', () => {
     rerender(<Stage step={{ ...steps[1], groupKey: 'new', Scene: Other }} mode="browse" />)
     expect(screen.getByText('other')).toBeTruthy(); expect(mounts).toBe(3)
   })
+  it('I-6 changing Scene within one group retains outgoing scene for crossfade', () => {
+    function Before() { return <span>outgoing scene</span> }
+    function After() { return <span>incoming scene</span> }
+    const { rerender } = render(<Stage step={{ ...steps[0], Scene: Before }} mode="browse" />)
+    rerender(<Stage step={{ ...steps[1], Scene: After }} mode="browse" />)
+    expect(screen.getByText('incoming scene')).toBeTruthy()
+    expect(screen.getByText('outgoing scene')).toBeTruthy()
+  })
   it('I-7 continuing wrappers and intentional coordinates survive payload changes', () => {
     function Group({ payload }: SceneProps<number>) { return <SceneLayer><Appear key="same" style={{ position: 'absolute', left: 12, top: 14 }}><Box id="same">{payload}</Box></Appear>{payload > 1 && <Appear key="new" style={{ position: 'absolute', left: 12, top: 14 }}><Box id="new">new</Box></Appear>}</SceneLayer> }
     const { rerender } = render(<Group payload={1} />); const original = document.querySelector('[data-presentation-appear]')

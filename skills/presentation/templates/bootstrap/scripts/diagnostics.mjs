@@ -21,6 +21,11 @@ export function visualDiagnostics() {
     range.selectNodeContents(node)
     for (const rect of range.getClientRects()) if (rect.width && rect.height) texts.push({ el, rect })
   }
+  // Chrome's occupied control area matters even when its text does not intersect.
+  const controls = '[data-presentation-progress-entry],[data-presentation-toc-entry],[data-presentation-prev],[data-presentation-next],[data-presentation-mode-toggle],[data-presentation-attribution]'
+  for (const el of root.querySelectorAll(controls)) {
+    if (visible(el) && !el.closest('[data-presentation-allow-overlap]')) texts.push({ el, rect: el.getBoundingClientRect() })
+  }
   for (let i = 0; i < texts.length; i++) for (let j = i + 1; j < texts.length; j++) {
     const a = texts[i], b = texts[j]
     if (a.el === b.el || a.el.contains(b.el) || b.el.contains(a.el)) continue
@@ -38,5 +43,5 @@ export function visualDiagnostics() {
     const style = getComputedStyle(attribution)
     if (parseFloat(style.fontSize) < 12 || ['rgb(0, 0, 238)', 'rgb(85, 26, 139)'].includes(style.color) || /Times New Roman/.test(style.fontFamily)) warnings.push('unpolished attribution: style data-presentation-attribution')
   }
-  return warnings
+  return [...new Set(warnings)]
 }

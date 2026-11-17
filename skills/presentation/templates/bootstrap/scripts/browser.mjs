@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { chromium } from 'playwright'
 export const HOST = '127.0.0.1'
 export const SETTLE_MS = 900
+const alive = process => process.exitCode === null && process.signalCode === null
 export async function build(cwd = process.cwd()) {
   const child = spawn('npm', ['run', 'build'], { cwd, stdio: 'inherit' })
   const [code] = await once(child, 'exit')
@@ -28,7 +29,7 @@ export async function withPreview(cwd, action) {
   try {
     const deadline = Date.now() + 15000
     while (true) {
-      if (server.exitCode !== null) throw new Error(`preview phase: ${output}`)
+      if (!alive(server)) throw new Error(`preview phase: exited ${server.signalCode ?? server.exitCode}; ${output}`)
       try { if ((await fetch(url)).ok) break } catch { /* wait for listener */ }
       if (Date.now() > deadline) throw new Error(`preview readiness phase: ${url} ${output}`)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -42,11 +43,11 @@ export async function withPreview(cwd, action) {
     try {
       try { await browser?.close() } finally { await browserServer?.close() }
       if (browserProcess) {
-        if (browserProcess.exitCode === null && browserProcess.signalCode === null) await once(browserProcess, 'exit')
+        if (alive(browserProcess)) await once(browserProcess, 'exit')
         console.log(`browser cleaned pid=${browserProcess.pid}`)
       }
     } finally {
-      if (server.exitCode === null) {
+      if (alive(server)) {
         const stopped = once(server, 'exit')
         server.kill('SIGTERM')
         const kill = setTimeout(() => server.kill('SIGKILL'), 2000)

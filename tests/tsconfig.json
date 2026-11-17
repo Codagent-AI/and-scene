@@ -1,0 +1,1 @@
+{ "extends": "../tsconfig.app.json", "compilerOptions": { "strict": true, "types": ["vite/client", "node"], "tsBuildInfoFile": "../node_modules/.tmp/types.tsbuildinfo" }, "include": ["types.tsx"] }

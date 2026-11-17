@@ -26,13 +26,14 @@ export async function renderSteps(page, origin, slug, { canonical = false, settl
     for (index = 0; index < count; index++) {
       try {
         await page.waitForFunction((expected) => Number(document.querySelector('[data-step-count][data-step-index]')?.getAttribute('data-step-index')) === expected, index, { timeout: 4000 })
+        const activeAt = performance.now()
         await page.waitForTimeout(settle)
         errors.assertClean()
         if (canonical) {
           const text = await page.locator('body').innerText()
           if (!text.includes(OUTLINE[index][1]) || !text.includes(OUTLINE[index][2])) throw new Error('normative title/caption missing')
         }
-        await onStep?.(page, index)
+        await onStep?.(page, index, { activeAt })
         console.log(`render step ${index} PASS`)
         if (index < count - 1) { requestedStep = index + 1; await page.keyboard.press('ArrowRight') }
       } catch (error) { errors.assertClean(); throw new Error(`render step ${index}: ${error.message}`, { cause: error }) }

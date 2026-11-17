@@ -14,12 +14,13 @@ export async function inspectPresentation(slug, { cwd = process.cwd(), settle = 
   const directory = resolve(cwd, 'artifacts/inspection', slug, `${viewport.width}x${viewport.height}`)
   await mkdir(directory, { recursive: true })
   const diagnostics = []
-  await withPreview((page, origin) => renderSteps(page, origin, slug, { settle, onStep: async (page, index) => {
+  await withPreview((page, origin) => renderSteps(page, origin, slug, { settle, onStep: async (page, index, { activeAt }) => {
     const warnings = diagnose(await page.evaluate(readDiagnosticElements))
     warnings.forEach((warning) => console.warn(`ADVISORY step ${index}: ${warning}`))
     const screenshot = resolve(directory, `step-${String(index + 1).padStart(2, '0')}.png`)
+    const captureStartedAt = performance.now()
     await page.screenshot({ path: screenshot, fullPage: true })
-    diagnostics.push({ step: index, screenshot, warnings, capturedAt: Date.now(), settle })
+    diagnostics.push({ step: index, screenshot, warnings, capturedAt: Date.now(), activeAt, captureStartedAt, settle })
   } }), { cwd, viewport })
   await writeFile(resolve(directory, 'diagnostics.json'), JSON.stringify(diagnostics, null, 2))
   console.log(`inspection artifacts ${directory}`)

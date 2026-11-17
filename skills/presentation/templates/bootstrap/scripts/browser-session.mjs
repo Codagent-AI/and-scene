@@ -27,6 +27,7 @@ export async function withPreview(run, { cwd = process.cwd(), viewport = { width
   preview.stdout.on('data', (chunk) => { serverOutput += chunk })
   preview.stderr.on('data', (chunk) => { serverOutput += chunk })
   let browser
+  let browserServer
   const stop = () => { preview.kill('SIGTERM') }
   process.once('SIGTERM', stop)
   process.once('SIGINT', stop)
@@ -37,19 +38,26 @@ export async function withPreview(run, { cwd = process.cwd(), viewport = { width
       await new Promise((done) => setTimeout(done, 100))
     }
     console.log(`preview ready ${origin} pid=${preview.pid}`)
-    browser = await chromium.launch({ headless: true })
+    browserServer = await chromium.launchServer({ headless: true })
+    console.log(`browser ready pid=${browserServer.process().pid}`)
+    browser = await chromium.connect(browserServer.wsEndpoint())
     const page = await browser.newPage({ viewport })
     return await run(page, origin)
   } finally {
     process.removeListener('SIGTERM', stop)
     process.removeListener('SIGINT', stop)
     try { await browser?.close() } finally {
-      if (preview.exitCode === null) {
-        const exited = once(preview, 'exit')
-        preview.kill('SIGTERM')
-        await exited
+      try {
+        await browserServer?.close()
+        if (browserServer) console.log(`browser stopped pid=${browserServer.process().pid}`)
+      } finally {
+        if (preview.exitCode === null) {
+          const exited = once(preview, 'exit')
+          preview.kill('SIGTERM')
+          await exited
+        }
+        console.log(`preview stopped pid=${preview.pid}`)
       }
-      console.log(`preview stopped pid=${preview.pid}`)
     }
   }
 }

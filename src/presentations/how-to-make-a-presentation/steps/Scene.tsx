@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { Appear, Box, Label, SceneLayer } from '../../../presentation-kit'
+import { Appear, Box, Label, SceneLayer, ENTER_T } from '../../../presentation-kit'
 import type { SceneProps } from '../../../presentation-kit'
 import { entity, nodes } from '../entities'
 export function Scene({payload}: SceneProps<number>) {
   return <SceneLayer><AnimatePresence>{nodes.filter(n => n.at <= payload).map(n => <Appear key={n.name}><Box id={entity(n.name)} data-entity={n.name} className={`scene-node ${n.kind}`} style={{position:'absolute',left:n.x,top:n.y,width:n.w,height:n.h}}>
-    <span>{n.text}</span>{n.kind === 'card' && <small>title · caption · visual</small>}{n.kind === 'verify' && <small>build + render</small>}{n.name === 'card-2' && payload >= 8 && <Label id={entity('edited')} className="edited">edited</Label>}
+    <span>{n.text}</span>{n.kind === 'card' && <small>title · caption · visual</small>}{n.kind === 'verify' && <small>build + render</small>}{n.name === 'card-2' && <AnimatePresence>{payload >= 8 && <Label key="edited" id={entity('edited')} className="edited" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={ENTER_T}>edited</Label>}</AnimatePresence>}
   </Box></Appear>)}</AnimatePresence>
   <AnimatePresence>{payload >= 2 && <motion.div key="conversation" layoutId={entity('conversation')} className="conversation-line" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>←─────────────────→</motion.div>}
   {payload >= 4 && <motion.div key="links" className="card-links" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}><span>→<small>morphs</small></span><span>→<small>morphs</small></span></motion.div>}

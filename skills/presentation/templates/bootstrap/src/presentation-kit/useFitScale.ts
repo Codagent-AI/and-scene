@@ -1,25 +1,19 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useSyncExternalStore } from 'react'
+import { DESIGN_H, DESIGN_W, STAGE_LAYOUT } from './constants'
+import type { Mode } from './types'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
-
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
-  const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
-    }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+function subscribe(callback: () => void) {
+  window.addEventListener('resize', callback)
+  return () => window.removeEventListener('resize', callback)
+}
+function snapshot() { return `${window.innerWidth},${window.innerHeight}` }
+export function fitScale(width: number, height: number, mode: Mode, designW = DESIGN_W, designH = DESIGN_H) {
+  const geometry = STAGE_LAYOUT[mode]
+  const aside = mode === 'browse' && width >= 1200 ? 190 : 0
+  return Math.max(0, Math.min(1, (width - geometry.side * 2 - aside * 2) / designW,
+    (height - geometry.top - geometry.bottom) / designH))
+}
+export function useFitScale(mode: Mode, designW = DESIGN_W, designH = DESIGN_H) {
+  const [width, height] = useSyncExternalStore(subscribe, snapshot, () => '1280,800').split(',').map(Number)
+  return { scale: fitScale(width, height, mode, designW, designH), wide: width >= 1200 }
 }

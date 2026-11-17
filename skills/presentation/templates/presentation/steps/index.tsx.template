@@ -1,0 +1,20 @@
+import type { SceneProps, Step } from '../../../presentation-kit'
+import { Box, SceneLayer } from '../../../presentation-kit'
+import { entities } from '../entities'
+
+type Payload = { label: string }
+
+function Scene({ payload }: SceneProps<Payload>) {
+  return <SceneLayer><Box id={entities.idea} style={{ position: 'absolute', left: 300, top: 150 }}>{payload.label}</Box></SceneLayer>
+}
+
+// Expand from the captured narrative. Share Scene and groupKey across continuing beats.
+export const steps: Step<Payload>[] = [{
+  id: '__SLUG__:opening',
+  era: '__ERA__',
+  title: '__STEP_TITLE__',
+  caption: '__CAPTION__',
+  groupKey: '__SLUG__:scene',
+  Scene,
+  payload: { label: '__IDEA__' },
+}]

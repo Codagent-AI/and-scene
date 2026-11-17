@@ -1,0 +1,4 @@
+// Keep IDs stable across beats and unique to this presentation.
+export const entities = {
+  idea: '__SLUG__:idea',
+}

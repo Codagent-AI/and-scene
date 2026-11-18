@@ -9,6 +9,7 @@ const root = process.cwd()
 const work = resolve(root, '.work/integration')
 await mkdir(work, { recursive: true })
 const fixtures = []
+const excluded = new Set(['node_modules', '.git', '.work', 'dist', 'artifacts', 'openspec'])
 const read = path => readFile(path, 'utf8')
 async function run(dir, args, name, cwd = dir) {
   let result
@@ -21,8 +22,8 @@ async function run(dir, args, name, cwd = dir) {
 async function fixture(name, source = root, install = false, parent = work) {
   const dir = await mkdtemp(join(parent, `${name}-`)); fixtures.push(dir)
   for (const entry of await readdir(source)) {
-    if (['node_modules', '.git', '.work', 'dist', 'artifacts', 'openspec'].includes(entry)) continue
-    await cp(join(source, entry), join(dir, entry), { recursive: true, filter: path => !relative(source, path).split('/').some(p => ['node_modules', '.git', '.work', 'dist', 'artifacts', 'openspec'].includes(p)) })
+    if (excluded.has(entry)) continue
+    await cp(join(source, entry), join(dir, entry), { recursive: true, filter: path => !relative(source, path).split('/').some(p => excluded.has(p)) })
   }
   if (!install) await symlink(resolve(root, 'node_modules'), join(dir, 'node_modules'), 'dir')
   return dir

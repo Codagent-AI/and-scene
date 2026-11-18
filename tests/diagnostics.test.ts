@@ -27,3 +27,12 @@ it('I-46 browser default hidden and polished attribution variants', () => {
   document.querySelector('a')!.setAttribute('style', 'display:none')
   expect(collectVisualWarnings()).toEqual([expect.stringContaining('missing attribution')])
 })
+
+it('I-45 detects text over chrome padding without colliding labels', () => {
+  setup('<p>A</p><button data-presentation-next>B</button>')
+  Range.prototype.getClientRects = function () {
+    const left = this.startContainer.textContent === 'A' ? 50 : 0
+    return [{ left, right: left + 20, top: 0, bottom: 20, width: 20, height: 20 }] as unknown as DOMRectList
+  }
+  expect(collectVisualWarnings().some((w: string) => w.includes('overlap:') && w.includes('[A]') && w.includes('[chrome]'))).toBe(true)
+})

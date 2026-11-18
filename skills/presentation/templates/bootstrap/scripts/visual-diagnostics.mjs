@@ -20,10 +20,13 @@ export function collectVisualWarnings() {
       if (rect.width > 0 && rect.height > 0) texts.push({ parent, rect, text: node.textContent.trim() })
     }
   }
+  for (const element of host.querySelectorAll('[data-presentation-prev],[data-presentation-next],[data-presentation-mode-toggle],[data-presentation-progress-step],[data-presentation-toc-entry],[data-presentation-attribution]')) {
+    if (visible(element) && !element.closest('[data-presentation-allow-overlap]')) texts.push({ parent: element, rect: element.getBoundingClientRect(), text: 'chrome' })
+  }
   for (let i = 0; i < texts.length; i++) {
     for (let j = i + 1; j < texts.length; j++) {
       const a = texts[i]; const b = texts[j]
-      if (a.parent === b.parent) continue
+      if (a.parent.contains(b.parent) || b.parent.contains(a.parent)) continue
       const x = Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left)
       const y = Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top)
       if (x > 2 && y > 2) warnings.push(`overlap: ${identify(a.parent)} [${a.text}] / ${identify(b.parent)} [${b.text}]`)

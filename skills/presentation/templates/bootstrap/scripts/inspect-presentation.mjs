@@ -25,7 +25,7 @@ export async function inspectPresentation({ slug = 'how-to-make-a-presentation',
       for (const warning of warnings) console.warn(`ADVISORY step ${index}: ${warning}`)
       const file = `${directory}/step-${String(index + 1).padStart(2, '0')}.png`
       await page.screenshot({ path: file })
-      captures.push({ index, file, warnings, settledFor: settle })
+      captures.push({ index, file, warnings, settledFor: settle, capturedAt: Date.now() })
       console.log(`CAPTURE step ${index}: ${file}`)
     }
   }, { viewport: { width, height } })

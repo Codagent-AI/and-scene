@@ -10,7 +10,7 @@ let scratch: string
 const evidence = process.env.SCENE_EVIDENCE_DIR
 async function save(name: string, output: string) { if (evidence) { await mkdir(evidence, { recursive: true }); await writeFile(join(evidence, `${name}.log`), output) } }
 async function run(cwd: string, args: string[], name: string, expected = 0) {
-  let output = ''; let code = 0
+  let output: string; let code = 0
   try { const result = await exec('npm', args, { cwd, timeout: 150000, maxBuffer: 8 * 1024 * 1024 }); output = result.stdout + result.stderr }
   catch (error) { const failure = error as { stdout: string; stderr: string; code: number }; output = (failure.stdout ?? '') + (failure.stderr ?? ''); code = failure.code }
   await save(name, output)
@@ -45,6 +45,7 @@ describe('approved integration and end-to-end boundaries', () => {
     // Exercise lookup from an unrelated working directory through the distributable CLI.
     await exec(process.execPath, [resolve('skills/presentation/scaffold.mjs'), dir], { cwd: scratch })
     await run(dir, ['ci', '--ignore-scripts'], 'INT-001-install')
+    await run(dir, ['run', 'lint'], 'INT-001-lint')
     const output = await run(dir, ['run', 'verify'], 'INT-001-bootstrap')
     expect(output).toContain('PASS verification: example'); cleaned(output)
     const pkg = JSON.parse(await readFile(join(dir, 'package.json'), 'utf8'))
@@ -82,6 +83,7 @@ export default function Diagnostic(){return <><style>{'[data-presentation-attrib
     expect(report).toHaveLength(3)
     for (const capture of report) {
       expect(capture.settledFor).toBeGreaterThanOrEqual(900)
+      if (capture.index > 0) expect(capture.capturedAt - report[capture.index - 1].capturedAt).toBeGreaterThanOrEqual(capture.settledFor)
       const png = await readFile(join(dir, capture.file)); expect(png.subarray(1, 4).toString()).toBe('PNG'); expect(png.readUInt32BE(16)).toBe(1440); expect(png.readUInt32BE(20)).toBe(900)
       expect(capture.warnings.join('\n')).toContain('COLLISION A'); expect(capture.warnings.join('\n')).not.toContain('ALLOWED A')
       expect(capture.warnings.join('\n')).toContain('indistinct active chrome'); expect(capture.warnings.join('\n')).toContain('unpolished attribution')

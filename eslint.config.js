@@ -17,7 +17,9 @@ export default defineConfig([
     ],
     languageOptions: {
       globals: globals.browser,
+      parserOptions: { tsconfigRootDir: import.meta.dirname },
     },
   },
+  { files: ['**/chrome/Toc.tsx'], rules: { 'react-refresh/only-export-components': ['error', { allowExportNames: ['eras'] }] } },
   { files: ['tests/**/*.{ts,tsx}', 'src/**/*.test.tsx', '**/steps/index.tsx'], rules: { 'react-refresh/only-export-components': 'off' } },
 ])

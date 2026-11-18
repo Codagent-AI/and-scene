@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId } from 'react'
+import { AnimatePresence, useIsPresent } from 'motion/react'
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, renderHook, screen, act } from '@testing-library/react'
 import { Presentation } from '../src/presentation-kit/Presentation'
@@ -27,7 +28,7 @@ describe('scene contracts', () => {
     expect(screen.getByText('diagram 2')).toBeTruthy(); expect(screen.getByText('Title 1')).toBeTruthy()
   })
   it('I-2 numbering follows inserted removed reordered arrays', () => {
-    for (const list of [[steps[2], ...steps], steps.slice(1), [...steps].reverse()]) {
+    for (const list of [[{ ...steps[2], id: 'inserted' }, ...steps], steps.slice(1), [...steps].reverse()]) {
       const view = render(<Presentation steps={list} title="Order" />)
       expect(document.querySelector('[data-presentation-marker]')!.textContent).toBe(`01 / ${list[0].era}`)
       const controls = document.querySelectorAll('[data-presentation-progress-step]')
@@ -50,12 +51,21 @@ describe('scene contracts', () => {
     stage.rerender(<Stage step={{ ...steps[1], groupKey: 'other' }} mode="browse" />)
     expect(document.querySelectorAll('[data-presentation-scene]').length).toBe(2) // departing scene retained for exit
   })
+  it('I-5 departing entity remains mounted during its exit', () => {
+    function Entity() { const present = useIsPresent(); return <Box entityId="departing">{present ? 'present' : 'exiting'}</Box> }
+    function Changing({ payload }: SceneProps<boolean>) { return <SceneLayer><AnimatePresence>{payload && <Appear key="entity"><Entity /></Appear>}</AnimatePresence></SceneLayer> }
+    const open: Step<boolean> = { ...steps[0], Scene: Changing, payload: true }
+    const view = render(<Stage step={open} mode="browse" />)
+    expect(screen.getByText('present')).toBeTruthy()
+    view.rerender(<Stage step={{ ...open, payload: false }} mode="browse" />)
+    expect(screen.getByText('exiting').closest('[data-presentation-entity]')).toBeTruthy()
+  })
   it('I-6 grouped scenes retain instance and continuing entities', () => {
     const mounted = vi.fn(); const unmounted = vi.fn()
     function Persistent({ payload }: SceneProps<number>) {
-      const identity = useRef(Math.random())
+      const identity = useId()
       useEffect(() => { mounted(); return () => { unmounted() } }, [])
-      return <Box entityId="persistent"><span data-instance={identity.current}>{payload}</span></Box>
+      return <Box entityId="persistent"><span data-instance={identity}>{payload}</span></Box>
     }
     const view = render(<Stage step={{ ...steps[0], Scene: Persistent }} mode="browse" />)
     const entity = document.querySelector('[data-presentation-entity]'); const instance = document.querySelector('[data-instance]')?.getAttribute('data-instance')
@@ -162,8 +172,17 @@ describe('navigation', () => {
       const scale = fitScale(w, h, mode); expect(scale).toBeGreaterThanOrEqual(0); expect(scale * 880).toBeLessThanOrEqual(w); expect(scale * 380).toBeLessThanOrEqual(h)
     }
     expect(fitScale(390, 500, 'browse')).not.toBe(fitScale(390, 500, 'present'))
+    let resize = () => {}
+    const OriginalObserver = globalThis.ResizeObserver
+    globalThis.ResizeObserver = class {
+      constructor(callback: ResizeObserverCallback) { resize = () => callback([], this) }
+      observe() {} unobserve() {} disconnect() {}
+    }
     const view = render(<Stage step={steps[0]} mode="browse" />); const canvas = document.querySelector('[data-presentation-canvas]') as HTMLElement
     const transform = canvas.style.transform; view.rerender(<Stage step={steps[1]} mode="browse" />)
     expect(canvas.style.transform).toBe(transform); expect(canvas.style.width).toBe('880px'); expect(canvas.style.height).toBe('380px')
+    const width = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(390)
+    act(() => resize()); expect(canvas.style.transform).not.toBe(transform)
+    width.mockRestore(); globalThis.ResizeObserver = OriginalObserver
   })
 })

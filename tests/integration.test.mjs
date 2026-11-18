@@ -3,11 +3,14 @@ import assert from 'node:assert/strict'
 import { mkdtemp, cp, mkdir, readFile, writeFile, rm, readdir, symlink } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { spawn } from 'node:child_process'
+import { tmpdir } from 'node:os'
+import { pathToFileURL } from 'node:url'
 import { materialize, bootstrapDirectory } from '../skills/presentation/scaffold.mjs'
 import { inspect } from '../scripts/inspect-presentation.mjs'
 const root = process.cwd()
 const evidence = process.env.EVIDENCE_DIR
-async function save(name, text) { if (evidence) await writeFile(join(evidence, name), text) }
+async function save(name, text) { if (evidence) await writeFile(join(evidence, `resolve-${name}`), text) }
+async function saveResult(name, result) { await save(name, `Command: ${JSON.stringify(result.command)}\nCwd: ${result.cwd}\n${result.output}\nExit: ${result.code}\n`) }
 async function temporary() { await mkdir('.test-work', { recursive: true }); return mkdtemp(resolve('.test-work/run-')) }
 async function copyProject() {
   const dir = await temporary()
@@ -23,7 +26,7 @@ function command(cwd, args, executable = process.execPath) {
     let output = ''
     child.stdout.on('data',s=>output+=s); child.stderr.on('data',s=>output+=s)
     const timeout = setTimeout(()=>child.kill('SIGTERM'),180000)
-    child.on('error',reject); child.on('exit',code=>{clearTimeout(timeout);resolve({code,output})})
+    child.on('error',reject); child.on('exit',code=>{clearTimeout(timeout);resolve({code,output,command:[executable,...args],cwd})})
   })
 }
 async function compareTrees(a,b) {
@@ -33,8 +36,19 @@ async function compareTrees(a,b) {
 }
 test('INT-001 materialized bootstrap installs builds and verifies outside source with byte parity and neutral contracts', {timeout:180000}, async () => {
   const dir = await temporary()
+  const unrelated = await mkdtemp(join(tmpdir(), 'and-scene-caller-'))
   try {
-    await materialize(dir)
+    const helper = pathToFileURL(join(root, 'skills/presentation/scaffold.mjs')).href
+    const invocation = await command(unrelated, ['--input-type=module', '-e', `import { materialize, bootstrapDirectory } from ${JSON.stringify(helper)}; await materialize(process.argv[1]); console.log(JSON.stringify({cwd:process.cwd(),bootstrapDirectory}));`, dir])
+    await saveResult('INT-001-cwd.log', invocation)
+    assert.equal(invocation.code, 0, invocation.output)
+    const lookup = JSON.parse(invocation.output.trim())
+    assert.equal(lookup.cwd, unrelated)
+    assert.ok(!lookup.cwd.startsWith(root))
+    assert.equal(lookup.bootstrapDirectory, bootstrapDirectory)
+    await cp(join(root,'skills/presentation/templates/presentation'),join(dir,'src/presentations/template-contract'),{recursive:true})
+    const registry=join(dir,'src/presentations/index.ts')
+    await writeFile(registry,(await readFile(registry,'utf8')).replace('export const presentations = [', "export const presentations = [{slug:'template-contract',title:'Template contract',load:()=>import('./template-contract/Talk')},"))
     await assert.rejects(()=>materialize(dir),/Refusing to overwrite/)
     const pkg=JSON.parse(await readFile(join(dir,'package.json'),'utf8'))
     for(const dep of ['react','react-dom','motion','lucide-react']) assert.ok(pkg.dependencies[dep],dep)
@@ -43,41 +57,73 @@ test('INT-001 materialized bootstrap installs builds and verifies outside source
     for(const path of ['src/presentation-kit/Presentation.tsx','src/presentations/index.ts','package-lock.json']) assert.ok((await readFile(join(dir,path))).length)
     await compareTrees(join(root,'src/presentation-kit'),join(bootstrapDirectory,'src/presentation-kit'))
     for(const file of ['browser.mjs','verify.mjs','reference.mjs','diagnostics.mjs','inspect-presentation.mjs']) assert.equal(await readFile(join(root,'scripts',file),'utf8'),await readFile(join(dir,'scripts',file),'utf8'))
-    const install=await command(dir,['ci','--no-audit','--no-fund'],'npm'); await save('INT-001-install.log',install.output); assert.equal(install.code,0,install.output)
-    const verify=await command(dir,['run','verify'],'npm'); await save('INT-001-verify.log',verify.output); assert.equal(verify.code,0,verify.output); assert.match(verify.output,/PASS step 0\/0/)
+    const install=await command(dir,['ci','--no-audit','--no-fund'],'npm'); await saveResult('INT-001-install.log',install); assert.equal(install.code,0,install.output)
+    const verify=await command(dir,['run','verify'],'npm'); await saveResult('INT-001-verify.log',verify); assert.equal(verify.code,0,verify.output); assert.match(verify.output,/PASS step 0\/0/)
+    const templateCheck=await command(dir,['--input-type=module','-e',"import { verify } from './scripts/verify.mjs'; await verify({slug:'template-contract',canonical:false,build:false})"]); await saveResult('INT-001-template.log',templateCheck); assert.equal(templateCheck.code,0,templateCheck.output)
     const kit=(await readFile(join(dir,'src/presentation-kit/nodes/primitives.tsx'),'utf8'))
     assert.ok(!/#[0-9a-f]{3,8}|fontFamily|boxShadow|border:/.test(kit))
-  } finally { await rm(dir,{recursive:true,force:true}) }
+  } finally { await rm(dir,{recursive:true,force:true}); await rm(unrelated,{recursive:true,force:true}) }
 })
 test('INT-002 helper captures settled step screenshots and reports only unexempted overlap plus active and attribution defects', {timeout:180000}, async () => {
   const dir=await copyProject()
   try {
     const fixture=join(dir,'src/presentations/inspection-fixture'); await mkdir(fixture,{recursive:true})
-    await writeFile(join(fixture,'Talk.tsx'),`import { Presentation } from '../../presentation-kit'
+    await writeFile(join(fixture,'Talk.tsx'),`import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Presentation } from '../../presentation-kit'
 import type { SceneProps, Step } from '../../presentation-kit'
-function Scene({ payload }: SceneProps<number>) { return <div data-presentation-allow-overlap={payload===1 ? '' : undefined}><span style={{position:'absolute',left:50,top:50}}>Collision A</span><span style={{position:'absolute',left:50,top:50}}>Collision B</span></div> }
-const steps: Step<number>[] = [0,1,2].map(payload=>({id:String(payload),era:String(payload),title:'Inspection '+payload,caption:'Fixture caption '+payload,Scene,payload,groupKey:'fixture'}))
-export default function Talk() { return <div><style>{'[data-presentation-header]{position:absolute;top:10px;left:20px}[data-presentation-footer]{position:absolute;bottom:50px;left:100px}[data-presentation-toc]{position:absolute;right:20px;top:15px}[data-presentation-mode-toggle]{position:absolute;right:20px;top:55px}[data-presentation-attribution]{font-size:8px}'}</style><Presentation title="Fixture" steps={steps}/></div> }
+function SettlingProbe() {
+  const [settled,setSettled]=useState(false)
+  useEffect(()=>{ const timer=setTimeout(()=>setSettled(true),850); return ()=>clearTimeout(timer) },[])
+  return <div style={{position:'fixed',left:1000,top:500,width:20,height:20,background:settled?'rgb(0, 200, 0)':'rgb(200, 0, 0)'}} />
+}
+function Scene({ payload }: SceneProps<number>) {
+  const [host,setHost]=useState<HTMLElement|null>(null)
+  useEffect(()=>{ const root=document.querySelector<HTMLElement>('[data-presentation]')!; root.dataset.fixtureVariant=String(payload); setHost(root) },[payload])
+  return <>
+    {payload<2 && <div data-presentation-allow-overlap={payload===1 ? '' : undefined}><span style={{position:'absolute',left:50,top:50}}>Collision A</span><span style={{position:'absolute',left:50,top:50}}>Collision B</span></div>}
+    {host && createPortal(<><SettlingProbe key={payload}/>{payload===0 && <span data-entity="chrome-collision" style={{position:'fixed',left:20,top:10}}>Chrome collision</span>}</>,host)}
+  </>
+}
+const steps: Step<number>[] = [0,1,2,3].map(payload=>({id:String(payload),era:String(payload),title:'Inspection '+payload,caption:'Fixture caption '+payload,Scene,payload,groupKey:'fixture'}))
+export default function Talk() { return <div><style>{'[data-presentation-header]{position:absolute;top:10px;left:20px}[data-presentation-footer]{position:absolute;bottom:50px;left:100px}[data-presentation-toc]{position:absolute;right:20px;top:15px}[data-presentation-mode-toggle]{position:absolute;right:20px;top:55px}[data-presentation-attribution]{font-size:8px}[data-fixture-variant="1"] [data-presentation-active="true"]{background:#164d35;color:white;font-weight:700}[data-fixture-variant="1"] [data-presentation-attribution]{font-size:14px;color:#164d35;text-decoration:none}[data-fixture-variant="2"] [data-presentation-attribution]{font-size:16px;color:rgb(0,0,238);text-decoration:underline}[data-fixture-variant="3"] [data-presentation-attribution]{display:none}'}</style><Presentation title="Fixture" steps={steps}/></div> }
 `)
     await writeFile(join(dir,'src/presentations/index.ts'),"export const presentations = [{slug:'inspection-fixture',title:'Fixture',load:()=>import('./inspection-fixture/Talk')}]\n")
     const captures=[]
-    const result=await inspect({slug:'inspection-fixture',cwd:dir,settle:900,onCapture: data=>captures.push(data)})
-    assert.equal(captures.length,3)
+    const result=await inspect({slug:'inspection-fixture',cwd:dir,settle:1100,onCapture: async ({index,file,viewport,elapsedBeforeCapture,page})=>{
+      assert.ok(elapsedBeforeCapture>=1100, `step ${index}: configured settle interval must elapse before screenshot starts`)
+      const png=await readFile(file)
+      // Decode the saved PNG in Chromium: this tests what was captured, not a
+      // timestamp sampled after a wait or the DOM's state after the screenshot.
+      const pixel=await page.evaluate(async base64=>{
+        const image=new Image(); image.src='data:image/png;base64,'+base64; await image.decode()
+        const canvas=document.createElement('canvas'); canvas.width=image.width; canvas.height=image.height
+        const context=canvas.getContext('2d'); context.drawImage(image,0,0)
+        return Array.from(context.getImageData(1010,510,1,1).data)
+      },png.toString('base64'))
+      assert.deepEqual(pixel,[0,200,0,255],`step ${index} screenshot must contain the settled green probe, never the pending red probe`)
+      captures.push({index,file,viewport,elapsedBeforeCapture,pixel})
+    }})
+    assert.equal(captures.length,4)
     for(const capture of captures) {
-      assert.ok(capture.elapsed>=900); assert.deepEqual(capture.viewport,{width:1440,height:900})
+      assert.deepEqual(capture.viewport,{width:1440,height:900})
       const png=await readFile(capture.file); assert.equal(png.subarray(1,4).toString(),'PNG'); assert.equal(png.readUInt32BE(16),1440); assert.equal(png.readUInt32BE(20),900)
     }
-    assert.deepEqual((await readdir(result.directory)).sort(),['01.png','02.png','03.png'])
-    assert.ok(result.warnings.some(w=>w.includes('step 0: overlap') && w.includes('Collision')))
-    assert.ok(!result.warnings.some(w=>w.includes('step 1: overlap') && w.includes('Collision')))
-    assert.ok(result.warnings.some(w=>w.includes('indistinct active [data-presentation-progress]')))
-    assert.ok(result.warnings.some(w=>w.includes('indistinct active [data-presentation-toc]')))
-    assert.ok(result.warnings.some(w=>w.includes('style [data-presentation-attribution]')))
-    await save('INT-002-artifacts.log',JSON.stringify({captures,warnings:result.warnings},null,2))
+    assert.deepEqual((await readdir(result.directory)).sort(),['01.png','02.png','03.png','04.png'])
+    const at=step=>result.warnings.filter(w=>w.startsWith(`step ${step}:`))
+    assert.ok(at(0).some(w=>w.includes('overlap span[Collision A] / span[Collision B]')))
+    assert.ok(at(0).some(w=>w.includes('overlap') && w.includes('chrome-collision') && w.includes('data-presentation-marker')))
+    for (const step of [0,2,3]) {
+      assert.ok(at(step).includes(`step ${step}: indistinct active [data-presentation-progress]`))
+      assert.ok(at(step).includes(`step ${step}: indistinct active [data-presentation-toc]`))
+      assert.ok(at(step).includes(`step ${step}: style [data-presentation-attribution]: missing, undersized or browser-default attribution`))
+    }
+    assert.deepEqual(at(1),[], 'allowed overlap, distinct active controls, and polished attribution produce no warnings')
+    await save('INT-002-artifacts.log',JSON.stringify({test:'INT-002',captures,warnings:result.warnings,assertions:'step-specific text/text and text/chrome collisions; allowed subtree, distinct active and polished attribution negative controls; undersized/browser-default/missing attribution; actual PNG pixels settled green'},null,2))
   } finally { await rm(dir,{recursive:true,force:true}) }
 })
 test('E2E-001 reference production verification reports every index and clear pass on IPv4', {timeout:180000}, async () => {
-  const result=await command(root,['run','verify'],'npm'); await save('E2E-001.log',result.output)
+  const result=await command(root,['run','verify'],'npm'); await saveResult('E2E-001.log',result)
   assert.equal(result.code,0,result.output)
   for(let n=0;n<9;n++) assert.match(result.output,new RegExp(`PASS step ${n}/8`))
   assert.match(result.output,/preview http:\/\/127\.0\.0\.1:/); assert.match(result.output,/PASS verification/); assert.match(result.output,/preview cleaned/)
@@ -100,11 +146,13 @@ for(const fault of ['build','missing','order','console','page','transition']) te
       const path=join(dir,'src/presentation-kit/usePresentationNav.ts')
       await writeFile(path,(await readFile(path,'utf8')).replace('i + 1','i + 0'))
     }
-    const result=await command(dir,['run','verify'],'npm'); await save(`E2E-002-${fault}.log`,result.output)
+    const result=await command(dir,['run','verify'],'npm'); await saveResult(`E2E-002-${fault}.log`,result)
     assert.notEqual(result.code,0,result.output); assert.match(result.output,/FAIL/); assert.ok(!result.output.includes('PASS verification'))
     if(fault==='build') assert.match(result.output,/FAIL build/)
     else if(fault==='missing'||fault==='order') assert.match(result.output,/FAIL sample/)
-    else assert.match(result.output,new RegExp(`step ${fault==='transition'?1:2}`))
+    else if(fault==='console') assert.match(result.output,/step 2: console: injected console fault/)
+    else if(fault==='page') { assert.match(result.output,/step 2: page: injected page fault/); assert.ok(!result.output.includes('transition failed')) }
+    else { assert.match(result.output,/step 1: transition failed/); assert.ok(!result.output.includes('injected page fault')) }
     if(!['build','missing'].includes(fault)) {
       const match=result.output.match(/preview http:\/\/127\.0\.0\.1:(\d+) pid=(\d+)/); assert.ok(match,result.output)
       assert.match(result.output,/preview cleaned/)

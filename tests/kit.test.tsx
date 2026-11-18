@@ -137,6 +137,18 @@ describe('scene kit', () => {
     act(() => result.current.jump(-10)); expect(result.current.index).toBe(0)
     act(() => result.current.jump(40)); expect(result.current.index).toBe(2)
   })
+  it('I-38 public step hooks expose count and active index after navigation', () => {
+    mount()
+    const root = document.querySelector('[data-presentation]')!
+    expect(root.getAttribute('data-step-count')).toBe(String(steps.length))
+    expect(root.getAttribute('data-step-index')).toBe('0')
+    fireEvent.click(screen.getByLabelText('Next step'))
+    expect(root.getAttribute('data-step-count')).toBe('4')
+    expect(root.getAttribute('data-step-index')).toBe('1')
+    fireEvent.click(screen.getByLabelText('Step 4: Title 3'))
+    expect(root.getAttribute('data-step-index')).toBe('3')
+    expect(root.getAttribute('data-step-count')).toBe('4')
+  })
   it('I-19 fixed canvas fit is uniform per mode and responds to viewport resize', () => {
     expect([DESIGN_W,DESIGN_H]).toEqual([880,380])
     for(const mode of ['browse','present'] as const) for(const [w,h] of [[1440,900],[390,844],[1200,350],[20,20]]) {

@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run test:types && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts",
     "test:integration": "node --test --test-concurrency=1 tests/integration.test.mjs",
     "verify": "node scripts/verify.mjs",
-    "inspect": "node scripts/inspect-presentation.mjs"
+    "inspect": "node scripts/inspect-presentation.mjs",
+    "test:types": "node scripts/prepare-contracts.mjs && tsc -p tsconfig.contract.json"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

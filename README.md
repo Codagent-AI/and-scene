@@ -18,7 +18,7 @@ Checks:
 npm ci
 npx playwright install chromium
 npm test                         # fast unit/component contracts
-npx tsc -p tsconfig.contract.json # typed public boundary
+npm run test:types               # public types and materialized presentation templates
 npm run test:integration          # INT-001/002 and E2E-001/002; real builds/browser
 npm run lint
 npm run build

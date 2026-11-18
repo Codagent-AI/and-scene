@@ -2,9 +2,14 @@ import { cp, mkdir, readdir, stat } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { resolve, dirname } from 'node:path'
 export const bootstrapDirectory = resolve(dirname(fileURLToPath(import.meta.url)), 'templates/bootstrap')
-export function scaffoldPlan({ root, monorepo, anchors }) {
+export function detectMonorepo({ packageJSON = {}, entries = [] } = {}) {
+  return packageJSON.workspaces !== undefined || ['pnpm-workspace.yaml', 'packages', 'apps'].some(name => entries.includes(name))
+}
+export function scaffoldPlan({ root, anchors, project = {}, monorepo = detectMonorepo(project), childAnchors = {} }) {
   if (anchors.build && anchors.kit && anchors.index) return { target: root, missing: [] }
-  return { target: monorepo ? resolve(root, 'presentations') : root, missing: ['build', 'kit', 'index'].filter(k => !anchors[k]) }
+  // Root anchors do not satisfy contracts in a separate, self-contained child app.
+  const targetAnchors = monorepo ? childAnchors : anchors
+  return { target: monorepo ? resolve(root, 'presentations') : root, missing: ['build', 'kit', 'index'].filter(k => !targetAnchors[k]) }
 }
 // Full bootstrap utility. Partial anchors are integrated by the skill, not overwritten.
 export async function materialize(target, template = bootstrapDirectory) {

@@ -7,29 +7,53 @@ import { reference } from '../scripts/reference.mjs'
 import { assertReference } from '../scripts/verify.mjs'
 import { Router } from '../src/Router'
 import { Presentation } from '../src/presentation-kit'
-import { scaffoldPlan, bootstrapDirectory } from '../skills/presentation/scaffold.mjs'
+import { scaffoldPlan, bootstrapDirectory, detectMonorepo } from '../skills/presentation/scaffold.mjs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import TemplateTalk from '../.test-work/contracts/src/presentations/template-contract/Talk'
+import { steps as templateSteps } from '../.test-work/contracts/src/presentations/template-contract/steps'
 import { diagnose } from '../scripts/diagnostics.mjs'
 it('I-21 scaffold planning selects only missing anchors', () => {
   for (const anchors of [{build:false,kit:false,index:false},{build:true,kit:false,index:false},{build:true,kit:true,index:true}]) {
     expect(scaffoldPlan({root:'/app',monorepo:false,anchors}).missing).toEqual(Object.keys(anchors).filter(k=>!anchors[k as keyof typeof anchors]))
   }
+  expect(scaffoldPlan({ root:'/mono', project:{packageJSON:{workspaces:['apps/*']}}, anchors:{build:true,kit:false,index:false} })).toEqual({target:'/mono/presentations',missing:['build','kit','index']})
+  expect(scaffoldPlan({ root:'/mono', monorepo:true, anchors:{build:true}, childAnchors:{build:true} }).missing).toEqual(['kit','index'])
 })
-it('I-24 bootstrap paths are skill-relative independent of cwd', () => { expect(bootstrapDirectory).toBe(`${process.cwd()}/skills/presentation/templates/bootstrap`) })
+it('I-24 bootstrap path is anchored to the skill module rather than process cwd', () => { expect(bootstrapDirectory).toBe(resolve(dirname(fileURLToPath(import.meta.url)), '../skills/presentation/templates/bootstrap')) })
 it('I-25 scaffold targets standalone monorepo and existing apps', () => {
   const anchors={build:false,kit:false,index:false}
   expect(scaffoldPlan({root:'/project',monorepo:false,anchors}).target).toBe('/project')
   expect(scaffoldPlan({root:'/project',monorepo:true,anchors}).target).toBe('/project/presentations')
   expect(scaffoldPlan({root:'/project/app',monorepo:true,anchors:{build:true,kit:true,index:true}}).target).toBe('/project/app')
+  for (const project of [{packageJSON:{workspaces:['apps/*']}},{packageJSON:{workspaces:{packages:['packages/*']}}},{entries:['pnpm-workspace.yaml']},{entries:['packages']},{entries:['apps']}]) {
+    expect(detectMonorepo(project)).toBe(true)
+    expect(scaffoldPlan({root:'/project',project,anchors:{build:true,kit:false,index:false}})).toEqual({target:'/project/presentations',missing:['build','kit','index']})
+  }
+  expect(detectMonorepo({packageJSON:{},entries:['src']})).toBe(false)
 })
 it('I-27 landing and unknown paths enumerate the explicit lazy registry', async () => {
   const view = render(<Router pathname="/" />); expect(screen.getByRole('link').getAttribute('href')).toBe('/how-to-make-a-presentation')
   view.rerender(<Router pathname="/unknown" />); expect(screen.getByText('Ideas, in motion.')).toBeTruthy()
   view.rerender(<Router pathname="/how-to-make-a-presentation" />); expect(await screen.findByText('You have a topic')).toBeTruthy()
 })
-it('I-31 generated sample captions and next previous follow evolving payloads', () => {
-  render(<Presentation steps={steps} title="Sample" />)
-  expect(screen.getByText(steps[0].caption)).toBeTruthy(); fireEvent.click(screen.getByLabelText('Next step')); expect(screen.getByText(steps[1].caption)).toBeTruthy()
-  fireEvent.click(screen.getByLabelText('Previous step')); expect(screen.getByText(steps[0].caption)).toBeTruthy()
+it('I-31 materialized presentation templates render captions navigation and stable typed scenes', () => {
+  const view = render(<TemplateTalk />)
+  expect(screen.getByText(templateSteps[0].caption)).toBeTruthy()
+  expect(screen.getByLabelText('Next step').hasAttribute('disabled')).toBe(true)
+  expect(screen.getByLabelText('Previous step').hasAttribute('disabled')).toBe(true)
+  view.unmount()
+  const expanded = [...templateSteps, { ...templateSteps[0], id:'next', title:'Next beat', caption:'The next paragraph.', payload:{label:'Next idea'} }]
+  render(<Presentation steps={expanded} title="Template contract" />)
+  const node = document.querySelector('[data-presentation-node]')!
+  fireEvent.click(screen.getByLabelText('Next step'))
+  expect(screen.getByText('The next paragraph.')).toBeTruthy()
+  expect(screen.getByText('Next idea')).toBe(node)
+  expect(document.querySelector('[data-presentation-node]')).toBe(node)
+  fireEvent.click(screen.getByLabelText('Previous step'))
+  expect(screen.getByText(templateSteps[0].caption)).toBeTruthy()
+  expect(node.textContent).toBe(templateSteps[0].payload.label)
+  expect(document.querySelector('[data-presentation-node]')).toBe(node)
 })
 it('I-35 canonical sample metadata matches all nine normative titles captions and eras', () => {
   expect(steps).toHaveLength(9); expect(steps.map(({title,caption})=>({title,caption}))).toEqual(reference)

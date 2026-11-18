@@ -20,8 +20,9 @@ export async function inspect({ slug, cwd = process.cwd(), build = true, settle 
       warnings.push(...findings)
       findings.forEach(w => console.warn(`ADVISORY ${w}`))
       const file = resolve(directory, `${String(index + 1).padStart(2, '0')}.png`)
+      const elapsedBeforeCapture = Date.now() - started
       await page.screenshot({ path: file })
-      await onCapture?.({ index, file, elapsed: Date.now() - started, viewport: page.viewportSize() })
+      await onCapture?.({ index, file, elapsed: Date.now() - started, elapsedBeforeCapture, viewport: page.viewportSize(), page })
       console.log(`CAPTURE step ${index}: ${file}`)
     }
     await page.close()

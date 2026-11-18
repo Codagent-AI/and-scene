@@ -28,9 +28,16 @@ export async function verify({ cwd = process.cwd(), build = true, slug, canonica
       try { count = await openPresentation(page, base, slug) } catch (e) { checkErrors(); throw new Error(`step 0: ${e.message}`) }
       const actual = []
       for (index = 0; index < count; index++) {
-        if (index) await advance(page, index)
-        await page.waitForTimeout(SETTLE_MS)
-        checkErrors()
+        try {
+          if (index) await advance(page, index)
+          await page.waitForTimeout(SETTLE_MS)
+          checkErrors()
+        } catch (error) {
+          // A render crash can remove the index hook; retain its browser error
+          // instead of reducing the failure to the resulting transition timeout.
+          checkErrors()
+          throw error
+        }
         actual.push({ title: await page.locator('[data-presentation-title]').innerText(), caption: await page.locator('[data-presentation-caption]').innerText() })
         console.log(`PASS step ${index}/${count - 1}`)
       }

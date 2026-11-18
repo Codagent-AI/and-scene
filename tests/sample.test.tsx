@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, fireEvent, screen } from '@testing-library/react'
+import { render, fireEvent, screen, within } from '@testing-library/react'
 import { STEPS } from '../src/presentations/how-to-make-a-presentation/steps'
 import { entities, stateFor } from '../src/presentations/how-to-make-a-presentation/entities'
 import { StoryScene } from '../src/presentations/how-to-make-a-presentation/steps/Scene'
@@ -21,8 +21,28 @@ describe('reference sample', () => {
   })
   it('I-36 cards have parts and morph labels are separate links', () => {
     render(<StoryScene payload={5} />)
-    expect(screen.getAllByText(/title/)).toHaveLength(2)
-    expect(screen.getByText('morph →').closest('[data-presentation-entity]')?.className).toContain('link')
+    const cards = [...document.querySelectorAll('[data-presentation-entity].card')]
+    expect(cards).toHaveLength(2)
+    for (const [index, card] of cards.entries()) {
+      expect(within(card as HTMLElement).getByText(index === 0 ? '01 / the idea' : '02 / the story')).toBeTruthy()
+      const parts = card.querySelector('small')!
+      expect([...parts.childNodes].filter(node => node.nodeType === 3).map(node => node.textContent?.trim())).toEqual(['title', 'caption'])
+      expect(within(parts).getByText('visual', { exact: true }).tagName).toBe('B')
+    }
+    const link = screen.getByText('morph →').closest('[data-presentation-entity]')!
+    expect(link.className).toContain('link')
+    expect(cards.every(card => !card.contains(link))).toBe(true)
+    const geometry = (element: Element) => {
+      const style = (element.parentElement as HTMLElement).style
+      return { x: parseFloat(style.left), y: parseFloat(style.top), w: parseFloat(style.width), h: parseFloat(style.height) }
+    }
+    const [first, second] = cards.map(geometry); const connector = geometry(link)
+    expect(connector.x).toBeGreaterThanOrEqual(first.x + first.w)
+    expect(connector.x + connector.w).toBeLessThanOrEqual(second.x)
+    for (const card of [first, second]) {
+      expect(connector.y + connector.h / 2).toBeGreaterThanOrEqual(card.y)
+      expect(connector.y + connector.h / 2).toBeLessThanOrEqual(card.y + card.h)
+    }
     expect(screen.getByText('partial ↔ full')).toBeTruthy()
   })
   it('I-37 socket geometry and pipeline resolved pass', () => {

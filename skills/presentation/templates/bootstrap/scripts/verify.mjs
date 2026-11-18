@@ -11,15 +11,15 @@ export function validateReference(actual, expected) {
 }
 export async function verify({ slug, noBuild = false, settle = SETTLE_MS } = {}) {
   let phase = 'build'; let stepIndex = 0
+  const browserErrors = []
   const target = slug ?? 'how-to-make-a-presentation'
   try {
     if (!noBuild) await command('npm', ['run', 'build'])
     phase = 'sample'
     const expected = slug ? undefined : JSON.parse(await readFile(new URL('./reference-outline.json', import.meta.url), 'utf8'))
     await withBrowser(async (page, origin) => {
-      const errors = []
-      page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
-      page.on('pageerror', error => errors.push(error.message))
+      page.on('console', message => { if (message.type() === 'error') browserErrors.push(`console.error: ${message.text()}`) })
+      page.on('pageerror', error => browserErrors.push(`pageerror: ${error.message}`))
       await page.goto(origin)
       if (await page.locator(`a[href="/${target}"]`).count() === 0) throw new Error(`Missing registered sample: ${target}`)
       await page.goto(`${origin}/${target}`)
@@ -33,9 +33,9 @@ export async function verify({ slug, noBuild = false, settle = SETTLE_MS } = {})
       const actual = []
       for (stepIndex = 0; stepIndex < count; stepIndex++) {
         if (stepIndex) await page.keyboard.press('ArrowRight')
-        await page.waitForFunction(index => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === String(index), stepIndex, { timeout: 3000 })
+        await page.waitForFunction(index => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === String(index), stepIndex, { timeout: 3000 }).catch(error => { throw new Error(`Step transition did not advance to ${stepIndex}: ${error.message}`) })
         await page.waitForTimeout(settle)
-        if (errors.length) throw new Error(errors.join('; '))
+        if (browserErrors.length) throw new Error(browserErrors.join('; '))
         actual.push({ title: await page.locator('[data-presentation-step-title]').textContent(), caption: await page.locator('[data-presentation-caption]').textContent(), era: (await page.locator('[data-presentation-marker]').textContent()).split(' / ').slice(1).join(' / ') })
         console.log(`STEP ${stepIndex} PASS`)
       }
@@ -45,7 +45,7 @@ export async function verify({ slug, noBuild = false, settle = SETTLE_MS } = {})
     console.log(`PASS verification: ${target}`)
     return true
   } catch (error) {
-    console.error(`FAIL ${phase} step ${stepIndex}: ${error.message}`)
+    console.error(`FAIL ${phase} step ${stepIndex}: ${browserErrors.length ? browserErrors.join('; ') : error.message}`)
     return false
   }
 }

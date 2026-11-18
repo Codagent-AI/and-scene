@@ -34,12 +34,19 @@ export async function withBrowser(action, { cwd = process.cwd(), viewport = { wi
     while (true) {
       if (launchError) throw launchError
       if (server.exitCode !== null) throw new Error(`Preview exited: ${output}`)
-      try { if ((await fetch(origin)).ok) break } catch { /* wait for preview readiness */ }
+      try {
+        console.log(`PROBE ${origin}`)
+        const response = await fetch(origin)
+        if (response.ok) { console.log(`READINESS ${response.url}`); break }
+      } catch { /* wait for preview readiness */ }
       if (Date.now() > deadline) throw new Error(`Preview readiness timed out at ${origin}: ${output}`)
       await new Promise(res => setTimeout(res, 50))
     }
     browser = await chromium.launch({ headless: true })
     const page = await browser.newPage({ viewport })
+    page.on('request', request => {
+      if (request.isNavigationRequest() && request.frame() === page.mainFrame()) console.log(`BROWSER ${request.url()}`)
+    })
     return await action(page, origin)
   } finally {
     try { await browser?.close() } finally {

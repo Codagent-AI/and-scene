@@ -1,7 +1,7 @@
 import { useEffect, useId } from 'react'
 import { AnimatePresence, useIsPresent } from 'motion/react'
 import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, renderHook, screen, act } from '@testing-library/react'
+import { fireEvent, render, renderHook, screen, act, waitFor } from '@testing-library/react'
 import { Presentation } from '../src/presentation-kit/Presentation'
 import { Stage } from '../src/presentation-kit/Stage'
 import { usePresentationNav, clamp } from '../src/presentation-kit/usePresentationNav'
@@ -45,7 +45,7 @@ describe('scene contracts', () => {
   })
   it('I-5 newcomer delay and exit lifecycle contract', () => {
     const entry = Appear({ children: 'new' })
-    expect(entry.props.initial).toEqual({ opacity: 0 }); expect(entry.props.animate).toEqual({ opacity: 1 }); expect(entry.props.exit).toEqual({ opacity: 0 })
+    expect(entry.props.initial).toEqual({ opacity: 0 }); expect(entry.props.animate).toEqual({ opacity: 1 }); expect(entry.props.exit).toEqual({ opacity: 0, transition: { duration: ENTER_T, delay: 0 } })
     expect(entry.props.transition).toEqual({ duration: ENTER_T, delay: ENTER_DELAY }); expect(ENTER_DELAY).toBeGreaterThanOrEqual(LAYOUT_T)
     const stage = render(<Stage step={steps[0]} mode="browse" />)
     stage.rerender(<Stage step={{ ...steps[1], groupKey: 'other' }} mode="browse" />)
@@ -59,6 +59,13 @@ describe('scene contracts', () => {
     expect(screen.getByText('present')).toBeTruthy()
     view.rerender(<Stage step={{ ...open, payload: false }} mode="browse" />)
     expect(screen.getByText('exiting').closest('[data-presentation-entity]')).toBeTruthy()
+  })
+  it('I-5 exit completes without inheriting the newcomer delay', async () => {
+    const view = render(<AnimatePresence><Appear key="timed" initial={false}>timed exit</Appear></AnimatePresence>)
+    const started = performance.now()
+    view.rerender(<AnimatePresence />)
+    await waitFor(() => expect(screen.queryByText('timed exit')).toBeNull(), { timeout: ENTER_DELAY * 1000 - 50, interval: 10 })
+    expect(performance.now() - started).toBeLessThan(ENTER_DELAY * 1000)
   })
   it('I-6 grouped scenes retain instance and continuing entities', () => {
     const mounted = vi.fn(); const unmounted = vi.fn()

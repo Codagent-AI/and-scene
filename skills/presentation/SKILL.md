@@ -41,8 +41,8 @@ Outside an existing complete presentation app, detect monorepos via package.json
 workspaces, pnpm-workspace.yaml, packages/ or apps/. Scaffold a self-contained app
 under `presentations/` for a monorepo; use root for an empty or standalone project.
 If a non-empty project lacks kit or registry, state the exact proposed target and
-wait for user confirmation before writes. An existing authorization of that exact
-target counts as confirmation. Do not infer confirmation from silence.
+wait for the user to explicitly confirm that stated, resolved target before
+writes. Do not infer confirmation from earlier authorization or silence.
 
 Copy missing infrastructure from the skill-relative bootstrap directory; never
 blindly overwrite the target. `node <skill-dir>/scaffold.mjs <target> --anchors

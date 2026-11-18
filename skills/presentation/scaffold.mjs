@@ -5,6 +5,7 @@ export const bootstrap = fileURLToPath(new URL('./templates/bootstrap/', import.
 export async function exists(path) { try { await access(path); return true } catch { return false } }
 export async function materialize(target, anchors = ['build', 'kit', 'index']) {
   if (anchors.some(anchor => !['build', 'kit', 'index'].includes(anchor))) throw new Error('Unknown scaffold anchor')
+  if (anchors.length === 0) return target
   await mkdir(target, { recursive: true })
   const files = {
     build: ['index.html', 'vite.config.ts', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'eslint.config.js', '.gitignore'],

@@ -1,12 +1,14 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { cp, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile, stat } from 'node:fs/promises'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { access, appendFile, cp, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile, stat } from 'node:fs/promises'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { snapshot } from './filesystem'
 const exec = promisify(execFile)
 const root = process.cwd()
 let scratch: string
+let sourceBefore: Record<string, string>
 const evidence = process.env.SCENE_EVIDENCE_DIR
 async function save(name: string, output: string) { if (evidence) { await mkdir(evidence, { recursive: true }); await writeFile(join(evidence, `${name}.log`), output) } }
 async function run(cwd: string, args: string[], name: string, expected = 0) {
@@ -37,8 +39,25 @@ function cleaned(output: string) {
   const pids = [...output.matchAll(/PREVIEW http:\/\/127\.0\.0\.1:\d+ PID (\d+)/g)].map(m => Number(m[1]))
   for (const pid of pids) { expect(output).toContain(`CLEANUP preview ${pid}`); expect(() => process.kill(pid, 0)).toThrow() }
 }
-beforeAll(async () => { scratch = await mkdtemp(join(tmpdir(), 'and-scene-integration-')) })
-afterAll(async () => { await rm(scratch, { recursive: true, force: true }) })
+async function sourceSnapshot() {
+  const { stdout } = await exec('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root })
+  // Checklist evidence is updated as checks complete; it is not fixture source.
+  const files = stdout.split('\0').filter(path => path && path !== 'openspec/changes/create-and-scene/checklist.md')
+  return snapshot(root, files)
+}
+beforeAll(async () => {
+  scratch = await mkdtemp(join(tmpdir(), 'and-scene-integration-'))
+  sourceBefore = await sourceSnapshot()
+})
+afterEach(async ({ task }) => {
+  expect(await sourceSnapshot()).toEqual(sourceBefore)
+  if (evidence) await appendFile(join(evidence, 'source-preservation.log'), `PASS ${task.name}: ${Object.keys(sourceBefore).length} source files unchanged (SHA-256, names and contents).\n`)
+})
+afterAll(async () => {
+  await rm(scratch, { recursive: true, force: true })
+  await expect(access(scratch)).rejects.toMatchObject({ code: 'ENOENT' })
+  await save('temporary-cleanup', `PASS scratch directory and all fixtures removed: ${scratch}\nVerified access rejects with ENOENT.\n`)
+})
 describe('approved integration and end-to-end boundaries', () => {
   it('INT-001 materialized bootstrap complete neutral independent and aligned', async () => {
     const dir = join(scratch, 'bootstrap')
@@ -69,7 +88,7 @@ describe('approved integration and end-to-end boundaries', () => {
     const dir = await fixture('inspection')
     await writeFile(join(dir, 'src/presentations/Diagnostic.tsx'), `import { Presentation } from '../presentation-kit/Presentation'
 import type { SceneProps, Step } from '../presentation-kit/types'
-function Scene({ payload }: SceneProps<number>) { return <><div style={{position:'absolute',left:100,top:100}} data-diagnostic="collision-a">COLLISION A</div><div style={{position:'absolute',left:100,top:100}} data-diagnostic="collision-b">COLLISION B</div><div data-presentation-allow-overlap style={{position:'absolute',left:300,top:200}}><span style={{position:'absolute'}}>ALLOWED A</span><span style={{position:'absolute'}}>ALLOWED B</span></div><span>{payload}</span></> }
+function Scene({ payload }: SceneProps<number>) { return <><div style={{position:'absolute',left:100,top:100}} data-diagnostic="collision-a">COLLISION A</div><div style={{position:'absolute',left:100,top:100}} data-diagnostic="collision-b">COLLISION B</div><div data-presentation-allow-overlap={payload === 2 ? undefined : ''} style={{position:'absolute',left:300,top:200}}><span style={{position:'absolute'}}>ALLOWED A</span><span style={{position:'absolute'}}>ALLOWED B</span></div><span>{payload}</span></> }
 const steps: Step<number>[] = [1,2,3].map(i=>({id:String(i),era:String(i),title:'Diagnostic '+i,caption:'Caption '+i,Scene,payload:i,groupKey:'diagnostic'}))
 export default function Diagnostic(){return <><style>{'[data-presentation-attribution]{font-size:8px!important}'}</style><Presentation steps={steps} title="Diagnostic" /></>}
 `)
@@ -81,24 +100,45 @@ export default function Diagnostic(){return <><style>{'[data-presentation-attrib
     const folder = join(dir, 'artifacts/inspection/diagnostic/1440x900')
     const report = JSON.parse(await readFile(join(folder, 'report.json'), 'utf8'))
     expect(report).toHaveLength(3)
+    const names = ['step-01.png', 'step-02.png', 'step-03.png']
+    expect((await readdir(folder)).filter(name => name.endsWith('.png')).sort()).toEqual(names)
     for (const capture of report) {
+      expect(capture.index).toBe(report.indexOf(capture))
+      expect(capture.file).toBe(`artifacts/inspection/diagnostic/1440x900/${names[capture.index]}`)
       expect(capture.settledFor).toBeGreaterThanOrEqual(900)
       if (capture.index > 0) expect(capture.capturedAt - report[capture.index - 1].capturedAt).toBeGreaterThanOrEqual(capture.settledFor)
       const png = await readFile(join(dir, capture.file)); expect(png.subarray(1, 4).toString()).toBe('PNG'); expect(png.readUInt32BE(16)).toBe(1440); expect(png.readUInt32BE(20)).toBe(900)
-      expect(capture.warnings.join('\n')).toContain('COLLISION A'); expect(capture.warnings.join('\n')).not.toContain('ALLOWED A')
+      expect(capture.warnings.join('\n')).toContain('COLLISION A')
+      // The identical geometry/text is detected only when its exemption is removed.
+      for (const label of ['ALLOWED A', 'ALLOWED B']) {
+        if (capture.index === 1) expect(capture.warnings.join('\n')).toContain(label)
+        else expect(capture.warnings.join('\n')).not.toContain(label)
+      }
       expect(capture.warnings.join('\n')).toContain('indistinct active chrome'); expect(capture.warnings.join('\n')).toContain('unpolished attribution')
       expect(output).toContain(`ADVISORY step ${capture.index}`)
     }
-    await save('INT-002-contracts', 'PASS INT-002: three desktop PNGs with expected dimensions and filenames, configured >=900ms settling per step, collision identity warnings, explicit subtree exemption, active progress/ToC and attribution warnings, advisory zero exit, preview cleanup.\n')
+    await save('INT-002-contracts', 'PASS INT-002: exact PNG count and step-01/02/03.png names, report paths, 1440x900 PNG headers, >=900ms capture gaps; identical overlap detected unmarked at step 1 and exempt marked at steps 0/2; other collisions and chrome/attribution warnings; advisory zero exit and preview cleanup.\n')
   })
   it('E2E-001 reference production verification', async () => {
     const output = await run(root, ['run', 'verify'], 'E2E-001-reference')
     for (let i = 0; i < 9; i++) expect(output).toContain(`STEP ${i} PASS`)
-    expect(output).toContain('PASS verification: how-to-make-a-presentation'); expect(output).toContain('http://127.0.0.1:'); cleaned(output)
+    expect(output).toContain('PASS verification: how-to-make-a-presentation')
+    const preview = output.match(/^PREVIEW (\S+) PID /m)![1]
+    const probes = [...output.matchAll(/^PROBE (\S+)$/gm)].map(match => match[1])
+    const ready = [...output.matchAll(/^READINESS (\S+)$/gm)].map(match => match[1])
+    const navigation = [...output.matchAll(/^BROWSER (\S+)$/gm)].map(match => match[1])
+    expect(probes.length).toBeGreaterThan(0); expect(ready.length).toBeGreaterThan(0)
+    expect(navigation).toEqual([`${preview}/`, `${preview}/how-to-make-a-presentation`])
+    for (const address of [preview, ...probes, ...ready, ...navigation]) {
+      const url = new URL(address)
+      expect(url.hostname).toBe('127.0.0.1'); expect(url.origin).toBe(preview)
+    }
+    expect(probes.every(address => new URL(address).pathname === '/')).toBe(true)
+    expect(ready.every(address => new URL(address).pathname === '/')).toBe(true)
+    cleaned(output)
   })
   it.each(['build', 'missing', 'order', 'console', 'page', 'render', 'transition'])('E2E-002 actionable %s failure and cleanup', async kind => {
     const dir = await fixture(`failure-${kind}`)
-    const sourceBefore = await readFile(join(root, 'src/presentations/how-to-make-a-presentation/steps/Scene.tsx'), 'utf8')
     if (kind === 'build') await writeFile(join(dir, 'src/broken.ts'), 'const broken: number = "no"; export { broken }\n')
     if (kind === 'missing') await writeFile(join(dir, 'src/presentations/index.ts'), 'export const presentations: {slug:string;title:string;load:()=>Promise<{default:()=>null}>}[] = []\n')
     if (kind === 'order') await change(join(dir, 'src/presentations/how-to-make-a-presentation/steps/index.ts'), 'outline.map(', '[...outline].reverse().map(')
@@ -110,7 +150,14 @@ export default function Diagnostic(){return <><style>{'[data-presentation-attrib
     const output = await run(dir, ['run', 'verify'], `E2E-002-${kind}`, 1)
     expect(output).toContain(`FAIL ${kind === 'build' ? 'build' : ['missing', 'order'].includes(kind) ? 'sample' : 'render'}`)
     if (['console', 'page', 'render', 'transition'].includes(kind)) expect(output).toContain('step 1')
+    if (['console', 'page', 'render'].includes(kind)) {
+      expect(output).toContain(`${kind === 'console' ? 'console.error' : 'pageerror'}: injected ${kind} failure`)
+      expect(output).not.toContain('Timeout')
+    }
+    if (kind === 'transition') {
+      expect(output).toContain('Step transition did not advance to 1')
+      expect(output).not.toContain('pageerror:')
+    }
     expect(output).not.toContain('PASS verification:'); cleaned(output)
-    expect(await readFile(join(root, 'src/presentations/how-to-make-a-presentation/steps/Scene.tsx'), 'utf8')).toBe(sourceBefore)
   })
 })

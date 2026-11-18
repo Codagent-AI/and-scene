@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, readdir, writeFile, access } from 'node:fs/promises'
+import { cp, mkdir, readFile, readdir, writeFile, access, stat } from 'node:fs/promises'
 import { dirname, resolve, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 export const bootstrap = fileURLToPath(new URL('./templates/bootstrap/', import.meta.url))
@@ -12,7 +12,6 @@ export async function materialize(target, anchors = ['build', 'kit', 'index']) {
     index: ['src/main.tsx', 'src/Router.tsx', 'src/Landing.tsx', 'src/index.css', 'src/presentations'],
   }
   const copyMissing = async (source, destination) => {
-    const { stat } = await import('node:fs/promises')
     if ((await stat(source)).isDirectory()) {
       await mkdir(destination, { recursive: true })
       for (const entry of await readdir(source)) await copyMissing(join(source, entry), join(destination, entry))

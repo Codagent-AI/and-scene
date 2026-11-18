@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { cp, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile, stat } from 'node:fs/promises'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { tmpdir } from 'node:os'
@@ -29,7 +29,6 @@ async function change(path: string, from: string, to: string) {
 async function parity(source: string, target: string) {
   const names = await readdir(source)
   for (const name of names) {
-    const { stat } = await import('node:fs/promises')
     if ((await stat(join(source, name))).isDirectory()) await parity(join(source, name), join(target, name))
     else expect(await readFile(join(target, name), 'utf8')).toBe(await readFile(join(source, name), 'utf8'))
   }

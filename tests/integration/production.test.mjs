@@ -13,9 +13,9 @@ const excluded = new Set(['node_modules', '.git', '.work', 'dist', 'artifacts', 
 const read = path => readFile(path, 'utf8')
 async function run(dir, args, name, cwd = dir) {
   let result
-  try { const { stdout, stderr } = await exec('npm', ['--prefix', dir, ...args], { cwd, timeout: 180000, maxBuffer: 8 * 1024 * 1024 }); result = { code: 0, output: stdout + stderr } }
+  try { const { stdout, stderr } = await exec('npm', ['--prefix', dir, ...args], { cwd, env: { ...process.env, ...(args[0] === 'run' ? { NODE_ENV: 'production' } : {}) }, timeout: 180000, maxBuffer: 8 * 1024 * 1024 }); result = { code: 0, output: stdout + stderr } }
   catch (error) { result = { code: error.code, output: (error.stdout ?? '') + (error.stderr ?? '') } }
-  result.output = `$ npm --prefix ${dir} ${args.join(' ')}\ncwd=${cwd}\n` + result.output
+  result.output = `NODE_ENV=${args[0] === 'run' ? 'production' : process.env.NODE_ENV}\n$ npm --prefix ${dir} ${args.join(' ')}\ncwd=${cwd}\n` + result.output
   await writeFile(join(work, `${name}.log`), result.output)
   return result
 }

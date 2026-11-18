@@ -1,8 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { build, collectErrors, parseOptions, sleep, stepCount, waitForStep, withBrowser } from './browser-runtime.mjs'
+import { build, collectErrors, parseOptions, stepCount, waitForStep, withBrowser } from './browser-runtime.mjs'
 import { visualDiagnostics } from './diagnostics.mjs'
+import { captureStep } from './capture-step.mjs'
 
 export async function inspectPresentation(options, cwd = process.cwd()) {
   if (!options.slug) throw new Error('inspection: provide a registered presentation slug')
@@ -17,14 +18,15 @@ export async function inspectPresentation(options, cwd = process.cwd()) {
     for (let index = 0; index < count; index++) {
       await waitForStep(page, index)
       const stepStartedAt = Date.now()
-      await sleep(options.settle)
+      if (errors.length) throw new Error(`inspection step ${index}: ${errors.join('; ')}`)
+      const capture = await captureStep(page, { index, settle: options.settle })
       if (errors.length) throw new Error(`inspection step ${index}: ${errors.join('; ')}`)
       const warnings = await page.evaluate(visualDiagnostics)
       const activeAnimations = await page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running').length)
       const image = `step-${String(index + 1).padStart(2, '0')}.png`
-      await page.screenshot({ path: join(directory, image), fullPage: true, animations: 'allow' })
+      await writeFile(join(directory, image), capture.buffer)
       const capturedAt = Date.now()
-      manifest.push({ index, image, stepStartedAt, capturedAt, settledForMs: capturedAt - stepStartedAt, activeAnimations, warnings })
+      manifest.push({ index, image, stepStartedAt, capturedAt, settledForMs: capturedAt - stepStartedAt, activeAnimations, scene: capture.scene, warnings })
       for (const warning of warnings) console.warn(`ADVISORY step ${index}: ${warning}`)
       console.log(`captured step ${index}: ${join(directory, image)} (settled ${capturedAt - stepStartedAt}ms)`)
       if (index < count - 1) await page.keyboard.press('ArrowRight')

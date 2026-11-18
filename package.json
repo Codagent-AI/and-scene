@@ -33,6 +33,7 @@
     "globals": "^17.6.0",
     "jsdom": "^31.0.1",
     "playwright": "^1.65.1",
+    "pngjs": "^7.0.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",

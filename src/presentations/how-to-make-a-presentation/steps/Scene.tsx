@@ -3,9 +3,10 @@ import { Box, Label, Frame, SceneLayer } from '../../../presentation-kit'
 import { ENTER_DELAY, ENTER_T, LAYOUT_T, EASE } from '../../../presentation-kit/constants'
 import type { SceneProps } from '../../../presentation-kit'
 import { entityId, visibleEntities } from '../entities'
+import { SceneReader } from './SceneReader'
 export interface SamplePayload { beat: number }
 export function SampleScene({ payload }: SceneProps<SamplePayload>) {
-  return <SceneLayer><AnimatePresence>{visibleEntities(payload.beat).map(entity => {
+  return <><SceneReader beat={payload.beat} /><SceneLayer><AnimatePresence>{visibleEntities(payload.beat).map(entity => {
     const Node = entity.kind === 'reveal' ? Frame : ['connection', 'link', 'modify'].includes(entity.kind) ? Label : Box
     return <Node key={entity.id} id={entityId(entity.id)} data-sample-entity={entity.id} data-sample-kind={entity.kind} data-sample-flags={entity.kind === 'flag' ? 'card-2' : undefined}
       className={`sample-entity ${entity.kind}`} style={{ position: 'absolute', left: entity.x, top: entity.y, width: entity.w, height: entity.h }}
@@ -17,5 +18,5 @@ export function SampleScene({ payload }: SceneProps<SamplePayload>) {
         <text x="270" y="22">{entity.text}</text>
       </svg> : entity.kind === 'card' ? <><strong>{entity.text}</strong><span>title</span><span>caption</span><span className="visual-mini">◇ visual</span></> : entity.kind === 'verify' ? <><strong>{entity.text}</strong><span>build + render</span><span>all steps pass</span></> : <span>{entity.text}</span>}
     </Node>
-  })}</AnimatePresence></SceneLayer>
+  })}</AnimatePresence></SceneLayer></>
 }

@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { PNG } from 'pngjs'
+import { withBrowser } from '../scripts/browser-runtime.mjs'
 
 const exec = promisify(execFile)
 const source = resolve(import.meta.dirname, '..')
@@ -43,6 +45,20 @@ test('E2E-001: reference presentation passes production verification', { timeout
     assert.match(result.output, new RegExp(`browser URL: http://127\\.0\\.0\\.1:\\d+/${slug}`))
     for (let i = 0; i < 9; i++) assert.match(result.output, new RegExp(`render step ${i}/8: clean`))
     assertStopped(result.output)
+    // The same production build also exposes an unscaled narrow-screen reading key.
+    await withBrowser(directory, async (page, base) => {
+      await page.goto(`${base}/${slug}`)
+      const reader = page.locator('[data-sample-scene-reader]')
+      await reader.waitFor({ state: 'visible' })
+      assert.ok(await reader.getByText('you', { exact: true }).isVisible())
+      assert.ok(await reader.getByText('“I have a topic…”', { exact: true }).isVisible())
+      const metrics = await reader.evaluate(element => ({ font: parseFloat(getComputedStyle(element).fontSize), bottom: element.getBoundingClientRect().bottom, scaled: !!element.closest('[data-presentation-canvas]') }))
+      assert.ok(metrics.font >= 14)
+      assert.equal(metrics.scaled, false)
+      assert.ok(metrics.bottom <= await page.locator('[data-presentation-footer]').evaluate(element => element.getBoundingClientRect().top))
+      for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowRight')
+      assert.match(await reader.innerText(), /01 \/ the opening — title, caption, visual/)
+    }, { width: 390, height: 844 })
   } finally { await rm(directory, { recursive: true, force: true }) }
 })
 
@@ -119,6 +135,41 @@ export default function Controlled() {
     }
     assert.notDeepEqual(await readFile(join(artifacts, 'step-01.png')), await readFile(join(artifacts, 'step-02.png')))
     assert.match(result.output, /warnings are advisory, not visual-quality pass\/fail/)
+    assertStopped(result.output)
+  } finally { await rm(directory, { recursive: true, force: true }) }
+})
+
+
+// F-002: PNG pixels, not only DOM or animation metadata, must contain the first scene.
+test('INT-002: first screenshot contains real motion entities without full-page viewport changes', { timeout: 180000 }, async () => {
+  const directory = await checkout()
+  try {
+    await writeFile(join(directory, talk), `import { AnimatePresence } from 'motion/react'
+import { Presentation, Appear, Box, SceneLayer } from '../../presentation-kit'
+import type { SceneProps, Step } from '../../presentation-kit'
+function Scene({ payload }: SceneProps<{ detail: boolean }>) {
+  return <SceneLayer><Appear><Box id="seed-fixture" style={{ position:'absolute', left:100, top:100, width:100, height:50, background:'#ff00ff' }}>Seed</Box><Box id="roots-fixture" style={{ position:'absolute', left:100, top:200, width:100, height:50, background:'#00ffff' }}>Roots</Box></Appear><AnimatePresence>{payload.detail && <Appear><Box id="leaf-fixture" style={{ position:'absolute', left:400, top:100 }}>Leaf</Box></Appear>}</AnimatePresence></SceneLayer>
+}
+const steps: Step<{ detail: boolean }>[] = [false, true].map((detail, index) => ({ id:String(index), era:'growth', title:'Growth', caption:'Seed to canopy.', Scene, groupKey:'tree', payload:{detail} }))
+export default function Talk() { return <><style>{'body { margin:8px }'}</style><Presentation steps={steps} title="Seed to canopy" /></> }
+`)
+    const result = await command(directory, 'inspect', [slug, '--width', '1440', '--height', '900', '--settle', '1000'])
+    assert.equal(result.code, 0, result.output)
+    const artifacts = join(directory, `artifacts/inspection/${slug}/1440x900`)
+    const manifest = JSON.parse(await readFile(join(artifacts, 'manifest.json'), 'utf8'))
+    assert.equal(manifest.length, 2)
+    for (const capture of manifest) {
+      const image = PNG.sync.read(await readFile(join(artifacts, capture.image)))
+      assert.equal(image.width, 1440)
+      assert.equal(image.height, 900, 'capture preserves the configured viewport despite body margin')
+      for (const [id, rgb] of [['seed-fixture', [255, 0, 255]], ['roots-fixture', [0, 255, 255]]]) {
+        const entity = capture.scene.find(node => node.id === id)
+        assert.ok(entity?.visible, `${id} must be visible in step ${capture.index}`)
+        assert.equal(entity.opacity, 1)
+        const offset = (Math.floor(entity.y + 5) * image.width + Math.floor(entity.x + 5)) * 4
+        assert.deepEqual([...image.data.subarray(offset, offset + 3)], rgb, `${id} must appear in the actual step ${capture.index} PNG`)
+      }
+    }
     assertStopped(result.output)
   } finally { await rm(directory, { recursive: true, force: true }) }
 })

@@ -57,3 +57,12 @@
   .how-to-scene [data-presentation-progress] button { width: 22px; height: 22px; font-size: 10px; }
   .how-to-scene [data-presentation-navigation] > button { padding: 5px; font-size: 10px; }
 }
+
+/* Unscaled reading companion; the scene itself remains a uniformly fitted canvas. */
+.sample-scene-reader { position: fixed; top: calc(50dvh + 21.591vw - 52.91px); bottom: 240px; left: 16px; right: 16px; overflow: auto; overscroll-behavior: contain; box-sizing: border-box; padding: 10px 14px; background: #fffdf7; color: #23372d; border: 1px solid #b0bba2; border-radius: 8px; font-family: 'Trebuchet MS', Arial, sans-serif; line-height: 1.5; }
+.sample-scene-reader p { margin: 0 0 6px; font-weight: bold; }
+.sample-scene-reader p span { font-weight: normal; color: #69756b; }
+.sample-scene-reader ul { margin: 0; padding-left: 18px; }
+.sample-scene-reader li { margin-bottom: 4px; }
+.sample-scene-reader:focus-visible { outline: 3px solid #668a35; outline-offset: 2px; }
+body:has(.how-to-scene[data-presentation-mode="present"]) .sample-scene-reader { display: none; }

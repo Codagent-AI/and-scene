@@ -2,3 +2,10 @@
    Scope all rules to your presentation root class. The kit supplies no theme.
    Include distinct [data-presentation-active="true"] controls and legible
    [data-presentation-attribution] a styling. */
+
+/* Readability budget: at 320px portrait width the default fit is 280/880.
+   To retain 12px displayed labels, use at least 38px design-space typography
+   in your own scoped styles, with containers large enough for that type.
+   Keep the composition fixed across viewports; use concise labels and captions
+   rather than shrinking a desktop typography scale into unreadability.
+   The kit and bootstrap intentionally do not supply these visual choices. */

@@ -25,3 +25,17 @@ it('I-42 warns for missing default or undersized attribution and indistinct acti
   document.querySelector('button')!.style.backgroundColor = 'green'
   expect(collectDiagnostics().join('\n')).not.toContain('attribution'); expect(collectDiagnostics().join('\n')).not.toContain('indistinct active')
 })
+
+it('F-1 warns on post-fit scene text rather than accepting a desktop-size font', () => {
+  document.body.innerHTML = '<div data-presentation><div data-presentation-canvas data-scale="0.3977272727272727"><span style="opacity:1;font-size:16px">generated topic</span><span data-presentation-allow-overlap style="opacity:1;font-size:14px">marked but tiny</span></div></div>'
+  let warnings = collectDiagnostics().filter((message: string) => message.startsWith('small scene text:'))
+  expect(warnings).toHaveLength(2)
+  expect(warnings.join('\n')).toContain('generated topic displays at 6.4px')
+  expect(warnings.join('\n')).toContain('marked but tiny displays at 5.6px')
+  for (const el of document.querySelectorAll<HTMLElement>('[data-presentation-canvas] span')) el.style.fontSize = '38px'
+  warnings = collectDiagnostics().filter((message: string) => message.startsWith('small scene text:'))
+  expect(warnings).toEqual([])
+  document.querySelector('[data-presentation-canvas]')!.setAttribute('data-scale', '1')
+  document.querySelector<HTMLElement>('span')!.style.fontSize = '16px'
+  expect(collectDiagnostics().filter((message: string) => message.startsWith('small scene text:'))).toEqual([])
+})

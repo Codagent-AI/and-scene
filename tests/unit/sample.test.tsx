@@ -1,10 +1,12 @@
 import { afterEach, expect, it } from 'vitest'
-import { render } from '@testing-library/react'
+import { act, render } from '@testing-library/react'
 import { entitiesAt } from '../../src/presentations/how-to-make-a-presentation/entities'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'
 import { StoryScene } from '../../src/presentations/how-to-make-a-presentation/steps/Scene'
 import { readFileSync } from 'node:fs'
 const css = readFileSync('src/presentations/how-to-make-a-presentation/presentation.css', 'utf8')
+import { fitScale } from '../../src/presentation-kit/useFitScale'
+import { Stage } from '../../src/presentation-kit/Stage'
 import normative from '../../scripts/reference.json'
 const entity = (beat: number, id: string) => entitiesAt(beat).find(e => e.id === `how-to:${id}`)!
 it('I-25 matches independent normative nine-step metadata in order', () => { expect(STEPS.map(({ id, era, title, caption }) => ({ id, era, title, caption }))).toEqual(normative); expect(STEPS.every(s => s.groupKey === 'the-story' && s.Scene === StoryScene)).toBe(true) })
@@ -19,7 +21,7 @@ it('I-29 puts title caption visual inside cards and morph labels on links', () =
 it('I-30 extends the tray while keeping all previous entities put', () => { expect(entitiesAt(3).filter(e => e.id.includes(':card-'))).toHaveLength(3); expect(entitiesAt(3).slice(0, entitiesAt(2).length)).toEqual(entitiesAt(2)) })
 it('I-31 adds unspecified ghost and user-docked partial full depth', () => { expect(entity(4, 'ghost').treatment).toBe('ghost'); expect(entity(4, 'depth').x).toBe(entity(4, 'you').x); expect(entity(4, 'depth').text).toContain('partial ↔ full') })
 it('I-32 plugs the named shared kit into bottom edge without a tray frame', () => { expect(entity(5, 'socket').y).toBe(entity(5, 'card-1').y + entity(5, 'card-1').h); expect(entity(5, 'socket').text).toContain('shared scene kit'); expect(entitiesAt(5).filter(e => e.kind === 'frame')).toHaveLength(0) })
-it('I-33 chains verification in tray row with build render pass', () => { expect(entity(6, 'verify').y).toBe(entity(6, 'card-1').y); expect(entity(6, 'verify').x).toBeGreaterThan(entity(6, 'card-3').x); expect(entity(6, 'verify').parts).toEqual(['build + render', 'pass']); expect(entity(6, 'verify').treatment).toBe('pass'); expect(entity(6, 'verify-link')).toBeTruthy() })
+it('I-33 chains verification in tray row with build render pass', () => { expect(entity(6, 'verify').y).toBe(entity(6, 'card-1').y); expect(entity(6, 'verify').x).toBeGreaterThan(entity(6, 'card-3').x); expect(entity(6, 'verify').parts).toEqual(['build', 'render']); expect(entity(6, 'verify').description).toContain('passed'); expect(entity(6, 'verify').treatment).toBe('pass'); expect(entity(6, 'verify-link')).toBeTruthy() })
 it('I-34 anchors the rendered modify arc on the conversation and edited route card', () => {
   const arc = entity(7, 'modify'), card = entity(7, 'card-3'), skill = entity(7, 'skill'), flag = entity(7, 'edited')
   const { container } = render(<StoryScene payload={7} />)
@@ -32,11 +34,11 @@ it('I-34 anchors the rendered modify arc on the conversation and edited route ca
   const from = project(start), to = project(end)
   expect(from.y).toBe(skill.y + skill.h); expect(from.x).toBeGreaterThanOrEqual(skill.x); expect(from.x).toBeLessThanOrEqual(skill.x + skill.w)
   expect(to.y).toBe(card.y); expect(to.x).toBeGreaterThanOrEqual(card.x); expect(to.x).toBeLessThanOrEqual(card.x + card.w)
-  expect(flag.text).toBe('edited'); expect(flag.x).toBeGreaterThanOrEqual(card.x); expect(flag.y).toBeGreaterThanOrEqual(card.y)
+  expect(flag.text).toBe('edit'); expect(flag.description).toBe('Edited step'); expect(flag.x).toBeGreaterThanOrEqual(card.x); expect(flag.y).toBeGreaterThanOrEqual(card.y)
   expect(flag.x + flag.w).toBeLessThanOrEqual(card.x + card.w); expect(flag.y + flag.h).toBeLessThanOrEqual(card.y + card.h)
   expect(card).toEqual(entity(6, 'card-3'))
 })
-it('I-35 draws a labeled reveal enclosing the existing diagram', () => { const frame = entity(8, 'reveal'); expect(frame.kind).toBe('frame'); for (const item of entitiesAt(7)) { expect(item.x).toBeGreaterThanOrEqual(frame.x); expect(item.x + item.w).toBeLessThanOrEqual(frame.x + frame.w); expect(item.y).toBeGreaterThanOrEqual(frame.y); expect(item.y + item.h).toBeLessThanOrEqual(frame.y + frame.h) } expect(entity(8, 'reveal-label').text).toContain('THIS PRESENTATION') })
+it('I-35 draws a labeled reveal enclosing the existing diagram', () => { const frame = entity(8, 'reveal'); expect(frame.kind).toBe('frame'); for (const item of entitiesAt(7)) { expect(item.x).toBeGreaterThanOrEqual(frame.x); expect(item.x + item.w).toBeLessThanOrEqual(frame.x + frame.w); expect(item.y).toBeGreaterThanOrEqual(frame.y); expect(item.y + item.h).toBeLessThanOrEqual(frame.y + frame.h) } expect(entity(8, 'reveal-label').text).toContain('this presentation') })
 
 const style = document.createElement('style')
 afterEach(() => style.remove())
@@ -49,6 +51,36 @@ it('I-23 local chip selectors match rendered hooks and apply all intended treatm
     const computed = getComputedStyle(el)
     expect(computed.display).toBe('grid'); expect(computed.placeItems).toBe('center'); expect(computed.borderRadius).toBe('4px')
     expect(computed.backgroundColor).toBe(['edited', 'reveal-label'].includes(id) ? 'rgb(189, 78, 41)' : 'rgb(230, 234, 223)')
-    expect(computed.fontSize).toBe(id === 'edited' ? '9px' : id === 'reveal-label' ? '10px' : '11px')
+    expect(computed.fontSize).toBe('38px')
+  }
+})
+
+it('F-1 retains readable scene type after narrow fit without viewport-specific diagram reflow', () => {
+  style.textContent = css; document.head.append(style)
+  const originalWidth = window.innerWidth, originalHeight = window.innerHeight
+  const { rerender } = render(<div className="making-a-presentation"><Stage step={STEPS[0]} mode="browse" /></div>)
+  try {
+    for (const beat of [0, 6, 8]) {
+      let baseline: { id: string | undefined; left: string; top: string; width: string; height: string; font: string }[] | undefined
+      for (const width of [1440, 390, 320]) {
+        act(() => { window.innerWidth = width; window.innerHeight = 844; window.dispatchEvent(new Event('resize')) })
+        rerender(<div className="making-a-presentation"><Stage step={STEPS[beat]} mode="browse" /></div>)
+        const canvas = document.querySelector('[data-presentation-canvas]') as HTMLElement
+        const scale = Number(canvas.dataset.scale)
+        expect(scale).toBe(fitScale(width, 844, 'browse'))
+        expect(scale * 880).toBeLessThanOrEqual(width - (width < 1000 ? 40 : 288))
+        const labels = [...canvas.querySelectorAll<HTMLElement>('*')].filter(el => [...el.childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()))
+        expect(labels.length).toBeGreaterThan(0)
+        for (const label of labels) {
+          const displayed = parseFloat(getComputedStyle(label).fontSize) * scale
+          expect(displayed, `${width}px step ${beat}: ${label.textContent}`).toBeGreaterThanOrEqual(12)
+        }
+        const geometry = [...canvas.querySelectorAll<HTMLElement>('[data-presentation-entity]')].map(el => ({ id: el.dataset.presentationEntity, left: el.style.left, top: el.style.top, width: el.style.width, height: el.style.height, font: getComputedStyle(el).fontSize }))
+        if (baseline) expect(geometry).toEqual(baseline)
+        else baseline = geometry
+      }
+    }
+  } finally {
+    act(() => { window.innerWidth = originalWidth; window.innerHeight = originalHeight; window.dispatchEvent(new Event('resize')) })
   }
 })

@@ -112,6 +112,19 @@ Never put theme defaults into the reusable kit. Respect the fixed 880×380 canva
 composition scales uniformly, without internal responsive reflow. Browse shows
 captions and navigation; present shows the current marker and one-line title.
 
+Design for readable **displayed** type, not just design-space font sizes. Budget
+for a narrow portrait viewport as well as desktop. With the default 880×380
+canvas and 20px side reservations, a 320px-wide viewport fits at 280/880 ≈ 0.318:
+a 12px displayed label needs at least 38px in design space (at 390px, it displays
+at about 15px). Use `minimum displayed font size / minimum fit scale` to size
+presentation-owned typography, then size shapes to contain it. Keep labels short,
+use recognizable symbols with full accessible descriptions where useful, and put
+long narration in the existing captions. Preserve one fixed arrangement at every
+viewport; keep persisting entities stationary in an accumulating scene. Enlarging
+type without enlarging its containers is not sufficient. The worked reference
+shows vertically stacked title/caption/visual fields inside large step cards.
+Do not add font defaults to the kit or style-neutral bootstrap to achieve this.
+
 ## Verify and repair before completion
 
 Run `npm run build`, then the local production render check for the generated or
@@ -137,8 +150,10 @@ interactive inspection use AXI when installed: begin with a structure snapshot,
 then screenshots. Confirm important content fits the fixed canvas, intentional
 overlaps remain readable, and captions, ToC, progress, and navigation do not
 collide with the scene. Review every step named in advisory diagnostics. Fix
-accidental overlaps, indistinct active navigation, and missing/default/undersized
-attribution locally. Only an intentionally readable overlap may be exempted with
+accidental overlaps, small scene text after fit scaling, indistinct active
+navigation, and missing/default/undersized attribution locally. The helper warns
+when visible scene text displays below 12px; review those labels at normal zoom
+and repair the presentation-owned type and shape geometry before completion. Only an intentionally readable overlap may be exempted with
 `data-presentation-allow-overlap` on its smallest appropriate subtree; do not
 blanket-exempt the scene or chrome to silence warnings.
 

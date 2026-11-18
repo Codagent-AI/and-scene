@@ -115,6 +115,14 @@ describe('production contracts', () => {
     expect(result.code, result.output).toBe(0)
     for (let i = 0; i < 9; i++) expect(result.output).toContain(`PASS render step ${i}/8`)
     expect(result.output).toContain('PASS verification: build, registration, render'); expect(result.output).toContain('http://127.0.0.1:'); expect(result.output).not.toContain('localhost'); assertCleanResources(result.output)
+    // F-1: a wide-only production smoke pass must not certify tiny mobile text.
+    const probe = join(dir, 'narrow-readability.mjs')
+    await cp(resolve(root, 'tests/integration/narrow-readability.mjs'), probe)
+    const narrow = await exec(process.execPath, [probe], { cwd: dir, env: { ...process.env, NODE_ENV: 'production' }, timeout: 180000, maxBuffer: 8 * 1024 * 1024 })
+    const narrowOutput = narrow.stdout + narrow.stderr
+    await writeFile(join(work, 'E2E-001-narrow-readability.log'), narrowOutput)
+    for (const index of [0, 6, 8]) expect(narrowOutput).toContain(`PASS narrow readability step ${index}`)
+    assertCleanResources(narrowOutput)
   })
   const cases = [
     ['build', async dir => change(dir, 'src/main.tsx', s => s + '\nconst broken: number = "type error"; console.log(broken)\n'), 'FAIL build:'],

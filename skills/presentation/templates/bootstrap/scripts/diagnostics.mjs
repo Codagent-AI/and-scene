@@ -6,6 +6,17 @@ export function collectDiagnostics() {
   }
   const name = el => el.getAttribute('aria-label') || el.getAttribute('data-presentation-entity') || el.textContent.trim().slice(0, 70) || el.tagName
   const warnings = []
+  // Report display pixels, not the unscaled design-space CSS font size.
+  // Intentional-overlap markers cannot exempt unreadably small text.
+  for (const canvas of document.querySelectorAll('[data-presentation-canvas]')) {
+    const scale = Number(canvas.getAttribute('data-scale'))
+    if (!Number.isFinite(scale) || scale <= 0) continue
+    for (const el of canvas.querySelectorAll('*')) {
+      if (!visible(el) || ![...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim())) continue
+      const displayed = parseFloat(getComputedStyle(el).fontSize) * scale
+      if (displayed < 12) warnings.push(`small scene text: ${name(el)} displays at ${displayed.toFixed(1)}px; enlarge presentation-owned type or simplify the fixed composition`)
+    }
+  }
   const isControl = el => el.matches('button, a, input, select, textarea, [role="button"]')
   const text = [...document.querySelectorAll('[data-presentation] *')].filter(el => visible(el) && (isControl(el) || [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim())) && !el.closest('[data-presentation-allow-overlap]'))
   // Use text ranges, not enclosing cards or paragraphs that contain unused space.

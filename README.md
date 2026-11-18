@@ -60,3 +60,9 @@ Keep canonical kit files and bootstrap kit files byte-identical. Keep all files
 in root `scripts/` aligned with bootstrap copies. The bootstrap's unstyled starter
 route is deliberately separate from the designed reference sample. Do not commit
 node_modules, builds, or screenshots.
+
+For narrow screens, budget scene text in displayed pixels: default 320px portrait
+fit is 280/880, so 38px design type displays above 12px. The reference uses large
+local type, short labels and vertically stacked card fields in one fixed layout.
+Inspection also warns about scene text below 12px after scaling. These warnings
+remain advisory; readability still requires visual review of the authored result.

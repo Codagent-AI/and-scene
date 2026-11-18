@@ -67,12 +67,14 @@ it("I-34 opening conversation accumulates you prompt skill and question connecti
 });
 it("I-35 tray cards morph links ghost and user-depth additions", () => {
   const { container, rerender } = render(<Scene payload={3} />);
-  expect(screen.getByText("title · caption · visual")).toBeTruthy();
+  for(const part of ["title","caption","visual"]) expect(screen.getByText(part)).toBeTruthy();
   expect(container.querySelector(".entity-tray")).toBeTruthy();
   rerender(<Scene payload={5} />);
-  expect(screen.getAllByText("title · caption · visual")).toHaveLength(3);
-  expect(screen.getAllByText("morph")).toHaveLength(2);
-  expect(screen.getByText("your next beat")).toBeTruthy();
+  for(const part of ["title","caption","visual"]) expect(screen.getAllByText(part)).toHaveLength(3);
+  const morphs=screen.getAllByLabelText('morph: shared entity changes between cards');
+  expect(morphs).toHaveLength(2);
+  for(const morph of morphs) { const shapes=morph.querySelectorAll('rect');expect(shapes).toHaveLength(2);expect(shapes[0].getAttribute('width')).not.toBe(shapes[1].getAttribute('width')); }
+  expect(screen.getByText("next")).toBeTruthy();
   expect(screen.getByText("partial ↔ full")).toBeTruthy();
   const you = entities.find((e) => e.id === "you")!,
     depth = entities.find((e) => e.id === "depth")!;
@@ -80,9 +82,11 @@ it("I-35 tray cards morph links ghost and user-depth additions", () => {
 });
 it("I-36 kit socket at tray bottom and verification in card row", () => {
   render(<Scene payload={7} />);
-  expect(screen.getByText("↳ shared scene kit")).toBeTruthy();
-  expect(screen.getByText("✓ verify")).toBeTruthy();
-  expect(screen.getByText("build + render")).toBeTruthy();
+  expect(screen.getByText("shared scene kit")).toBeTruthy();
+  expect(screen.getByText("verify")).toBeTruthy();
+  expect(screen.getByLabelText("verification passed")).toBeTruthy();
+  expect(screen.getByText("build")).toBeTruthy();
+  expect(screen.getByText("render")).toBeTruthy();
   const tray = entities.find((e) => e.id === "tray")!,
     kit = entities.find((e) => e.id === "kit")!;
   expect(Math.abs(kit.y - (tray.y + tray.h))).toBeLessThan(5);
@@ -92,9 +96,11 @@ it("I-36 kit socket at tray bottom and verification in card row", () => {
 });
 it("I-37 modify flags a card and reveal surrounds existing composition", () => {
   const { container } = render(<Scene payload={9} />);
-  expect(screen.getByText("↶ point at a step · edit in place")).toBeTruthy();
-  expect(screen.getByLabelText("modify arc to edited card").querySelector("path")?.getAttribute("d")).toContain("20 85");
-  expect(container.querySelector(".entity-card2.edited")).toBeTruthy();
+  expect(screen.getByLabelText("modify arc to edited card").querySelector("path")?.getAttribute("d")).toContain("0 50");
+  expect(container.querySelector(".entity-card3.edited")).toBeTruthy();
+  const arc=entities.find(e=>e.id==='modify')!,edited=entities.find(e=>e.id==='card3')!;
+  expect(arc.x).toBeGreaterThan(edited.x);expect(arc.x).toBeLessThan(edited.x+edited.w);
+  expect(edited.y-(arc.y+50)).toBeGreaterThanOrEqual(0);expect(edited.y-(arc.y+50)).toBeLessThanOrEqual(4);
   expect(screen.getByText("YOU’RE LOOKING AT ONE")).toBeTruthy();
   const frame = entities.find((e) => e.id === "reveal")!;
   for (const e of entities.filter((e) => e.id !== "reveal")) {

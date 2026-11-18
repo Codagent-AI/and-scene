@@ -245,11 +245,18 @@ await withPreview(async(browser,url)=>{
    const measured=await page.evaluate(()=>{
     const box=(selector)=>{const el=document.querySelector(selector);const r=el.getBoundingClientRect();return {x:r.x,y:r.y,left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}};
     const entity=id=>'[data-presentation-entity="how-to:'+id+'"]';
-    const result={canvas:box('[data-presentation-canvas]'),scale:box('[data-presentation-canvas]').width/880};
+    const scale=box('[data-presentation-canvas]').width/880;
+    const text=[...document.querySelectorAll('[data-presentation-diagram-text]')].map(el=>{
+     const range=document.createRange();range.selectNodeContents(el);const r=range.getBoundingClientRect();const owner=el.closest('[data-presentation-entity]').getBoundingClientRect();
+     return {label:el.textContent,effectiveFontSize:parseFloat(getComputedStyle(el).fontSize)*scale,fits:r.left>=owner.left-1&&r.right<=owner.right+1&&r.top>=owner.top-1&&r.bottom<=owner.bottom+1};
+    });
+    const result={canvas:box('[data-presentation-canvas]'),scale,diagramText:text};
     if(document.querySelector('.conversation-arrows line'))Object.assign(result,{line:box('.conversation-arrows line'),you:box(entity('you')),skill:box(entity('skill')),prompt:box(entity('prompt'))});
     if(document.querySelector('[data-presentation-reveal-label]')){const label=document.querySelector('[data-presentation-reveal-label]');const range=document.createRange();range.selectNodeContents(label);const text=range.getBoundingClientRect();Object.assign(result,{frame:box(entity('reveal')),label:box('[data-presentation-reveal-label]'),chip:box(entity('question')),text:{top:text.top,bottom:text.bottom,left:text.left,right:text.right}})};
     return result;
    });
+   assert.ok(measured.diagramText.length>0);
+   for(const text of measured.diagramText) {assert.ok(text.effectiveFontSize>=12,'readable diagram text at normal viewing size: '+text.label);assert.ok(text.fits,'large diagram text stays inside its entity: '+text.label)}
    assert.ok(measured.canvas.left>=0&&measured.canvas.right<=viewport.width,'scaled canvas fits viewport horizontally');
    assert.ok(measured.canvas.top>=0&&measured.canvas.bottom<=viewport.height,'scaled canvas fits viewport vertically');
    if(index>=1){assert.ok(Math.abs(measured.line.left-measured.you.right)<1);assert.ok(Math.abs(measured.line.right-measured.skill.left)<1);assert.ok(Math.abs(measured.line.top-(measured.you.top+measured.you.height/2))<1);assert.ok(measured.prompt.top>measured.line.bottom)}

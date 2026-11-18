@@ -3,7 +3,7 @@ import { render } from '@testing-library/react'
 import { entitiesAt } from '../../src/presentations/how-to-make-a-presentation/entities'
 import { STEPS } from '../../src/presentations/how-to-make-a-presentation/steps'
 import { StoryScene } from '../../src/presentations/how-to-make-a-presentation/steps/Scene'
-import normative from './reference.json'
+import normative from '../../scripts/reference.json'
 const entity = (beat: number, id: string) => entitiesAt(beat).find(e => e.id === `how-to:${id}`)!
 it('I-25 matches independent normative nine-step metadata in order', () => { expect(STEPS.map(({ id, era, title, caption }) => ({ id, era, title, caption }))).toEqual(normative); expect(STEPS.every(s => s.groupKey === 'the-story' && s.Scene === StoryScene)).toBe(true) })
 it('I-26 retains entity identities coordinates and DOM across all accumulating beats', () => {

@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['**/dist', '**/node_modules', 'artifacts', '.test-artifacts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -17,6 +17,9 @@ export default defineConfig([
     ],
     languageOptions: {
       globals: globals.browser,
+      parserOptions: { tsconfigRootDir: import.meta.dirname },
     },
   },
+  { files: ['**/chrome/Toc.tsx'], rules: { 'react-refresh/only-export-components': ['error', { allowExportNames: ['eras'] }] } },
+  { files: ['tests/**/*.{ts,tsx}', 'src/**/*.test.tsx', '**/steps/index.tsx'], rules: { 'react-refresh/only-export-components': 'off' } },
 ])

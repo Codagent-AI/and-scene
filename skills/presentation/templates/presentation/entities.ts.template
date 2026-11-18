@@ -1,0 +1,2 @@
+// Replace example with a unique presentation namespace; reuse identities across beats.
+export const entities = { idea: '<slug>:idea' } as const

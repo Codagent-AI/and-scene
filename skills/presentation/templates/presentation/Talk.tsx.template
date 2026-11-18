@@ -1,0 +1,9 @@
+import { Presentation } from '../../presentation-kit'
+import type { Step } from '../../presentation-kit'
+import { Scene } from './Scene'
+import type { Payload } from './Scene'
+import './presentation.css'
+const steps: readonly Step<Payload>[] = [
+  { id: 'opening', era: 'the idea', title: '<one-line title>', caption: '<paragraph caption>', Scene, groupKey: '<slug>:story', payload: { label: '<topic>', x: 100 } },
+]
+export default function Talk() { return <Presentation steps={steps} title="<presentation title>" initialMode="browse" className="<slug>" /> }

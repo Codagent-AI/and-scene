@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import { cp, readFile, writeFile, mkdir, mkdtemp, rm, readdir, symlink } from 'node:fs/promises'
-import { resolve, join } from 'node:path'
+import { resolve, join, relative } from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 const exec = promisify(execFile)
@@ -18,7 +18,10 @@ async function run(dir, args, name, cwd = dir) {
 }
 async function fixture(name, source = root, install = false) {
   const dir = await mkdtemp(join(work, `${name}-`)); fixtures.push(dir)
-  await cp(source, dir, { recursive: true, filter: path => !path.split('/').some(p => ['node_modules', '.git', '.work', 'dist', 'artifacts', 'openspec'].includes(p)) })
+  for (const entry of await readdir(source)) {
+    if (['node_modules', '.git', '.work', 'dist', 'artifacts', 'openspec'].includes(entry)) continue
+    await cp(join(source, entry), join(dir, entry), { recursive: true, filter: path => !relative(source, path).split('/').some(p => ['node_modules', '.git', '.work', 'dist', 'artifacts', 'openspec'].includes(p)) })
+  }
   if (!install) await symlink(resolve(root, 'node_modules'), join(dir, 'node_modules'), 'dir')
   return dir
 }
@@ -77,7 +80,7 @@ describe('production contracts', () => {
   const cases = [
     ['build', async dir => change(dir, 'src/main.tsx', s => s + '\nconst broken: number = "type error"; console.log(broken)\n'), 'FAIL build:'],
     ['missing', async dir => { await change(dir, 'src/presentations/index.ts', s => s.replace(/export const presentations:[\s\S]+/, 'export const presentations: readonly Registration[] = []\n')); await rm(join(dir, 'src/presentations/how-to-make-a-presentation'), { recursive: true }) }, 'FAIL sample:'],
-    ['order', async dir => change(dir, 'src/presentations/how-to-make-a-presentation/metadata.ts', s => s.replace('You have a topic', 'Wrong opening')), 'FAIL sample:'],
+    ['order', async dir => change(dir, 'src/presentations/how-to-make-a-presentation/metadata.ts', s => s.replace(/export const metadata = ([\s\S]+) as const/, (_, json) => { const rows = JSON.parse(json); [rows[0], rows[1]] = [rows[1], rows[0]]; return 'export const metadata = ' + JSON.stringify(rows) + ' as const' })), 'FAIL sample:'],
     ['console', async dir => change(dir, 'src/presentations/how-to-make-a-presentation/steps/Scene.tsx', s => s.replace('return <SceneLayer>', 'if (payload === 2) console.error("injected console fault")\n  return <SceneLayer>')), 'step 2: console'],
     ['page', async dir => change(dir, 'src/presentations/how-to-make-a-presentation/steps/Scene.tsx', s => s.replace('return <SceneLayer>', 'if (payload === 2) setTimeout(() => { throw new Error("injected page fault") }, 50)\n  return <SceneLayer>')), 'step 2: page'],
     ['render', async dir => change(dir, 'src/presentations/how-to-make-a-presentation/steps/Scene.tsx', s => s.replace('return <SceneLayer>', 'if (payload === 2) throw new Error("injected render fault")\n  return <SceneLayer>')), 'step 2:'],

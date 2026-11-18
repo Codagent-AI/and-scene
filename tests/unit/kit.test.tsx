@@ -1,3 +1,4 @@
+import { motion } from 'motion/react'
 import { createElement, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { act, fireEvent, render, renderHook, screen } from '@testing-library/react'
@@ -27,7 +28,7 @@ describe('scene and chrome contracts', () => {
   it('I-1 derives metadata and numbering from inserted removed reordered steps', () => {
     const { rerender } = render(<Presentation steps={steps} title="test" />)
     expect(screen.getByText('01 / ask')).toBeTruthy(); expect(screen.getByText('Title 0')).toBeTruthy(); expect(screen.getByText('Caption 0')).toBeTruthy(); expect(screen.getByText('state 0')).toBeTruthy()
-    const variants = [[steps[2], ...steps], [steps[3], steps[0]], [...steps].reverse()]
+    const variants = [[{ ...steps[2], id: 'inserted' }, ...steps], [steps[3], steps[0]], [...steps].reverse()]
     for (const variant of variants) { rerender(<Presentation steps={variant} title="test" />); expect(screen.getByText(`01 / ${variant[0].era}`)).toBeTruthy(); expect(screen.getByText(variant[0].title)).toBeTruthy() }
     fireEvent.click(screen.getByText('Next')); expect(screen.getByText(`02 / ${variants[2][1].era}`)).toBeTruthy()
   })
@@ -47,7 +48,7 @@ describe('scene and chrome contracts', () => {
     const first = screen.getByText('a 0'); rerender(<Stage step={{ ...steps[1], Scene: Persistent }} mode="browse" />)
     expect(mounts).toBe(1); expect(unmounts).toBe(0); expect(screen.getByText('a 1')).toBe(first); expect(document.querySelector('[data-presentation-appear]')).toBeNull(); expect((screen.getByText('b') as HTMLElement).style.left).toBe('3px')
     rerender(<Stage step={{ ...steps[2], Scene: Persistent, groupKey: 'different' }} mode="browse" />); expect(mounts).toBe(2); expect(unmounts).toBe(1)
-    rerender(<Stage step={{ ...steps[2], Scene }} mode="browse" />); expect(unmounts).toBe(2)
+    rerender(<Stage step={{ ...steps[2], Scene, groupKey: 'different' }} mode="browse" />); expect(unmounts).toBe(2)
   })
   it('I-5 forwards style class data identity and raw motion children with no visual defaults', () => {
     for (const Component of [Box, Label, Frame, Emphasis, SymbolChip, Arrow]) {
@@ -55,7 +56,7 @@ describe('scene and chrome contracts', () => {
       const el = document.querySelector('[data-presentation-entity="custom"]') as HTMLElement
       expect(el.className).toBe('owned'); expect(el.dataset.custom).toBe('yes'); expect(el.style.left).toBe('37px'); expect(el.style.color).toBe('red'); expect(el.style.border).toBe(''); expect(el.style.fontFamily).toBe(''); unmount()
     }
-    render(<SceneLayer><Box id="raw-holder"><div data-layout-id="raw">raw child</div></Box></SceneLayer>); expect(screen.getByText('raw child')).toBeTruthy()
+    render(<SceneLayer><motion.div layout layoutId="raw">raw child</motion.div></SceneLayer>); expect(screen.getByText('raw child')).toBeTruthy()
   })
   it('I-6 exposes bottom-right attribution with host opt-in branding', () => {
     const { rerender } = render(<Presentation steps={steps} title="test" />)

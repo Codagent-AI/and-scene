@@ -8,6 +8,9 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); document.body.innerHTML = '' })
 it('I-41 reports unmarked text collisions and honors explicit subtree exemptions and hidden text', () => {
   expect(collectDiagnostics().join('\n')).toContain('overlap: alpha / beta')
+  // An icon-only control still collides even without a text range.
+  document.getElementById('b')!.outerHTML = '<button id="b" aria-label="icon control" style="opacity:1"></button>'
+  expect(collectDiagnostics().join('\n')).toContain('overlap: alpha / icon control')
   document.getElementById('a')!.setAttribute('data-presentation-allow-overlap', '')
   expect(collectDiagnostics().join('\n')).not.toContain('overlap:')
   document.getElementById('a')!.removeAttribute('data-presentation-allow-overlap'); document.getElementById('a')!.style.visibility = 'hidden'

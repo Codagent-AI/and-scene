@@ -6,16 +6,17 @@ export function collectDiagnostics() {
   }
   const name = el => el.getAttribute('aria-label') || el.getAttribute('data-presentation-entity') || el.textContent.trim().slice(0, 70) || el.tagName
   const warnings = []
-  const text = [...document.querySelectorAll('[data-presentation] *')].filter(el => visible(el) && [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()) && !el.closest('[data-presentation-allow-overlap]'))
+  const isControl = el => el.matches('button, a, input, select, textarea, [role="button"]')
+  const text = [...document.querySelectorAll('[data-presentation] *')].filter(el => visible(el) && (isControl(el) || [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim())) && !el.closest('[data-presentation-allow-overlap]'))
   // Use text ranges, not enclosing cards or paragraphs that contain unused space.
-  const rects = el => [...el.childNodes].filter(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()).flatMap(n => { const r = document.createRange(); r.selectNodeContents(n); return [...r.getClientRects()] })
+  const rects = el => isControl(el) ? [el.getBoundingClientRect()] : [...el.childNodes].filter(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()).flatMap(n => { const r = document.createRange(); r.selectNodeContents(n); return [...r.getClientRects()] })
   for (let i = 0; i < text.length; i++) for (let j = i + 1; j < text.length; j++) {
     if (text[i].contains(text[j]) || text[j].contains(text[i])) continue
     if (rects(text[i]).some(a => rects(text[j]).some(b => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1))) warnings.push(`overlap: ${name(text[i])} / ${name(text[j])}`)
   }
   const signature = el => {
     const s = getComputedStyle(el)
-    return [s.color, s.backgroundColor, s.borderColor, s.borderWidth, s.fontWeight, s.textDecorationLine, s.boxShadow, s.opacity, s.transform].join('|')
+    return [s.color, s.backgroundColor, s.borderColor, s.borderWidth, s.fontWeight, s.fontSize, s.fontStyle, s.letterSpacing, s.textTransform, s.width, s.height, s.borderStyle, s.textDecorationLine, s.boxShadow, s.opacity, s.transform].join('|')
   }
   for (const hook of ['progress', 'toc']) {
     const controls = [...document.querySelectorAll(`[data-presentation-${hook}] [data-presentation-active]`)].filter(visible)

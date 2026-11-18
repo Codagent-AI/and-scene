@@ -9,7 +9,6 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
     "verify": "node scripts/verify.mjs --route starter",
     "inspect": "node scripts/inspect-presentation.mjs"
   },

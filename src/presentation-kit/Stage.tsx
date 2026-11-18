@@ -15,6 +15,8 @@ export function Stage<T>({ step, mode }: { step: Step<T>; mode: Mode }) {
         position: "absolute",
         inset: `${STAGE_LAYOUT[mode].top}px 0 ${STAGE_LAYOUT[mode].bottom}px`,
         display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr)",
+        gridTemplateRows: "minmax(0, 1fr)",
         placeItems: "center",
       }}
     >

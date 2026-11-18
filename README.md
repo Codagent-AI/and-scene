@@ -26,8 +26,10 @@ The optional repository helper `node scripts/scaffold.mjs <existing-directory> -
 - `npm run build`: whole-app TypeScript and production build, including the compiled typed boundary fixture.
 - `npm run verify`: build plus production Chromium render of all nine normative sample steps; errors report phase and step and exit non-zero.
 - `node scripts/verify.mjs --slug=<slug>`: build and render every step of another presentation; add `--first-only` for a first-step smoke check.
-- `npm run inspect -- <slug>`: build, capture every settled step, and write `artifacts/inspection/<slug>/step-NN.png` plus `report.json`. Overlap, active-navigation, and attribution warnings are advisory. Review images separately; diagnostics do not certify visual quality.
+- `npm run inspect -- <slug>`: build, capture every settled step, and write `artifacts/inspection/<slug>/<width>x<height>/step-NN.png` plus `report.json`. Overlap, active-navigation, and attribution warnings are advisory. Review images separately; diagnostics do not certify visual quality.
 
 All preview hosts, probes, and browser URLs use `127.0.0.1`. The inspection module exports `inspect({slug, viewport:{width:390,height:844}})` for responsive captures. Intentional readable overlap can be marked on a subtree with `data-presentation-allow-overlap`; do not blanket-exempt accidental collisions. Style current-state hooks and `data-presentation-attribution` locally.
 
 The kit and browser scripts are release snapshots in `skills/presentation/templates/bootstrap/`. Keep their canonical and template copies byte-aligned when changing them. Do not commit generated builds, dependencies, fixture directories, or screenshots. This repository uses npm checks as its verification gate and has no hosted CI configuration.
+
+Use `npm run inspect -- <slug> --viewport=390x844` for narrow captures; each viewport has a separate directory so wide captures remain available. Add `--no-build` to reuse a production build.

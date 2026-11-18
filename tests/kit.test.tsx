@@ -51,22 +51,21 @@ describe("scene contracts", () => {
     const { rerender, container } = render(
       <Presentation title="Test" steps={steps} />,
     );
-    expect(screen.getByText("Title 0")).toBeTruthy();
-    expect(screen.getByText("Paragraph 0")).toBeTruthy();
-    expect(
-      container.querySelector("[data-presentation-marker]")?.textContent,
-    ).toContain("01");
-    const changed = [steps[2], steps[0]];
-    rerender(<Presentation title="Test" steps={changed} />);
-    expect(screen.getByText("Title 2")).toBeTruthy();
-    key("ArrowRight");
-    expect(
-      container.querySelector("[data-presentation-marker]")?.textContent,
-    ).toContain("02");
-    rerender(<Presentation title="Test" steps={[steps[1], ...changed]} />);
-    expect(screen.getByText("Title 2")).toBeTruthy();
-    rerender(<Presentation title="Test" steps={[steps[0]]} />);
-    expect(screen.getByText("Title 0")).toBeTruthy();
+    const expectActive = (number:number, era:string, title:string) => {
+      expect(container.querySelector('[data-presentation-marker]')?.textContent).toBe(`${String(number).padStart(2,'0')} / ${era}`);
+      expect(screen.getByText(title)).toBeTruthy();
+    };
+    expectActive(1,'first','Title 0');
+    expect(screen.getByText('Paragraph 0')).toBeTruthy();
+    const changed = [steps[2],steps[0]];
+    rerender(<Presentation title="Test" steps={changed}/>);
+    expectActive(1,'second','Title 2');
+    key('ArrowRight'); expectActive(2,'first','Title 0');
+    rerender(<Presentation title="Test" steps={[steps[1],...changed]}/>);
+    expectActive(2,'second','Title 2');
+    key('ArrowRight'); expectActive(3,'first','Title 0');
+    rerender(<Presentation title="Test" steps={[steps[2]]}/>);
+    expectActive(1,'second','Title 2');
   });
   it("I-3 persistent identity, sequenced entry, exit and style hooks", () => {
     const { container, rerender } = render(
@@ -341,17 +340,19 @@ it("I-17 fit scaling uses default fixed dimensions, both modes, tiny viewports a
     fireEvent(window, new Event("resize"));
   });
   expect(result.current).toBeCloseTo(336 / 880);
-  const { container } = render(<Stage step={steps[0]} mode="browse" />);
-  expect(
-    container
-      .querySelector("[data-presentation-canvas]")
-      ?.getAttribute("style"),
-  ).toContain("width: 880px");
-  expect(
-    container
-      .querySelector("[data-presentation-entity]")
-      ?.getAttribute("style"),
-  ).toContain("top: 20px");
+  const { container, rerender } = render(<Stage step={steps[0]} mode="browse" />);
+  const canvas = container.querySelector<HTMLElement>('[data-presentation-canvas]')!;
+  const entity = container.querySelector<HTMLElement>('[data-presentation-entity]')!;
+  expect(canvas.style.width).toBe('880px'); expect(canvas.style.height).toBe('380px');
+  const uniformScale = () => {const match=canvas.style.transform.match(/^scale\(([^,)]+)\)$/);expect(match).not.toBeNull();return Number(match![1])};
+  expect(uniformScale()).toBeCloseTo(336/880,5);
+  act(()=>{window.innerWidth=1000;window.innerHeight=400;fireEvent(window,new Event('resize'))});
+  expect(uniformScale()).toBeCloseTo(80/380,5);
+  rerender(<Stage step={steps[0]} mode="present"/>);
+  expect(uniformScale()).toBeCloseTo(240/380,5);
+  expect(entity.style.top).toBe('20px'); expect(entity.style.left).toBe('0px');
+  expect(canvas.style.transform).not.toContain('scaleX');
+  expect(canvas.style.transform).not.toContain('scaleY');
 });
 
 it("I-3 departing keyed entity remains for exit then unmounts", async () => {

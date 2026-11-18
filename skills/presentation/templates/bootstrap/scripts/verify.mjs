@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+import { requireRegistration } from "./registry.mjs";
 import { command, withPreview, visitSteps } from "./browser.mjs";
 export function validateReference(expected) {
   if (
@@ -16,19 +17,17 @@ export async function verify({
   reference = true,
   firstOnly = false,
 } = {}) {
-  let phase = "build";
+  let phase = "sample";
   try {
-    if (build) await command("npm", ["run", "build"]);
-    phase = "sample";
+    await requireRegistration(slug);
     const expected = reference
       ? JSON.parse(
           await readFile(new URL("./reference.json", import.meta.url), "utf8"),
         )
       : undefined;
     if (expected) validateReference(expected);
-    const registry = await readFile("src/presentations/index.ts", "utf8");
-    if (!registry.includes(slug))
-      throw new Error(`sample missing registration: ${slug}`);
+    phase = "build";
+    if (build) await command("npm", ["run", "build"]);
     phase = "render";
     await withPreview((browser, url) =>
       visitSteps(browser, url, slug, { expected, firstOnly }),

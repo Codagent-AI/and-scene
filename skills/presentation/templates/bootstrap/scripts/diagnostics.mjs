@@ -34,7 +34,7 @@ export function diagnose(elements, step) {
   else if (attribution.fontSize < 11 || attribution.browserDefault)
     warn(
       "attribution",
-      "style [data-presentation-attribution]: too small or browser-default",
+      `style [data-presentation-attribution]: ${attribution.fontSize < 11 ? "too small" : "browser-default"}`,
     );
   return warnings;
 }

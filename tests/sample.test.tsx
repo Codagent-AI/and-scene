@@ -55,6 +55,15 @@ it("I-34 opening conversation accumulates you prompt skill and question connecti
   rerender(<Scene payload={2} />);
   expect(screen.getByText("the skill")).toBeTruthy();
   expect(screen.getByText("one question at a time")).toBeTruthy();
+  const arrow=screen.getByLabelText('two-way conversation');
+  const line=arrow.querySelector('line')!;
+  const you=entities.find(e=>e.id==='you')!,skill=entities.find(e=>e.id==='skill')!,connection=entities.find(e=>e.id==='conversation')!,prompt=entities.find(e=>e.id==='prompt')!;
+  expect(connection.x+Number(line.getAttribute('x1'))).toBe(you.x+you.w);
+  expect(connection.x+Number(line.getAttribute('x2'))).toBe(skill.x);
+  expect(connection.y+Number(line.getAttribute('y1'))).toBe(you.y+you.h/2);
+  expect(prompt.y).toBeGreaterThan(connection.y+connection.h);
+  expect(arrow.getAttribute('data-presentation-connection-from')).toBe('how-to:you');
+  expect(arrow.getAttribute('data-presentation-connection-to')).toBe('how-to:skill');
 });
 it("I-35 tray cards morph links ghost and user-depth additions", () => {
   const { container, rerender } = render(<Scene payload={3} />);

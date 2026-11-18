@@ -119,6 +119,7 @@ test(
         "diagnostics.mjs",
         "inspect-presentation.mjs",
         "verify.mjs",
+        "registry.mjs",
       ])
         assert.equal(
           await readFile(join(source, "scripts", script), "utf8"),
@@ -158,8 +159,8 @@ test(
 import {Presentation} from '../../presentation-kit/Presentation';
 import type {SceneProps,Step} from '../../presentation-kit/types';
 function Scene({payload}:SceneProps<number>){const [settled,setSettled]=useState(false);useEffect(()=>{const t=setTimeout(()=>setSettled(true),500);return ()=>clearTimeout(t)},[payload]);return <div data-presentation-allow-overlap={payload===1?'':undefined}>{settled&&<><span id="collision-a" style={{position:'absolute',left:100,top:140}}>Collision text</span><span id="collision-b" style={{position:'absolute',left:100,top:140}}>Collision text</span><svg style={{position:'absolute',left:300,top:140,width:200,height:60}}><text id="svg-a" x="0" y="20">SVG collision</text><text id="svg-b" x="0" y="20">SVG collision</text></svg></>}</div>}
-const steps:Step<number>[]=[0,1,2,3].map(i=>({id:String(i),era:'era'+i,title:'Fixture '+i,caption:'Fixture caption',Scene,payload:i}));
-export default function Talk(){return <><style>{'a{color:#254b30;text-decoration:none} [data-presentation-attribution]{font-size:8px} [data-step-index="2"] [data-presentation-attribution]{display:none} [data-step-index="3"] [data-presentation-attribution]{font-size:12px}'}</style><Presentation steps={steps} title="Fixture"/></>}`;
+const steps:Step<number>[]=[0,1,2,3,4].map(i=>({id:String(i),era:'era'+i,title:'Fixture '+i,caption:'Fixture caption',Scene,payload:i}));
+export default function Talk(){return <><style>{'a{color:#254b30;text-decoration:none} [data-presentation-attribution]{font-size:8px} [data-step-index="2"] [data-presentation-attribution]{display:none} [data-step-index="3"] [data-presentation-attribution]{font-size:12px} [data-step-index="4"] [data-presentation-attribution]{all:revert}'}</style><Presentation steps={steps} title="Fixture"/></>}`;
       await mkdir(join(dir, "src/presentations/fixture"), { recursive: true });
       await writeFile(join(dir, "src/presentations/fixture/Talk.tsx"), fixture);
       const registry = join(dir, "src/presentations/index.ts");
@@ -173,18 +174,18 @@ export default function Talk(){return <><style>{'a{color:#254b30;text-decoration
       const start = Date.now();
       const log = await run(["npm", "run", "inspect", "--", "fixture"], dir);
       assert.ok(Date.now() - start >= 2400);
-      const out = join(dir, "artifacts/inspection/fixture");
+      const out = join(dir, "artifacts/inspection/fixture/1440x1000");
       const report = JSON.parse(
         await readFile(join(out, "report.json"), "utf8"),
       );
-      assert.equal(report.length, 4);
+      assert.equal(report.length, 5);
       for (const [i, row] of report.entries()) {
         assert.equal(row.file, `step-0${i + 1}.png`);
         const png = await readFile(join(out, row.file));
         assert.ok(png.length > 100);
         assert.equal(row.settle, 800);
         assert.ok(row.warnings.some((w) => w.kind === "active"));
-        assert.equal(row.warnings.some((w) => w.kind === "attribution"),i<3);
+        assert.equal(row.warnings.some((w) => w.kind === "attribution"),i!==3);
       }
       assert.ok(
         report[0].warnings.some(
@@ -206,6 +207,16 @@ export default function Talk(){return <><style>{'a{color:#254b30;text-decoration
       );
       assert.ok(report[0].warnings.some(w=>w.kind==='overlap'&&w.detail.includes('svg-a')&&w.detail.includes('svg-b')));
       assert.ok(!report[1].warnings.some(w=>w.kind==='overlap'&&w.detail.includes('svg-')));
+      assert.ok(report[4].warnings.some(w=>w.kind==='attribution'&&w.detail.endsWith('browser-default')));
+      assert.ok(report[0].warnings.some(w=>w.kind==='attribution'&&w.detail.endsWith('too small')));
+      const wide=await readFile(join(out,'step-01.png'));
+      assert.equal(wide.readUInt32BE(16),1440);assert.equal(wide.readUInt32BE(20),1000);
+      await run(['npm','run','inspect','--','fixture','--viewport=390x844','--no-build'],dir);
+      const narrowDir=join(dir,'artifacts/inspection/fixture/390x844');
+      const narrow=JSON.parse(await readFile(join(narrowDir,'report.json'),'utf8'));
+      assert.equal(narrow.length,5);assert.deepEqual(narrow[0].viewport,{width:390,height:844});
+      const png=await readFile(join(narrowDir,'step-01.png'));assert.equal(png.readUInt32BE(16),390);assert.equal(png.readUInt32BE(20),844);
+      assert.deepEqual(await readFile(join(out,'step-01.png')),wide,'narrow captures preserve wide artifacts');
       assert.match(log, /warnings are advisory/);
       assert.match(log, /ADVISORY step 0/);
     });
@@ -223,6 +234,35 @@ test(
       assert.match(log, /http:\/\/127\.0\.0\.1:/);
       assert.match(log, /PASS build \/ sample \/ render/);
       assert.match(log, /Preview cleaned up/);
+      const geometry = `import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+import {withPreview,visitSteps} from './scripts/browser.mjs';
+await withPreview(async(browser,url)=>{
+ for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
+  const folder='artifacts/composition/'+viewport.width+'x'+viewport.height;await mkdir(folder,{recursive:true});
+  await visitSteps(browser,url,'how-to-make-a-presentation',{viewport,onStep:async(page,index)=>{
+   if(![0,1,6,8].includes(index))return;
+   const measured=await page.evaluate(()=>{
+    const box=(selector)=>{const el=document.querySelector(selector);const r=el.getBoundingClientRect();return {x:r.x,y:r.y,left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}};
+    const entity=id=>'[data-presentation-entity="how-to:'+id+'"]';
+    const result={canvas:box('[data-presentation-canvas]'),scale:box('[data-presentation-canvas]').width/880};
+    if(document.querySelector('.conversation-arrows line'))Object.assign(result,{line:box('.conversation-arrows line'),you:box(entity('you')),skill:box(entity('skill')),prompt:box(entity('prompt'))});
+    if(document.querySelector('[data-presentation-reveal-label]')){const label=document.querySelector('[data-presentation-reveal-label]');const range=document.createRange();range.selectNodeContents(label);const text=range.getBoundingClientRect();Object.assign(result,{frame:box(entity('reveal')),label:box('[data-presentation-reveal-label]'),chip:box(entity('question')),text:{top:text.top,bottom:text.bottom,left:text.left,right:text.right}})};
+    return result;
+   });
+   assert.ok(measured.canvas.left>=0&&measured.canvas.right<=viewport.width,'scaled canvas fits viewport horizontally');
+   assert.ok(measured.canvas.top>=0&&measured.canvas.bottom<=viewport.height,'scaled canvas fits viewport vertically');
+   if(index>=1){assert.ok(Math.abs(measured.line.left-measured.you.right)<1);assert.ok(Math.abs(measured.line.right-measured.skill.left)<1);assert.ok(Math.abs(measured.line.top-(measured.you.top+measured.you.height/2))<1);assert.ok(measured.prompt.top>measured.line.bottom)}
+   if(index===8){const {label,frame,chip,text,scale}=measured;assert.ok(label.top>=frame.top+8*scale);assert.ok(text.top>=label.top-1&&text.bottom<=label.bottom+1,'reveal text fits line box');assert.ok(label.left>=frame.left&&label.right<=frame.right);assert.ok(label.right+8*scale<=chip.left||label.bottom+8*scale<=chip.top,'reveal label separated from question chip')}
+   await page.screenshot({path:folder+'/step-'+index+'.png'});
+   console.log('composition '+viewport.width+'x'+viewport.height+' step '+index+' '+JSON.stringify(measured));
+  }});
+ }
+});`;
+      await writeFile(join(dir,'composition.mjs'),geometry);
+      await run(['node','composition.mjs'],dir);
+      if(process.env.PRESENTATION_TEST_ARTIFACTS) await cp(join(dir,'artifacts/composition'),join(process.env.PRESENTATION_TEST_ARTIFACTS,'sample-composition'),{recursive:true});
+
     });
   },
 );
@@ -241,15 +281,21 @@ test(
       [
         "missing",
         "src/presentations/index.ts",
-        (s) => s.replaceAll("how-to-make-a-presentation", "absent"),
-        /FAIL sample|FAIL build/,
+        (s) => s.replace("export const presentations = [", "export const presentations = [/* removed sample */").replace(/\{\s*slug:[\s\S]*?\},?/, ""),
+        /FAIL sample: sample missing registration: how-to-make-a-presentation/,
       ],
       [
         "unregistered",
         "src/presentations/index.ts",
         (s) =>
           s.replace(/slug:\s*"how-to-make-a-presentation"/, 'slug: "unregistered"'),
-        /FAIL render/,
+        /FAIL sample: sample missing registration: how-to-make-a-presentation/,
+      ],
+      [
+        "missing-entry",
+        "src/presentations/how-to-make-a-presentation/Talk.tsx",
+        s=>s+'\n// removed in fixture below',
+        /FAIL sample: sample missing entry module: how-to-make-a-presentation/,
       ],
       [
         "out-of-order",
@@ -300,11 +346,15 @@ test(
           await copyApp(dir);
           const p = join(dir, file);
           const original=await readFile(p,"utf8"); const mutated=mutate(original); assert.notEqual(mutated,original, `fault ${name} must actually change source`); await writeFile(p,mutated);
+          if(name==='missing-entry')await rm(p);
           const { code, log } = await exec(["npm", "run", "verify"], dir);
           console.log(log);
           assert.notEqual(code, 0);
           assert.match(log, message);
           assert.doesNotMatch(log, /PASS build/);
+          if(['missing','unregistered','missing-entry'].includes(name)) {
+            assert.doesNotMatch(log,/FAIL render|locator.waitFor|Preview http/);
+          }
           const url = log.match(/Preview (http:\/\/127\.0\.0\.1:\d+)/)?.[1];
           if (url) {
             assert.match(log, /Preview cleaned up/);

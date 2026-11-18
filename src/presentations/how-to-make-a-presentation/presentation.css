@@ -1,0 +1,55 @@
+/* This presentation owns every visual choice; the reusable kit supplies geometry. */
+.how-to-scene { background: #f4f0e6; color: #23372d; font-family: 'Trebuchet MS', Arial, sans-serif; box-sizing: border-box; overflow: hidden; }
+.how-to-scene *, .how-to-scene *::before, .how-to-scene *::after { box-sizing: border-box; }
+.how-to-scene button { font: inherit; cursor: pointer; color: inherit; }
+.how-to-scene button:focus-visible, .how-to-scene a:focus-visible { outline: 3px solid #668a35; outline-offset: 4px; }
+.how-to-scene [data-presentation-header] { padding: 27px 40px; }
+.how-to-scene [data-presentation-marker] { display: flex; gap: 16px; align-items: center; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; }
+.how-to-scene [data-presentation-step-number] { background: #23372d; color: #eef6d7; padding: 5px 8px; border-radius: 4px; }
+.how-to-scene h1 { font-size: clamp(22px, 3vw, 34px); line-height: 1.15; font-weight: 500; letter-spacing: -1px; margin: 12px 0 0; }
+.how-to-scene [data-presentation-mode-toggle] { position: absolute; top: 28px; right: 40px; border: 1px solid #a6b19f; background: transparent; padding: 8px 14px; border-radius: 30px; font-size: 12px; }
+.how-to-scene [data-presentation-toc] { padding: 44px 24px 0 40px; display: flex; flex-direction: column; gap: 14px; width: 190px; }
+.how-to-scene [data-presentation-toc] button { text-align: left; background: transparent; color: #69756b; border: none; border-left: 2px solid #d2d7cb; padding: 5px 10px; font-size: 13px; }
+.how-to-scene [data-presentation-toc] [data-presentation-active="true"] { color: #23372d; border-left: 3px solid #668a35; font-weight: bold; background: #e4ead5; }
+.how-to-scene [data-presentation-footer] { padding: 0 40px; }
+.how-to-scene [data-presentation-caption] { max-width: 760px; margin: 0 auto 24px; font-size: 17px; line-height: 1.65; min-height: 58px; text-align: center; }
+.how-to-scene [data-presentation-navigation] { display: flex; gap: 20px; justify-content: center; align-items: center; }
+.how-to-scene [data-presentation-navigation] button { background: transparent; border: 1px solid #bac4af; padding: 7px 12px; border-radius: 5px; font-size: 12px; }
+.how-to-scene [data-presentation-navigation] button:disabled { opacity: .4; cursor: default; }
+.how-to-scene [data-presentation-progress] { display: flex; gap: 6px; }
+.how-to-scene [data-presentation-progress] button { width: 29px; height: 29px; padding: 0; border-radius: 50%; }
+.how-to-scene [data-presentation-progress] [data-presentation-active="true"] { background: #23372d; color: #f4f0e6; border-color: #23372d; font-weight: bold; }
+.how-to-scene [data-presentation-attribution] { display: inline-block; padding: 10px 24px; font-size: 12px; color: #536647; text-decoration: none; letter-spacing: .3px; }
+.how-to-scene [data-presentation-mode="present"] [data-presentation-title] { text-align: center; }
+.how-to-scene[data-presentation-mode="present"] [data-presentation-footer] h1 { text-align: center; }
+.sample-entity { display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.sample-entity.person, .sample-entity.skill { background: #23372d; color: #f4f0e6; border-radius: 12px; font-size: 20px; font-weight: bold; box-shadow: 0 4px 0 #b1bf9c; }
+.sample-entity.skill { background: #d9ecb0; color: #23372d; border: 1px solid #7c9956; }
+.sample-entity.prompt { justify-content: flex-start; color: #69756b; font-size: 13px; }
+.sample-entity.connection { font-size: 50px; line-height: 1; color: #7d9268; }
+.sample-entity.connection span { transform: scaleX(3.8); }
+.sample-entity.chip { font-size: 10px; background: #e3e9d7; border-radius: 24px; }
+.sample-entity.tray { background: #e7e8dd; border-bottom: 2px solid #a9b39c; border-radius: 0 0 14px 14px; }
+.sample-entity.card { background: #fffdf7; border: 1px solid #b0bba2; border-radius: 7px; flex-direction: column; align-items: flex-start; padding: 9px 11px; gap: 3px; font-size: 10px; box-shadow: 0 3px 0 #c4cbb7; }
+.sample-entity.card strong { font-size: 10px; margin-bottom: 1px; }
+.sample-entity.card .visual-mini { color: #697b56; }
+.sample-entity.link { font-size: 10px; color: #526f3d; }
+.sample-entity.ghost { border: 1px dashed #8f9c81; border-radius: 7px; color: #849076; font-size: 24px; }
+.sample-entity.depth { background: #e3e9d7; border-radius: 0 0 8px 8px; font-size: 11px; }
+.sample-entity.socket { background: #d3e7ac; border: 1px solid #91aa66; border-top: 4px solid #91aa66; border-radius: 0 0 8px 8px; font-size: 12px; }
+.sample-entity.verify { background: #d5eab8; color: #355b24; border: 1px solid #91aa66; border-radius: 7px; flex-direction: column; gap: 8px; font-size: 10px; }
+.sample-entity.verify strong { font-size: 14px; }
+.sample-entity.modify { border-right: 2px dashed #b37646; border-bottom: 2px dashed #b37646; border-radius: 0 0 25px 0; align-items: flex-start; color: #89572f; font-size: 12px; }
+.sample-entity.flag { background: #f1d4ad; color: #754923; border-radius: 5px; font-size: 10px; }
+.sample-entity.reveal { border: 1px solid #8ca170; border-radius: 18px; pointer-events: none; align-items: flex-end; padding-bottom: 6px; color: #6d8057; font-size: 9px; letter-spacing: 2px; }
+@media (max-width: 999px) {
+  .how-to-scene [data-presentation-header] { padding: 22px 20px; }
+  .how-to-scene [data-presentation-mode-toggle] { top: 24px; right: 20px; }
+  .how-to-scene h1 { max-width: calc(100vw - 40px); margin-top: 16px; font-size: 24px; }
+  .how-to-scene [data-presentation-footer] { padding: 0 20px; }
+  .how-to-scene [data-presentation-caption] { font-size: 14px; line-height: 1.55; margin-bottom: 20px; }
+  .how-to-scene [data-presentation-navigation] { gap: 8px; }
+  .how-to-scene [data-presentation-progress] { gap: 4px; }
+  .how-to-scene [data-presentation-progress] button { width: 22px; height: 22px; font-size: 10px; }
+  .how-to-scene [data-presentation-navigation] > button { padding: 5px; font-size: 10px; }
+}

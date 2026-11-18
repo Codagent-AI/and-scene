@@ -1,0 +1,5 @@
+{
+  "extends": "../tsconfig.app.json",
+  "compilerOptions": { "tsBuildInfoFile": "../node_modules/.tmp/kit-types.tsbuildinfo", "strict": true },
+  "include": ["kit.types.tsx", "../src/presentation-kit"]
+}

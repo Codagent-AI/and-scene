@@ -1,0 +1,5 @@
+import type { Step, SceneProps } from '../../../presentation-kit/types'
+import { Box } from '../../../presentation-kit/nodes/Box'
+import { entities } from '../entities'
+function Scene({payload}:SceneProps<{label:string}>) { return <Box id={entities.topic} style={{position:'absolute',left:80,top:100}}>{payload.label}</Box> }
+export const step: Step<{label:string}> = {id:'opening',era:'the idea',title:'{{title}}',caption:'{{caption}}',groupKey:'main',Scene,payload:{label:'{{topic}}'}}

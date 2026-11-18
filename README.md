@@ -48,3 +48,12 @@ The bootstrap kit and scripts are release snapshots. Keep
 `skills/presentation/templates/bootstrap/`; INT-001 checks parity. Generated
 builds, installed dependencies, and inspection artifacts are ignored. No hosting,
 publishing, or export pipeline is included.
+
+The inspection helper checks viewport/chrome stability as well as scene entities.
+Important opaque UI outside the canvas can opt into PNG paint checks with
+`data-presentation-capture-region="name"` and
+`data-presentation-capture-probes="5,14;5,-14"`. These probe points must lie in
+clear background padding; negative offsets count from the right/bottom edge.
+The sample reading key uses this hook. A missing painted region causes capture
+to retry and eventually fail rather than publish a misleading image. Collision
+diagnostics compare only the visible portions of text inside scroll containers.

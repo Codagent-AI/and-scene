@@ -29,7 +29,7 @@ describe('verification arguments', () => {
 })
 
 describe('diagnostic classification', () => {
-  afterEach(() => { vi.restoreAllMocks(); document.body.innerHTML = '' })
+  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); document.body.innerHTML = '' })
   it('reports missing attribution and skips allowed and invisible text', () => {
     document.body.innerHTML = '<div data-presentation-allow-overlap><span>intentional</span><span>overlap</span></div><span style="display:none">hidden</span>'
     expect(visualDiagnostics()).toEqual(['attribution missing: style [data-presentation-attribution]'])
@@ -68,4 +68,34 @@ describe('diagnostic classification', () => {
       expect(visualDiagnostics().filter((warning) => warning.startsWith('indistinct'))).toHaveLength(0)
     }
   })
+  it('F-003 excludes scroll-clipped labels from footer overlap warnings', () => {
+    vi.stubGlobal('innerHeight', 844)
+    document.body.innerHTML = '<aside style="overflow:auto" id="reader"><li data-testid="reading-label">Hidden below the scroll pane</li></aside><p data-testid="caption">Caption</p>'
+    vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue([new DOMRect(20, 780, 100, 20)] as unknown as DOMRectList)
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) { return this.id === 'reader' ? new DOMRect(16, 453, 358, 151) : new DOMRect(20, 780, 100, 20) })
+    vi.spyOn(document, 'createRange').mockImplementation(() => {
+      let selected: Node
+      return { selectNodeContents(node: Node) { selected = node }, getClientRects: () => [selected.parentElement!.getBoundingClientRect()] } as unknown as Range
+    })
+    expect(visualDiagnostics().filter(warning => warning.startsWith('overlap'))).toEqual([])
+    document.getElementById('reader')!.style.overflow = 'visible'
+    expect(visualDiagnostics()).toContain('overlap: caption / reading-label')
+  })
+  it('F-003 compares only the visible portion of partially clipped labels', () => {
+    document.body.innerHTML = '<aside style="overflow:auto" id="reader"><li data-testid="reading-label">Partly visible</li></aside><p data-testid="caption">Caption</p>'
+    vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue([new DOMRect(20, 590, 100, 40)] as unknown as DOMRectList)
+    let captionY = 610
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      if (this.id === 'reader') return new DOMRect(16, 453, 358, 151)
+      return this.tagName === 'LI' ? new DOMRect(20, 590, 100, 40) : new DOMRect(20, captionY, 100, 20)
+    })
+    vi.spyOn(document, 'createRange').mockImplementation(() => {
+      let selected: Node
+      return { selectNodeContents(node: Node) { selected = node }, getClientRects: () => [selected.parentElement!.getBoundingClientRect()] } as unknown as Range
+    })
+    expect(visualDiagnostics().filter(warning => warning.startsWith('overlap'))).toEqual([])
+    captionY = 596
+    expect(visualDiagnostics()).toContain('overlap: caption / reading-label')
+  })
+
 })

@@ -8,6 +8,8 @@ it('F-001 provides current labels at 14 CSS pixels outside the fitted canvas on 
   const { container } = render(<Talk />)
   const key = screen.getByRole('complementary', { name: 'Scene reading key for step 1' })
   expect(key.style.fontSize).toBe('14px')
+  expect(key.getAttribute('data-presentation-capture-region')).toBe('reading-key')
+  expect(key.getAttribute('data-presentation-capture-probes')).toBe('5,14;5,-14')
   expect(key.closest('[data-presentation-canvas]')).toBeNull()
   expect(key.querySelector('[data-sample-reader-entity="you"]')?.textContent).toBe('you')
   expect(key.querySelector('[data-sample-reader-entity="prompt"]')?.textContent).toBe('“I have a topic…”')

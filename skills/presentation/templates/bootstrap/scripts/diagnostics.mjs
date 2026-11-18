@@ -9,6 +9,27 @@ export function visualDiagnostics() {
     }
     return true
   }
+  // Range rectangles include offscreen text inside scroll panes. Clip those
+  // rectangles before comparing visible content with viewport chrome.
+  const clippedRect = (element, rect) => {
+    let left = Math.max(0, rect.left), top = Math.max(0, rect.top)
+    let right = Math.min(innerWidth, rect.right), bottom = Math.min(innerHeight, rect.bottom)
+    for (let ancestor = element; ancestor; ancestor = ancestor.parentElement) {
+      const style = getComputedStyle(ancestor)
+      const clipX = ['auto', 'scroll', 'hidden', 'clip'].includes(style.overflowX || style.overflow)
+      const clipY = ['auto', 'scroll', 'hidden', 'clip'].includes(style.overflowY || style.overflow)
+      if (!clipX && !clipY) continue
+      const box = ancestor.getBoundingClientRect()
+      const x = box.left + ancestor.clientLeft, y = box.top + ancestor.clientTop
+      if (clipX) { left = Math.max(left, x); right = Math.min(right, x + (ancestor.clientWidth || box.width)) }
+      if (clipY) { top = Math.max(top, y); bottom = Math.min(bottom, y + (ancestor.clientHeight || box.height)) }
+    }
+    return right > left && bottom > top ? { left, top, right, bottom } : null
+  }
+  const add = (element, rect) => {
+    const clipped = clippedRect(element, rect)
+    if (clipped) nodes.push({ element, rect: clipped })
+  }
   const describe = (element) => element.getAttribute('data-testid') || element.getAttribute('aria-label') || `${element.tagName.toLowerCase()}: ${(element.textContent || '').trim().slice(0, 48)}`
   const nodes = []
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
@@ -18,10 +39,10 @@ export function visualDiagnostics() {
     if (!text.textContent.trim() || !element || ['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(element.tagName) || !visible(element) || element.closest('[data-presentation-allow-overlap]')) continue
     const range = document.createRange()
     range.selectNodeContents(text)
-    for (const rect of range.getClientRects()) if (rect.width && rect.height) nodes.push({ element, rect })
+    for (const rect of range.getClientRects()) if (rect.width && rect.height) add(element, rect)
   }
   for (const element of document.querySelectorAll('[data-presentation-progress] button, [data-presentation-toc] button, [data-presentation-navigation] button, [data-presentation-attribution]')) {
-    if (visible(element) && !element.closest('[data-presentation-allow-overlap]')) nodes.push({ element, rect: element.getBoundingClientRect() })
+    if (visible(element) && !element.closest('[data-presentation-allow-overlap]')) add(element, element.getBoundingClientRect())
   }
   const reported = new Set()
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {

@@ -173,3 +173,29 @@ export default function Talk() { return <><style>{'body { margin:8px }'}</style>
     assertStopped(result.output)
   } finally { await rm(directory, { recursive: true, force: true }) }
 })
+
+
+// F-003: validate the final PNG, not just a panel present after capture.
+test('INT-002: narrow final screenshot paints the reading key without clipped-label collision warnings', { timeout: 180000 }, async () => {
+  const directory = await checkout()
+  try {
+    const result = await command(directory, 'inspect', [slug, '--width', '390', '--height', '844', '--settle', '1000'])
+    assert.equal(result.code, 0, result.output)
+    const artifacts = join(directory, `artifacts/inspection/${slug}/390x844`)
+    const manifest = JSON.parse(await readFile(join(artifacts, 'manifest.json'), 'utf8'))
+    assert.equal(manifest.length, 9)
+    const last = manifest.at(-1)
+    const key = last.regions.find(region => region.id === 'reading-key')
+    assert.ok(key?.visible)
+    assert.match(key.text, /THIS IS THE OUTPUT/)
+    const image = PNG.sync.read(await readFile(join(artifacts, last.image)))
+    assert.equal(image.width, 390)
+    assert.equal(image.height, 844)
+    for (const [dx, dy] of [[5, 14], [5, key.height - 14]]) {
+      const offset = (Math.floor(key.y + dy) * image.width + Math.floor(key.x + dx)) * 4
+      assert.deepEqual([...image.data.subarray(offset, offset + 3)], [255, 253, 247], 'the final PNG must contain the reading panel itself')
+    }
+    assert.doesNotMatch(last.warnings.join('\n'), /overlap:.*li:/, 'labels clipped by the reading pane are not visible footer collisions')
+    assertStopped(result.output)
+  } finally { await rm(directory, { recursive: true, force: true }) }
+})

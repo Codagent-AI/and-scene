@@ -12,7 +12,7 @@ export function SceneReader({ beat }: { beat: number }) {
   }, [])
   if (!narrow) return null
   const labels = visibleEntities(beat).filter(entity => entity.text)
-  return createPortal(<aside className="sample-scene-reader" data-sample-scene-reader="" aria-label={`Scene reading key for step ${beat}`} tabIndex={0}
+  return createPortal(<aside className="sample-scene-reader" data-sample-scene-reader="" data-presentation-capture-region="reading-key" data-presentation-capture-probes="5,14;5,-14" aria-label={`Scene reading key for step ${beat}`} tabIndex={0}
     style={{ fontSize: 14 }}
     onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'PageUp', 'PageDown', 'Home', 'End'].includes(event.key)) event.stopPropagation() }}
     onTouchStart={event => event.stopPropagation()} onTouchEnd={event => event.stopPropagation()}>

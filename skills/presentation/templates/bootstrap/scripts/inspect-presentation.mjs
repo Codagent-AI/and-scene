@@ -26,7 +26,7 @@ export async function inspectPresentation(options, cwd = process.cwd()) {
       const image = `step-${String(index + 1).padStart(2, '0')}.png`
       await writeFile(join(directory, image), capture.buffer)
       const capturedAt = Date.now()
-      manifest.push({ index, image, stepStartedAt, capturedAt, settledForMs: capturedAt - stepStartedAt, activeAnimations, scene: capture.scene, warnings })
+      manifest.push({ index, image, stepStartedAt, capturedAt, settledForMs: capturedAt - stepStartedAt, activeAnimations, scene: capture.scene, chrome: capture.chrome, regions: capture.regions, viewport: capture.viewport, warnings })
       for (const warning of warnings) console.warn(`ADVISORY step ${index}: ${warning}`)
       console.log(`captured step ${index}: ${join(directory, image)} (settled ${capturedAt - stepStartedAt}ms)`)
       if (index < count - 1) await page.keyboard.press('ArrowRight')

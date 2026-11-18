@@ -24,7 +24,7 @@ describe('reference sample', () => {
     const cards = [...document.querySelectorAll('[data-presentation-entity].card')]
     expect(cards).toHaveLength(2)
     for (const [index, card] of cards.entries()) {
-      expect(within(card as HTMLElement).getByText(index === 0 ? '01 / the idea' : '02 / the story')).toBeTruthy()
+      expect(within(card as HTMLElement).getByText(index === 0 ? '01' : '02')).toBeTruthy()
       const parts = card.querySelector('small')!
       expect([...parts.childNodes].filter(node => node.nodeType === 3).map(node => node.textContent?.trim())).toEqual(['title', 'caption'])
       expect(within(parts).getByText('visual', { exact: true }).tagName).toBe('B')

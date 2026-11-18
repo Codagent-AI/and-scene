@@ -5,6 +5,8 @@ import { promisify } from 'node:util'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { snapshot } from './filesystem'
+import { SETTLE_MS, withBrowser } from '../scripts/browser-runtime.mjs'
+import { collectVisualWarnings } from '../scripts/visual-diagnostics.mjs'
 const exec = promisify(execFile)
 const root = process.cwd()
 let scratch: string
@@ -136,6 +138,50 @@ export default function Diagnostic(){return <><style>{'[data-presentation-attrib
     expect(probes.every(address => new URL(address).pathname === '/')).toBe(true)
     expect(ready.every(address => new URL(address).pathname === '/')).toBe(true)
     cleaned(output)
+    // Reuse the production build above. This catches the acceptance regression
+    // using actual font inheritance, transforms and text rectangles in Chromium.
+    const observations = []
+    await withBrowser(async (page, origin) => {
+      for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+        await page.setViewportSize(viewport)
+        await page.goto(`${origin}/how-to-make-a-presentation`)
+        for (const index of [0, 4, 8]) {
+          await page.locator('[data-presentation-progress-step]').nth(index).click()
+          await page.waitForFunction(i => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === String(i), index)
+          await page.waitForTimeout(SETTLE_MS)
+          const measured = await page.evaluate(() => {
+            const canvas = document.querySelector('[data-presentation-canvas]') as HTMLElement
+            const bounds = canvas.getBoundingClientRect()
+            const scale = bounds.width / 880
+            const problems: string[] = []
+            const labels: { text: string; pixels: number }[] = []
+            if (canvas.style.width !== '880px' || canvas.style.height !== '380px' || Math.abs(bounds.height / 380 - scale) > .001) problems.push('canvas changed dimensions or scales non-uniformly')
+            if (bounds.left < -1 || bounds.top < -1 || bounds.right > innerWidth + 1 || bounds.bottom > innerHeight + 1) problems.push('canvas exceeds viewport')
+            const walker = document.createTreeWalker(canvas, NodeFilter.SHOW_TEXT)
+            for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+              const text = node.textContent?.trim()
+              const parent = node.parentElement
+              const entity = parent?.closest('[data-presentation-entity]')
+              if (!text || !parent || !entity) continue
+              const pixels = parseFloat(getComputedStyle(parent).fontSize) * scale
+              labels.push({ text, pixels })
+              if (pixels < 12) problems.push(`${text}: ${pixels}px after scaling`)
+              const slot = entity.getBoundingClientRect()
+              const range = document.createRange(); range.selectNodeContents(node)
+              for (const rect of range.getClientRects()) {
+                if (rect.left < slot.left - 2 || rect.top < slot.top - 2 || rect.right > slot.right + 2 || rect.bottom > slot.bottom + 2) problems.push(`${text}: exceeds its entity bounds`)
+              }
+            }
+            return { labels, problems }
+          })
+          observations.push({ viewport, index, ...measured })
+          expect(measured.labels.length).toBeGreaterThan(0)
+          expect(measured.problems).toEqual([])
+          expect((await page.evaluate(collectVisualWarnings)).filter((warning: string) => warning.startsWith('overlap:'))).toEqual([])
+        }
+      }
+    })
+    await save('E2E-001-readability', JSON.stringify(observations, null, 2))
   })
   it.each(['build', 'missing', 'order', 'console', 'page', 'render', 'transition'])('E2E-002 actionable %s failure and cleanup', async kind => {
     const dir = await fixture(`failure-${kind}`)

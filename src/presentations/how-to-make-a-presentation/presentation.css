@@ -29,18 +29,20 @@
 .skill-story .entity-card strong, .skill-story .entity-verify strong { font-size: 34px; font-weight: 600; }
 .skill-story .entity-card span, .skill-story .entity-verify span { font-size: 32px; color: #4d5c4f; }
 .skill-story .entity-ghost { border: 2px dashed #9daa8f; border-radius: 7px; color: #66775c; font-size: 48px; }
-.skill-story .entity-morph { flex-direction: column; color: #405b36; gap: 2px; }
-.skill-story .entity-morph span, .skill-story .entity-morph small { font: 32px/1.05 'Segoe UI', sans-serif; letter-spacing: -.025em; }
+.skill-story .entity-morph { position: relative; color: #405b36; }
+.skill-story .entity-morph svg { position: absolute; top: 0; left: 0; width: 100%; height: 92px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 2; }
+.skill-story .entity-morph small { position: absolute; display: flex; align-items: center; justify-content: center; font: 32px/1.05 'Segoe UI', sans-serif; letter-spacing: -.025em; }
 .skill-story .entity-connection { color: #526b45; }
+.skill-story .entity-connection svg { width: 100%; height: 100%; overflow: visible; fill: none; stroke: currentColor; stroke-width: 2; }
 .skill-story .entity-socket { background: #d9e2d0; border-radius: 0 0 9px 9px; color: #3f5e40; }
 .skill-story .entity-verify { background: #dce9d6; color: #2b653e; }
 .skill-story .entity-modify { position: relative; color: #806332; }
 .skill-story .entity-modify svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; }
 .skill-story .entity-modify marker path { fill: currentColor; stroke: none; }
-.skill-story .entity-modify span { position: absolute; left: 90px; top: -40px; font-size: 32px; }
+.skill-story .entity-modify span { position: absolute; left: 145px; top: -40px; font-size: 32px; }
 .skill-story .entity-flag { color: #806332; }
 .skill-story .entity-reveal { position: relative; border: 1px solid #819774; border-radius: 18px; pointer-events: none; }
-.skill-story .entity-reveal span { position: absolute; left: 24px; bottom: 8px; font: 600 32px/1.05 ui-monospace, monospace; letter-spacing: .04em; color: #405b36; }
+.skill-story .entity-reveal span { position: absolute; left: 24px; top: 4px; font: 600 32px/1.05 ui-monospace, monospace; letter-spacing: .04em; color: #405b36; }
 @media (max-width: 600px) {
   .skill-story [data-presentation-header] { left: 20px; top: 20px; max-width: calc(100% - 115px); }
   .skill-story [data-presentation-mode-toggle] { right: 20px; top: 20px; }

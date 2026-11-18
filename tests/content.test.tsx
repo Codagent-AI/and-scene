@@ -1,5 +1,6 @@
 import { it, expect } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
+import type { SceneRect } from '../src/presentations/how-to-make-a-presentation/entities'
 import { entities, entitiesAt, entityId } from '../src/presentations/how-to-make-a-presentation/entities'
 import { Scene as StoryScene } from '../src/presentations/how-to-make-a-presentation/steps/Scene'
 import { steps } from '../src/presentations/how-to-make-a-presentation/steps'
@@ -80,11 +81,11 @@ it('I-36 reference scene accumulates stable fixed entities and all normative sce
   expect(entityId('you')).toBe('how-to-make-a-presentation:you')
   // The modification arc actually joins the conversation to the edited card.
   expect(get('modify').y).toBe(get('skill').y+get('skill').h)
-  expect(get('modify').x+10).toBeGreaterThan(get('skill').x)
-  expect(get('modify').x+10).toBeLessThan(get('skill').x+get('skill').w)
+  expect(get('modify').x+65).toBeGreaterThan(get('skill').x)
+  expect(get('modify').x+65).toBeLessThan(get('skill').x+get('skill').w)
   expect(get('modify').x).toBe(get('edited').x+get('edited').w)
   render(<StoryScene payload={7} />)
-  expect(document.querySelector('[data-modify-path]')?.getAttribute('d')).toBe('M10 0 C210 0 210 20 0 20')
+  expect(document.querySelector('[data-modify-path]')?.getAttribute('d')).toBe('M65 0 C270 0 270 14 0 14')
 })
 it('I-37 sample validator rejects missing and out of order metadata', () => {
   expect(()=>assertReference([])).toThrow('nine'); expect(()=>assertReference([...reference].reverse())).toThrow('step 0')
@@ -107,11 +108,13 @@ it('I-45 missing tiny and browser-default attribution warns with styling hook', 
   expect(diagnose({text:[],active:[],attribution:{size:12,color:'green',decoration:'none'}},4)).toEqual([])
 })
 
-it('F-001 reference labels stay readable at phone fit scale without scene reflow', () => {
+function withStoryStyles(check: () => void) {
   const stylesheet = document.createElement('style')
   stylesheet.textContent = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../src/presentations/how-to-make-a-presentation/presentation.css'), 'utf8')
   document.head.append(stylesheet)
-  try {
+  try { check() } finally { stylesheet.remove() }
+}
+it('F-001 reference labels stay readable at phone fit scale without scene reflow', () => withStoryStyles(() => {
     const view = render(<div className="skill-story"><StoryScene payload={4} /></div>)
     for (const beat of [4, 8]) {
       view.rerender(<div className="skill-story"><StoryScene payload={beat} /></div>)
@@ -136,5 +139,42 @@ it('F-001 reference labels stay readable at phone fit scale without scene reflow
     // retain their coordinates and identities as the later beats accumulate.
     expect(entitiesAt(4).every(e => entitiesAt(8).includes(e))).toBe(true)
     expect(entities.every(e => e.x >= 0 && e.y >= 0 && e.x + e.w <= 880 && e.y + e.h <= 380)).toBe(true)
-  } finally { stylesheet.remove() }
-})
+}))
+
+it('F-002 reference label bands and card budgets prevent cross-entity crowding', () => withStoryStyles(() => {
+  render(<div className="skill-story"><StoryScene payload={8} /></div>)
+  const row = entities.filter(e => ['card', 'ghost', 'verify'].includes(e.kind))
+  const rowBottom = Math.max(...row.map(e => e.y + e.h))
+  const socket = entities.find(e => e.id === 'scene-kit')!
+  const overlaps = (a: SceneRect, b: SceneRect) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+  for (const card of row.filter(e => e.kind !== 'ghost')) {
+    const node = document.querySelector(`[data-entity="${card.id}"]`)!
+    const css = getComputedStyle(node)
+    const available = card.w - [css.paddingLeft, css.paddingRight, css.borderLeftWidth, css.borderRightWidth].reduce((sum, v) => sum + parseFloat(v), 0)
+    // With 32px type, the seven-letter card part needs breathing room;
+    // the verify words also need substantially more space than before.
+    expect(available, card.id).toBeGreaterThanOrEqual(card.kind === 'card' ? 140 : 120)
+  }
+  const links = entities.filter(e => e.kind === 'morph')
+  for (const link of links) {
+    const label = link.labelRect!
+    expect(label).toBeDefined()
+    expect(label.y - rowBottom).toBeGreaterThanOrEqual(8)
+    expect(label.x + label.w / 2).toBe(link.x + link.w / 2)
+    for (const body of [...row, socket]) expect(overlaps(label, body), `${link.id} / ${body.id}`).toBe(false)
+    const node = document.querySelector(`[data-entity="${link.id}"]`)!
+    const text = node.querySelector('small')!
+    expect(text.textContent).toBe('morph')
+    expect(text.style.left).toBe(`${label.x - link.x}px`)
+    expect(text.style.top).toBe(`${label.y - link.y}px`)
+    expect(text.style.width).toBe(`${label.w}px`)
+    expect(node.querySelector('[data-morph-link]')).toBeTruthy()
+  }
+  expect(overlaps(links[0].labelRect!, links[1].labelRect!)).toBe(false)
+  expect(socket.y - rowBottom).toBeGreaterThanOrEqual(24)
+  const reveal = document.querySelector('[data-entity="reveal"] span')!
+  expect(getComputedStyle(reveal).top).toBe('4px')
+  const edited = entities.find(e => e.id === 'edited')!
+  const target = entities.find(e => e.id === 'card-3')!
+  expect(edited.x + edited.w / 2).toBe(target.x + target.w / 2)
+}))

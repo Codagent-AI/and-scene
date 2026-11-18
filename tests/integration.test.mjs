@@ -128,7 +128,7 @@ test('E2E-001 reference production verification reports every index and clear pa
   assert.equal(result.code,0,result.output)
   for(let n=0;n<9;n++) assert.match(result.output,new RegExp(`PASS step ${n}/8`))
   assert.match(result.output,/preview http:\/\/127\.0\.0\.1:/); assert.match(result.output,/PASS verification/); assert.match(result.output,/preview cleaned/)
-  // Reuse the production build above for a real-layout regression of F-001.
+  // Reuse the production build above for real-layout regressions of F-001/F-002.
   // All steps use the same fixed model; test text size and bounds after fitting.
   const phoneSteps=[]
   await withPreview(root, async (browser, base) => {
@@ -152,7 +152,9 @@ test('E2E-001 reference production verification reports every index and clear pa
           const card=node.parentElement.closest('.entity-card,.entity-verify')
           const cardBounds=card?.getBoundingClientRect()
           const insideCard=!cardBounds || (rect.left>=cardBounds.left-1 && rect.right<=cardBounds.right+1 && rect.top>=cardBounds.top-1 && rect.bottom<=cardBounds.bottom+1)
-          labels.push({text,size,insideCard,inside:rect.left>=bounds.left-1 && rect.right<=bounds.right+1 && rect.top>=bounds.top-1 && rect.bottom<=bounds.bottom+1})
+          const owner=node.parentElement.closest('[data-entity]')?.getAttribute('data-entity')
+          const allowed=!!node.parentElement.closest('[data-presentation-allow-overlap]')
+          labels.push({text,size,owner,allowed,left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,insideCard,inside:rect.left>=bounds.left-1 && rect.right<=bounds.right+1 && rect.top>=bounds.top-1 && rect.bottom<=bounds.bottom+1})
         }
         return {scale,width:canvas.style.width,height:canvas.style.height,labels}
       })
@@ -162,6 +164,13 @@ test('E2E-001 reference production verification reports every index and clear pa
         assert.ok(label.size>=12,`step ${index}: ${label.text} is only ${label.size}px after fitting`)
         assert.ok(label.inside,`step ${index}: ${label.text} extends outside the fixed canvas`)
         assert.ok(label.insideCard,`step ${index}: ${label.text} extends outside its card`)
+      }
+      for(let a=0;a<state.labels.length;a++) for(let b=a+1;b<state.labels.length;b++) {
+        const first=state.labels[a], second=state.labels[b]
+        if(first.allowed || second.allowed || first.owner===second.owner) continue
+        const dx=Math.max(0,first.left-second.right,second.left-first.right)
+        const dy=Math.max(0,first.top-second.bottom,second.top-first.bottom)
+        assert.ok(Math.hypot(dx,dy)>=3,`step ${index}: ${first.owner} / ${second.owner} labels overlap or lack a 3px reading gap`)
       }
       assert.ok(state.labels.length>0)
       phoneSteps.push({index,...state})

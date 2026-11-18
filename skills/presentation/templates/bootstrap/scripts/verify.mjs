@@ -27,7 +27,7 @@ export async function verify(options = {}, cwd = process.cwd()) {
           await waitForStep(page, index)
           await sleep(options.settle ?? 1000)
           if (errors.length) throw new Error(errors.join('; '))
-          metadata.push(await Promise.all(['era', 'title', 'caption'].map((hook) => page.locator(`[data-presentation-${hook}]`).first().innerText())))
+          metadata.push(await Promise.all(['era', 'title', 'caption'].map(async (hook) => (await page.locator(`[data-presentation-${hook}]`).first().textContent())?.trim())))
           console.log(`render step ${index}/${count - 1}: clean`)
           if (index < count - 1) await page.keyboard.press('ArrowRight')
         }

@@ -78,6 +78,16 @@ describe('reference sample', () => {
     expect(new Set(entities.map(e => e.id)).size).toBe(entities.length)
     for (const e of entities) { expect(e.x).toBeGreaterThanOrEqual(0); expect(e.y).toBeGreaterThanOrEqual(0); expect(e.x + e.w).toBeLessThanOrEqual(880); expect(e.y + e.h).toBeLessThanOrEqual(380) }
   })
+  it('I-35 captions update through previous and next controls', () => {
+    const { container } = render(<Talk />)
+    const caption = () => container.querySelector('[data-presentation-caption]')?.textContent
+    expect(caption()).toBe(OUTLINE[0][2])
+    fireEvent.click(screen.getByRole('button', { name: 'Next step' }))
+    expect(caption()).toBe(OUTLINE[1][2])
+    fireEvent.click(screen.getByRole('button', { name: 'Previous step' }))
+    expect(caption()).toBe(OUTLINE[0][2])
+    expect(screen.getByRole('button', { name: 'Previous step' }).hasAttribute('disabled')).toBe(true)
+  })
   it('I-28 registry lookup preserves multiple entries and unknown-route fallback', () => {
     const registry = [...presentations, { ...presentations[0], slug: 'second', title: 'Another presentation' }]
     render(<Landing registry={registry} />)

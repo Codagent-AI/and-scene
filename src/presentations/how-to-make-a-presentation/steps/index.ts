@@ -1,0 +1,10 @@
+import { step as s1 } from "./01";
+import { step as s2 } from "./02";
+import { step as s3 } from "./03";
+import { step as s4 } from "./04";
+import { step as s5 } from "./05";
+import { step as s6 } from "./06";
+import { step as s7 } from "./07";
+import { step as s8 } from "./08";
+import { step as s9 } from "./09";
+export const STEPS = [s1, s2, s3, s4, s5, s6, s7, s8, s9];

@@ -240,4 +240,25 @@ describe('canvas fit', () => {
     expect(canvas.style.transform).toMatch(/^scale\([\d.]+\)$/)
     expect(document.querySelector('[data-presentation-entity]')?.textContent).toBe('A')
   })
+  it('I-20 custom canvas dimensions drive Stage and fit scaling in both modes on resize', () => {
+    window.innerWidth = 1280
+    window.innerHeight = 900
+    render(<Presentation steps={steps} title="Custom canvas" canvasWidth={1000} canvasHeight={500} />)
+    const canvas = document.querySelector('[data-presentation-canvas]') as HTMLElement
+    const assertCanvas = (availableWidth: number, availableHeight: number) => {
+      expect(canvas.style.width).toBe('1000px')
+      expect(canvas.style.height).toBe('500px')
+      expect(canvas.style.transform).toBe(`scale(${Math.min(availableWidth / 1000, availableHeight / 500)})`)
+    }
+    assertCanvas(1280 - 208 - 40, 900 - 116 - 240)
+    act(() => { window.innerWidth = 1080; window.innerHeight = 800; window.dispatchEvent(new Event('resize')) })
+    assertCanvas(1080 - 208 - 40, 800 - 116 - 240)
+    key('p')
+    assertCanvas(1080 - 32 - 32, 800 - 64 - 104)
+    expect(canvas.style.transform).not.toBe('scale(1)')
+    act(() => { window.innerWidth = 390; window.innerHeight = 844; window.dispatchEvent(new Event('resize')) })
+    assertCanvas(390 - 16 - 16, 844 - 64 - 104)
+    expect(root().getAttribute('data-step-index')).toBe('0')
+  })
+
 })

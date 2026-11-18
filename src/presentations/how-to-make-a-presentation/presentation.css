@@ -39,7 +39,11 @@
 .sample-entity.socket { background: #d3e7ac; border: 1px solid #91aa66; border-top: 4px solid #91aa66; border-radius: 0 0 8px 8px; font-size: 12px; }
 .sample-entity.verify { background: #d5eab8; color: #355b24; border: 1px solid #91aa66; border-radius: 7px; flex-direction: column; gap: 8px; font-size: 10px; }
 .sample-entity.verify strong { font-size: 14px; }
-.sample-entity.modify { border-right: 2px dashed #b37646; border-bottom: 2px dashed #b37646; border-radius: 0 0 25px 0; align-items: flex-start; color: #89572f; font-size: 12px; }
+.sample-entity.modify { color: #89572f; font-size: 12px; pointer-events: none; }
+.sample-entity.modify svg { overflow: visible; }
+.sample-entity.modify [data-sample-modify-path] { fill: none; stroke: #b37646; stroke-width: 2; stroke-dasharray: 5 4; }
+.sample-entity.modify marker path { fill: #b37646; }
+.sample-entity.modify text { fill: currentColor; }
 .sample-entity.flag { background: #f1d4ad; color: #754923; border-radius: 5px; font-size: 10px; }
 .sample-entity.reveal { border: 1px solid #8ca170; border-radius: 18px; pointer-events: none; align-items: flex-end; padding-bottom: 6px; color: #6d8057; font-size: 9px; letter-spacing: 2px; }
 @media (max-width: 999px) {

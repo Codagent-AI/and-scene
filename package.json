@@ -8,10 +8,11 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "npm run test:types && vitest run",
     "test:integration": "node --test tests/*.test.mjs",
     "verify": "node scripts/verify.mjs",
-    "inspect": "node scripts/inspect-presentation.mjs"
+    "inspect": "node scripts/inspect-presentation.mjs",
+    "test:types": "tsc -p tests/tsconfig.kit.json"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

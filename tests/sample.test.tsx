@@ -36,6 +36,20 @@ describe('reference sample', () => {
     expect(card.textContent).toContain('titlecaption◇ visual')
     expect(card.textContent).not.toContain('morph')
     expect(container.querySelector('[data-sample-entity="tray"]')).toBeTruthy()
+    const entity = (id: string) => entities.find(e => e.id === id)!
+    const you = entity('you'), skill = entity('skill'), arrow = entity('conversation'), chip = entity('question'), tray = entity('tray')
+    expect(arrow.text).toBe('⟷')
+    expect(arrow.x).toBeGreaterThan(you.x + you.w)
+    expect(arrow.x + arrow.w).toBeLessThan(skill.x)
+    expect(chip.y + chip.h).toBeLessThan(arrow.y)
+    expect(chip.x).toBeGreaterThanOrEqual(arrow.x)
+    expect(chip.x + chip.w).toBeLessThanOrEqual(arrow.x + arrow.w)
+    const conversationBottom = Math.max(you.y + you.h, skill.y + skill.h, arrow.y + arrow.h)
+    expect(tray.y).toBeGreaterThan(conversationBottom)
+    console.info('I-38 geometry', { chipBottom: chip.y + chip.h, arrowTop: arrow.y, conversationBottom, trayTop: tray.y })
+    const firstCard = entity('card-1')
+    expect(firstCard.y).toBeGreaterThanOrEqual(tray.y)
+    expect(firstCard.y + firstCard.h).toBeLessThanOrEqual(tray.y + tray.h)
     const link = entities.find(e => e.id === 'link-1')!
     expect(link.x).toBeGreaterThan(entities.find(e => e.id === 'card-1')!.x + 128)
     expect(link.x + link.w).toBeLessThan(entities.find(e => e.id === 'card-2')!.x)
@@ -48,6 +62,15 @@ describe('reference sample', () => {
     expect(depth.x).toBe(you.x)
     expect(depth.y).toBe(you.y + you.h)
     expect(kit.y).toBe(tray.y + tray.h)
+    expect(kit.x).toBeGreaterThanOrEqual(tray.x)
+    expect(kit.x + kit.w).toBeLessThanOrEqual(tray.x + tray.w)
+    console.info('I-39 geometry', { trayBottom: tray.y + tray.h, socketTop: kit.y, socketLeft: kit.x, socketRight: kit.x + kit.w, trayLeft: tray.x, trayRight: tray.x + tray.w })
+    for (const item of entities.filter(e => ['card', 'ghost'].includes(e.kind))) {
+      expect(item.x).toBeGreaterThan(tray.x)
+      expect(item.x + item.w).toBeLessThan(tray.x + tray.w)
+      expect(item.y).toBeGreaterThan(tray.y)
+      expect(item.y + item.h).toBeLessThan(tray.y + tray.h)
+    }
     expect(container.querySelector('[data-sample-entity="tray"]')?.getAttribute('data-presentation-node')).not.toBe('Frame')
   })
   it('I-40 verification, modify arc, flag, and reveal follow the pipeline', () => {
@@ -57,6 +80,39 @@ describe('reference sample', () => {
     expect(container.querySelector('[data-sample-entity="verify"]')?.textContent).toContain('✓ verifybuild + renderall steps pass')
     expect(entities.find(e => e.id === 'verify')!.y).toBe(entities.find(e => e.id === 'card-1')!.y)
     expect(container.querySelector('[data-sample-entity="reveal"]')?.getAttribute('data-presentation-node')).toBe('Frame')
+    const entity = (id: string) => entities.find(e => e.id === id)!
+    const skill = entity('skill'), route = entity('modify'), card = entity('card-2'), flag = entity('edited'), frame = entity('reveal'), tray = entity('tray')
+    const path = container.querySelector('[data-sample-modify-path]')!
+    const d = path.getAttribute('d')!
+    const start = d.match(/^M([\d.]+) ([\d.]+)/)!
+    const end = d.match(/Q0 60 0 80 V([\d.]+)$/)!
+    // Resolve the actual rendered path's local endpoints into canvas coordinates.
+    expect(route.x + Number(start[1])).toBe(skill.x + skill.w)
+    expect(route.y + Number(start[2])).toBe(skill.y + skill.h / 2)
+    expect(route.y + Number(end[1])).toBe(card.y)
+    expect(route.x).toBeGreaterThan(card.x)
+    expect(route.x).toBeLessThan(card.x + card.w)
+    expect(route.y + Number(end[1])).toBeGreaterThan(tray.y)
+    expect(path.getAttribute('marker-end')).toBe('url(#sample-modify-arrow)')
+    expect(container.querySelector('[data-sample-entity="edited"]')?.getAttribute('data-sample-flags')).toBe('card-2')
+    expect(flag.x).toBeGreaterThanOrEqual(card.x)
+    expect(flag.x + flag.w).toBe(card.x + card.w)
+    expect(flag.y + flag.h).toBe(card.y)
+    expect(route.x).toBeLessThan(flag.x) // The incoming arrow avoids the flag text.
+    console.info('I-40 rendered path geometry', {
+      start: [route.x + Number(start[1]), route.y + Number(start[2])],
+      skillRightMidpoint: [skill.x + skill.w, skill.y + skill.h / 2],
+      end: [route.x, route.y + Number(end[1])],
+      targetCard: { id: card.id, left: card.x, right: card.x + card.w, top: card.y },
+      trayTop: tray.y, flagBottom: flag.y + flag.h,
+      reveal: { left: frame.x, top: frame.y, right: frame.x + frame.w, bottom: frame.y + frame.h },
+    })
+    for (const item of entities.filter(e => e.id !== 'reveal')) {
+      expect(item.x).toBeGreaterThan(frame.x)
+      expect(item.y).toBeGreaterThan(frame.y)
+      expect(item.x + item.w).toBeLessThan(frame.x + frame.w)
+      expect(item.y + item.h).toBeLessThan(frame.y + frame.h)
+    }
   })
   it('I-41 all nine states preserve continuing nodes and accumulate without rearrangement', () => {
     const { container } = render(<Talk />)

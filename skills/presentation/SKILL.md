@@ -47,7 +47,19 @@ If all three are present, reuse the app and skip scaffolding. If only some are
 present, add only missing anchors and their dependencies; preserve working
 configuration and adapt imports/router integration to the host.
 
-If already inside a presentation app, use it. Otherwise a standalone or empty
+If already inside a presentation app, use it. When invoked at a monorepo root,
+inspect an existing `presentations/` app **before planning any scaffold**. Detect
+its three contracts semantically, including custom file layouts, just as for the
+root. Reuse a complete nested app without adding example files or restoring
+removed template entry points. For a partial nested app, scaffold only its missing
+contracts. Pass its confirmed anchor names as `--target-anchors build,kit,index`
+(or `--target-anchors none` after confirming none are present); these describe the
+resolved nested app, while `--anchors` describes the invocation root. The helper
+refuses to plan writes into an existing non-empty nested target until that
+inspection is supplied. Alternatively invoke the helper directly inside the
+resolved app with its own `--anchors`.
+
+Otherwise a standalone or empty
 project targets its root. A monorepo, identified by package.json `workspaces`,
 `pnpm-workspace.yaml`, or `packages/` or `apps/`, targets a self-contained app at
 `presentations/`; leave the monorepo root build and unrelated files alone. A build
@@ -64,10 +76,13 @@ node "$SKILL_DIR/scripts/scaffold.mjs" /absolute/project --anchors build --apply
 ```
 
 Omit `--anchors` for a fully unscaffolded project. In a monorepo the helper resolves
-`presentations/` and does not carry the root's partial anchors into that new app.
+`presentations/` and does not carry the root's partial anchors into that app; use
+`--target-anchors` to retain contracts already present in an existing nested app.
 If a nonstandard host already implements an anchor elsewhere, preserve it and
 integrate the missing template pieces deliberately rather than blindly copying
-entry points. The helper never overwrites an existing file; resolve conflicts by
+entry points. The helper preserves existing package metadata, including an absent `type`,
+`private`, or `version`; it merges only missing scripts and dependencies. It never
+overwrites an existing file; resolve conflicts by
 integrating only missing contracts. An existing index is preserved in full.
 
 Ensure runtime dependencies `react`, `react-dom`, `motion`, `lucide-react` and

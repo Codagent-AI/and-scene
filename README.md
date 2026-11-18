@@ -15,7 +15,9 @@ landing page lists the explicit registry in `src/presentations/index.ts`.
 ArrowRight, Space, and PageDown advance; ArrowLeft and PageUp go back. P switches
 modes without losing position. Browse mode also provides progress/section jumps
 and previous/next buttons. Horizontal touch swipes navigate without wrapping.
-Focused interactive controls retain their keys.
+Focused interactive controls retain their keys. `Presentation` accepts optional
+`canvasWidth` and `canvasHeight`; the same dimensions drive its canvas and fit
+scale in both modes (defaults: 880 × 380).
 
 The distributable [presentation skill](skills/presentation/SKILL.md) includes
 neutral bootstrap templates and authoring examples. Its helper plans the target
@@ -23,7 +25,7 @@ before copying only missing infrastructure; see the skill for contract detection
 monorepo handling, dependency installation, and preservation of existing apps.
 
 ```sh
-npm test                         # fast Vitest unit and component contracts
+npm test                         # TypeScript contract fixtures + fast Vitest tests
 npm run test:integration          # filesystem + production Chromium tests
 npm run lint
 npm run build

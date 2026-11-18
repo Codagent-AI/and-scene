@@ -16,8 +16,8 @@ export const entities = [
   { id: 'kit', from: 6, x: 290, y: 285, w: 280, h: 42, kind: 'socket', text: 'shared scene kit · boxes / arrows / motion' },
   { id: 'verify-link', from: 7, x: 675, y: 213, w: 26, h: 24, kind: 'link', text: '→' },
   { id: 'verify', from: 7, x: 706, y: 185, w: 96, h: 86, kind: 'verify', text: '✓ verify' },
-  { id: 'modify', from: 8, x: 561, y: 75, w: 194, h: 94, kind: 'modify', text: '↳ ask → edit in place' },
-  { id: 'edited', from: 8, x: 334, y: 159, w: 68, h: 23, kind: 'flag', text: 'edited ↙' },
+  { id: 'modify', from: 8, x: 298, y: 83, w: 482, h: 102, kind: 'modify', text: 'ask → edit in place' },
+  { id: 'edited', from: 8, x: 334, y: 162, w: 68, h: 23, kind: 'flag', text: 'edited ↙' },
   { id: 'reveal', from: 9, x: 23, y: 4, w: 826, h: 350, kind: 'reveal', text: 'THIS IS THE OUTPUT. YOU’RE ALREADY IN IT.' },
 ] as const
 export const visibleEntities = (beat: number) => entities.filter(entity => entity.from <= beat)

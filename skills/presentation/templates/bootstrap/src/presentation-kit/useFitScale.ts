@@ -1,25 +1,25 @@
-import { useLayoutEffect, useState } from 'react'
-import { DESIGN_H, MIN_SCALE, type StageLayout } from './constants'
+import { useEffect, useState } from 'react'
+import { DESIGN_H, DESIGN_W, MIN_SCALE, STAGE_LAYOUT } from './constants'
+import type { Mode } from './types'
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
-
-/**
- * Uniform scale that fits the diagram into the space between header and footer
- * for the active mode's stage geometry. Recomputed on resize and whenever the
- * mode (layout) changes; constant during a step morph, so layoutId transitions
- * stay clean at every viewport size.
- */
-export function useFitScale(layout: StageLayout) {
-  const [scale, setScale] = useState(1)
-  useLayoutEffect(() => {
-    const compute = () => {
-      const availW = window.innerWidth - layout.padX * 2
-      const availH = window.innerHeight - layout.top - layout.bottom
-      setScale(clamp(Math.min(availW / layout.fitW, availH / DESIGN_H), MIN_SCALE, layout.maxScale))
-    }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
-  }, [layout])
-  return scale
+export function stageGeometry(width: number, mode: Mode) {
+  const geometry = STAGE_LAYOUT[mode]
+  return width < 1000 ? { ...geometry, left: 16, right: 16 } : geometry
+}
+export function fitScale(width: number, height: number, canvasWidth = DESIGN_W, canvasHeight = DESIGN_H) {
+  return Math.max(MIN_SCALE, Math.min(width / canvasWidth, height / canvasHeight))
+}
+export function useFitScale(mode: Mode, width = DESIGN_W, height = DESIGN_H) {
+  const [viewport, setViewport] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }))
+  useEffect(() => {
+    const resize = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
+    window.addEventListener('resize', resize)
+    return () => window.removeEventListener('resize', resize)
+  }, [])
+  const geometry = stageGeometry(viewport.width, mode)
+  return {
+    geometry,
+    wide: viewport.width >= 1000,
+    scale: fitScale(viewport.width - geometry.left - geometry.right, viewport.height - geometry.top - geometry.bottom, width, height),
+  }
 }

@@ -65,6 +65,6 @@
   .how-to .conversation-compact { display: block; width: 100%; height: 100%; }
   .how-to .modify-arc text { display: none; }
   .how-to .modify-arc path { stroke-width: 3px; }
-  .how-to .diagram-key { display: block; position: absolute; top: 96px; left: 6%; right: 6%; text-align: center; font-size: 12px; line-height: 1.5; color: var(--muted); }
+  .how-to .diagram-key { display: block; position: absolute; left: 6%; right: 6%; text-align: center; color: var(--muted); }
   .how-to .diagram-key span { display: block; }
 }

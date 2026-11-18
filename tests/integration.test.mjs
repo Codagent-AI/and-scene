@@ -103,21 +103,26 @@ scenario('E2E-001 reference passes complete production verification', async () =
         const bounds = canvas.getBoundingClientRect()
         const scale = bounds.width / 880
         const key = document.querySelector('.diagram-key')
+        const keyBounds = key.getBoundingClientRect()
+        const headerBounds = document.querySelector('[data-presentation-header]').getBoundingClientRect()
         const chrome = [...document.querySelectorAll('[data-presentation-header], [data-presentation-footer], [data-presentation-attribution], .diagram-key')].map(node => node.getBoundingClientRect())
         return {
           uniform: Math.abs(scale - bounds.height / 380) < .001,
-          fits: bounds.left >= 0 && bounds.right <= 390 && bounds.top >= 0 && bounds.bottom <= 844,
+          fits: bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight,
           keyVisible: key.checkVisibility(),
+          keyBeforeScene: keyBounds.bottom <= bounds.top,
+          keyBelowHeader: keyBounds.top >= headerBounds.bottom,
           labels: [...document.querySelectorAll('.entity-label-compact, .entity-detail-compact')].filter(node => node.checkVisibility()).map(node => {
             const rect = node.getBoundingClientRect()
             return { text: node.textContent, font: parseFloat(getComputedStyle(node).fontSize) * scale,
-              visible: rect.left >= 0 && rect.right <= 390 && rect.top >= 0 && rect.bottom <= 844,
+              visible: rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight,
               collidesWithChrome: chrome.some(c => Math.min(c.right, rect.right) > Math.max(c.left, rect.left) && Math.min(c.bottom, rect.bottom) > Math.max(c.top, rect.top)) }
           }),
         }
       })
       assert.ok(measurements.uniform && measurements.fits, `step ${index}: fixed canvas still fits uniformly`)
       assert.ok(measurements.keyVisible, `step ${index}: abbreviation key is visible`)
+      assert.ok(measurements.keyBeforeScene && measurements.keyBelowHeader, `step ${index}: diagram key collides with scene graphics or header`)
       assert.ok(measurements.labels.length >= 2)
       for (const label of measurements.labels) {
         assert.ok(label.font >= 11, `step ${index}: ${label.text} is only ${label.font}px`)
@@ -128,6 +133,9 @@ scenario('E2E-001 reference passes complete production verification', async () =
       if (index) await page.keyboard.press('ArrowRight')
       await checkCompact(index)
     }
+    // F-002: text/chrome-only checks miss a reveal frame crossing the key.
+    await page.setViewportSize({ width: 390, height: 540 })
+    await checkCompact(8)
     await page.keyboard.press('p')
     await checkCompact(8)
     await page.setViewportSize({ width: 1440, height: 900 })

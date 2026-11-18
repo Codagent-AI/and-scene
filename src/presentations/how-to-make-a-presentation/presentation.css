@@ -1,0 +1,44 @@
+.making-a-presentation { background: #f5f3ec; color: #232d2a; font-family: "Arial", sans-serif; }
+.making-a-presentation * { box-sizing: border-box; }
+.making-a-presentation [data-presentation-header] { padding: 30px 44px; }
+.making-a-presentation [data-presentation-marker] { font: 11px monospace; letter-spacing: .16em; text-transform: uppercase; color: #5b6b63; }
+.making-a-presentation h1 { font-size: clamp(21px, 2.5vw, 32px); letter-spacing: -.04em; font-weight: 500; margin: 12px 0 0; }
+.making-a-presentation button { font: inherit; cursor: pointer; color: inherit; background: transparent; border: 1px solid #b9c3ba; border-radius: 5px; padding: 8px 12px; }
+.making-a-presentation button:focus-visible { outline: 3px solid #bd4e29; outline-offset: 3px; }
+.making-a-presentation button:disabled { opacity: .35; cursor: default; }
+.making-a-presentation [data-presentation-mode-toggle] { margin: 28px 36px; font-size: 12px; }
+.making-a-presentation [data-presentation-toc] { left: 44px !important; display: grid; gap: 12px; }
+.making-a-presentation [data-presentation-toc] button { text-align: left; font-size: 13px; border-color: transparent; color: #65736b; }
+.making-a-presentation [data-presentation-toc] [data-presentation-active="true"] { background: #233d30; color: #fffdf7; font-weight: 700; }
+.making-a-presentation [data-presentation-footer] { padding: 20px 64px 52px 240px; }
+.making-a-presentation [data-presentation-caption] { font-size: 18px; line-height: 1.55; max-width: 780px; min-height: 56px; margin: 0 0 20px; }
+.making-a-presentation [data-presentation-progress] { display: inline-flex; gap: 7px; }
+.making-a-presentation [data-presentation-progress] button { width: 30px; height: 30px; padding: 0; font-size: 11px; }
+.making-a-presentation [data-presentation-progress] [data-presentation-active="true"] { background: #bd4e29; color: white; border-color: #bd4e29; font-weight: 700; }
+.making-a-presentation [data-presentation-controls] { float: right; display: flex; gap: 8px; font-size: 12px; }
+.making-a-presentation [data-presentation-attribution] { padding: 14px 36px; font-size: 12px; }
+.making-a-presentation [data-presentation-attribution] a { color: #52635b; text-decoration: none; letter-spacing: .03em; }
+.making-a-presentation [data-presentation-node="box"] { border: 1.5px solid #233d30; border-radius: 8px; background: #fffdf7; padding: 12px; font-size: 14px; display: flex; flex-direction: column; justify-content: center; gap: 9px; }
+.making-a-presentation [data-presentation-node="box"] small { display: flex; gap: 7px; color: #69776b; font-size: 10px; }
+.making-a-presentation [data-presentation-node="box"] small span + span::before { content: '· '; }
+.making-a-presentation [data-presentation-node="chip"] { display: grid; place-items: center; font-size: 11px; border-radius: 4px; background: #e6eadf; color: #344a3c; }
+.making-a-presentation [data-presentation-node="label"] { font: 10px monospace; letter-spacing: .03em; color: #69776b; display: grid; align-items: center; }
+.making-a-presentation [data-presentation-node="arrow"] { color: #8b9b8c; }
+.making-a-presentation [data-presentation-node="frame"] { border: 1.5px solid #bd4e29; border-radius: 16px; pointer-events: none; }
+.making-a-presentation [data-presentation-node].ghost { border-style: dashed; color: #7b877c; background: transparent; }
+.making-a-presentation [data-presentation-node].pass { color: #286342; background: #e4edde; font-size: 25px; }
+.making-a-presentation [data-presentation-node].pass small { flex-direction: column; gap: 3px; font-size: 9px; }
+.making-a-presentation [data-presentation-node].pass small span::before { content: none; }
+.making-a-presentation [data-presentation-node].edited { background: #bd4e29; color: white; font-size: 9px; }
+.making-a-presentation [data-presentation-node].reveal { background: #bd4e29; color: white; letter-spacing: .09em; font-size: 10px; }
+.making-a-presentation[data-presentation-mode="present"] [data-presentation-footer] { padding-left: 44px; padding-bottom: 48px; }
+@media (max-width: 999px) {
+ .making-a-presentation [data-presentation-header] { padding: 24px; padding-right: 110px; }
+ .making-a-presentation [data-presentation-mode-toggle] { margin: 22px 20px; }
+ .making-a-presentation [data-presentation-footer] { padding: 16px 24px 50px; }
+ .making-a-presentation [data-presentation-caption] { font-size: 15px; min-height: 72px; }
+ .making-a-presentation [data-presentation-controls] { float: none; margin-top: 14px; }
+ .making-a-presentation [data-presentation-progress] { gap: 5px; }
+ .making-a-presentation [data-presentation-progress] button { width: 27px; height: 27px; }
+ .making-a-presentation [data-presentation-attribution] { padding: 12px 24px; }
+}

@@ -1,20 +1,33 @@
-# and-scene
+# And Scene
 
-And Scene is a project for building a presentation-generation agent skill.
+A browser presentation is one diagram evolving through named steps. The reference
+presentation lives at `/how-to-make-a-presentation`; `/` lists the explicit registry.
 
-The intended presentation model is not a stack of unrelated slides. It is one
-diagrammatic scene that evolves through named steps: elements appear, move,
-collapse, connect, and re-label as the talk arc develops.
-
-## Development
-
-```bash
-npm install
-npm run dev
-npm run build
+```sh
+npm ci
+npx playwright install chromium
+npm run dev -- --host 127.0.0.1
 ```
 
-## Current State
+`npm test` runs fast Vitest unit/component/contract tests. `npm run test:integration`
+runs the approved materialized-bootstrap, screenshot-helper and production/fault
+verification tests in disposable directories. `npm run lint` and `npm run build`
+check the source. `npm run verify` builds the entire app and checks all nine
+reference steps in production Chromium. Browser automation uses IPv4 loopback.
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+```sh
+npm run inspect -- how-to-make-a-presentation
+npm run inspect -- how-to-make-a-presentation --width 390 --height 844
+```
+
+Inspection writes settled PNGs and `report.json` beneath
+`artifacts/inspection/<slug>/<width>x<height>/`. Warnings are advisory, not a visual
+quality verdict. Use `data-presentation-allow-overlap` only on intentional readable
+overlapping subtrees. Screenshots, builds and dependencies are ignored by git.
+
+The distributable procedure is [skills/presentation/SKILL.md](skills/presentation/SKILL.md).
+It carries bootstrap and presentation templates and a non-overwriting scaffold
+utility. Templates resolve relative to the skill. Run `node scripts/sync-templates.mjs`
+after modifying the canonical kit or shared verification/inspection scripts;
+INT-001 enforces byte parity. The bootstrap's `example` route is intentionally
+unstyled; presentations own all visual choices. No CSS framework is required.

@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os'
 import { pathToFileURL } from 'node:url'
 import { materialize, bootstrapDirectory } from '../skills/presentation/scaffold.mjs'
 import { inspect } from '../scripts/inspect-presentation.mjs'
+import { withPreview, openPresentation, advance, SETTLE_MS } from '../scripts/browser.mjs'
 const root = process.cwd()
 const evidence = process.env.EVIDENCE_DIR
 async function save(name, text) { if (evidence) await writeFile(join(evidence, `resolve-${name}`), text) }
@@ -127,6 +128,47 @@ test('E2E-001 reference production verification reports every index and clear pa
   assert.equal(result.code,0,result.output)
   for(let n=0;n<9;n++) assert.match(result.output,new RegExp(`PASS step ${n}/8`))
   assert.match(result.output,/preview http:\/\/127\.0\.0\.1:/); assert.match(result.output,/PASS verification/); assert.match(result.output,/preview cleaned/)
+  // Reuse the production build above for a real-layout regression of F-001.
+  // All steps use the same fixed model; test text size and bounds after fitting.
+  const phoneSteps=[]
+  await withPreview(root, async (browser, base) => {
+    const page=await browser.newPage({viewport:{width:390,height:844}})
+    const count=await openPresentation(page,base,'how-to-make-a-presentation')
+    for(let index=0;index<count;index++) {
+      if(index) await advance(page,index)
+      await page.waitForTimeout(SETTLE_MS)
+      const state=await page.evaluate(()=>{
+        const canvas=document.querySelector('[data-presentation-canvas]')
+        const bounds=canvas.getBoundingClientRect()
+        const scale=bounds.width/880
+        const walker=document.createTreeWalker(canvas,NodeFilter.SHOW_TEXT)
+        const labels=[]
+        while(walker.nextNode()) {
+          const node=walker.currentNode, text=node.textContent.trim()
+          if(!text) continue
+          const range=document.createRange(); range.selectNodeContents(node)
+          const rect=range.getBoundingClientRect()
+          const size=parseFloat(getComputedStyle(node.parentElement).fontSize)*scale
+          const card=node.parentElement.closest('.entity-card,.entity-verify')
+          const cardBounds=card?.getBoundingClientRect()
+          const insideCard=!cardBounds || (rect.left>=cardBounds.left-1 && rect.right<=cardBounds.right+1 && rect.top>=cardBounds.top-1 && rect.bottom<=cardBounds.bottom+1)
+          labels.push({text,size,insideCard,inside:rect.left>=bounds.left-1 && rect.right<=bounds.right+1 && rect.top>=bounds.top-1 && rect.bottom<=bounds.bottom+1})
+        }
+        return {scale,width:canvas.style.width,height:canvas.style.height,labels}
+      })
+      assert.equal(state.width,'880px'); assert.equal(state.height,'380px')
+      assert.ok(Math.abs(state.scale-342/880)<0.001)
+      for(const label of state.labels) {
+        assert.ok(label.size>=12,`step ${index}: ${label.text} is only ${label.size}px after fitting`)
+        assert.ok(label.inside,`step ${index}: ${label.text} extends outside the fixed canvas`)
+        assert.ok(label.insideCard,`step ${index}: ${label.text} extends outside its card`)
+      }
+      assert.ok(state.labels.length>0)
+      phoneSteps.push({index,...state})
+    }
+    await page.close()
+  })
+  await save('E2E-001-phone-readability.log',JSON.stringify(phoneSteps,null,2))
 })
 for(const fault of ['build','missing','order','console','page','transition']) test(`E2E-002 ${fault} fault exits nonzero with actionable phase step and cleaned preview`, {timeout:180000}, async () => {
   const dir=await copyProject()

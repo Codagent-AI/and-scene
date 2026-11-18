@@ -12,6 +12,8 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import TemplateTalk from '../.test-work/contracts/src/presentations/template-contract/Talk'
 import { steps as templateSteps } from '../.test-work/contracts/src/presentations/template-contract/steps'
+import { readFileSync } from 'node:fs'
+import { fitScale } from '../src/presentation-kit/useFitScale'
 import { diagnose } from '../scripts/diagnostics.mjs'
 it('I-21 scaffold planning selects only missing anchors', () => {
   for (const anchors of [{build:false,kit:false,index:false},{build:true,kit:false,index:false},{build:true,kit:true,index:true}]) {
@@ -78,11 +80,11 @@ it('I-36 reference scene accumulates stable fixed entities and all normative sce
   expect(entityId('you')).toBe('how-to-make-a-presentation:you')
   // The modification arc actually joins the conversation to the edited card.
   expect(get('modify').y).toBe(get('skill').y+get('skill').h)
-  expect(get('modify').x+95).toBeGreaterThan(get('skill').x)
-  expect(get('modify').x+95).toBeLessThan(get('skill').x+get('skill').w)
+  expect(get('modify').x+10).toBeGreaterThan(get('skill').x)
+  expect(get('modify').x+10).toBeLessThan(get('skill').x+get('skill').w)
   expect(get('modify').x).toBe(get('edited').x+get('edited').w)
   render(<StoryScene payload={7} />)
-  expect(document.querySelector('[data-modify-path]')?.getAttribute('d')).toBe('M95 0 C230 0 230 60 0 60')
+  expect(document.querySelector('[data-modify-path]')?.getAttribute('d')).toBe('M10 0 C210 0 210 20 0 20')
 })
 it('I-37 sample validator rejects missing and out of order metadata', () => {
   expect(()=>assertReference([])).toThrow('nine'); expect(()=>assertReference([...reference].reverse())).toThrow('step 0')
@@ -103,4 +105,36 @@ it('I-44 active navigation warnings identify affected chrome only when indistinc
 it('I-45 missing tiny and browser-default attribution warns with styling hook', () => {
   for(const attribution of [null,{size:8,color:'green',decoration:'none'},{size:16,color:'rgb(0, 0, 238)',decoration:'underline'}]) expect(diagnose({text:[],active:[],attribution},4)[0]).toContain('step 4: style [data-presentation-attribution]')
   expect(diagnose({text:[],active:[],attribution:{size:12,color:'green',decoration:'none'}},4)).toEqual([])
+})
+
+it('F-001 reference labels stay readable at phone fit scale without scene reflow', () => {
+  const stylesheet = document.createElement('style')
+  stylesheet.textContent = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../src/presentations/how-to-make-a-presentation/presentation.css'), 'utf8')
+  document.head.append(stylesheet)
+  try {
+    const view = render(<div className="skill-story"><StoryScene payload={4} /></div>)
+    for (const beat of [4, 8]) {
+      view.rerender(<div className="skill-story"><StoryScene payload={beat} /></div>)
+      const layer = document.querySelector('[data-presentation-layer]')!
+      const walker = document.createTreeWalker(layer, NodeFilter.SHOW_TEXT)
+      const scale = fitScale(390, 844, 'browse')
+      let labels = 0
+      while (walker.nextNode()) {
+        const text = walker.currentNode.textContent!.trim()
+        if (!text) continue
+        const element = walker.currentNode.parentElement!
+        const effectiveSize = parseFloat(getComputedStyle(element).fontSize) * scale
+        expect(effectiveSize, `beat ${beat + 1}: ${text}`).toBeGreaterThanOrEqual(12)
+        labels++
+      }
+      expect(labels).toBeGreaterThan(15)
+      for (const card of layer.querySelectorAll('[data-presentation-node="box"].entity-card')) {
+        expect(Array.from(card.querySelectorAll('span')).map(el => el.textContent)).toEqual(['Title', 'Caption', 'Visual'])
+      }
+    }
+    // Geometry is the same fixed model at either viewport; earlier entities
+    // retain their coordinates and identities as the later beats accumulate.
+    expect(entitiesAt(4).every(e => entitiesAt(8).includes(e))).toBe(true)
+    expect(entities.every(e => e.x >= 0 && e.y >= 0 && e.x + e.w <= 880 && e.y + e.h <= 380)).toBe(true)
+  } finally { stylesheet.remove() }
 })

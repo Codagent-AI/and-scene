@@ -16,32 +16,31 @@
 .skill-story [data-presentation-toc] { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
 .skill-story [data-presentation-toc] button { font-size: 10px; padding: 5px 7px; }
 .skill-story [data-presentation-attribution] { color: #536857; font-size: 12px; text-decoration: none; letter-spacing: .03em; }
-.skill-story .entity { display: flex; align-items: center; justify-content: center; font-size: 17px; }
-.skill-story .entity-person, .skill-story .entity-skill { border: 1.5px solid #516b58; background: #e1e9db; border-radius: 10px; font-size: 23px; font-weight: 600; }
+/* At 390px the 880px canvas fits at 342/880. Keep scene text at least
+   32 design pixels (12.4 CSS pixels), including the card's metadata labels. */
+.skill-story .entity { display: flex; align-items: center; justify-content: center; font-size: 32px; line-height: 1.05; }
+.skill-story .entity-person, .skill-story .entity-skill { border: 1.5px solid #516b58; background: #e1e9db; border-radius: 10px; font-size: 34px; font-weight: 600; }
 .skill-story .entity-skill { color: #f3f0e8; background: #284f3c; }
-.skill-story .entity-bubble { border: 1px solid #c7cbbc; background: #faf8f2; border-radius: 20px 20px 20px 2px; font-size: 15px; color: #626657; }
-.skill-story .entity-chip, .skill-story .entity-depth, .skill-story .entity-modify svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.2; }
-.skill-story .entity-modify marker path { fill: currentColor; stroke: none; }
-.skill-story .entity-modify span { position: absolute; left: 135px; top: 15px; }
-.skill-story .entity-flag { font: 11px ui-monospace, monospace; color: #5f7357; }
+.skill-story .entity-bubble { border: 1px solid #c7cbbc; background: #faf8f2; border-radius: 20px 20px 20px 2px; color: #525d54; }
+.skill-story .entity-chip, .skill-story .entity-depth, .skill-story .entity-flag { color: #405b36; }
+.skill-story .entity-depth { justify-content: flex-start; padding-left: 12px; }
 .skill-story .entity-tray { background: #e8e8dc; border-radius: 14px; }
-.skill-story .entity-card, .skill-story .entity-verify { flex-direction: column; gap: 8px; background: #fbfaf5; border: 1px solid #b8c3ae; border-radius: 7px; box-shadow: 0 4px 0 #cdd4c5; }
-.skill-story .entity-card strong, .skill-story .entity-verify strong { font-size: 12px; font-weight: 600; }
-.skill-story .entity-card span, .skill-story .entity-verify span { font-size: 10px; color: #737a6b; }
-.skill-story .entity-card i { font-size: 15px; color: #819376; }
-.skill-story .entity-ghost { border: 1px dashed #9daa8f; border-radius: 7px; color: #818a77; font-size: 12px; }
-.skill-story .entity-morph { flex-direction: column; color: #607855; gap: 2px; }
-.skill-story .entity-morph small { font: 8px ui-monospace, monospace; }
-.skill-story .entity-connection { font-size: 27px; color: #77886b; }
-.skill-story .entity-socket { background: #d9e2d0; border-radius: 0 0 9px 9px; font: 11px ui-monospace, monospace; color: #3f5e40; }
+.skill-story .entity-card, .skill-story .entity-verify { flex-direction: column; gap: 1px; padding: 2px; background: #fbfaf5; border: 2px solid #b8c3ae; border-radius: 7px; box-shadow: 0 4px 0 #cdd4c5; }
+.skill-story .entity-card strong, .skill-story .entity-verify strong { font-size: 34px; font-weight: 600; }
+.skill-story .entity-card span, .skill-story .entity-verify span { font-size: 32px; color: #4d5c4f; }
+.skill-story .entity-ghost { border: 2px dashed #9daa8f; border-radius: 7px; color: #66775c; font-size: 48px; }
+.skill-story .entity-morph { flex-direction: column; color: #405b36; gap: 2px; }
+.skill-story .entity-morph span, .skill-story .entity-morph small { font: 32px/1.05 'Segoe UI', sans-serif; letter-spacing: -.025em; }
+.skill-story .entity-connection { color: #526b45; }
+.skill-story .entity-socket { background: #d9e2d0; border-radius: 0 0 9px 9px; color: #3f5e40; }
 .skill-story .entity-verify { background: #dce9d6; color: #2b653e; }
-.skill-story .entity-modify { font: 11px ui-monospace, monospace; color: #806332; }
-.skill-story .entity-modify svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.2; }
+.skill-story .entity-modify { position: relative; color: #806332; }
+.skill-story .entity-modify svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; }
 .skill-story .entity-modify marker path { fill: currentColor; stroke: none; }
-.skill-story .entity-modify span { position: absolute; left: 135px; top: 15px; }
-.skill-story .entity-flag { color: #987341; }
-.skill-story .entity-reveal { border: 1px solid #819774; border-radius: 18px; align-items: flex-end; pointer-events: none; }
-.skill-story .entity-reveal span { font: 9px ui-monospace, monospace; letter-spacing: .15em; padding-bottom: 10px; color: #66775c; }
+.skill-story .entity-modify span { position: absolute; left: 90px; top: -40px; font-size: 32px; }
+.skill-story .entity-flag { color: #806332; }
+.skill-story .entity-reveal { position: relative; border: 1px solid #819774; border-radius: 18px; pointer-events: none; }
+.skill-story .entity-reveal span { position: absolute; left: 24px; bottom: 8px; font: 600 32px/1.05 ui-monospace, monospace; letter-spacing: .04em; color: #405b36; }
 @media (max-width: 600px) {
   .skill-story [data-presentation-header] { left: 20px; top: 20px; max-width: calc(100% - 115px); }
   .skill-story [data-presentation-mode-toggle] { right: 20px; top: 20px; }

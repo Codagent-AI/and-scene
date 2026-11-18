@@ -30,7 +30,10 @@ Do not restart the full creation interview. Preserve all unrelated presentations
 
 Locate this installed `SKILL.md` first. Resolve `templates/bootstrap/` and
 `templates/presentation/` relative to **this file's directory**, never relative
-to the user's current working directory. The snapshot is distributable; it does
+to the user's current working directory. The adjacent executable resolver can
+also be called from any working directory: `node <absolute-skill-directory>/templates.mjs bootstrap`
+(or `presentation`). It prints the asset path relative to its own installed
+location. Use that resolved path when copying templates. The snapshot is distributable; it does
 not require the authoring repository to be present.
 
 Inspect contracts, not exact filenames, formatting, or template equality:
@@ -51,13 +54,14 @@ monorepo by package.json `workspaces`, `pnpm-workspace.yaml`, or a `packages/` o
 `apps/` layout. In a monorepo use a self-contained `presentations/` app, preserving
 the root build and unrelated contents. Empty and standalone projects use the
 project root. If a non-empty project lacks the kit or index, state the exact
-target location and **wait for the user's confirmation before writing**. Prior
-explicit authorization for that concrete target need not be requested again.
+target location and **wait for the user's confirmation before writing**.
 
 Copy the missing bootstrap assets from this skill's `templates/bootstrap/`.
 The bootstrap includes an unstyled `starter` route to prove integration. Keep it
 until the new route works; removing this disposable starter is optional, while
-user-owned presentations must remain intact. Ensure all dependencies, even if
+user-owned presentations must remain intact. The bootstrap's `npm run verify`
+uses `--registered` to verify every registered presentation, including new user
+presentations, so it continues to work after removing the starter. Ensure all dependencies, even if
 none were initially installed:
 
 - Runtime: react, react-dom, motion, lucide-react.
@@ -113,7 +117,8 @@ captions and navigation; present shows the current marker and one-line title.
 Run `npm run build`, then the local production render check for the generated or
 modified route: `node scripts/verify.mjs --route <slug> --first`. This must render
 at least the first step without runtime or console errors. Before completion run
-`node scripts/verify.mjs --route <slug>` to traverse every step. The authoring
+`npm run verify` in a scaffolded app to traverse every registered presentation,
+and `node scripts/verify.mjs --route <slug>` for a focused route check. The authoring
 repository's default `npm run verify` additionally enforces its canonical sample.
 The server, readiness probe, and browser URLs must all use `127.0.0.1`.
 

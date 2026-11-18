@@ -38,6 +38,12 @@ copies. Bootstrap materialization installs its own locked dependencies. Test
 fixtures, logs, and inspection output are ignored. Preview processes and browsers
 are stopped on success or failure. No hosted CI is configured.
 
+The bootstrap's `npm run verify` checks every registered presentation via
+`--registered`, including user routes after removing the starter. Its landing
+links expose `data-presentation-route` for deterministic discovery. Resolve
+distributed templates with `node <skill-directory>/templates.mjs bootstrap`
+from any working directory.
+
 For a new route use `node scripts/verify.mjs --route <slug>`; `--first` is a lighter
 first-step smoke check. The default verification validates the reference sample's
 normative eras, titles, and captions as well as runtime behavior. Every check

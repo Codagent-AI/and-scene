@@ -8,7 +8,7 @@ export const additions: readonly Entity[][] = [
   [e('ghost', 'box', 630, 196, 124, 88, '… your next beat', { treatment: 'ghost' }), e('depth', 'chip', 54, 130, 168, 22, 'partial ↔ full / your call')],
   [e('socket', 'chip', 246, 284, 244, 34, 'shared scene kit / shapes + motion')],
   [e('verify', 'box', 786, 196, 78, 88, '✓', { parts: ['build + render', 'pass'], treatment: 'pass' }), e('verify-link', 'arrow', 756, 234, 28, 18)],
-  [e('modify', 'arrow', 578, 128, 280, 68, undefined, { path: 'M2 0 C2 15 76 5 76 20 L72 17 M76 20 L80 17' }), e('modify-label', 'label', 622, 134, 230, 24, 'ask for a change / edit in place'), e('edited', 'chip', 464, 174, 90, 19, 'edited', { treatment: 'edited' })],
+  [e('modify', 'arrow', 448, 126, 194, 70, undefined, { path: 'M100 0 C100 12 10 8 10 20 L14 17 M10 20 L6 17' }), e('modify-label', 'label', 622, 134, 230, 24, 'ask for a change / edit in place'), e('edited', 'chip', 482, 196, 90, 19, 'edited', { treatment: 'edited' })],
   [e('reveal', 'frame', 28, 2, 850, 356), e('reveal-label', 'chip', 530, 326, 312, 25, 'THIS PRESENTATION IS THE PROOF', { treatment: 'reveal' })],
 ]
 export function entitiesAt(beat: number): Entity[] { return additions.slice(0, beat + 1).flat() }

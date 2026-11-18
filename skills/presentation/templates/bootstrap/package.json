@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts",
-    "verify": "node scripts/verify.mjs --route starter",
+    "verify": "node scripts/verify.mjs --registered",
     "inspect": "node scripts/inspect-presentation.mjs"
   },
   "dependencies": {

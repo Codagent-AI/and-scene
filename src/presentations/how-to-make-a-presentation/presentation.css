@@ -21,7 +21,7 @@
 .making-a-presentation [data-presentation-node="box"] { border: 1.5px solid #233d30; border-radius: 8px; background: #fffdf7; padding: 12px; font-size: 14px; display: flex; flex-direction: column; justify-content: center; gap: 9px; }
 .making-a-presentation [data-presentation-node="box"] small { display: flex; gap: 7px; color: #69776b; font-size: 10px; }
 .making-a-presentation [data-presentation-node="box"] small span + span::before { content: '· '; }
-.making-a-presentation [data-presentation-node="chip"] { display: grid; place-items: center; font-size: 11px; border-radius: 4px; background: #e6eadf; color: #344a3c; }
+.making-a-presentation [data-presentation-node="symbolchip"] { display: grid; place-items: center; font-size: 11px; border-radius: 4px; background: #e6eadf; color: #344a3c; }
 .making-a-presentation [data-presentation-node="label"] { font: 10px monospace; letter-spacing: .03em; color: #69776b; display: grid; align-items: center; }
 .making-a-presentation [data-presentation-node="arrow"] { color: #8b9b8c; }
 .making-a-presentation [data-presentation-node="frame"] { border: 1.5px solid #bd4e29; border-radius: 16px; pointer-events: none; }

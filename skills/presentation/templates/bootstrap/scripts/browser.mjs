@@ -28,22 +28,33 @@ export async function withPreview(run) {
   child.once('error', error => { launchError = error })
   child.stderr.on('data', data => process.stderr.write(data))
   console.log(`preview ${url} pid=${child.pid}`)
-  let browser
+  let browser, browserServer, browserPid
   try {
     let ready = false
     for (let attempt = 0; attempt < 100; attempt++) {
       if (launchError) throw launchError
-      if (child.exitCode !== null) throw new Error('Preview exited before readiness')
+      if (child.exitCode !== null || child.signalCode !== null) throw new Error('Preview exited before readiness')
       try { ready = (await fetch(url)).ok } catch { /* retry until bounded timeout */ }
       if (ready) break
       await sleep(100)
     }
     if (!ready) throw new Error(`Preview readiness failed: ${url}`)
-    browser = await chromium.launch({ headless: true })
+    browserServer = await chromium.launchServer({ headless: true })
+    browserPid = browserServer.process().pid
+    console.log(`chromium pid=${browserPid}`)
+    browser = await chromium.connect(browserServer.wsEndpoint())
     return await run(browser, url)
   } finally {
-    try { await browser?.close() } finally {
-      if (child.exitCode === null) {
+    try {
+      try { await browser?.close() }
+      finally {
+        if (browserServer) {
+          await browserServer.close()
+          console.log(`chromium stopped pid=${browserPid} connected=${browser?.isConnected() ?? false}`)
+        }
+      }
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) {
         const exited = once(child, 'exit')
         child.kill('SIGTERM')
         const timer = setTimeout(() => child.kill('SIGKILL'), 2000)
@@ -57,8 +68,10 @@ export async function withPreview(run) {
 export async function traverse(page, url, slug, visit, { settle = 900, firstOnly = false } = {}) {
   let current = 0
   const errors = []
-  page.on('console', message => { if (message.type() === 'error') errors.push(`step ${current}: console ${message.text()}`) })
-  page.on('pageerror', error => errors.push(`step ${current}: page ${error.message}`))
+  const onConsole = message => { if (message.type() === 'error') errors.push(`step ${current}: console ${message.text()}`) }
+  const onPageError = error => errors.push(`step ${current}: page ${error.message}`)
+  page.on('console', onConsole)
+  page.on('pageerror', onPageError)
   const assertClean = () => { if (errors.length) throw new Error(errors.join('\n')) }
   try {
     await page.goto(`${url}/${slug}`, { waitUntil: 'networkidle' })
@@ -69,12 +82,13 @@ export async function traverse(page, url, slug, visit, { settle = 900, firstOnly
     for (current = 0; current < (firstOnly ? 1 : count); current++) {
       if (current) await page.keyboard.press('ArrowRight')
       try { await page.waitForFunction(i => document.querySelector('[data-presentation]')?.getAttribute('data-step-index') === String(i), current, { timeout: 3000 }) }
-      catch { throw new Error(`step ${current}: transition did not advance data-step-index`) }
+      catch { throw new Error('transition did not advance data-step-index') }
       await page.waitForTimeout(settle)
       assertClean()
       await visit({ page, index: current, count, host })
       assertClean()
     }
     return count
-  } catch (error) { throw new Error(`step ${current}: ${error.message}`) }
+  } catch (error) { throw new Error(errors.length ? errors.join('\n') : `step ${current}: ${error.message}`) }
+  finally { page.off('console', onConsole); page.off('pageerror', onPageError) }
 }

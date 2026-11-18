@@ -1,20 +1,40 @@
-# and-scene
+# And Scene
 
-And Scene is a project for building a presentation-generation agent skill.
+Browser presentations as one evolving diagram. Start the app with `npm ci` and
+`npm run dev`, then open the printed URL. The landing page lists presentations;
+the reference lives at `/how-to-make-a-presentation`.
 
-The intended presentation model is not a stack of unrelated slides. It is one
-diagrammatic scene that evolves through named steps: elements appear, move,
-collapse, connect, and re-label as the talk arc develops.
+Use Right / Space / PageDown and Left / PageUp, swipe horizontally, or choose a
+step/section in browse mode. P toggles present/browse without losing your place.
 
-## Development
+`skills/presentation/SKILL.md` is the distributable creation/modification procedure.
+It includes skill-relative bootstrap and presentation templates. The scene kit
+owns geometry and behavior; each presentation owns its visual CSS. After changing
+the kit or browser scripts, run `node scripts/sync-templates.mjs`.
 
-```bash
-npm install
-npm run dev
+Checks:
+
+```sh
+npm ci
+npx playwright install chromium
+npm test                         # fast unit/component contracts
+npx tsc -p tsconfig.contract.json # typed public boundary
+npm run test:integration          # INT-001/002 and E2E-001/002; real builds/browser
+npm run lint
 npm run build
+npm run verify                   # canonical nine-step production gate
+npm run inspect -- how-to-make-a-presentation
 ```
 
-## Current State
+Verification builds the whole application, checks the canonical sample, opens a
+Chromium production preview on 127.0.0.1, and enumerates every public step index.
+It exits nonzero on build, sample, console/page, or transition failure and cleans
+up the preview. Bootstrap apps select their own sample with
+`presentation.config.json` (`slug` and `reference: false`).
 
-This repository currently contains a minimal Vite, React, and TypeScript
-scaffold plus an OpenSpec proposal for the future skill implementation.
+Inspection writes settled desktop screenshots to
+`.presentation-artifacts/<slug>/NN.png`. Overlap, indistinct active navigation,
+and attribution findings are advisory, not an automatic aesthetic score. Mark
+only an intentional, readable overlap subtree with
+`data-presentation-allow-overlap`. Generated screenshots, builds, and dependencies
+are ignored. Acceptance review checks first, last, dense, and narrow compositions.

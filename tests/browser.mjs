@@ -237,7 +237,7 @@ function referenceGeometry(root) {
     }
   }
   const morph = get('morph')
-  if (morph && (lines(morph).length !== 1 || bounds(morph).bottom >= bounds(get('Step A')).top)) {
+  if (morph && (lines(morph.querySelector('span')).length !== 1 || bounds(morph).bottom >= bounds(get('Step A')).top)) {
     problems.push('The morph annotation wraps or touches the first card')
   }
 
@@ -271,6 +271,34 @@ function referenceGeometry(root) {
   return problems
 }
 
+function referencePhoneReadability(root) {
+  const problems = []
+  const guide = root.querySelector('aside[aria-label="Diagram details"]')
+  const canvas = root.querySelector('[data-presentation-canvas]')
+  const window = root.ownerDocument.defaultView
+  const style = (element, pseudo) => window.getComputedStyle(element, pseudo)
+  const scale = Number(root.querySelector('[data-presentation-fit]').dataset.scale)
+
+  if (!guide || canvas.contains(guide) || style(guide).display === 'none') {
+    return ['Readable diagram details must be visible outside the scaled canvas on a phone']
+  }
+  for (const detail of guide.querySelectorAll('dd')) {
+    const font = parseFloat(style(detail).fontSize)
+    const box = detail.getBoundingClientRect()
+    if (font < 14 || box.left < 0 || box.right > window.innerWidth || box.height === 0) {
+      problems.push('The diagram key must render at a readable size within the phone width')
+    }
+  }
+  const markers = [...canvas.querySelectorAll('[data-compact-label]')]
+  if (markers.length === 0 || markers.some(marker => {
+    const pseudo = style(marker, '::after')
+    return pseudo.content === 'none' || parseFloat(pseudo.fontSize) * scale < 12
+  })) {
+    problems.push('The short diagram markers must be visible at 12 CSS pixels or larger')
+  }
+  return problems
+}
+
 test('E2E-001 reference presentation passes production verification', async t => {
   const result = await run(t, root, 'npm', 'run', 'verify')
   assert.equal(result.code, 0)
@@ -289,8 +317,14 @@ test('E2E-001 reference presentation passes production verification', async t =>
           if (index) await advance(page, index)
           await page.waitForTimeout(SETTLE_MS)
           const label = `${viewport.width}x${viewport.height}, step ${index + 1}`
-          assert.deepEqual(await scene(page).evaluate(referenceGeometry), [], label)
-          assert.deepEqual(await scene(page).evaluate(visualWarnings), [], label)
+          const presentation = scene(page)
+          assert.deepEqual(await presentation.evaluate(referenceGeometry), [], label)
+          if (viewport.width === 390) {
+            assert.deepEqual(await presentation.evaluate(referencePhoneReadability), [], label)
+          } else {
+            assert.equal(await presentation.getByLabel('Diagram details').isVisible(), false, label)
+          }
+          assert.deepEqual(await presentation.evaluate(visualWarnings), [], label)
         }
         assert.deepEqual(errors, [])
       })

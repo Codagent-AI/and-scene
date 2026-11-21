@@ -1,4 +1,5 @@
 .making-a-presentation {
+  --page-gutter: clamp(14px, 5vw, 84px);
   --paper: #f6f2e8;
   --panel: #fffaf0;
   --ink: #202d2a;
@@ -19,7 +20,7 @@
 .making-a-presentation [data-presentation] {
   max-inline-size: 100rem;
   margin-inline: auto;
-  padding: clamp(12px, 3vh, 34px) clamp(14px, 5vw, 84px) 12px;
+  padding: clamp(12px, 3vh, 34px) var(--page-gutter) 12px;
   min-block-size: 340px;
 }
 
@@ -283,4 +284,66 @@
 
 @media (max-width: 460px) {
   .making-a-presentation [data-presentation-progress] { order: 1; justify-content: center; width: 100%; }
+}
+
+.scene-reading-guide { display: none; }
+
+@media (max-width: 760px) {
+  .making-a-presentation { container-type: inline-size; }
+
+  .making-a-presentation [data-presentation] {
+    block-size: auto;
+    min-block-size: 100dvh;
+  }
+
+  .making-a-presentation [data-presentation-stage] {
+    display: grid;
+    /* Give the unchanged 880 × 380 canvas a width-based row. Details never resize it. */
+    grid-template-rows: calc((100cqi - 2 * var(--page-gutter) - 32px) * 19 / 44) auto;
+    align-content: center;
+    gap: 12px;
+  }
+
+  .making-a-presentation .scene-reading-guide {
+    display: block;
+    padding: 9px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+    font: 400 .875rem/1.35 system-ui, sans-serif;
+  }
+
+  .scene-reading-guide h2 {
+    margin: 0 0 5px;
+    color: var(--jade);
+    font: 700 1rem/1.2 Georgia, serif;
+  }
+
+  .scene-reading-guide dl { display: grid; gap: 5px; margin: 0; }
+  .scene-reading-guide dt { display: inline; font-weight: 700; }
+  .scene-reading-guide dt::after { content: " — "; }
+  .scene-reading-guide dd { display: inline; margin: 0; }
+
+  .build-diagram [data-compact-label] > :is(strong, span),
+  .build-diagram :is([data-compact-chip], .reveal-frame) > span {
+    visibility: hidden;
+  }
+
+  .build-diagram [data-compact-label]::after {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    content: attr(data-compact-label) / "";
+    font: 700 38px/1 system-ui, sans-serif;
+  }
+
+  .build-diagram [data-compact-chip]::before {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    content: attr(data-compact-chip) / "";
+    font: 800 24px/1 system-ui, sans-serif;
+  }
 }

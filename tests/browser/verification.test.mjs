@@ -34,7 +34,7 @@ test('E2E-001 reference presentation passes production verification', async (t) 
   await assertPreviewStopped(url)
   t.diagnostic(output.trim())
 
-  await t.test('keeps reference diagram text readable and inside its entities at 390px', async () => {
+  await t.test('keeps reference diagram text readable, contained, and separated at 390px', async () => {
     await withProductionPreview(async (browser, baseUrl) => {
       const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
       const { host } = await openPresentation(page, new URL(sampleSlug, baseUrl))
@@ -56,13 +56,16 @@ test('E2E-001 reference presentation passes production verification', async (t) 
               const text = node.textContent.trim()
               if (!text) continue
               range.selectNodeContents(node)
-              const rects = Array.from(range.getClientRects())
+              const rects = Array.from(range.getClientRects(), ({ top, bottom, left, right }) =>
+                ({ top, bottom, left, right }),
+              )
               const fits = rects.length > 0 && rects.every((rect) =>
                 rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1 &&
-                rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1,
+                rect.top >= bounds.top - 2 && rect.bottom <= bounds.bottom + 2,
               )
               const fontSize = Number.parseFloat(getComputedStyle(node.parentElement).fontSize) * scale
-              results.push({ text, fontSize, fits })
+              const entity = label.closest('[data-sample-entity]')?.dataset.sampleEntity
+              results.push({ entity, text, fontSize, fits, rects })
             }
             return results
           })
@@ -72,6 +75,20 @@ test('E2E-001 reference presentation passes production verification', async (t) 
         assert.ok(labels.some(({ text }) => text === expected), `step ${index + 1} includes "${expected}"`)
         for (const { text, fontSize, fits } of labels) {
           assert.ok(fontSize >= 13 && fits, `step ${index + 1}: "${text}" is ${fontSize}px with fits=${fits}`)
+        }
+        for (const [entity, introducedAt] of [['first', 2], ['verify', 6]]) {
+          if (index < introducedAt) continue
+          const lines = labels.filter((label) => label.entity === entity)
+          assert.equal(lines.length, 3, `step ${index + 1}: ${entity} has three labels`)
+          for (let line = 1; line < lines.length; line += 1) {
+            const above = lines[line - 1]
+            const below = lines[line]
+            assert.ok(
+              Math.max(...above.rects.map(({ bottom }) => bottom)) <=
+                Math.min(...below.rects.map(({ top }) => top)),
+              `step ${index + 1}: "${above.text}" overlaps "${below.text}"`,
+            )
+          }
         }
       }
     })

@@ -268,8 +268,8 @@
 .sample-scene .scene-depth::before {
   position: absolute;
   left: 50%;
-  top: -8px;
-  height: 8px;
+  top: -6px;
+  height: 6px;
   border-left: 1px solid #d7b7a9;
   content: "";
 }
@@ -303,6 +303,7 @@
 .sample-scene .scene-verify [data-presentation-box] {
   flex-direction: column;
   gap: 1px;
+  line-height: 1.35;
 }
 
 .sample-scene .card-detail {

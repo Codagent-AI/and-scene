@@ -1,0 +1,77 @@
+:root {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.landing,
+.route-loading {
+  min-height: 100svh;
+  color: #222622;
+  background: #f4f1e7;
+  font-family: "Avenir Next", Avenir, system-ui, sans-serif;
+}
+
+.landing-header,
+.route-loading {
+  padding: 24px clamp(24px, 7vw, 100px);
+}
+
+.landing-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #d8d4c8;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.landing-symbol {
+  color: #8a3c24;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.landing-index {
+  width: min(100% - 48px, 1000px);
+  margin-inline: auto;
+  padding: clamp(54px, 10vw, 140px) 0;
+}
+
+.landing-index h1 {
+  margin: 0 0 36px;
+  font: 500 clamp(52px, 9vw, 126px)/0.91 Georgia, serif;
+  letter-spacing: -0.075em;
+}
+
+.landing-index ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid #d8d4c8;
+}
+
+.landing-index a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 2px;
+  border-bottom: 1px solid #d8d4c8;
+  color: inherit;
+  font-size: clamp(16px, 2vw, 25px);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.landing-index a:hover,
+.landing-index a:focus-visible {
+  color: #8a3c24;
+}

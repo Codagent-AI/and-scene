@@ -1,93 +1,87 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { Mode } from './types'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { TouchEvent } from 'react'
+import type { PresentationMode } from './types'
 
-/**
- * Step index + presenter/browse mode, driven by the keyboard and surfaced for
- * the on-screen controls.
- *
- *   →/Space/PageDown  next        ←/PageUp  prev        P  toggle mode
- *
- * On touch screens the same next/prev is driven by a horizontal swipe: swipe
- * left to advance, right to go back.
- */
-// A swipe must travel this far horizontally, and be clearly more horizontal
-// than vertical, before it counts — so taps and vertical scrolls never trip it.
-const SWIPE_MIN_PX = 50
-const SWIPE_RATIO = 1.5
+const CONTROL_SELECTOR = [
+  'button', 'input', 'select', 'textarea', 'a[href]', 'summary', 'video[controls]',
+  'audio[controls]', '[contenteditable]:not([contenteditable="false"])', '[role="button"]',
+  '[role="textbox"]', '[role="combobox"]', '[role="slider"]', '[role="tab"]',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',')
+const SWIPE_THRESHOLD = 36
 
-export function usePresentationNav(stepCount: number, initialMode: Mode = 'browse') {
-  const [step, setStep] = useState(0)
-  const [mode, setMode] = useState<Mode>(initialMode)
+export function clampStep(index: number, count: number) {
+  return Math.max(0, Math.min(index, count - 1))
+}
 
-  const last = stepCount - 1
-  const next = useCallback(() => setStep((s) => Math.min(last, s + 1)), [last])
-  const prev = useCallback(() => setStep((s) => Math.max(0, s - 1)), [])
-  const toggleMode = useCallback(
-    () => setMode((m) => (m === 'browse' ? 'present' : 'browse')),
-    [],
-  )
+export function usePresentationNav(count: number, initialMode: PresentationMode) {
+  const [currentIndex, setIndex] = useState(0)
+  const [mode, setMode] = useState(initialMode)
+  const touchStart = useRef<{ x: number; y: number; id: number } | null>(null)
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // Don't hijack keys aimed at a focused control: Space/arrows on the
-      // prev/next buttons or a progress dot should drive that control, not also
-      // advance the deck.
-      const target = e.target
-      if (
-        target instanceof HTMLElement &&
-        (target.closest('button, a, input, textarea, select') ||
-          target.isContentEditable)
-      ) {
-        return
-      }
-      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
-        e.preventDefault()
-        next()
-      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-        e.preventDefault()
-        prev()
-      } else if (e.key === 'p' || e.key === 'P') {
-        toggleMode()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [next, prev, toggleMode])
+  const index = clampStep(currentIndex, count)
+  const jump = useCallback((target: number) => setIndex(clampStep(target, count)), [count])
+  const move = useCallback((amount: number) => {
+    setIndex(previous => clampStep(clampStep(previous, count) + amount, count))
+  }, [count])
+  const toggleMode = useCallback(() => {
+    setMode(previous => previous === 'browse' ? 'present' : 'browse')
+  }, [])
 
   useEffect(() => {
-    // Horizontal swipe = next/prev. We track the start point and decide on
-    // release, so the gesture never interferes with scrolling or tapping a
-    // control mid-drag.
-    let startX = 0
-    let startY = 0
-    let tracking = false
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey ||
+        (target instanceof Element && target.closest(CONTROL_SELECTOR))) return
 
-    const onStart = (e: TouchEvent) => {
-      // Single-finger only; a pinch/two-finger gesture isn't a page swipe.
-      tracking = e.touches.length === 1
-      if (tracking) {
-        startX = e.touches[0].clientX
-        startY = e.touches[0].clientY
+      switch (event.key) {
+        case 'ArrowRight':
+        case ' ':
+        case 'PageDown':
+          move(1)
+          break
+        case 'ArrowLeft':
+        case 'PageUp':
+          move(-1)
+          break
+        case 'P':
+        case 'p':
+          if (event.repeat) return
+          toggleMode()
+          break
+        default:
+          return
       }
+      event.preventDefault()
     }
-    const onEnd = (e: TouchEvent) => {
-      if (!tracking) return
-      tracking = false
-      const t = e.changedTouches[0]
-      const dx = t.clientX - startX
-      const dy = t.clientY - startY
-      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * SWIPE_RATIO) return
-      if (dx < 0) next()
-      else prev()
-    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [move, toggleMode])
 
-    window.addEventListener('touchstart', onStart, { passive: true })
-    window.addEventListener('touchend', onEnd, { passive: true })
-    return () => {
-      window.removeEventListener('touchstart', onStart)
-      window.removeEventListener('touchend', onEnd)
-    }
-  }, [next, prev])
+  function onTouchStart(event: TouchEvent<HTMLElement>) {
+    const touch = event.touches.length === 1 ? event.touches[0] : undefined
+    touchStart.current = touch ? { x: touch.clientX, y: touch.clientY, id: touch.identifier } : null
+  }
 
-  return { step, setStep, next, prev, last, mode, toggleMode }
+  function onTouchEnd(event: TouchEvent<HTMLElement>) {
+    const start = touchStart.current
+    touchStart.current = null
+    if (!start) return
+    const touch = Array.from(event.changedTouches).find(item => item.identifier === start.id)
+    if (!touch) return
+    const x = touch.clientX - start.x
+    const y = touch.clientY - start.y
+    if (Math.abs(x) >= SWIPE_THRESHOLD && Math.abs(x) > Math.abs(y)) move(x < 0 ? 1 : -1)
+  }
+
+  function onTouchCancel() {
+    touchStart.current = null
+  }
+
+  return {
+    index, mode, jump, toggleMode,
+    next: () => move(1),
+    previous: () => move(-1),
+    touchHandlers: { onTouchStart, onTouchEnd, onTouchCancel },
+  }
 }

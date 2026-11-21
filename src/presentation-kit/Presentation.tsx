@@ -1,139 +1,83 @@
+import { useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
+import { Stage } from './Stage'
 import { Footer } from './chrome/Footer'
 import { Header } from './chrome/Header'
 import { Toc } from './chrome/Toc'
-import { Stage } from './Stage'
-import { stepMarker } from './stepMarker'
+import { ATTRIBUTION_URL, DESIGN_H, DESIGN_W, STAGE_LAYOUT, TOC_MEDIA } from './constants'
+import { sceneKey } from './sceneKey'
 import { usePresentationNav } from './usePresentationNav'
-import type { Mode, Step } from './types'
+import type { PresentationMode, Step } from './types'
 
-export interface PresentationProps<P extends Record<string, unknown> = Record<string, unknown>> {
-  steps: Step<P>[]
-  initialMode?: Mode
-  title?: string
-  /** Optional header brand. Omitted by default; pass a logo or title node to add one. */
+interface PresentationProps<TPayload> {
+  steps: readonly Step<TPayload>[]
+  title: string
+  initialMode?: PresentationMode
   brand?: ReactNode
-  /** Home link target for the header brand and the last-step footer button. */
-  homeHref?: string
-  /** Accessible label for the home link. */
-  homeLabel?: string
-  /** Full-bleed layer rendered behind the content. */
-  background?: ReactNode
-  /**
-   * Full-bleed layer rendered *above* the content (e.g. a CRT/scanline overlay).
-   * Unlike `background`, it paints over the chrome. Pointer events pass through,
-   * so it never intercepts clicks. Use `background` for true backdrops.
-   */
-  overlay?: ReactNode
-  /**
-   * Override the per-step marker (top-right). Defaults to a zero-padded count.
-   * A callback (not a per-step field) so hosts can number relationally — e.g.
-   * skip chrome cards and count only body steps.
-   */
-  marker?: (index: number, steps: Step<P>[]) => string
-  /** Small bottom-right attribution link. Defaults to and-scene; pass `null` for an intentional opt-out. */
   attribution?: ReactNode
-  /** Attribution target; defaults to the and-scene GitHub repository. */
-  attributionHref?: string
+  designWidth?: number
+  designHeight?: number
+  className?: string
 }
 
-export function Presentation<P extends Record<string, unknown> = Record<string, unknown>>({
-  steps,
-  initialMode = 'browse',
-  title = 'Presentation',
-  brand,
-  homeHref = '/',
-  homeLabel,
-  background,
-  overlay,
-  marker,
-  attribution = 'made by and-scene',
-  attributionHref = 'https://github.com/Codagent-AI/and-scene',
-}: PresentationProps<P>) {
-  const { step, setStep, next, prev, last, mode } = usePresentationNav(steps.length, initialMode)
-  // An empty deck has no current step; render a clear placeholder instead of
-  // crashing on `steps[step].title`. (Hooks above run unconditionally first.)
-  if (steps.length === 0) {
-    return (
-      <div
-        data-presentation={title}
-        data-presentation-empty
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        No steps to present.
-      </div>
-    )
-  }
-  const current = steps[step]
-  const markerText = (marker ?? ((i) => stepMarker(i)))(step, steps)
+function isWide() {
+  return typeof window.matchMedia === 'function' && window.matchMedia(TOC_MEDIA).matches
+}
+
+function subscribeWidth(onChange: () => void) {
+  const media = window.matchMedia?.(TOC_MEDIA)
+  media?.addEventListener('change', onChange)
+  return () => media?.removeEventListener('change', onChange)
+}
+
+function serverIsWide() {
+  return false
+}
+
+export function Presentation<TPayload = undefined>({
+  steps, title, initialMode = 'browse', brand,
+  attribution = <a data-presentation-attribution="" href={ATTRIBUTION_URL}>made by and-scene</a>,
+  designWidth = DESIGN_W, designHeight = DESIGN_H, className,
+}: PresentationProps<TPayload>) {
+  const nav = usePresentationNav(steps.length, initialMode)
+  const wide = useSyncExternalStore(subscribeWidth, isWide, serverIsWide)
+  const { index, mode, touchHandlers, toggleMode, jump, previous, next } = nav
+  const layout = STAGE_LAYOUT[mode]
+  const showToc = mode === 'browse' && wide
+  const step = steps[index]
+  if (!step) return null
 
   return (
-    <div
-      data-presentation={title}
+    <section
+      className={className}
+      data-presentation=""
+      data-presentation-mode={mode}
+      data-presentation-era={step.era}
+      data-step-index={index}
+      data-step-count={steps.length}
+      {...touchHandlers}
       style={{
-        position: 'relative',
-        minHeight: '100vh',
-        userSelect: 'none',
-        overflow: 'hidden',
+        height: '100dvh',
+        display: 'grid',
+        gridTemplateRows: [
+          `var(--presentation-header-height, ${layout.header}px)`,
+          'minmax(0, 1fr)',
+          `var(--presentation-footer-height, ${layout.footer}px)`,
+          `var(--presentation-attribution-height, ${layout.attribution}px)`,
+        ].join(' '),
       }}
     >
-      {background && (
-        <div
-          data-presentation-background
-          style={{ position: 'absolute', inset: 0, zIndex: 0 }}
-        >
-          {background}
-        </div>
-      )}
-      <div data-presentation-content style={{ position: 'relative', zIndex: 10, minHeight: '100vh' }}>
-        <Stage step={current} mode={mode} />
-        <Header
-          marker={markerText}
-          title={current.title}
-          brand={brand}
-          homeHref={homeHref}
-          homeLabel={homeLabel}
-        />
-        {mode === 'browse' && <Toc steps={steps} step={step} onSelect={setStep} />}
-        <Footer
-          steps={steps}
-          step={step}
-          last={last}
-          mode={mode}
-          homeHref={homeHref}
-          onPrev={prev}
-          onNext={next}
-          onSelect={setStep}
-        />
+      <Header title={title} mode={mode} brand={brand} index={index} count={steps.length} toggleMode={toggleMode} />
+      <div data-presentation-content="" style={{
+        display: 'grid',
+        minHeight: 0,
+        gridTemplateColumns: showToc ? `var(--presentation-toc-width, ${layout.toc}) minmax(0, 1fr)` : 'minmax(0, 1fr)',
+      }}>
+        {showToc && <Toc steps={steps} index={index} jump={jump} />}
+        <Stage step={step} stepIndex={index} sceneKey={sceneKey(steps, index)} width={designWidth} height={designHeight} />
       </div>
-      {overlay && (
-        <div
-          data-presentation-overlay
-          style={{ pointerEvents: 'none', position: 'absolute', inset: 0, zIndex: 50 }}
-        >
-          {overlay}
-        </div>
-      )}
-      {attribution && (
-        <a
-          href={attributionHref}
-          data-presentation-attribution
-          style={{
-            position: 'absolute',
-            right: 16,
-            bottom: 8,
-            zIndex: 60,
-            fontSize: 12,
-          }}
-        >
-          {attribution}
-        </a>
-      )}
-    </div>
+      <Footer mode={mode} steps={steps} index={index} jump={jump} previous={previous} next={next} />
+      <div data-presentation-credit="" style={{ justifySelf: 'end', alignSelf: 'end' }}>{attribution}</div>
+    </section>
   )
 }

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { Appear, Arrow, Box, Emphasis, Frame, Label, Presentation, SceneLayer, SymbolChip } from '../src/presentation-kit'
 import type { SceneProps, Step } from '../src/presentation-kit'
@@ -91,6 +91,43 @@ const primitives = [
   ['arrow', Arrow], ['box', Box], ['emphasis', Emphasis], ['frame', Frame],
   ['label', Label], ['symbol-chip', SymbolChip],
 ] as const
+
+test('mode and fit changes leave the final scene projection subtree untouched', () => {
+  const renderScene = vi.fn()
+  function Diagram({ payload }: SceneProps<number>) {
+    renderScene(payload)
+    return <Box id="card" style={{ position: 'absolute', left: 45 }}>Card {payload}</Box>
+  }
+  const fixture: Step<number>[] = [1, 2].map(payload => ({
+    ...common, id: String(payload), payload, Scene: Diagram,
+  }))
+  let width = 904
+  let measure = () => {}
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => width)
+  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600)
+  vi.spyOn(window, 'ResizeObserver').mockImplementation(function (callback: ResizeObserverCallback) {
+    measure = () => callback([], {} as ResizeObserver)
+    return { observe() {}, disconnect() {}, unobserve() {} }
+  })
+
+  const { container } = render(<Presentation title="Mode fit" steps={fixture} />)
+  fireEvent.keyDown(document, { key: 'ArrowRight' })
+  const card = screen.getByText('Card 2')
+  const canvas = container.querySelector<HTMLElement>('[data-presentation-canvas]')!
+  expect(canvas.style.transform).toBe('scale(1)')
+  renderScene.mockClear()
+
+  width = 1344
+  fireEvent.keyDown(document, { key: 'p' })
+  expect(canvas.style.transform).toBe('scale(1.5)')
+  expect(screen.getByRole('main').dataset.stepIndex).toBe('1')
+
+  width = 464
+  act(measure)
+  expect(canvas.style.transform).toBe('scale(0.5)')
+  expect(renderScene).not.toHaveBeenCalled()
+  expect(screen.getByText('Card 2')).toBe(card)
+})
 
 test('all node primitives pass through author hooks and literal coordinates', () => {
   const { container } = render(

@@ -55,8 +55,11 @@ Use the startup registry entry from the template as an example when merging
 into an existing app.
 
 Install dependencies before generating the presentation. For a full unchanged
-bootstrap use its lockfile and `npm ci`. When merging into an existing app,
-update its manifest and lockfile with its package manager. Ensure React,
+bootstrap, run `npm ci --workspaces=false` from the app directory to use its
+own lockfile even when the parent workspace includes that directory. When
+merging into an existing app, update its manifest and lockfile with its
+package manager. For a self-contained app inside an npm workspace, run
+`npm install --workspaces=false` from the app directory. Ensure React,
 React DOM, Motion, Lucide React, Vite, Vite's React plugin, TypeScript, the
 React/React DOM/Node types, ESLint and its TypeScript/React configuration, and
 Playwright are installed. Use Playwright's Chromium installation if the
@@ -111,7 +114,8 @@ for transitions to settle, and remove the temporary script once finished.
 Review screenshots or equivalent browser views of the first step, last step,
 and dense or key steps. Review those representative steps at the narrow
 viewport for responsive-sensitive presentations. Check that important scene
-content fits, intentional stacking remains readable, and content clears
+content fits, important diagram labels remain readable after scaling,
+intentional stacking remains readable, and content clears
 captions, the table of contents, progress indicators, and other controls.
 Review every overlap or chrome warning against the indicated step. Fix
 accidental collisions, weak active state, and unpolished attribution.

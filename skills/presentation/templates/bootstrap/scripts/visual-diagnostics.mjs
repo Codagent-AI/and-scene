@@ -17,14 +17,15 @@ export function inspectStep() {
     return true
   }
 
+  const canvas = root.querySelector('[data-presentation-canvas]')
+  const canvasScale = canvas?.offsetWidth ? canvas.getBoundingClientRect().width / canvas.offsetWidth : 1
+  const smallLabels = new Set()
   const items = []
-  function collect(owner, rectangles, label) {
-    for (const rect of rectangles) {
-      if (rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.right > 0
-        && rect.left < innerWidth && rect.top < innerHeight) {
-        items.push({ owner, rect, label })
-      }
-    }
+  function collect(owner, rectangles, label, exempt = false) {
+    const visibleRects = Array.from(rectangles).filter(rect => rect.width > 0 && rect.height > 0
+      && rect.bottom > 0 && rect.right > 0 && rect.left < innerWidth && rect.top < innerHeight)
+    if (!exempt) for (const rect of visibleRects) items.push({ owner, rect, label })
+    return visibleRects.length > 0
   }
 
   const tree = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
@@ -32,11 +33,16 @@ export function inspectStep() {
     const node = tree.currentNode
     const label = node.textContent.trim()
     const owner = node.parentElement
-    if (!label || owner.closest(`script, style, svg title, svg desc, ${exemptions}`) || !visible(owner)) continue
+    if (!label || owner.closest('script, style, svg title, svg desc') || !visible(owner)) continue
     const range = document.createRange()
     range.selectNodeContents(node)
-    collect(owner, range.getClientRects(), label)
+    const onScreen = collect(owner, range.getClientRects(), label, Boolean(owner.closest(exemptions)))
+    if (onScreen && canvas?.contains(owner)) {
+      const effectiveSize = parseFloat(getComputedStyle(owner).fontSize) * canvasScale
+      if (effectiveSize < 11) smallLabels.add(`Small scene text: "${label}" renders at ${effectiveSize.toFixed(1)}px`)
+    }
   }
+  warnings.push(...smallLabels)
 
   for (const element of root.querySelectorAll(chrome)) {
     if (element.closest(exemptions) || !visible(element)) continue

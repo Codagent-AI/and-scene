@@ -54,6 +54,29 @@ test('attribution warns for default and undersized links while accepting explici
   expect(inspectStep()).toEqual([])
 })
 
+test('scene text legibility uses the fitted font size even inside overlap exemptions', () => {
+  document.body.innerHTML = `<main data-presentation><div data-presentation-canvas>
+    <span style="font-size:15px" data-presentation-allow-overlap>Small card label</span>
+    <span style="font-size:30px">Readable card label</span>
+  </div></main>`
+  const canvas = document.querySelector<HTMLElement>('[data-presentation-canvas]')!
+  Object.defineProperty(canvas, 'offsetWidth', { value: 880 })
+  const bounds = vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 366, 158))
+  Object.defineProperty(Range.prototype, 'getClientRects', {
+    configurable: true,
+    value() { return [new DOMRect(10, 10, 70, 20)] },
+  })
+
+  try {
+    const smallTextWarnings = () => inspectStep().filter(warning => warning.startsWith('Small scene text'))
+    expect(smallTextWarnings()).toEqual(['Small scene text: "Small card label" renders at 6.2px'])
+    bounds.mockReturnValue(new DOMRect(0, 0, 880, 380))
+    expect(smallTextWarnings()).toEqual([])
+  } finally {
+    Reflect.deleteProperty(Range.prototype, 'getClientRects')
+  }
+})
+
 test('active controls can be distinguished by pseudo-element and font styling', () => {
   document.body.innerHTML = `<main data-presentation>
     <button data-presentation-progress-step data-presentation-active aria-label="Current step"></button>

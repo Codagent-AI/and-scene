@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
 import { reference } from '../scripts/reference.mjs'
+import { withPreview } from '../scripts/preview.mjs'
+import { inspectStep } from '../scripts/visual-diagnostics.mjs'
 import { assertStyleNeutralSource } from './style-contract.mjs'
 
 const source = path.resolve(import.meta.dirname, '..')
@@ -56,10 +58,13 @@ async function compareDirectories(first, second) {
 
 test('INT-001 materialized bootstrap is complete and style-neutral', { timeout: 180_000 }, async t => {
   const outside = await temporary(t, 'bootstrap')
-  const app = path.join(outside, 'standalone')
+  const app = path.join(outside, 'presentations')
+  await writeFile(path.join(outside, 'package.json'), JSON.stringify({ private: true, workspaces: ['presentations'] }))
   await cp(bootstrap, app, { recursive: true })
-  const install = await run(outside, ['--prefix', app, 'ci', '--prefer-offline', '--no-audit'])
+  const install = await run(app, ['ci', '--workspaces=false', '--prefer-offline', '--no-audit'])
   assert.equal(install.code, 0, install.output)
+  await assert.rejects(stat(path.join(outside, 'package-lock.json')), { code: 'ENOENT' })
+  await stat(path.join(app, 'node_modules/vite/bin/vite.js'))
 
   const packageData = JSON.parse(await readFile(path.join(app, 'package.json'), 'utf8'))
   const lock = JSON.parse(await readFile(path.join(app, 'package-lock.json'), 'utf8'))
@@ -92,9 +97,9 @@ test('INT-001 materialized bootstrap is complete and style-neutral', { timeout: 
   console.log(`INT-001: checked ${sources.length} bootstrap and kit source files for geometry-only inline defaults and no visual stylesheets.`)
   await compareDirectories(path.join(source, 'src/presentation-kit'), path.join(app, 'src/presentation-kit'))
   await compareDirectories(path.join(source, 'scripts'), path.join(app, 'scripts'))
-  const lint = await run(outside, ['--prefix', app, 'run', 'lint'])
+  const lint = await run(outside, ['--prefix', app, '--workspaces=false', 'run', 'lint'])
   assert.equal(lint.code, 0, lint.output)
-  const verify = await run(outside, ['--prefix', app, 'run', 'verify'])
+  const verify = await run(outside, ['--prefix', app, '--workspaces=false', 'run', 'verify'])
   assert.equal(verify.code, 0, verify.output)
   assert.match(verify.output, /Verified starter at step index 0/)
   assert.match(verify.output, /Verified starter at step index 1/)
@@ -178,6 +183,40 @@ test('E2E-001 reference presentation passes production verification', { timeout:
   assert.deepEqual(steps.map(match => [Number(match[1]), match[2]]), reference.steps.map((step, index) => [index, step[1]]))
   assert.match(result.output, /Verification passed\./)
   console.log(result.output.trim())
+
+  await withPreview(source, async ({ browser, origin }) => {
+    const route = `${origin}/${reference.slug}`
+    const wide = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+    await wide.goto(route)
+    await wide.getByRole('button', { name: 'the reveal', exact: true }).click()
+    await wide.locator('[data-step-index="8"]').waitFor()
+    await wide.waitForTimeout(800)
+    await wide.evaluate(() => document.activeElement.blur())
+    await wide.keyboard.press('p')
+    await wide.locator('[data-step-index="8"][data-presentation-mode="present"]').waitFor()
+    await wide.waitForTimeout(1000)
+    const geometry = await wide.evaluate(() => {
+      const canvas = document.querySelector('[data-presentation-canvas]')
+      const box = canvas.getBoundingClientRect()
+      const outside = [...canvas.querySelectorAll('[data-presentation-entity]')].filter(entity => {
+        const { top, right, bottom, left } = entity.getBoundingClientRect()
+        return top < box.top - 2 || right > box.right + 2 || bottom > box.bottom + 2 || left < box.left - 2
+      }).map(entity => entity.getAttribute('data-presentation-entity'))
+      return { outside, scrollWidth: document.documentElement.scrollWidth }
+    })
+    assert.deepEqual(geometry.outside, [], 'Present-mode entities escaped the final canvas')
+    assert.ok(geometry.scrollWidth <= 1440, 'Present-mode scene causes horizontal overflow')
+    await wide.close()
+
+    const narrow = await browser.newPage({ viewport: { width: 390, height: 844 } })
+    await narrow.goto(route)
+    await narrow.getByRole('button', { name: /^Step 5:/ }).click()
+    await narrow.locator('[data-step-index="4"]').waitFor()
+    await narrow.waitForTimeout(800)
+    const smallText = (await narrow.evaluate(inspectStep)).filter(warning => warning.startsWith('Small scene text:'))
+    assert.deepEqual(smallText, [], 'Dense scene labels are too small in the fitted narrow canvas')
+    await narrow.close()
+  })
 })
 
 test('E2E-002 verification failures identify the phase and clean up production preview', { timeout: 210_000 }, async t => {

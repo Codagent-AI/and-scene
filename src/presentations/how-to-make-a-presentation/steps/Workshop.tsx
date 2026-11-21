@@ -8,7 +8,6 @@ export type Beat = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 function StepCard({ id, order, detail }: { id: string; order: number; detail?: boolean }) {
   return (
     <Box id={id} className="workshop-card">
-      <span className="workshop-card-number">{String(order).padStart(2, '0')}</span>
       {detail
         ? <div className="workshop-card-detail"><b>Title</b><span>Caption</span><span>Visual</span></div>
         : <b>Step {order}</b>}
@@ -66,7 +65,7 @@ export function Workshop({ payload: beat }: SceneProps<Beat>) {
       </Appear>}
       {beat >= 7 && <Appear key="verify" className="workshop-verification">
         <Box id={ids.verification} className="workshop-verify">
-          <b><Check aria-hidden="true" /> Verified</b>
+          <b><Check aria-hidden="true" /> Pass</b>
           <span>Build + render</span>
         </Box>
       </Appear>}

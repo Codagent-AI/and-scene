@@ -1,0 +1,10 @@
+body { margin: 0; }
+
+.landing {
+  margin: 10vh auto;
+  max-width: 42rem;
+  padding: 0 1.5rem;
+  font: 1.125rem/1.5 system-ui, sans-serif;
+}
+
+.landing a { color: #154e44; }

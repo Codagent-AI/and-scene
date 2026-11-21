@@ -1,21 +1,23 @@
-/** Stable layoutId namespace — entities morph across steps when ids match. */
-export const ENTITIES = {
-  you: 'you',
-  prompt: 'prompt',
-  questionChip: 'question-chip',
-  convoArrow: 'convo-arrow',
-  skill: 'skill',
-  stepCard1: 'step-card-1',
-  stepCard2: 'step-card-2',
-  stepCard3: 'step-card-3',
-  ghostCard: 'ghost-card',
-  depthChip: 'depth-chip',
-  tray: 'tray',
-  kitSocket: 'kit-socket',
-  verifyArrow: 'verify-arrow',
-  verifyNode: 'verify-node',
-  greenCheck: 'green-check',
-  editBadge: 'edit-badge',
-} as const
+const entity = (name: string) => `how-to-make-a-presentation/${name}`
 
-export type EntityId = (typeof ENTITIES)[keyof typeof ENTITIES]
+export const ids = {
+  you: entity('you'),
+  prompt: entity('prompt'),
+  skill: entity('skill'),
+  exchange: entity('exchange'),
+  question: entity('question'),
+  tray: entity('tray'),
+  cardOne: entity('card-one'),
+  cardTwo: entity('card-two'),
+  cardThree: entity('card-three'),
+  firstMorph: entity('first-morph'),
+  secondMorph: entity('second-morph'),
+  ghost: entity('ghost'),
+  depth: entity('depth'),
+  kit: entity('shared-scene-kit'),
+  verification: entity('verify'),
+  verificationLink: entity('verify-link'),
+  modify: entity('modify-arc'),
+  edited: entity('edited-card-flag'),
+  reveal: entity('reveal-frame'),
+}

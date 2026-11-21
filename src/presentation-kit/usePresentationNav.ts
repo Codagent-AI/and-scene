@@ -11,10 +11,10 @@ const controls = [
     'switch', 'tab', 'textbox'].map(role => `[role="${role}"]`),
 ].join(',')
 const SWIPE_THRESHOLD = 45
+const stepIndex = (index: number, last: number, delta = 0) => Math.max(0, Math.min(last, Math.min(index, last) + delta))
 
 export function usePresentationNav(count: number, initialMode: Mode) {
   const last = Math.max(0, count - 1)
-  const clamp = (index: number) => Math.max(0, Math.min(last, index))
   const [index, setIndex] = useState(0)
   const [mode, setMode] = useState(initialMode)
   const start = useRef<{ x: number; y: number } | null>(null)
@@ -28,7 +28,7 @@ export function usePresentationNav(count: number, initialMode: Mode) {
       } else if (forward.has(event.key) || back.has(event.key)) {
         event.preventDefault()
         const delta = forward.has(event.key) ? 1 : -1
-        setIndex(current => Math.max(0, Math.min(last, Math.min(current, last) + delta)))
+        setIndex(current => stepIndex(current, last, delta))
       }
     }
     window.addEventListener('keydown', onKey)
@@ -36,7 +36,7 @@ export function usePresentationNav(count: number, initialMode: Mode) {
   }, [last])
 
   function move(delta: number) {
-    setIndex(current => clamp(clamp(current) + delta))
+    setIndex(current => stepIndex(current, last, delta))
   }
 
   function onTouchStart(event: TouchEvent) {
@@ -58,11 +58,11 @@ export function usePresentationNav(count: number, initialMode: Mode) {
   }
 
   return {
-    index: clamp(index),
+    index: stepIndex(index, last),
     mode,
     next: () => move(1),
     previous: () => move(-1),
-    jump: (target: number) => setIndex(clamp(target)),
+    jump: (target: number) => setIndex(stepIndex(target, last)),
     touch: { onTouchStart, onTouchEnd, onTouchCancel: () => { start.current = null } },
   }
 }

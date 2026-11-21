@@ -39,6 +39,43 @@ test('diagnostics compare visible text and chrome and honor explicit exemptions'
   }
 })
 
+test('text overlap compares ink bounds and still warns when glyphs collide', () => {
+  document.body.innerHTML = `<main data-presentation>
+    <div style="font:30px Arial">Title</div>
+    <div style="font:30px Arial">Caption that wraps</div>
+  </main>`
+  let nextTop = 42
+  const canvasApi = Object.getOwnPropertyDescriptor(globalThis, 'CanvasRenderingContext2D')
+  Object.defineProperty(globalThis, 'CanvasRenderingContext2D', { configurable: true, value: class {} })
+  const measureText = vi.fn(() => ({
+    fontBoundingBoxAscent: 28, fontBoundingBoxDescent: 8,
+    actualBoundingBoxAscent: 21, actualBoundingBoxDescent: 2,
+  }))
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+    () => ({ measureText } as unknown as CanvasRenderingContext2D),
+  )
+  Object.defineProperty(Range.prototype, 'getClientRects', {
+    configurable: true,
+    value(this: Range) {
+      return this.startContainer.textContent === 'Title'
+        ? [new DOMRect(10, 10, 70, 36)]
+        : [new DOMRect(10, nextTop, 85, 36), new DOMRect(10, 82, 50, 36)]
+    },
+  })
+
+  try {
+    const collisions = () => inspectStep().filter(warning => warning.startsWith('Overlap:'))
+    expect(collisions()).toEqual([])
+    expect(measureText.mock.calls).toHaveLength(2)
+    nextTop = 30
+    expect(collisions()).toEqual(['Overlap: "Title" with "Caption that wraps"'])
+  } finally {
+    if (canvasApi) Object.defineProperty(globalThis, 'CanvasRenderingContext2D', canvasApi)
+    else Reflect.deleteProperty(globalThis, 'CanvasRenderingContext2D')
+    Reflect.deleteProperty(Range.prototype, 'getClientRects')
+  }
+})
+
 test('attribution warns for default and undersized links while accepting explicit styling', () => {
   const attribution = document.createElement('a')
   attribution.href = '/source'

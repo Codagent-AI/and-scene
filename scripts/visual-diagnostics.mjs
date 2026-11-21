@@ -21,10 +21,42 @@ export function inspectStep() {
   const canvasScale = canvas?.offsetWidth ? canvas.getBoundingClientRect().width / canvas.offsetWidth : 1
   const smallLabels = new Set()
   const items = []
-  function collect(owner, rectangles, label, exempt = false) {
+  const textContext = typeof CanvasRenderingContext2D === 'undefined'
+    ? null : document.createElement('canvas').getContext('2d')
+
+  function textInsets(label, style) {
+    if (!textContext || !style.fontSize || !style.fontFamily) return null
+    textContext.font = `${style.fontStyle || 'normal'} ${style.fontWeight || 'normal'} ${style.fontSize} ${style.fontFamily}`
+    const text = style.textTransform === 'uppercase' ? label.toUpperCase()
+      : style.textTransform === 'lowercase' ? label.toLowerCase() : label
+    const {
+      fontBoundingBoxAscent: ascent, fontBoundingBoxDescent: descent,
+      actualBoundingBoxAscent: inkAscent, actualBoundingBoxDescent: inkDescent,
+    } = textContext.measureText(text)
+    const height = ascent + descent
+    if (!(height > 0) || !Number.isFinite(inkAscent + inkDescent) || inkAscent + inkDescent <= 0) return null
+    // Range rectangles include the font's full ascent and descent. Normalize the
+    // unused margins so they also apply to ranges scaled by the fitted canvas.
+    return {
+      top: Math.max(0, ascent - inkAscent) / height,
+      bottom: Math.max(0, descent - inkDescent) / height,
+    }
+  }
+
+  function collect(owner, rectangles, label, exempt = false, insets = null) {
     const visibleRects = Array.from(rectangles).filter(rect => rect.width > 0 && rect.height > 0
       && rect.bottom > 0 && rect.right > 0 && rect.left < innerWidth && rect.top < innerHeight)
-    if (!exempt) for (const rect of visibleRects) items.push({ owner, rect, label })
+    if (!exempt) {
+      for (const rect of visibleRects) {
+        const box = insets ? {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top + rect.height * insets.top,
+          bottom: rect.bottom - rect.height * insets.bottom,
+        } : rect
+        items.push({ owner, rect: box, label })
+      }
+    }
     return visibleRects.length > 0
   }
 
@@ -36,9 +68,11 @@ export function inspectStep() {
     if (!label || owner.closest('script, style, svg title, svg desc') || !visible(owner)) continue
     const range = document.createRange()
     range.selectNodeContents(node)
-    const onScreen = collect(owner, range.getClientRects(), label, Boolean(owner.closest(exemptions)))
+    const style = getComputedStyle(owner)
+    const exempt = Boolean(owner.closest(exemptions))
+    const onScreen = collect(owner, range.getClientRects(), label, exempt, exempt ? null : textInsets(label, style))
     if (onScreen && canvas?.contains(owner)) {
-      const effectiveSize = parseFloat(getComputedStyle(owner).fontSize) * canvasScale
+      const effectiveSize = parseFloat(style.fontSize) * canvasScale
       if (effectiveSize < 11) smallLabels.add(`Small scene text: "${label}" renders at ${effectiveSize.toFixed(1)}px`)
     }
   }

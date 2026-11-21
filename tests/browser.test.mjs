@@ -123,6 +123,9 @@ test('INT-002 local inspection captures settled screenshots and advisory diagnos
           <span className="collision">Unmarked one</span>
           <span className="collision">Unmarked two</span>
         </>}
+        <div className="adjacent-lines">
+          <b>Title label</b><span>Caption label</span><span>Visual label</span>
+        </div>
         <div data-presentation-allow-overlap="" className="allowed">
           <span>Allowed one</span><span>Allowed two</span>
         </div>
@@ -142,6 +145,7 @@ test('INT-002 local inspection captures settled screenshots and advisory diagnos
   `)
   await writeFile(path.join(app, `${sample}/presentation.css`), `
     .collision { position: absolute; left: 75px; top: 80px; }
+    .adjacent-lines { display: grid; position: absolute; left: 275px; top: 80px; font: 30px/1.05 Arial, sans-serif; }
     .allowed { position: absolute; left: 75px; top: 130px; }
     .allowed span { position: absolute; white-space: nowrap; }
     .settled-anchor, .transient { position: absolute; top: 240px; left: 75px; }
@@ -160,6 +164,7 @@ test('INT-002 local inspection captures settled screenshots and advisory diagnos
   assert.match(result.output, /Advisory at step 1.+Indistinct active table of contents/)
   assert.match(result.output, /Advisory at step 1.+Attribution.+\[data-presentation-attribution\]/)
   assert.doesNotMatch(result.output, /Overlap:.+(Allowed one|Allowed two|Transient overlay)/)
+  assert.doesNotMatch(result.output, /Overlap:.+(Title label|Caption label|Visual label)/)
   assert.doesNotMatch(result.output, /Advisory at step 2.+Indistinct active/)
   const directory = path.join(app, '.presentation-inspection', reference.slug, '1440x900')
   const screenshots = (await readdir(directory)).sort()

@@ -1,0 +1,37 @@
+[data-presentation] {
+  box-sizing: border-box;
+  display: grid;
+  grid-template: "header" auto "stage" minmax(0, 1fr) "footer" auto "attribution" auto / minmax(0, 1fr);
+  block-size: 100dvh;
+  touch-action: pan-y;
+}
+
+[data-presentation-header] { grid-area: header; }
+[data-presentation-stage] { grid-area: stage; }
+[data-presentation-footer] { grid-area: footer; min-inline-size: 0; }
+[data-presentation-toc] { display: none; }
+[data-presentation-attribution] { grid-area: attribution; justify-self: end; }
+
+/* Reserve the maximum wrapped text height without duplicating accessible narration. */
+[data-presentation-mode="browse"] [data-presentation-step-title],
+[data-presentation-caption] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-presentation-text], [data-presentation-reserve] { grid-area: 1 / 1; }
+[data-presentation-reserve] { visibility: hidden; }
+[data-presentation-reserve]::before { content: attr(data-presentation-reserve); }
+
+@media (min-width: 900px) {
+  [data-presentation-mode="browse"] {
+    grid-template:
+      "header header" auto
+      "toc stage" minmax(0, 1fr)
+      "footer footer" auto
+      "attribution attribution" auto
+      / minmax(max-content, 12%) minmax(0, 1fr);
+  }
+
+  [data-presentation-toc] { display: block; grid-area: toc; align-self: center; }
+}

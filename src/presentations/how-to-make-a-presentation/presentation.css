@@ -1,0 +1,279 @@
+.making-a-presentation {
+  --paper: #f6f2e8;
+  --panel: #fffaf0;
+  --ink: #202d2a;
+  --muted: #4f5a52;
+  --line: #c6c8b9;
+  --jade: #185444;
+  --mint: #deebe0;
+  --rust: #9d3927;
+  --blush: #f4dfd5;
+  --mono: ui-monospace, "Courier New", monospace;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1rem/1.5 system-ui, sans-serif;
+}
+
+.making-a-presentation * { box-sizing: border-box; }
+
+.making-a-presentation [data-presentation] {
+  max-inline-size: 100rem;
+  margin-inline: auto;
+  padding: clamp(12px, 3vh, 34px) clamp(14px, 5vw, 84px) 12px;
+  min-block-size: 340px;
+}
+
+.making-a-presentation [data-presentation-header] {
+  border-block-start: 2px solid var(--ink);
+  padding-block: clamp(7px, 1.4vh, 18px) 8px;
+}
+
+.making-a-presentation [data-presentation-marker] {
+  display: flex;
+  justify-content: space-between;
+  font: 700 .78rem/1.2 var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--jade);
+}
+
+.making-a-presentation [data-presentation-step-title] {
+  margin: .25em 0 .04em;
+  font: 500 clamp(1.9rem, 4.2vw, 4.5rem)/1.04 Georgia, serif;
+  letter-spacing: -.045em;
+}
+
+.making-a-presentation [data-presentation-stage] {
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
+.making-a-presentation [data-presentation-canvas] {
+  border-radius: 12px;
+  background: radial-gradient(circle at 1px 1px, #dad7c9 1px, transparent 0) 0 0 / 16px 16px, var(--panel);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.making-a-presentation [data-presentation-toc] {
+  padding-inline-end: 10px;
+}
+
+.making-a-presentation button {
+  color: var(--ink);
+  font: 600 .8rem/1.1 system-ui, sans-serif;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.making-a-presentation button:disabled { color: var(--muted); cursor: default; }
+/* Focus outlines belong to the viewer's controls, even when the diagram is animating. */
+.making-a-presentation :is(button, a):focus-visible { outline: 2px solid var(--rust); outline-offset: 3px; }
+
+.making-a-presentation [data-presentation-toc-entry] {
+  display: block;
+  width: 100%;
+  margin-block: 5px;
+  padding: 9px 7px;
+  text-align: start;
+  border: 0;
+  border-inline-start: 2px solid transparent;
+  background: transparent;
+  text-transform: capitalize;
+}
+
+.making-a-presentation [data-presentation-toc-entry][data-presentation-active="true"] {
+  background: var(--mint);
+  border-inline-start-color: var(--jade);
+  color: var(--jade);
+  font-weight: 800;
+}
+
+.making-a-presentation [data-presentation-footer] {
+  border-block-start: 1px solid var(--line);
+  padding-block-start: clamp(6px, 1.5vh, 18px);
+}
+
+.making-a-presentation [data-presentation-caption] {
+  max-inline-size: 54ch;
+  margin: 0 0 clamp(8px, 1.5vh, 18px);
+  font: 500 clamp(.98rem, 2vw, 1.42rem)/1.32 Georgia, serif;
+}
+
+.making-a-presentation [data-presentation-navigation] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  justify-content: space-between;
+}
+
+.making-a-presentation [data-presentation-progress] {
+  display: flex;
+  gap: clamp(3px, .7vw, 9px);
+}
+
+.making-a-presentation [data-presentation-progress-step] {
+  display: grid;
+  place-items: center;
+  width: clamp(22px, 3.45vw, 35px);
+  height: clamp(27px, 4vw, 35px);
+  border-radius: 50%;
+  padding: 0;
+  font: 700 .73rem/1 var(--mono);
+}
+
+.making-a-presentation [data-presentation-progress-step][data-presentation-active="true"] {
+  background: var(--jade);
+  color: white;
+  border-color: var(--jade);
+}
+
+.making-a-presentation :is([data-presentation-previous], [data-presentation-next]) {
+  min-block-size: 32px;
+  border-radius: 4px;
+  padding-inline: clamp(6px, 1.5vw, 16px);
+}
+
+.making-a-presentation [data-presentation-attribution] {
+  color: var(--muted);
+  margin-block-start: 8px;
+  font: 600 .75rem/1.4 var(--mono);
+  text-decoration-color: var(--jade);
+  text-underline-offset: 3px;
+}
+
+.build-diagram :is(.participant, .diagram-label, .diagram-line, .step-tray, .step-card, .scene-socket, .reveal-frame) {
+  position: absolute;
+}
+
+.build-diagram .participant {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 184px;
+  height: 64px;
+  padding-inline: 12px;
+  border: 1px solid var(--jade);
+  border-radius: 7px;
+  background: var(--jade);
+  color: #fffaf0;
+}
+
+.build-diagram .participant-skill {
+  background: var(--mint);
+  color: var(--jade);
+}
+
+.build-diagram .participant strong { font: 700 23px/1.15 Georgia, serif; }
+.build-diagram .participant span { font: 600 15px/1.2 system-ui, sans-serif; }
+
+.build-diagram .diagram-label {
+  padding: 4px 7px;
+  border-radius: 4px;
+  color: var(--jade);
+  background: var(--mint);
+  font: 700 14px/1.2 var(--mono);
+}
+
+.build-diagram .prompt,
+.build-diagram .modify,
+.build-diagram .edited { color: var(--rust); background: var(--blush); }
+
+.build-diagram .prompt::after {
+  position: absolute;
+  top: 100%;
+  left: 12px;
+  border: 5px solid transparent;
+  border-top-color: var(--blush);
+  content: "";
+}
+
+.build-diagram .morph { width: 148px; text-align: center; }
+.build-diagram .morph::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  height: 31px;
+  border-inline-start: 1px dashed var(--jade);
+  content: "";
+}
+
+.build-diagram .diagram-line { color: var(--jade); }
+.build-diagram .diagram-line path { stroke-width: 1.6; }
+.build-diagram .modify-line { color: var(--rust); }
+.build-diagram .modify-line svg > path { stroke-dasharray: 4 4; }
+
+.build-diagram .step-tray {
+  width: 718px;
+  height: 95px;
+  border-radius: 10px;
+  background: #ebe9dc;
+}
+
+.build-diagram .step-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 116px;
+  height: 67px;
+  justify-content: center;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.build-diagram .step-card strong { font: 700 21px/1.15 Georgia, serif; }
+.build-diagram .step-card > span { font: 600 15px/1.2 system-ui, sans-serif; }
+.build-diagram .ghost { border-style: dashed; border-color: var(--muted); color: var(--muted); }
+.build-diagram .verify-node { color: var(--jade); background: var(--mint); border-color: var(--jade); }
+.build-diagram .pass-check { color: var(--jade); font: 800 16px/1 system-ui, sans-serif; }
+
+.build-diagram .scene-socket {
+  display: grid;
+  gap: 4px;
+  width: 190px;
+  padding: 9px 12px;
+  border: 1px solid var(--jade);
+  border-radius: 6px;
+  background: var(--jade);
+  color: #fffaf0;
+  text-align: center;
+}
+
+.build-diagram .scene-socket::before {
+  position: absolute;
+  inset: -9px auto auto 50%;
+  width: 26px;
+  height: 9px;
+  transform: translateX(-50%);
+  border-radius: 3px 3px 0 0;
+  background: var(--jade);
+  content: "";
+}
+
+.build-diagram .scene-socket span { font: 600 13px/1.25 var(--mono); }
+
+.build-diagram .reveal-frame {
+  width: 818px;
+  height: 332px;
+  border: 2px solid var(--rust);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.build-diagram .reveal-frame span {
+  position: absolute;
+  inset: -12px 32px auto auto;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--rust);
+  color: #fffaf0;
+  font: 700 14px/1.15 var(--mono);
+}
+
+@media (max-width: 460px) {
+  .making-a-presentation [data-presentation-progress] { order: 1; justify-content: center; width: 100%; }
+}

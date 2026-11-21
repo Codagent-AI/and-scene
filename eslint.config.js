@@ -6,7 +6,16 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'artifacts/presentation-inspection']),
+  {
+    files: ['{scripts,skills,tests}/**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: { globals: globals.node },
+  },
+  {
+    files: ['**/scripts/visual-warnings.mjs'],
+    languageOptions: { globals: globals.browser },
+  },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -17,6 +26,7 @@ export default defineConfig([
     ],
     languageOptions: {
       globals: globals.browser,
+      parserOptions: { tsconfigRootDir: import.meta.dirname },
     },
   },
 ])

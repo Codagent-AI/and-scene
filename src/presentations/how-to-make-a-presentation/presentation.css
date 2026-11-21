@@ -243,9 +243,9 @@
   border-radius: 8px;
 }
 
-.workshop-one .workshop-card { width: 128px; }
+.workshop-one .workshop-card { width: 128px; gap: 2px; padding-block: 2px; }
 .workshop-card-number { color: var(--green); font: 650 13px ui-monospace, monospace; }
-.workshop-card-detail { display: grid; line-height: 1.08; font-size: 16px; }
+.workshop-card-detail { display: grid; line-height: 1.3; font-size: 15px; }
 .workshop-ghost-card { border: 2px dashed var(--line); color: var(--muted); background: transparent; }
 
 .workshop-morph,

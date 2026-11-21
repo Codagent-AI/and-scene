@@ -53,3 +53,29 @@ test('attribution warns for default and undersized links while accepting explici
   attribution.style.cssText = 'color: teal; font-size: 14px; font-weight: 700'
   expect(inspectStep()).toEqual([])
 })
+
+test('active controls can be distinguished by pseudo-element and font styling', () => {
+  document.body.innerHTML = `<main data-presentation>
+    <button data-presentation-progress-step data-presentation-active aria-label="Current step"></button>
+    <button data-presentation-progress-step aria-label="Other step"></button>
+    <button data-presentation-era data-presentation-active aria-label="Current era" style="font-weight: 700"></button>
+    <button data-presentation-era aria-label="Other era" style="font-weight: 400"></button>
+  </main>`
+  const getStyle = window.getComputedStyle.bind(window)
+  const current = document.querySelector('[data-presentation-progress-step][data-presentation-active]')!
+  let decoratedProgress = true
+  vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) => {
+    if (!pseudo) return getStyle(element)
+    const style = document.createElement('span').style
+    style.content = decoratedProgress && pseudo === '::before' && element === current ? '""' : 'none'
+    return style
+  })
+
+  expect(inspectStep().filter(warning => warning.includes('Indistinct active'))).toEqual([])
+  decoratedProgress = false
+  document.querySelector<HTMLButtonElement>('[data-presentation-era][data-presentation-active]')!.style.fontWeight = '400'
+  expect(inspectStep().filter(warning => warning.includes('Indistinct active'))).toEqual([
+    'Indistinct active progress indicator: Current step',
+    'Indistinct active table of contents: Current era',
+  ])
+})

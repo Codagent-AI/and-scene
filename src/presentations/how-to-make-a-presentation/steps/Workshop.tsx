@@ -76,7 +76,7 @@ export function Workshop({ payload: beat }: SceneProps<Beat>) {
         </Arrow>
       </Appear>}
       {beat >= 8 && <Appear key="edited" className="workshop-edit">
-        <Emphasis id={ids.edited}>Edited</Emphasis>
+        <Emphasis id={ids.edited} data-presentation-allow-overlap="">Edited</Emphasis>
       </Appear>}
       {beat >= 9 && <Appear key="reveal" className="workshop-reveal">
         <Frame id={ids.reveal}><span>You’re looking at the result</span></Frame>

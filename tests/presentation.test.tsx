@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useEffect } from 'react'
+import { useIsPresent } from 'motion/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Box, Presentation, SceneLayer } from '../src/presentation-kit'
 import type { SceneProps, Step } from '../src/presentation-kit'
@@ -28,12 +29,19 @@ class TestObserver {
   disconnect() { disconnect() }
 }
 
+function SceneStatus() {
+  return <span data-scene-present={useIsPresent()} />
+}
+
 function Diagram({ payload }: SceneProps<string>) {
   useEffect(() => { mount() }, [])
-  return <SceneLayer>
-    <Box id="anchor" className="part" style={{ position: 'absolute', left: 50, top: 40 }}>{payload}</Box>
-    <Box id="overlay" style={{ position: 'absolute', left: 50, top: 40, zIndex: 2 }}>Overlay</Box>
-  </SceneLayer>
+  return <>
+    <SceneStatus />
+    <SceneLayer>
+      <Box id="anchor" className="part" style={{ position: 'absolute', left: 50, top: 40 }}>{payload}</Box>
+      <Box id="overlay" style={{ position: 'absolute', left: 50, top: 40, zIndex: 2 }}>Overlay</Box>
+    </SceneLayer>
+  </>
 }
 
 function OtherDiagram({ payload }: SceneProps<string>) {
@@ -78,10 +86,18 @@ describe('presentation chrome and scene host', () => {
 
     const inserted = { ...steps[1], id: 'inserted', title: 'Inserted' }
     app.rerender(<Presentation steps={[steps[3], inserted, steps[0]]} title="Test presentation" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Step 2: Inserted' }))
-    expect(root.querySelector('[data-presentation-number]')?.textContent).toBe('2 / 3')
-    expect(screen.getByRole('heading', { name: 'Inserted' })).toBeTruthy()
-    expect(screen.getByText('Caption two')).toBeTruthy()
+    for (const [index, title, caption] of [
+      [1, 'Last', 'Caption four'],
+      [2, 'Inserted', 'Caption two'],
+      [3, 'First', 'Caption one'],
+    ] as const) {
+      const control = screen.getByRole('button', { name: `Step ${index}: ${title}` })
+      fireEvent.click(control)
+      expect(control.getAttribute('aria-current')).toBe('step')
+      expect(root.querySelector('[data-presentation-number]')?.textContent).toBe(`${index} / 3`)
+      expect(screen.getByRole('heading', { name: title })).toBeTruthy()
+      expect(screen.getByText(caption)).toBeTruthy()
+    }
   })
 
   it('keeps a grouped scene mounted, including the original entity and stacking geometry', () => {
@@ -95,13 +111,25 @@ describe('presentation chrome and scene host', () => {
     expect(anchor.closest('[data-presentation-appear]')).toBeNull()
     expect(mount).toHaveBeenCalledTimes(1)
 
-    key('ArrowRight')
-    expect(mount).toHaveBeenCalledTimes(2)
-    expect(root.querySelectorAll('[data-presentation-scene]').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('C')).not.toBe(anchor)
-    key('ArrowRight')
-    expect(mount).toHaveBeenCalledTimes(3)
-    expect(screen.getByText('D')).toBeTruthy()
+    const scene = '[data-presentation-scene]'
+    expect(root.querySelectorAll(scene)).toHaveLength(1)
+    const presence = (element: Element) => element.querySelector('[data-scene-present]')?.getAttribute('data-scene-present')
+    expect(presence(anchor.closest(scene)!)).toBe('true')
+
+    let outgoing = anchor
+    for (const [title, mountCount] of [['C', 2], ['D', 3]] as const) {
+      const oldScene = outgoing.closest(scene)!
+      key('ArrowRight')
+      const incoming = screen.getByText(title)
+      const newScene = incoming.closest(scene)!
+      expect(mount).toHaveBeenCalledTimes(mountCount)
+      expect(root.contains(oldScene)).toBe(true)
+      expect(newScene).not.toBe(oldScene)
+      expect(presence(oldScene)).toBe('false')
+      expect(presence(newScene)).toBe('true')
+      expect(root.querySelectorAll('[data-scene-present="true"]')).toHaveLength(1)
+      outgoing = incoming
+    }
   })
 
   it('exposes unstyled hooks, class and style pass-through, attribution, and optional branding', () => {

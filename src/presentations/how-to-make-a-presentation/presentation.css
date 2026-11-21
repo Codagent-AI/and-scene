@@ -162,11 +162,12 @@
 }
 
 .build-diagram .participant-skill {
+  width: 218px;
   background: var(--mint);
   color: var(--jade);
 }
 
-.build-diagram .participant strong { font: 700 23px/1.15 Georgia, serif; }
+.build-diagram .participant strong { font: 700 23px/1.15 Georgia, serif; white-space: nowrap; }
 .build-diagram .participant span { font: 600 15px/1.2 system-ui, sans-serif; }
 
 .build-diagram .diagram-label {
@@ -190,12 +191,12 @@
   content: "";
 }
 
-.build-diagram .morph { width: 148px; text-align: center; }
+.build-diagram .morph { width: 176px; text-align: center; white-space: nowrap; }
 .build-diagram .morph::after {
   position: absolute;
   top: 100%;
   left: 50%;
-  height: 31px;
+  height: 36px;
   border-inline-start: 1px dashed var(--jade);
   content: "";
 }
@@ -215,18 +216,24 @@
 .build-diagram .step-card {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
   width: 116px;
-  height: 67px;
+  height: 72px;
   justify-content: center;
-  padding: 6px 8px;
+  padding: 6px 5px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--panel);
 }
 
 .build-diagram .step-card strong { font: 700 21px/1.15 Georgia, serif; }
-.build-diagram .step-card > span { font: 600 15px/1.2 system-ui, sans-serif; }
+.build-diagram .step-card > span { font: 600 14px/1.1 system-ui, sans-serif; }
+.build-diagram .edited {
+  inset: 100% auto auto 7px;
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
 .build-diagram .ghost { border-style: dashed; border-color: var(--muted); color: var(--muted); }
 .build-diagram .verify-node { color: var(--jade); background: var(--mint); border-color: var(--jade); }
 .build-diagram .pass-check { color: var(--jade); font: 800 16px/1 system-ui, sans-serif; }
@@ -234,7 +241,7 @@
 .build-diagram .scene-socket {
   display: grid;
   gap: 4px;
-  width: 190px;
+  width: 222px;
   padding: 9px 12px;
   border: 1px solid var(--jade);
   border-radius: 6px;
@@ -258,7 +265,7 @@
 
 .build-diagram .reveal-frame {
   width: 818px;
-  height: 332px;
+  height: 344px;
   border: 2px solid var(--rust);
   border-radius: 12px;
   pointer-events: none;

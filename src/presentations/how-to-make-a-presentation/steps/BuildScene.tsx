@@ -39,12 +39,14 @@ export function BuildScene({ payload: beat }: SceneProps<number>) {
     {cards.map(({ x, name, detail, first }) => beat >= first &&
       <Box key={name} id={entity(name)} enter className="step-card" style={at(x, 200)}>
         <strong>{name}</strong><span>{detail}</span>
+        {beat >= 8 && name === 'Step B' && <Emphasis id={entity('edited')} enter
+          className="diagram-label edited">Edited</Emphasis>}
       </Box>)}
     {links.map(({ x, name, first }) => beat >= first &&
       <Arrow key={name} id={entity(name)} enter className="diagram-line"
         style={at(x, 225)} width={23} height={14} path="M 1 7 H 22" />)}
     {beat >= 4 && <Label key="morph" id={entity('morph')} enter
-      className="diagram-label morph" style={at(155, 166)}>Position · label</Label>}
+      className="diagram-label morph" style={at(141, 164)}>Position · label</Label>}
     {beat >= 5 && <Box key="ghost" id={entity('ghost')} enter
       className="step-card ghost" style={at(529, 200)}><strong>Step …</strong><span>Unspecified</span></Box>}
     {beat >= 5 && <SymbolChip key="depth" id={entity('depth')} enter
@@ -60,12 +62,10 @@ export function BuildScene({ payload: beat }: SceneProps<number>) {
       </motion.span></strong><span>Build + render</span>
     </Box>}
     {beat >= 8 && <Arrow key="modify-arc" id={entity('modify-arc')} enter
-      className="diagram-line modify-line" style={at(303, 111)} width={284} height={85}
-      path="M 282 2 C 264 53 98 33 14 83" />}
+      className="diagram-line modify-line" style={at(303, 111)} width={284} height={88}
+      path="M 282 2 C 264 53 98 33 14 87" />}
     {beat >= 8 && <Label key="modify" id={entity('modify')} enter
       className="diagram-label modify" style={at(420, 146)}>Request an edit</Label>}
-    {beat >= 8 && <Emphasis key="edited" id={entity('edited')} enter
-      className="diagram-label edited" style={at(274, 274)}>Edited</Emphasis>}
     {beat >= 9 && <Frame key="reveal" id={entity('reveal')} enter
       className="reveal-frame" style={at(31, 23)}>
       <span>Made exactly this way</span>

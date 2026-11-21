@@ -29,14 +29,19 @@ Step/Scene contract, stage and morphs, modes and chrome, and fixed-canvas
 scaling. Detect behavior and capabilities. File names, formatting, and extra
 dependencies can differ from the templates.
 
-Use an existing presentation app if its three anchors identify it. For a
-standalone project or an empty directory, target the project root. For a
-monorepo, use a self-contained app under the root's `presentations/` directory.
-Look for workspace settings in package.json, a pnpm workspace declaration, or
-a workspace-oriented `packages/` or `apps/` layout. Reuse an existing
-presentation app in that location if present. In a non-empty project that
-needs scaffolding, state the resolved target and what you will add, then wait
-for confirmation before writing.
+Resolve the target before classifying its anchors. If you are already inside a
+presentation app with all three anchors, use that app. Otherwise, target the
+root of a standalone or empty project. For a monorepo, target a self-contained
+app under the monorepo's `presentations/` directory. Workspace settings in
+package.json, a pnpm workspace declaration, or a workspace-oriented
+`packages/` or `apps/` layout can identify a monorepo.
+
+Count anchors in the resolved app only. A build at the monorepo root does not
+count toward the `presentations/` app. If that app does not yet exist, use the
+complete bootstrap there and preserve the root build and unrelated files. If
+the nested app is partial, fill only its missing anchors inside that app.
+In a non-empty project that needs scaffolding, state the resolved target and
+what you will add, then wait for confirmation before writing.
 
 Resolve `templates/bootstrap/` and `templates/presentation/` from this
 `SKILL.md` directory, independent of the user's working directory. If using
@@ -48,7 +53,7 @@ path to print both absolute template paths.
 - With no anchors in an empty target, copy the bootstrap tree into the target.
   In a populated unscaffolded target, integrate those same three anchors while
   preserving unrelated files and settings.
-- In a partial app, copy the scene kit only if it is missing. Add the registry
+- In a partial target app, copy the scene kit only if it is missing. Add the registry
   and minimal route integration only if the index anchor is missing. Add or
   extend build files only as needed for a missing build anchor. Preserve
   working anchors and unrelated monorepo content. The bootstrap's registered

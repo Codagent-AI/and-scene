@@ -6,6 +6,8 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 import { promisify } from 'node:util'
+import { advance, collectErrors, DESKTOP, openPresentation, scene, SETTLE_MS, withPage, withPreview } from '../scripts/browser.mjs'
+import { visualWarnings } from '../scripts/visual-warnings.mjs'
 
 const exec = promisify(execFile)
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -111,12 +113,20 @@ test('INT-002 screenshot helper emits settled artifacts and advisory warnings', 
   await mkdir(dirname(fixture), { recursive: true })
   await writeFile(fixture, `
     import { useEffect, useState } from 'react'
+    import { createPortal } from 'react-dom'
     import { Presentation, SceneLayer } from '../../presentation-kit'
     import type { SceneProps, Step } from '../../presentation-kit'
 
+    const targets = [
+      ['caption', '[data-presentation-caption] [data-presentation-text]'],
+      ['progress', '[data-presentation-progress-step][aria-current]'],
+      ['table of contents', '[data-presentation-toc-entry][aria-current]'],
+      ['navigation', '[data-presentation-next]'],
+    ]
     let firstScale: string | undefined
     function Diagram({ payload }: SceneProps<number>) {
       const [settled, setSettled] = useState(false)
+      const [overlays, setOverlays] = useState<{ name: string; left: number; top: number }[]>([])
       useEffect(() => {
         const timer = setTimeout(() => {
           const scale = document.querySelector<HTMLElement>('[data-presentation-fit]')?.dataset.scale
@@ -124,23 +134,35 @@ test('INT-002 screenshot helper emits settled artifacts and advisory warnings', 
             console.error('Canvas fit changed with step chrome: ' + firstScale + ' -> ' + scale)
           }
           firstScale ??= scale
+          if (payload === 2) {
+            setOverlays(targets.map(([name, selector]) => {
+              const rect = document.querySelector(selector)!.getBoundingClientRect()
+              return { name, left: rect.left + 2, top: rect.top + 1 }
+            }))
+          }
           setSettled(true)
         }, 240)
         return () => clearTimeout(timer)
-      }, [])
-      return <SceneLayer>
-        {payload === 2 && settled && <div>
-          <span style={{ position: 'absolute', left: 80, top: 30 }}>Unmarked collision A</span>
-          <span style={{ position: 'absolute', left: 83, top: 30 }}>Unmarked collision B</span>
-        </div>}
-        {payload === 3 && <div data-presentation-allow-overlap="">
-          <span style={{ position: 'absolute', left: 80, top: 30 }}>Allowed collision A</span>
-          <span style={{ position: 'absolute', left: 83, top: 30 }}>Allowed collision B</span>
-        </div>}
-      </SceneLayer>
+      }, [payload])
+      return <>
+        {overlays.map(({ name, left, top }) => createPortal(
+          <span className="fixture-chrome-collision" style={{ position: 'fixed', left, top }}>Collision with {name}</span>,
+          document.querySelector('[data-presentation]')!, name,
+        ))}
+        <SceneLayer>
+          {payload === 2 && settled && <div>
+            <span style={{ position: 'absolute', left: 80, top: 30 }}>Unmarked collision A</span>
+            <span style={{ position: 'absolute', left: 83, top: 30 }}>Unmarked collision B</span>
+          </div>}
+          {payload === 3 && <div data-presentation-allow-overlap="">
+            <span style={{ position: 'absolute', left: 80, top: 30 }}>Allowed collision A</span>
+            <span style={{ position: 'absolute', left: 83, top: 30 }}>Allowed collision B</span>
+          </div>}
+        </SceneLayer>
+      </>
     }
 
-    const steps: Step<number>[] = [1, 2, 3].map(number => ({
+    const steps: Step<number>[] = [1, 2, 3, 4].map(number => ({
       id: String(number), era: 'Era ' + number, title: 'Step ' + number,
       caption: number === 2 ? 'A longer caption wraps on a shorter stage. '.repeat(10) : 'A short caption.',
       payload: number, Scene: Diagram,
@@ -149,9 +171,12 @@ test('INT-002 screenshot helper emits settled artifacts and advisory warnings', 
     export default function Talk() {
       return <><style>{\`
         [data-presentation] { block-size: 420px; }
+        [data-presentation]:not([data-step-index="1"]) .fixture-chrome-collision { visibility: hidden; }
         [data-presentation-attribution] { line-height: 24px; }
         [data-step-index="1"] [data-presentation-attribution] { font-size: 8px; }
         [data-step-index="2"] [data-presentation-attribution] { visibility: hidden; }
+        [data-step-index="3"] [data-presentation-attribution] { color: #204c35; font-size: 14px; }
+        [data-step-index="3"] [data-presentation-active="true"] { color: white; background: #204c35; }
       \`}</style><Presentation steps={steps} title="Inspection fixture" /></>
     }
   `)
@@ -161,7 +186,7 @@ test('INT-002 screenshot helper emits settled artifacts and advisory warnings', 
   assert.equal(inspection.code, 0)
   const dir = join(cwd, 'artifacts/presentation-inspection/inspection-fixture/1440x900')
   const shots = (await readdir(dir)).sort()
-  assert.deepEqual(shots, ['step-01.png', 'step-02.png', 'step-03.png'])
+  assert.deepEqual(shots, ['step-01.png', 'step-02.png', 'step-03.png', 'step-04.png'])
   for (const shot of shots) {
     const content = await readFile(join(dir, shot))
     assert.equal(content.subarray(1, 4).toString(), 'PNG')
@@ -170,6 +195,20 @@ test('INT-002 screenshot helper emits settled artifacts and advisory warnings', 
   }
   assert.match(inspection.output, /Warning at step 2: overlap between "Unmarked collision A" and "Unmarked collision B"/)
   assert.doesNotMatch(inspection.output, /Allowed collision [AB]/)
+  const warnings = inspection.output.split('\n').filter(line => line.startsWith('Warning at step '))
+  const overlapWarnings = warnings.filter(line => line.startsWith('Warning at step 2: overlap between'))
+  for (const [name, chrome] of [
+    ['caption', 'A longer caption wraps'],
+    ['progress', '"Step 2: Step 2"'],
+    ['table of contents', '"Era 2"'],
+    ['navigation', '"Next"'],
+  ]) {
+    assert.ok(overlapWarnings.some(line => line.includes(`"Collision with ${name}"`) && line.includes(chrome)),
+      `Expected the overlap detector to name the ${name} collision and its chrome target`)
+  }
+  assert.ok(warnings.every(line => !line.startsWith('Warning at step 4:')),
+    'The distinct active controls and polished attribution should produce no warnings')
+  t.diagnostic('Four chrome collision targets warned, the marked pair was exempt, and the polished fourth step had no warnings.')
   assert.match(inspection.output, /Warning at step 2: indistinct active progress indicator/)
   assert.match(inspection.output, /Warning at step 2: indistinct active table of contents entry/)
   assert.match(inspection.output, /Warning at step 1: undersized or browser-default attribution; style \[data-presentation-attribution\]/)
@@ -177,6 +216,60 @@ test('INT-002 screenshot helper emits settled artifacts and advisory warnings', 
   assert.match(inspection.output, /Warning at step 3: missing visible attribution; style \[data-presentation-attribution\]/)
   await checkPreviewStopped(inspection.output)
 })
+
+function referenceGeometry(root) {
+  const problems = []
+  const get = name => root.querySelector(`[data-presentation-entity="how-to-make-a-presentation:${name}"]`)
+  const bounds = element => element.getBoundingClientRect()
+  const inside = (outer, inner) => inner.left > outer.left && inner.right < outer.right &&
+    inner.top > outer.top && inner.bottom < outer.bottom
+  const lines = element => {
+    const range = root.ownerDocument.createRange()
+    range.selectNodeContents(element)
+    return [...range.getClientRects()]
+  }
+
+  const skill = get('skill')
+  if (skill) {
+    for (const selector of ['strong', 'span']) {
+      const line = lines(skill.querySelector(selector))
+      if (line.length !== 1 || !inside(bounds(skill), line[0])) problems.push(`Skill ${selector} does not fit on one line inside its node`)
+    }
+  }
+  const morph = get('morph')
+  if (morph && (lines(morph).length !== 1 || bounds(morph).bottom >= bounds(get('Step A')).top)) {
+    problems.push('The morph annotation wraps or touches the first card')
+  }
+
+  for (const detail of root.querySelectorAll('.step-card > span')) {
+    if (!lines(detail).every(line => inside(bounds(detail.parentElement), line))) {
+      problems.push('A step card detail crosses its border')
+    }
+  }
+
+  const arc = get('modify-arc')
+  if (arc) {
+    const card = get('Step B')
+    const badge = get('edited')
+    const path = arc.querySelector('svg > path')
+    const end = path.getPointAtLength(path.getTotalLength()).matrixTransform(path.getScreenCTM())
+    const cardRect = bounds(card)
+    if (!badge || !card.contains(badge) || Math.abs(bounds(badge).top - cardRect.bottom) > 2 ||
+        end.x <= cardRect.left || end.x >= cardRect.right || Math.abs(end.y - cardRect.top) > 3) {
+      problems.push('The edit arc and badge must both attach to Step B')
+    }
+  }
+
+  const reveal = get('reveal')
+  if (reveal) {
+    for (const entity of root.querySelectorAll('[data-presentation-entity]')) {
+      if (entity !== reveal && !inside(bounds(reveal), bounds(entity))) {
+        problems.push(`Reveal frame does not enclose ${entity.dataset.presentationEntity}`)
+      }
+    }
+  }
+  return problems
+}
 
 test('E2E-001 reference presentation passes production verification', async t => {
   const result = await run(t, root, 'npm', 'run', 'verify')
@@ -186,6 +279,24 @@ test('E2E-001 reference presentation passes production verification', async t =>
   const indices = [...result.output.matchAll(/Verified step \d+ \(index (\d+)\)/g)].map(match => Number(match[1]))
   assert.deepEqual(indices, [0, 1, 2, 3, 4, 5, 6, 7, 8])
   await checkPreviewStopped(result.output)
+  await withPreview(async url => {
+    for (const viewport of [DESKTOP, { width: 390, height: 844 }]) {
+      await withPage(viewport, async page => {
+        const errors = collectErrors(page)
+        const count = await openPresentation(page, url, 'how-to-make-a-presentation')
+        assert.equal(count, 9)
+        for (let index = 0; index < count; index++) {
+          if (index) await advance(page, index)
+          await page.waitForTimeout(SETTLE_MS)
+          const label = `${viewport.width}x${viewport.height}, step ${index + 1}`
+          assert.deepEqual(await scene(page).evaluate(referenceGeometry), [], label)
+          assert.deepEqual(await scene(page).evaluate(visualWarnings), [], label)
+        }
+        assert.deepEqual(errors, [])
+      })
+      t.diagnostic(`All nine steps met layout bounds and emitted no advisory warnings at ${viewport.width}x${viewport.height}.`)
+    }
+  })
 })
 
 test('E2E-002 verification failures are actionable and preview is cleaned up', async t => {

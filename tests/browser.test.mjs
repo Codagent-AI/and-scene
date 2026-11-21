@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
 import { reference } from '../scripts/reference.mjs'
+import { assertStyleNeutralSource } from './style-contract.mjs'
 
 const source = path.resolve(import.meta.dirname, '..')
 const bootstrap = path.join(source, 'skills/presentation/templates/bootstrap')
@@ -78,8 +79,17 @@ test('INT-001 materialized bootstrap is complete and style-neutral', { timeout: 
     assert.doesNotMatch(dependency, /tailwind|bootstrap|styled-components/)
   }
   assert.doesNotMatch(await readFile(path.join(app, 'vite.config.ts'), 'utf8'), /tailwind/i)
-  const baseStyle = await readFile(path.join(app, 'src/index.css'), 'utf8')
-  assert.match(baseStyle, /^body\s*\{\s*margin:\s*0;\s*\}\s*$/)
+  const src = path.join(app, 'src')
+  const files = await readdir(src, { recursive: true, withFileTypes: true })
+  const paths = files.filter(file => file.isFile())
+    .map(file => path.relative(src, path.join(file.parentPath, file.name)))
+  assert.deepEqual(paths.filter(file => /\.(css|less|sass|scss|styl)$/i.test(file)), ['index.css'])
+  assert.match(await readFile(path.join(src, 'index.css'), 'utf8'), /^body\s*\{\s*margin:\s*0;\s*\}\s*$/)
+  const sources = paths.filter(file => /\.[jt]sx?$/.test(file))
+  for (const file of sources) {
+    assertStyleNeutralSource(file, await readFile(path.join(src, file), 'utf8'))
+  }
+  console.log(`INT-001: checked ${sources.length} bootstrap and kit source files for geometry-only inline defaults and no visual stylesheets.`)
   await compareDirectories(path.join(source, 'src/presentation-kit'), path.join(app, 'src/presentation-kit'))
   await compareDirectories(path.join(source, 'scripts'), path.join(app, 'scripts'))
   const lint = await run(outside, ['--prefix', app, 'run', 'lint'])

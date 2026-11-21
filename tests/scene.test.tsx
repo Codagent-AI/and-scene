@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
-import { Appear, Box, Label, Presentation, SceneLayer } from '../src/presentation-kit'
+import { Appear, Arrow, Box, Emphasis, Frame, Label, Presentation, SceneLayer, SymbolChip } from '../src/presentation-kit'
 import type { SceneProps, Step } from '../src/presentation-kit'
 import { ENTER_DELAY, LAYOUT_T } from '../src/presentation-kit/constants'
+import { assertStyleNeutralSource, structuralStyles } from './style-contract.mjs'
 
 vi.mock('motion/react', async importOriginal => {
   const original = await importOriginal<typeof import('motion/react')>()
@@ -86,23 +87,79 @@ test('grouped scene preserves entities and stacking, schedules entry and animate
   await waitFor(() => expect(scene!.isConnected).toBe(false))
 })
 
-test('primitives expose author hooks, literal geometry and no visual fallback', () => {
+const primitives = [
+  ['arrow', Arrow], ['box', Box], ['emphasis', Emphasis], ['frame', Frame],
+  ['label', Label], ['symbol-chip', SymbolChip],
+] as const
+
+test('all node primitives pass through author hooks and literal coordinates', () => {
   const { container } = render(
-    <SceneLayer className="author-layer">
-      <Box id="stable-box" className="author-box" style={{ position: 'absolute', top: 20, left: 42 }}
-        data-presentation-example="caller">Author content</Box>
+    <SceneLayer className="author-layer" data-presentation-example="layer" style={{ width: 250 }}>
+      <Appear className="author-entry" data-presentation-example="entry" style={{ top: 5 }}>
+        {primitives.map(([kind, Primitive]) => (
+          <Primitive key={kind} id={`stable-${kind}`} className="author-node"
+            style={{ position: 'absolute', top: 20, left: 42, color: 'rebeccapurple' }}
+            data-presentation-example={kind}>Author content</Primitive>
+        ))}
+      </Appear>
     </SceneLayer>,
   )
-  const node = screen.getByText('Author content')
-  expect(node.className).toBe('author-box')
-  expect(node.getAttribute('data-presentation-example')).toBe('caller')
-  expect(node.getAttribute('data-presentation-node')).toBe('box')
-  expect(node.getAttribute('data-presentation-entity')).toBe('stable-box')
-  expect(node.style.left).toBe('42px')
-  expect(node.style.top).toBe('20px')
-  expect(node.style.color).toBe('')
-  expect(node.style.fontFamily).toBe('')
-  expect(node.style.border).toBe('')
-  expect(node.style.boxShadow).toBe('')
-  expect(container.querySelector('[data-presentation-layer]')?.className).toBe('author-layer')
+
+  for (const [kind] of primitives) {
+    const node = container.querySelector<HTMLElement>(`[data-presentation-node="${kind}"]`)!
+    expect(node.className).toBe('author-node')
+    expect(node.getAttribute('data-presentation-example')).toBe(kind)
+    expect(node.getAttribute('data-presentation-entity')).toBe(`stable-${kind}`)
+    expect(node.style.left).toBe('42px')
+    expect(node.style.top).toBe('20px')
+    expect(node.style.color).toBe('rebeccapurple')
+  }
+  const layer = container.querySelector<HTMLElement>('[data-presentation-layer]')!
+  expect(layer.className).toBe('author-layer')
+  expect(layer.getAttribute('data-presentation-example')).toBe('layer')
+  expect(layer.style.width).toBe('250px')
+  const entry = container.querySelector<HTMLElement>('[data-presentation-appear]')!
+  expect(entry.className).toBe('author-entry')
+  expect(entry.getAttribute('data-presentation-example')).toBe('entry')
+  expect(entry.style.top).toBe('5px')
+})
+
+function UnstyledDiagram() {
+  return <SceneLayer><Appear>
+    {primitives.map(([kind, Primitive]) => <Primitive key={kind} id={kind}>{kind}</Primitive>)}
+  </Appear></SceneLayer>
+}
+
+test('unstyled presentation chrome and every node supply only geometry and motion styles', () => {
+  const unstyled = [{ id: 'one', era: 'Intro', title: 'First', caption: 'Caption', Scene: UnstyledDiagram }]
+  const { container } = render(<Presentation title="Unstyled" steps={unstyled} />)
+
+  const hooks = [
+    'header', 'marker', 'title', 'body', 'toc', 'era', 'stage', 'canvas', 'scene', 'footer', 'caption',
+    'navigation', 'previous', 'progress', 'progress-step', 'next', 'attribution', 'layer', 'appear',
+  ]
+  for (const hook of hooks) {
+    expect(container.querySelector(`[data-presentation-${hook}]`), hook).not.toBeNull()
+  }
+  expect([...container.querySelectorAll('[data-presentation-node]')].map(node => node.getAttribute('data-presentation-node')))
+    .toEqual(primitives.map(([kind]) => kind))
+
+  // The CSSOM expands white-space's shorthand and Motion supplies opacity.
+  const allowed = new Set([...structuralStyles, 'whiteSpaceCollapse', 'whiteSpaceTrim', 'textWrapMode', 'opacity']
+    .map(key => key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)))
+  const unexpected = [...container.querySelectorAll<HTMLElement>('*')].flatMap(node =>
+    Array.from(node.style).filter(property => !allowed.has(property)).map(property => `${node.tagName}: ${property}`),
+  )
+  expect(unexpected).toEqual([])
+})
+
+test.each(['color', 'fontFamily', 'border', 'boxShadow', 'background', 'padding', "'--theme'"])(
+  'style contract rejects the inline visual default %s',
+  property => expect(() => assertStyleNeutralSource('Fixture.tsx', `const node = <div style={{ ${property}: 'value' }} />`))
+    .toThrow('visual inline default'),
+)
+
+test('style contract rejects embedded and imported presentation styles', () => {
+  expect(() => assertStyleNeutralSource('Fixture.tsx', 'const node = <style>{css}</style>')).toThrow('embedded CSS')
+  expect(() => assertStyleNeutralSource('Fixture.tsx', "import './theme.css'")).toThrow('unexpected stylesheet')
 })

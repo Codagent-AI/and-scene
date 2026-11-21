@@ -192,8 +192,9 @@
 .sample-scene {
   isolation: isolate;
   color: var(--ink);
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 730;
+  line-height: 1.02;
   letter-spacing: -0.035em;
 }
 
@@ -244,7 +245,6 @@
   border-radius: 6px;
   color: var(--accent);
   background: #fff5ea;
-  font-size: 21px;
 }
 
 .sample-scene [data-presentation-symbol-chip] svg {
@@ -290,7 +290,6 @@
 .sample-scene .scene-morph [data-presentation-label],
 .sample-scene .scene-modifyLabel [data-presentation-label] {
   color: var(--muted);
-  font: 700 18px/1.1 ui-monospace, monospace;
   letter-spacing: -0.045em;
 }
 
@@ -309,43 +308,31 @@
 .sample-scene .card-detail {
   display: block;
   color: var(--muted);
-  font: 650 18px/1.19 ui-monospace, monospace;
   letter-spacing: -0.045em;
-}
-
-.sample-scene .scene-second,
-.sample-scene .scene-third {
-  font-size: 21px;
 }
 
 .sample-scene .scene-ghost [data-presentation-box] {
   border: 1.5px dashed #998c73;
   color: #655c4d;
   background: #f8f4e9;
-  font-size: 22px;
 }
 
 .sample-scene .scene-kit [data-presentation-box] {
   border-color: #c1b3cd;
   color: #483657;
   background: #eee6f2;
-  font-size: 22px;
 }
 
 .sample-scene .scene-verify [data-presentation-box] {
   border-color: #adbf9f;
   color: var(--green);
   background: #edf1e3;
-  font-size: 20px;
 }
 
-.sample-scene .verify-detail {
-  font-size: 12px;
-  letter-spacing: 0;
-}
-
-.sample-scene .scene-verify svg {
-  margin-top: 3px;
+.sample-scene .verify-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .sample-scene .scene-modify [data-presentation-arrow] {
@@ -384,7 +371,6 @@
   border-radius: 4px;
   color: var(--accent);
   background: #fff5ea;
-  font-size: 19px;
 }
 
 @keyframes sample-reveal {

@@ -1,7 +1,13 @@
+import { readFileSync } from 'node:fs'
+import { JSDOM } from 'jsdom'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { entities, layoutId } from '../src/presentations/how-to-make-a-presentation/entities'
 import type { EntityId } from '../src/presentations/how-to-make-a-presentation/entities'
 import { steps } from '../src/presentations/how-to-make-a-presentation/steps'
+import { DESIGN_H, DESIGN_W } from '../src/presentation-kit'
+import { fitScale } from '../src/presentation-kit/useFitScale'
 
 const expectedBeats: EntityId[][] = [
   ['you', 'prompt'],
@@ -51,5 +57,34 @@ describe('reference scene continuity', () => {
     expect(entities.verify.left).toBeGreaterThan(entities.ghost.left + entities.ghost.width)
     expect(entities.reveal.left).toBeLessThan(entities.tray.left)
     expect(entities.reveal.left + entities.reveal.width).toBeGreaterThan(entities.tray.left + entities.tray.width)
+  })
+
+  it('keeps every accumulated diagram label at least 13px after narrow fit scaling', () => {
+    const stepIndex = steps.length - 1
+    const { Scene, payload } = steps[stepIndex]
+    const scene = renderToStaticMarkup(createElement(Scene, { payload, stepIndex }))
+    const stylesheet = readFileSync(
+      new URL('../src/presentations/how-to-make-a-presentation/presentation.css', import.meta.url),
+      'utf8',
+    )
+    const { window } = new JSDOM(`<style>${stylesheet}</style>${scene}`)
+    // The 390px viewport leaves approximately 379px after the sample's stage margins.
+    const scale = fitScale(379, DESIGN_H, DESIGN_W, DESIGN_H)
+    const labels: string[] = []
+
+    try {
+      const root = window.document.querySelector('.sample-scene')!
+      const text = window.document.createTreeWalker(root, window.NodeFilter.SHOW_TEXT)
+      for (let node = text.nextNode(); node; node = text.nextNode()) {
+        const label = node.textContent?.trim()
+        if (!label) continue
+        labels.push(label)
+        const fontSize = Number.parseFloat(window.getComputedStyle(node.parentElement!).fontSize)
+        expect(fontSize * scale, label).toBeGreaterThanOrEqual(13)
+      }
+      expect(labels).toEqual(expect.arrayContaining(['A topic', 'Caption', 'Build +', 'Render', 'This scene']))
+    } finally {
+      window.close()
+    }
   })
 })

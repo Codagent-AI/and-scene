@@ -39,21 +39,21 @@ const diagrams: Record<EntityId, ReactNode> = {
       <span className="card-detail">Visual</span>
     </Box>
   ),
-  firstLink: <ArrowLine width={40} />,
+  firstLink: <ArrowLine width={entities.firstLink.width} />,
   morph: label('morph'),
-  second: <Box>Next beat</Box>,
-  secondLink: <ArrowLine width={23} />,
-  third: <Box>New state</Box>,
-  ghostLink: <ArrowLine width={23} />,
+  second: <Box>Next</Box>,
+  secondLink: <ArrowLine width={entities.secondLink.width} />,
+  third: <Box>State</Box>,
+  ghostLink: <ArrowLine width={entities.ghostLink.width} />,
   ghost: <Box>More?</Box>,
   depth: <SymbolChip>Partial ↔ Full</SymbolChip>,
   kit: <Box icon={Plug}>Shared scene kit</Box>,
-  checkLink: <ArrowLine width={24} />,
+  checkLink: <ArrowLine width={entities.checkLink.width} />,
   verify: (
     <Box>
-      <span>Verify</span>
-      <span className="verify-detail">Build + render</span>
-      <BadgeCheck aria-label="Passed" />
+      <span className="verify-status">Verify <BadgeCheck aria-label="Passed" /></span>
+      <span>Build +</span>
+      <span>Render</span>
     </Box>
   ),
   modify: (

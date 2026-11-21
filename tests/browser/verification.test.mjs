@@ -1,7 +1,11 @@
+/* global document, getComputedStyle, NodeFilter */
+
 import assert from 'node:assert/strict'
 import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { test } from 'node:test'
+import { defaultSettleMs, openPresentation, waitForStep } from '../../scripts/presentation-page.mjs'
+import { withProductionPreview } from '../../scripts/production-preview.mjs'
 import { disposableProject, npmScript, repository } from './project.mjs'
 
 const sampleSlug = 'how-to-make-a-presentation'
@@ -29,6 +33,49 @@ test('E2E-001 reference presentation passes production verification', async (t) 
   assert.match(output, /Verification passed for how-to-make-a-presentation/)
   await assertPreviewStopped(url)
   t.diagnostic(output.trim())
+
+  await t.test('keeps reference diagram text readable and inside its entities at 390px', async () => {
+    await withProductionPreview(async (browser, baseUrl) => {
+      const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+      const { host } = await openPresentation(page, new URL(sampleSlug, baseUrl))
+      for (const [index, expected] of [[0, 'A topic'], [6, 'Build +'], [8, 'This scene']]) {
+        if (index > 0) await host.locator('[data-presentation-progress-item]').nth(index).click()
+        await waitForStep(page, index, defaultSettleMs)
+        const { canvasWidth, labels } = await page.locator('[data-presentation-canvas]').evaluate((canvas) => {
+          const canvasWidth = canvas.getBoundingClientRect().width
+          const scale = canvasWidth / canvas.offsetWidth
+          const primitives = canvas.querySelectorAll(
+            '[data-presentation-box], [data-presentation-label], [data-presentation-symbol-chip]',
+          )
+          const labels = Array.from(primitives).flatMap((label) => {
+            const bounds = label.getBoundingClientRect()
+            const textNodes = document.createTreeWalker(label, NodeFilter.SHOW_TEXT)
+            const range = document.createRange()
+            const results = []
+            for (let node = textNodes.nextNode(); node; node = textNodes.nextNode()) {
+              const text = node.textContent.trim()
+              if (!text) continue
+              range.selectNodeContents(node)
+              const rects = Array.from(range.getClientRects())
+              const fits = rects.length > 0 && rects.every((rect) =>
+                rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1 &&
+                rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1,
+              )
+              const fontSize = Number.parseFloat(getComputedStyle(node.parentElement).fontSize) * scale
+              results.push({ text, fontSize, fits })
+            }
+            return results
+          })
+          return { canvasWidth, labels }
+        })
+        assert.ok(canvasWidth > 0 && canvasWidth <= 390, `step ${index + 1} fits the viewport`)
+        assert.ok(labels.some(({ text }) => text === expected), `step ${index + 1} includes "${expected}"`)
+        for (const { text, fontSize, fits } of labels) {
+          assert.ok(fontSize >= 13 && fits, `step ${index + 1}: "${text}" is ${fontSize}px with fits=${fits}`)
+        }
+      }
+    })
+  })
 })
 
 async function createVerificationCopy(t) {

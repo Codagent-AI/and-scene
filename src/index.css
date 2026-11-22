@@ -1,0 +1,7 @@
+* { box-sizing: border-box; }
+body { margin: 0; }
+.landing { min-height: 100vh; background: #101b2b; color: #fff4df; padding: 10vw; font-family: Georgia, serif; }
+.landing h1 { font-size: clamp(44px, 7vw, 96px); font-weight: 400; letter-spacing: -.05em; }
+.landing p { font-family: system-ui, sans-serif; color: #aeb8c8; }
+.landing a { display: block; max-width: 600px; border-top: 1px solid #536075; padding: 24px 0; color: #edbd71; font: 20px system-ui; text-decoration: none; }
+.landing a span { float: right; }

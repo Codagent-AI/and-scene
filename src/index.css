@@ -1,0 +1,7 @@
+body { margin: 0; }
+.landing { min-height: 100dvh; box-sizing: border-box; padding: 12vh 10vw; background: #f3f0e8; color: #293e30; font-family: 'Segoe UI', sans-serif; }
+.landing > p:first-child { letter-spacing: .25em; font-size: 12px; }
+.landing h1 { font-weight: 500; font-size: clamp(40px, 8vw, 90px); letter-spacing: -.06em; margin: 45px 0 12px; }
+.landing nav { margin-top: 60px; }
+.landing a { display: block; max-width: 550px; border-block: 1px solid #b8c3ae; padding: 22px 0; color: inherit; text-decoration: none; }
+.landing a span { float: right; }

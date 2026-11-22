@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/contract.tsbuildinfo"
+  },
+  "include": ["src", "tests/contract.tsx"]
+}

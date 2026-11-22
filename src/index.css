@@ -1,0 +1,40 @@
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+.landing {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: #f5f3ec;
+  color: #252b29;
+  padding: 12vh 10vw;
+  font-family: 'Inter', sans-serif;
+}
+.landing > p {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #617066;
+}
+.landing h1 {
+  font:
+    400 clamp(42px, 7vw, 88px) 'Instrument Serif',
+    Georgia,
+    serif;
+  letter-spacing: -0.04em;
+  margin: 40px 0 60px;
+}
+.landing ul {
+  padding: 0;
+  list-style: none;
+}
+.landing li {
+  padding: 24px 0;
+  border-top: 1px solid #c9cec5;
+}
+.landing a {
+  color: #385c4b;
+  text-decoration: none;
+}

@@ -1,0 +1,27 @@
+body {
+  margin: 0;
+}
+.landing {
+  padding: 10vh 8vw;
+  background: #f4f1e9;
+  min-height: 80vh;
+  color: #24342f;
+  font-family: system-ui, sans-serif;
+}
+.landing h1 {
+  font-size: clamp(48px, 8vw, 100px);
+  letter-spacing: -0.06em;
+  margin: 35px 0;
+}
+.landing p {
+  max-width: 540px;
+  line-height: 1.6;
+}
+.landing ul {
+  list-style: none;
+  padding: 40px 0;
+}
+.landing a {
+  color: #315c48;
+  font-size: 22px;
+}

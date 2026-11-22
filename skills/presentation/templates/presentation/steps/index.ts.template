@@ -1,0 +1,2 @@
+import { step } from './01'
+export const STEPS = [step]

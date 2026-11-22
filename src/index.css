@@ -1,0 +1,7 @@
+/* Host styling only. Bootstrap intentionally omits this visual treatment. */
+body { margin: 0; }
+.landing { min-height: 100vh; box-sizing: border-box; padding: 9vw; background: #f5f2e9; color: #172b2c; font-family: system-ui, sans-serif; }
+.landing > p:first-child { font-size: 12px; letter-spacing: .15em; }
+.landing h1 { font: 600 clamp(40px, 7vw, 90px)/1.05 Georgia, serif; }
+.landing ol { padding: 20px; }
+.landing a { color: #17685b; font-size: 20px; line-height: 1.7; }

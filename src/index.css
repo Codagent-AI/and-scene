@@ -1,0 +1,7 @@
+body { margin: 0; }
+.landing { min-height: 100dvh; box-sizing: border-box; background: #141b20; color: #eee9db; font: 18px system-ui, sans-serif; padding: 10vh 8vw; }
+.landing > p:first-child { color: #eabc73; font-size: 12px; letter-spacing: .2em; }
+.landing h1 { font-size: clamp(36px, 7vw, 88px); font-weight: 500; letter-spacing: -.06em; margin-bottom: 20px; }
+.landing ul { list-style: none; padding: 40px 0; max-width: 650px; }
+.landing a { color: inherit; text-decoration: none; display: flex; justify-content: space-between; padding: 24px 0; border-top: 1px solid #526169; }
+.landing a:hover { color: #eabc73; }

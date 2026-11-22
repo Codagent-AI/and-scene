@@ -38,8 +38,9 @@ chrome-devtools-axi screenshot /tmp/and-scene.png
 ```
 
 Start with `snapshot` to inspect page structure, then use screenshots for visual
-composition. Inspect the first, last, and dense or visually important steps;
-also inspect a narrow viewport when the presentation is responsive-sensitive.
+composition. Inspect the first, last, and dense or visually important steps at
+a wide desktop viewport and at 1024 × 768, the smallest supported viewport;
+narrower viewports are out of scope.
 Use `chrome-devtools-axi --help` for the full command list. Do not invoke the
 underlying Chrome DevTools MCP server directly when AXI is available.
 
@@ -82,8 +83,8 @@ npm run inspect -- how-to-make-a-presentation
   are the verification gate; the repository has no hosted CI.
 
 Before reporting completion, run the full test, lint, build, and verify suite.
-Also inspect representative first, last, dense, and responsive-sensitive steps
-with AXI and the project-local screenshot helper.
+Also inspect representative first, last, and dense steps at 1440 × 900 and
+1024 × 768 with AXI and the project-local screenshot helper.
 
 ## Commit Messages
 

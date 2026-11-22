@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "workflow": "define-openspec-change",
+  "change_name": "show-step-in-tab-title",
+  "change_dir": "openspec/changes/show-step-in-tab-title",
+  "status": "complete",
+  "current_step": null,
+  "steps": {
+    "proposal": {
+      "started_at": "2026-11-11T01:02:09.924Z",
+      "completed_at": "2026-11-11T01:07:49.006Z"
+    },
+    "specs": {
+      "started_at": "2026-11-11T01:07:49.006Z",
+      "completed_at": "2026-11-11T01:09:52.312Z"
+    },
+    "design": {
+      "started_at": "2026-11-11T01:09:52.312Z",
+      "completed_at": "2026-11-11T01:12:10.529Z"
+    },
+    "test-plan": {
+      "started_at": "2026-11-11T01:12:10.529Z",
+      "completed_at": "2026-11-11T01:14:32.522Z"
+    },
+    "approach-review": {
+      "started_at": "2026-11-11T01:14:32.522Z",
+      "completed_at": "2026-11-11T01:21:40.796Z"
+    }
+  },
+  "starts": [
+    {
+      "at": "2026-11-11T01:02:09.924Z",
+      "lead": "claude",
+      "mode": "new",
+      "step": "proposal"
+    }
+  ],
+  "calls": [
+    {
+      "call_id": "call-11966771",
+      "step": "proposal",
+      "cli": "codex",
+      "effort": "high",
+      "status": "succeeded",
+      "working_tree": "unchanged",
+      "started_at": "2026-11-11T01:03:39.718Z",
+      "ended_at": "2026-11-11T01:05:23.673Z"
+    },
+    {
+      "call_id": "call-08d774be",
+      "step": "approach-review",
+      "cli": "codex",
+      "effort": "high",
+      "status": "succeeded",
+      "working_tree": "unchanged",
+      "started_at": "2026-11-11T01:15:40.478Z",
+      "ended_at": "2026-11-11T01:17:37.360Z"
+    }
+  ],
+  "created_at": "2026-11-11T01:02:09.924Z",
+  "updated_at": "2026-11-11T01:21:40.796Z",
+  "completed_at": "2026-11-11T01:21:40.796Z"
+}

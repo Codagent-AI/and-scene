@@ -28,6 +28,8 @@ The sample is one continuously evolving scene: a conversation row (**you** ↔ *
 
 <!-- deferred-to-design: per-step visual design — exact entity shapes, layout coordinates, layoutId namespace, colors, and motion timing — is settled in the design stage. The steps, titles, captions, and scene intent above are fixed. -->
 
+The sample SHALL have a deliberate visual identity chosen for its subject: its palette, background, typography, and the treatment of its scene elements, applied consistently across steps and modes. It SHALL NOT settle for a generic default look, and it SHALL NOT use a cream or off-white background with forest green and terracotta or rust accents.
+
 #### Scenario: Sample exists and matches the outline
 - **WHEN** verification runs
 - **THEN** it confirms the committed reference sample presentation exists, is registered/reachable, and implements the nine steps above in order
@@ -35,6 +37,11 @@ The sample is one continuously evolving scene: a conversation row (**you** ↔ *
 #### Scenario: Missing sample fails
 - **WHEN** the reference sample is absent
 - **THEN** verification fails
+
+#### Scenario: Sample has its own visual identity
+- **WHEN** the reference sample is viewed
+- **THEN** its palette, background, typography, and scene elements follow one deliberate direction
+- **AND** it does not pair a cream or off-white background with forest green and terracotta or rust accents
 
 ### Requirement: Render verification
 Verification SHALL render the reference sample through all of its steps and fail if any step produces a runtime or console error. The render check runs the sample in a real browser against a production preview and steps through every step. The preview server and browser navigation SHALL use a deterministic IPv4 loopback address (`127.0.0.1`) so verification does not depend on how `localhost` resolves in the runtime environment. (Mechanism settled in design: `vite preview` + a Playwright/Chromium driver that enumerates steps via the chrome's step-count hook.)

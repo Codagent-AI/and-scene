@@ -130,7 +130,7 @@ Navigation SHALL clamp at both ends with no wrap-around.
 - **THEN** it stays on the last step
 
 ### Requirement: Fixed-canvas fit scaling
-The diagram SHALL be composed in a fixed design canvas and scaled uniformly to fit the available viewport, so the composition does not reflow and entity morphs stay clean across viewport sizes. The default design canvas SHALL be 880 × 380, with per-mode fit geometry for the browse and present layouts.
+The diagram SHALL be composed in a fixed design canvas and scaled uniformly to fit the available viewport, so the composition does not reflow and entity morphs stay clean across viewport sizes. The default design canvas SHALL be 880 × 380, with per-mode fit geometry for the browse and present layouts. Presentations SHALL support viewports 1024 × 768 and wider. Narrower viewports are out of scope; no requirement applies to them.
 
 #### Scenario: Uniform scaling on resize
 - **WHEN** the viewport size changes
@@ -139,3 +139,7 @@ The diagram SHALL be composed in a fixed design canvas and scaled uniformly to f
 #### Scenario: Default canvas dimensions
 - **WHEN** a presentation does not override the design canvas
 - **THEN** it uses the default dimensions of 880 × 380
+
+#### Scenario: Viewport below the supported range
+- **WHEN** the presentation is viewed at a viewport narrower than 1024 × 768
+- **THEN** no requirement of this capability applies to how it renders

@@ -1,0 +1,8 @@
+import { AnimatePresence } from 'motion/react'
+import { Box, SceneLayer } from '../../presentation-kit'
+import type { SceneProps } from '../../presentation-kit'
+import { entities } from './entities'
+export interface Payload { label: string; x: number }
+export function Scene({ payload }: SceneProps<Payload>) {
+  return <SceneLayer><AnimatePresence><Box key={entities.idea} id={entities.idea} style={{ position: 'absolute', left: payload.x, top: 100 }}>{payload.label}</Box></AnimatePresence></SceneLayer>
+}

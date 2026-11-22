@@ -16,10 +16,11 @@
     "jsx": "react-jsx",
 
     /* Linting */
+    "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "skills/presentation/scaffold.ts"]
+  "include": ["src", "tests/typed-contract.tsx"]
 }

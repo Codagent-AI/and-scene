@@ -1,0 +1,12 @@
+/* Host landing-page styling. Presentation appearance lives beside its scene. */
+body { margin: 0; }
+.landing { box-sizing: border-box; min-height: 100vh; background: #131916; color: #f5f1e8; padding: 42px max(24px, calc((100vw - 1040px) / 2)); font-family: 'Trebuchet MS', sans-serif; }
+.landing .wordmark { color: #f5f1e8; text-decoration: none; font-size: 25px; font-weight: bold; letter-spacing: -1px; }
+.wordmark span { color: #d5f675; margin-left: 8px; }
+.landing .eyebrow { margin-top: 92px; color: #d5f675; font-size: 12px; letter-spacing: 3px; }
+.landing h1 { margin: 20px 0; font-size: clamp(42px, 7vw, 84px); line-height: 1.06; letter-spacing: -4px; font-weight: 500; }
+.landing .intro { max-width: 500px; color: #aab5ac; line-height: 1.7; margin-bottom: 62px; }
+.presentation-link { border-top: 1px solid #455047; padding: 26px 0; display: flex; align-items: center; gap: 28px; color: #f5f1e8; text-decoration: none; font-size: 20px; }
+.presentation-link > :last-child { margin-left: auto; color: #d5f675; }
+.entry-number { color: #aab5ac; font-size: 13px; }
+.landing footer { margin-top: 56px; font-size: 12px; color: #aab5ac; }
